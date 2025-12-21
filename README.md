@@ -1,2 +1,2 @@
-# buzz
-Basic version of the Buzz website, mostly for requests!
+# Buzz
+Basic version of Melissa's Buzz website, mostly for requests!
