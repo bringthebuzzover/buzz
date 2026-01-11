@@ -29,7 +29,6 @@
   --shadow: 0 12px 40px rgba(0,0,0,0.15);
 
   --header-height: clamp(400px, 20vw, 290px);
-  --test-color: lime;
 }
 
 * {
@@ -39,6 +38,23 @@
 }
 
 body {
-  background: var(--test-color);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: var(--body);
+  color: var(--dark);
 }
 
+:root {
+  --__debug: 123px;
+}
+
+html::after {
+  content: "VARS LOADED";
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  background: lime;
+  color: black;
+  padding: 6px 10px;
+  font-weight: 700;
+  z-index: 999999;
+}
