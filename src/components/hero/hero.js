@@ -17,9 +17,13 @@ export default function Hero() {
 
       <div className="hero-content">
         <h1>
-          BRING YOUR BRAND
+          BRING YOUR
           <br />
-          TO OUR CAMPUS
+          BRAND
+          <br />
+          TO OUR 
+          <br />
+          CAMPUS
         </h1>
 
         <p className="tagline">BRING THE BUZZ OVER</p>
