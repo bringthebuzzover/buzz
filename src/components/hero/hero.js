@@ -1,4 +1,5 @@
 import "./hero.css";
+import { Link } from "react-router-dom";
 
 export default function Hero() {
   return (
@@ -28,7 +29,9 @@ export default function Hero() {
           college marketing, at scale.
         </p>
 
-        <button className="cta">Get Started</button>
+        <Link to="/waitlist" className="cta">
+            Get Started
+        </Link>
       </div>
     </section>
   );

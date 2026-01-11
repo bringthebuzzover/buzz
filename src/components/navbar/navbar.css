@@ -5,16 +5,55 @@
   z-index: 1000;
 }
 
-/* top white strip */
+/* make LinkedIn icon bigger */
+.linkedin-icon {
+  transform: scale(1.6);
+}
+
+
+/* container for the icons */
+.socials {
+  display: flex;              
+  flex-direction: row;
+  align-items: center;
+  gap: clamp(12px, 2vw, 20px);
+}
+
+/* clickable icon box */
+.socials a {
+  width: clamp(32px, 3vw, 40px);
+  height: clamp(32px, 3vw, 40px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* actual image inside the box */
+.socials img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+
+/* top strip */
 .navbar-top {
-  background: white;
+  background: #FFF1DC;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-sm) var(--space-lg);
-  font-size: var(--small);
+  padding: var(--space-md) var(--space-xl);
+  font-size: clamp(18px, 2vw, 26px);
 }
 
+.waitlist-top {
+  font-size: clamp(22px, 2.6vw, 32px); 
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: #0E2A47; 
+}
 
 /* pink bar */
 .navbar-main {
@@ -27,20 +66,40 @@
 }
 
 .navbar-main a {
-  color: white;
+  color: #FFF1DC;
   text-decoration: none;
-  margin: 0 18px;
-  font-weight: 500;
+
+  font-size: clamp(22px, 2.5vw, 34px);
+  font-weight: 600;
+
+  padding: clamp(10px, 1.5vw, 14px)
+           clamp(18px, 2.5vw, 28px);
+
+  border-radius: 999px; 
+  transition: 
+    background-color 0.25s ease,
+    color 0.25s ease,
+    transform 0.2s ease;
+}
+
+.navbar-main a:hover {
+  background-color: #FFF1DC;  
+  color: #ff005d;            
+  transform: translateY(-2px); 
 }
 
 .logo-wrapper {
   background: #ff005d;
-  padding: clamp(12px, 2.5vw, 22px)
-           clamp(20px, 4vw, 44px);
+  font-size: clamp(px, 2vw, 28px);
+  margin: 0 clamp(12px, 2vw, 24px);
   border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: clamp(20px, 2.5vw, 32px)
+           clamp(48px, 6vw, 96px)
+           clamp(26px, 3vw, 38px)  /* ⬅️ slightly more bottom */
+           clamp(48px, 6vw, 96px);
 }
 
 
@@ -49,3 +108,8 @@
   width: auto;
 }
 
+@media (max-width: 900px) {
+  .navbar-main nav {
+    display: none;
+  }
+}
