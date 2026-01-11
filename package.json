@@ -2,6 +2,7 @@
   "name": "buzz",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://ShannonLin284.github.io/buzz",
   "dependencies": {
     "gh-pages": "^6.3.0",
     "react": "^18.2.0",
