@@ -1,9 +1,6 @@
 .footer {
-  background: #ff005d;
-  /* cap vertical growth + reduce vw dominance */
-  padding:
-    clamp(48px, 6vh, 96px)
-    clamp(32px, 4vw, 80px);
+  background: #ff005d; 
+  padding: clamp(60px, 8vw, 120px) clamp(40px, 6vw, 120px);
   color: #FFF1DC;
 }
 
@@ -14,12 +11,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: clamp(24px, 4vw, 40px);
+  gap: 40px;
 }
 
 .footer-logo img {
-  /* prevent logo from scaling too large on wide screens */
-  height: clamp(44px, 4vw, 72px);
+  height: clamp(48px, 6vw, 80px);
   width: auto;
 }
 
@@ -28,7 +24,7 @@
 }
 
 .footer-label {
-  font-size: clamp(16px, 1.4vw, 22px);
+  font-size: clamp(20px, 2vw, 28px);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   opacity: 0.8;
@@ -36,7 +32,7 @@
 }
 
 .footer-contact a {
-  font-size: clamp(18px, 1.8vw, 28px);
+  font-size: clamp(22px, 2.5vw, 36px);
   font-weight: 400;
   color: #FFF1DC;
   text-decoration: none;
@@ -45,6 +41,6 @@
 }
 
 .footer-contact a:hover {
-  border-color: #E6005C;
+  border-color: #E6005C; 
   opacity: 0.9;
 }
