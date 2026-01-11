@@ -6,7 +6,7 @@ export default function Hero() {
     <section className="hero">
       <video
         className="hero-video"
-        src={`${process.env.PUBLIC_URL}/hero.mov`}
+        src={`${process.env.PUBLIC_URL}/hero.mp4`}
         autoPlay
         loop
         muted
