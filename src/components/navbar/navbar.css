@@ -41,11 +41,11 @@
 /* top strip */
 .navbar-top {
   background: #FFF1DC;
+  height: 48px;             
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: var(--space-md) var(--space-xl);
-  font-size: clamp(18px, 2vw, 26px);
+  justify-content: center;
+  padding: 0 clamp(16px, 3vw, 32px);
 }
 
 .waitlist-top {
