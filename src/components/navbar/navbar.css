@@ -1,0 +1,51 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+/* top white strip */
+.navbar-top {
+  background: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--small);
+}
+
+
+/* pink bar */
+.navbar-main {
+  background: #ff005d;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-xl);
+  min-height: calc(var(--header-height) * 0.6);
+}
+
+.navbar-main a {
+  color: white;
+  text-decoration: none;
+  margin: 0 18px;
+  font-weight: 500;
+}
+
+.logo-wrapper {
+  background: #ff005d;
+  padding: clamp(12px, 2.5vw, 22px)
+           clamp(20px, 4vw, 44px);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+.logo-wrapper img {
+  height: clamp(100px, 12vw, 200px);
+  width: auto;
+}
+
