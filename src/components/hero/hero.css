@@ -95,22 +95,3 @@
   animation: slideInRight 0.9s ease-out forwards;
   animation-delay: 0.15s;
 }
-
-@keyframes slideInLeft {
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideInRight {
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-.from-left,
-.from-right {
-  animation-delay: 0.4s;
-}
