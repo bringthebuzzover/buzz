@@ -16,14 +16,14 @@ export default function Hero() {
       <div className="hero-overlay" />
 
       <div className="hero-content">
-        <h1>
-          BRING YOUR
+        <h1 className="hero-title">
+          <span className="from-left">BRING YOUR</span>
           <br />
-          BRAND
+          <span className="from-right">BRAND</span>
           <br />
-          TO OUR 
+          <span className="from-left">TO OUR</span>
           <br />
-          CAMPUS
+          <span className="from-right">CAMPUS</span>
         </h1>
 
         <p className="tagline">BRING THE BUZZ OVER</p>
