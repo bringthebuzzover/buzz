@@ -1,0 +1,56 @@
+.college-network {
+  background: #fff7e6;
+  padding: 80px 20px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.college-network h2 {
+  font-size: 42px;
+  margin-bottom: 12px;
+}
+
+.accent {
+  color: #ff5a5f;
+}
+
+.college-network p {
+  font-size: 18px;
+  color: #555;
+  margin-bottom: 50px;
+}
+
+.logo-carousel {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.logo-track {
+  display: flex;
+  gap: 80px;
+  width: max-content;
+  animation: scroll 25s linear infinite;
+}
+
+.logo-track img {
+  height: 80px;
+  filter: grayscale(100%);
+  opacity: 0.85;
+  transition: all 0.3s ease;
+}
+
+.logo-track img:hover {
+  filter: grayscale(0%);
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.logo-carousel:hover .logo-track {
+  animation-play-state: paused;
+}
+
+@keyframes scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
