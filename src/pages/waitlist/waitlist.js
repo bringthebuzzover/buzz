@@ -2,6 +2,7 @@ import "./waitlist.css";
 import { useState } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase";
+import waitlistBackground from "../../assets/about.png";
 
 export default function Waitlist() {
   const [form, setForm] = useState({
@@ -41,48 +42,51 @@ export default function Waitlist() {
   };
 
   return (
-    <section className="waitlist">
-      <div className="waitlist-content">
-        <h1>Join the Waitlist</h1>
+    <section
+      className="waitlist"
+      style={{ backgroundImage: `url(${waitlistBackground})` }}
+    >
+      <div className="waitlist-overlay">
+        <div className="waitlist-content">
+          <div className="waitlist-card">
+            <h1>Join the Waitlist</h1>
 
-        <form className="waitlist-form" onSubmit={handleSubmit}>
-          {/* NAME */}
-          <input
-            name="name"
-            placeholder="Your Name"
-            value={form.name}
-            onChange={handleChange}
-            required
-          />
+            <form className="waitlist-form" onSubmit={handleSubmit}>
+              <input
+                name="name"
+                placeholder="Your Name"
+                value={form.name}
+                onChange={handleChange}
+                required
+              />
 
-          {/* COMPANY */}
-          <input
-            name="companyName"
-            placeholder="Company Name"
-            value={form.companyName}
-            onChange={handleChange}
-            required
-          />
+              <input
+                name="companyName"
+                placeholder="Company Name"
+                value={form.companyName}
+                onChange={handleChange}
+                required
+              />
 
-          {/* PRODUCT */}
-          <input
-            name="product"
-            placeholder="Product"
-            value={form.product}
-            onChange={handleChange}
-            required
-          />
+              <input
+                name="product"
+                placeholder="Product"
+                value={form.product}
+                onChange={handleChange}
+                required
+              />
 
-          {/* OPTIONAL DETAILS */}
-          <textarea
-            name="details"
-            placeholder="Optional details"
-            value={form.details}
-            onChange={handleChange}
-          />
+              <textarea
+                name="details"
+                placeholder="Optional details"
+                value={form.details}
+                onChange={handleChange}
+              />
 
-          <button type="submit">Join Waitlist</button>
-        </form>
+              <button type="submit">Join Waitlist</button>
+            </form>
+          </div>
+        </div>
       </div>
     </section>
   );
