@@ -9,5 +9,6 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: var(--body);
   color: var(--dark);
-  background-color: #fff7e6;
+  background-color: #FFF1DC;
+;
 }
