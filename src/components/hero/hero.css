@@ -68,3 +68,49 @@
   display: inline-block;
   text-decoration: none;
 }
+
+.slide-in-text {
+  font-size: 28px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pink);
+
+  display: flex;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.from-left {
+  display: inline-block;
+  transform: translateX(-60px);
+  opacity: 0;
+  animation: slideInLeft 0.9s ease-out forwards;
+}
+
+.from-right {
+  display: inline-block;
+  transform: translateX(60px);
+  opacity: 0;
+  animation: slideInRight 0.9s ease-out forwards;
+  animation-delay: 0.15s;
+}
+
+@keyframes slideInLeft {
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.from-left,
+.from-right {
+  animation-delay: 0.4s;
+}
