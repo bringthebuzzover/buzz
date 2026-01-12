@@ -14,17 +14,16 @@ export default function CollegeBanner() {
     return (
         <section className="college-network">
             <h2>
-                <span className="accent">Our College</span> Network
+                Our College Network
             </h2>
-            <p>
-                Our ambassadors are ready to bring your brand to top campuses nationwide
-            </p>
-
             <div className="logo-carousel">
                 <div className = "logo-track">
                     {[...logos, ...logos].map((logo,i) => (<img key = {i} src = {logo} alt = "College logo" />))}
                 </div>
             </div>
+            <p>
+                Our ambassadors are ready to bring your brand to top campuses nationwide
+            </p>
         </section>
     )
 }
