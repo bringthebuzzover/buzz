@@ -1,12 +1,12 @@
 import "./collegeBanner.css"
-import brown from "../../assets/brown.png"
-import columbia from "../../assets/columbia.png"
-import cornell from "../../assets/cornell.png"
-import dartmouth from "../../assets/dartmouth.png"
-import harvard from "../../assets/harvard.png"
-import princeton from "../../assets/princeton.png"
-import upenn from "../../assets/upenn.png"
-import yale from "../../assets/yale.png"
+import brown from "../../assets/ivies/brown.png"
+import columbia from "../../assets/ivies/columbia.png"
+import cornell from "../../assets/ivies/cornell.png"
+import dartmouth from "../../assets/ivies/dartmouth.png"
+import harvard from "../../assets/ivies/harvard.png"
+import princeton from "../../assets/ivies/princeton.png"
+import upenn from "../../assets/ivies/upenn.png"
+import yale from "../../assets/ivies/yale.png"
 
 const logos = [brown, columbia, cornell, dartmouth, harvard, princeton, yale, upenn]
 
