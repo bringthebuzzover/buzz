@@ -2,7 +2,7 @@ import "./waitlist.css";
 import { useState } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase";
-import waitlistBackground from "../../assets/about.png";
+import waitlistBackground from "../../assets/aboutBackground.png";
 
 export default function Waitlist() {
   const [form, setForm] = useState({
