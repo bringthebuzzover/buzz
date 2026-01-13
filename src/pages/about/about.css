@@ -1,110 +1,200 @@
-.about {
-  position: relative;
-  min-height: 100vh;
-
-  background-size: cover;
-  background-position: center 150px;
-  background-repeat: no-repeat;
-  overflow: hidden;
-}
-
-/* Dark overlay for readability */
-.about::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 1;
-}
-
-/* Content wrapper */
-.about-content {
-  position: relative;
-  z-index: 2;
-  margin: 380px auto 50px;
-  max-width: 900px;
-  padding: 0 50px;
-  color: white;
+.container-wide {
+  width: 100%;
+  max-width: 1800px;
+  margin: 0 auto;          
+  padding: 0 40px;      
   text-align: center;
 }
 
-/* ===== Glass card (same as Contact) ===== */
-.about-card {
-  background: rgba(15, 15, 15, 0.65);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(10px);
-  padding: 190px 56px 10px;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.container-narrow {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;        
+  padding: 0 40px;         
 }
 
-/* ===== Title ===== */
-.about-title {
-  font-size: 65px;
+
+/* ===== HERO ===== */
+.about-hero {
+  height: 50vh;
+  margin-top: 180px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  color: white;
+}
+
+.about-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.75),
+    rgba(0, 0, 0, 0.2)
+  );
+}
+
+.about-hero-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 80px;
+}
+
+.about-eyebrow {
+  color: #ff4f87;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.about-hero-title {
+  font-size: 88px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* ===== SPLIT SECTION ===== */
+.about-split {
+  background: #fbf7e6;
+  padding: 40px 24px 80px;
+}
+
+.about-split-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  justify-items: center;  
+}
+
+
+/* Mission spans full width */
+.about-mission {
+  max-width: 1300px;
+  margin: 0 auto 60px;   
+  text-align: center;   
+}
+
+
+/* Why text */
+.about-text {
+  max-width: 700px;
+  text-align: start;}
+
+/* Image */
+.about-images {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.about-images img {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  object-fit: cover;
+  align-items: center;
+}
+
+/* Mission heading */
+.about-mission h2 {
+  font-size: 48px;
   font-weight: 800;
-  margin-bottom: 60px;
-  margin-top: -300px;
+  line-height: 1.1;
+  margin-bottom: 24px;
+  text-align: center;
 }
 
-.about-title span {
-  display: inline-block;
+/* Mission body */
+.about-mission p {
+  font-size: 18px;
+  line-height: 1.7;
+  max-width: 1000px;
+  margin: 0 auto;         
+  text-align: center;    
 }
 
-/* Lead text */
-.about-lead {
-  font-size: 22px;
-  font-weight: 680;
+
+/* Why heading */
+.about-text h2 {
+  font-size: 48px;
+  font-weight: 800;
   margin-bottom: 20px;
 }
 
-/* Body text */
-.about-card p {
+/* Why body */
+.about-text p {
+  font-size: 18px;
+  line-height: 1.7;
+  max-width: 700px;
+}
+
+/* ===== HOW IT WORKS ===== */
+.about-steps {
+  background: #FFF1DC;
+  padding: 0 24px 120px;
+}
+
+.about-steps-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+}
+
+.step-card {
+  background: #ff005d;
+  padding: 40px;
+}
+
+.step-card span {
+  color: white;
+  font-weight: 800;
+}
+
+.step-card h3 {
   font-size: 22px;
-  line-height: 1.6;
-  margin-bottom: 20px;
+  margin: 12px 0;
 }
 
-/* ===== Animations (same as hero) ===== */
-.from-left {
-  transform: translateX(-80px);
-  opacity: 0;
-  animation: slideInLeft 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+/* ===== RIBBON ===== */
+.about-ribbon {
+  padding: 120px 0;
+  overflow: hidden;
 }
 
-.from-right {
-  transform: translateX(80px);
-  opacity: 0;
-  animation: slideInRight 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  animation-delay: 0.15s;
+.ribbon-track {
+  background: #ff005d;
+  color: white;
+  font-weight: 900;
+  font-size: 28px;
+  padding: 28px 0;
+  display: flex;
+  gap: 80px;
+  justify-content: center;
+  transform: rotate(-3deg);
 }
 
-@keyframes slideInLeft {
-  to {
-    transform: translateX(0);
-    opacity: 1;
+.ribbon-track span {
+  white-space: nowrap;
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 900px) {
+
+  .about-images {
+    justify-content: center;
+  }
+
+  .about-images img {
+    max-width: 100%;
+    height: auto;
   }
 }
 
-@keyframes slideInRight {
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-/* ===== Mobile ===== */
-@media (max-width: 768px) {
-  .about-content {
-    margin: 200px auto 50px;
-    padding: 0 24px;
-  }
-
-  .about-title {
-    font-size: 48px;
-    margin-top: -50px;
-  }
-
-  .about-card {
-    padding: 80px 28px 40px;
-  }
-}
