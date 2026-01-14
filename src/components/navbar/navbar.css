@@ -104,3 +104,99 @@
     display: none;
   }
 }
+
+/* ===== DESKTOP NAV ===== */
+.desktop-nav {
+  display: flex;
+  gap: 32px;
+}
+
+/* ===== HAMBURGER ===== */
+.hamburger {
+  display: none;
+  position: absolute;
+  right: 24px;
+  background: none;
+  border: none;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.hamburger span {
+  width: 26px;
+  height: 2px;
+  background: black;
+  transition: 0.3s;
+}
+
+/* X animation */
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(6px, -6px);
+}
+
+/* ===== MOBILE MENU ===== */
+.mobile-menu {
+  position: fixed;
+  top: 185px; /* below both bars */
+  left: 0;
+  width: 100%;
+  background: #ffd6df; /* light pink */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 32px 0;
+  transform: translateY(-120%);
+  transition: transform 0.3s ease;
+  z-index: 999;
+}
+
+.mobile-menu.open {
+  transform: translateY(0);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .desktop-nav {
+    display: none;
+  }
+
+  .hamburger {
+    display: flex;
+  }
+}
+
+/* Make About / Contact / Waitlist white with no underline */
+.navbar-main a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* Keep them white on hover */
+.navbar-main a:hover {
+  color: #ff005d;
+  text-decoration: none;
+  opacity: 0.9;
+}
+
+/* Mobile menu links (also white, no underline) */
+.mobile-menu a {
+  color: #ff005d;
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.mobile-menu a:hover {
+  color: white;
+  text-decoration: none;
+  opacity: 0.9;
+}
