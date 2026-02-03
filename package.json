@@ -2,7 +2,7 @@
   "name": "buzz",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://ShannonLin284.github.io/buzz",
+  "homepage": "https://www.bringthebuzzover.com",
   "dependencies": {
     "firebase": "^12.7.0",
     "gh-pages": "^6.3.0",
