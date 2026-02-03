@@ -1,7 +1,6 @@
 import "./about.css";
 import aboutHero from "../../assets/aboutBackground.png";
 import campus1 from "../../assets/campus1.png";
-import campus2 from "../../assets/campus2.png";
 
 export default function About() {
   return (
