@@ -89,7 +89,7 @@ export default function SiteHeader() {
         </div>
       </div>
 
-      <nav className="relative flex h-16 items-center justify-between bg-buzz-coral px-8 py-4 text-buzz-paper shadow-sm">
+      <nav className="relative flex h-[6rem] items-center justify-between bg-buzz-coral px-8 py-4 text-buzz-paper shadow-sm">
         <div className="flex space-x-8 font-medium">
           <Link to="/" className="transition hover:text-buzz-butterBright">
             Home
@@ -110,16 +110,13 @@ export default function SiteHeader() {
         <button
           type="button"
           onClick={() => navigate("/")}
-          className="absolute left-1/2 top-[-8px] z-10 flex h-20 w-72 -translate-x-1/2 origin-bottom cursor-pointer flex-col items-center justify-center bg-buzz-coralDark px-4 shadow-sm transition-transform duration-200 ease-out hover:scale-[1.03]"
+          className="absolute left-1/2 top-1/2 z-10 flex h-17 w-56 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center px-3"
         >
           <img
             src={images.logo}
             alt={images.logoAlt}
-            className="max-h-11 w-auto max-w-[200px] object-contain"
+            className="h-full w-auto max-w-full object-contain"
           />
-          <span className="mt-1 text-[10px] font-light tracking-wider text-buzz-paper">
-            {social.instagram.handleWithAt}
-          </span>
         </button>
 
         <div className="flex space-x-8 font-medium">

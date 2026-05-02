@@ -2,7 +2,7 @@
  * Single source of truth for public links, handles, contact info, logo assets, and hero copy.
  * Edit values here instead of hunting through components; consumed by header, footer, modals, and hero.
  */
-import buzzLogo from "../assets/buzz-logo.png";
+import buzzLogo from "../assets/buzz-logo.svg";
 import instaIcon from "../assets/insta-icon.png";
 import linkedinIcon from "../assets/linkedin-icon.png";
 

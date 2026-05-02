@@ -8,7 +8,6 @@ export const tailwindThemeExtend = {
     buzz: {
       // Coral (3)
       coral: "#F7366D",
-      // coral: "#F05782",
       coralLight: "#FD6581",
       coralDark: "#FF005D",
 
