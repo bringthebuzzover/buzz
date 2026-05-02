@@ -16,6 +16,7 @@ import aboutBackground from "../../assets/aboutBackground.png";
 import campus1 from "../../assets/campus1.png";
 import campus2 from "../../assets/campus2.png";
 import contactBackground from "../../assets/contactBackground.png";
+import finalsEnergy from "../../assets/finals-energy.png";
 
 const MS_PER_HOUR = 60 * 60 * 1000;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
@@ -81,7 +82,7 @@ export function buildSeedDrops(now: number): Drop[] {
       title: "Finals Fuel Energy Drop",
       description:
         "Power your campus through finals week. We supply cases of Celsius and pop-up branding so your org can run a finals-fuel station in the library.",
-      image: campus2,
+      image: finalsEnergy,
       location: "Your Campus",
       capacityTotal: 8,
       applyOpenAt: now - 9 * MS_PER_DAY,

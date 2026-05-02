@@ -4,7 +4,8 @@
  * sortable drop comparison table. Empty state when the brand has no drops.
  */
 import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { useState } from "react";
+import { PhoneCall, Plus } from "lucide-react";
 import {
   useApplications,
   useBrandDrops,
@@ -22,8 +23,10 @@ import AggregateTotalsCards from "../../components/brand/AggregateTotalsCards";
 import CompareDropsTable from "../../components/brand/CompareDropsTable";
 import EngagementOverTimeChart from "../../components/brand/EngagementOverTimeChart";
 import RunningTotalsBar from "../../components/brand/RunningTotalsBar";
+import StrategyCallModal from "../../components/site/modals/StrategyCallModal";
 
 export default function BrandAggregateDashboardPage() {
+  const [strategyOpen, setStrategyOpen] = useState(false);
   const drops = useBrandDrops(DEMO_BRAND_ID);
   const applications = useApplications();
   const links = useLinks();
@@ -56,12 +59,21 @@ export default function BrandAggregateDashboardPage() {
             Aggregate performance across every drop you've run with Buzz.
           </p>
         </div>
-        <Link
-          to="/brand/requests/new"
-          className="flex items-center gap-2 rounded-lg bg-buzz-coral px-4 py-2 font-bold text-buzz-paper shadow-sm transition hover:bg-buzz-coralDark"
-        >
-          <Plus size={16} /> Request Drop
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setStrategyOpen(true)}
+            className="flex items-center gap-2 rounded-lg border border-buzz-lineMid bg-buzz-paper px-4 py-2 font-bold text-buzz-inkMuted shadow-sm transition hover:bg-buzz-butter hover:text-buzz-coral"
+          >
+            <PhoneCall size={16} /> Schedule Strategy Call
+          </button>
+          <Link
+            to="/brand/requests/new"
+            className="flex items-center gap-2 rounded-lg bg-buzz-coral px-4 py-2 font-bold text-buzz-paper shadow-sm transition hover:bg-buzz-coralDark"
+          >
+            <Plus size={16} /> Request Drop
+          </Link>
+        </div>
       </header>
 
       {drops.length === 0 ? (
@@ -84,6 +96,9 @@ export default function BrandAggregateDashboardPage() {
           />
         </div>
       )}
+      {strategyOpen ? (
+        <StrategyCallModal onClose={() => setStrategyOpen(false)} />
+      ) : null}
     </div>
   );
 }

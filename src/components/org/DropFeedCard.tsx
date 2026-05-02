@@ -54,34 +54,27 @@ function pad2(n: number): string {
   return n.toString().padStart(2, "0");
 }
 
-function CountdownStrip({ targetMs }: { targetMs: number }) {
+function HeroCountdownOverlay({ targetMs }: { targetMs: number }) {
   const { days, hours, minutes, seconds, done } = useCountdown(targetMs);
   if (done) {
     return (
-      <p className="text-sm font-bold text-buzz-coral">Opening any moment…</p>
+      <div className="absolute inset-0 flex items-center justify-center bg-buzz-overlay/35">
+        <p className="text-2xl font-black text-buzz-paper drop-shadow">
+          Opening now
+        </p>
+      </div>
     );
   }
-  const cells: { value: string; label: string }[] = [
-    { value: days.toString(), label: days === 1 ? "day" : "days" },
-    { value: pad2(hours), label: "hrs" },
-    { value: pad2(minutes), label: "min" },
-    { value: pad2(seconds), label: "sec" },
-  ];
   return (
-    <div className="flex items-center gap-2">
-      {cells.map((c) => (
-        <div
-          key={c.label}
-          className="rounded-md border border-buzz-lineMid bg-buzz-paper px-2 py-1 text-center"
-        >
-          <div className="text-base font-black leading-none text-buzz-ink tabular-nums">
-            {c.value}
-          </div>
-          <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-buzz-inkMuted">
-            {c.label}
-          </div>
+    <div className="absolute inset-0 flex items-center justify-center bg-buzz-overlay/35 px-4">
+      <div className="text-center">
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-buzz-paper/90">
+          Opens In
+        </p>
+        <div className="text-4xl font-black tabular-nums text-buzz-paper drop-shadow sm:text-5xl">
+          {days}d {pad2(hours)}:{pad2(minutes)}:{pad2(seconds)}
         </div>
-      ))}
+      </div>
     </div>
   );
 }
@@ -110,6 +103,9 @@ export default function DropFeedCard({
           alt={drop.title}
           className="h-full w-full object-cover"
         />
+        {feedStatus === "upcoming" ? (
+          <HeroCountdownOverlay targetMs={drop.applyOpenAt} />
+        ) : null}
         <div className="absolute left-3 top-3 flex items-center gap-2">
           <span className="rounded-full bg-buzz-coral px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-buzz-paper shadow-sm">
             {drop.brandName}
@@ -222,7 +218,6 @@ function UpcomingActions({ drop }: { drop: Drop }) {
 
   return (
     <div className="space-y-3">
-      <CountdownStrip targetMs={drop.applyOpenAt} />
       <button
         type="button"
         onClick={handleNotify}

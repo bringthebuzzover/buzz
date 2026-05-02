@@ -1,6 +1,6 @@
 /**
- * `/brand/requests/new` — Request a Drop. The brand fills in title, description,
- * and capacity; submission creates a new `Drop` row with `request_received` and
+ * `/brand/requests/new` — Request a Drop. The brand fills in title + short message;
+ * submission creates a new `Drop` row with `request_received` and
  * seeds `scheduledTransitions[]` so the demo clock advances it through the
  * tracker stages automatically. Then redirects to the drop detail page.
  *
@@ -52,8 +52,6 @@ export default function BrandRequestDropPage() {
     const formData = new FormData(form);
     const title = String(formData.get("title") ?? "").trim();
     const description = String(formData.get("description") ?? "").trim();
-    const capacity =
-      Number.parseInt(String(formData.get("capacity") ?? ""), 10) || 8;
 
     const now = Date.now();
     const drop: Drop = {
@@ -66,7 +64,7 @@ export default function BrandRequestDropPage() {
         "A new campus activation. We'll be in touch with the details shortly.",
       image: aboutBackground,
       location: "Multiple Campuses",
-      capacityTotal: capacity,
+      capacityTotal: 10,
       applyOpenAt: now + 1 * MS_PER_DAY,
       applyCloseAt: now + 8 * MS_PER_DAY,
       manualReopen: false,
@@ -126,34 +124,17 @@ export default function BrandRequestDropPage() {
           </div>
           <div>
             <label
-              htmlFor="capacity"
-              className="mb-2 block text-sm font-bold text-buzz-inkMuted"
-            >
-              Org spots
-            </label>
-            <input
-              id="capacity"
-              name="capacity"
-              required
-              type="number"
-              min={1}
-              defaultValue={8}
-              className="w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral"
-            />
-          </div>
-          <div>
-            <label
               htmlFor="description"
               className="mb-2 block text-sm font-bold text-buzz-inkMuted"
             >
-              Drop details
+              Short message
             </label>
             <textarea
               id="description"
               name="description"
               required
-              rows={5}
-              placeholder="Describe what you'll send (PR boxes, merch), the audience, and what students need to do."
+              rows={4}
+              placeholder="Share a short note about this drop and your goals."
               className="w-full resize-none rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral"
             />
           </div>
