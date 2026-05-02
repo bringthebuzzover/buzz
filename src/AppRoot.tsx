@@ -119,8 +119,8 @@ export default function AppRoot(): ReactElement {
             </DemoOnly>
           }
         />
+        <Route path="waitlist" element={<Waitlist />} />
       </Route>
-      <Route path="waitlist" element={<Waitlist />} />
     </Routes>
   );
 }

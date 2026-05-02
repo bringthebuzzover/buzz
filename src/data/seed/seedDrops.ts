@@ -12,11 +12,10 @@
 
 import type { Drop } from "../../types/drop";
 import { DEMO_BRAND_ID } from "./seedBrands";
-import aboutBackground from "../../assets/aboutBackground.png";
-import campus1 from "../../assets/campus1.png";
-import campus2 from "../../assets/campus2.png";
-import contactBackground from "../../assets/contactBackground.png";
-import finalsEnergy from "../../assets/finals-energy.png";
+import boxesImage from "../../assets/boxesImage.png";
+import sorority from "../../assets/sorority.png";
+import yerbamate from "../../assets/yerbamate.png";
+import finalsEnergy from "../../assets/trackandfield.png";
 
 const MS_PER_HOUR = 60 * 60 * 1000;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
@@ -34,7 +33,7 @@ export function buildSeedDrops(now: number): Drop[] {
       title: "Poppi New Flavor Launch Pop-Up",
       description:
         "Poppi is dropping a brand new flavor. We're looking for campus organizations to host a launch pop-up. We send the cases, the merch, and everything you need for an unforgettable event.",
-      image: aboutBackground,
+      image: boxesImage,
       location: "Multiple Campuses",
       capacityTotal: 10,
       applyOpenAt: now + 2 * MS_PER_DAY,
@@ -50,7 +49,7 @@ export function buildSeedDrops(now: number): Drop[] {
       title: "Pink Guava Butter Balm Pop-Up",
       description:
         "Bring Summer Fridays' viral Pink Guava Lip Butter Balm to your campus. Host a sensory pop-up with pink decor, lip touch-ups, and photo moments for students to try the new shade.",
-      image: campus1,
+      image: sorority,
       location: "Your Campus",
       capacityTotal: 10,
       applyOpenAt: now - 2 * MS_PER_DAY,
@@ -66,7 +65,7 @@ export function buildSeedDrops(now: number): Drop[] {
       title: "Soft Pinch Liquid Blush Sampling",
       description:
         "Rare Beauty's Soft Pinch Liquid Blush is back with two new shades. Host a sampling station where students can try the new colors and snap selfies with our brand wall.",
-      image: contactBackground,
+      image: yerbamate,
       location: "Your Campus",
       capacityTotal: 5,
       applyOpenAt: now - 4 * MS_PER_DAY,
@@ -98,7 +97,7 @@ export function buildSeedDrops(now: number): Drop[] {
       title: "Spring Campus Tour (Reopened)",
       description:
         "Spots have reopened on our spring campus tour. Originally closed, but a few orgs dropped out — now accepting last-minute applications.",
-      image: aboutBackground,
+      image: boxesImage,
       location: "Multiple Campuses",
       capacityTotal: 6,
       applyOpenAt: now - 12 * MS_PER_DAY,
@@ -115,7 +114,7 @@ export function buildSeedDrops(now: number): Drop[] {
       title: "Sorority Bid Day Sampling",
       description:
         "A targeted sampling activation timed to bid day. We're working through agreements now; once finalized this will open to applications.",
-      image: campus1,
+      image: sorority,
       location: "Your Campus",
       capacityTotal: 4,
       applyOpenAt: now + 5 * MS_PER_DAY,

@@ -14,7 +14,7 @@ import { ChevronLeft } from "lucide-react";
 import type { Drop, ScheduledTransition } from "../../types/drop";
 import { useMockData } from "../../contexts/MockDataContext";
 import { DEMO_BRAND_ID } from "../../data/seed/seedBrands";
-import aboutBackground from "../../assets/aboutBackground.png";
+import boxesImage from "../../assets/boxesImage.png";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -62,7 +62,7 @@ export default function BrandRequestDropPage() {
       description:
         description ||
         "A new campus activation. We'll be in touch with the details shortly.",
-      image: aboutBackground,
+      image: boxesImage,
       location: "Multiple Campuses",
       capacityTotal: 10,
       applyOpenAt: now + 1 * MS_PER_DAY,

@@ -1,12 +1,12 @@
 /**
- * Standalone waitlist route (outside `SiteLayout`): full-bleed background image and rose card
- * that writes submissions to Firestore `waitlist` collection.
+ * Brand waitlist route inside `SiteLayout`: photo-forward hero background + refined
+ * glass card form that writes submissions to Firestore `waitlist`.
  */
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase";
-import waitlistBackground from "../../assets/aboutBackground.png";
+import waitlistBackground from "../../assets/boxesImage.png";
 
 /** Fields persisted to Firestore on successful submit. */
 type WaitlistForm = {
@@ -32,10 +32,10 @@ export default function Waitlist() {
 
   /** Generic text/textarea change handler keyed by `name` attribute. */
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const key = e.target.name as keyof WaitlistForm;
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       [key]: e.target.value,
     }));
@@ -63,24 +63,29 @@ export default function Waitlist() {
   };
 
   return (
-    <section
-      className="relative flex min-h-screen items-center justify-center bg-cover bg-[center_top] bg-no-repeat max-[600px]:pt-40"
-      style={{ backgroundImage: `url(${waitlistBackground})` }}
-    >
-      <div className="flex w-full items-center justify-center">
-        <div className="mx-5 mt-10 w-full max-w-[480px] translate-y-[100px] bg-buzz-waitlistRose px-10 py-12 text-left shadow-buzz max-[600px]:mx-5 max-[600px]:mt-0 max-[600px]:px-7 max-[600px]:py-10">
-          <h1 className="mb-7 text-4xl font-black text-buzz-paper max-[600px]:text-3xl">
-            Join the Waitlist
+    <section className="relative isolate min-h-[calc(100vh-14rem)] overflow-hidden">
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${waitlistBackground})` }}
+      />
+      <div className="relative mx-auto flex w-full max-w-6xl items-center justify-center px-6 py-16 md:py-24">
+        <div className="w-full max-w-xl rounded-3xl border border-buzz-lineMid/60 bg-buzz-butter/30 p-8 text-left shadow-2xl backdrop-blur-sm md:p-10">
+          <h1 className="mb-2 text-4xl font-black text-buzz-coral max-[600px]:text-3xl">
+            Join the Brand Waitlist
           </h1>
+          <p className="mb-7 text-sm font-medium text-buzz-inkMuted">
+            Tell us a bit about your company and product. We will reach out when
+            a BUZZ representative is ready to onboard your next drop.
+          </p>
 
-          <form className="flex flex-col gap-[18px]" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <input
               name="name"
               placeholder="Your Name"
               value={form.name}
               onChange={handleChange}
               required
-              className="border-none bg-buzz-paper px-[18px] py-4 font-inherit text-base text-buzz-waitlistInk transition-shadow duration-200 ease-out placeholder:text-buzz-inkFaint focus:outline-none focus:ring-2 focus:ring-inset focus:ring-buzz-waitlistPink"
+              className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-4 py-3 font-inherit text-base text-buzz-waitlistInk transition-shadow duration-200 ease-out placeholder:text-buzz-inkFaint focus:outline-none focus:ring-2 focus:ring-inset focus:ring-buzz-waitlistPink"
             />
 
             <input
@@ -89,7 +94,7 @@ export default function Waitlist() {
               value={form.companyName}
               onChange={handleChange}
               required
-              className="border-none bg-buzz-paper px-[18px] py-4 font-inherit text-base text-buzz-waitlistInk transition-shadow duration-200 ease-out placeholder:text-buzz-inkFaint focus:outline-none focus:ring-2 focus:ring-inset focus:ring-buzz-waitlistPink"
+              className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-4 py-3 font-inherit text-base text-buzz-waitlistInk transition-shadow duration-200 ease-out placeholder:text-buzz-inkFaint focus:outline-none focus:ring-2 focus:ring-inset focus:ring-buzz-waitlistPink"
             />
 
             <input
@@ -98,7 +103,7 @@ export default function Waitlist() {
               value={form.product}
               onChange={handleChange}
               required
-              className="border-none bg-buzz-paper px-[18px] py-4 font-inherit text-base text-buzz-waitlistInk transition-shadow duration-200 ease-out placeholder:text-buzz-inkFaint focus:outline-none focus:ring-2 focus:ring-inset focus:ring-buzz-waitlistPink"
+              className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-4 py-3 font-inherit text-base text-buzz-waitlistInk transition-shadow duration-200 ease-out placeholder:text-buzz-inkFaint focus:outline-none focus:ring-2 focus:ring-inset focus:ring-buzz-waitlistPink"
             />
 
             <textarea
@@ -106,12 +111,12 @@ export default function Waitlist() {
               placeholder="Optional details"
               value={form.details}
               onChange={handleChange}
-              className="border-none bg-buzz-paper px-[18px] py-4 font-inherit text-base text-buzz-waitlistInk transition-shadow duration-200 ease-out placeholder:text-buzz-inkFaint focus:outline-none focus:ring-2 focus:ring-inset focus:ring-buzz-waitlistPink"
+              className="min-h-28 rounded-lg border border-buzz-lineMid bg-buzz-paper px-4 py-3 font-inherit text-base text-buzz-waitlistInk transition-shadow duration-200 ease-out placeholder:text-buzz-inkFaint focus:outline-none focus:ring-2 focus:ring-inset focus:ring-buzz-waitlistPink"
             />
 
             <button
               type="submit"
-              className="mt-4 cursor-pointer border-none bg-buzz-paper px-8 py-4 text-lg font-black text-buzz-waitlistPink transition-colors duration-200 ease-out hover:bg-buzz-cream hover:text-buzz-ink"
+              className="mt-2 cursor-pointer rounded-lg border-none bg-buzz-coral px-8 py-3.5 text-lg font-black text-buzz-paper transition-colors duration-200 ease-out hover:bg-buzz-coralDark"
             >
               Join Waitlist
             </button>
