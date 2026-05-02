@@ -1,6 +1,8 @@
 /**
- * Sticky two-row header: utility bar (socials, join waitlist / exit demo, demo login icon in public),
- * coral nav with centered logo, and nav actions where “Contact” calls `openContactModal`.
+ * Sticky two-row header: utility bar (socials, join waitlist / change demo view, demo login icon
+ * in public), coral nav with centered logo, and nav actions where "Contact" calls
+ * `openContactModal`. Demo mode swaps the centered utility action for the `ChangeViewMenu`
+ * dropdown so internal users can switch persona or exit the demo entirely.
  */
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { User } from "lucide-react";
@@ -8,21 +10,17 @@ import { siteIdentity } from "../../data/siteIdentity";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
 import { useAccessGate } from "../../contexts/AccessGateContext";
 import { goToHomeWaitlist } from "../../utils/scrollHomeWaitlist";
+import ChangeViewMenu from "./ChangeViewMenu";
 
 export default function SiteHeader() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { openContactModal } = useSiteChrome();
-  const { isDemoActive, exitDemo, openPasscodeModal } = useAccessGate();
+  const { isDemoActive, openPasscodeModal } = useAccessGate();
   const { images, social } = siteIdentity;
 
   const handleJoinWaitlist = () => {
     goToHomeWaitlist(pathname, navigate);
-  };
-
-  const handleExitDemo = () => {
-    exitDemo();
-    navigate("/", { replace: true });
   };
 
   return (
@@ -49,13 +47,7 @@ export default function SiteHeader() {
           </a>
         </div>
         {isDemoActive ? (
-          <button
-            type="button"
-            onClick={handleExitDemo}
-            className="relative z-10 cursor-pointer text-center font-bold text-buzz-coral hover:underline"
-          >
-            Exit Demo View
-          </button>
+          <ChangeViewMenu />
         ) : (
           <button
             type="button"
@@ -66,14 +58,6 @@ export default function SiteHeader() {
           </button>
         )}
         <div className="absolute right-6 flex items-center gap-4">
-          {isDemoActive ? (
-            <Link
-              to="/brand"
-              className="hidden text-buzz-coral hover:text-buzz-coralDark md:block"
-            >
-              Brand Portal
-            </Link>
-          ) : null}
           {!isDemoActive ? (
             <button
               type="button"

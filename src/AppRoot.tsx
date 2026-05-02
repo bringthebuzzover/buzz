@@ -1,6 +1,7 @@
 /**
  * Top-level routes: `SiteLayout` for marketing shell; `/waitlist` standalone.
- * Register, campaigns, and brand routes are wrapped in `DemoOnly` (passcode / session required).
+ * Demo-protected routes use `DemoOnly` and declare which persona (`requiredDemoView`) may view them
+ * so a Brand demo session cannot accidentally land on Org pages and vice versa.
  */
 import type { ReactElement } from "react";
 import { Routes, Route } from "react-router-dom";
@@ -22,7 +23,7 @@ export default function AppRoot(): ReactElement {
         <Route
           path="register"
           element={
-            <DemoOnly>
+            <DemoOnly requiredDemoView="org">
               <RegisterPage />
             </DemoOnly>
           }
@@ -30,7 +31,7 @@ export default function AppRoot(): ReactElement {
         <Route
           path="campaigns"
           element={
-            <DemoOnly>
+            <DemoOnly requiredDemoView="org">
               <CampaignsPage />
             </DemoOnly>
           }
@@ -38,7 +39,7 @@ export default function AppRoot(): ReactElement {
         <Route
           path="campaigns/:campaignId"
           element={
-            <DemoOnly>
+            <DemoOnly requiredDemoView="org">
               <CampaignDetailPage />
             </DemoOnly>
           }
@@ -46,7 +47,7 @@ export default function AppRoot(): ReactElement {
         <Route
           path="brand"
           element={
-            <DemoOnly>
+            <DemoOnly requiredDemoView="brand">
               <BrandDashboardPage />
             </DemoOnly>
           }
@@ -54,7 +55,7 @@ export default function AppRoot(): ReactElement {
         <Route
           path="brand/campaigns/new"
           element={
-            <DemoOnly>
+            <DemoOnly requiredDemoView="brand">
               <PostCampaignPage />
             </DemoOnly>
           }
