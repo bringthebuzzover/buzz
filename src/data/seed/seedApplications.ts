@@ -15,7 +15,7 @@ const MS_PER_DAY = 24 * MS_PER_HOUR;
 
 export function buildSeedApplications(now: number): DropApplication[] {
   return [
-    /** Active campaign for the demo org — Poppi launch is `drop_active`. */
+    /** Active campaign for the demo org — Poppi launch is `active_campaign`. */
     {
       id: "app-demo-poppi-launch",
       dropId: "drop-poppi-launch",
@@ -27,7 +27,7 @@ export function buildSeedApplications(now: number): DropApplication[] {
       trackingNumber: "1Z999AA10123456784",
     },
 
-    /** Accepted on the reopened tour, awaiting products — shows tracking number. */
+    /** Accepted on the reopened tour, products in transit — shows tracking number. */
     {
       id: "app-demo-spring-tour",
       dropId: "drop-poppi-spring-tour",
@@ -67,6 +67,48 @@ export function buildSeedApplications(now: number): DropApplication[] {
       appliedAt: now - 13 * MS_PER_DAY,
       decisionAt: now - 11 * MS_PER_DAY,
       trackingNumber: "1Z999AA10555555555",
+    },
+
+    /** Applicant Selection demo — Poppi bid day drop: pending applications from multiple orgs. */
+    {
+      id: "app-bidday-cornell",
+      dropId: "drop-poppi-finalizing",
+      orgId: "org-cornell-alpha-phi",
+      decision: "applied",
+      appliedAt: now - 5 * MS_PER_DAY,
+      pitch: "Strong Greek life presence; can host tabling on Ho Plaza.",
+    },
+    {
+      id: "app-bidday-usc",
+      dropId: "drop-poppi-finalizing",
+      orgId: "org-usc-mktg",
+      decision: "applied",
+      appliedAt: now - 4 * MS_PER_DAY,
+      pitch: "Weekly marketing events with 200+ attendees typical.",
+    },
+    {
+      id: "app-bidday-mit",
+      dropId: "drop-poppi-finalizing",
+      orgId: "org-mit-women-business",
+      decision: "applied",
+      appliedAt: now - 4 * MS_PER_DAY,
+      pitch: "Corporate partners network aligns with beverage sampling.",
+    },
+    {
+      id: "app-bidday-nyu",
+      dropId: "drop-poppi-finalizing",
+      orgId: "org-nyu-stern-marketing",
+      decision: "applied",
+      appliedAt: now - 3 * MS_PER_DAY,
+      pitch: "Washington Square Park adjacent activation space available.",
+    },
+    {
+      id: "app-bidday-babson",
+      dropId: "drop-poppi-finalizing",
+      orgId: DEMO_ORG_ID,
+      decision: "applied",
+      appliedAt: now - 2 * MS_PER_DAY,
+      pitch: "Bid week visibility across business school cohorts.",
     },
 
     /** Denied — must NOT appear in My Campaigns. */

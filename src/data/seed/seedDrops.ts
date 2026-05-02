@@ -39,7 +39,8 @@ export function buildSeedDrops(now: number): Drop[] {
       applyOpenAt: now + 2 * MS_PER_DAY,
       applyCloseAt: now + 9 * MS_PER_DAY,
       manualReopen: false,
-      brandTrackerStage: "drop_active",
+      brandTrackerStage: "active_campaign",
+      totalProductUnits: 800,
       createdAt: now - 5 * MS_PER_DAY,
     },
     {
@@ -71,7 +72,7 @@ export function buildSeedDrops(now: number): Drop[] {
       applyOpenAt: now - 4 * MS_PER_DAY,
       applyCloseAt: now + 4 * MS_PER_DAY,
       manualReopen: false,
-      brandTrackerStage: "drop_active",
+      brandTrackerStage: "active_campaign",
       createdAt: now - 6 * MS_PER_DAY,
     },
     {
@@ -87,7 +88,7 @@ export function buildSeedDrops(now: number): Drop[] {
       applyOpenAt: now - 9 * MS_PER_DAY,
       applyCloseAt: now - 2 * MS_PER_DAY,
       manualReopen: false,
-      brandTrackerStage: "drop_finished",
+      brandTrackerStage: "completed",
       createdAt: now - 14 * MS_PER_DAY,
     },
     {
@@ -103,8 +104,9 @@ export function buildSeedDrops(now: number): Drop[] {
       applyOpenAt: now - 12 * MS_PER_DAY,
       applyCloseAt: now - 1 * MS_PER_DAY,
       manualReopen: true,
-      brandTrackerStage: "awaiting_products",
+      brandTrackerStage: "products_in_transit",
       trackingNumber: "1Z999AA10123456784",
+      totalProductUnits: 600,
       createdAt: now - 14 * MS_PER_DAY,
     },
     {
@@ -113,14 +115,15 @@ export function buildSeedDrops(now: number): Drop[] {
       brandName: "Poppi",
       title: "Sorority Bid Day Sampling",
       description:
-        "A targeted sampling activation timed to bid day. We're working through agreements now; once finalized this will open to applications.",
+        "Applications are closed. Review orgs that applied, allocate product units, and finalize your campus partners.",
       image: sorority,
       location: "Your Campus",
       capacityTotal: 4,
-      applyOpenAt: now + 5 * MS_PER_DAY,
-      applyCloseAt: now + 14 * MS_PER_DAY,
+      applyOpenAt: now - 8 * MS_PER_DAY,
+      applyCloseAt: now - 1 * MS_PER_HOUR,
       manualReopen: false,
-      brandTrackerStage: "finalizing_agreements",
+      brandTrackerStage: "applicant_selection",
+      totalProductUnits: 420,
       createdAt: now - 1 * MS_PER_DAY,
     },
   ];

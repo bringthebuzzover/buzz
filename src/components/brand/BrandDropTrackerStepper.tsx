@@ -1,6 +1,6 @@
 /**
- * Read-only 5-stage progress stepper for a drop. Highlights the current stage
- * and shows tracking number copy on `awaiting_products` and beyond when one is
+ * Read-only campaign progress stepper for a drop. Highlights the current stage
+ * and shows tracking number copy on `products_in_transit` and beyond when one is
  * available (PRODUCT.md §5.2).
  */
 import { Truck } from "lucide-react";
@@ -22,7 +22,7 @@ export default function BrandDropTrackerStepper({
   const currentIdx = BRAND_DROP_TRACKER_ORDER.indexOf(currentStage);
   const trackingVisible =
     Boolean(trackingNumber) &&
-    BRAND_DROP_TRACKER_ORDER.indexOf("awaiting_products") <= currentIdx;
+    BRAND_DROP_TRACKER_ORDER.indexOf("products_in_transit") <= currentIdx;
 
   return (
     <div className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-6 shadow-sm">
@@ -33,7 +33,7 @@ export default function BrandDropTrackerStepper({
         </span>
       </div>
 
-      <ol className="grid grid-cols-1 gap-4 md:grid-cols-5">
+      <ol className="grid grid-cols-1 gap-4 md:grid-cols-6">
         {BRAND_DROP_TRACKER_ORDER.map((stage, idx) => {
           const reached = idx <= currentIdx;
           const isCurrent = idx === currentIdx;
@@ -41,7 +41,7 @@ export default function BrandDropTrackerStepper({
           return (
             <li
               key={stage}
-              className={`relative flex flex-col gap-2 rounded-xl border p-4 transition ${
+              className={`relative flex min-h-[3.25rem] items-center justify-center rounded-xl border px-3 py-3 text-center transition ${
                 isCurrent
                   ? "border-buzz-coral bg-buzz-butter shadow-sm"
                   : reached
@@ -49,23 +49,9 @@ export default function BrandDropTrackerStepper({
                     : "border-buzz-lineMid bg-buzz-paper opacity-60"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <span
-                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black ${
-                    reached
-                      ? "bg-buzz-coral text-buzz-paper"
-                      : "bg-buzz-cream text-buzz-inkMuted"
-                  }`}
-                >
-                  {idx + 1}
-                </span>
-                <span className="text-sm font-bold text-buzz-ink">
-                  {copy.label}
-                </span>
-              </div>
-              <p className="text-xs font-medium leading-snug text-buzz-inkMuted">
-                {copy.subcopy}
-              </p>
+              <span className="text-sm font-bold leading-snug text-buzz-ink">
+                {copy.label}
+              </span>
             </li>
           );
         })}

@@ -21,14 +21,15 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 /** Demo schedule: walks the new drop through every tracker stage on a short loop. */
 function buildDemoSchedule(): ScheduledTransition[] {
   return [
-    { offsetMs: 20_000, toStage: "finalizing_agreements" },
+    { offsetMs: 20_000, toStage: "campaign_drops" },
+    { offsetMs: 40_000, toStage: "applicant_selection" },
     {
-      offsetMs: 40_000,
-      toStage: "awaiting_products",
+      offsetMs: 60_000,
+      toStage: "products_in_transit",
       assignTrackingNumber: `1Z999BUZZ${Math.floor(Math.random() * 9_000_000) + 1_000_000}`,
     },
-    { offsetMs: 60_000, toStage: "drop_active" },
-    { offsetMs: 120_000, toStage: "drop_finished" },
+    { offsetMs: 80_000, toStage: "active_campaign" },
+    { offsetMs: 140_000, toStage: "completed" },
   ];
 }
 
@@ -69,6 +70,7 @@ export default function BrandRequestDropPage() {
       applyCloseAt: now + 8 * MS_PER_DAY,
       manualReopen: false,
       brandTrackerStage: "request_received",
+      totalProductUnits: 360,
       createdAt: now,
       scheduledTransitions: buildDemoSchedule(),
     };

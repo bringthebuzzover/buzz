@@ -24,6 +24,46 @@ export function computePostEngagement(post: SocialPost): number {
 }
 
 /**
+ * Sums likes, comments, and engagement for every post an org has linked to any
+ * campaign (any brand / drop), based on `PostCampaignLink` → `DropApplication`.
+ */
+export function computeOrgAttributedCampaignTotals(args: {
+  orgId: string;
+  applications: readonly DropApplication[];
+  links: readonly PostCampaignLink[];
+  posts: readonly SocialPost[];
+}): {
+  attributedPostCount: number;
+  totalLikes: number;
+  totalComments: number;
+  totalEngagement: number;
+} {
+  const appIdsForOrg = new Set(
+    args.applications
+      .filter((a) => a.orgId === args.orgId)
+      .map((a) => a.id)
+  );
+  const linkedPostIds = new Set(
+    args.links
+      .filter((l) => appIdsForOrg.has(l.applicationId))
+      .map((l) => l.postId)
+  );
+  const linkedPosts = args.posts.filter((p) => linkedPostIds.has(p.id));
+  let totalLikes = 0;
+  let totalComments = 0;
+  for (const p of linkedPosts) {
+    totalLikes += p.metrics.likes;
+    totalComments += p.metrics.comments;
+  }
+  return {
+    attributedPostCount: linkedPosts.length,
+    totalLikes,
+    totalComments,
+    totalEngagement: totalLikes + totalComments,
+  };
+}
+
+/**
  * Aggregate for a single org's participation in a drop:
  * sums likes/comments across the org's linked posts and exposes that org's
  * estimated reach (their follower count).

@@ -58,6 +58,9 @@ export type DropApplication = {
   pitch?: string;
   /** Optional tracking number shipped to the org once accepted (mirrors brand tracking). */
   trackingNumber?: string;
+
+  /** Units allocated to this org when the brand finalizes Applicant Selection. */
+  allocatedUnits?: number;
 };
 
 /**

@@ -3,10 +3,10 @@
  *
  * 1. A 1-second `now` tick used by countdowns and "now" derivations.
  * 2. A slow ~10-second metric jitter that nudges likes/comments on posts linked to
- *    `drop_active` campaigns (PRODUCT.md §4.3 — periodic refresh).
+ *    `active_campaign` campaigns (PRODUCT.md §4.3 — periodic refresh).
  * 3. A scheduled-transition runner that advances `Drop.brandTrackerStage` based on
  *    `scheduledTransitions[]` baked into seed data or written by the brand request flow.
- *    When a drop transitions to `drop_active`, accepted applications inherit the
+ *    When a drop transitions to `active_campaign`, accepted applications inherit the
  *    derived `Active` org-side status automatically (no extra writes needed since
  *    org status is derived in `utils/orgCampaignStatus`).
  *
@@ -68,7 +68,7 @@ export function DemoClockProvider({ children }: { children: ReactNode }) {
       const drops = dropsStore.getAll();
       const activeDropIds = new Set(
         drops
-          .filter((d) => d.brandTrackerStage === "drop_active")
+          .filter((d) => d.brandTrackerStage === "active_campaign")
           .map((d) => d.id)
       );
       if (activeDropIds.size === 0) return;
@@ -140,10 +140,10 @@ export function DemoClockProvider({ children }: { children: ReactNode }) {
                 : undefined,
           });
         }
-        // When entering drop_active, mirror tracking number onto accepted applications.
+        // When entering active_campaign, mirror tracking number onto accepted applications.
         if (
-          target.toStage === "drop_active" ||
-          target.toStage === "awaiting_products"
+          target.toStage === "active_campaign" ||
+          target.toStage === "products_in_transit"
         ) {
           if (trackingNumber) {
             const apps = applicationsStore.getAll();

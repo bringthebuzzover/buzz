@@ -6,10 +6,11 @@
 /** Read-only brand-facing tracker (PRODUCT.md §5.2). */
 export type BrandDropTrackerStage =
   | "request_received"
-  | "finalizing_agreements"
-  | "awaiting_products"
-  | "drop_active"
-  | "drop_finished";
+  | "campaign_drops"
+  | "applicant_selection"
+  | "products_in_transit"
+  | "active_campaign"
+  | "completed";
 
 /** Display copy bundle for a tracker stage (label + helper subcopy). */
 export type BrandDropTrackerStageCopy = {
@@ -20,10 +21,11 @@ export type BrandDropTrackerStageCopy = {
 /** Canonical order of the brand tracker stages (left-to-right rendering). */
 export const BRAND_DROP_TRACKER_ORDER: readonly BrandDropTrackerStage[] = [
   "request_received",
-  "finalizing_agreements",
-  "awaiting_products",
-  "drop_active",
-  "drop_finished",
+  "campaign_drops",
+  "applicant_selection",
+  "products_in_transit",
+  "active_campaign",
+  "completed",
 ] as const;
 
 /** Spec-aligned copy for each stage (PRODUCT.md §5.2). */
@@ -35,20 +37,24 @@ export const BRAND_DROP_TRACKER_COPY: Record<
     label: "Request Received",
     subcopy: "A representative will contact you soon.",
   },
-  finalizing_agreements: {
-    label: "Finalizing Agreements",
-    subcopy: "Contracts being processed.",
+  campaign_drops: {
+    label: "Campaign Drops",
+    subcopy: "Organizations can now apply.",
   },
-  awaiting_products: {
-    label: "Awaiting Products",
-    subcopy: "Shipped — tracking number available below.",
+  applicant_selection: {
+    label: "Applicant Selection",
+    subcopy: "Applications closed; curating selected partners.",
   },
-  drop_active: {
-    label: "Drop Active",
+  products_in_transit: {
+    label: "Products in Transit",
+    subcopy: "Shipment is on the way — tracking below.",
+  },
+  active_campaign: {
+    label: "Active Campaign",
     subcopy: "Your campaign is live.",
   },
-  drop_finished: {
-    label: "Drop Finished",
+  completed: {
+    label: "Completed",
     subcopy: "Campaign complete.",
   },
 };

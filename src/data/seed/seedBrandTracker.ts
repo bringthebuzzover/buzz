@@ -35,20 +35,20 @@ export function buildSeedTrackerEvents(now: number): BrandTrackerEvent[] {
         stage,
         occurredAt: startedAt + idx * MS_PER_DAY,
         note:
-          stage === "awaiting_products" && trackingNote ? trackingNote : undefined,
+          stage === "products_in_transit" && trackingNote ? trackingNote : undefined,
       });
     });
   }
 
   // Drops owned by the demo brand (Poppi).
-  pushHistoryThrough("drop-poppi-launch", "drop_active", 5);
+  pushHistoryThrough("drop-poppi-launch", "active_campaign", 5);
   pushHistoryThrough(
     "drop-poppi-spring-tour",
-    "awaiting_products",
+    "products_in_transit",
     14,
     "Tracking #1Z999AA10123456784"
   );
-  pushHistoryThrough("drop-poppi-finalizing", "finalizing_agreements", 1);
+  pushHistoryThrough("drop-poppi-finalizing", "applicant_selection", 1);
 
   return events;
 }

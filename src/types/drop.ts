@@ -26,7 +26,7 @@ export type ScheduledTransition = {
   offsetMs: number;
   /** New brand tracker stage to advance to. */
   toStage: BrandDropTrackerStage;
-  /** Optional tracking number to assign at this transition (typically on `awaiting_products`). */
+  /** Optional tracking number to assign at this transition (typically on `products_in_transit`). */
   assignTrackingNumber?: string;
 };
 
@@ -67,8 +67,20 @@ export type Drop = {
   /** Brand-facing tracker stage. */
   brandTrackerStage: BrandDropTrackerStage;
 
-  /** Tracking number surfaced once products ship (shown on Awaiting Products and beyond). */
+  /** Tracking number surfaced once products ship (shown on Products in Transit and beyond). */
   trackingNumber?: string;
+
+  /**
+   * Total product units the brand is allocating across selected orgs during
+   * Applicant Selection (demo/local only).
+   */
+  totalProductUnits?: number;
+
+  /**
+   * Set when the brand finalizes applicant picks on the drop detail page;
+   * unlocks the fulfillment summary view.
+   */
+  applicantSelectionFinalizedAt?: number;
 
   /** Created timestamp; used as origin for `scheduledTransitions`. */
   createdAt: number;

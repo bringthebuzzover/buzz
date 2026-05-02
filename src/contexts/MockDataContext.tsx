@@ -58,6 +58,14 @@ type MockDataValue = {
   unlinkPost: (postId: string) => void;
   recordTrackerEvent: (event: BrandTrackerEvent) => void;
   upsertPostMetrics: (post: SocialPost) => void;
+  /**
+   * Brand Applicant Selection: accept chosen orgs with unit counts, deny other
+   * pending applicants on the drop, and mark the drop's selection as finalized.
+   */
+  finalizeBrandApplicantSelection: (
+    dropId: string,
+    allocations: { applicationId: string; units: number }[]
+  ) => void;
 };
 
 const MockDataContext = createContext<MockDataValue | null>(null);
@@ -98,6 +106,37 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
       unlinkPost: (postId) => linksStore.unlinkPost(postId),
       recordTrackerEvent: (event) => brandTrackerStore.insert(event),
       upsertPostMetrics: (post) => postsStore.update(post.id, post),
+      finalizeBrandApplicantSelection: (dropId, allocations) => {
+        const drop = dropsStore.getById(dropId);
+        if (!drop) return;
+        const cap =
+          drop.totalProductUnits ?? Math.max(1, drop.capacityTotal) * 50;
+        const positive = allocations.filter((row) => row.units > 0);
+        if (positive.length === 0) return;
+        const sum = positive.reduce((s, row) => s + row.units, 0);
+        if (sum > cap) return;
+        const applied = applicationsStore
+          .listForDrop(dropId)
+          .filter((a) => a.decision === "applied");
+        const chosen = new Set(positive.map((a) => a.applicationId));
+        const ts = Date.now();
+        for (const app of applied) {
+          if (chosen.has(app.id)) {
+            const units = positive.find((r) => r.applicationId === app.id)!.units;
+            applicationsStore.update(app.id, {
+              decision: "accepted",
+              decisionAt: ts,
+              allocatedUnits: units,
+            });
+          } else {
+            applicationsStore.update(app.id, {
+              decision: "denied",
+              decisionAt: ts,
+            });
+          }
+        }
+        dropsStore.update(dropId, { applicantSelectionFinalizedAt: ts });
+      },
     }),
     []
   );

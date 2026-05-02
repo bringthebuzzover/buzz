@@ -1,7 +1,7 @@
 /**
  * `/brand/drops/:dropId` — per-drop detail. Always renders the read-only tracker.
- * Posts table + KPIs are only visible when the drop is `drop_active` or
- * `drop_finished` (PRODUCT.md §5.3.1 — brand cannot see post data before the drop
+ * Posts table + KPIs are only visible when the drop is `active_campaign` or
+ * `completed` (PRODUCT.md §5.3.1 — brand cannot see post data before the drop
  * is live).
  *
  * The brand persona may only land here for drops that the demo brand owns.
@@ -15,6 +15,7 @@ import {
   usePosts,
 } from "../../contexts/MockDataContext";
 import BrandDropTrackerStepper from "../../components/brand/BrandDropTrackerStepper";
+import BrandApplicantSelection from "../../components/brand/BrandApplicantSelection";
 import PerDropPostsTable from "../../components/brand/PerDropPostsTable";
 import DropKPISummary from "../../components/brand/DropKPISummary";
 import { computeDropAggregate } from "../../utils/metrics";
@@ -33,8 +34,8 @@ export default function BrandDropDetailPage() {
   }
 
   const showResults =
-    drop.brandTrackerStage === "drop_active" ||
-    drop.brandTrackerStage === "drop_finished";
+    drop.brandTrackerStage === "active_campaign" ||
+    drop.brandTrackerStage === "completed";
 
   const metrics = computeDropAggregate({
     drop,
@@ -65,6 +66,16 @@ export default function BrandDropDetailPage() {
         currentStage={drop.brandTrackerStage}
         trackingNumber={drop.trackingNumber}
       />
+
+      {drop.brandTrackerStage === "applicant_selection" ? (
+        <BrandApplicantSelection
+          drop={drop}
+          applications={applications}
+          orgs={SEED_ORGS}
+          links={links}
+          posts={posts}
+        />
+      ) : null}
 
       {showResults ? (
         <div className="mt-8 space-y-6">
