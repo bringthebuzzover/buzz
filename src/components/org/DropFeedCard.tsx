@@ -21,7 +21,12 @@ import {
   spotsRemaining,
 } from "../../utils/dropStatus";
 import { useDemoNow } from "../../contexts/DemoClockContext";
-import { isDropNotified, setDropNotified } from "../../utils/notifyMe";
+import {
+  getDropReminderMinutes,
+  isDropNotified,
+  setDropReminderMinutes,
+} from "../../utils/notifyMe";
+import NotifyMeModal from "./modals/NotifyMeModal";
 
 type DropFeedCardProps = {
   drop: Drop;
@@ -46,7 +51,7 @@ function useDropNotifiedFlag(dropId: string): boolean {
       return () => window.removeEventListener("storage", handler);
     },
     () => isDropNotified(dropId),
-    () => false
+    () => false,
   );
 }
 
@@ -92,7 +97,7 @@ export default function DropFeedCard({
   const full = isDropFull(drop, acceptedCount);
   const closedReason = useMemo(
     () => getDropClosedReason(drop, acceptedCount, now),
-    [drop, acceptedCount, now]
+    [drop, acceptedCount, now],
   );
 
   return (
@@ -207,13 +212,15 @@ function FeedStatusChip({
 
 function UpcomingActions({ drop }: { drop: Drop }) {
   const notified = useDropNotifiedFlag(drop.id);
-  const [confirmation, setConfirmation] = useState<string | null>(null);
+  const reminderMinutes = getDropReminderMinutes(drop.id);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleNotify = () => {
-    if (!notified) {
-      setDropNotified(drop.id, true);
-    }
-    setConfirmation("You're on the list — we'll let you know when this opens.");
+    setIsModalOpen(true);
+  };
+
+  const handleConfirmReminders = (selectedMinutes: number[]) => {
+    setDropReminderMinutes(drop.id, selectedMinutes);
   };
 
   return (
@@ -226,10 +233,26 @@ function UpcomingActions({ drop }: { drop: Drop }) {
         {notified ? <BellRing size={16} /> : <Bell size={16} />}
         <span>{notified ? "Notifying you" : "Notify Me"}</span>
       </button>
-      {confirmation ? (
-        <p className="text-center text-xs font-medium text-buzz-inkMuted">
-          {confirmation}
+      {notified && reminderMinutes.length > 0 ? (
+        <p className="text-center text-[11px] font-semibold text-buzz-inkMuted">
+          Reminders:{" "}
+          {reminderMinutes
+            .map((minutes) =>
+              minutes >= 60 ? `${Math.floor(minutes / 60)}h` : `${minutes}m`,
+            )
+            .join(", ")}{" "}
+          before
         </p>
+      ) : null}
+      {isModalOpen ? (
+        <NotifyMeModal
+          dropTitle={drop.title}
+          initialSelection={
+            reminderMinutes.length > 0 ? reminderMinutes : notified ? [15] : []
+          }
+          onClose={() => setIsModalOpen(false)}
+          onConfirm={handleConfirmReminders}
+        />
       ) : null}
     </div>
   );

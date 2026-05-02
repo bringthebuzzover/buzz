@@ -8,7 +8,7 @@ import { scrollToHomeWaitlist } from "../../utils/scrollHomeWaitlist";
 
 export default function HomeHero() {
   const navigate = useNavigate();
-  const { isDemoActive } = useAccessGate();
+  const { isDemoActive, openPasscodeModal } = useAccessGate();
   const publicUrl = process.env.PUBLIC_URL ?? "";
 
   return (
@@ -57,13 +57,22 @@ export default function HomeHero() {
               </button>
             </>
           ) : (
-            <button
-              type="button"
-              onClick={scrollToHomeWaitlist}
-              className="rounded-lg bg-buzz-coral px-8 py-3 font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
-            >
-              Join Waitlist!
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={scrollToHomeWaitlist}
+                className="rounded-lg bg-buzz-coral px-8 py-3 font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
+              >
+                Join Waitlist!
+              </button>
+              <button
+                type="button"
+                onClick={openPasscodeModal}
+                className="rounded-lg border border-buzz-paper/50 bg-buzz-overlay/30 px-8 py-3 font-bold text-buzz-paper shadow-sm backdrop-blur-sm transition hover:bg-buzz-overlay/50"
+              >
+                View Demo
+              </button>
+            </>
           )}
         </div>
         <div className="mt-8 inline-block px-4 py-1 text-sm font-medium text-buzz-paper/80">

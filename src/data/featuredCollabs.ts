@@ -9,14 +9,14 @@ import yerbamate from "../assets/yerbamate.png";
 export const FEATURED_COLLABS: FeaturedCollab[] = [
   {
     id: 1,
-    title: "Sigma Kappa x Garnier",
-    subtitle: "Product sampling event at Babson College",
+    title: "Kappa Alpha Theta x Yerba Madre",
+    subtitle: "Collaboration at Cornell University",
     image: sorority,
   },
   {
     id: 2,
-    title: "Sigma Kappa x Hero Cosmetics",
-    subtitle: "Brand activation at Babson College",
+    title: "Sigma Kappa x Mighty Patch",
+    subtitle: "Collaboration at Babson College",
     image: yerbamate,
   },
 ];

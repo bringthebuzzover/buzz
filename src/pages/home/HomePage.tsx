@@ -59,6 +59,7 @@ export default function HomePage() {
       />
       <HomeBringBuzzSection />
       <HomeWaitlistSection />
+      <FeaturedCollaborations />
     </div>
   );
 }
