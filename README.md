@@ -4,7 +4,13 @@ Marketing site for BUZZ: connecting brands with campus communities.
 
 Built with **React 18**, **TypeScript**, **Tailwind CSS**, **lucide-react** (icons), and **Firebase** (Firestore for the brand waitlist). Bundling uses **Create React App** with **CRACO** so PostCSS can run Tailwind.
 
-**Routes:** `/` (home), `/register`, `/campaigns`, `/campaigns/:id`, `/brand`, `/brand/campaigns/new`, and `/waitlist` (legacy brand waitlist form, full-page). A reference single-file prototype lives at [`new.ts`](new.ts) in the repo root; the app is split into modules under `src/` and does not import that file.
+**Routes:** `/` (home, public landing), `/waitlist` (brand waitlist form, full-page), and the demo-gated portals:
+
+- **Org portal** (`requiredDemoView="org"`): `/org/drops` (Drop Feed), `/org/campaigns` (My Campaigns), `/org/campaigns/:campaignId` (per-status detail).
+- **Brand portal** (`requiredDemoView="brand"`): `/brand/dashboard` (aggregate dashboard), `/brand/drops/:dropId` (per-drop tracker + KPIs), `/brand/requests/new` (Request a Drop).
+- **Legacy redirects** for old bookmarks: `/register` → `/org/drops`, `/campaigns[/:id]` → `/org/drops`, `/brand` → `/brand/dashboard`, `/brand/campaigns/new` → `/brand/requests/new`.
+
+The full product spec lives in [`PRODUCT.md`](PRODUCT.md) — that is the source of truth for behavior and UX rules. A reference single-file prototype lives at [`new.ts`](new.ts) in the repo root; the app is split into modules under `src/` and does not import that file.
 
 ## Prerequisites
 
@@ -79,13 +85,23 @@ There is no `npm test` script configured; add one with `craco test` if you intro
 
 ## Project layout (high level)
 
-- `src/AppRoot.tsx` — React Router routes
+- `src/AppRoot.tsx` — React Router routes (public + persona-gated org/brand portals)
 - `src/layouts/SiteLayout.tsx` — Shared chrome (header, footer, contact modal via `SiteChromeProvider`)
-- `src/pages/` — Route screens (`home`, `register`, `campaigns`, `brand`, `waitlist`)
-- `src/components/site/` — Header, footer, marquee, modals
-- `src/data/` — Static lists (colleges, campaigns, featured collabs, mock applicants) and [`siteIdentity.ts`](src/data/siteIdentity.ts) (logo, social URLs, handles, contact email / name, hero spotlight line)
-- `src/types/` — Shared TypeScript types
-- `src/firebase.ts` — Firestore client
+- `src/pages/home/` — Public landing
+- `src/pages/org/` — Org portal pages (`OrgDropFeedPage`, `OrgMyCampaignsPage`, `OrgCampaignDetailPage`)
+- `src/pages/brand/` — Brand portal pages (`BrandAggregateDashboardPage`, `BrandDropDetailPage`, `BrandRequestDropPage`)
+- `src/pages/waitlist/` — Standalone brand waitlist
+- `src/components/org/`, `src/components/brand/` — Persona-specific components (cards, stepper, tables, charts)
+- `src/components/site/` — Header, footer, marquee, modals (passcode, contact, change-view)
+- `src/components/routing/DemoOnly.tsx` — Persona-aware route guard (`requiredDemoView`)
+- `src/contexts/AccessGateContext.tsx` — Demo session + persona state
+- `src/contexts/MockDataContext.tsx` — `useSyncExternalStore` hooks over the localStorage mock layer
+- `src/contexts/DemoClockContext.tsx` — 1s tick + scheduled tracker transitions + periodic metrics jitter
+- `src/data/store/` — Entity stores backed by `localStorage` (namespace `buzz.v1.*`)
+- `src/data/seed/` — Seed data covering every drop / application status
+- `src/utils/` — Pure helpers (`dropStatus`, `orgCampaignStatus`, `postAttribution`, `notifyMe`, `metrics`, `useCountdown`)
+- `src/types/` — Domain types (`drop`, `orgCampaign`, `brandPortal`, `socialPost`, `metrics`, `access`, `campaign`)
+- `src/firebase.ts` — Firestore client (used only by the public waitlist form)
 - `public/` — Static assets (e.g. `index.html`, `hero.mp4`, favicon)
 - `craco.config.js` — CRA overrides (PostCSS + Tailwind)
 - `tailwind.config.js` — Tailwind theme (includes BUZZ palette `buzz.coral`, `buzz.cream`, `buzz.butter`, marquee animations)

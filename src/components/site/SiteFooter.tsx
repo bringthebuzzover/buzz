@@ -31,13 +31,13 @@ export default function SiteFooter() {
           <h4 className="mb-4 font-bold text-buzz-ink">For Students</h4>
           <ul className="space-y-2 text-sm font-medium text-buzz-inkMuted">
             <li>
-              <Link to="/register" className="hover:text-buzz-coral">
-                Register Student Org
+              <Link to="/org/drops" className="hover:text-buzz-coral">
+                Drop Feed
               </Link>
             </li>
             <li>
-              <Link to="/campaigns" className="hover:text-buzz-coral">
-                Browse Campaigns
+              <Link to="/org/campaigns" className="hover:text-buzz-coral">
+                My Campaigns
               </Link>
             </li>
           </ul>
@@ -47,18 +47,13 @@ export default function SiteFooter() {
           <h4 className="mb-4 font-bold text-buzz-ink">For Brands</h4>
           <ul className="space-y-2 text-sm font-medium text-buzz-inkMuted">
             <li>
-              <Link to="/brand" className="hover:text-buzz-coral">
-                Brand Portal
+              <Link to="/brand/dashboard" className="hover:text-buzz-coral">
+                Brand Dashboard
               </Link>
             </li>
             <li>
-              <Link to="/brand/campaigns/new" className="hover:text-buzz-coral">
-                Post a Campaign
-              </Link>
-            </li>
-            <li>
-              <Link to="/brand" className="hover:text-buzz-coral">
-                Book a Strategy Call
+              <Link to="/brand/requests/new" className="hover:text-buzz-coral">
+                Request a Drop
               </Link>
             </li>
             <li>

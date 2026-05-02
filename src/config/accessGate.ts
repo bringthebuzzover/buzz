@@ -48,6 +48,6 @@ export function writeDemoViewToStorage(view: DemoView | null): void {
  * route renames only need to be changed in one place.
  */
 export const DEMO_VIEW_LANDING: Record<DemoView, string> = {
-  brand: "/brand",
-  org: "/campaigns",
+  brand: "/brand/dashboard",
+  org: "/org/drops",
 };

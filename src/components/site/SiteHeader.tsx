@@ -12,12 +12,30 @@ import { useAccessGate } from "../../contexts/AccessGateContext";
 import { goToHomeWaitlist } from "../../utils/scrollHomeWaitlist";
 import ChangeViewMenu from "./ChangeViewMenu";
 
+/** Persona-aware bottom-nav links shown when the user is in demo mode. */
+const ORG_NAV_LINKS = [
+  { to: "/org/drops", label: "Drop Feed" },
+  { to: "/org/campaigns", label: "My Campaigns" },
+] as const;
+
+const BRAND_NAV_LINKS = [
+  { to: "/brand/dashboard", label: "Dashboard" },
+  { to: "/brand/requests/new", label: "Request Drop" },
+] as const;
+
 export default function SiteHeader() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { openContactModal } = useSiteChrome();
-  const { isDemoActive, openPasscodeModal } = useAccessGate();
+  const { isDemoActive, openPasscodeModal, demoView } = useAccessGate();
   const { images, social } = siteIdentity;
+
+  const demoNavLinks =
+    demoView === "brand"
+      ? BRAND_NAV_LINKS
+      : demoView === "org"
+        ? ORG_NAV_LINKS
+        : [];
 
   const handleJoinWaitlist = () => {
     goToHomeWaitlist(pathname, navigate);
@@ -76,6 +94,17 @@ export default function SiteHeader() {
           <Link to="/" className="transition hover:text-buzz-butterBright">
             Home
           </Link>
+          {isDemoActive
+            ? demoNavLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="transition hover:text-buzz-butterBright"
+                >
+                  {link.label}
+                </Link>
+              ))
+            : null}
         </div>
 
         <button
@@ -101,11 +130,7 @@ export default function SiteHeader() {
           >
             Contact
           </button>
-          {isDemoActive ? (
-            <Link to="/register" className="transition hover:text-buzz-butterBright">
-              Join!
-            </Link>
-          ) : (
+          {!isDemoActive ? (
             <button
               type="button"
               onClick={handleJoinWaitlist}
@@ -113,7 +138,7 @@ export default function SiteHeader() {
             >
               Join Waitlist!
             </button>
-          )}
+          ) : null}
         </div>
       </nav>
     </header>
