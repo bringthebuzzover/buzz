@@ -14,6 +14,8 @@ type MarqueeProps = {
   title: string;
   /** Optional supporting line under the title. */
   subtitle?: string;
+  /** Omit bottom border when the next section should visually blend (e.g. public home). */
+  hideBottomBorder?: boolean;
 };
 
 /** Logo URL: local `logoSrc` when set, otherwise Clearbit by email domain. */
@@ -26,9 +28,14 @@ export default function Marquee({
   reverse = false,
   title,
   subtitle,
+  hideBottomBorder = false,
 }: MarqueeProps) {
   return (
-    <div className="w-full overflow-hidden border-b border-buzz-line bg-buzz-cream py-16">
+    <div
+      className={`w-full overflow-hidden bg-buzz-cream py-16 ${
+        hideBottomBorder ? "" : "border-b border-buzz-line"
+      }`}
+    >
       <div className="mb-8 text-center">
         <h2 className="text-2xl font-bold text-buzz-ink">{title}</h2>
         {subtitle ? (

@@ -10,5 +10,7 @@ declare namespace NodeJS {
     readonly REACT_APP_FIREBASE_API_KEY?: string;
     readonly REACT_APP_FIREBASE_AUTH_DOMAIN?: string;
     readonly REACT_APP_FIREBASE_PROJECT_ID?: string;
+    /** Demo unlock passcode (optional; dev fallback in `data/demoAccess.ts`). */
+    readonly REACT_APP_DEMO_ACCESS_CODE?: string;
   }
 }

@@ -1,16 +1,29 @@
 /**
- * Sticky two-row header: utility bar (socials, JOIN, account), coral nav with centered logo (home),
- * and nav actions where “Contact” calls `openContactModal` from `useSiteChrome`.
+ * Sticky two-row header: utility bar (socials, join waitlist / exit demo, demo login icon in public),
+ * coral nav with centered logo, and nav actions where “Contact” calls `openContactModal`.
  */
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { User } from "lucide-react";
 import { siteIdentity } from "../../data/siteIdentity";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
+import { useAccessGate } from "../../contexts/AccessGateContext";
+import { goToHomeWaitlist } from "../../utils/scrollHomeWaitlist";
 
 export default function SiteHeader() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { openContactModal } = useSiteChrome();
+  const { isDemoActive, exitDemo, openPasscodeModal } = useAccessGate();
   const { images, social } = siteIdentity;
+
+  const handleJoinWaitlist = () => {
+    goToHomeWaitlist(pathname, navigate);
+  };
+
+  const handleExitDemo = () => {
+    exitDemo();
+    navigate("/", { replace: true });
+  };
 
   return (
     <header className="relative z-50 w-full">
@@ -35,28 +48,42 @@ export default function SiteHeader() {
             <img src={images.socialLinkedinIcon} alt="" className="h-4 w-4" />
           </a>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate("/register")}
-          className="cursor-pointer text-center font-bold text-buzz-coral hover:underline"
-        >
-          JOIN!
-        </button>
-        <div className="absolute right-6 flex items-center gap-4">
-          <Link
-            to="/brand"
-            className="hidden text-buzz-coral hover:text-buzz-coralDark md:block"
-          >
-            Brand Portal
-          </Link>
+        {isDemoActive ? (
           <button
             type="button"
-            onClick={() => navigate("/register")}
-            aria-label="Account"
-            className="text-buzz-inkMuted hover:text-buzz-coral"
+            onClick={handleExitDemo}
+            className="relative z-10 cursor-pointer text-center font-bold text-buzz-coral hover:underline"
           >
-            <User size={18} />
+            Exit Demo View
           </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleJoinWaitlist}
+            className="cursor-pointer text-center font-bold text-buzz-coral hover:underline"
+          >
+            Join Waitlist!
+          </button>
+        )}
+        <div className="absolute right-6 flex items-center gap-4">
+          {isDemoActive ? (
+            <Link
+              to="/brand"
+              className="hidden text-buzz-coral hover:text-buzz-coralDark md:block"
+            >
+              Brand Portal
+            </Link>
+          ) : null}
+          {!isDemoActive ? (
+            <button
+              type="button"
+              onClick={openPasscodeModal}
+              aria-label="Open demo access"
+              className="text-buzz-inkMuted hover:text-buzz-coral"
+            >
+              <User size={18} />
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -90,9 +117,19 @@ export default function SiteHeader() {
           >
             Contact
           </button>
-          <Link to="/register" className="transition hover:text-buzz-butterBright">
-            Join!
-          </Link>
+          {isDemoActive ? (
+            <Link to="/register" className="transition hover:text-buzz-butterBright">
+              Join!
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={handleJoinWaitlist}
+              className="transition hover:text-buzz-butterBright"
+            >
+              Join Waitlist!
+            </button>
+          )}
         </div>
       </nav>
     </header>

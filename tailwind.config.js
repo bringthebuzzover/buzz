@@ -30,6 +30,19 @@ module.exports = {
           "0%": { transform: "translateX(-50%)" },
           "100%": { transform: "translateX(0%)" },
         },
+        shake: {
+          "0%, 100%": { transform: "translateX(0)" },
+          "15%": { transform: "translateX(-8px)" },
+          "30%": { transform: "translateX(8px)" },
+          "45%": { transform: "translateX(-6px)" },
+          "60%": { transform: "translateX(6px)" },
+          "75%": { transform: "translateX(-3px)" },
+          "90%": { transform: "translateX(3px)" },
+        },
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
       },
       animation: {
         "slide-in-left":
@@ -39,6 +52,8 @@ module.exports = {
         "logo-scroll": "logoScroll 25s linear infinite",
         marquee: "marquee 40s linear infinite",
         "marquee-reverse": "marqueeReverse 50s linear infinite",
+        shake: "shake 0.45s ease-in-out",
+        "fade-in": "fadeIn 0.38s ease-out forwards",
       },
     },
   },

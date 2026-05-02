@@ -1,11 +1,23 @@
 /**
- * Default marketing shell for all routes wrapped in `App`’s inner layout: `SiteChromeProvider`,
- * `SiteHeader`, scrollable `<Outlet />`, and `SiteFooter` (excludes standalone `/waitlist`).
+ * Default marketing shell: `SiteChromeProvider`, `SiteHeader`, animated `<Outlet />`, `SiteFooter`.
  */
 import { Outlet } from "react-router-dom";
 import { SiteChromeProvider } from "../contexts/SiteChromeContext";
+import { useAccessGate } from "../contexts/AccessGateContext";
 import SiteHeader from "../components/site/SiteHeader";
 import SiteFooter from "../components/site/SiteFooter";
+
+function DemoModeOutlet() {
+  const { isDemoActive } = useAccessGate();
+  return (
+    <div
+      key={isDemoActive ? "demo" : "public"}
+      className="animate-fade-in motion-reduce:animate-none motion-reduce:opacity-100"
+    >
+      <Outlet />
+    </div>
+  );
+}
 
 export default function SiteLayout() {
   return (
@@ -13,7 +25,7 @@ export default function SiteLayout() {
       <div className="min-h-screen bg-buzz-cream selection:bg-buzz-butter selection:text-buzz-coral">
         <SiteHeader />
         <main className="min-h-[60vh]">
-          <Outlet />
+          <DemoModeOutlet />
         </main>
         <SiteFooter />
       </div>

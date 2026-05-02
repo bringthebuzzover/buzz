@@ -21,8 +21,9 @@ export default function SiteFooter() {
             <span className="text-buzz-coral">{brand.displayName}</span>
           </div>
           <p className="max-w-xs text-sm font-medium leading-relaxed text-buzz-inkMuted">
-            Connecting brands with college campuses through authentic student
-            ambassadors and group pop-ups.
+            Connecting brands with college campuses through student
+            organizations, trusted representatives, partnerships, and group
+            pop-ups.
           </p>
         </div>
 
@@ -37,11 +38,6 @@ export default function SiteFooter() {
             <li>
               <Link to="/campaigns" className="hover:text-buzz-coral">
                 Browse Campaigns
-              </Link>
-            </li>
-            <li>
-              <Link to="/" className="hover:text-buzz-coral">
-                Ambassador Resources
               </Link>
             </li>
           </ul>

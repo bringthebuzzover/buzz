@@ -79,7 +79,7 @@ There is no `npm test` script configured; add one with `craco test` if you intro
 
 ## Project layout (high level)
 
-- `src/App.tsx` — React Router routes
+- `src/AppRoot.tsx` — React Router routes
 - `src/layouts/SiteLayout.tsx` — Shared chrome (header, footer, contact modal via `SiteChromeProvider`)
 - `src/pages/` — Route screens (`home`, `register`, `campaigns`, `brand`, `waitlist`)
 - `src/components/site/` — Header, footer, marquee, modals
