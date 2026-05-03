@@ -31,6 +31,24 @@ export function buildSeedPosts(now: number): SocialPost[] {
       postedAt: now - 18 * MS_PER_HOUR,
       metrics: { likes: 980, comments: 54, fetchedAt: now - 1 * MS_PER_HOUR },
     },
+    {
+      id: "post-demo-poppi-ig-early",
+      orgId: DEMO_ORG_ID,
+      platform: "instagram",
+      url: "https://instagram.com/p/poppi-launch-early",
+      caption: "Countdown table setup for launch week.",
+      postedAt: now - 12 * MS_PER_DAY,
+      metrics: { likes: 220, comments: 19, fetchedAt: now - 12 * MS_PER_DAY },
+    },
+    {
+      id: "post-demo-poppi-tt-mid",
+      orgId: DEMO_ORG_ID,
+      platform: "tiktok",
+      url: "https://tiktok.com/@sk/poppi-midweek",
+      caption: "Midweek booth rush at student center.",
+      postedAt: now - 7 * MS_PER_DAY,
+      metrics: { likes: 640, comments: 33, fetchedAt: now - 7 * MS_PER_DAY },
+    },
     /** Demo org unlinked posts — eligible to attach to the active campaign. */
     {
       id: "post-demo-unlinked-1",
@@ -70,6 +88,15 @@ export function buildSeedPosts(now: number): SocialPost[] {
       postedAt: now - 16 * MS_PER_HOUR,
       metrics: { likes: 1450, comments: 92, fetchedAt: now - 1 * MS_PER_HOUR },
     },
+    {
+      id: "post-cornell-poppi-recap",
+      orgId: "org-cornell-alpha-phi",
+      platform: "instagram",
+      url: "https://instagram.com/p/cornell-poppi-recap",
+      caption: "Recap reel from our launch collab.",
+      postedAt: now - 5 * MS_PER_DAY,
+      metrics: { likes: 710, comments: 44, fetchedAt: now - 5 * MS_PER_DAY },
+    },
     /** USC, MIT — Poppi posts. */
     {
       id: "post-usc-poppi",
@@ -88,6 +115,24 @@ export function buildSeedPosts(now: number): SocialPost[] {
       caption: "Beavers + bubbles = chemistry 🧪",
       postedAt: now - 12 * MS_PER_HOUR,
       metrics: { likes: 820, comments: 45, fetchedAt: now - 1 * MS_PER_HOUR },
+    },
+    {
+      id: "post-usc-poppi-followup",
+      orgId: "org-usc-mktg",
+      platform: "instagram",
+      url: "https://instagram.com/p/usc-poppi-followup",
+      caption: "Follow-up sampling at the quad.",
+      postedAt: now - 9 * MS_PER_DAY,
+      metrics: { likes: 410, comments: 25, fetchedAt: now - 9 * MS_PER_DAY },
+    },
+    {
+      id: "post-mit-poppi-late",
+      orgId: "org-mit-women-business",
+      platform: "instagram",
+      url: "https://instagram.com/p/mit-poppi-late",
+      caption: "Last-day giveaway line was wild.",
+      postedAt: now - 3 * MS_PER_DAY,
+      metrics: { likes: 930, comments: 57, fetchedAt: now - 3 * MS_PER_DAY },
     },
 
     /** Yerba Madre — Energy for Your Run (finished) — preserved final metrics. */

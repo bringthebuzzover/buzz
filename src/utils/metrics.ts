@@ -220,8 +220,16 @@ export function computeEngagementTimeSeries(args: {
     args.links.filter((l) => brandDropIds.has(l.dropId)).map((l) => l.postId)
   );
   const brandPosts = args.posts.filter((p) => linkedPostIds.has(p.id));
+  if (brandPosts.length === 0) return [];
 
-  const start = args.now - windowMs;
+  // Anchor the trailing window to real post data so the chart does not
+  // oscillate as the demo clock advances or rewinds.
+  const latestPostTs = brandPosts.reduce(
+    (acc, p) => Math.max(acc, p.metrics.fetchedAt),
+    0
+  );
+  const windowEnd = latestPostTs;
+  const start = windowEnd - windowMs;
   const step = windowMs / buckets;
   const series: EngagementTimeSeriesPoint[] = [];
 

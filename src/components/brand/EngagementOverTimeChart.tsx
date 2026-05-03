@@ -5,6 +5,7 @@
  */
 import { useMemo, useState } from "react";
 import type { EngagementTimeSeriesPoint } from "../../types/metrics";
+import { tailwindThemeExtend } from "../../theme/palette";
 
 type EngagementOverTimeChartProps = {
   points: readonly EngagementTimeSeriesPoint[];
@@ -13,6 +14,23 @@ type EngagementOverTimeChartProps = {
 const WIDTH = 720;
 const HEIGHT = 240;
 const PADDING = { top: 16, right: 24, bottom: 36, left: 56 };
+const BUZZ_COLORS = tailwindThemeExtend.colors.buzz;
+
+function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace("#", "");
+  const value =
+    clean.length === 3
+      ? clean
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : clean;
+  const num = Number.parseInt(value, 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 function formatDate(ms: number): string {
   return new Date(ms).toLocaleDateString(undefined, {
@@ -98,7 +116,7 @@ export default function EngagementOverTimeChart({
                 x2={WIDTH - PADDING.right}
                 y1={y}
                 y2={y}
-                stroke="#E5DCC8"
+                stroke={BUZZ_COLORS.lineMid}
                 strokeDasharray="4 4"
               />
               <text
@@ -114,11 +132,11 @@ export default function EngagementOverTimeChart({
           );
         })}
 
-        <path d={chart.areaPath} fill="rgba(241, 90, 60, 0.18)" />
+        <path d={chart.areaPath} fill={hexToRgba(BUZZ_COLORS.coral, 0.18)} />
         <path
           d={chart.linePath}
           fill="none"
-          stroke="#F15A3C"
+          stroke={BUZZ_COLORS.coral}
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -130,7 +148,7 @@ export default function EngagementOverTimeChart({
               cx={chart.xs[i]}
               cy={chart.ys[i]}
               r={hoverIdx === i ? 5 : 3}
-              fill="#F15A3C"
+              fill={BUZZ_COLORS.coral}
               stroke="white"
               strokeWidth={2}
             />
@@ -152,7 +170,7 @@ export default function EngagementOverTimeChart({
               x2={chart.xs[hoverIdx]}
               y1={PADDING.top}
               y2={HEIGHT - PADDING.bottom}
-              stroke="#F15A3C"
+              stroke={BUZZ_COLORS.coral}
               strokeOpacity={0.4}
               strokeDasharray="3 3"
             />
@@ -166,7 +184,7 @@ export default function EngagementOverTimeChart({
                 width={120}
                 height={48}
                 rx={8}
-                fill="#1B1B1B"
+                fill={BUZZ_COLORS.dark}
                 opacity={0.92}
               />
               <text

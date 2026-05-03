@@ -61,7 +61,7 @@ const NAME_COL_TD_CLASS =
 
 /** Native checkbox styled for BUZZ (no default blue accent). */
 const CHECKBOX_CLASS =
-  "h-5 w-5 shrink-0 cursor-pointer rounded-md border-2 border-buzz-lineMid bg-buzz-paper shadow-sm transition-colors [accent-color:#F7366D] checked:border-buzz-coral focus:outline-none focus:ring-2 focus:ring-buzz-coral/35 focus:ring-offset-2 focus:ring-offset-buzz-paper disabled:cursor-not-allowed disabled:opacity-50";
+  "h-5 w-5 shrink-0 cursor-pointer rounded-md border-2 border-buzz-lineMid bg-buzz-paper shadow-sm transition-colors accent-buzz-coral checked:border-buzz-coral focus:outline-none focus:ring-2 focus:ring-buzz-coral/35 focus:ring-offset-2 focus:ring-offset-buzz-paper disabled:cursor-not-allowed disabled:opacity-50";
 
 const DATA_COLUMN_META: { label: string; sortKey: ApplicantSortKey }[] = [
   { label: "University", sortKey: "campus" },

@@ -23,6 +23,18 @@ export function buildSeedLinks(now: number): PostCampaignLink[] {
       dropId: "drop-poppi-launch",
       linkedAt: now - 8 * MS_PER_HOUR,
     },
+    {
+      postId: "post-demo-poppi-ig-early",
+      applicationId: "app-demo-poppi-launch",
+      dropId: "drop-poppi-launch",
+      linkedAt: now - 12 * 24 * MS_PER_HOUR,
+    },
+    {
+      postId: "post-demo-poppi-tt-mid",
+      applicationId: "app-demo-poppi-launch",
+      dropId: "drop-poppi-launch",
+      linkedAt: now - 7 * 24 * MS_PER_HOUR,
+    },
 
     /** Cornell's Poppi posts (other org, used to roll up brand-side aggregates). */
     {
@@ -37,6 +49,12 @@ export function buildSeedLinks(now: number): PostCampaignLink[] {
       dropId: "drop-poppi-launch",
       linkedAt: now - 6 * MS_PER_HOUR,
     },
+    {
+      postId: "post-cornell-poppi-recap",
+      applicationId: "app-cornell-poppi",
+      dropId: "drop-poppi-launch",
+      linkedAt: now - 5 * 24 * MS_PER_HOUR,
+    },
     /** USC + MIT Poppi posts. */
     {
       postId: "post-usc-poppi",
@@ -45,10 +63,22 @@ export function buildSeedLinks(now: number): PostCampaignLink[] {
       linkedAt: now - 18 * MS_PER_HOUR,
     },
     {
+      postId: "post-usc-poppi-followup",
+      applicationId: "app-usc-poppi",
+      dropId: "drop-poppi-launch",
+      linkedAt: now - 9 * 24 * MS_PER_HOUR,
+    },
+    {
       postId: "post-mit-poppi",
       applicationId: "app-mit-poppi",
       dropId: "drop-poppi-launch",
       linkedAt: now - 10 * MS_PER_HOUR,
+    },
+    {
+      postId: "post-mit-poppi-late",
+      applicationId: "app-mit-poppi",
+      dropId: "drop-poppi-launch",
+      linkedAt: now - 3 * 24 * MS_PER_HOUR,
     },
 
     /** Yerba Madre — Energy for Your Run (finished) — preserved final attributions. */
