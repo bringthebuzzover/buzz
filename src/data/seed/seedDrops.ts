@@ -1,0 +1,130 @@
+/**
+ * Seed drops covering one example per visible status:
+ *
+ * - Upcoming (apply window in the future).
+ * - Open (apply window active, spots remaining).
+ * - Closed by full (capacity met before close time).
+ * - Closed by window (apply close passed, no manual reopen).
+ * - Manually reopened (close time passed but `manualReopen` true).
+ *
+ * Plus brand-side drops at every tracker stage so the brand demo user has full coverage.
+ */
+
+import type { Drop } from "../../types/drop";
+import { DEMO_BRAND_ID } from "./seedBrands";
+import boxesImage from "../../assets/boxesImage.png";
+import sorority from "../../assets/sorority.png";
+import yerbamate from "../../assets/yerbamate.png";
+import finalsEnergy from "../../assets/trackandfield.png";
+
+const MS_PER_HOUR = 60 * 60 * 1000;
+const MS_PER_DAY = 24 * MS_PER_HOUR;
+
+/**
+ * Builds the seed drop list anchored to "now" so countdowns always look fresh
+ * regardless of when the user opens the demo. Called once by the seed runner.
+ */
+export function buildSeedDrops(now: number): Drop[] {
+  return [
+    {
+      id: "drop-poppi-launch",
+      brandId: DEMO_BRAND_ID,
+      brandName: "Poppi",
+      title: "Poppi New Flavor Launch Pop-Up",
+      description:
+        "Poppi is dropping a brand new flavor. We're looking for campus organizations to host a launch pop-up. We send the cases, the merch, and everything you need for an unforgettable event.",
+      image: boxesImage,
+      location: "Multiple Campuses",
+      capacityTotal: 10,
+      applyOpenAt: now + 2 * MS_PER_DAY,
+      applyCloseAt: now + 9 * MS_PER_DAY,
+      manualReopen: false,
+      brandTrackerStage: "active_campaign",
+      totalProductUnits: 800,
+      createdAt: now - 5 * MS_PER_DAY,
+    },
+    {
+      id: "drop-summer-fridays-balm",
+      brandId: "brand-summer-fridays",
+      brandName: "Summer Fridays",
+      title: "Pink Guava Butter Balm Pop-Up",
+      description:
+        "Bring Summer Fridays' viral Pink Guava Lip Butter Balm to your campus. Host a sensory pop-up with pink decor, lip touch-ups, and photo moments for students to try the new shade.",
+      image: sorority,
+      location: "Your Campus",
+      capacityTotal: 10,
+      applyOpenAt: now - 2 * MS_PER_DAY,
+      applyCloseAt: now + 5 * MS_PER_DAY,
+      manualReopen: false,
+      brandTrackerStage: "request_received",
+      createdAt: now - 3 * MS_PER_DAY,
+    },
+    {
+      id: "drop-rare-beauty-soft-pinch",
+      brandId: "brand-rare-beauty",
+      brandName: "Rare Beauty",
+      title: "Soft Pinch Liquid Blush Sampling",
+      description:
+        "Rare Beauty's Soft Pinch Liquid Blush is back with two new shades. Host a sampling station where students can try the new colors and snap selfies with our brand wall.",
+      image: yerbamate,
+      location: "Your Campus",
+      capacityTotal: 5,
+      applyOpenAt: now - 4 * MS_PER_DAY,
+      applyCloseAt: now + 4 * MS_PER_DAY,
+      manualReopen: false,
+      brandTrackerStage: "active_campaign",
+      createdAt: now - 6 * MS_PER_DAY,
+    },
+    {
+      id: "drop-celsius-finals-fuel",
+      brandId: "brand-celsius",
+      brandName: "Celsius",
+      title: "Finals Fuel Energy Drop",
+      description:
+        "Power your campus through finals week. We supply cases of Celsius and pop-up branding so your org can run a finals-fuel station in the library.",
+      image: finalsEnergy,
+      location: "Your Campus",
+      capacityTotal: 8,
+      applyOpenAt: now - 9 * MS_PER_DAY,
+      applyCloseAt: now - 2 * MS_PER_DAY,
+      manualReopen: false,
+      brandTrackerStage: "completed",
+      createdAt: now - 14 * MS_PER_DAY,
+    },
+    {
+      id: "drop-poppi-spring-tour",
+      brandId: DEMO_BRAND_ID,
+      brandName: "Poppi",
+      title: "Spring Campus Tour (Reopened)",
+      description:
+        "Spots have reopened on our spring campus tour. Originally closed, but a few orgs dropped out — now accepting last-minute applications.",
+      image: boxesImage,
+      location: "Multiple Campuses",
+      capacityTotal: 6,
+      applyOpenAt: now - 12 * MS_PER_DAY,
+      applyCloseAt: now - 1 * MS_PER_DAY,
+      manualReopen: true,
+      brandTrackerStage: "products_in_transit",
+      trackingNumber: "1Z999AA10123456784",
+      totalProductUnits: 600,
+      createdAt: now - 14 * MS_PER_DAY,
+    },
+    {
+      id: "drop-poppi-finalizing",
+      brandId: DEMO_BRAND_ID,
+      brandName: "Poppi",
+      title: "Sorority Bid Day Sampling",
+      description:
+        "Applications are closed. Review orgs that applied, allocate product units, and finalize your campus partners.",
+      image: sorority,
+      location: "Your Campus",
+      capacityTotal: 4,
+      applyOpenAt: now - 8 * MS_PER_DAY,
+      applyCloseAt: now - 1 * MS_PER_HOUR,
+      manualReopen: false,
+      brandTrackerStage: "applicant_selection",
+      totalProductUnits: 420,
+      createdAt: now - 1 * MS_PER_DAY,
+    },
+  ];
+}

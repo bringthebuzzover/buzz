@@ -1,14 +1,17 @@
+/**
+ * Global Tailwind layers: base resets typography/body background from the Buzz palette.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: var(--body);
-  color: var(--dark);
-  background-color: #FFF1DC;
-;
+  body {
+    @apply m-0 bg-buzz-cream font-sans text-base text-buzz-ink;
+  }
 }
