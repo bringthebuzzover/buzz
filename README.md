@@ -101,7 +101,7 @@ There is no `npm test` script configured; add one with `craco test` if you intro
 - `src/data/seed/` — Seed data covering every drop / application status
 - `src/utils/` — Pure helpers (`dropStatus`, `orgCampaignStatus`, `postAttribution`, `notifyMe`, `metrics`, `useCountdown`)
 - `src/types/` — Domain types (`drop`, `orgCampaign`, `brandPortal`, `socialPost`, `metrics`, `access`, `campaign`)
-- `src/firebase.ts` — Firestore client (used only by the public waitlist form)
+- `src/firebase.ts` — Firestore client; `brand_waitlist` (brands) and `org_waitlist` (student orgs from home)
 - `public/` — Static assets (e.g. `index.html`, `hero.mp4`, favicon)
 - `craco.config.js` — CRA overrides (PostCSS + Tailwind)
 - `tailwind.config.js` — Tailwind theme (includes BUZZ palette `buzz.coral`, `buzz.cream`, `buzz.butter`, marquee animations)

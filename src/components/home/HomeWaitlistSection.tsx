@@ -1,16 +1,21 @@
 /**
- * Public landing waitlist block: name, org type, email — writes to Firestore `public_waitlist_leads`.
+ * Public landing waitlist: routes to `brand_waitlist` or `org_waitlist` by selection;
+ * does not persist a type field — shape matches the target collection.
  */
 import { useState, type FormEvent } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../firebase";
+import {
+  buildBrandWaitlistSubmission,
+  db,
+  FIRESTORE_COLLECTIONS,
+} from "../../firebase";
 
-const ORG_TYPES = [
-  { value: "student_org", label: "Student Organization" },
-  { value: "company", label: "Company" },
+const HOME_WAITLIST_KINDS = [
+  { value: "org", label: "Student organization" },
+  { value: "brand", label: "Brand" },
 ] as const;
 
-type OrgTypeValue = (typeof ORG_TYPES)[number]["value"];
+type HomeWaitlistKind = (typeof HOME_WAITLIST_KINDS)[number]["value"];
 type SubmitState = "idle" | "submitting" | "sent";
 
 function wait(ms: number): Promise<void> {
@@ -20,26 +25,39 @@ function wait(ms: number): Promise<void> {
 }
 
 export default function HomeWaitlistSection() {
-  const [fullName, setFullName] = useState("");
-  const [type, setType] = useState<"" | OrgTypeValue>("");
+  const [submitterName, setSubmitterName] = useState("");
+  const [kind, setKind] = useState<"" | HomeWaitlistKind>("");
   const [orgOrBrandName, setOrgOrBrandName] = useState("");
   const [email, setEmail] = useState("");
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!type || !orgOrBrandName.trim() || submitState !== "idle") {
+    if (!kind || !orgOrBrandName.trim() || submitState !== "idle") {
       return;
     }
     setSubmitState("submitting");
     try {
-      void addDoc(collection(db, "public_waitlist_leads"), {
-        fullName: fullName.trim(),
-        type,
-        orgOrBrandName: orgOrBrandName.trim(),
-        email: email.trim(),
-        createdAt: serverTimestamp(),
-      }).catch((err) => {
+      const collectionId =
+        kind === "brand"
+          ? FIRESTORE_COLLECTIONS.brandWaitlist
+          : FIRESTORE_COLLECTIONS.orgWaitlist;
+      const payload =
+        kind === "brand"
+          ? buildBrandWaitlistSubmission({
+              submitterName: submitterName.trim(),
+              brandName: orgOrBrandName.trim(),
+              email: email.trim(),
+              details: "",
+            })
+          : {
+              submitterName: submitterName.trim(),
+              orgName: orgOrBrandName.trim(),
+              email: email.trim(),
+              createdAt: serverTimestamp(),
+            };
+
+      void addDoc(collection(db, collectionId), payload).catch((err) => {
         console.error(err);
       });
       await wait(1500);
@@ -78,8 +96,8 @@ export default function HomeWaitlistSection() {
               id="waitlist-full-name"
               required
               type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              value={submitterName}
+              onChange={(e) => setSubmitterName(e.target.value)}
               className="w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-2 focus:ring-buzz-coral"
             />
           </div>
@@ -93,10 +111,10 @@ export default function HomeWaitlistSection() {
             <select
               id="waitlist-type"
               required
-              value={type}
+              value={kind}
               onChange={(e) => {
                 const v = e.target.value;
-                setType(v === "" ? "" : (v as OrgTypeValue));
+                setKind(v === "" ? "" : (v as HomeWaitlistKind));
                 setOrgOrBrandName("");
               }}
               className="w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm text-buzz-ink outline-none focus:border-buzz-coral focus:ring-2 focus:ring-buzz-coral"
@@ -104,20 +122,20 @@ export default function HomeWaitlistSection() {
               <option value="" disabled>
                 Select
               </option>
-              {ORG_TYPES.map((opt) => (
+              {HOME_WAITLIST_KINDS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
               ))}
             </select>
           </div>
-          {type ? (
+          {kind ? (
             <div>
               <label
                 htmlFor="waitlist-org-brand-name"
                 className="mb-2 block text-sm font-bold text-buzz-inkMuted"
               >
-                {type === "student_org" ? "Organization name" : "Brand name"}
+                {kind === "org" ? "Organization name" : "Brand name"}
               </label>
               <input
                 id="waitlist-org-brand-name"

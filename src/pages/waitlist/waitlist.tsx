@@ -1,26 +1,30 @@
 /**
  * Brand waitlist route inside `SiteLayout`: photo-forward hero background + refined
- * glass card form that writes submissions to Firestore `waitlist`.
+ * glass card form that writes submissions to Firestore `brand_waitlist`.
  */
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../firebase";
+import { collection, addDoc } from "firebase/firestore";
+import {
+  buildBrandWaitlistSubmission,
+  db,
+  FIRESTORE_COLLECTIONS,
+} from "../../firebase";
 import waitlistBackground from "../../assets/boxesImage.png";
 
 /** Fields persisted to Firestore on successful submit. */
 type WaitlistForm = {
-  name: string;
-  companyName: string;
-  product: string;
+  submitterName: string;
+  brandName: string;
+  email: string;
   details: string;
 };
 
 /** Empty form used after a successful signup to reset inputs. */
 const initialForm: WaitlistForm = {
-  name: "",
-  companyName: "",
-  product: "",
+  submitterName: "",
+  brandName: "",
+  email: "",
   details: "",
 };
 
@@ -41,18 +45,20 @@ export default function Waitlist() {
     }));
   };
 
-  /** Persists `form` plus `serverTimestamp()` under the `waitlist` collection. */
+  /** Persists `form` plus `serverTimestamp()` under the `brand_waitlist` collection. */
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     try {
-      await addDoc(collection(db, "waitlist"), {
-        name: form.name,
-        companyName: form.companyName,
-        product: form.product,
-        details: form.details,
-        createdAt: serverTimestamp(),
-      });
+      await addDoc(
+        collection(db, FIRESTORE_COLLECTIONS.brandWaitlist),
+        buildBrandWaitlistSubmission({
+          submitterName: form.submitterName.trim(),
+          brandName: form.brandName.trim(),
+          email: form.email.trim(),
+          details: form.details.trim(),
+        }),
+      );
 
       alert("You’re on the waitlist!");
       setForm(initialForm);
@@ -74,33 +80,34 @@ export default function Waitlist() {
             Join the Brand Waitlist
           </h1>
           <p className="mb-7 text-sm font-medium text-buzz-inkMuted">
-            Tell us a bit about your company and product. We will reach out when
-            a BUZZ representative is ready to onboard your next drop.
+            Tell us a bit about you and your brand. We will reach out when a
+            BUZZ representative is ready to onboard your next drop.
           </p>
 
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <input
-              name="name"
-              placeholder="Your Name"
-              value={form.name}
+              name="submitterName"
+              placeholder="Your name"
+              value={form.submitterName}
               onChange={handleChange}
               required
               className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-4 py-3 font-inherit text-base text-buzz-waitlistInk transition-shadow duration-200 ease-out placeholder:text-buzz-inkFaint focus:outline-none focus:ring-2 focus:ring-inset focus:ring-buzz-waitlistPink"
             />
 
             <input
-              name="companyName"
-              placeholder="Company Name"
-              value={form.companyName}
+              name="brandName"
+              placeholder="Brand name"
+              value={form.brandName}
               onChange={handleChange}
               required
               className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-4 py-3 font-inherit text-base text-buzz-waitlistInk transition-shadow duration-200 ease-out placeholder:text-buzz-inkFaint focus:outline-none focus:ring-2 focus:ring-inset focus:ring-buzz-waitlistPink"
             />
 
             <input
-              name="product"
-              placeholder="Product"
-              value={form.product}
+              name="email"
+              type="email"
+              placeholder="Email"
+              value={form.email}
               onChange={handleChange}
               required
               className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-4 py-3 font-inherit text-base text-buzz-waitlistInk transition-shadow duration-200 ease-out placeholder:text-buzz-inkFaint focus:outline-none focus:ring-2 focus:ring-inset focus:ring-buzz-waitlistPink"
