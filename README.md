@@ -27,15 +27,14 @@ The full product spec lives in [`PRODUCT.md`](PRODUCT.md) — that is the source
    npm install
    ```
 
-2. **Firebase (waitlist)** — Create a `.env` file in the project root (same folder as `package.json`). Create React App only exposes variables whose names start with `REACT_APP_`:
+2. **Firebase (waitlist)** — Copy `.env.example` to `.env` and fill in values from Firebase Console → Project settings → Web app. **Do not commit `.env`** (it is gitignored and may contain your API key). Create React App only exposes variables whose names start with `REACT_APP_`:
 
    ```bash
-   REACT_APP_FIREBASE_API_KEY=your_api_key
-   REACT_APP_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-   REACT_APP_FIREBASE_PROJECT_ID=your_project_id
+   cp .env.example .env
+   # then edit .env
    ```
 
-   Restart the dev server after changing `.env`. Other Firebase fields are committed in `src/firebase.ts`; adjust there if your project differs.
+   Restart the dev server after changing `.env`. Other Firebase fields are committed in `src/firebase.ts`; adjust there if your project differs. Publish `firestore.rules` in the console (Firestore → Rules) so waitlist writes are allowed.
 
 3. **Optional** — Place the hero video at `public/hero.mp4` (the home hero loads it via `PUBLIC_URL`).
 

@@ -57,9 +57,7 @@ export default function HomeWaitlistSection() {
               createdAt: serverTimestamp(),
             };
 
-      void addDoc(collection(db, collectionId), payload).catch((err) => {
-        console.error(err);
-      });
+      await addDoc(collection(db, collectionId), payload);
       await wait(1500);
       setSubmitState("sent");
     } catch (err) {
