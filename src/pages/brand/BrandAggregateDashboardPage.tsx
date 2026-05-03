@@ -3,9 +3,9 @@
  * the running totals bar, totals cards, engagement-over-time chart, and the
  * sortable drop comparison table. Empty state when the brand has no drops.
  */
-import { Link } from "react-router-dom";
-import { useState } from "react";
-import { PhoneCall, Plus } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Sparkles } from "lucide-react";
 import {
   useApplications,
   useBrandDrops,
@@ -23,15 +23,27 @@ import AggregateTotalsCards from "../../components/brand/AggregateTotalsCards";
 import CompareDropsTable from "../../components/brand/CompareDropsTable";
 import EngagementOverTimeChart from "../../components/brand/EngagementOverTimeChart";
 import RunningTotalsBar from "../../components/brand/RunningTotalsBar";
-import StrategyCallModal from "../../components/site/modals/StrategyCallModal";
+import PlanCampaignModal from "../../components/site/modals/PlanCampaignModal";
+
+type DashboardLocationState = { openPlanCampaign?: boolean };
 
 export default function BrandAggregateDashboardPage() {
-  const [strategyOpen, setStrategyOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [planCampaignOpen, setPlanCampaignOpen] = useState(false);
   const drops = useBrandDrops(DEMO_BRAND_ID);
   const applications = useApplications();
   const links = useLinks();
   const posts = usePosts();
   const now = useDemoNow();
+
+  useEffect(() => {
+    const st = location.state as DashboardLocationState | null;
+    if (st?.openPlanCampaign) {
+      setPlanCampaignOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   const aggregate = computeBrandAggregate({
     brandId: DEMO_BRAND_ID,
@@ -59,27 +71,20 @@ export default function BrandAggregateDashboardPage() {
             Aggregate performance across every drop you've run with Buzz.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setStrategyOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-buzz-lineMid bg-buzz-paper px-4 py-2 font-bold text-buzz-inkMuted shadow-sm transition hover:bg-buzz-butter hover:text-buzz-coral"
-          >
-            <PhoneCall size={16} /> Schedule Strategy Call
-          </button>
-          <Link
-            to="/brand/requests/new"
-            className="flex items-center gap-2 rounded-lg bg-buzz-coral px-4 py-2 font-bold text-buzz-paper shadow-sm transition hover:bg-buzz-coralDark"
-          >
-            <Plus size={16} /> Request Drop
-          </Link>
-        </div>
+        <button
+          type="button"
+          onClick={() => setPlanCampaignOpen(true)}
+          className="flex items-center gap-2 rounded-lg bg-buzz-coral px-4 py-2 font-bold text-buzz-paper shadow-sm transition hover:bg-buzz-coralDark"
+        >
+          <Sparkles size={16} /> Plan your Campaign
+        </button>
       </header>
 
       {drops.length === 0 ? (
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center">
           <p className="text-sm font-medium text-buzz-inkMuted">
-            No drops yet. Request your first drop to see analytics.
+            No drops yet. Use Plan your Campaign to connect with a Buzz
+            consultant about your activation.
           </p>
         </div>
       ) : (
@@ -96,8 +101,8 @@ export default function BrandAggregateDashboardPage() {
           />
         </div>
       )}
-      {strategyOpen ? (
-        <StrategyCallModal onClose={() => setStrategyOpen(false)} />
+      {planCampaignOpen ? (
+        <PlanCampaignModal onClose={() => setPlanCampaignOpen(false)} />
       ) : null}
     </div>
   );

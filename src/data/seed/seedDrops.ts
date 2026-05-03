@@ -12,10 +12,12 @@
 
 import type { Drop } from "../../types/drop";
 import { DEMO_BRAND_ID } from "./seedBrands";
-import boxesImage from "../../assets/boxesImage.png";
 import sorority from "../../assets/sorority.png";
-import yerbamate from "../../assets/yerbamate.png";
-import finalsEnergy from "../../assets/trackandfield.png";
+import trackandfield from "../../assets/trackandfield.png";
+import pinkGuava from "../../assets/pinkguava.png";
+import rareBeauty from "../../assets/rarebeauty.png";
+import primeImage from "../../assets/prime.png";
+import poppi from "../../assets/poppi.png";
 
 const MS_PER_HOUR = 60 * 60 * 1000;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
@@ -33,7 +35,7 @@ export function buildSeedDrops(now: number): Drop[] {
       title: "Poppi New Flavor Launch Pop-Up",
       description:
         "Poppi is dropping a brand new flavor. We're looking for campus organizations to host a launch pop-up. We send the cases, the merch, and everything you need for an unforgettable event.",
-      image: boxesImage,
+      image: poppi,
       location: "Multiple Campuses",
       capacityTotal: 10,
       applyOpenAt: now + 2 * MS_PER_DAY,
@@ -50,7 +52,7 @@ export function buildSeedDrops(now: number): Drop[] {
       title: "Pink Guava Butter Balm Pop-Up",
       description:
         "Bring Summer Fridays' viral Pink Guava Lip Butter Balm to your campus. Host a sensory pop-up with pink decor, lip touch-ups, and photo moments for students to try the new shade.",
-      image: sorority,
+      image: pinkGuava,
       location: "Your Campus",
       capacityTotal: 10,
       applyOpenAt: now - 2 * MS_PER_DAY,
@@ -66,7 +68,7 @@ export function buildSeedDrops(now: number): Drop[] {
       title: "Soft Pinch Liquid Blush Sampling",
       description:
         "Rare Beauty's Soft Pinch Liquid Blush is back with two new shades. Host a sampling station where students can try the new colors and snap selfies with our brand wall.",
-      image: yerbamate,
+      image: rareBeauty,
       location: "Your Campus",
       capacityTotal: 5,
       applyOpenAt: now - 4 * MS_PER_DAY,
@@ -77,12 +79,12 @@ export function buildSeedDrops(now: number): Drop[] {
     },
     {
       id: "drop-celsius-finals-fuel",
-      brandId: "brand-celsius",
-      brandName: "Celsius",
-      title: "Finals Fuel Energy Drop",
+      brandId: "brand-yerba-mate",
+      brandName: "Yerba Madre",
+      title: "Yerba Madre — Energy for Your Run",
       description:
-        "Power your campus through finals week. We supply cases of Celsius and pop-up branding so your org can run a finals-fuel station in the library.",
-      image: finalsEnergy,
+        "Fuel your run club and campus routes with clean energy from Yerba Madre. We send product, coolers, and branding so your org can host post-run sampling, group runs, and tabling outside the rec center.",
+      image: trackandfield,
       location: "Your Campus",
       capacityTotal: 8,
       applyOpenAt: now - 9 * MS_PER_DAY,
@@ -94,11 +96,11 @@ export function buildSeedDrops(now: number): Drop[] {
     {
       id: "drop-poppi-spring-tour",
       brandId: DEMO_BRAND_ID,
-      brandName: "Poppi",
-      title: "Spring Campus Tour (Reopened)",
+      brandName: "PRIME Hydration",
+      title: "PRIME Hydration Campus Partnership",
       description:
-        "Spots have reopened on our spring campus tour. Originally closed, but a few orgs dropped out — now accepting last-minute applications.",
-      image: boxesImage,
+        "Partner with PRIME Hydration to bring bold flavors and high-energy sampling to your campus — hydration stations, tabling, and ambassador-style activations. A few host spots just opened up; we're accepting last-minute applications.",
+      image: primeImage,
       location: "Multiple Campuses",
       capacityTotal: 6,
       applyOpenAt: now - 12 * MS_PER_DAY,
@@ -112,10 +114,10 @@ export function buildSeedDrops(now: number): Drop[] {
     {
       id: "drop-poppi-finalizing",
       brandId: DEMO_BRAND_ID,
-      brandName: "Poppi",
-      title: "Sorority Bid Day Sampling",
+      brandName: "Yerba Madre",
+      title: "Yerba Madre — Sorority Bid Day",
       description:
-        "Applications are closed. Review orgs that applied, allocate product units, and finalize your campus partners.",
+        "Bring clean energy to bid day with Yerba Madre sampling for PNMs and sisters — tabling, welcome bags, and post-ceremony toasts. Applications are closed; review orgs that applied, allocate units, and finalize your campus partners.",
       image: sorority,
       location: "Your Campus",
       capacityTotal: 4,

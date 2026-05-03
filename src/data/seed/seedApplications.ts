@@ -27,9 +27,9 @@ export function buildSeedApplications(now: number): DropApplication[] {
       trackingNumber: "1Z999AA10123456784",
     },
 
-    /** Accepted on the reopened tour, products in transit — shows tracking number. */
+    /** Accepted on PRIME Hydration partnership drop, products in transit — shows tracking number. */
     {
-      id: "app-demo-spring-tour",
+      id: "app-demo-prime-partnership",
       dropId: "drop-poppi-spring-tour",
       orgId: DEMO_ORG_ID,
       decision: "accepted",
@@ -58,9 +58,9 @@ export function buildSeedApplications(now: number): DropApplication[] {
       decisionAt: now - 1 * MS_PER_DAY,
     },
 
-    /** Finished campaign for the demo org (Celsius). */
+    /** Finished campaign for the demo org (Yerba Madre — Energy for Your Run). */
     {
-      id: "app-demo-celsius",
+      id: "app-demo-yerba-run",
       dropId: "drop-celsius-finals-fuel",
       orgId: DEMO_ORG_ID,
       decision: "accepted",
@@ -69,14 +69,15 @@ export function buildSeedApplications(now: number): DropApplication[] {
       trackingNumber: "1Z999AA10555555555",
     },
 
-    /** Applicant Selection demo — Poppi bid day drop: pending applications from multiple orgs. */
+    /** Applicant Selection demo — Yerba Madre sorority bid day: pending applications from multiple orgs. */
     {
       id: "app-bidday-cornell",
       dropId: "drop-poppi-finalizing",
       orgId: "org-cornell-alpha-phi",
       decision: "applied",
       appliedAt: now - 5 * MS_PER_DAY,
-      pitch: "Strong Greek life presence; can host tabling on Ho Plaza.",
+      pitch:
+        "Strong Greek life presence; can host Yerba Madre bid day tabling on Ho Plaza.",
     },
     {
       id: "app-bidday-usc",
@@ -84,7 +85,8 @@ export function buildSeedApplications(now: number): DropApplication[] {
       orgId: "org-usc-mktg",
       decision: "applied",
       appliedAt: now - 4 * MS_PER_DAY,
-      pitch: "Weekly marketing events with 200+ attendees typical.",
+      pitch:
+        "Weekly marketing events with 200+ attendees — great for run-club + Yerba Madre sampling.",
     },
     {
       id: "app-bidday-mit",
@@ -92,7 +94,8 @@ export function buildSeedApplications(now: number): DropApplication[] {
       orgId: "org-mit-women-business",
       decision: "applied",
       appliedAt: now - 4 * MS_PER_DAY,
-      pitch: "Corporate partners network aligns with beverage sampling.",
+      pitch:
+        "Corporate partners network aligns with campus run clubs and beverage sampling.",
     },
     {
       id: "app-bidday-nyu",
@@ -100,7 +103,8 @@ export function buildSeedApplications(now: number): DropApplication[] {
       orgId: "org-nyu-stern-marketing",
       decision: "applied",
       appliedAt: now - 3 * MS_PER_DAY,
-      pitch: "Washington Square Park adjacent activation space available.",
+      pitch:
+        "Washington Square Park adjacent space — strong for bid week Yerba Madre activations.",
     },
     {
       id: "app-bidday-babson",
@@ -108,7 +112,8 @@ export function buildSeedApplications(now: number): DropApplication[] {
       orgId: DEMO_ORG_ID,
       decision: "applied",
       appliedAt: now - 2 * MS_PER_DAY,
-      pitch: "Bid week visibility across business school cohorts.",
+      pitch:
+        "Bid week visibility across business school cohorts; can merchandise Yerba Madre welcome bags.",
     },
 
     /** Denied — must NOT appear in My Campaigns. */
@@ -181,9 +186,9 @@ export function buildSeedApplications(now: number): DropApplication[] {
       decisionAt: now - 2 * MS_PER_DAY,
     },
 
-    // Celsius (finished) — multiple orgs participated.
+    // Yerba Madre run drop (finished) — multiple orgs participated.
     {
-      id: "app-cornell-celsius",
+      id: "app-cornell-yerba-run",
       dropId: "drop-celsius-finals-fuel",
       orgId: "org-cornell-alpha-phi",
       decision: "accepted",
@@ -191,7 +196,7 @@ export function buildSeedApplications(now: number): DropApplication[] {
       decisionAt: now - 11 * MS_PER_DAY,
     },
     {
-      id: "app-nyu-celsius",
+      id: "app-nyu-yerba-run",
       dropId: "drop-celsius-finals-fuel",
       orgId: "org-nyu-stern-marketing",
       decision: "accepted",

@@ -62,8 +62,12 @@ export default function SiteFooter() {
                     </Link>
                   </li>
                   <li>
-                    <Link to="/brand/requests/new" className="hover:text-buzz-coral">
-                      Request a Drop
+                    <Link
+                      to="/brand/dashboard"
+                      state={{ openPlanCampaign: true }}
+                      className="hover:text-buzz-coral"
+                    >
+                      Plan your Campaign
                     </Link>
                   </li>
                 </>

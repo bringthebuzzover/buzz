@@ -51,22 +51,22 @@ export function buildSeedLinks(now: number): PostCampaignLink[] {
       linkedAt: now - 10 * MS_PER_HOUR,
     },
 
-    /** Celsius (finished) — preserved final attributions. */
+    /** Yerba Madre — Energy for Your Run (finished) — preserved final attributions. */
     {
-      postId: "post-demo-celsius",
-      applicationId: "app-demo-celsius",
+      postId: "post-demo-yerba-run",
+      applicationId: "app-demo-yerba-run",
       dropId: "drop-celsius-finals-fuel",
       linkedAt: now - 11 * 24 * MS_PER_HOUR,
     },
     {
-      postId: "post-cornell-celsius",
-      applicationId: "app-cornell-celsius",
+      postId: "post-cornell-yerba-run",
+      applicationId: "app-cornell-yerba-run",
       dropId: "drop-celsius-finals-fuel",
       linkedAt: now - 11 * 24 * MS_PER_HOUR,
     },
     {
-      postId: "post-nyu-celsius",
-      applicationId: "app-nyu-celsius",
+      postId: "post-nyu-yerba-run",
+      applicationId: "app-nyu-yerba-run",
       dropId: "drop-celsius-finals-fuel",
       linkedAt: now - 11 * 24 * MS_PER_HOUR,
     },

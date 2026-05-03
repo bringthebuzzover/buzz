@@ -15,5 +15,5 @@ export const SEED_BRANDS: SeedBrand[] = [
   { id: DEMO_BRAND_ID, name: "Poppi" },
   { id: "brand-summer-fridays", name: "Summer Fridays" },
   { id: "brand-rare-beauty", name: "Rare Beauty" },
-  { id: "brand-celsius", name: "Celsius" },
+  { id: "brand-yerba-mate", name: "Yerba Madre" },
 ];

@@ -92,11 +92,11 @@ export default function CompareDropsTable({
   return (
     <div className="overflow-hidden rounded-2xl border border-buzz-lineMid bg-buzz-paper shadow-sm">
       <div className="border-b border-buzz-line bg-buzz-cream px-6 py-4">
-        <h3 className="text-lg font-bold text-buzz-ink">Compare drops</h3>
+        <h3 className="text-lg font-bold text-buzz-ink">Compare activations</h3>
       </div>
       {rows.length === 0 ? (
         <p className="p-8 text-center text-sm font-medium text-buzz-inkMuted">
-          No drops yet to compare.
+          No activations yet to compare.
         </p>
       ) : (
         <div className="overflow-x-auto">

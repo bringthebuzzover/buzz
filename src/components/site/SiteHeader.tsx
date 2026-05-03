@@ -19,8 +19,12 @@ const ORG_NAV_LINKS = [
 ] as const;
 
 const BRAND_NAV_LINKS = [
-  { to: "/brand/dashboard", label: "Dashboard" },
-  { to: "/brand/requests/new", label: "Request Drop" },
+  { to: "/brand/dashboard", label: "Dashboard" as const },
+  {
+    to: "/brand/dashboard",
+    label: "Plan your Campaign" as const,
+    state: { openPlanCampaign: true } as const,
+  },
 ] as const;
 
 export default function SiteHeader() {
@@ -97,8 +101,9 @@ export default function SiteHeader() {
           {isDemoActive
             ? demoNavLinks.map((link) => (
                 <Link
-                  key={link.to}
+                  key={link.label}
                   to={link.to}
+                  state={"state" in link ? link.state : undefined}
                   className="transition hover:text-buzz-butterBright"
                 >
                   {link.label}
