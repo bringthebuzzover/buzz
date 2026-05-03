@@ -69,7 +69,7 @@ export function buildSeedApplications(now: number): DropApplication[] {
       trackingNumber: "1Z999AA10555555555",
     },
 
-    /** Applicant Selection demo — Yerba Madre sorority bid day: pending applications from multiple orgs. */
+    /** Applicant Selection demo — Claude builder club credits: pending applications from multiple orgs. */
     {
       id: "app-bidday-cornell",
       dropId: "drop-poppi-finalizing",
@@ -77,7 +77,7 @@ export function buildSeedApplications(now: number): DropApplication[] {
       decision: "applied",
       appliedAt: now - 5 * MS_PER_DAY,
       pitch:
-        "Strong Greek life presence; can host Yerba Madre bid day tabling on Ho Plaza.",
+        "Strong builder-club pipeline; can recruit and support student AI builders.",
     },
     {
       id: "app-bidday-usc",
@@ -86,7 +86,7 @@ export function buildSeedApplications(now: number): DropApplication[] {
       decision: "applied",
       appliedAt: now - 4 * MS_PER_DAY,
       pitch:
-        "Weekly marketing events with 200+ attendees — great for run-club + Yerba Madre sampling.",
+        "Runs weekly builder sessions with 200+ attendees; ideal for Claude credit onboarding.",
     },
     {
       id: "app-bidday-mit",
@@ -95,7 +95,7 @@ export function buildSeedApplications(now: number): DropApplication[] {
       decision: "applied",
       appliedAt: now - 4 * MS_PER_DAY,
       pitch:
-        "Corporate partners network aligns with campus run clubs and beverage sampling.",
+        "Corporate partners network aligns with AI workshops, hack nights, and builder tooling.",
     },
     {
       id: "app-bidday-nyu",
@@ -104,7 +104,7 @@ export function buildSeedApplications(now: number): DropApplication[] {
       decision: "applied",
       appliedAt: now - 3 * MS_PER_DAY,
       pitch:
-        "Washington Square Park adjacent space — strong for bid week Yerba Madre activations.",
+        "Strong NYU builder community; can host onboarding for student org leaders and builders.",
     },
     {
       id: "app-bidday-babson",
@@ -113,7 +113,7 @@ export function buildSeedApplications(now: number): DropApplication[] {
       decision: "applied",
       appliedAt: now - 2 * MS_PER_DAY,
       pitch:
-        "Bid week visibility across business school cohorts; can merchandise Yerba Madre welcome bags.",
+        "Strong campus distribution via clubs; can responsibly distribute free Claude credits to builders.",
     },
 
     /** Denied — must NOT appear in My Campaigns. */

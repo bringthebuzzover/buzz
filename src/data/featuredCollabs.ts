@@ -3,7 +3,7 @@
  */
 import type { FeaturedCollab } from "../types/campaign";
 import sorority from "../assets/sorority.png";
-import yerbamate from "../assets/yerbamate.png";
+import ztaLacroix from "../assets/zta-lacroix.png";
 
 /** Title, subtitle, and hero image per collaboration tile. */
 export const FEATURED_COLLABS: FeaturedCollab[] = [
@@ -15,8 +15,8 @@ export const FEATURED_COLLABS: FeaturedCollab[] = [
   },
   {
     id: 2,
-    title: "Sigma Kappa x Mighty Patch",
-    subtitle: "Collaboration at Babson College",
-    image: yerbamate,
+    title: "Zeta Tau Alpha x La Croix",
+    subtitle: "Collaboration at Stanford University",
+    image: ztaLacroix,
   },
 ];

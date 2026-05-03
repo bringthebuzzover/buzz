@@ -12,12 +12,12 @@
 
 import type { Drop } from "../../types/drop";
 import { DEMO_BRAND_ID } from "./seedBrands";
-import sorority from "../../assets/sorority.png";
 import trackandfield from "../../assets/trackandfield.png";
 import pinkGuava from "../../assets/pinkguava.png";
 import rareBeauty from "../../assets/rarebeauty.png";
 import primeImage from "../../assets/prime.png";
 import poppi from "../../assets/poppi.png";
+import claudeLogo from "../../assets/claude-logo.webp";
 
 const MS_PER_HOUR = 60 * 60 * 1000;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
@@ -71,8 +71,8 @@ export function buildSeedDrops(now: number): Drop[] {
       image: rareBeauty,
       location: "Your Campus",
       capacityTotal: 5,
-      applyOpenAt: now - 4 * MS_PER_DAY,
-      applyCloseAt: now + 4 * MS_PER_DAY,
+      applyOpenAt: now + 3 * MS_PER_DAY,
+      applyCloseAt: now + 10 * MS_PER_DAY,
       manualReopen: false,
       brandTrackerStage: "active_campaign",
       createdAt: now - 6 * MS_PER_DAY,
@@ -114,11 +114,11 @@ export function buildSeedDrops(now: number): Drop[] {
     {
       id: "drop-poppi-finalizing",
       brandId: DEMO_BRAND_ID,
-      brandName: "Yerba Madre",
-      title: "Yerba Madre — Sorority Bid Day",
+      brandName: "Claude",
+      title: "Claude Builder Club Credits",
       description:
-        "Bring clean energy to bid day with Yerba Madre sampling for PNMs and sisters — tabling, welcome bags, and post-ceremony toasts. Applications are closed; review orgs that applied, allocate units, and finalize your campus partners.",
-      image: sorority,
+        "Claude is offering free API credits to student organizations and campus builder clubs. Applications are closed; review orgs that applied, allocate credit slots, and finalize your partner clubs.",
+      image: claudeLogo,
       location: "Your Campus",
       capacityTotal: 4,
       applyOpenAt: now - 8 * MS_PER_DAY,

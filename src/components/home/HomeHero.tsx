@@ -8,7 +8,7 @@ import { scrollToHomeWaitlist } from "../../utils/scrollHomeWaitlist";
 
 export default function HomeHero() {
   const navigate = useNavigate();
-  const { isDemoActive, openPasscodeModal } = useAccessGate();
+  const { isDemoActive, demoView, openPasscodeModal } = useAccessGate();
   const publicUrl = process.env.PUBLIC_URL ?? "";
 
   return (
@@ -41,20 +41,45 @@ export default function HomeHero() {
         <div className="flex flex-col justify-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0 md:justify-start">
           {isDemoActive ? (
             <>
-              <button
-                type="button"
-                onClick={() => navigate("/register")}
-                className="rounded-lg bg-buzz-coral px-8 py-3 font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
-              >
-                Join Buzz!
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate("/campaigns")}
-                className="rounded-lg border border-buzz-paper/50 bg-buzz-overlay/30 px-8 py-3 font-bold text-buzz-paper shadow-sm backdrop-blur-sm transition hover:bg-buzz-overlay/50"
-              >
-                Browse Campaigns
-              </button>
+              {demoView === "brand" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/brand/dashboard")}
+                    className="rounded-lg bg-buzz-coral px-8 py-3 font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
+                  >
+                    See Dashboard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate("/brand/dashboard", {
+                        state: { openPlanCampaign: true },
+                      })
+                    }
+                    className="rounded-lg border border-buzz-paper/50 bg-buzz-overlay/30 px-8 py-3 font-bold text-buzz-paper shadow-sm backdrop-blur-sm transition hover:bg-buzz-overlay/50"
+                  >
+                    Plan your Campaign
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/org/campaigns")}
+                    className="rounded-lg bg-buzz-coral px-8 py-3 font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
+                  >
+                    My Campaigns
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/org/drops")}
+                    className="rounded-lg border border-buzz-paper/50 bg-buzz-overlay/30 px-8 py-3 font-bold text-buzz-paper shadow-sm backdrop-blur-sm transition hover:bg-buzz-overlay/50"
+                  >
+                    Browse Campaigns
+                  </button>
+                </>
+              )}
             </>
           ) : (
             <>

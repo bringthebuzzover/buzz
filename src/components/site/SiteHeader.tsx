@@ -30,11 +30,6 @@ const ORG_NAV_LINKS = [
 
 const BRAND_NAV_LINKS = [
   { to: "/brand/dashboard", label: "Dashboard" as const },
-  {
-    to: "/brand/dashboard",
-    label: "Plan your Campaign" as const,
-    state: { openPlanCampaign: true } as const,
-  },
 ] as const;
 
 export default function SiteHeader() {
@@ -91,6 +86,11 @@ export default function SiteHeader() {
       : demoView === "org"
         ? ORG_NAV_LINKS
         : [];
+
+  const isNavActive = (to: string): boolean => {
+    if (to === "/") return pathname === "/";
+    return pathname === to || pathname.startsWith(`${to}/`);
+  };
 
   const handleJoinWaitlist = () => {
     goToHomeWaitlist(pathname, navigate);
@@ -151,7 +151,14 @@ export default function SiteHeader() {
         {/* Desktop / tablet: centered logo, links on sides */}
         <div className="relative hidden min-[650px]:flex h-[6rem] items-center justify-between px-8 py-4 font-medium">
           <div className="flex space-x-8">
-            <Link to="/" className="transition hover:text-buzz-butterBright">
+            <Link
+              to="/"
+              className={`transition hover:text-buzz-butterBright ${
+                isNavActive("/")
+                  ? "underline decoration-2 underline-offset-8"
+                  : ""
+              }`}
+            >
               Home
             </Link>
             {isDemoActive
@@ -160,7 +167,11 @@ export default function SiteHeader() {
                     key={link.label}
                     to={link.to}
                     state={"state" in link ? link.state : undefined}
-                    className="transition hover:text-buzz-butterBright"
+                    className={`transition hover:text-buzz-butterBright ${
+                      isNavActive(link.to)
+                        ? "underline decoration-2 underline-offset-8"
+                        : ""
+                    }`}
                   >
                     {link.label}
                   </Link>
