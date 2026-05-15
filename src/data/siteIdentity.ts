@@ -3,22 +3,24 @@
  * Edit values here instead of hunting through components; consumed by header, footer, modals, and hero.
  */
 import buzzLogo from "../assets/buzz-logo.svg";
+import buzzLogoCoral from "../assets/buzz-logo-coral.svg";
 import instaIcon from "../assets/insta-icon.png";
 import linkedinIcon from "../assets/linkedin-icon.png";
 
 /** Read-only config object consumed by header, footer, modals, and hero. */
 export const siteIdentity = {
   images: {
+    /** Full-color mark for dark / coral bars (white wordmark). */
     logo: buzzLogo,
+    /** Coral wordmark for light backgrounds (footer, etc.). */
+    logoCoral: buzzLogoCoral,
     logoAlt: "BUZZ",
     socialInstagramIcon: instaIcon,
     socialLinkedinIcon: linkedinIcon,
   },
   brand: {
     name: "BUZZ",
-    /** Full name shown in footer, etc. */
     displayName: "Bring the Buzz Over",
-    shortBadge: "BZ",
   },
   social: {
     instagram: {

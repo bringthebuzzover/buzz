@@ -40,7 +40,7 @@ export default function HomePage() {
         <Marquee
           items={COLLEGES}
           title="Our College Network"
-          subtitle="Student organizations and campus reps help bring your brand to top universities nationwide"
+          subtitle="Vetted student organizations powering authentic campus marketing nationwide."
         />
         <FeaturedCollaborations />
         <HomeCallouts />
@@ -54,7 +54,7 @@ export default function HomePage() {
       <Marquee
         items={COLLEGES}
         title="Our College Network"
-        subtitle="Student organizations and campus reps help bring your brand to top universities nationwide"
+        subtitle="Vetted student organizations powering authentic campus marketing nationwide."
         hideBottomBorder
       />
       <HomeBringBuzzSection />

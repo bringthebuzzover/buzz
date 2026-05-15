@@ -50,7 +50,7 @@ export default function OrgMyCampaignsPage() {
 
       {rows.length === 0 ? (
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
-          You have no campaigns yet. Browse the Drop Feed to apply to one.
+          You have no campaigns yet. Browse Campaigns to apply to one.
         </div>
       ) : (
         <div className="space-y-4">

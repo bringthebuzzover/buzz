@@ -87,7 +87,7 @@ export default function OrgDropFeedPage() {
     <div className="mx-auto max-w-6xl px-8 py-12">
       <header className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-buzz-ink">
-          Drop <span className="text-buzz-coral">Feed</span>
+          Browse <span className="text-buzz-coral">Campaigns</span>
         </h1>
         <p className="mt-2 text-sm font-medium text-buzz-inkMuted">
           Browse open and upcoming drops from the brands in our network.

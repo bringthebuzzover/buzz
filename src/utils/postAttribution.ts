@@ -1,6 +1,6 @@
 /**
  * Post attribution rules — enforces that a single post belongs to at most one campaign
- * (PRODUCT.md §4.3). The rule applies across all of an org's campaigns simultaneously.
+ * (PRODUCT.md §4.2). The rule applies across all of an org's campaigns simultaneously.
  *
  * `canAssignPostToCampaign` returns `true` if the post is unlinked OR already linked to
  * the same campaign (re-linking is a no-op). The reason string is provided for UI copy

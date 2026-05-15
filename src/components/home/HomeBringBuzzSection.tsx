@@ -16,30 +16,30 @@ type IconLine = { Icon: LucideIcon; text: string };
 const BRAND_LINES: IconLine[] = [
   {
     Icon: Megaphone,
-    text: "Reach campuses through student orgs and their reps—not cold ads—with credibility students already trust.",
+    text: "Nationwide campus network",
   },
   {
     Icon: Layers,
-    text: "Run briefs, approvals, and creative across schools from one BUZZ workflow.",
+    text: "End-to-end campaign coordination",
   },
   {
     Icon: BarChart2,
-    text: "Track engagement, reach, and on-ground touchpoints in clear, shareable reports.",
+    text: "Authentic student engagement at scale",
   },
 ];
 
 const STUDENT_ORG_LINES: IconLine[] = [
   {
     Icon: Handshake,
-    text: "Win paid collabs, product, and perks with brands that match your mission.",
+    text: "Access exclusive brand partnerships",
   },
   {
     Icon: PenLine,
-    text: "Turn campus hype into posts your members are proud to share.",
+    text: "Power your events with product sponsorships",
   },
   {
     Icon: TrendingUp,
-    text: "Grow visibility so the right brands find and trust your org on BUZZ.",
+    text: "Apply in minutes and get products delivered directly to your organization",
   },
 ];
 

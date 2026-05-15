@@ -9,12 +9,14 @@ export default function HomeCallouts() {
 
   return (
     <section className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-8 py-12 md:grid-cols-2">
-      <div className="relative overflow-hidden rounded-2xl border border-buzz-coral bg-gradient-to-br from-buzz-coral to-buzz-coralLight p-10 text-buzz-paper shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl border border-buzz-coral bg-buzz-coral p-10 text-buzz-paper shadow-sm">
         <div className="absolute right-0 top-0 h-64 w-64 translate-x-1/4 -translate-y-1/2 rounded-full bg-buzz-butter/20" />
-        <h3 className="relative z-10 mb-4 text-3xl font-bold">Create a Campaign</h3>
+        <h3 className="relative z-10 mb-4 text-3xl font-bold">
+          Create a Campaign
+        </h3>
         <p className="relative z-10 mb-8 max-w-md opacity-90">
-          Launch your brand campaign and connect with student organizations who can
-          authentically represent your products on college campuses.
+          Launch your brand campaign and connect with student organizations who
+          can authentically represent your products on college campuses.
         </p>
         <ul className="relative z-10 mb-8 space-y-3 font-medium opacity-90">
           <li className="flex items-center gap-2">
@@ -45,8 +47,8 @@ export default function HomeCallouts() {
           Register Your Campus Group
         </h3>
         <p className="relative z-10 mb-8 max-w-md font-medium text-buzz-inkMuted">
-          Join our network of campus organizations and apply to host exciting brand
-          campaigns at your college.
+          Join our network of campus organizations and apply to host exciting
+          brand campaigns at your college.
         </p>
         <ul className="relative z-10 mb-8 space-y-3 font-medium text-buzz-inkMuted">
           <li className="flex items-center gap-2">

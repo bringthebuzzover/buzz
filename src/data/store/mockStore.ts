@@ -11,7 +11,7 @@
  */
 
 /** Bumping this triggers a one-time reseed of the entire mock data layer. */
-export const STORE_VERSION = 11;
+export const STORE_VERSION = 2;
 
 /** Single namespace prefix. Keep `buzz.v1.*` so future `buzz.v2.*` migrations are clean. */
 export const STORE_KEY_PREFIX = "buzz.v1";

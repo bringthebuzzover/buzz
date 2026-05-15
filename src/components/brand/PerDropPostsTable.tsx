@@ -1,14 +1,11 @@
 /**
- * Per-drop posts table for the brand-side drop detail page. Rolled up across
- * all participating orgs (no per-org column per PRODUCT.md §5.3.1). Each row is
- * a single post with platform, caption, likes, comments, and estimated reach
- * (the org's follower count).
+ * Per-drop posts table for the brand-side drop detail page. PRODUCT.md §5.3.1
+ * expects posts grouped by org where useful; this table may roll up or add org
+ * context as the UI evolves. Each row is a single post with platform, caption,
+ * likes, comments, and estimated reach (the org's follower count).
  */
 import { Camera, ExternalLink, Music2 } from "lucide-react";
-import {
-  useLinksForDrop,
-  usePosts,
-} from "../../contexts/MockDataContext";
+import { useLinksForDrop, usePosts } from "../../contexts/MockDataContext";
 import { SEED_ORGS } from "../../data/seed/seedOrgs";
 
 type PerDropPostsTableProps = {

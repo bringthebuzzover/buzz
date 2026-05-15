@@ -1,6 +1,6 @@
 /**
  * Social post domain types — posts owned by an org, optional links to a campaign
- * (one post can belong to at most one campaign across the system, PRODUCT.md §4.3).
+ * (one post can belong to at most one campaign across the system, PRODUCT.md §4.2).
  */
 
 /** Supported social platforms in v1. */

@@ -1,14 +1,14 @@
 /**
  * Org-side drop feed card. Renders status-aware copy and a primary CTA per
- * `DropFeedStatus` (Upcoming / Open / Closed). Full-but-still-open drops swap
- * the Apply CTA for Join Waitlist (PRODUCT.md §6.3, §7).
+ * `DropFeedStatus` (Upcoming / Open / Closed). Per PRODUCT.md §6.3 and §7 there is
+ * no waitlist; when capacity is full the drop is Closed on the feed for new applies.
  *
  * - Upcoming: countdown to `applyOpenAt` + Notify Me toggle.
- * - Open: Apply (when spots remain) or Join Waitlist (when full).
+ * - Open: Apply when spots remain under spec rules.
  * - Closed: disabled action with reason chip.
  *
  * The card is presentational; data fetching + mutations are wired by the parent
- * (`OrgDropFeedPage`) and the apply/waitlist modal (`ApplyToDropModal`).
+ * (`OrgDropFeedPage`) and the apply modal (`ApplyToDropModal`).
  */
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { Bell, BellRing, Calendar, MapPin } from "lucide-react";

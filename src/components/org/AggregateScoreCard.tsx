@@ -59,7 +59,7 @@ export default function AggregateScoreCard({
   return (
     <div className="rounded-2xl border border-buzz-lineMid bg-buzz-butter p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-bold text-buzz-ink">Campaign performance</h3>
+        <h3 className="text-lg font-bold text-buzz-ink">Digital Performance</h3>
         <span className="text-xs font-bold text-buzz-inkMuted">
           {aggregate.postCount} linked post{aggregate.postCount === 1 ? "" : "s"}
         </span>

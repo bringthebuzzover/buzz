@@ -29,7 +29,7 @@ const VIEW_OPTIONS: readonly ViewOption[] = [
     view: "brand",
     title: DEMO_VIEW_LABELS.brand,
     description:
-      "Sales-led portal: track your drop request, monitor campaign performance, and review aggregate analytics.",
+      "Sales-led portal: track your drop request, monitor digital performance, and review aggregate analytics.",
     Icon: Building2,
   },
   {
