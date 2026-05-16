@@ -82,6 +82,30 @@ If you use a **project URL** (for example `https://<user>.github.io/buzz/`) inst
 
 There is no `npm test` script configured; add one with `craco test` if you introduce tests.
 
+## Backend (Stage 1+)
+
+The repo is a monorepo: the React frontend lives at the root and the FastAPI backend lives under [`backend/`](backend/). It is what eventually replaces the demo's `localStorage` mock layer.
+
+Quickstart (assumes Python 3.12+, Poetry, and Homebrew `postgresql@14`):
+
+```bash
+cd backend
+poetry install
+cp .env.example .env
+brew services start postgresql@14
+createdb buzz
+poetry run uvicorn app.main:app --reload --port 8000
+```
+
+Smoke-test the standard `{ data, meta, error }` envelope:
+
+```bash
+curl http://localhost:8000/api/health
+# => {"data":{"status":"ok","version":"0.1.0"},"meta":null,"error":null}
+```
+
+Full setup, layout, and test commands live in [`backend/README.md`](backend/README.md). Architecture and rollout: [`private/reports/architecture.md`](private/reports/architecture.md) and [`private/reports/transition-plan.md`](private/reports/transition-plan.md).
+
 ## Project layout (high level)
 
 - `src/AppRoot.tsx` — React Router routes (public + persona-gated org/brand portals)
