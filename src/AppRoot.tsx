@@ -28,7 +28,7 @@ export default function AppRoot(): ReactElement {
 
         {/* Org portal */}
         <Route
-          path="org/drops"
+          path="org/browse"
           element={
             <DemoOnly requiredDemoView="org">
               <OrgDropFeedPage />
@@ -83,7 +83,7 @@ export default function AppRoot(): ReactElement {
           path="campaigns"
           element={
             <DemoOnly requiredDemoView="org">
-              <Navigate to="/org/drops" replace />
+              <Navigate to="/org/browse" replace />
             </DemoOnly>
           }
         />
@@ -91,7 +91,7 @@ export default function AppRoot(): ReactElement {
           path="campaigns/:campaignId"
           element={
             <DemoOnly requiredDemoView="org">
-              <Navigate to="/org/drops" replace />
+              <Navigate to="/org/browse" replace />
             </DemoOnly>
           }
         />
@@ -99,7 +99,7 @@ export default function AppRoot(): ReactElement {
           path="register"
           element={
             <DemoOnly requiredDemoView="org">
-              <Navigate to="/org/drops" replace />
+              <Navigate to="/org/browse" replace />
             </DemoOnly>
           }
         />

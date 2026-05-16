@@ -49,5 +49,5 @@ export function writeDemoViewToStorage(view: DemoView | null): void {
  */
 export const DEMO_VIEW_LANDING: Record<DemoView, string> = {
   brand: "/brand/dashboard",
-  org: "/org/drops",
+  org: "/org/browse",
 };

@@ -49,7 +49,7 @@ export default function PlanCampaignModal({ onClose }: PlanCampaignModalProps) {
             e.preventDefault();
             onClose();
             alert(
-              "Thanks! A Buzz consultant will reach out soon to help plan your activation."
+              "Thanks! A Buzz consultant will reach out soon to help plan your activation.",
             );
           }}
         >
@@ -100,7 +100,7 @@ export default function PlanCampaignModal({ onClose }: PlanCampaignModalProps) {
               required
               rows={4}
               placeholder="Goals, timing, campuses, or anything else we should know."
-              className="w-full resize-y rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral"
+              className="w-full resize-y rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm min-h-20 outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral"
             />
           </div>
           <button

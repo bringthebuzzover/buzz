@@ -6,9 +6,9 @@ Built with **React 18**, **TypeScript**, **Tailwind CSS**, **lucide-react** (ico
 
 **Routes:** `/` (home, public landing), `/waitlist` (brand waitlist form, full-page), and the demo-gated portals:
 
-- **Org portal** (`requiredDemoView="org"`): `/org/drops` (Drop Feed), `/org/campaigns` (My Campaigns), `/org/campaigns/:campaignId` (per-status detail).
+- **Org portal** (`requiredDemoView="org"`): `/org/browse` (Drop Feed), `/org/campaigns` (My Campaigns), `/org/campaigns/:campaignId` (per-status detail).
 - **Brand portal** (`requiredDemoView="brand"`): `/brand/dashboard` (aggregate dashboard), `/brand/drops/:dropId` (per-drop tracker + KPIs), `/brand/requests/new` (Request a Drop).
-- **Legacy redirects** for old bookmarks: `/register` → `/org/drops`, `/campaigns[/:id]` → `/org/drops`, `/brand` → `/brand/dashboard`, `/brand/campaigns/new` → `/brand/requests/new`.
+- **Legacy redirects** for old bookmarks: `/register` → `/org/browse`, `/campaigns[/:id]` → `/org/browse`, `/org/drops` → `/org/browse`, `/brand` → `/brand/dashboard`, `/brand/campaigns/new` → `/brand/requests/new`.
 
 The full product spec lives in [`PRODUCT.md`](PRODUCT.md) — that is the source of truth for behavior and UX rules. A reference single-file prototype lives at [`new.ts`](new.ts) in the repo root; the app is split into modules under `src/` and does not import that file.
 

@@ -1,5 +1,5 @@
 /**
- * `/org/drops` — Drop Feed (PRODUCT.md §6.3). Renders all drops with status-aware
+ * `/org/browse` — Drop Feed (PRODUCT.md §6.3). Renders all drops with status-aware
  * cards (Upcoming / Open / Closed / Full) plus a status filter chip group. Apply
  * and Join Waitlist mutations both go through `ApplyToDropModal`, which writes a
  * new application row.

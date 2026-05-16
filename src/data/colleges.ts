@@ -1,5 +1,5 @@
 /**
- * College list for the home page marquee: Ivy logos from `src/assets/ivies`, others use Clearbit/icon fallbacks in `Marquee`.
+ * College list for the home page marquee: Ivy logos from `src/assets/unis`, others use Clearbit/icon fallbacks in `Marquee`.
  */
 import type { CollegeMarqueeItem } from "../types/campaign";
 import brown from "../assets/unis/brown.png";
