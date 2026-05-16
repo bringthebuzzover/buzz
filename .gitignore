@@ -4,3 +4,9 @@ build/
 .DS_Store
 private/
 .cursor/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/

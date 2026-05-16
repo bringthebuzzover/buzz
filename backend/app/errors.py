@@ -1,0 +1,43 @@
+"""Stable API error code constants.
+
+Codes are the **machine-readable contract** between API and frontend
+(`architecture.md` §5.2, §11.3). The frontend must branch on `code` only —
+never parse `message` strings. New codes are additive; existing values must
+not change once shipped.
+"""
+
+from __future__ import annotations
+
+from typing import Final
+
+# Auth / session
+UNAUTHORIZED: Final = "UNAUTHORIZED"
+FORBIDDEN: Final = "FORBIDDEN"
+TOKEN_EXPIRED: Final = "TOKEN_EXPIRED"
+INSTAGRAM_TOKEN_EXPIRED: Final = "INSTAGRAM_TOKEN_EXPIRED"
+INSTAGRAM_PERSONAL_ACCOUNT: Final = "INSTAGRAM_PERSONAL_ACCOUNT"
+
+# Drops / applications
+DROP_NOT_OPEN: Final = "DROP_NOT_OPEN"
+ALREADY_APPLIED: Final = "ALREADY_APPLIED"
+CAPACITY_EXCEEDED: Final = "CAPACITY_EXCEEDED"
+DROP_NOT_IN_SELECTION_STAGE: Final = "DROP_NOT_IN_SELECTION_STAGE"
+APPLY_WINDOW_OPEN: Final = "APPLY_WINDOW_OPEN"
+ALREADY_FINALIZED: Final = "ALREADY_FINALIZED"
+UNIT_BUDGET_EXCEEDED: Final = "UNIT_BUDGET_EXCEEDED"
+
+# Posts / suggestions
+POST_ALREADY_LINKED: Final = "POST_ALREADY_LINKED"
+POST_DELETED: Final = "POST_DELETED"
+SUGGESTION_NOT_FOUND: Final = "SUGGESTION_NOT_FOUND"
+
+# Onboarding / verification
+INVALID_ONBOARDING_STATE: Final = "INVALID_ONBOARDING_STATE"
+EMAIL_ALREADY_VERIFIED: Final = "EMAIL_ALREADY_VERIFIED"
+VERIFICATION_TOKEN_EXPIRED: Final = "VERIFICATION_TOKEN_EXPIRED"
+MAX_VERIFICATION_ATTEMPTS: Final = "MAX_VERIFICATION_ATTEMPTS"
+
+# Generic
+NOT_FOUND: Final = "NOT_FOUND"
+VALIDATION_ERROR: Final = "VALIDATION_ERROR"
+INTERNAL_ERROR: Final = "INTERNAL_ERROR"
