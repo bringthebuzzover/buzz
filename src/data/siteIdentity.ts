@@ -1,19 +1,20 @@
 /**
  * Single source of truth for public links, handles, contact info, logo assets, and hero copy.
  * Edit values here instead of hunting through components; consumed by header, footer, modals, and hero.
+ *
+ * Buzz wordmarks live under `public/logos/` (`publicLogo()`). Social icons stay bundled in `src/assets/`.
  */
-import buzzLogo from "../assets/buzz-logo.svg";
-import buzzLogoCoral from "../assets/buzz-logo-coral.svg";
 import instaIcon from "../assets/insta-icon.png";
 import linkedinIcon from "../assets/linkedin-icon.png";
+import { publicLogo } from "../utils/publicLogo";
 
 /** Read-only config object consumed by header, footer, modals, and hero. */
 export const siteIdentity = {
   images: {
     /** Full-color mark for dark / coral bars (white wordmark). */
-    logo: buzzLogo,
+    logo: publicLogo("buzz-logo.svg"),
     /** Coral wordmark for light backgrounds (footer, etc.). */
-    logoCoral: buzzLogoCoral,
+    logoCoral: publicLogo("buzz-logo-coral.svg"),
     logoAlt: "BUZZ",
     socialInstagramIcon: instaIcon,
     socialLinkedinIcon: linkedinIcon,

@@ -67,7 +67,7 @@ export default function HomeHero() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate("/org/drops")}
+                    onClick={() => navigate("/org/browse")}
                     className="rounded-lg border border-buzz-paper/50 bg-buzz-overlay/30 px-8 py-3 font-bold text-buzz-paper shadow-sm backdrop-blur-sm transition hover:bg-buzz-overlay/50"
                   >
                     Browse Campaigns

@@ -1,12 +1,12 @@
 # Buzz
 
-**Bring the Buzz Over** is a specialized marketing platform built to connect corporate brands with the unique, often hard-to-reach communities found on college campuses.
+**Bring the Buzz Over** is a specialized marketing platform built to connect brands with the unique, often hard-to-reach communities found on college campuses.
 
 Buzz moves beyond traditional "cold ads" by leveraging the existing social fabric of universities. Rather than generic marketing, Buzz partners brands with established student organizations—such as Greek life chapters, athletic teams, and academic or social clubs—to enable more authentic campus engagement.
 
-For brands, Buzz offers a centralized system to manage student-led campaigns across multiple colleges. Brands can issue creative briefs, handle approvals, and measure real-world engagement and on-the-ground impact—all within a single workflow.
+For brands, Buzz offers a centralized system to manage student-led campaigns across multiple colleges. Brands can handle approvals, and measure real-world engagement and on-the-ground impact—all within a single workflow.
 
-For student organizations, Buzz acts as a marketplace where groups can find paid opportunities to collaborate with brands. They can access exclusive products, brand perks, and sponsored campaigns, allowing them to monetize their influence and share offerings that resonate with their mission.
+For student organizations, Buzz acts as a marketplace where groups can find opportunities to collaborate with brands. They can access exclusive products, brand perks, and sponsored campaigns, allowing them to monetize their influence and share offerings that resonate with their mission.
 
 At the core is the **BUZZ platform**: a technology suite that connects brands and student groups. It acts as a project management and discovery tool that allows marketing campaigns to scale across a network of top-tier institutions, including Cornell, Stanford, Harvard, Princeton, and MIT. The platform is designed to ensure that marketing feels organic and student-led rather than corporate-driven.
 
@@ -24,10 +24,10 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 
 | Dimension                  | Brands                                                          | Student organizations                                                                                     |
 | -------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Go-to-market               | Sales-led (PLS)                                                 | Product-led (PLG)                                                                                         |
-| Onboarding                 | Sales-assisted; Buzz reviews and onboards                       | **Login with Instagram**; profile + verified university **.edu** email grants access (**§3.1**, **§6.1**) |
-| Scheduling / participation | Buzz coordinates ops; brands approve applicants per drop (§7.1) | Orgs discover drops and apply (§6.3, §7)                                                                  |
-| Primary portal             | Status tracker + KPI dashboards                                 | Drop feed + campaign history                                                                              |
+| Go-to-market               | Sales-led (PLS)                                                 | Product-led (PLG) / sales-led (greek-life partnerships)                                                   |
+| Onboarding                 | Sales-led ; Buzz reviews and onboards                           | **Login with Instagram**; profile + verified university **.edu** email grants access (**§3.1**, **§6.1**) |
+| Scheduling / participation | Buzz coordinates ops; brands approve applicants per drop (§7.1) | Orgs discover campaigns, can enable notifications to be reminded when they drop, and apply (§6.3, §7)     |
+| Primary portal             | Status tracker + KPI dashboards + content library               | Drop feed + campaign history                                                                              |
 | Analytics lens             | Per-drop, aggregate across drops, engagement over time          | Own posts + aggregate engagement per active campaign                                                      |
 | Motion                     | Representative-driven                                           | Self-serve signup (Instagram + **.edu** verification)                                                     |
 
@@ -54,7 +54,7 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 - No end user may belong to **both** the Brand portal and the Organization portal.
 - Routing and permissions enforce a **single portal** per authenticated user.
 - **Organization users** sign in with **Login with Instagram** (Instagram is the account identity for the org portal).
-- On first signup, the org completes a short profile—**university**, **org name**, and a **university .edu email** address—and must **verify** that email before the Organization portal **grants access**. Until verification succeeds, the user remains in a pending state (no full portal access).
+- On first signup, the org completes a short profile—**university**, **org name**, \# of members, address, and a **university .edu email** address—and must **verify** that email before the Organization portal **grants access**. Until verification succeeds, the user remains in a pending state (no full portal access).
 
 ### 3.2 Demo behavior
 
@@ -106,7 +106,7 @@ For v1, drops expose two timestamps:
 ### 5.1 Onboarding
 
 1. Brand submits **company information** and a **short message** (intent / context for Buzz).
-2. A Buzz representative **manually reviews** the submission.
+2. A Buzz representative **manually reviews** the submission, then we schedule a call
 3. Upon approval, the brand is **onboarded** into the Brand portal.
 
 **Interaction notes:**
@@ -158,7 +158,8 @@ When a drop is **active** or **finished**, the brand can open it and sees:
 **Interactions:**
 
 - Read-only analytics exploration (filters, date ranges, etc. are optional v2+ unless specified).
-- **Applicant decisions** are brand actions (approve / deny); analytics and library browsing remain read-only except where downloads are explicitly offered.
+- **Applicant decisions** are brand actions (approve / deny); analytics and library browsing remain read-only except where downloads are explicitly offered. Brands can filter through applicants (sorority, fraternity, sports, academic club, region, etc)
+- In the future: there would be a matching algorithm.
 
 #### 5.3.2 Aggregate dashboard
 

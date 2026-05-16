@@ -24,7 +24,7 @@ import ChangeViewMenu from "./ChangeViewMenu";
 
 /** Persona-aware bottom-nav links shown when the user is in demo mode. */
 const ORG_NAV_LINKS = [
-  { to: "/org/drops", label: "Browse Campaigns" },
+  { to: "/org/browse", label: "Browse Campaigns" },
   { to: "/org/campaigns", label: "My Campaigns" },
 ] as const;
 
