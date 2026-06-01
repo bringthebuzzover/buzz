@@ -13,6 +13,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -21,6 +23,7 @@ from app.deps.db import engine
 from app.exceptions import BuzzAPIException
 from app.response import api_error_response
 from app.routes.auth import router as auth_router
+from app.routes.drops import router as drops_router
 from app.routes.health import router as health_router
 from app.services.instagram import close_instagram_client
 
@@ -80,6 +83,26 @@ async def buzz_exception_handler(
     )
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+) -> JSONResponse:
+    """Return request-validation failures in the standard error envelope.
+
+    FastAPI's default 422 body is ``{ "detail": [...] }``, which bypasses the
+    ``{ data, meta, error }`` contract — the frontend branches on ``error.code``
+    (§5.2), so emit ``VALIDATION_ERROR`` with the raw errors under ``details``.
+    """
+
+    payload = api_error_response(
+        code=errors.VALIDATION_ERROR,
+        message="Request validation failed.",
+        details={"errors": jsonable_encoder(exc.errors())},
+    )
+    return JSONResponse(status_code=422, content=payload.model_dump())
+
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(
     request: Request,
@@ -97,3 +120,4 @@ async def unhandled_exception_handler(
 
 app.include_router(health_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(drops_router, prefix="/api")

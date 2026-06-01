@@ -38,7 +38,17 @@ from app.config import settings
 from app.deps.db import get_db
 from app.main import app
 from app.models import Base, User
-from app.models.enums import OrgUserStatus, PortalRole
+from app.models.application import DropApplication
+from app.models.brand import Brand
+from app.models.drop import Drop
+from app.models.enums import (
+    ApplicationDecision,
+    BrandStatus,
+    BrandTrackerStage,
+    OrgUserStatus,
+    PortalRole,
+)
+from app.models.organization import Organization
 from app.security import jwt
 from app.services.instagram import (
     InstagramProfile,
@@ -199,6 +209,107 @@ async def persist(db: AsyncSession, user: User) -> User:
     db.add(user)
     await db.flush()
     return user
+
+
+# --- Drops-feed test helpers (Stage 4) ---------------------------------------
+
+
+async def make_org(
+    db: AsyncSession,
+    user: User,
+    *,
+    org_name: str = "Test Org",
+) -> Organization:
+    """Persist an ``organizations`` row for an org ``user``."""
+
+    org = Organization(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        org_name=org_name,
+        university="Test University",
+        edu_email="org@test.edu",
+        instagram_handle="testorg",
+    )
+    db.add(org)
+    await db.flush()
+    return org
+
+
+async def make_brand(
+    db: AsyncSession,
+    *,
+    brand_name: str = "Test Brand",
+) -> Brand:
+    """Persist a brand (and its owning brand user) for drops to reference."""
+
+    brand_user = User(
+        id=uuid.uuid4(),
+        portal_role=PortalRole.BRAND.value,
+        status=OrgUserStatus.ACTIVE.value,
+    )
+    db.add(brand_user)
+    await db.flush()
+    brand = Brand(
+        id=uuid.uuid4(),
+        user_id=brand_user.id,
+        brand_name=brand_name,
+        company_email="brand@test.com",
+        status=BrandStatus.APPROVED.value,
+    )
+    db.add(brand)
+    await db.flush()
+    return brand
+
+
+async def make_drop(
+    db: AsyncSession,
+    brand: Brand,
+    *,
+    title: str = "Test Drop",
+    capacity_total: int = 5,
+    apply_open_at: datetime | None = None,
+    apply_close_at: datetime | None = None,
+) -> Drop:
+    """Persist a ``drops`` row owned by ``brand`` (apply window open by default)."""
+
+    now = datetime.now(timezone.utc)
+    drop = Drop(
+        id=uuid.uuid4(),
+        brand_id=brand.id,
+        brand_name=brand.brand_name,
+        title=title,
+        description="A test drop.",
+        image="https://example.test/img.png",
+        location="Test City",
+        capacity_total=capacity_total,
+        apply_open_at=apply_open_at or (now - timedelta(days=1)),
+        apply_close_at=apply_close_at or (now + timedelta(days=7)),
+        manual_reopen=False,
+        brand_tracker_stage=BrandTrackerStage.AWAITING_BRIEF.value,
+    )
+    db.add(drop)
+    await db.flush()
+    return drop
+
+
+async def make_application(
+    db: AsyncSession,
+    drop: Drop,
+    org: Organization,
+    *,
+    decision: ApplicationDecision = ApplicationDecision.APPLIED,
+) -> DropApplication:
+    """Persist a ``drop_applications`` row."""
+
+    application = DropApplication(
+        id=uuid.uuid4(),
+        drop_id=drop.id,
+        org_id=org.id,
+        decision=decision.value,
+    )
+    db.add(application)
+    await db.flush()
+    return application
 
 
 def mint_access_token(user: User) -> str:
