@@ -46,10 +46,18 @@ from app.models.enums import (
     BrandStatus,
     BrandTrackerStage,
     OrgUserStatus,
+    Platform,
     PortalRole,
+    PostLinkSource,
+    SocialMediaProductType,
+    SocialMediaType,
+    SuggestionMatchReason,
 )
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
+from app.models.post_link import PostCampaignLink
+from app.models.post_suggestion import PostCampaignSuggestion
+from app.models.social_post import SocialPost
 from app.security import jwt
 from app.services.instagram import (
     InstagramProfile,
@@ -341,6 +349,86 @@ async def make_notify(
     db.add(notify)
     await db.flush()
     return notify
+
+
+# --- Posts / links / suggestions test helpers (Stage 5B) ---------------------
+
+
+async def make_social_post(
+    db: AsyncSession,
+    org: Organization,
+    *,
+    external_id: str | None = None,
+    caption: str = "loved the drop",
+    likes: int = 10,
+    comments: int = 2,
+    media_product_type: SocialMediaProductType = SocialMediaProductType.FEED,
+) -> SocialPost:
+    """Persist a ``social_posts`` row owned by ``org``."""
+
+    ext = external_id or f"ext_{uuid.uuid4().hex[:12]}"
+    post = SocialPost(
+        id=uuid.uuid4(),
+        org_id=org.id,
+        platform=Platform.INSTAGRAM.value,
+        external_id=ext,
+        url=f"https://instagram.test/p/{ext}",
+        thumbnail_url="https://instagram.test/thumb.jpg",
+        caption=caption,
+        media_type=SocialMediaType.IMAGE.value,
+        media_product_type=media_product_type.value,
+        posted_at=datetime.now(timezone.utc) - timedelta(days=1),
+        likes=likes,
+        comments=comments,
+        metrics_updated_at=datetime.now(timezone.utc),
+    )
+    db.add(post)
+    await db.flush()
+    return post
+
+
+async def make_post_link(
+    db: AsyncSession,
+    post: SocialPost,
+    application: DropApplication,
+    *,
+    source: PostLinkSource = PostLinkSource.ORG_MANUAL,
+) -> PostCampaignLink:
+    """Persist a ``post_campaign_links`` row (drop_id from the application)."""
+
+    link = PostCampaignLink(
+        id=uuid.uuid4(),
+        post_id=post.id,
+        application_id=application.id,
+        drop_id=application.drop_id,
+        source=source.value,
+    )
+    db.add(link)
+    await db.flush()
+    return link
+
+
+async def make_suggestion(
+    db: AsyncSession,
+    post: SocialPost,
+    application: DropApplication,
+    *,
+    match_reason: SuggestionMatchReason = SuggestionMatchReason.BRAND_HANDLE_CAPTION,
+    match_evidence: str = "...loved the @brand drop...",
+) -> PostCampaignSuggestion:
+    """Persist a pending ``post_campaign_suggestions`` row."""
+
+    suggestion = PostCampaignSuggestion(
+        id=uuid.uuid4(),
+        post_id=post.id,
+        application_id=application.id,
+        drop_id=application.drop_id,
+        match_reason=match_reason.value,
+        match_evidence=match_evidence,
+    )
+    db.add(suggestion)
+    await db.flush()
+    return suggestion
 
 
 def mint_access_token(user: User) -> str:

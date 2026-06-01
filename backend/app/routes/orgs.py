@@ -18,6 +18,7 @@ from app.models.user import User
 from app.response import APIResponse, api_response
 from app.schemas.orgs import OrgProfileUpdate
 from app.services.orgs import build_org_profile, get_org_for_user, update_org_profile
+from app.services.posts import list_org_posts
 
 router = APIRouter(prefix="/orgs", tags=["orgs"])
 
@@ -51,3 +52,28 @@ async def update_my_org(
     org = await _require_org_profile(db, user)
     org = await update_org_profile(db, org, payload)
     return api_response(data=build_org_profile(org))
+
+
+@router.get("/me/posts", response_model=APIResponse)
+async def list_my_posts(
+    user: CurrentOrg,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """The caller org's social posts + their campaign-link indicator (§7.4.2)."""
+
+    return api_response(data=await list_org_posts(db, user))
+
+
+@router.post("/me/posts/refresh", response_model=APIResponse)
+async def refresh_my_posts(
+    user: CurrentOrg,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Pull fresh posts/metrics from the IG API.
+
+    Stage 5B stub: the real Instagram sync (§10.1) lands in Stage 8. For now
+    this returns the currently-stored posts so the route exists and the SPA can
+    wire the "Refresh" affordance without a 404.
+    """
+
+    return api_response(data=await list_org_posts(db, user))

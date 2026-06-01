@@ -94,23 +94,31 @@ POST /api/auth/dev-login           dev-only: token + refresh cookie for a seeded
 
 Endpoint authorization composes three dependencies from `app/deps/auth.py` (§5.4): `get_current_user` (auth), `require_role` (role), `require_status` (status), plus the combined `require_active_role` and the `CurrentOrg` / `CurrentBrand` aliases.
 
-## Drops + org journey (Stage 4 + 5A)
+## Drops + org journey (Stage 4 + 5A + 5B)
 
-The org browse feed read (Stage 4) plus the org journey write/read paths (Stage 5A). All `CurrentOrg` (JWT + `org` role + `active`); responses are camelCase + epoch-ms.
+The org browse feed read (Stage 4) plus the org journey write/read paths (5A) and the post-attribution loop (5B). All `CurrentOrg` (JWT + `org` role + `active`); responses are camelCase + epoch-ms.
 
 ```
-GET    /api/drops                    org browse feed — ?page=&per_page=
-GET    /api/drops/{id}               org-facing drop detail (acceptedCount, alreadyApplied)
-POST   /api/drops/{id}/apply         apply { pitch? } -> DROP_NOT_OPEN | ALREADY_APPLIED | CAPACITY_EXCEEDED
-POST   /api/drops/{id}/notify        set reminder { reminderMinutes: 5|15|60 } (upsert)
-DELETE /api/drops/{id}/notify        remove reminder (idempotent)
-GET    /api/orgs/me                  org profile
-PATCH  /api/orgs/me                  update editable subset (extra=forbid; edu_email not editable)
-GET    /api/campaigns                my campaigns (excludes denied; sorted active→accepted→applied→finished)
-GET    /api/campaigns/{id}           campaign detail (404 for other-org / denied / unknown)
+GET    /api/drops                              org browse feed — ?page=&per_page=
+GET    /api/drops/{id}                         org-facing drop detail (acceptedCount, alreadyApplied)
+POST   /api/drops/{id}/apply                   apply { pitch? } -> DROP_NOT_OPEN | ALREADY_APPLIED | CAPACITY_EXCEEDED
+POST   /api/drops/{id}/notify                  set reminder { reminderMinutes: 5|15|60 } (upsert)
+DELETE /api/drops/{id}/notify                  remove reminder (idempotent)
+GET    /api/orgs/me                            org profile
+PATCH  /api/orgs/me                            update editable subset (extra=forbid; edu_email not editable)
+GET    /api/orgs/me/posts                      post library (flattened metrics + linkedApplicationId)
+POST   /api/orgs/me/posts/refresh              IG re-sync (Stage 8 stub: returns current posts)
+GET    /api/campaigns                          my campaigns (excludes denied; sorted active→accepted→applied→finished)
+GET    /api/campaigns/{id}                     campaign detail (404 for other-org / denied / unknown)
+GET    /api/campaigns/{id}/aggregate           per-campaign rollup (postCount/likes/comments/engagement/estimatedReach)
+POST   /api/campaigns/{id}/link-post           link { postId } -> 409 POST_ALREADY_LINKED
+DELETE /api/campaigns/{id}/link-post           unlink { postId } (idempotent; re-arms suggestion)
+GET    /api/campaigns/{id}/suggestions         pending auto-link suggestions
+POST   /api/campaigns/{id}/suggestions/{postId}/accept   confirm + link -> 404/409/410
+POST   /api/campaigns/{id}/suggestions/{postId}/dismiss  reject -> 404 SUGGESTION_NOT_FOUND
 ```
 
-Feed items carry server-computed `acceptedCount`/`alreadyApplied`; list pagination rides `meta` (`page`/`per_page`/`total`). `POST /api/auth/dev-login` (above) lets the SPA obtain a session in local dev without Meta credentials. Remaining Stage 5 surface — brand create/finalize/metrics (5C), posts/links/suggestions (5B), admin + waitlist (5D) — is tracked in [`../private/reports/transition-plan.md`](../private/reports/transition-plan.md). See [`../private/guides/stage-05-core-rest-surface.md`](../private/guides/stage-05-core-rest-surface.md).
+Feed items carry server-computed `acceptedCount`/`alreadyApplied`; list pagination rides `meta` (`page`/`per_page`/`total`). Every `/api/campaigns/{id}/*` sub-resource gates on ownership via `resolve_owned_application` (404 for unknown/other-org/denied — no existence leak); the aggregate ports `src/utils/metrics.ts` `computeCampaignAggregate`. `POST /api/auth/dev-login` (above) lets the SPA obtain a session in local dev without Meta credentials. Remaining Stage 5 surface — brand create/finalize/metrics (5C), admin + waitlist (5D) — is tracked in [`../private/reports/transition-plan.md`](../private/reports/transition-plan.md). See [`../private/guides/stage-05-core-rest-surface.md`](../private/guides/stage-05-core-rest-surface.md).
 
 New env vars are documented in [`.env.example`](./.env.example); only `SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, and the three `INSTAGRAM_*` credentials must be set for staging/prod (and for a live local OAuth run). Tests use a fake Instagram client and need none of them.
 
@@ -194,21 +202,23 @@ backend/
     routes/
       health.py    # GET /api/health
       auth.py      # /api/auth/* (Instagram OAuth, refresh, logout, me, dev-login)
-      orgs.py      # GET/PATCH /api/orgs/me
+      orgs.py      # GET/PATCH /api/orgs/me + /me/posts (+ refresh)
       drops.py     # /api/drops feed + detail + apply + notify
-      campaigns.py # /api/campaigns (my applications) + detail
+      campaigns.py # /api/campaigns + detail + aggregate + link-post + suggestions
     schemas/
       common.py    # CamelModel + to_epoch_ms (camelCase + epoch-ms convention)
       auth.py      # Auth request/response models
       orgs.py      # Org profile read/update models
       drops.py     # Feed/detail/apply/notify models
       campaigns.py # My-campaigns list/detail models
+      posts.py     # Post library / aggregate / suggestion / link-post models
     services/
       instagram.py # InstagramClient protocol + HttpInstagramClient + DI
       auth.py      # handle_instagram_callback, token issuance, user response
       orgs.py      # Org profile orchestration
       drops.py     # Feed + drop detail + apply + notify orchestration
-      campaigns.py # My-campaigns list/detail orchestration
+      campaigns.py # My-campaigns list/detail + resolve_owned_application gate
+      posts.py     # Post library + link/unlink + aggregate + suggestions
   scripts/
     check.sh       # Local quality gate (black → ruff → mypy → pytest)
     seed_dev.py    # Destructive local dev seed
@@ -223,4 +233,13 @@ backend/
     test_auth_deps.py
     test_instagram_auth.py
     test_auth_routes.py
+    test_orgs_routes.py
+    test_apply.py
+    test_notify.py
+    test_campaigns.py
+    test_drop_detail.py
+    test_org_posts.py
+    test_post_links.py
+    test_campaign_aggregate.py
+    test_suggestions.py
 ```
