@@ -12,24 +12,24 @@
  */
 
 import type {
-  Drop,
+  DropCardData,
   DropClosedReason,
   DropFeedStatus,
 } from "../types/drop";
 
 /** Whether the drop has filled all its capacity. */
-export function isDropFull(drop: Drop, acceptedCount: number): boolean {
+export function isDropFull(drop: DropCardData, acceptedCount: number): boolean {
   return acceptedCount >= drop.capacityTotal;
 }
 
 /** Spots remaining (clamped at 0). */
-export function spotsRemaining(drop: Drop, acceptedCount: number): number {
+export function spotsRemaining(drop: DropCardData, acceptedCount: number): number {
   return Math.max(0, drop.capacityTotal - acceptedCount);
 }
 
 /** Compute the org-facing status for a drop. */
 export function getDropFeedStatus(
-  drop: Drop,
+  drop: DropCardData,
   acceptedCount: number,
   now: number
 ): DropFeedStatus {
@@ -44,7 +44,7 @@ export function getDropFeedStatus(
  * Only meaningful when `getDropFeedStatus` returned `"closed"`.
  */
 export function getDropClosedReason(
-  drop: Drop,
+  drop: DropCardData,
   acceptedCount: number,
   now: number
 ): DropClosedReason | null {

@@ -20,6 +20,17 @@ class InstagramCallbackRequest(BaseModel):
     state: str
 
 
+class DevLoginRequest(BaseModel):
+    """Body for the dev-only ``POST /api/auth/dev-login`` (both optional).
+
+    With neither field set, the endpoint logs in the first seeded active org
+    user — convenient for the Stage 4 frontend slice in local dev.
+    """
+
+    user_id: uuid.UUID | None = None
+    instagram_user_id: str | None = None
+
+
 class UserResponse(BaseModel):
     """Current-user payload returned by login + ``GET /api/auth/me`` (§6.2)."""
 

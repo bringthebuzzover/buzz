@@ -89,9 +89,20 @@ POST /api/auth/instagram/callback  { code, state } -> { access_token, user } + r
 POST /api/auth/refresh             refresh cookie -> new access token (cookie rotated)
 POST /api/auth/logout              clears the refresh cookie
 GET  /api/auth/me                  current user (Authorization: Bearer)
+POST /api/auth/dev-login           dev-only: token + refresh cookie for a seeded org (404 outside ENVIRONMENT=development)
 ```
 
 Endpoint authorization composes three dependencies from `app/deps/auth.py` (§5.4): `get_current_user` (auth), `require_role` (role), `require_status` (status), plus the combined `require_active_role` and the `CurrentOrg` / `CurrentBrand` aliases.
+
+## Drops (Stage 4)
+
+First vertical slice — the org browse feed read (the rest of the drops surface lands in Stage 5):
+
+```
+GET  /api/drops                    org browse feed (CurrentOrg) — camelCase + epoch-ms; ?page=&per_page=
+```
+
+Each item carries server-computed `acceptedCount` and `alreadyApplied`; pagination rides `meta` (`page`/`per_page`/`total`). `POST /api/auth/dev-login` (above) lets the SPA obtain a session in local dev without Meta credentials. See [`../private/guides/stage-04-first-vertical-slice.md`](../private/guides/stage-04-first-vertical-slice.md).
 
 New env vars are documented in [`.env.example`](./.env.example); only `SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, and the three `INSTAGRAM_*` credentials must be set for staging/prod (and for a live local OAuth run). Tests use a fake Instagram client and need none of them.
 
@@ -174,7 +185,8 @@ backend/
       *.py         # One module per aggregate (users, drops, social_posts, ...)
     routes/
       health.py    # GET /api/health
-      auth.py      # /api/auth/* (Instagram OAuth, refresh, logout, me)
+      auth.py      # /api/auth/* (Instagram OAuth, refresh, logout, me, dev-login)
+      drops.py     # GET /api/drops (org browse feed)
     schemas/
       auth.py      # Auth request/response models
     services/

@@ -88,3 +88,33 @@ export type Drop = {
   /** Pre-baked stage transitions applied by the demo clock (set by request flow / seed). */
   scheduledTransitions?: ScheduledTransition[];
 };
+
+/**
+ * The subset of `Drop` the org browse feed actually renders (see `DropFeedCard`
+ * + `utils/dropStatus`). The Stage 4 API feed (`GET /api/drops`) returns exactly
+ * these fields — brand/fulfillment fields (e.g. `brandTrackerStage`, whose
+ * backend/frontend enum vocabularies differ) are intentionally omitted until the
+ * Stage 5 brand surface reconciles them. A full `Drop` is assignable to this, so
+ * the demo path is unaffected.
+ */
+export type DropCardData = Pick<
+  Drop,
+  | "id"
+  | "brandName"
+  | "title"
+  | "description"
+  | "image"
+  | "location"
+  | "capacityTotal"
+  | "applyOpenAt"
+  | "applyCloseAt"
+  | "manualReopen"
+>;
+
+/** A feed row: card data plus the two server-computed (or demo-derived) fields. */
+export type DropFeedRow = DropCardData & {
+  /** Number of accepted applications (drives "spots remaining"/full). */
+  acceptedCount: number;
+  /** Whether the current org already has a non-denied application on this drop. */
+  alreadyApplied: boolean;
+};

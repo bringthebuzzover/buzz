@@ -11,6 +11,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import RedirectResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -18,10 +19,11 @@ from app.config import settings
 from app.deps.auth import get_current_user
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
-from app.models.enums import OrgUserStatus
+from app.models.enums import OrgUserStatus, PortalRole
 from app.models.user import User
 from app.response import APIResponse, api_response
 from app.schemas.auth import (
+    DevLoginRequest,
     InstagramCallbackRequest,
     RefreshResponse,
     TokenResponse,
@@ -197,3 +199,45 @@ async def me(user: User = Depends(get_current_user)) -> APIResponse:
     """Return the current user (no status gate; onboarding pages call this)."""
 
     return api_response(data=build_user_response(user))
+
+
+@router.post("/dev-login", response_model=APIResponse)
+async def dev_login(
+    payload: DevLoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Dev-only shortcut to mint a real session without the Instagram flow.
+
+    Local dev has no Meta credentials and the SPA has no login UI yet (Stage 6),
+    so the Stage 4 vertical slice needs a way to obtain a token. This issues the
+    same token pair + refresh cookie as the real flow, but only when
+    ``ENVIRONMENT == "development"`` — outside dev it 404s (invisible).
+    """
+
+    if settings.ENVIRONMENT != "development":
+        raise BuzzAPIException(code=errors.NOT_FOUND, message="Not found.", status_code=404)
+
+    if payload.user_id is not None:
+        user = await db.get(User, payload.user_id)
+    elif payload.instagram_user_id is not None:
+        user = await db.scalar(
+            select(User).where(User.instagram_user_id == payload.instagram_user_id)
+        )
+    else:
+        # Default: the first seeded active org user.
+        user = await db.scalar(
+            select(User)
+            .where(
+                User.portal_role == PortalRole.ORG.value,
+                User.status == OrgUserStatus.ACTIVE.value,
+            )
+            .order_by(User.created_at.asc())
+        )
+
+    if user is None:
+        raise BuzzAPIException(code=errors.NOT_FOUND, message="No matching user.", status_code=404)
+
+    access, refresh = issue_token_pair(user)
+    _set_refresh_cookie(response, refresh)
+    return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))

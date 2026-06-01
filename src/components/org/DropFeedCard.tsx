@@ -12,7 +12,7 @@
  */
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { Bell, BellRing, Calendar, MapPin } from "lucide-react";
-import type { Drop, DropFeedStatus } from "../../types/drop";
+import type { DropCardData, DropFeedStatus } from "../../types/drop";
 import { useCountdown } from "../../utils/useCountdown";
 import {
   CLOSED_REASON_COPY,
@@ -29,7 +29,7 @@ import {
 import NotifyMeModal from "./modals/NotifyMeModal";
 
 type DropFeedCardProps = {
-  drop: Drop;
+  drop: DropCardData;
   acceptedCount: number;
   feedStatus: DropFeedStatus;
   /** Called when the user clicks Apply on an open drop with spots remaining. */
@@ -38,6 +38,8 @@ type DropFeedCardProps = {
   onJoinWaitlist: () => void;
   /** True when the org already has an application/waitlist row for this drop. */
   alreadyApplied: boolean;
+  /** Read-only mode (e.g. the API slice before writes land in Stage 5). */
+  disableApply?: boolean;
 };
 
 /** Subscribes to localStorage so multiple cards re-render when one toggles Notify Me. */
@@ -91,6 +93,7 @@ export default function DropFeedCard({
   onApply,
   onJoinWaitlist,
   alreadyApplied,
+  disableApply = false,
 }: DropFeedCardProps) {
   const now = useDemoNow();
   const remaining = spotsRemaining(drop, acceptedCount);
@@ -151,7 +154,7 @@ export default function DropFeedCard({
             <button
               type="button"
               onClick={onApply}
-              disabled={alreadyApplied}
+              disabled={alreadyApplied || disableApply}
               className="w-full rounded-lg bg-buzz-coral py-3 font-semibold text-buzz-paper shadow-sm transition hover:bg-buzz-coralDark disabled:cursor-not-allowed disabled:opacity-60"
             >
               {alreadyApplied ? "Already applied" : "Apply"}
@@ -160,7 +163,7 @@ export default function DropFeedCard({
             <button
               type="button"
               onClick={onJoinWaitlist}
-              disabled={alreadyApplied}
+              disabled={alreadyApplied || disableApply}
               className="w-full rounded-lg border-2 border-buzz-coral bg-buzz-paper py-3 font-semibold text-buzz-coral shadow-sm transition hover:bg-buzz-cream disabled:cursor-not-allowed disabled:opacity-60"
             >
               {alreadyApplied ? "On the waitlist" : "Join Waitlist"}
@@ -210,7 +213,7 @@ function FeedStatusChip({
   );
 }
 
-function UpcomingActions({ drop }: { drop: Drop }) {
+function UpcomingActions({ drop }: { drop: DropCardData }) {
   const notified = useDropNotifiedFlag(drop.id);
   const reminderMinutes = getDropReminderMinutes(drop.id);
   const [isModalOpen, setIsModalOpen] = useState(false);
