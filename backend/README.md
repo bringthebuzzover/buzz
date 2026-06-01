@@ -94,15 +94,23 @@ POST /api/auth/dev-login           dev-only: token + refresh cookie for a seeded
 
 Endpoint authorization composes three dependencies from `app/deps/auth.py` (§5.4): `get_current_user` (auth), `require_role` (role), `require_status` (status), plus the combined `require_active_role` and the `CurrentOrg` / `CurrentBrand` aliases.
 
-## Drops (Stage 4)
+## Drops + org journey (Stage 4 + 5A)
 
-First vertical slice — the org browse feed read (the rest of the drops surface lands in Stage 5):
+The org browse feed read (Stage 4) plus the org journey write/read paths (Stage 5A). All `CurrentOrg` (JWT + `org` role + `active`); responses are camelCase + epoch-ms.
 
 ```
-GET  /api/drops                    org browse feed (CurrentOrg) — camelCase + epoch-ms; ?page=&per_page=
+GET    /api/drops                    org browse feed — ?page=&per_page=
+GET    /api/drops/{id}               org-facing drop detail (acceptedCount, alreadyApplied)
+POST   /api/drops/{id}/apply         apply { pitch? } -> DROP_NOT_OPEN | ALREADY_APPLIED | CAPACITY_EXCEEDED
+POST   /api/drops/{id}/notify        set reminder { reminderMinutes: 5|15|60 } (upsert)
+DELETE /api/drops/{id}/notify        remove reminder (idempotent)
+GET    /api/orgs/me                  org profile
+PATCH  /api/orgs/me                  update editable subset (extra=forbid; edu_email not editable)
+GET    /api/campaigns                my campaigns (excludes denied; sorted active→accepted→applied→finished)
+GET    /api/campaigns/{id}           campaign detail (404 for other-org / denied / unknown)
 ```
 
-Each item carries server-computed `acceptedCount` and `alreadyApplied`; pagination rides `meta` (`page`/`per_page`/`total`). `POST /api/auth/dev-login` (above) lets the SPA obtain a session in local dev without Meta credentials. See [`../private/guides/stage-04-first-vertical-slice.md`](../private/guides/stage-04-first-vertical-slice.md).
+Feed items carry server-computed `acceptedCount`/`alreadyApplied`; list pagination rides `meta` (`page`/`per_page`/`total`). `POST /api/auth/dev-login` (above) lets the SPA obtain a session in local dev without Meta credentials. Remaining Stage 5 surface — brand create/finalize/metrics (5C), posts/links/suggestions (5B), admin + waitlist (5D) — is tracked in [`../private/reports/transition-plan.md`](../private/reports/transition-plan.md). See [`../private/guides/stage-05-core-rest-surface.md`](../private/guides/stage-05-core-rest-surface.md).
 
 New env vars are documented in [`.env.example`](./.env.example); only `SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, and the three `INSTAGRAM_*` credentials must be set for staging/prod (and for a live local OAuth run). Tests use a fake Instagram client and need none of them.
 
@@ -186,12 +194,21 @@ backend/
     routes/
       health.py    # GET /api/health
       auth.py      # /api/auth/* (Instagram OAuth, refresh, logout, me, dev-login)
-      drops.py     # GET /api/drops (org browse feed)
+      orgs.py      # GET/PATCH /api/orgs/me
+      drops.py     # /api/drops feed + detail + apply + notify
+      campaigns.py # /api/campaigns (my applications) + detail
     schemas/
+      common.py    # CamelModel + to_epoch_ms (camelCase + epoch-ms convention)
       auth.py      # Auth request/response models
+      orgs.py      # Org profile read/update models
+      drops.py     # Feed/detail/apply/notify models
+      campaigns.py # My-campaigns list/detail models
     services/
       instagram.py # InstagramClient protocol + HttpInstagramClient + DI
       auth.py      # handle_instagram_callback, token issuance, user response
+      orgs.py      # Org profile orchestration
+      drops.py     # Feed + drop detail + apply + notify orchestration
+      campaigns.py # My-campaigns list/detail orchestration
   scripts/
     check.sh       # Local quality gate (black → ruff → mypy → pytest)
     seed_dev.py    # Destructive local dev seed

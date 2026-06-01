@@ -1,0 +1,53 @@
+"""Org profile routes — ``/api/orgs`` (architecture.md §5.1).
+
+``POST /api/orgs/onboarding`` is deferred to Stage 7 (onboarding state machine
++ ``.edu`` verification); only the active-org profile read/update lands here.
+"""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app import errors
+from app.deps.auth import CurrentOrg
+from app.deps.db import get_db
+from app.exceptions import BuzzAPIException
+from app.models.organization import Organization
+from app.models.user import User
+from app.response import APIResponse, api_response
+from app.schemas.orgs import OrgProfileUpdate
+from app.services.orgs import build_org_profile, get_org_for_user, update_org_profile
+
+router = APIRouter(prefix="/orgs", tags=["orgs"])
+
+
+async def _require_org_profile(db: AsyncSession, user: User) -> Organization:
+    org = await get_org_for_user(db, user)
+    if org is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization profile not found.", status_code=404)
+    return org
+
+
+@router.get("/me", response_model=APIResponse)
+async def get_my_org(
+    user: CurrentOrg,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Return the caller org's profile (JWT + ``org`` role + ``active``)."""
+
+    org = await _require_org_profile(db, user)
+    return api_response(data=build_org_profile(org))
+
+
+@router.patch("/me", response_model=APIResponse)
+async def update_my_org(
+    payload: OrgProfileUpdate,
+    user: CurrentOrg,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Patch the editable subset of the caller org's profile."""
+
+    org = await _require_org_profile(db, user)
+    org = await update_org_profile(db, org, payload)
+    return api_response(data=build_org_profile(org))

@@ -48,6 +48,7 @@ from app.models.enums import (
     OrgUserStatus,
     PortalRole,
 )
+from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.security import jwt
 from app.services.instagram import (
@@ -269,6 +270,9 @@ async def make_drop(
     capacity_total: int = 5,
     apply_open_at: datetime | None = None,
     apply_close_at: datetime | None = None,
+    manual_reopen: bool = False,
+    stage: BrandTrackerStage = BrandTrackerStage.AWAITING_BRIEF,
+    total_product_units: int | None = None,
 ) -> Drop:
     """Persist a ``drops`` row owned by ``brand`` (apply window open by default)."""
 
@@ -284,8 +288,9 @@ async def make_drop(
         capacity_total=capacity_total,
         apply_open_at=apply_open_at or (now - timedelta(days=1)),
         apply_close_at=apply_close_at or (now + timedelta(days=7)),
-        manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.AWAITING_BRIEF.value,
+        manual_reopen=manual_reopen,
+        brand_tracker_stage=stage.value,
+        total_product_units=total_product_units,
     )
     db.add(drop)
     await db.flush()
@@ -298,6 +303,8 @@ async def make_application(
     org: Organization,
     *,
     decision: ApplicationDecision = ApplicationDecision.APPLIED,
+    pitch: str | None = None,
+    applied_at: datetime | None = None,
 ) -> DropApplication:
     """Persist a ``drop_applications`` row."""
 
@@ -306,10 +313,34 @@ async def make_application(
         drop_id=drop.id,
         org_id=org.id,
         decision=decision.value,
+        pitch=pitch,
     )
+    if applied_at is not None:
+        application.applied_at = applied_at
     db.add(application)
     await db.flush()
     return application
+
+
+async def make_notify(
+    db: AsyncSession,
+    org: Organization,
+    drop: Drop,
+    *,
+    reminder_minutes: int = 15,
+) -> NotifyMe:
+    """Persist a ``notify_me`` row for an org+drop."""
+
+    notify = NotifyMe(
+        id=uuid.uuid4(),
+        org_id=org.id,
+        drop_id=drop.id,
+        reminder_minutes=reminder_minutes,
+        enabled=True,
+    )
+    db.add(notify)
+    await db.flush()
+    return notify
 
 
 def mint_access_token(user: User) -> str:
