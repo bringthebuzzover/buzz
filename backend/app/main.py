@@ -23,8 +23,10 @@ from app.deps.db import engine
 from app.exceptions import BuzzAPIException
 from app.response import api_error_response
 from app.routes.auth import router as auth_router
+from app.routes.campaigns import router as campaigns_router
 from app.routes.drops import router as drops_router
 from app.routes.health import router as health_router
+from app.routes.orgs import router as orgs_router
 from app.services.instagram import close_instagram_client
 
 logger = logging.getLogger(__name__)
@@ -120,4 +122,6 @@ async def unhandled_exception_handler(
 
 app.include_router(health_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(orgs_router, prefix="/api")
 app.include_router(drops_router, prefix="/api")
+app.include_router(campaigns_router, prefix="/api")
