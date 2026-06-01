@@ -94,6 +94,30 @@ async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignLi
     ]
 
 
+async def resolve_owned_application(
+    db: AsyncSession,
+    org_user: User,
+    application_id: uuid.UUID,
+) -> DropApplication:
+    """Load an application the caller org owns, or raise 404.
+
+    Unknown / other-org / denied all collapse to the same 404 (no existence
+    leak). Shared by every ``/api/campaigns/{id}/*`` sub-resource so they
+    enforce ownership uniformly (no IDOR).
+    """
+
+    org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
+    application = await db.get(DropApplication, application_id)
+    if (
+        application is None
+        or org_id is None
+        or application.org_id != org_id
+        or application.decision == ApplicationDecision.DENIED.value
+    ):
+        raise BuzzAPIException(errors.NOT_FOUND, "Campaign not found.", status_code=404)
+    return application
+
+
 async def get_my_campaign(
     db: AsyncSession,
     org_user: User,
