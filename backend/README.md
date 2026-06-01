@@ -1,6 +1,6 @@
 # Buzz backend (FastAPI)
 
-Python service that will replace the demo's `localStorage` mock layer with a real API, JWT auth, and PostgreSQL. See [`../private/reports/architecture.md`](../private/reports/architecture.md) for the target design and [`../private/reports/transition-plan.md`](../private/reports/transition-plan.md) for the rollout order. Stage 1 landed the foundation; Stage 2 adds the full schema, Alembic migrations, and a dev seed.
+Python service that will replace the demo's `localStorage` mock layer with a real API, JWT auth, and PostgreSQL. See [`../private/reports/architecture.md`](../private/reports/architecture.md) for the target design and [`../private/reports/transition-plan.md`](../private/reports/transition-plan.md) for the rollout order. Stage 1 landed the foundation; Stage 2 added the full schema, Alembic migrations, and a dev seed; Stage 3 adds JWT auth, the auth dependencies, and the org Instagram OAuth login flow.
 
 ## Prerequisites
 
@@ -68,7 +68,7 @@ op.execute("ALTER TYPE portal_role ADD VALUE IF NOT EXISTS 'new_role'")
 ```bash
 cd backend
 poetry run python scripts/seed_dev.py
-# => seed complete -> users: 5  organizations: 2  brands: 2  drops: 4  drop_applications: 6  ...
+# => seed complete -> users: 6  organizations: 2  brands: 2  drops: 4  drop_applications: 6  ...
 ```
 
 Verify counts directly with `psql`:
@@ -76,6 +76,36 @@ Verify counts directly with `psql`:
 ```bash
 psql -d buzz -c "SELECT count(*) FROM drops"
 ```
+
+## Authentication (Stage 3)
+
+JWT auth with the org **Instagram OAuth** login flow. Tokens follow architecture §5.3: a short-lived access token (`Authorization: Bearer`, 1h) and a long-lived refresh token in an httpOnly cookie (`buzz_refresh`, 7d, `SameSite=Lax`, path `/api/auth`). The long-lived Instagram token is Fernet-encrypted at rest; the short-lived IG token is never persisted.
+
+`/api/auth/*` surface:
+
+```
+GET  /api/auth/instagram/login     302 -> Instagram OAuth (signed `state`)
+POST /api/auth/instagram/callback  { code, state } -> { access_token, user } + refresh cookie
+POST /api/auth/refresh             refresh cookie -> new access token (cookie rotated)
+POST /api/auth/logout              clears the refresh cookie
+GET  /api/auth/me                  current user (Authorization: Bearer)
+```
+
+Endpoint authorization composes three dependencies from `app/deps/auth.py` (§5.4): `get_current_user` (auth), `require_role` (role), `require_status` (status), plus the combined `require_active_role` and the `CurrentOrg` / `CurrentBrand` aliases.
+
+New env vars are documented in [`.env.example`](./.env.example); only `SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, and the three `INSTAGRAM_*` credentials must be set for staging/prod (and for a live local OAuth run). Tests use a fake Instagram client and need none of them.
+
+```bash
+# Login redirect (302 to Instagram with a signed state)
+curl -i http://localhost:8000/api/auth/instagram/login
+
+# /me with a dev-minted token for the seeded active org user
+TOK=$(poetry run python -c "from app.security import jwt; \
+print(jwt.create_access_token('00000000-0000-0000-0000-000000000002','org','active'))")
+curl http://localhost:8000/api/auth/me -H "Authorization: Bearer $TOK"
+```
+
+The brand password/invite path is deferred; the JWT/deps/refresh core is identity-agnostic so it slots in later. See [`../private/guides/stage-03-auth-core.md`](../private/guides/stage-03-auth-core.md).
 
 ## Run the dev server
 
@@ -128,28 +158,40 @@ backend/
     versions/      # Generated migration scripts (timestamped)
   app/
     main.py        # FastAPI app, CORS, lifespan, exception handlers, /api/* routers
-    config.py      # pydantic-settings (DATABASE_URL, SECRET_KEY, ENVIRONMENT)
+    config.py      # pydantic-settings (DB, JWT, refresh cookie, Instagram, encryption)
     response.py    # APIResponse / ErrorDetail / api_response / api_error_response
     exceptions.py  # BuzzAPIException
     errors.py      # Stable error code constants (see architecture §11.3)
     deps/
       db.py        # Async engine + AsyncSession dependency
+      auth.py      # get_current_user / require_role / require_status / require_active_role
+    security/
+      jwt.py         # Access/refresh/oauth-state encode + decode (TokenPayload)
+      token_crypto.py# Fernet encrypt/decrypt for IG tokens at rest
     models/
       base.py      # SQLAlchemy DeclarativeBase
       enums.py     # StrEnums + reusable PG ENUM type instances
       *.py         # One module per aggregate (users, drops, social_posts, ...)
     routes/
       health.py    # GET /api/health
-    schemas/       # (Stage 4+) Pydantic request/response shapes
-    services/      # (Stage 4+) Business logic and integrations
+      auth.py      # /api/auth/* (Instagram OAuth, refresh, logout, me)
+    schemas/
+      auth.py      # Auth request/response models
+    services/
+      instagram.py # InstagramClient protocol + HttpInstagramClient + DI
+      auth.py      # handle_instagram_callback, token issuance, user response
   scripts/
     check.sh       # Local quality gate (black → ruff → mypy → pytest)
     seed_dev.py    # Destructive local dev seed
   tests/
-    conftest.py    # engine / db_session / schema fixtures
+    conftest.py    # engine / db_session / app_client / fake IG / token helpers
     test_health.py
     test_response.py
     test_models.py
     test_constraints.py
     test_migrations.py
+    test_security.py
+    test_auth_deps.py
+    test_instagram_auth.py
+    test_auth_routes.py
 ```

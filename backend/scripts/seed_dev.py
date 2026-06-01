@@ -46,6 +46,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker  # noqa: E40
 
 from app.config import settings  # noqa: E402
 from app.deps.db import engine  # noqa: E402
+from app.security.token_crypto import encrypt_token  # noqa: E402
 from app.models import (  # noqa: E402
     Base,
     Brand,
@@ -130,6 +131,12 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         status=OrgUserStatus.ACTIVE.value,
         instagram_user_id="ig_seed_org_active",
         instagram_username="berkeleyrowing",
+        # Long-lived IG token is encrypted at rest (architecture.md §10.5), so
+        # seed data mirrors the real OAuth write path and Stage 8 decrypt works.
+        instagram_access_token=encrypt_token("seed-long-lived-token-active"),
+        instagram_token_issued_at=now,
+        instagram_token_expires_at=now + timedelta(days=60),
+        instagram_token_refreshed_at=now,
         edu_email="active-org@berkeley.edu",
         email_verified_at=now,
     )
@@ -139,8 +146,25 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         status=OrgUserStatus.PENDING_APPROVAL.value,
         instagram_user_id="ig_seed_org_pending",
         instagram_username="stanfordhackers",
+        instagram_access_token=encrypt_token("seed-long-lived-token-pending"),
+        instagram_token_issued_at=now,
+        instagram_token_expires_at=now + timedelta(days=60),
+        instagram_token_refreshed_at=now,
         edu_email="pending-org@stanford.edu",
         email_verified_at=now,
+    )
+    # Just completed Instagram OAuth but has not submitted a profile yet
+    # (architecture.md §3.4 Phase 1 end state). No ``organizations`` row.
+    org_user_onboarding = User(
+        id=_uuid(6),
+        portal_role=PortalRole.ORG.value,
+        status=OrgUserStatus.PENDING_ORG_PROFILE.value,
+        instagram_user_id="ig_seed_org_onboarding",
+        instagram_username="uclasailing",
+        instagram_access_token=encrypt_token("seed-long-lived-token-onboarding"),
+        instagram_token_issued_at=now,
+        instagram_token_expires_at=now + timedelta(days=60),
+        instagram_token_refreshed_at=now,
     )
     brand_user_1 = User(
         id=_uuid(4),
@@ -411,7 +435,14 @@ def _build_seed_rows() -> dict[str, list[Base]]:
     )
 
     return {
-        "users": [admin, org_user_active, org_user_pending, brand_user_1, brand_user_2],
+        "users": [
+            admin,
+            org_user_active,
+            org_user_pending,
+            org_user_onboarding,
+            brand_user_1,
+            brand_user_2,
+        ],
         "organizations": [org_active, org_pending],
         "brands": [brand_a, brand_b],
         "drops": [drop_brief, drop_review, drop_shipped, drop_finished],
@@ -458,6 +489,9 @@ async def _seed() -> None:
             count = await session.scalar(select(text("count(*)")).select_from(table))
             summary_parts.append(f"{table.name}: {count}")
         print("seed complete -> " + "  ".join(summary_parts))
+        # Print an active org user id so a dev JWT can be minted for /me
+        # (see the Stage 3 guide for the one-liner).
+        print(f"active org user id (mint a token for /api/auth/me): {_uuid(2)}")
 
     await engine.dispose()
 
