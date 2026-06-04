@@ -118,7 +118,7 @@ async def _make_drop(session: AsyncSession) -> Drop:
         apply_open_at=now - timedelta(days=1),
         apply_close_at=now + timedelta(days=1),
         manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.AWAITING_BRIEF.value,
+        brand_tracker_stage=BrandTrackerStage.REQUEST_RECEIVED.value,
     )
     session.add(drop)
     await session.flush()
@@ -170,7 +170,7 @@ async def test_drop_roundtrip(db_session: AsyncSession) -> None:
     fetched = await db_session.scalar(select(Drop).where(Drop.id == drop.id))
     assert fetched is not None
     assert fetched.title == "Test Drop"
-    assert fetched.brand_tracker_stage == BrandTrackerStage.AWAITING_BRIEF.value
+    assert fetched.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
     assert fetched.total_product_units is None  # nullable for spot-only drops
 
 
@@ -304,7 +304,7 @@ async def test_drop_tracker_event_roundtrip(db_session: AsyncSession) -> None:
     drop = await _make_drop(db_session)
     event_row = DropTrackerEvent(
         drop_id=drop.id,
-        stage=BrandTrackerStage.SHIPPED.value,
+        stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
         note="handed to courier",
     )
     db_session.add(event_row)
@@ -314,7 +314,7 @@ async def test_drop_tracker_event_roundtrip(db_session: AsyncSession) -> None:
         select(DropTrackerEvent).where(DropTrackerEvent.id == event_row.id)
     )
     assert fetched is not None
-    assert fetched.stage == BrandTrackerStage.SHIPPED.value
+    assert fetched.stage == BrandTrackerStage.AWAITING_PRODUCTS.value
 
 
 @pytest.mark.asyncio

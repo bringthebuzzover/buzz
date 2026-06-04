@@ -101,7 +101,7 @@ async def _seed_org_brand_drop_post(
         apply_open_at=_now() - timedelta(days=1),
         apply_close_at=_now() + timedelta(days=1),
         manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.AWAITING_BRIEF.value,
+        brand_tracker_stage=BrandTrackerStage.REQUEST_RECEIVED.value,
     )
     session.add(drop)
     await session.flush()

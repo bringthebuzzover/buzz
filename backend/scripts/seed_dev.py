@@ -241,7 +241,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         apply_open_at=now - timedelta(days=7),
         apply_close_at=now + timedelta(days=7),
         manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.AWAITING_BRIEF.value,
+        brand_tracker_stage=BrandTrackerStage.REQUEST_RECEIVED.value,
         total_product_units=200,
         campaign_hashtag="AcmeFallBrew",
     )
@@ -257,7 +257,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         apply_open_at=now - timedelta(days=3),
         apply_close_at=now + timedelta(days=14),
         manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.IN_REVIEW.value,
+        brand_tracker_stage=BrandTrackerStage.FINALIZING_AGREEMENTS.value,
         total_product_units=None,
     )
     drop_shipped = Drop(
@@ -272,7 +272,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         apply_open_at=now - timedelta(days=30),
         apply_close_at=now - timedelta(days=5),
         manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.SHIPPED.value,
+        brand_tracker_stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
         tracking_number="NW-TRK-001",
         total_product_units=400,
         campaign_hashtag="NorthwindGameDay",
@@ -290,7 +290,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         apply_open_at=now - timedelta(days=120),
         apply_close_at=now - timedelta(days=90),
         manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.FINISHED.value,
+        brand_tracker_stage=BrandTrackerStage.DROP_FINISHED.value,
         total_product_units=300,
         applicant_selection_finalized_at=now - timedelta(days=89),
     )
@@ -412,8 +412,8 @@ def _build_seed_rows() -> dict[str, list[Base]]:
     tracker_brief = DropTrackerEvent(
         id=_uuid(80),
         drop_id=drop_brief.id,
-        stage=BrandTrackerStage.AWAITING_BRIEF.value,
-        note="Drop created — awaiting creative brief.",
+        stage=BrandTrackerStage.REQUEST_RECEIVED.value,
+        note="Drop created — request received.",
         occurred_at=drop_brief.apply_open_at,
     )
 

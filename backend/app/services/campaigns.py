@@ -25,8 +25,8 @@ from app.schemas.campaigns import CampaignDetailResponse, CampaignListItem
 # §7.2 group ordering. The stage constants use the *current* backend enum; the
 # D1 migration (Stage 5C) swaps these two values to the §8.5 vocabulary
 # (``drop_active`` / ``drop_finished``) without changing the bucket logic.
-_STAGE_ACTIVE = BrandTrackerStage.ACTIVE.value
-_STAGE_FINISHED = BrandTrackerStage.FINISHED.value
+_STAGE_ACTIVE = BrandTrackerStage.DROP_ACTIVE.value
+_STAGE_FINISHED = BrandTrackerStage.DROP_FINISHED.value
 
 
 def _campaign_sort_bucket(decision: str, stage: str) -> int:

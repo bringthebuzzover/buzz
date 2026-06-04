@@ -58,6 +58,7 @@ from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
+from app.models.tracker_event import DropTrackerEvent
 from app.security import jwt
 from app.services.instagram import (
     InstagramProfile,
@@ -279,7 +280,7 @@ async def make_drop(
     apply_open_at: datetime | None = None,
     apply_close_at: datetime | None = None,
     manual_reopen: bool = False,
-    stage: BrandTrackerStage = BrandTrackerStage.AWAITING_BRIEF,
+    stage: BrandTrackerStage = BrandTrackerStage.REQUEST_RECEIVED,
     total_product_units: int | None = None,
 ) -> Drop:
     """Persist a ``drops`` row owned by ``brand`` (apply window open by default)."""
@@ -429,6 +430,25 @@ async def make_suggestion(
     db.add(suggestion)
     await db.flush()
     return suggestion
+
+
+async def make_tracker_event(
+    db: AsyncSession,
+    drop: Drop,
+    *,
+    stage: BrandTrackerStage = BrandTrackerStage.REQUEST_RECEIVED,
+    note: str | None = None,
+) -> DropTrackerEvent:
+    """Persist a ``drop_tracker_events`` row."""
+    event = DropTrackerEvent(
+        id=uuid.uuid4(),
+        drop_id=drop.id,
+        stage=stage.value,
+        note=note,
+    )
+    db.add(event)
+    await db.flush()
+    return event
 
 
 def mint_access_token(user: User) -> str:
