@@ -118,7 +118,25 @@ POST   /api/campaigns/{id}/suggestions/{postId}/accept   confirm + link -> 404/4
 POST   /api/campaigns/{id}/suggestions/{postId}/dismiss  reject -> 404 SUGGESTION_NOT_FOUND
 ```
 
-Feed items carry server-computed `acceptedCount`/`alreadyApplied`; list pagination rides `meta` (`page`/`per_page`/`total`). Every `/api/campaigns/{id}/*` sub-resource gates on ownership via `resolve_owned_application` (404 for unknown/other-org/denied — no existence leak); the aggregate ports `src/utils/metrics.ts` `computeCampaignAggregate`. `POST /api/auth/dev-login` (above) lets the SPA obtain a session in local dev without Meta credentials. Remaining Stage 5 surface — brand create/finalize/metrics (5C), admin + waitlist (5D) — is tracked in [`../private/reports/transition-plan.md`](../private/reports/transition-plan.md). See [`../private/guides/stage-05-core-rest-surface.md`](../private/guides/stage-05-core-rest-surface.md).
+Feed items carry server-computed `acceptedCount`/`alreadyApplied`; list pagination rides `meta` (`page`/`per_page`/`total`). Every `/api/campaigns/{id}/*` sub-resource gates on ownership via `resolve_owned_application` (404 for unknown/other-org/denied — no existence leak); the aggregate ports `src/utils/metrics.ts` `computeCampaignAggregate`. `POST /api/auth/dev-login` (above) lets the SPA obtain a session in local dev without Meta credentials.
+
+## Brand portal (Stage 5C)
+
+Brand-facing endpoints (§8.1–§8.5). All `CurrentBrand` (JWT + `brand` role + `active`); responses are camelCase + epoch-ms. The `BrandTrackerStage` enum collapsed from 7 values to the architecture 5-stage vocabulary (`request_received` → `finalizing_agreements` → `awaiting_products` → `drop_active` → `drop_finished`).
+
+```
+GET    /api/brands/me                           brand profile
+POST   /api/brands/me/drops                     create a drop (title, description) — defaults capacity=10, stage=request_received
+GET    /api/brands/me/drops                     list brand's drops with per-drop aggregate (posts, likes, comments, engagement, reach)
+GET    /api/brands/me/drops/{drop_id}           drop detail with applicants + org-attributed totals
+POST   /api/brands/me/drops/{drop_id}/finalize-applicants   accept/deny applicants (7 rules, atomic txn)
+GET    /api/brands/me/aggregate                 brand-level rollup (drops, posts, likes, comments, engagement, reach, orgs, campuses)
+GET    /api/brands/me/engagement-series         cumulative engagement time series (?bucket_count=&window_days=)
+```
+
+`finalize-applicants` enforces 7 rules before the atomic accept/deny transaction: no duplicate orgs, stage must be `finalizing_agreements`, apply window closed, not already finalized, selected ≤ capacity, unit allocation ≤ budget, all allocated orgs must have applied. `resolve_brand_drop` gates every per-drop endpoint (404 not 403, no existence leak). Aggregates port `src/utils/metrics.ts` (`computeDropAggregate`, `computeBrandAggregate`, `computeEngagementTimeSeries`) — all SQL SUMs are COALESCE'd.
+
+Remaining Stage 5 surface — admin + waitlist (5D) — is tracked in the transition plan.
 
 New env vars are documented in [`.env.example`](./.env.example); only `SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, and the three `INSTAGRAM_*` credentials must be set for staging/prod (and for a live local OAuth run). Tests use a fake Instagram client and need none of them.
 
@@ -205,20 +223,23 @@ backend/
       orgs.py      # GET/PATCH /api/orgs/me + /me/posts (+ refresh)
       drops.py     # /api/drops feed + detail + apply + notify
       campaigns.py # /api/campaigns + detail + aggregate + link-post + suggestions
+      brands.py    # /api/brands profile + drops + finalize + aggregate + engagement-series
     schemas/
       common.py    # CamelModel + to_epoch_ms (camelCase + epoch-ms convention)
       auth.py      # Auth request/response models
       orgs.py      # Org profile read/update models
-      drops.py     # Feed/detail/apply/notify models
+      drops.py     # Feed/detail/apply/notify models + BrandDropCreate/Response
       campaigns.py # My-campaigns list/detail models
       posts.py     # Post library / aggregate / suggestion / link-post models
+      brands.py    # Brand profile, drop list/detail, finalize, aggregate, engagement-series
     services/
       instagram.py # InstagramClient protocol + HttpInstagramClient + DI
       auth.py      # handle_instagram_callback, token issuance, user response
       orgs.py      # Org profile orchestration
-      drops.py     # Feed + drop detail + apply + notify orchestration
+      drops.py     # Feed + drop detail + apply + notify + create_brand_drop
       campaigns.py # My-campaigns list/detail + resolve_owned_application gate
       posts.py     # Post library + link/unlink + aggregate + suggestions
+      brands.py    # Brand aggregate, engagement series, finalize (7 rules + atomic txn)
   scripts/
     check.sh       # Local quality gate (black → ruff → mypy → pytest)
     seed_dev.py    # Destructive local dev seed
@@ -242,4 +263,5 @@ backend/
     test_post_links.py
     test_campaign_aggregate.py
     test_suggestions.py
+    test_brand_routes.py   # Brand profile + drops + finalize + aggregate + engagement-series
 ```
