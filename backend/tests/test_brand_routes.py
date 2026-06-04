@@ -248,6 +248,46 @@ class TestFinalizeApplicants:
 
     async def test_drop_not_in_selection_stage(self, app_client: AsyncClient, db_session):
         _, _, headers = await _brand_ctx(db_session)
+        # Create a drop in request_received stage (not finalizing_agreements)
+        brand_user = await persist(db_session, make_user(role=PortalRole.BRAND))
+        brand = await make_brand(db_session, brand_name="Stage Brand")
+        brand.user_id = brand_user.id
+        await db_session.flush()
+        drop = await make_drop(
+            db_session,
+            brand,
+            stage=BrandTrackerStage.REQUEST_RECEIVED,
+            apply_open_at=datetime.now(timezone.utc) - timedelta(days=30),
+            apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
+        )
+        res = await app_client.post(
+            f"/api/brands/me/drops/{drop.id}/finalize-applicants",
+            json={"allocations": []},
+            headers={"Authorization": f"Bearer {mint_access_token(brand_user)}"},
+        )
+        assert res.status_code == 400
+        assert res.json()["error"]["code"] == "DROP_NOT_IN_SELECTION_STAGE"
+
+    async def test_apply_window_still_open(self, app_client: AsyncClient, db_session):
+        _, _, headers = await _brand_ctx(db_session)
+        brand_user = await persist(db_session, make_user(role=PortalRole.BRAND))
+        brand = await make_brand(db_session, brand_name="Window Brand")
+        brand.user_id = brand_user.id
+        await db_session.flush()
+        drop = await make_drop(
+            db_session,
+            brand,
+            stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
+            apply_open_at=datetime.now(timezone.utc) - timedelta(days=1),
+            apply_close_at=datetime.now(timezone.utc) + timedelta(days=1),
+        )
+        res = await app_client.post(
+            f"/api/brands/me/drops/{drop.id}/finalize-applicants",
+            json={"allocations": []},
+            headers={"Authorization": f"Bearer {mint_access_token(brand_user)}"},
+        )
+        assert res.status_code == 400
+        assert res.json()["error"]["code"] == "APPLY_WINDOW_OPEN"
 
     async def test_duplicate_org_id(self, app_client: AsyncClient, db_session):
         _, drop, orgs, headers = await self._setup_finalize(db_session)

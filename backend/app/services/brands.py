@@ -69,7 +69,12 @@ async def _drop_aggregate(db: AsyncSession, drop_id: UUID) -> dict[str, int]:
     )
     linked_post_ids = list(
         await db.scalars(
-            select(PostCampaignLink.post_id).where(PostCampaignLink.drop_id == drop_id)
+            select(PostCampaignLink.post_id)
+            .join(DropApplication, DropApplication.id == PostCampaignLink.application_id)
+            .where(
+                PostCampaignLink.drop_id == drop_id,
+                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+            )
         )
     )
 
@@ -306,7 +311,13 @@ async def finalize_applicants(
     Returns a summary dict suitable for the route response.
     """
 
-    drop = await resolve_brand_drop(db, brand, drop_id)
+    # Lock the drop row to serialize concurrent finalize attempts (avoid
+    # TOCTOU between rule checks and the accept/deny writes).
+    drop = await db.scalar(
+        select(Drop).where(Drop.id == drop_id, Drop.brand_id == brand.id).with_for_update()
+    )
+    if drop is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
 
     # Validate no duplicate org_ids
     org_ids_in_alloc = [item["org_id"] for item in allocations]
