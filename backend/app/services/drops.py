@@ -14,7 +14,7 @@ is denormalized, so no brand join is needed.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,11 +22,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
+from app.models.brand import Brand
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision
+from app.models.enums import ApplicationDecision, BrandTrackerStage
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
+from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
+from app.schemas import drops as schemas
 from app.schemas.drops import ApplicationResponse, DropDetailResponse, DropFeedItem
 
 
@@ -283,3 +286,49 @@ async def clear_notify(db: AsyncSession, org_user: User, drop_id: uuid.UUID) -> 
     if notify is not None:
         await db.delete(notify)
         await db.flush()
+
+
+# --- Brand drop creation (Stage 5C) --------------------------------------------
+
+
+_PLACEHOLDER_IMAGE = "https://placehold.co/600x400/png"
+
+
+async def create_brand_drop(
+    db: AsyncSession,
+    brand: Brand,
+    title: str,
+    description: str,
+) -> Drop:
+    """Create a drop owned by *brand* with server defaults (§8.4)."""
+
+    now = datetime.now(timezone.utc)
+    drop = Drop(
+        id=uuid.uuid4(),
+        brand_id=brand.id,
+        brand_name=brand.brand_name,
+        title=title,
+        description=description,
+        image=_PLACEHOLDER_IMAGE,
+        location="Multiple Campuses",
+        capacity_total=10,
+        apply_open_at=now + timedelta(days=1),
+        apply_close_at=now + timedelta(days=8),
+        brand_tracker_stage=BrandTrackerStage.REQUEST_RECEIVED.value,
+        total_product_units=None,
+    )
+    db.add(drop)
+
+    tracker = DropTrackerEvent(
+        id=uuid.uuid4(),
+        drop_id=drop.id,
+        stage=BrandTrackerStage.REQUEST_RECEIVED.value,
+    )
+    db.add(tracker)
+    await db.flush()
+    return drop
+
+
+def build_brand_drop_response(drop: Drop) -> schemas.BrandDropResponse:
+    """Serialize a ``Drop`` into the brand-facing wire shape."""
+    return schemas.BrandDropResponse.model_validate(drop, from_attributes=True)

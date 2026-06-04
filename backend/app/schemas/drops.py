@@ -110,3 +110,43 @@ class NotifyRequest(CamelModel):
         if value not in _REMINDER_CHOICES:
             raise ValueError(f"reminder_minutes must be one of {_REMINDER_CHOICES}")
         return value
+
+
+# --- Brand-facing schemas (Stage 5C) -------------------------------------------
+
+
+class BrandDropCreateRequest(CamelModel):
+    """Body for ``POST /api/brands/me/drops`` (architecture §8.4)."""
+
+    title: str
+    description: str
+
+
+class BrandDropResponse(CamelModel):
+    """A drop as returned to the brand portal (architecture §8.4)."""
+
+    id: uuid.UUID
+    brand_id: uuid.UUID
+    brand_name: str
+    title: str
+    description: str
+    image: str
+    location: str
+    capacity_total: int
+    apply_open_at: datetime
+    apply_close_at: datetime
+    manual_reopen: bool
+    brand_tracker_stage: str
+    total_product_units: int | None
+    campaign_hashtag: str | None
+    applicant_selection_finalized_at: datetime | None
+    created_at: datetime
+
+    @field_serializer(
+        "apply_open_at",
+        "apply_close_at",
+        "applicant_selection_finalized_at",
+        "created_at",
+    )
+    def _epoch(self, value: datetime | None) -> int | None:
+        return to_epoch_ms(value)
