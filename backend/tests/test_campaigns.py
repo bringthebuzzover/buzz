@@ -54,12 +54,11 @@ async def test_list_sort_order(app_client: AsyncClient, db_session) -> None:
     _, org, headers = await _org_ctx(db_session)
     brand = await make_brand(db_session)
     # active(0) -> accepted(1) -> applied(2) -> finished(3)
-    d_active = await make_drop(db_session, brand, title="A", stage=BrandTrackerStage.ACTIVE)
-    d_accepted = await make_drop(db_session, brand, title="B", stage=BrandTrackerStage.SHIPPED)
-    d_applied = await make_drop(
-        db_session, brand, title="C", stage=BrandTrackerStage.AWAITING_BRIEF
-    )
-    d_finished = await make_drop(db_session, brand, title="D", stage=BrandTrackerStage.FINISHED)
+    stage = BrandTrackerStage
+    d_active = await make_drop(db_session, brand, title="A", stage=stage.DROP_ACTIVE)
+    d_accepted = await make_drop(db_session, brand, title="B", stage=stage.AWAITING_PRODUCTS)
+    d_applied = await make_drop(db_session, brand, title="C", stage=stage.REQUEST_RECEIVED)
+    d_finished = await make_drop(db_session, brand, title="D", stage=stage.DROP_FINISHED)
     await make_application(db_session, d_active, org, decision=ApplicationDecision.ACCEPTED)
     await make_application(db_session, d_accepted, org, decision=ApplicationDecision.ACCEPTED)
     await make_application(db_session, d_applied, org, decision=ApplicationDecision.APPLIED)

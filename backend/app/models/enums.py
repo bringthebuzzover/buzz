@@ -69,15 +69,15 @@ class ApplicationDecision(StrEnum):
 
 class BrandTrackerStage(StrEnum):
     """Fulfillment tracker stages for a drop (``drops.brand_tracker_stage``,
-    ``drop_tracker_events.stage``). Order matters — UIs sort on enum order."""
+    ``drop_tracker_events.stage``). Order matches architecture §8.5 state machine:
+    ``request_received → finalizing_agreements → awaiting_products → drop_active →
+    drop_finished``."""
 
-    AWAITING_BRIEF = "awaiting_brief"
-    IN_REVIEW = "in_review"
-    APPROVED = "approved"
-    SHIPPED = "shipped"
-    DELIVERED = "delivered"
-    ACTIVE = "active"
-    FINISHED = "finished"
+    REQUEST_RECEIVED = "request_received"
+    FINALIZING_AGREEMENTS = "finalizing_agreements"
+    AWAITING_PRODUCTS = "awaiting_products"
+    DROP_ACTIVE = "drop_active"
+    DROP_FINISHED = "drop_finished"
 
 
 class Platform(StrEnum):
