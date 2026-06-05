@@ -35,7 +35,7 @@ export function buildSeedTrackerEvents(now: number): BrandTrackerEvent[] {
         stage,
         occurredAt: startedAt + idx * MS_PER_DAY,
         note:
-          stage === "products_in_transit" && trackingNote
+          stage === "awaiting_products" && trackingNote
             ? trackingNote
             : undefined,
       });
@@ -43,14 +43,14 @@ export function buildSeedTrackerEvents(now: number): BrandTrackerEvent[] {
   }
 
   // Drops with demo brand id: Poppi launch, PRIME Hydration partnership, Yerba Madre bid day.
-  pushHistoryThrough("drop-poppi-launch", "active_campaign", 5);
+  pushHistoryThrough("drop-poppi-launch", "drop_active", 5);
   pushHistoryThrough(
     "drop-poppi-spring-tour",
-    "products_in_transit",
+    "awaiting_products",
     14,
     "Tracking #1Z999AA10123456784",
   );
-  pushHistoryThrough("drop-poppi-finalizing", "applicant_selection", 1);
+  pushHistoryThrough("drop-poppi-finalizing", "finalizing_agreements", 1);
 
   return events;
 }

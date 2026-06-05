@@ -22,7 +22,7 @@ export default function BrandDropTrackerStepper({
   const currentIdx = BRAND_DROP_TRACKER_ORDER.indexOf(currentStage);
   const trackingVisible =
     Boolean(trackingNumber) &&
-    BRAND_DROP_TRACKER_ORDER.indexOf("products_in_transit") <= currentIdx;
+    BRAND_DROP_TRACKER_ORDER.indexOf("awaiting_products") <= currentIdx;
 
   return (
     <div className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-6 shadow-sm">
@@ -33,7 +33,7 @@ export default function BrandDropTrackerStepper({
         </span>
       </div>
 
-      <ol className="grid grid-cols-1 gap-4 md:grid-cols-6">
+      <ol className="grid grid-cols-1 gap-4 md:grid-cols-5">
         {BRAND_DROP_TRACKER_ORDER.map((stage, idx) => {
           const reached = idx <= currentIdx;
           const isCurrent = idx === currentIdx;

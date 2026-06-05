@@ -1,19 +1,15 @@
 /**
- * Frontend session state for the Stage 4 slice.
+ * Frontend session state (Stage 6 — expanded from Stage 4 slice).
  *
  * The Buzz access token lives **in memory only** (architecture §5.3 — never
  * `localStorage`, to keep it off the XSS surface). The refresh token rides an
- * httpOnly cookie, so `refreshAccessToken` and `devLogin` use `credentials:
- * "include"` and never touch the token directly.
+ * httpOnly cookie.
  *
  * These helpers use raw `fetch` (not `apiFetch`) on purpose: they must not pass
  * through the 401→refresh interceptor in `client.ts` (that would recurse).
- *
- * NOTE (Stage 6): the real `AuthProvider` + OAuth login/callback replace the
- * `devLogin` bootstrap; the in-memory token store and `refreshAccessToken`
- * carry over unchanged.
  */
 import { API_BASE_URL } from "./config";
+import type { AuthUser } from "../contexts/AuthContext";
 
 let accessToken: string | null = null;
 
@@ -63,16 +59,49 @@ export async function devLogin(): Promise<LoginData | null> {
       headers: { "Content-Type": "application/json" },
       body: "{}",
     });
-    if (!resp.ok) {
-      return null;
-    }
+    if (!resp.ok) return null;
     const body = (await resp.json()) as { data: LoginData | null };
     if (body.data?.access_token) {
       setAccessToken(body.data.access_token);
     }
     return body.data;
   } catch {
-    // Backend unreachable (e.g. uvicorn not running) — treat as a failed login.
     return null;
+  }
+}
+
+/** Fetch the current user from GET /api/auth/me. Returns null on failure. */
+export async function fetchMe(): Promise<AuthUser | null> {
+  try {
+    const token = getAccessToken();
+    if (!token) return null;
+    const resp = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
+    });
+    if (!resp.ok) return null;
+    const body = await resp.json();
+    const u = body.data;
+    if (!u) return null;
+    return {
+      id: u.id,
+      portalRole: u.portalRole ?? u.portal_role,
+      status: u.status,
+      instagramUsername: u.instagramUsername ?? u.instagram_username,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Clear the server-side refresh cookie. */
+export async function logout(): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch {
+    // Best-effort — token is already cleared client-side.
   }
 }

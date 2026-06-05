@@ -1,16 +1,17 @@
 /**
  * Top-level routes: `SiteLayout` for marketing shell; `/waitlist` standalone.
- * Demo-protected routes use `DemoOnly` and declare which persona (`requiredDemoView`) may view them
- * so a Brand demo session cannot accidentally land on Org pages and vice versa.
  *
- * Route IA mirrors PRODUCT.md §6.1 — `/org/*` is the student-org portal,
- * `/brand/*` is the brand portal. Legacy routes redirect to the new IA so old
- * bookmarks and deep links still resolve.
+ * Stage 6 (strangler): when USE_API is true, portal routes use the real auth guards
+ * (RequireAuth → RequireRole → RequireStatus). When false, the demo DemoOnly guards
+ * are unchanged.
  */
 import type { ReactElement } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import SiteLayout from "./layouts/SiteLayout";
 import DemoOnly from "./components/routing/DemoOnly";
+import RequireAuth from "./components/routing/RequireAuth";
+import RequireRole from "./components/routing/RequireRole";
+import RequireStatus from "./components/routing/RequireStatus";
 import HomePage from "./pages/home/HomePage";
 import OrgDropFeedPage from "./pages/org/OrgDropFeedPage";
 import OrgMyCampaignsPage from "./pages/org/OrgMyCampaignsPage";
@@ -18,7 +19,34 @@ import OrgCampaignDetailPage from "./pages/org/OrgCampaignDetailPage";
 import BrandAggregateDashboardPage from "./pages/brand/BrandAggregateDashboardPage";
 import BrandDropDetailPage from "./pages/brand/BrandDropDetailPage";
 import BrandRequestDropPage from "./pages/brand/BrandRequestDropPage";
+import LoginPage from "./pages/auth/LoginPage";
+import InstagramCallbackPage from "./pages/auth/InstagramCallbackPage";
+import OrgProfilePage from "./pages/onboarding/OrgProfilePage";
+import VerifyEmailPage from "./pages/onboarding/VerifyEmailPage";
+import PendingApprovalPage from "./pages/onboarding/PendingApprovalPage";
+import DeniedPage from "./pages/onboarding/DeniedPage";
 import Waitlist from "./pages/waitlist/waitlist";
+import { USE_API } from "./config/featureFlags";
+
+/** Composite guard: wraps children in the real auth stack for a given portal role. */
+function PortalGuard({
+  children,
+  role,
+}: {
+  children: ReactElement;
+  role: "org" | "brand";
+}) {
+  if (!USE_API) {
+    return <DemoOnly requiredDemoView={role}>{children}</DemoOnly>;
+  }
+  return (
+    <RequireAuth>
+      <RequireRole role={role}>
+        <RequireStatus>{children}</RequireStatus>
+      </RequireRole>
+    </RequireAuth>
+  );
+}
 
 export default function AppRoot(): ReactElement {
   return (
@@ -26,29 +54,39 @@ export default function AppRoot(): ReactElement {
       <Route element={<SiteLayout />}>
         <Route index element={<HomePage />} />
 
+        {/* Public auth pages (API path only) */}
+        <Route path="login" element={<LoginPage />} />
+        <Route path="auth/instagram/callback" element={<InstagramCallbackPage />} />
+
+        {/* Onboarding pages (API path only) */}
+        <Route path="onboarding/profile" element={<OrgProfilePage />} />
+        <Route path="onboarding/verify-email" element={<VerifyEmailPage />} />
+        <Route path="onboarding/pending-approval" element={<PendingApprovalPage />} />
+        <Route path="onboarding/denied" element={<DeniedPage />} />
+
         {/* Org portal */}
         <Route
           path="org/browse"
           element={
-            <DemoOnly requiredDemoView="org">
+            <PortalGuard role="org">
               <OrgDropFeedPage />
-            </DemoOnly>
+            </PortalGuard>
           }
         />
         <Route
           path="org/campaigns"
           element={
-            <DemoOnly requiredDemoView="org">
+            <PortalGuard role="org">
               <OrgMyCampaignsPage />
-            </DemoOnly>
+            </PortalGuard>
           }
         />
         <Route
           path="org/campaigns/:campaignId"
           element={
-            <DemoOnly requiredDemoView="org">
+            <PortalGuard role="org">
               <OrgCampaignDetailPage />
-            </DemoOnly>
+            </PortalGuard>
           }
         />
 
@@ -56,67 +94,67 @@ export default function AppRoot(): ReactElement {
         <Route
           path="brand/dashboard"
           element={
-            <DemoOnly requiredDemoView="brand">
+            <PortalGuard role="brand">
               <BrandAggregateDashboardPage />
-            </DemoOnly>
+            </PortalGuard>
           }
         />
         <Route
           path="brand/drops/:dropId"
           element={
-            <DemoOnly requiredDemoView="brand">
+            <PortalGuard role="brand">
               <BrandDropDetailPage />
-            </DemoOnly>
+            </PortalGuard>
           }
         />
         <Route
           path="brand/requests/new"
           element={
-            <DemoOnly requiredDemoView="brand">
+            <PortalGuard role="brand">
               <BrandRequestDropPage />
-            </DemoOnly>
+            </PortalGuard>
           }
         />
 
-        {/* Legacy redirects — keep `DemoOnly` so persona enforcement still applies. */}
+        {/* Legacy redirects */}
         <Route
           path="campaigns"
           element={
-            <DemoOnly requiredDemoView="org">
+            <PortalGuard role="org">
               <Navigate to="/org/browse" replace />
-            </DemoOnly>
+            </PortalGuard>
           }
         />
         <Route
           path="campaigns/:campaignId"
           element={
-            <DemoOnly requiredDemoView="org">
+            <PortalGuard role="org">
               <Navigate to="/org/browse" replace />
-            </DemoOnly>
+            </PortalGuard>
           }
         />
         <Route
           path="register"
           element={
-            <DemoOnly requiredDemoView="org">
+            <PortalGuard role="org">
               <Navigate to="/org/browse" replace />
-            </DemoOnly>
+            </PortalGuard>
           }
         />
         <Route
           path="brand"
           element={
-            <DemoOnly requiredDemoView="brand">
+            <PortalGuard role="brand">
               <Navigate to="/brand/dashboard" replace />
-            </DemoOnly>
+            </PortalGuard>
           }
         />
         <Route
           path="brand/campaigns/new"
           element={
-            <DemoOnly requiredDemoView="brand">
+            <PortalGuard role="brand">
               <Navigate to="/brand/requests/new" replace />
-            </DemoOnly>
+            </PortalGuard>
           }
         />
         <Route path="waitlist" element={<Waitlist />} />

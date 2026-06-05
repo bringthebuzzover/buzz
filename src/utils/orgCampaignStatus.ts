@@ -27,8 +27,8 @@ export function deriveOrgCampaignStatus(
     case "waitlisted":
       return "waitlisted";
     case "accepted":
-      if (drop.brandTrackerStage === "completed") return "finished";
-      if (drop.brandTrackerStage === "active_campaign") return "active";
+      if (drop.brandTrackerStage === "drop_finished") return "finished";
+      if (drop.brandTrackerStage === "drop_active") return "active";
       return "accepted";
   }
 }

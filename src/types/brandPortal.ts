@@ -1,16 +1,17 @@
 /**
  * Brand portal domain types — the read-only 5-stage tracker stages and the rolled-up
  * brand-side summary view of a drop (no per-org breakdown in v1).
+ *
+ * Stage 6: collapsed to 5 stages matching backend BrandTrackerStage enum.
  */
 
-/** Read-only brand-facing tracker (PRODUCT.md §5.2). */
+/** Read-only brand-facing tracker (architecture §8.5 — 5 stages). */
 export type BrandDropTrackerStage =
   | "request_received"
-  | "campaign_drops"
-  | "applicant_selection"
-  | "products_in_transit"
-  | "active_campaign"
-  | "completed";
+  | "finalizing_agreements"
+  | "awaiting_products"
+  | "drop_active"
+  | "drop_finished";
 
 /** Display copy bundle for a tracker stage (label + helper subcopy). */
 export type BrandDropTrackerStageCopy = {
@@ -21,14 +22,13 @@ export type BrandDropTrackerStageCopy = {
 /** Canonical order of the brand tracker stages (left-to-right rendering). */
 export const BRAND_DROP_TRACKER_ORDER: readonly BrandDropTrackerStage[] = [
   "request_received",
-  "campaign_drops",
-  "applicant_selection",
-  "products_in_transit",
-  "active_campaign",
-  "completed",
+  "finalizing_agreements",
+  "awaiting_products",
+  "drop_active",
+  "drop_finished",
 ] as const;
 
-/** Spec-aligned copy for each stage (PRODUCT.md §5.2). */
+/** Spec-aligned copy for each stage (architecture §8.5). */
 export const BRAND_DROP_TRACKER_COPY: Record<
   BrandDropTrackerStage,
   BrandDropTrackerStageCopy
@@ -37,24 +37,20 @@ export const BRAND_DROP_TRACKER_COPY: Record<
     label: "Request Received",
     subcopy: "A representative will contact you soon.",
   },
-  campaign_drops: {
-    label: "Campaign Drops",
-    subcopy: "Organizations can now apply.",
+  finalizing_agreements: {
+    label: "Finalizing Agreements",
+    subcopy: "Buzz is working out the details with the brand.",
   },
-  applicant_selection: {
-    label: "Applicant Selection",
-    subcopy: "Applications closed; curating selected partners.",
-  },
-  products_in_transit: {
-    label: "Products in Transit",
+  awaiting_products: {
+    label: "Awaiting Products",
     subcopy: "Shipment is on the way — tracking below.",
   },
-  active_campaign: {
-    label: "Active Campaign",
+  drop_active: {
+    label: "Drop Active",
     subcopy: "Your campaign is live.",
   },
-  completed: {
-    label: "Completed",
+  drop_finished: {
+    label: "Drop Finished",
     subcopy: "Campaign complete.",
   },
 };

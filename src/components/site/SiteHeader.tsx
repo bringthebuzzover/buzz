@@ -1,11 +1,10 @@
 /**
- * Sticky two-row header: utility bar (socials, join waitlist / change demo view, demo login icon
- * in public), coral nav with centered logo, and nav actions where "Contact" calls
- * `openContactModal`. Demo mode swaps the centered utility action for the `ChangeViewMenu`
- * dropdown so internal users can switch persona or exit the demo entirely.
+ * Sticky two-row header: utility bar (socials, join waitlist / change demo view / login),
+ * coral nav with centered logo.
  *
- * Below 650px: hamburger left, logo right; nav slides in from the left as a paper sheet
- * below the header (pink bar stays visible).
+ * Stage 6: when USE_API is true and user is authenticated, shows persona-aware nav
+ * links from the auth context instead of demo view. Shows Login/Logout instead of
+ * passcode icon.
  */
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -15,14 +14,15 @@ import {
   useRef,
   useState,
 } from "react";
-import { ChevronRight, Menu, User } from "lucide-react";
+import { ChevronRight, LogOut, Menu, User } from "lucide-react";
 import { siteIdentity } from "../../data/siteIdentity";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
 import { useAccessGate } from "../../contexts/AccessGateContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { goToHomeWaitlist } from "../../utils/scrollHomeWaitlist";
 import ChangeViewMenu from "./ChangeViewMenu";
+import { USE_API } from "../../config/featureFlags";
 
-/** Persona-aware bottom-nav links shown when the user is in demo mode. */
 const ORG_NAV_LINKS = [
   { to: "/org/browse", label: "Browse Campaigns" },
   { to: "/org/campaigns", label: "My Campaigns" },
@@ -37,6 +37,7 @@ export default function SiteHeader() {
   const { pathname } = useLocation();
   const { openContactModal } = useSiteChrome();
   const { isDemoActive, openPasscodeModal, demoView } = useAccessGate();
+  const { user, status: authStatus, logout } = useAuth();
   const { images, social } = siteIdentity;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
@@ -80,12 +81,21 @@ export default function SiteHeader() {
     };
   }, [mobileNavOpen]);
 
-  const demoNavLinks =
-    demoView === "brand"
+  // Determine nav links: API path uses auth user role, demo path uses demoView.
+  const isApiAuth = USE_API && authStatus === "authenticated" && user;
+  const navLinks = isApiAuth
+    ? user.portalRole === "brand"
       ? BRAND_NAV_LINKS
-      : demoView === "org"
+      : user.portalRole === "org"
         ? ORG_NAV_LINKS
-        : [];
+        : []
+    : isDemoActive
+      ? demoView === "brand"
+        ? BRAND_NAV_LINKS
+        : demoView === "org"
+          ? ORG_NAV_LINKS
+          : []
+      : [];
 
   const isNavActive = (to: string): boolean => {
     if (to === "/") return pathname === "/";
@@ -96,11 +106,14 @@ export default function SiteHeader() {
     goToHomeWaitlist(pathname, navigate);
   };
 
+  const showCenterItem = isDemoActive || isApiAuth;
+
   return (
     <header
       ref={headerRef}
       className={`relative w-full ${mobileNavOpen ? "z-[100]" : "z-50"}`}
     >
+      {/* Top utility bar */}
       <div className="relative flex h-10 items-center justify-center border-b border-buzz-line bg-buzz-cream px-6 text-xs font-semibold tracking-wider">
         <div className="absolute left-6 flex space-x-4">
           <a
@@ -122,8 +135,15 @@ export default function SiteHeader() {
             <img src={images.socialLinkedinIcon} alt="" className="h-4 w-4" />
           </a>
         </div>
-        {isDemoActive ? (
-          <ChangeViewMenu />
+
+        {showCenterItem ? (
+          isDemoActive ? (
+            <ChangeViewMenu />
+          ) : (
+            <span className="text-center font-bold text-buzz-coral">
+              {user?.portalRole === "brand" ? "Brand Portal" : "Org Portal"}
+            </span>
+          )
         ) : (
           <button
             type="button"
@@ -133,22 +153,44 @@ export default function SiteHeader() {
             Join Waitlist!
           </button>
         )}
+
         <div className="absolute right-6 flex items-center gap-4">
-          {!isDemoActive ? (
+          {isApiAuth ? (
             <button
               type="button"
-              onClick={openPasscodeModal}
-              aria-label="Open demo access"
-              className="text-buzz-inkMuted hover:text-buzz-coral"
+              onClick={() => logout()}
+              className="flex items-center gap-1 text-buzz-inkMuted hover:text-buzz-coral"
+              aria-label="Log out"
             >
-              <User size={18} />
+              <LogOut size={16} />
+              <span className="hidden sm:inline text-xs font-bold">Logout</span>
             </button>
+          ) : !isDemoActive ? (
+            USE_API ? (
+              <button
+                type="button"
+                onClick={() => navigate("/login")}
+                className="text-buzz-inkMuted hover:text-buzz-coral"
+                aria-label="Log in"
+              >
+                <span className="text-xs font-bold">Login</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={openPasscodeModal}
+                aria-label="Open demo access"
+                className="text-buzz-inkMuted hover:text-buzz-coral"
+              >
+                <User size={18} />
+              </button>
+            )
           ) : null}
         </div>
       </div>
 
+      {/* Coral nav bar */}
       <nav className="relative bg-buzz-coral text-buzz-paper shadow-sm">
-        {/* Desktop / tablet: centered logo, links on sides */}
         <div className="relative hidden min-[650px]:flex h-[6rem] items-center justify-between px-8 py-4 font-medium">
           <div className="flex space-x-8">
             <Link
@@ -161,22 +203,19 @@ export default function SiteHeader() {
             >
               Home
             </Link>
-            {isDemoActive
-              ? demoNavLinks.map((link) => (
-                  <Link
-                    key={link.label}
-                    to={link.to}
-                    state={"state" in link ? link.state : undefined}
-                    className={`transition hover:text-buzz-butterBright ${
-                      isNavActive(link.to)
-                        ? "underline decoration-2 underline-offset-8"
-                        : ""
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                ))
-              : null}
+            {navLinks.map((link) => (
+              <Link
+                key={link.label}
+                to={link.to}
+                className={`transition hover:text-buzz-butterBright ${
+                  isNavActive(link.to)
+                    ? "underline decoration-2 underline-offset-8"
+                    : ""
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
 
           <button
@@ -199,7 +238,7 @@ export default function SiteHeader() {
             >
               Contact
             </button>
-            {!isDemoActive ? (
+            {!showCenterItem ? (
               <button
                 type="button"
                 onClick={handleJoinWaitlist}
@@ -211,7 +250,7 @@ export default function SiteHeader() {
           </div>
         </div>
 
-        {/* Mobile: hamburger left, logo right — sheet slides from left below header */}
+        {/* Mobile nav */}
         <div className="flex min-[650px]:hidden items-center justify-between gap-3 px-4 py-3">
           <button
             type="button"
@@ -236,7 +275,7 @@ export default function SiteHeader() {
           </button>
         </div>
 
-        {/* Mobile: backdrop + paper sheet (does not cover header — starts below it) */}
+        {/* Mobile panel */}
         <div
           className={`fixed inset-x-0 bottom-0 z-[55] min-[650px]:hidden transition-opacity duration-300 ${
             mobileNavOpen
@@ -268,32 +307,21 @@ export default function SiteHeader() {
                     onClick={() => setMobileNavOpen(false)}
                   >
                     Home
-                    <ChevronRight
-                      size={18}
-                      className="shrink-0 text-buzz-inkFaint"
-                      aria-hidden
-                    />
+                    <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
                   </Link>
                 </li>
-                {isDemoActive
-                  ? demoNavLinks.map((link) => (
-                      <li key={link.label}>
-                        <Link
-                          to={link.to}
-                          state={"state" in link ? link.state : undefined}
-                          className="flex items-center justify-between gap-3 border-b border-buzz-line py-4 pr-1 transition hover:text-buzz-coral"
-                          onClick={() => setMobileNavOpen(false)}
-                        >
-                          {link.label}
-                          <ChevronRight
-                            size={18}
-                            className="shrink-0 text-buzz-inkFaint"
-                            aria-hidden
-                          />
-                        </Link>
-                      </li>
-                    ))
-                  : null}
+                {navLinks.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      to={link.to}
+                      className="flex items-center justify-between gap-3 border-b border-buzz-line py-4 pr-1 transition hover:text-buzz-coral"
+                      onClick={() => setMobileNavOpen(false)}
+                    >
+                      {link.label}
+                      <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
+                    </Link>
+                  </li>
+                ))}
                 <li>
                   <button
                     type="button"
@@ -304,14 +332,10 @@ export default function SiteHeader() {
                     }}
                   >
                     Contact
-                    <ChevronRight
-                      size={18}
-                      className="shrink-0 text-buzz-inkFaint"
-                      aria-hidden
-                    />
+                    <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
                   </button>
                 </li>
-                {!isDemoActive ? (
+                {!showCenterItem ? (
                   <li>
                     <button
                       type="button"
@@ -322,11 +346,22 @@ export default function SiteHeader() {
                       }}
                     >
                       Join Waitlist!
-                      <ChevronRight
-                        size={18}
-                        className="shrink-0 text-buzz-inkFaint"
-                        aria-hidden
-                      />
+                      <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
+                    </button>
+                  </li>
+                ) : null}
+                {isApiAuth ? (
+                  <li>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-3 py-4 pr-1 text-left font-bold text-buzz-coral transition hover:text-buzz-coralDark"
+                      onClick={() => {
+                        setMobileNavOpen(false);
+                        logout();
+                      }}
+                    >
+                      Logout
+                      <LogOut size={18} className="shrink-0" aria-hidden />
                     </button>
                   </li>
                 ) : null}
