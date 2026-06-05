@@ -1,23 +1,142 @@
 /**
- * /onboarding/verify-email — stub placeholder (Stage 7).
+ * /onboarding/verify-email — .edu verification (Stage 7, Phase 3).
+ *
+ * Two modes:
+ *  - With `?token=…` (the link from the email): auto-verify, then refresh the
+ *    user so the guard forwards to /onboarding/pending-approval.
+ *  - Without a token: the "check your inbox" waiting screen, with a Resend
+ *    button (rate-limited server-side).
+ *
+ * The token path is allowed to render even when the user is not in
+ * pending_email_verification (they may click the link from a fresh tab); the
+ * waiting screen still requires that status.
  */
-import { Navigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import {
+  useResendVerification,
+  useVerifyEmail,
+} from "../../api/hooks/useOnboardingHooks";
+import { ApiError } from "../../api/client";
 
 export default function VerifyEmailPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+
+  if (token) {
+    return <VerifyWithToken token={token} />;
+  }
+
   if (!user || user.status !== "pending_email_verification") {
     return <Navigate to="/" replace />;
   }
+
+  return <AwaitVerification />;
+}
+
+function VerifyWithToken({ token }: { token: string }) {
+  const { refreshUser } = useAuth();
+  const navigate = useNavigate();
+  const verify = useVerifyEmail();
+  const [error, setError] = useState<string | null>(null);
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    (async () => {
+      try {
+        await verify.mutateAsync(token);
+        await refreshUser();
+        navigate("/onboarding/pending-approval", { replace: true });
+      } catch (err) {
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : "Could not verify your email. The link may have expired.",
+        );
+      }
+    })();
+  }, [token, verify, refreshUser, navigate]);
+
+  return (
+    <div className="mx-auto max-w-md px-8 py-24 text-center">
+      {error ? (
+        <>
+          <h1 className="mb-4 text-3xl font-bold text-buzz-coral">
+            Verification Failed
+          </h1>
+          <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{error}</p>
+          <button
+            onClick={() => navigate("/onboarding/verify-email", { replace: true })}
+            className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
+          >
+            Request a new link
+          </button>
+        </>
+      ) : (
+        <>
+          <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+            Verifying Your <span className="text-buzz-coral">Email</span>…
+          </h1>
+          <p className="text-sm font-medium text-buzz-inkMuted">
+            One moment while we confirm your address.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function AwaitVerification() {
+  const resend = useResendVerification();
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const onResend = async () => {
+    setNotice(null);
+    setError(null);
+    try {
+      await resend.mutateAsync();
+      setNotice("Verification email re-sent. Check your inbox.");
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not re-send the email. Please try again later.",
+      );
+    }
+  };
 
   return (
     <div className="mx-auto max-w-md px-8 py-24 text-center">
       <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
         Verify Your <span className="text-buzz-coral">Email</span>
       </h1>
-      <p className="text-sm font-medium text-buzz-inkMuted">
-        Check your inbox for a verification link. Onboarding continues in Stage 7.
+      <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
+        We sent a verification link to your school email. Click it to continue.
       </p>
+
+      {notice && (
+        <p className="mb-4 rounded-lg bg-green-50 p-3 text-sm font-medium text-green-700">
+          {notice}
+        </p>
+      )}
+      {error && (
+        <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
+          {error}
+        </p>
+      )}
+
+      <button
+        onClick={onResend}
+        disabled={resend.isPending}
+        className="rounded-lg border-2 border-buzz-coral px-6 py-3 text-sm font-bold text-buzz-coral transition enabled:hover:bg-buzz-coral enabled:hover:text-buzz-paper disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {resend.isPending ? "Sending…" : "Resend email"}
+      </button>
     </div>
   );
 }

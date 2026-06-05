@@ -2,7 +2,7 @@
  * /login — Instagram OAuth entry point. Public page.
  */
 import { useAuth } from "../../contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import instagramIcon from "../../assets/insta-icon.png";
 
 export default function LoginPage() {
@@ -30,6 +30,13 @@ export default function LoginPage() {
         <img src={instagramIcon} alt="" className="h-5 w-5" />
         {status === "authenticating" ? "Logging in..." : "Login with Instagram"}
       </button>
+
+      <p className="mt-8 text-sm font-medium text-buzz-inkMuted">
+        Are you a brand?{" "}
+        <Link to="/brand/login" className="font-bold text-buzz-coral hover:underline">
+          Brand login
+        </Link>
+      </p>
     </div>
   );
 }

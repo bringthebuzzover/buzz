@@ -20,7 +20,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  getAccessToken,
   refreshAccessToken,
   setAccessToken,
   devLogin,
@@ -47,6 +46,8 @@ type AuthContextValue = {
   user: AuthUser | null;
   login: () => void;
   logout: () => Promise<void>;
+  /** Re-fetch the current user (e.g. after an onboarding status transition). */
+  refreshUser: () => Promise<AuthUser | null>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -100,9 +101,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = "/";
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const me = await fetchMe();
+    setUser(me);
+    return me;
+  }, []);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, login, logout }),
-    [status, user, login, logout],
+    () => ({ status, user, login, logout, refreshUser }),
+    [status, user, login, logout, refreshUser],
   );
 
   return (
@@ -113,7 +120,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (ctx === null) {
-    return { status: "idle", user: null, login: () => {}, logout: async () => {} };
+    return {
+      status: "idle",
+      user: null,
+      login: () => {},
+      logout: async () => {},
+      refreshUser: async () => null,
+    };
   }
   return ctx;
 }

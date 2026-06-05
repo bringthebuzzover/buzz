@@ -21,6 +21,8 @@ import BrandDropDetailPage from "./pages/brand/BrandDropDetailPage";
 import BrandRequestDropPage from "./pages/brand/BrandRequestDropPage";
 import LoginPage from "./pages/auth/LoginPage";
 import InstagramCallbackPage from "./pages/auth/InstagramCallbackPage";
+import BrandSetupPage from "./pages/auth/BrandSetupPage";
+import BrandLoginPage from "./pages/auth/BrandLoginPage";
 import OrgProfilePage from "./pages/onboarding/OrgProfilePage";
 import VerifyEmailPage from "./pages/onboarding/VerifyEmailPage";
 import PendingApprovalPage from "./pages/onboarding/PendingApprovalPage";
@@ -57,6 +59,8 @@ export default function AppRoot(): ReactElement {
         {/* Public auth pages (API path only) */}
         <Route path="login" element={<LoginPage />} />
         <Route path="auth/instagram/callback" element={<InstagramCallbackPage />} />
+        <Route path="brand/login" element={<BrandLoginPage />} />
+        <Route path="brand/setup" element={<BrandSetupPage />} />
 
         {/* Onboarding pages (API path only) */}
         <Route path="onboarding/profile" element={<OrgProfilePage />} />
