@@ -104,6 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = useCallback(async () => {
     const me = await fetchMe();
     setUser(me);
+    // Keep status in sync so guards (RequireAuth) see the post-login state.
+    // Used after a brand login (client-side nav, no full reload) and after an
+    // onboarding status transition.
+    setStatus(me ? "authenticated" : "error");
     return me;
   }, []);
 

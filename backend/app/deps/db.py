@@ -27,7 +27,18 @@ async_session_factory = async_sessionmaker(
 
 
 async def get_db() -> AsyncIterator[AsyncSession]:
-    """FastAPI dependency yielding a per-request `AsyncSession`."""
+    """FastAPI dependency yielding a per-request `AsyncSession`.
+
+    Commits on a clean request and rolls back if the handler raises. Services
+    use ``flush()`` (not ``commit()``) so the whole request is one transaction;
+    without this commit those flushed writes are discarded when the session
+    closes. Tests override this dependency with their own rolled-back session.
+    """
 
     async with async_session_factory() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
