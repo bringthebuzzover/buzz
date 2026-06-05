@@ -1,23 +1,33 @@
 /**
- * Minimal auth bootstrap for the Stage 4 vertical slice.
+ * Real AuthProvider for Stage 6 — replaces the Stage 4 minimal bootstrap.
  *
- * This is intentionally tiny — it exists only so the migrated slice can obtain a
- * real session. On mount it tries the refresh cookie, then (in dev) falls back
- * to `POST /api/auth/dev-login`. It is mounted only when `USE_API` is on, so the
- * demo path is untouched.
+ * Provides:
+ *  - status: "idle" | "authenticating" | "authenticated" | "error"
+ *  - user: { id, portalRole, status } when authenticated
+ *  - login(): redirect to Instagram OAuth
+ *  - logout(): clear session, redirect to /
  *
- * Stage 6 replaces this with the real `AuthProvider` + OAuth login/callback
- * pages and `RequireAuth`/`RequireRole`/`RequireStatus` guards.
+ * Bootstrap on mount: try refresh cookie → fall back to dev-login (dev only).
  */
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
-import { devLogin, refreshAccessToken } from "../api/auth";
+import {
+  getAccessToken,
+  refreshAccessToken,
+  setAccessToken,
+  devLogin,
+  fetchMe,
+  logout as apiLogout,
+} from "../api/auth";
+import type { PortalRole } from "../types/auth";
 
 export type AuthStatus =
   | "idle"
@@ -25,49 +35,85 @@ export type AuthStatus =
   | "authenticated"
   | "error";
 
+export type AuthUser = {
+  id: string;
+  portalRole: PortalRole;
+  status: string;
+  instagramUsername?: string;
+};
+
 type AuthContextValue = {
   status: AuthStatus;
+  user: AuthUser | null;
+  login: () => void;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("idle");
+  const [user, setUser] = useState<AuthUser | null>(null);
   const startedRef = useRef(false);
 
   useEffect(() => {
-    // `startedRef` dedupes the StrictMode double-invoke. We intentionally do NOT
-    // cancel on cleanup: the single in-flight bootstrap must always resolve to a
-    // terminal status, otherwise a guarded-out re-invocation would strand the
-    // spinner. Setting state after an unmount is a harmless no-op in React 18.
     if (startedRef.current) return;
     startedRef.current = true;
 
     const bootstrap = async () => {
       setStatus("authenticating");
-      // Prefer an existing refresh-cookie session; fall back to dev-login.
       const refreshed = await refreshAccessToken();
       if (refreshed) {
-        setStatus("authenticated");
-        return;
+        const me = await fetchMe();
+        if (me) {
+          setUser(me);
+          setStatus("authenticated");
+          return;
+        }
       }
       const dev = await devLogin();
-      setStatus(dev ? "authenticated" : "error");
+      if (dev) {
+        const me = await fetchMe();
+        setUser(me);
+        setStatus(dev ? "authenticated" : "error");
+      } else {
+        setStatus("error");
+      }
     };
     void bootstrap().catch(() => setStatus("error"));
   }, []);
 
+  const login = useCallback(() => {
+    // Redirect to Instagram OAuth login endpoint.
+    // The backend responds with a 302 to Instagram; the browser follows it.
+    const apiBase = (
+      process.env.REACT_APP_API_URL ?? "http://localhost:8000"
+    ).replace(/\/$/, "");
+    window.location.href = `${apiBase}/api/auth/instagram/login`;
+  }, []);
+
+  const logout = useCallback(async () => {
+    setAccessToken(null);
+    setUser(null);
+    setStatus("idle");
+    await apiLogout();
+    window.location.href = "/";
+  }, []);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({ status, user, login, logout }),
+    [status, user, login, logout],
+  );
+
   return (
-    <AuthContext.Provider value={{ status }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   );
 }
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (ctx === null) {
-    // The slice mounts AuthProvider only when USE_API is on; treat an absent
-    // provider as "not authenticated" so demo-path callers never crash.
-    return { status: "idle" };
+    return { status: "idle", user: null, login: () => {}, logout: async () => {} };
   }
   return ctx;
 }

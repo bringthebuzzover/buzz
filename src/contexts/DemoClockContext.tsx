@@ -1,18 +1,7 @@
 /**
- * DemoClock — drives the demo's time-based behavior:
+ * DemoClock — drives the demo's time-based behavior.
  *
- * 1. A 1-second `now` tick used by countdowns and "now" derivations.
- * 2. A slow ~10-second metric jitter that nudges likes/comments on posts linked to
- *    `active_campaign` campaigns (PRODUCT.md §4.3 — periodic refresh).
- * 3. A scheduled-transition runner that advances `Drop.brandTrackerStage` based on
- *    `scheduledTransitions[]` baked into seed data or written by the brand request flow.
- *    When a drop transitions to `active_campaign`, accepted applications inherit the
- *    derived `Active` org-side status automatically (no extra writes needed since
- *    org status is derived in `utils/orgCampaignStatus`).
- *
- * The clock starts as soon as the provider mounts. It is safe under React 18 strict
- * mode: timers are torn down + recreated on remount, and storage writes are idempotent
- * for stages already past the target.
+ * Stage 6: updated to use the 5-stage tracker vocabulary matching the backend.
  */
 import {
   createContext,
@@ -31,22 +20,15 @@ import { brandTrackerStore } from "../data/store/brandTrackerStore";
 import { BRAND_DROP_TRACKER_ORDER } from "../types/brandPortal";
 
 type DemoClockValue = {
-  /** A monotonically increasing timestamp updated every second. */
   now: number;
 };
 
 const DemoClockContext = createContext<DemoClockValue | null>(null);
 
-/** Tick frequency for the `now` clock (drives countdowns). */
 const NOW_TICK_MS = 1000;
-
-/** Slow metric refresh frequency (drives the "live" engagement feel). */
 const METRICS_TICK_MS = 10_000;
-
-/** Scheduled-transition pump frequency. */
 const TRANSITION_TICK_MS = 2000;
 
-/** Random integer between 0 and `max` (inclusive). */
 function jitter(max: number): number {
   return Math.floor(Math.random() * (max + 1));
 }
@@ -68,13 +50,13 @@ export function DemoClockProvider({ children }: { children: ReactNode }) {
       const drops = dropsStore.getAll();
       const activeDropIds = new Set(
         drops
-          .filter((d) => d.brandTrackerStage === "active_campaign")
-          .map((d) => d.id)
+          .filter((d) => d.brandTrackerStage === "drop_active")
+          .map((d) => d.id),
       );
       if (activeDropIds.size === 0) return;
       const links = linksStore.getAll();
       const activePostIds = new Set(
-        links.filter((l) => activeDropIds.has(l.dropId)).map((l) => l.postId)
+        links.filter((l) => activeDropIds.has(l.dropId)).map((l) => l.postId),
       );
       if (activePostIds.size === 0) return;
       const posts = postsStore.getAll();
@@ -97,11 +79,7 @@ export function DemoClockProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(id);
   }, []);
 
-  /**
-   * Scheduled-transition pump — for any drop with `scheduledTransitions[]`, advance
-   * the brand tracker stage when the relative offset has elapsed since `createdAt`.
-   * Skips transitions that target a stage at-or-before the drop's current stage.
-   */
+  /** Scheduled-transition pump. */
   useEffect(() => {
     const id = window.setInterval(() => {
       const drops = dropsStore.getAll();
@@ -109,20 +87,19 @@ export function DemoClockProvider({ children }: { children: ReactNode }) {
       for (const drop of drops) {
         if (!drop.scheduledTransitions?.length) continue;
         const currentIdx = BRAND_DROP_TRACKER_ORDER.indexOf(
-          drop.brandTrackerStage
+          drop.brandTrackerStage,
         );
         const due = drop.scheduledTransitions
           .filter((t) => Date.now() - drop.createdAt >= t.offsetMs)
           .filter(
-            (t) => BRAND_DROP_TRACKER_ORDER.indexOf(t.toStage) > currentIdx
+            (t) => BRAND_DROP_TRACKER_ORDER.indexOf(t.toStage) > currentIdx,
           )
           .sort(
             (a, b) =>
               BRAND_DROP_TRACKER_ORDER.indexOf(a.toStage) -
-              BRAND_DROP_TRACKER_ORDER.indexOf(b.toStage)
+              BRAND_DROP_TRACKER_ORDER.indexOf(b.toStage),
           );
         if (due.length === 0) continue;
-        // Apply the latest reachable stage in one shot, but record an event per stage.
         const target = due[due.length - 1];
         const trackingNumber =
           due.find((d) => d.assignTrackingNumber)?.assignTrackingNumber ??
@@ -140,25 +117,22 @@ export function DemoClockProvider({ children }: { children: ReactNode }) {
                 : undefined,
           });
         }
-        // When entering active_campaign, mirror tracking number onto accepted applications.
+        // Mirror tracking number onto accepted applications at awaiting_products.
         if (
-          target.toStage === "active_campaign" ||
-          target.toStage === "products_in_transit"
+          target.toStage === "awaiting_products" &&
+          trackingNumber
         ) {
-          if (trackingNumber) {
-            const apps = applicationsStore.getAll();
-            const updated = apps.map((a) =>
-              a.dropId === drop.id && a.decision === "accepted"
-                ? { ...a, trackingNumber }
-                : a
-            );
-            applicationsStore.replaceAll(updated);
-          }
+          const apps = applicationsStore.getAll();
+          const updated = apps.map((a) =>
+            a.dropId === drop.id && a.decision === "accepted"
+              ? { ...a, trackingNumber }
+              : a,
+          );
+          applicationsStore.replaceAll(updated);
         }
         touched = true;
       }
       if (touched) {
-        // Force a tick refresh so any countdowns/derived statuses recompute now.
         setNow(Date.now());
       }
     }, TRANSITION_TICK_MS);
@@ -174,7 +148,6 @@ export function DemoClockProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** Returns the demo clock's `now` (ms). */
 export function useDemoNow(): number {
   const ctx = useContext(DemoClockContext);
   if (!ctx) {

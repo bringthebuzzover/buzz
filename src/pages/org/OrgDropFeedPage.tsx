@@ -18,6 +18,7 @@ import type { Drop, DropFeedRow, DropFeedStatus } from "../../types/drop";
 import { DEMO_ORG_ID } from "../../data/seed/seedOrgs";
 import { USE_API } from "../../config/featureFlags";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
+import { useApplyToDrop } from "../../api/hooks/useDropHooks";
 
 type FilterId = "all" | "upcoming" | "open" | "closed";
 
@@ -204,11 +205,19 @@ function DemoDropFeed() {
   );
 }
 
-const noop = () => {};
-
-/** API path (Stage 4): read-only feed from `GET /api/drops`. */
+/** API path (Stage 6): live feed from `GET /api/drops` with working apply. */
 function ApiDropFeed() {
   const { items, isLoading, error } = useOrgDropFeed();
+  const [applyingId, setApplyingId] = useState<string | null>(null);
+
+  const handleApply = (dropId: string) => {
+    setApplyingId(dropId);
+  };
+
+  // Simple inline apply: call mutation directly, no modal for now.
+  if (applyingId) {
+    return <ApiApplyForm dropId={applyingId} onDone={() => setApplyingId(null)} />;
+  }
 
   if (isLoading) {
     return (
@@ -236,10 +245,61 @@ function ApiDropFeed() {
     <FeedContent
       rows={items}
       now={Date.now()}
-      onApply={noop}
-      onJoinWaitlist={noop}
-      disableApply
+      onApply={handleApply}
+      onJoinWaitlist={handleApply}
+      disableApply={false}
     />
+  );
+}
+
+/** Inline apply form shown when user clicks Apply on a drop card. */
+function ApiApplyForm({ dropId, onDone }: { dropId: string; onDone: () => void }) {
+  const mutation = useApplyToDrop(dropId);
+  const [pitch, setPitch] = useState("");
+
+  const handleSubmit = () => {
+    mutation.mutate(pitch || undefined, {
+      onSuccess: () => onDone(),
+      onError: () => onDone(),
+    });
+  };
+
+  return (
+    <div className={PAGE_SHELL}>
+      <FeedHeader />
+      <div className="mx-auto max-w-md rounded-2xl border border-buzz-lineMid bg-buzz-paper p-8 shadow-sm">
+        <h2 className="mb-4 text-xl font-bold text-buzz-ink">Apply to Drop</h2>
+        <textarea
+          placeholder="Optional pitch message..."
+          value={pitch}
+          onChange={(e) => setPitch(e.target.value)}
+          rows={4}
+          className="mb-4 w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral"
+        />
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onDone}
+            className="flex-1 rounded-lg border border-buzz-lineMid px-4 py-2 text-sm font-bold text-buzz-inkMuted hover:bg-buzz-cream"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={mutation.isPending}
+            className="flex-1 rounded-lg bg-buzz-coral px-4 py-2 text-sm font-bold text-buzz-paper hover:bg-buzz-coralDark disabled:opacity-60"
+          >
+            {mutation.isPending ? "Submitting..." : "Submit"}
+          </button>
+        </div>
+        {mutation.error ? (
+          <p className="mt-3 text-sm font-medium text-buzz-coral">
+            {mutation.error instanceof Error ? mutation.error.message : "Failed to apply."}
+          </p>
+        ) : null}
+      </div>
+    </div>
   );
 }
 

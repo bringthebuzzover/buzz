@@ -1,5 +1,9 @@
 /**
  * Application entry: mounts the SPA under `#root` with client-side routing (`AppRoot` = routes).
+ *
+ * Stage 6: when USE_API is true, demo providers (AccessGateProvider, MockDataProvider,
+ * DemoClockProvider, PasscodeModal) are elided and the real AuthProvider is mounted.
+ * When false, the demo tree is byte-for-byte unchanged.
  */
 import "./index.css";
 import ReactDOM from "react-dom/client";
@@ -26,27 +30,31 @@ const queryClient = new QueryClient({
 
 const root = ReactDOM.createRoot(rootEl);
 
-// AuthProvider is mounted only for the API slice; with USE_API off the demo
-// tree is byte-for-byte what it was before Stage 4.
-const tree = USE_API ? (
-  <AuthProvider>
-    <AppRoot />
-  </AuthProvider>
-) : (
-  <AppRoot />
-);
-
-root.render(
-  <BrowserRouter>
-    <QueryClientProvider client={queryClient}>
-      <AccessGateProvider>
-        <MockDataProvider>
-          <DemoClockProvider>
-            {tree}
-            <PasscodeModal />
-          </DemoClockProvider>
-        </MockDataProvider>
-      </AccessGateProvider>
-    </QueryClientProvider>
-  </BrowserRouter>,
-);
+if (USE_API) {
+  // API path: real auth, no demo providers.
+  root.render(
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <AppRoot />
+        </AuthProvider>
+      </QueryClientProvider>
+    </BrowserRouter>,
+  );
+} else {
+  // Demo path: unchanged from Stage 4.
+  root.render(
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <AccessGateProvider>
+          <MockDataProvider>
+            <DemoClockProvider>
+              <AppRoot />
+              <PasscodeModal />
+            </DemoClockProvider>
+          </MockDataProvider>
+        </AccessGateProvider>
+      </QueryClientProvider>
+    </BrowserRouter>,
+  );
+}

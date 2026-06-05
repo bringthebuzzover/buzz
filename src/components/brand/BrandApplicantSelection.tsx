@@ -338,7 +338,7 @@ export default function BrandApplicantSelection({
   };
 
   const handleContinueToShipping = () => {
-    setDropTrackerStage(drop.id, "products_in_transit");
+    setDropTrackerStage(drop.id, "awaiting_products");
   };
 
   const thSortable = (
@@ -404,7 +404,7 @@ export default function BrandApplicantSelection({
                 className="inline-flex items-center gap-2 rounded-xl border-2 border-buzz-coral bg-buzz-coral px-4 py-2 text-sm font-bold text-buzz-paper shadow-sm transition hover:bg-buzz-coralDark"
               >
                 <Truck size={16} />
-                Continue to products in transit
+                Continue to awaiting products
               </button>
             </div>
           </div>
