@@ -137,10 +137,26 @@ export function AccessGateProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Inert fallback used when no `AccessGateProvider` is mounted — i.e. the
+ * `USE_API` tree (`index.tsx`), which deliberately omits the demo providers.
+ * The shared chrome (SiteLayout/Header/Footer/Home) calls `useAccessGate()`,
+ * so returning a "demo never active" value lets those components render in the
+ * API path instead of crashing. Demo-only affordances simply stay hidden.
+ */
+const INERT_ACCESS_GATE: AccessGateValue = {
+  isDemoActive: false,
+  isPasscodeModalOpen: false,
+  openPasscodeModal: () => {},
+  closePasscodeModal: () => {},
+  submitDemoPasscode: () => false,
+  exitDemo: () => {},
+  demoView: null,
+  setDemoView: () => {},
+  clearDemoView: () => {},
+  needsDemoViewChoice: false,
+};
+
 export function useAccessGate(): AccessGateValue {
-  const ctx = useContext(AccessGateContext);
-  if (!ctx) {
-    throw new Error("useAccessGate must be used within AccessGateProvider");
-  }
-  return ctx;
+  return useContext(AccessGateContext) ?? INERT_ACCESS_GATE;
 }
