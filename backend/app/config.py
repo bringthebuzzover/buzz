@@ -96,6 +96,24 @@ class Settings(BaseSettings):
     )
     INSTAGRAM_GRAPH_BASE: str = Field(default="https://graph.instagram.com")
 
+    # --- Onboarding + email (architecture.md §3.4, §4) ---
+    FRONTEND_URL: str = Field(
+        default="http://localhost:3000",
+        description="Base URL of the React SPA for building email links.",
+    )
+    VERIFICATION_TOKEN_TTL_HOURS: int = Field(
+        default=24,
+        description="Email verification link lifetime in hours.",
+    )
+    BRAND_INVITE_TOKEN_TTL_DAYS: int = Field(
+        default=7,
+        description="Brand account setup link lifetime in days.",
+    )
+    RESEND_API_KEY: str = Field(
+        default="",
+        description="Resend API key for transactional emails (empty = dev/console).",
+    )
+
     # --- Token encryption at rest (architecture.md §10.5 / §11.1) ---
     TOKEN_ENCRYPTION_KEY: str = Field(
         default=_DEV_TOKEN_ENCRYPTION_KEY,

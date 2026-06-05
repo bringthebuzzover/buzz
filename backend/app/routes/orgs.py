@@ -10,17 +10,34 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
-from app.deps.auth import CurrentOrg
+from app.deps.auth import CurrentOrg, get_current_user
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
 from app.models.organization import Organization
 from app.models.user import User
 from app.response import APIResponse, api_response
+from app.schemas.onboarding import OrgOnboardingRequest
 from app.schemas.orgs import OrgProfileUpdate
+from app.services.onboarding import submit_org_onboarding
 from app.services.orgs import build_org_profile, get_org_for_user, update_org_profile
 from app.services.posts import list_org_posts
 
 router = APIRouter(prefix="/orgs", tags=["orgs"])
+
+
+@router.post("/onboarding", response_model=APIResponse)
+async def org_onboarding(
+    payload: OrgOnboardingRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Phase 2: submit org profile, advance to email verification (Stage 7).
+
+    Uses the bare authenticated user (not ``CurrentOrg``) because the caller is
+    ``pending_org_profile``, not yet active — the active-status gate would 403.
+    """
+    result = await submit_org_onboarding(db, user, payload)
+    return api_response(data=result)
 
 
 async def _require_org_profile(db: AsyncSession, user: User) -> Organization:

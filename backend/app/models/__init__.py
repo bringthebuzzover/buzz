@@ -10,6 +10,7 @@ unused models if a table ever drops out.
 from app.models.application import DropApplication
 from app.models.base import Base
 from app.models.brand import Brand
+from app.models.brand_invite_token import BrandInviteToken
 from app.models.drop import Drop
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
@@ -24,6 +25,7 @@ from app.models.waitlist import Waitlist
 __all__ = [
     "Base",
     "Brand",
+    "BrandInviteToken",
     "Drop",
     "DropApplication",
     "DropTrackerEvent",

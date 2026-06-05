@@ -104,9 +104,9 @@ function DemoCampaigns() {
 /** API path: GET /api/campaigns. */
 function ApiCampaigns() {
   const { data: items, isLoading, error } = useCampaigns();
-  const campaigns = items ?? [];
 
   const rows = useMemo(() => {
+    const campaigns = items ?? [];
     const mapped: { item: CampaignItem; status: NonNullable<ReturnType<typeof deriveApiStatus>> }[] = [];
     for (const item of campaigns) {
       const status = deriveApiStatus(item);
@@ -120,7 +120,7 @@ function ApiCampaigns() {
       return b.item.appliedAt - a.item.appliedAt;
     });
     return mapped;
-  }, [campaigns]);
+  }, [items]);
 
   const mappedRows = rows.map(({ item, status }: { item: CampaignItem; status: NonNullable<ReturnType<typeof deriveApiStatus>> }) => ({
     application: {

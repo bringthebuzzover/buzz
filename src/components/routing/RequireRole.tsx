@@ -2,7 +2,6 @@
  * RequireRole — 403 page if the authenticated user's portal role doesn't match.
  * Must be nested inside RequireAuth.
  */
-import { Navigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import type { PortalRole } from "../../types/auth";

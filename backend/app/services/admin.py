@@ -27,6 +27,7 @@ from app.models.enums import (
 from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
+from app.services.email import send_brand_invite_email
 
 _STAGE_ORDER = [
     BrandTrackerStage.REQUEST_RECEIVED.value,
@@ -139,7 +140,7 @@ async def list_pending_brands(db: AsyncSession) -> list[dict[str, Any]]:
 
 
 async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
-    """Approve a pending brand: set brand.status=approved + approved_at=now (status-only)."""
+    """Approve a pending brand, create an invite token, and send the setup email."""
     brand = await db.get(Brand, brand_id)
     if brand is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
@@ -151,10 +152,20 @@ async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
             status_code=400,
         )
 
+    user = await db.get(User, brand.user_id)
+    if user is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand user not found.", status_code=404)
+
     now = datetime.now(timezone.utc)
     brand.status = BrandStatus.APPROVED.value
     brand.approved_at = now
     await db.flush()
+
+    # Generate invite token and send the setup email (Stage 7).
+    from app.services.brand_auth import create_brand_invite
+
+    token = await create_brand_invite(db, brand, user)
+    await send_brand_invite_email(brand.company_email, token, brand_name=brand.brand_name)
 
     return {"brand_id": str(brand.id), "status": brand.status}
 

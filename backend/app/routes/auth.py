@@ -28,13 +28,21 @@ from app.schemas.auth import (
     RefreshResponse,
     TokenResponse,
 )
+from app.schemas.onboarding import (
+    BrandLoginRequest,
+    BrandSetPasswordRequest,
+    ResendVerificationRequest,
+    VerifyEmailRequest,
+)
 from app.security import jwt
 from app.services.auth import (
     build_user_response,
     handle_instagram_callback,
     issue_token_pair,
 )
+from app.services.brand_auth import login_brand, set_brand_password
 from app.services.instagram import InstagramClient, get_instagram_client
+from app.services.onboarding import resend_verification_email, verify_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -241,3 +249,53 @@ async def dev_login(
     access, refresh = issue_token_pair(user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
+
+
+# ── Org onboarding (Stage 7) ────────────────────────────────────────────────
+
+
+@router.post("/verify-email", response_model=APIResponse)
+async def verify_email_endpoint(
+    payload: VerifyEmailRequest,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Phase 3: consume a one-time .edu verification token."""
+    result = await verify_email(db, payload.token)
+    return api_response(data=result)
+
+
+@router.post("/verify-email/resend", response_model=APIResponse)
+async def resend_verification_endpoint(
+    _payload: ResendVerificationRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Re-send the .edu verification email (rate-limited, auth required)."""
+    result = await resend_verification_email(db, user)
+    return api_response(data=result)
+
+
+# ── Brand auth (Stage 7) ────────────────────────────────────────────────────
+
+
+@router.post("/brand/set-password", response_model=APIResponse)
+async def brand_set_password(
+    payload: BrandSetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Consume a brand invite token and set the account password."""
+    user_resp = await set_brand_password(db, payload.token, payload.password)
+    return api_response(data=user_resp)
+
+
+@router.post("/brand/login", response_model=APIResponse)
+async def brand_login(
+    payload: BrandLoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Brand email + password login. Issues JWT tokens on success."""
+    user, user_resp = await login_brand(db, payload.email, payload.password)
+    access, refresh = issue_token_pair(user)
+    _set_refresh_cookie(response, refresh)
+    return api_response(data=TokenResponse(access_token=access, user=user_resp))

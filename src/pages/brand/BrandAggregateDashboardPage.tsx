@@ -32,7 +32,7 @@ import {
   useBrandDrops,
   useEngagementSeries,
 } from "../../api/hooks/useBrandHooks";
-import type { BrandAggregate, BrandDropItem, EngagementPoint } from "../../api/hooks/useBrandHooks";
+import type { BrandAggregate, EngagementPoint } from "../../api/hooks/useBrandHooks";
 
 type DashboardLocationState = { openPlanCampaign?: boolean };
 
