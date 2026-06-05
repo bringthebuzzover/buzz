@@ -50,8 +50,11 @@ export default function InstagramCallbackPage() {
           return;
         }
         const body = await resp.json();
-        if (body.data?.accessToken) {
-          setAccessToken(body.data.accessToken);
+        // Backend TokenResponse serializes snake_case (access_token); accept
+        // camelCase too in case the contract is camelized later.
+        const token = body.data?.access_token ?? body.data?.accessToken;
+        if (token) {
+          setAccessToken(token);
         }
         // Redirect to home — AuthProvider will re-fetch /me on next mount
         window.location.href = "/";

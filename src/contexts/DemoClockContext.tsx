@@ -149,9 +149,9 @@ export function DemoClockProvider({ children }: { children: ReactNode }) {
 }
 
 export function useDemoNow(): number {
+  // No provider in the `USE_API` tree (index.tsx omits the demo clock). Card
+  // components (DropFeedCard, useCountdown) call this for "now"; fall back to
+  // real wall-clock time so they render with live countdowns in the API path.
   const ctx = useContext(DemoClockContext);
-  if (!ctx) {
-    throw new Error("useDemoNow must be used within DemoClockProvider");
-  }
-  return ctx.now;
+  return ctx ? ctx.now : Date.now();
 }
