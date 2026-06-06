@@ -7,9 +7,11 @@ and read `data`/`meta` for success (`architecture.md` §5.2).
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
+
+T = TypeVar("T")
 
 
 class ErrorDetail(BaseModel):
@@ -21,9 +23,26 @@ class ErrorDetail(BaseModel):
 
 
 class APIResponse(BaseModel):
-    """Top-level envelope returned by every endpoint."""
+    """Top-level envelope returned by every endpoint (untyped ``data``)."""
 
     data: Any = None
+    meta: dict[str, Any] | None = None
+    error: ErrorDetail | None = None
+
+
+class DataResponse(BaseModel, Generic[T]):
+    """Typed variant of the ``{ data, meta, error }`` envelope.
+
+    Identical wire shape to :class:`APIResponse`, but generic in the ``data``
+    payload so a route can declare ``response_model=DataResponse[FooResponse]``
+    and have the OpenAPI spec — and therefore the generated frontend types —
+    describe ``data`` precisely. New/changed endpoints should adopt this; the
+    untyped :class:`APIResponse` stays valid for not-yet-migrated routes. The
+    handler can keep returning :func:`api_response`; FastAPI serializes it
+    through ``response_model``.
+    """
+
+    data: T | None = None
     meta: dict[str, Any] | None = None
     error: ErrorDetail | None = None
 

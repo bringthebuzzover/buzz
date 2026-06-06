@@ -21,7 +21,7 @@ from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.organization import Organization
-from app.response import APIResponse, api_response
+from app.response import APIResponse, DataResponse, api_response
 from app.schemas.brands import (
     BrandAggregateResponse,
     BrandApplyRequest,
@@ -75,7 +75,11 @@ async def brand_apply(
     return api_response(data=camelize(result))
 
 
-@router.get("/me", response_model=APIResponse)
+# Pattern to copy: declare the typed envelope (response_model=DataResponse[T]) so
+# the OpenAPI spec describes `data` precisely and the generated frontend types
+# catch drift. New/changed endpoints should adopt this; the handler still returns
+# api_response() — FastAPI serializes it through response_model.
+@router.get("/me", response_model=DataResponse[BrandProfileResponse])
 async def get_brand_profile(
     user: CurrentBrand,
     db: AsyncSession = Depends(get_db),

@@ -28,6 +28,14 @@ jobs:
       - name: Type-check
         run: npx tsc --noEmit
 
+      - name: API types in sync with spec
+        # Regenerate TS types from the committed openapi.json; fail if they're
+        # stale (spec changed but `npm run gen:api` wasn't run). The backend job
+        # separately verifies the spec itself matches the route code.
+        run: |
+          npm run gen:api
+          git diff --exit-code src/api/generated/schema.ts
+
       - name: Build
         run: npm run build
         env:
@@ -84,6 +92,14 @@ jobs:
 
       - name: Type-check (mypy)
         run: poetry run mypy app/
+
+      - name: OpenAPI spec in sync with routes
+        # Re-dump the spec from the app and fail if the committed openapi.json is
+        # stale (a request/response schema changed but `dump_openapi.py` wasn't
+        # run). Keeps the backend the single source of truth for the contract.
+        run: |
+          poetry run python scripts/dump_openapi.py
+          git -C .. diff --exit-code -- openapi.json
 
       - name: Apply migrations (alembic)
         run: poetry run alembic upgrade head
