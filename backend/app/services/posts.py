@@ -139,7 +139,12 @@ async def link_post(
     ``POST_ALREADY_LINKED`` (409) when linked to a different campaign.
     """
 
-    application = await resolve_owned_application(db, org_user, application_id)
+    # Only an accepted org links posts to a campaign; an applied-but-not-yet
+    # accepted org gets 404 (and so can't create links the brand aggregate —
+    # which counts accepted-only — would never see, keeping the two consistent).
+    application = await resolve_owned_application(
+        db, org_user, application_id, require_accepted=True
+    )
     post = await db.get(SocialPost, post_id)
     if post is None or post.org_id != application.org_id:
         raise BuzzAPIException(errors.NOT_FOUND, "Post not found.", status_code=404)
@@ -294,7 +299,10 @@ async def accept_suggestion(
 ) -> PostResponse:
     """Confirm a suggestion + insert the link in one transaction (§7.4.1)."""
 
-    application = await resolve_owned_application(db, org_user, application_id)
+    # Same accepted-only rule as manual linking (see link_post).
+    application = await resolve_owned_application(
+        db, org_user, application_id, require_accepted=True
+    )
     suggestion = await db.scalar(
         select(PostCampaignSuggestion).where(
             PostCampaignSuggestion.application_id == application.id,

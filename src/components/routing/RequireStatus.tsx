@@ -23,6 +23,10 @@ export default function RequireStatus({ children }: { children: ReactNode }) {
       case "pending_approval":
         return <Navigate to="/onboarding/pending-approval" replace />;
       case "denied":
+      case "suspended":
+        // Both are terminal "no portal access" states; the denied page renders
+        // status-appropriate copy. Without this, suspended fell through to the
+        // portal shell (the API still 403s, but the UX was wrong).
         return <Navigate to="/onboarding/denied" replace />;
       case "active":
         break;

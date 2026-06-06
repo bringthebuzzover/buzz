@@ -281,11 +281,18 @@ async def resend_verification_endpoint(
 @router.post("/brand/set-password", response_model=APIResponse)
 async def brand_set_password(
     payload: BrandSetPasswordRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Consume a brand invite token and set the account password."""
-    user_resp = await set_brand_password(db, payload.token, payload.password)
-    return api_response(data=user_resp)
+    """Consume a brand invite token, set the password, and start a session.
+
+    Returns the same ``TokenResponse`` as login so the SPA lands the brand in
+    their portal without a separate login step.
+    """
+    user, user_resp = await set_brand_password(db, payload.token, payload.password)
+    access, refresh = issue_token_pair(user)
+    _set_refresh_cookie(response, refresh)
+    return api_response(data=TokenResponse(access_token=access, user=user_resp))
 
 
 @router.post("/brand/login", response_model=APIResponse)

@@ -67,11 +67,36 @@ export default function AppRoot(): ReactElement {
         <Route path="brand/setup" element={<BrandSetupPage />} />
         <Route path="brand/apply" element={<BrandApplyPage />} />
 
-        {/* Onboarding pages (API path only) */}
-        <Route path="onboarding/profile" element={<OrgProfilePage />} />
+        {/* Onboarding pages (API path only). These require an authenticated
+            session (architecture §6.4) — RequireAuth standardizes the redirect
+            to /login; each page still self-routes on its specific status.
+            verify-email is intentionally public: the email link is opened in a
+            fresh tab/browser with no session and carries its own ?token. */}
+        <Route
+          path="onboarding/profile"
+          element={
+            <RequireAuth>
+              <OrgProfilePage />
+            </RequireAuth>
+          }
+        />
         <Route path="onboarding/verify-email" element={<VerifyEmailPage />} />
-        <Route path="onboarding/pending-approval" element={<PendingApprovalPage />} />
-        <Route path="onboarding/denied" element={<DeniedPage />} />
+        <Route
+          path="onboarding/pending-approval"
+          element={
+            <RequireAuth>
+              <PendingApprovalPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="onboarding/denied"
+          element={
+            <RequireAuth>
+              <DeniedPage />
+            </RequireAuth>
+          }
+        />
 
         {/* Org portal */}
         <Route

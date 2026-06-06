@@ -302,7 +302,10 @@ async def test_brand_set_password_success(app_client: AsyncClient, db_session) -
     )
     assert resp.status_code == 200, resp.text
     data = resp.json()["data"]
-    assert data["status"] == OrgUserStatus.ACTIVE.value
+    # set-password now starts a session (TokenResponse), no separate login.
+    assert data["access_token"]
+    assert data["user"]["status"] == OrgUserStatus.ACTIVE.value
+    assert settings.REFRESH_COOKIE_NAME in resp.headers.get("set-cookie", "")
 
     user = await db_session.get(User, brand.user_id)
     assert user.password_hash is not None

@@ -172,6 +172,23 @@ async def test_link_denied_campaign_404(app_client: AsyncClient, db_session) -> 
     assert resp.status_code == 404
 
 
+async def test_link_applied_campaign_404(app_client: AsyncClient, db_session) -> None:
+    """Linking requires an ACCEPTED application — a still-applied org gets 404.
+
+    This keeps post links accepted-only so the brand aggregate (accepted-only)
+    and the org's view stay consistent (no undercount divergence)."""
+    user, org, _, _, headers = await _campaign_ctx(db_session)
+    drop = await make_drop(db_session, await make_brand(db_session), title="Applied")
+    applied = await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
+    post = await make_social_post(db_session, org)
+    resp = await app_client.post(
+        f"/api/campaigns/{applied.id}/link-post",
+        headers=headers,
+        json={"postId": str(post.id)},
+    )
+    assert resp.status_code == 404
+
+
 async def test_unlink_rearms_confirmed_suggestion(app_client: AsyncClient, db_session) -> None:
     _, org, _, application, headers = await _campaign_ctx(db_session)
     post = await make_social_post(db_session, org)

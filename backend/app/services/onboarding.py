@@ -123,8 +123,12 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     """
     now = _now()
 
+    # FOR UPDATE locks the token row so two concurrent redemptions (double-click)
+    # serialize: the second waits, then sees used_at already set and is rejected.
     evt = await db.scalar(
-        select(EmailVerificationToken).where(EmailVerificationToken.token == token)
+        select(EmailVerificationToken)
+        .where(EmailVerificationToken.token == token)
+        .with_for_update()
     )
     if evt is None:
         raise BuzzAPIException(

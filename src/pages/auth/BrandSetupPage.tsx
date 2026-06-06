@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useBrandSetPassword } from "../../api/hooks/useOnboardingHooks";
+import { useAuth } from "../../contexts/AuthContext";
 import { ApiError } from "../../api/client";
 
 const inputClass =
@@ -17,6 +18,7 @@ export default function BrandSetupPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const setPassword = useBrandSetPassword();
 
   const [password, setPasswordValue] = useState("");
@@ -40,7 +42,9 @@ export default function BrandSetupPage() {
     }
     try {
       await setPassword.mutateAsync({ token, password });
-      navigate("/brand/login", { replace: true });
+      // Set-password issued a session; sync auth state and land in the portal.
+      await refreshUser();
+      navigate("/brand/dashboard", { replace: true });
     } catch (err) {
       setError(
         err instanceof ApiError

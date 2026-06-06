@@ -56,8 +56,11 @@ export default function InstagramCallbackPage() {
         if (token) {
           setAccessToken(token);
         }
-        // Redirect to home — AuthProvider will re-fetch /me on next mount
-        window.location.href = "/";
+        // Land on the org portal, not the public home: a full reload re-runs the
+        // AuthProvider bootstrap, and the guard chain (RequireAuth → RequireStatus
+        // → RequireRole) forwards a pending org to the right onboarding step and
+        // an active org to the feed — a status-aware landing per architecture §3.4.
+        window.location.href = "/org/browse";
       } catch {
         setState({
           kind: "error",
