@@ -22,7 +22,18 @@ export default function PendingApprovalPage() {
     return () => window.clearInterval(id);
   }, [user, refreshUser]);
 
-  if (!user || user.status !== "pending_approval") {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  if (user.status !== "pending_approval") {
+    // Poll resolved: send the org to the right place rather than the public
+    // landing. Active → their portal; denied → the denial page.
+    if (user.status === "active") {
+      return <Navigate to="/org/browse" replace />;
+    }
+    if (user.status === "denied") {
+      return <Navigate to="/onboarding/denied" replace />;
+    }
     return <Navigate to="/" replace />;
   }
 

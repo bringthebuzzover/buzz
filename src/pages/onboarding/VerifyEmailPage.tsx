@@ -36,11 +36,16 @@ export default function VerifyEmailPage() {
   return <AwaitVerification />;
 }
 
+type VerifyState =
+  | { kind: "verifying" }
+  | { kind: "success"; authenticated: boolean }
+  | { kind: "error"; message: string };
+
 function VerifyWithToken({ token }: { token: string }) {
   const { refreshUser } = useAuth();
   const navigate = useNavigate();
   const verify = useVerifyEmail();
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<VerifyState>({ kind: "verifying" });
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -49,43 +54,77 @@ function VerifyWithToken({ token }: { token: string }) {
     (async () => {
       try {
         await verify.mutateAsync(token);
-        await refreshUser();
-        navigate("/onboarding/pending-approval", { replace: true });
+        // The link is often opened in a fresh tab/browser with no session, so
+        // refreshUser() may return null. Show a self-contained success screen
+        // either way rather than auto-navigating to a guarded page (which would
+        // bounce an unauthenticated visitor to "/").
+        const me = await refreshUser();
+        setState({ kind: "success", authenticated: !!me });
       } catch (err) {
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : "Could not verify your email. The link may have expired.",
-        );
+        setState({
+          kind: "error",
+          message:
+            err instanceof ApiError
+              ? err.message
+              : "Could not verify your email. The link may have expired.",
+        });
       }
     })();
-  }, [token, verify, refreshUser, navigate]);
+  }, [token, verify, refreshUser]);
 
+  if (state.kind === "verifying") {
+    return (
+      <div className="mx-auto max-w-md px-8 py-24 text-center">
+        <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+          Verifying Your <span className="text-buzz-coral">Email</span>…
+        </h1>
+        <p className="text-sm font-medium text-buzz-inkMuted">
+          One moment while we confirm your address.
+        </p>
+      </div>
+    );
+  }
+
+  if (state.kind === "error") {
+    return (
+      <div className="mx-auto max-w-md px-8 py-24 text-center">
+        <h1 className="mb-4 text-3xl font-bold text-buzz-coral">
+          Verification Failed
+        </h1>
+        <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
+          {state.message}
+        </p>
+        <button
+          onClick={() => navigate("/onboarding/verify-email", { replace: true })}
+          className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
+        >
+          Request a new link
+        </button>
+      </div>
+    );
+  }
+
+  // success
   return (
     <div className="mx-auto max-w-md px-8 py-24 text-center">
-      {error ? (
-        <>
-          <h1 className="mb-4 text-3xl font-bold text-buzz-coral">
-            Verification Failed
-          </h1>
-          <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{error}</p>
-          <button
-            onClick={() => navigate("/onboarding/verify-email", { replace: true })}
-            className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
-          >
-            Request a new link
-          </button>
-        </>
-      ) : (
-        <>
-          <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
-            Verifying Your <span className="text-buzz-coral">Email</span>…
-          </h1>
-          <p className="text-sm font-medium text-buzz-inkMuted">
-            One moment while we confirm your address.
-          </p>
-        </>
-      )}
+      <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+        Email <span className="text-buzz-coral">Verified</span>
+      </h1>
+      <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
+        Thanks! Your account is now pending admin approval. We'll let you in as
+        soon as a Buzz admin reviews it.
+      </p>
+      <button
+        onClick={() =>
+          navigate(
+            state.authenticated ? "/onboarding/pending-approval" : "/login",
+            { replace: true },
+          )
+        }
+        className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
+      >
+        Continue
+      </button>
     </div>
   );
 }

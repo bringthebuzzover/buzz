@@ -66,6 +66,42 @@ async def send_brand_invite_email(
     await _dispatch(to_email, subject, body)
 
 
+async def send_org_approved_email(to_email: str, *, org_name: str = "") -> None:
+    """Tell an org their account was approved and they can sign in."""
+    login_url = f"{settings.FRONTEND_URL}/login"
+    subject = "Your Buzz organization account is approved"
+    body = _org_approved_body(login_url, org_name)
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Org approved:                                  ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            f"║  URL: {login_url:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return
+
+    await _dispatch(to_email, subject, body)
+
+
+async def send_org_denied_email(to_email: str, *, org_name: str = "") -> None:
+    """Tell an org their application was not approved."""
+    subject = "Update on your Buzz application"
+    body = _org_denied_body(org_name)
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Org denied:                                    ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return
+
+    await _dispatch(to_email, subject, body)
+
+
 async def _dispatch(to_email: str, subject: str, body: str) -> None:
     """Dispatch through the configured email provider."""
     # Resend / SendGrid / SES integration goes here when needed.
@@ -88,4 +124,22 @@ def _brand_invite_body(setup_url: str, brand_name: str) -> str:
         f"Click the link below to set up your account password:\n\n"
         f"{setup_url}\n\n"
         "This link expires in 7 days."
+    )
+
+
+def _org_approved_body(login_url: str, org_name: str) -> str:
+    name = org_name or "your organization"
+    return (
+        f"Good news — {name} has been approved on Buzz!\n\n"
+        f"Sign in to start browsing drops:\n\n"
+        f"{login_url}"
+    )
+
+
+def _org_denied_body(org_name: str) -> str:
+    name = org_name or "your organization"
+    return (
+        f"Thanks for your interest in Buzz. After review, {name} was not "
+        "approved at this time. If you think this was a mistake, reply to this "
+        "email and our team will take another look."
     )
