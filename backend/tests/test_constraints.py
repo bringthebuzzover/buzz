@@ -174,6 +174,45 @@ async def test_notify_me_unique_org_drop(db_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
+async def test_drop_application_unique_active_blocks_duplicate(
+    db_session: AsyncSession,
+) -> None:
+    """At most one non-denied application per (drop, org) (partial unique index)."""
+
+    org, _, drop, _, _ = await _seed_org_brand_drop_post(db_session, "dupapp")
+    # The helper already added one ACCEPTED (non-denied) application.
+    db_session.add(
+        DropApplication(
+            drop_id=drop.id,
+            org_id=org.id,
+            decision=ApplicationDecision.APPLIED.value,
+        )
+    )
+    with pytest.raises(IntegrityError):
+        await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_drop_application_denied_coexists_with_active(
+    db_session: AsyncSession,
+) -> None:
+    """A denied application doesn't count toward the active-uniqueness rule, so
+    an org can re-apply after a denial (denied + non-denied rows coexist)."""
+
+    org, _, drop, _, _ = await _seed_org_brand_drop_post(db_session, "denyok")
+    # Helper added one ACCEPTED row; a DENIED row for the same (drop, org) is
+    # outside the partial index predicate and must NOT raise.
+    db_session.add(
+        DropApplication(
+            drop_id=drop.id,
+            org_id=org.id,
+            decision=ApplicationDecision.DENIED.value,
+        )
+    )
+    await db_session.flush()  # no IntegrityError
+
+
+@pytest.mark.asyncio
 async def test_suggestion_unique_post_application(db_session: AsyncSession) -> None:
     """``post_campaign_suggestions`` is idempotent on (post_id, application_id)."""
 

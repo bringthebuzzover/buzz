@@ -86,7 +86,7 @@ There is no `npm test` script configured; add one with `craco test` if you intro
 
 The repo is a monorepo: the React frontend lives at the root and the FastAPI backend lives under [`backend/`](backend/). It is what eventually replaces the demo's `localStorage` mock layer.
 
-Quickstart (assumes Python 3.12+, Poetry, and Homebrew `postgresql@14`):
+Quickstart (assumes Python 3.12+, Poetry, and Homebrew `postgresql@14`; CI runs Postgres 16, any 14–16 works):
 
 ```bash
 cd backend

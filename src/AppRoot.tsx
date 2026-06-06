@@ -42,11 +42,14 @@ function PortalGuard({
   if (!USE_API) {
     return <DemoOnly requiredDemoView={role}>{children}</DemoOnly>;
   }
+  // Order per architecture §5.4: Auth → Status → Role. Status gating takes
+  // precedence so an org mid-onboarding is sent to finish onboarding before a
+  // role mismatch is surfaced.
   return (
     <RequireAuth>
-      <RequireRole role={role}>
-        <RequireStatus>{children}</RequireStatus>
-      </RequireRole>
+      <RequireStatus>
+        <RequireRole role={role}>{children}</RequireRole>
+      </RequireStatus>
     </RequireAuth>
   );
 }

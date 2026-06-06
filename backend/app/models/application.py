@@ -19,6 +19,20 @@ from app.models.enums import ApplicationDecisionEnum
 
 class DropApplication(Base):
     __tablename__ = "drop_applications"
+    # At most one *active* (non-denied) application per (drop, org): the apply
+    # service rejects a duplicate non-denied row but a prior ``denied`` does not
+    # block re-application (so a plain UNIQUE(drop_id, org_id) would be wrong —
+    # it would forbid re-applying). A partial unique index makes that invariant
+    # a hard DB guarantee while still allowing denied + re-applied rows.
+    __table_args__ = (
+        sa.Index(
+            "uq_drop_application_active",
+            "drop_id",
+            "org_id",
+            unique=True,
+            postgresql_where=sa.text("decision <> 'denied'"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
     drop_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("drops.id"), nullable=False)

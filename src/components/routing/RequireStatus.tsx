@@ -2,7 +2,8 @@
  * RequireStatus — redirects org users to the correct onboarding page based on
  * their account status. Brand and admin users pass through.
  *
- * Must be nested inside RequireAuth + RequireRole.
+ * Nested inside RequireAuth and above RequireRole (architecture §5.4). It only
+ * acts on org users, so it doesn't depend on a role gate above it.
  */
 import { Navigate } from "react-router-dom";
 import type { ReactNode } from "react";

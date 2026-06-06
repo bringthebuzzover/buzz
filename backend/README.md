@@ -6,7 +6,7 @@ Python service that will replace the demo's `localStorage` mock layer with a rea
 
 - **Python** 3.12 or newer
 - **Poetry** 1.8+ for dependency management
-- **PostgreSQL** 14+ (the project assumes Homebrew `postgresql@14`)
+- **PostgreSQL** 14+ (local dev uses Homebrew `postgresql@14`; CI runs Postgres 16 — any 14–16 works)
 
 ## Setup
 
