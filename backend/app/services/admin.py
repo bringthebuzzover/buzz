@@ -27,7 +27,11 @@ from app.models.enums import (
 from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
-from app.services.email import send_brand_invite_email
+from app.services.email import (
+    send_brand_invite_email,
+    send_org_approved_email,
+    send_org_denied_email,
+)
 
 _STAGE_ORDER = [
     BrandTrackerStage.REQUEST_RECEIVED.value,
@@ -89,6 +93,8 @@ async def approve_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     org.approved_at = now
     await db.flush()
 
+    await send_org_approved_email(org.edu_email, org_name=org.org_name)
+
     return {"org_id": str(org.id), "status": user.status}
 
 
@@ -111,6 +117,8 @@ async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
 
     user.status = OrgUserStatus.DENIED.value
     await db.flush()
+
+    await send_org_denied_email(org.edu_email, org_name=org.org_name)
 
     return {"org_id": str(org.id), "status": user.status}
 

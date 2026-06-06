@@ -27,6 +27,8 @@ import {
   setDropReminderMinutes,
 } from "../../utils/notifyMe";
 import NotifyMeModal from "./modals/NotifyMeModal";
+import { USE_API } from "../../config/featureFlags";
+import { REMINDER_CHOICES, useDropNotify } from "../../api/hooks/useDropHooks";
 
 type DropFeedCardProps = {
   drop: DropCardData;
@@ -213,25 +215,34 @@ function FeedStatusChip({
   );
 }
 
+/** Notify-Me toggle: real backend write on the API path, localStorage in demo. */
 function UpcomingActions({ drop }: { drop: DropCardData }) {
-  const notified = useDropNotifiedFlag(drop.id);
-  const reminderMinutes = getDropReminderMinutes(drop.id);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  return USE_API ? (
+    <ApiUpcomingActions drop={drop} />
+  ) : (
+    <DemoUpcomingActions drop={drop} />
+  );
+}
 
-  const handleNotify = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleConfirmReminders = (selectedMinutes: number[]) => {
-    setDropReminderMinutes(drop.id, selectedMinutes);
-  };
-
+/** Presentational toggle shared by both paths. */
+function NotifyToggle({
+  notified,
+  reminderMinutes,
+  disabled,
+  onClick,
+}: {
+  notified: boolean;
+  reminderMinutes: number[];
+  disabled?: boolean;
+  onClick: () => void;
+}) {
   return (
-    <div className="space-y-3">
+    <>
       <button
         type="button"
-        onClick={handleNotify}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-buzz-coral bg-buzz-paper py-3 font-semibold text-buzz-coral shadow-sm transition hover:bg-buzz-cream"
+        onClick={onClick}
+        disabled={disabled}
+        className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-buzz-coral bg-buzz-paper py-3 font-semibold text-buzz-coral shadow-sm transition hover:bg-buzz-cream disabled:cursor-not-allowed disabled:opacity-60"
       >
         {notified ? <BellRing size={16} /> : <Bell size={16} />}
         <span>{notified ? "Notifying you" : "Notify Me"}</span>
@@ -247,6 +258,22 @@ function UpcomingActions({ drop }: { drop: DropCardData }) {
           before
         </p>
       ) : null}
+    </>
+  );
+}
+
+function DemoUpcomingActions({ drop }: { drop: DropCardData }) {
+  const notified = useDropNotifiedFlag(drop.id);
+  const reminderMinutes = getDropReminderMinutes(drop.id);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  return (
+    <div className="space-y-3">
+      <NotifyToggle
+        notified={notified}
+        reminderMinutes={reminderMinutes}
+        onClick={() => setIsModalOpen(true)}
+      />
       {isModalOpen ? (
         <NotifyMeModal
           dropTitle={drop.title}
@@ -254,7 +281,51 @@ function UpcomingActions({ drop }: { drop: DropCardData }) {
             reminderMinutes.length > 0 ? reminderMinutes : notified ? [15] : []
           }
           onClose={() => setIsModalOpen(false)}
-          onConfirm={handleConfirmReminders}
+          onConfirm={(selected) => setDropReminderMinutes(drop.id, selected)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * API path: the toggle performs a real backend write (POST/DELETE
+ * /api/drops/{id}/notify). The backend stores a single lead-time, so a
+ * multi-select in the modal collapses to the soonest valid choice. Initial
+ * state is local (the feed doesn't yet return existing notify rows).
+ */
+function ApiUpcomingActions({ drop }: { drop: DropCardData }) {
+  const notify = useDropNotify(drop.id);
+  const [reminderMinutes, setReminderMinutes] = useState<number[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const notified = reminderMinutes.length > 0;
+
+  const handleConfirm = (selected: number[]) => {
+    const valid = selected.filter((m) =>
+      (REMINDER_CHOICES as readonly number[]).includes(m),
+    );
+    if (valid.length === 0) {
+      notify.mutate(null, { onSuccess: () => setReminderMinutes([]) });
+      return;
+    }
+    const chosen = Math.min(...valid);
+    notify.mutate(chosen, { onSuccess: () => setReminderMinutes([chosen]) });
+  };
+
+  return (
+    <div className="space-y-3">
+      <NotifyToggle
+        notified={notified}
+        reminderMinutes={reminderMinutes}
+        disabled={notify.isPending}
+        onClick={() => setIsModalOpen(true)}
+      />
+      {isModalOpen ? (
+        <NotifyMeModal
+          dropTitle={drop.title}
+          initialSelection={reminderMinutes}
+          onClose={() => setIsModalOpen(false)}
+          onConfirm={handleConfirm}
         />
       ) : null}
     </div>

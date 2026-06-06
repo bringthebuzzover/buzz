@@ -92,3 +92,29 @@ export function useApplyToDrop(dropId: string) {
     },
   });
 }
+
+/** Allowed reminder lead times (mirrors backend `_REMINDER_CHOICES`). */
+export const REMINDER_CHOICES = [5, 15, 60] as const;
+
+/**
+ * Set/clear a "Notify Me" reminder for an upcoming drop via the real backend
+ * (`POST`/`DELETE /api/drops/{id}/notify`). The backend stores a single
+ * reminder lead-time per (org, drop); callers pass one of `REMINDER_CHOICES`,
+ * or `null` to clear. (The feed doesn't yet return existing notify state, so
+ * the card seeds its toggle from local state — the write itself is real.)
+ */
+export function useDropNotify(dropId: string) {
+  return useMutation({
+    mutationFn: async (reminderMinutes: number | null) => {
+      if (reminderMinutes === null) {
+        await apiFetch(`/api/drops/${dropId}/notify`, { method: "DELETE" });
+        return;
+      }
+      await apiFetch(`/api/drops/${dropId}/notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reminderMinutes }),
+      });
+    },
+  });
+}
