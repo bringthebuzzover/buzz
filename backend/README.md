@@ -150,7 +150,7 @@ print(jwt.create_access_token('00000000-0000-0000-0000-000000000002','org','acti
 curl http://localhost:8000/api/auth/me -H "Authorization: Bearer $TOK"
 ```
 
-The brand password/invite path is deferred; the JWT/deps/refresh core is identity-agnostic so it slots in later. See [`../private/guides/stage-03-auth-core.md`](../private/guides/stage-03-auth-core.md).
+The brand password/invite path landed in Stage 7 (bcrypt password hashing, invite tokens, `POST /api/auth/brand/set-password` + `/brand/login`, public self-registration behind `BRAND_SELF_REGISTRATION_ENABLED`); the JWT/deps/refresh core stayed identity-agnostic so it slotted in cleanly. See [`../private/guides/stage-03-auth-core.md`](../private/guides/stage-03-auth-core.md).
 
 ## Run the dev server
 
