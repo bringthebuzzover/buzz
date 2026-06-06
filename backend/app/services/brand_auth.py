@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -30,6 +31,63 @@ _DUMMY_HASH = "$2b$12$BjsWQMEoE/Jrr8bmN2pUfO0P1IFZpAURUcSq7qQGTYUimfCYgUX6S"
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+async def apply_brand(
+    db: AsyncSession,
+    *,
+    brand_name: str,
+    company_email: str,
+    instagram_handle: str | None,
+    intent_message: str | None,
+) -> dict[str, str]:
+    """Public brand self-registration → creates a User + pending_review Brand.
+
+    Gated by ``settings.BRAND_SELF_REGISTRATION_ENABLED`` at the route layer.
+    The brand user is non-active (``pending_approval``) and has no password
+    until an admin approves and the invite/set-password flow runs.
+    """
+    email = company_email.strip().lower()
+
+    # One brand per company email (case-insensitive). No existence leak beyond
+    # the typed code — the email owner already knows they registered.
+    existing = await db.scalar(select(Brand).where(func.lower(Brand.company_email) == email))
+    if existing is not None:
+        raise BuzzAPIException(
+            errors.BRAND_EMAIL_TAKEN,
+            "A brand account already exists for this email.",
+            status_code=409,
+        )
+
+    user = User(
+        id=uuid.uuid4(),
+        portal_role="brand",
+        status=OrgUserStatus.PENDING_APPROVAL.value,
+    )
+    db.add(user)
+    await db.flush()
+
+    brand = Brand(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        brand_name=brand_name.strip(),
+        company_email=email,
+        instagram_handle=(instagram_handle or None),
+        intent_message=(intent_message or None),
+        status=BrandStatus.PENDING_REVIEW.value,
+    )
+    db.add(brand)
+
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        raise BuzzAPIException(
+            errors.BRAND_EMAIL_TAKEN,
+            "A brand account already exists for this email.",
+            status_code=409,
+        ) from exc
+
+    return {"brand_id": str(brand.id), "status": brand.status}
 
 
 async def create_brand_invite(db: AsyncSession, brand: Brand, user: User) -> str:

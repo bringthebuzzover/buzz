@@ -82,6 +82,14 @@ async def test_refresh_suspended_user_rejected(app_client: AsyncClient, db_sessi
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"
 
 
+async def test_refresh_denied_user_rejected(app_client: AsyncClient, db_session) -> None:
+    user = await persist(db_session, make_user(status=OrgUserStatus.DENIED))
+    refresh = jwt.create_refresh_token(user.id)
+    resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: refresh})
+    assert resp.status_code == 401
+    assert resp.json()["error"]["code"] == "UNAUTHORIZED"
+
+
 async def test_refresh_onboarding_user_allowed(app_client: AsyncClient, db_session) -> None:
     # Non-active onboarding users MUST still be able to refresh.
     user = await persist(db_session, make_user(status=OrgUserStatus.PENDING_ORG_PROFILE))

@@ -8,6 +8,7 @@ from __future__ import annotations
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -32,7 +33,7 @@ async def submit_org_onboarding(
     db: AsyncSession,
     user: User,
     payload: OrgOnboardingRequest,
-) -> dict:
+) -> dict[str, Any]:
     """Phase 2: create org profile, advance to email verification.
 
     Guards:
@@ -115,7 +116,7 @@ async def submit_org_onboarding(
     }
 
 
-async def verify_email(db: AsyncSession, token: str) -> dict:
+async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     """Phase 3: verify .edu email with a one-time token.
 
     On success: sets user.status=pending_approval, marks token used.
@@ -167,7 +168,7 @@ async def verify_email(db: AsyncSession, token: str) -> dict:
     return {"status": user.status}
 
 
-async def resend_verification_email(db: AsyncSession, user: User) -> dict:
+async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, Any]:
     """Re-send the verification email (max 3 active tokens at a time)."""
     if user.status != OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
         raise BuzzAPIException(

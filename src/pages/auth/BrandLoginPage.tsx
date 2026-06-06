@@ -5,7 +5,7 @@
  * user so the route guards forward to the brand dashboard.
  */
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useBrandLogin } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
@@ -89,6 +89,13 @@ export default function BrandLoginPage() {
         >
           {brandLogin.isPending ? "Signing in…" : "Sign in"}
         </button>
+
+        <p className="text-center text-xs text-buzz-inkMuted">
+          New to Buzz?{" "}
+          <Link to="/brand/apply" className="font-bold text-buzz-coral hover:underline">
+            Apply as a brand
+          </Link>
+        </p>
       </form>
     </div>
   );

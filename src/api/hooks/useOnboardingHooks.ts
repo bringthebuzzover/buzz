@@ -5,7 +5,7 @@
  * payloads — `UserResponse` / `TokenResponse` and small dicts — not the
  * camelCase brand/org models. The hooks here read snake_case fields directly.
  */
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../client";
 import { setAccessToken } from "../auth";
 
@@ -99,6 +99,44 @@ export function useBrandSetPassword() {
       );
       return data;
     },
+  });
+}
+
+export type BrandApplyInput = {
+  brandName: string;
+  companyEmail: string;
+  instagramHandle?: string;
+  intentMessage?: string;
+};
+
+/** Public brand self-registration (→ pending_review). No auth required. */
+export function useBrandApply() {
+  return useMutation({
+    mutationFn: async (input: BrandApplyInput) => {
+      const { data } = await apiFetch<{ brand_id: string; status: string }>(
+        "/api/brands/apply",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        },
+      );
+      return data;
+    },
+  });
+}
+
+/** Public feature flags (whether brand self-registration is enabled). */
+export function usePublicConfig() {
+  return useQuery({
+    queryKey: ["public-config"],
+    queryFn: async () => {
+      const { data } = await apiFetch<{ brandSelfRegistrationEnabled: boolean }>(
+        "/api/config",
+      );
+      return data;
+    },
+    staleTime: 5 * 60_000,
   });
 }
 

@@ -14,6 +14,30 @@ from pydantic import field_serializer, field_validator
 from app.schemas.common import CamelModel, to_epoch_ms
 
 
+class BrandApplyRequest(CamelModel):
+    """Public brand self-registration body for ``POST /api/brands/apply``."""
+
+    brand_name: str
+    company_email: str
+    instagram_handle: str | None = None
+    intent_message: str | None = None
+
+    @field_validator("company_email")
+    @classmethod
+    def _valid_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        if "@" not in v or "." not in v.split("@")[-1] or len(v) > 320:
+            raise ValueError("Invalid email address")
+        return v
+
+    @field_validator("brand_name")
+    @classmethod
+    def _non_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Must not be empty")
+        return v.strip()
+
+
 class BrandProfileResponse(CamelModel):
     """Brand profile returned by ``GET /api/brands/me`` (architecture §5.1)."""
 
