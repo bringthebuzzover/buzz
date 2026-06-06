@@ -179,7 +179,18 @@ function ApiRequestDrop() {
     );
   };
 
-  return <RequestForm onSubmit={handleSubmit} submitting={mutation.isPending} />;
+  return (
+    <>
+      {mutation.isError ? (
+        <div className="mx-auto mb-4 max-w-2xl rounded-lg bg-red-50 p-3 text-center text-sm font-medium text-red-700">
+          {mutation.error instanceof Error
+            ? mutation.error.message
+            : "Couldn’t create your drop. Please try again."}
+        </div>
+      ) : null}
+      <RequestForm onSubmit={handleSubmit} submitting={mutation.isPending} />
+    </>
+  );
 }
 
 export default function BrandRequestDropPage() {

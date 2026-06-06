@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/brands/{brand_id}/deny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deny Brand Endpoint */
+        post: operations["deny_brand_endpoint_api_admin_brands__brand_id__deny_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/drops/{drop_id}/reopen": {
         parameters: {
             query?: never;
@@ -1176,6 +1193,39 @@ export interface operations {
         };
     };
     approve_brand_endpoint_api_admin_brands__brand_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                brand_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    deny_brand_endpoint_api_admin_brands__brand_id__deny_post: {
         parameters: {
             query?: never;
             header?: {

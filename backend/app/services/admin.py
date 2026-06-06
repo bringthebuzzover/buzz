@@ -28,6 +28,7 @@ from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.services.email import (
+    send_brand_denied_email,
     send_brand_invite_email,
     send_org_approved_email,
     send_org_denied_email,
@@ -174,6 +175,27 @@ async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
 
     token = await create_brand_invite(db, brand, user)
     await send_brand_invite_email(brand.company_email, token, brand_name=brand.brand_name)
+
+    return {"brand_id": str(brand.id), "status": brand.status}
+
+
+async def deny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
+    """Deny a pending brand: set brand.status=denied + email the brand."""
+    brand = await db.get(Brand, brand_id)
+    if brand is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
+
+    if brand.status != BrandStatus.PENDING_REVIEW.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Brand is not in a pending-review state.",
+            status_code=400,
+        )
+
+    brand.status = BrandStatus.DENIED.value
+    await db.flush()
+
+    await send_brand_denied_email(brand.company_email, brand_name=brand.brand_name)
 
     return {"brand_id": str(brand.id), "status": brand.status}
 

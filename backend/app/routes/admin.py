@@ -20,6 +20,7 @@ from app.services.admin import (
     advance_tracker,
     approve_brand,
     approve_org,
+    deny_brand,
     deny_org,
     list_pending_brands,
     list_pending_orgs,
@@ -74,6 +75,16 @@ async def approve_brand_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await approve_brand(db, brand_id)
+    return api_response(data=camelize(result))
+
+
+@router.post("/brands/{brand_id}/deny", response_model=APIResponse)
+async def deny_brand_endpoint(
+    brand_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await deny_brand(db, brand_id)
     return api_response(data=camelize(result))
 
 

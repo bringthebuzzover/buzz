@@ -73,6 +73,7 @@ export type CampaignItem = {
 
 export type CampaignDetail = CampaignItem & {
   orgId: string;
+  description: string | null;
   applyOpenAt: number;
   applyCloseAt: number;
   capacityTotal: number;

@@ -23,7 +23,9 @@ export function pathForUser(user: AuthUser | null): string {
       case "active":
         return "/org/browse";
       default:
-        return "/";
+        // Unknown/unexpected status — send to login rather than the public home
+        // so the user re-authenticates and re-derives their state.
+        return "/login";
     }
   }
 

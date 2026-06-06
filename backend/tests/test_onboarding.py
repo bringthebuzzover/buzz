@@ -305,6 +305,26 @@ async def test_approve_brand_issues_invite(app_client: AsyncClient, db_session) 
     assert invite.used_at is None
 
 
+async def test_deny_brand_sets_denied(app_client: AsyncClient, db_session) -> None:
+    brand = await make_brand(db_session, brand_name="Acme")
+    brand.status = BrandStatus.PENDING_REVIEW.value
+    await db_session.flush()
+
+    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
+    resp = await app_client.post(
+        f"/api/admin/brands/{brand.id}/deny",
+        headers={"Authorization": f"Bearer {mint_access_token(admin)}"},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["data"]["status"] == BrandStatus.DENIED.value
+
+    # No invite token issued on denial.
+    invite = await db_session.scalar(
+        select(BrandInviteToken).where(BrandInviteToken.brand_id == brand.id)
+    )
+    assert invite is None
+
+
 # --- Brand auth: set-password -----------------------------------------------
 
 

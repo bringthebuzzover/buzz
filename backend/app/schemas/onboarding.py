@@ -30,11 +30,16 @@ class OrgOnboardingRequest(CamelModel):
     @field_validator("edu_email")
     @classmethod
     def _validate_edu(cls, v: str) -> str:
-        if "@" not in v or len(v) > 320:
+        v = v.strip().lower()
+        if len(v) > 320 or v.count("@") != 1:
             raise ValueError("Invalid email address")
-        if not v.strip().lower().endswith(".edu"):
-            raise ValueError("Must be a .edu email address")
-        return v.strip().lower()
+        local, _, domain = v.partition("@")
+        # Validate the *domain* ends in ".edu" (not the whole string) and has a
+        # real label before it — so "x@uni.edu" passes but "a@.edu" or
+        # "a@b@c.edu" (caught by the single-@ check above) do not.
+        if not local or not domain.endswith(".edu") or len(domain) <= len(".edu"):
+            raise ValueError("Must be a valid .edu email address")
+        return v
 
     @field_validator("org_name", "university", "instagram_handle")
     @classmethod

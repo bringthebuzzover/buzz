@@ -258,9 +258,10 @@ function ApiApplyForm({ dropId, onDone }: { dropId: string; onDone: () => void }
   const [pitch, setPitch] = useState("");
 
   const handleSubmit = () => {
+    // Only dismiss on success — on failure keep the form (and the typed pitch)
+    // open so the inline error shows and the user can retry.
     mutation.mutate(pitch || undefined, {
       onSuccess: () => onDone(),
-      onError: () => onDone(),
     });
   };
 

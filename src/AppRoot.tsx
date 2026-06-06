@@ -2,8 +2,8 @@
  * Top-level routes: `SiteLayout` for marketing shell; `/waitlist` standalone.
  *
  * Stage 6 (strangler): when USE_API is true, portal routes use the real auth guards
- * (RequireAuth → RequireRole → RequireStatus). When false, the demo DemoOnly guards
- * are unchanged.
+ * (RequireAuth → RequireStatus → RequireRole, architecture §5.4). When false, the
+ * demo DemoOnly guards are unchanged.
  */
 import type { ReactElement } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
