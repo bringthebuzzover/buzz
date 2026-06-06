@@ -156,9 +156,10 @@ function ApiDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   const [planCampaignOpen, setPlanCampaignOpen] = useState(false);
-  const { data: aggregate, isLoading: aggLoading } = useBrandAggregate();
-  const { data: drops, isLoading: dropsLoading } = useBrandDrops();
-  const { data: series, isLoading: seriesLoading } = useEngagementSeries();
+  const { data: aggregate, isLoading: aggLoading, isError: aggError } = useBrandAggregate();
+  const { data: drops, isLoading: dropsLoading, isError: dropsError } = useBrandDrops();
+  const { data: series, isLoading: seriesLoading, isError: seriesError } =
+    useEngagementSeries();
 
   useEffect(() => {
     const st = location.state as DashboardLocationState | null;
@@ -169,6 +170,7 @@ function ApiDashboard() {
   }, [location.pathname, location.state, navigate]);
 
   const isLoading = aggLoading || dropsLoading || seriesLoading;
+  const isError = aggError || dropsError || seriesError;
 
   if (isLoading) {
     return (
@@ -176,6 +178,17 @@ function ApiDashboard() {
         <DashboardHeader onPlanCampaign={() => {}} />
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
           Loading dashboard…
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className={PAGE_SHELL}>
+        <DashboardHeader onPlanCampaign={() => {}} />
+        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-coral">
+          Couldn’t load your dashboard. Please try again.
         </div>
       </div>
     );

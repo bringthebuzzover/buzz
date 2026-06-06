@@ -164,6 +164,7 @@ async def get_my_campaign(
         applied_at=application.applied_at,
         decision_at=application.decision_at,
         title=drop.title,
+        description=drop.description,
         brand_name=drop.brand_name,
         image=drop.image,
         brand_tracker_stage=drop.brand_tracker_stage,

@@ -899,6 +899,65 @@
         ]
       }
     },
+    "/api/admin/brands/{brand_id}/deny": {
+      "post": {
+        "operationId": "deny_brand_endpoint_api_admin_brands__brand_id__deny_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "brand_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Brand Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Deny Brand Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/drops/{drop_id}/reopen": {
       "post": {
         "operationId": "reopen_drop_endpoint_api_admin_drops__drop_id__reopen_post",

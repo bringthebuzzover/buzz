@@ -9,6 +9,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 
@@ -148,10 +149,48 @@ export function DemoClockProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// --- Wall-clock store (API path) ---------------------------------------------
+//
+// When no DemoClockProvider is mounted (the USE_API tree), `useDemoNow` must
+// still *tick* — otherwise countdowns (useCountdown) compute from a frozen
+// Date.now() and never update. A tiny external store ticks once a second and
+// only runs its interval while something is subscribed. In demo mode the
+// provider drives re-renders, so we pass a no-op subscriber and read ctx.now —
+// no double-ticking.
+
+let _wallNow = 0;
+const _wallListeners = new Set<() => void>();
+let _wallInterval: ReturnType<typeof setInterval> | null = null;
+
+function _subscribeWall(onChange: () => void): () => void {
+  _wallListeners.add(onChange);
+  if (_wallInterval === null) {
+    _wallNow = Date.now();
+    _wallInterval = setInterval(() => {
+      _wallNow = Date.now();
+      _wallListeners.forEach((l) => l());
+    }, 1000);
+  }
+  return () => {
+    _wallListeners.delete(onChange);
+    if (_wallListeners.size === 0 && _wallInterval !== null) {
+      clearInterval(_wallInterval);
+      _wallInterval = null;
+    }
+  };
+}
+
+function _getWall(): number {
+  return _wallNow || Date.now();
+}
+
+const _noopSubscribe = () => () => {};
+
 export function useDemoNow(): number {
-  // No provider in the `USE_API` tree (index.tsx omits the demo clock). Card
-  // components (DropFeedCard, useCountdown) call this for "now"; fall back to
-  // real wall-clock time so they render with live countdowns in the API path.
   const ctx = useContext(DemoClockContext);
-  return ctx ? ctx.now : Date.now();
+  // useSyncExternalStore is called unconditionally; its args vary by provider
+  // presence. With a provider: no-op subscribe + read ctx.now. Without one:
+  // subscribe to the 1s wall clock so countdowns stay live in the API path.
+  const getNow = ctx ? () => ctx.now : _getWall;
+  return useSyncExternalStore(ctx ? _noopSubscribe : _subscribeWall, getNow, getNow);
 }

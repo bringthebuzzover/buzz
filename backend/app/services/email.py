@@ -102,6 +102,27 @@ async def send_org_denied_email(to_email: str, *, org_name: str = "") -> None:
     await _dispatch(to_email, subject, body)
 
 
+async def send_brand_denied_email(to_email: str, *, brand_name: str = "") -> None:
+    """Tell a brand their application was not approved."""
+    subject = "Update on your Buzz application"
+    name = brand_name or "your brand"
+    body = (
+        f"Thanks for your interest in Buzz. After review, {name} was not "
+        "approved at this time. Reply to this email if you'd like another look."
+    )
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Brand denied:                                  ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return
+
+    await _dispatch(to_email, subject, body)
+
+
 async def _dispatch(to_email: str, subject: str, body: str) -> None:
     """Dispatch through the configured email provider."""
     # Resend / SendGrid / SES integration goes here when needed.

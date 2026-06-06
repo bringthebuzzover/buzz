@@ -50,6 +50,7 @@ class CampaignDetailResponse(CamelModel):
     applied_at: datetime
     decision_at: datetime | None
     title: str
+    description: str | None
     brand_name: str
     image: str
     brand_tracker_stage: str
