@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
+from sqlalchemy import update as sa_update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -91,9 +92,22 @@ async def apply_brand(
 
 
 async def create_brand_invite(db: AsyncSession, brand: Brand, user: User) -> str:
-    """Generate a BrandInviteToken for *brand* and return the raw token string."""
-    token = secrets.token_urlsafe(48)
+    """Generate a BrandInviteToken for *brand* and return the raw token string.
+
+    Any prior unused invite for this brand is invalidated first, so re-issuing
+    leaves exactly one live setup link (no accumulation of valid tokens).
+    """
     now = _now()
+    await db.execute(
+        sa_update(BrandInviteToken)
+        .where(
+            BrandInviteToken.brand_id == brand.id,
+            BrandInviteToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+
+    token = secrets.token_urlsafe(48)
     bit = BrandInviteToken(
         id=uuid.uuid4(),
         user_id=user.id,
@@ -124,13 +138,13 @@ async def set_brand_password(
     )
     if bit is None:
         raise BuzzAPIException(
-            errors.VERIFICATION_TOKEN_EXPIRED,
-            "Invalid or expired invite link.",
+            errors.VERIFICATION_TOKEN_INVALID,
+            "Invalid invite link.",
             status_code=400,
         )
     if bit.used_at is not None:
         raise BuzzAPIException(
-            errors.VERIFICATION_TOKEN_EXPIRED,
+            errors.VERIFICATION_TOKEN_USED,
             "This invite link has already been used.",
             status_code=400,
         )

@@ -59,7 +59,7 @@ async def submit_org_onboarding(
     )
     if existing is not None:
         raise BuzzAPIException(
-            errors.EMAIL_ALREADY_VERIFIED,
+            errors.EDU_EMAIL_TAKEN,
             "This .edu email is already associated with another account.",
             status_code=409,
         )
@@ -102,7 +102,7 @@ async def submit_org_onboarding(
         await db.flush()
     except IntegrityError as exc:
         raise BuzzAPIException(
-            errors.EMAIL_ALREADY_VERIFIED,
+            errors.EDU_EMAIL_TAKEN,
             "This .edu email is already associated with another account.",
             status_code=409,
         ) from exc
@@ -132,8 +132,8 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     )
     if evt is None:
         raise BuzzAPIException(
-            errors.VERIFICATION_TOKEN_EXPIRED,
-            "Invalid or expired verification token.",
+            errors.VERIFICATION_TOKEN_INVALID,
+            "Invalid verification token.",
             status_code=400,
         )
     if evt.used_at is not None:

@@ -16,6 +16,7 @@ from app.exceptions import BuzzAPIException
 from app.models.organization import Organization
 from app.models.user import User
 from app.response import APIResponse, api_response
+from app.schemas.common import camelize
 from app.schemas.onboarding import OrgOnboardingRequest
 from app.schemas.orgs import OrgProfileUpdate
 from app.services.onboarding import submit_org_onboarding
@@ -37,7 +38,7 @@ async def org_onboarding(
     ``pending_org_profile``, not yet active — the active-status gate would 403.
     """
     result = await submit_org_onboarding(db, user, payload)
-    return api_response(data=result)
+    return api_response(data=camelize(result))
 
 
 async def _require_org_profile(db: AsyncSession, user: User) -> Organization:

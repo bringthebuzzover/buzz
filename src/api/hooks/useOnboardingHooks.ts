@@ -26,9 +26,9 @@ export type OrgOnboardingInput = {
 };
 
 type OnboardingResult = {
-  org_id: string;
+  orgId: string;
   status: string;
-  email_sent_to: string;
+  emailSentTo: string;
 };
 
 export function useSubmitOnboarding() {
@@ -63,7 +63,7 @@ export function useVerifyEmail() {
 export function useResendVerification() {
   return useMutation({
     mutationFn: async () => {
-      const { data } = await apiFetch<{ email_sent_to: string }>(
+      const { data } = await apiFetch<{ emailSentTo: string }>(
         "/api/auth/verify-email/resend",
         {
           method: "POST",
@@ -116,7 +116,7 @@ export type BrandApplyInput = {
 export function useBrandApply() {
   return useMutation({
     mutationFn: async (input: BrandApplyInput) => {
-      const { data } = await apiFetch<{ brand_id: string; status: string }>(
+      const { data } = await apiFetch<{ brandId: string; status: string }>(
         "/api/brands/apply",
         {
           method: "POST",

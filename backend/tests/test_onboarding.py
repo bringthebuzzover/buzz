@@ -46,7 +46,7 @@ async def test_onboarding_submit_advances_status(app_client: AsyncClient, db_ses
     assert resp.status_code == 200, resp.text
     data = resp.json()["data"]
     assert data["status"] == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value
-    assert data["email_sent_to"] == "club@test.edu"
+    assert data["emailSentTo"] == "club@test.edu"
 
     # Org row + verification token created.
     org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
@@ -133,7 +133,7 @@ async def test_verify_email_success(app_client: AsyncClient, db_session) -> None
 async def test_verify_email_invalid_token(app_client: AsyncClient) -> None:
     resp = await app_client.post("/api/auth/verify-email", json={"token": "nope"})
     assert resp.status_code == 400
-    assert resp.json()["error"]["code"] == "VERIFICATION_TOKEN_EXPIRED"
+    assert resp.json()["error"]["code"] == "VERIFICATION_TOKEN_INVALID"
 
 
 async def test_verify_email_already_used(app_client: AsyncClient, db_session) -> None:
@@ -354,7 +354,7 @@ async def test_brand_set_password_used_token(app_client: AsyncClient, db_session
         json={"token": invite.token, "password": "hunter2pass"},
     )
     assert resp.status_code == 400
-    assert resp.json()["error"]["code"] == "VERIFICATION_TOKEN_EXPIRED"
+    assert resp.json()["error"]["code"] == "VERIFICATION_TOKEN_USED"
 
 
 async def test_brand_set_password_expired_token(app_client: AsyncClient, db_session) -> None:

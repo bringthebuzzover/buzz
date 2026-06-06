@@ -324,7 +324,7 @@ class TestReopenDrop:
             f"/api/admin/drops/{drop.id}/reopen", headers=await _admin_headers(db_session)
         )
         assert res.status_code == 200
-        assert res.json()["data"]["manual_reopen"] is True
+        assert res.json()["data"]["manualReopen"] is True
 
         await db_session.refresh(drop)
         assert drop.manual_reopen is True

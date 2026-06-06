@@ -81,7 +81,11 @@ async def handle_instagram_callback(
         existing.last_login_at = now
         user = existing
 
-    await db.commit()
+    # flush (not commit): the request-scoped get_db dependency commits on a
+    # clean response and rolls back on error, so every service uses flush() for
+    # one consistent transaction convention. refresh populates server defaults
+    # (id/created_at) for the token + response.
+    await db.flush()
     await db.refresh(user)
     return user
 

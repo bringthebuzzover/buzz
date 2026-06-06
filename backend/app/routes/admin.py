@@ -15,6 +15,7 @@ from app.schemas.admin import (
     AdminPendingOrgItem,
     TrackerAdvanceRequest,
 )
+from app.schemas.common import camelize
 from app.services.admin import (
     advance_tracker,
     approve_brand,
@@ -44,7 +45,7 @@ async def approve_org_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await approve_org(db, org_id)
-    return api_response(data=result)
+    return api_response(data=camelize(result))
 
 
 @router.post("/orgs/{org_id}/deny", response_model=APIResponse)
@@ -54,7 +55,7 @@ async def deny_org_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await deny_org(db, org_id)
-    return api_response(data=result)
+    return api_response(data=camelize(result))
 
 
 @router.get("/brands/pending", response_model=APIResponse)
@@ -73,7 +74,7 @@ async def approve_brand_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await approve_brand(db, brand_id)
-    return api_response(data=result)
+    return api_response(data=camelize(result))
 
 
 @router.patch("/drops/{drop_id}/tracker", response_model=APIResponse)
@@ -86,7 +87,7 @@ async def advance_tracker_endpoint(
     result = await advance_tracker(
         db, drop_id, payload.stage, tracking_number=payload.tracking_number, note=payload.note
     )
-    return api_response(data=result)
+    return api_response(data=camelize(result))
 
 
 @router.post("/drops/{drop_id}/reopen", response_model=APIResponse)
@@ -96,4 +97,4 @@ async def reopen_drop_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await reopen_drop(db, drop_id)
-    return api_response(data=result)
+    return api_response(data=camelize(result))

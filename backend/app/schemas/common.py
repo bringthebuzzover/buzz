@@ -9,9 +9,27 @@ that convention so every Stage 5 schema applies it identically.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
+
+
+def camelize(value: Any) -> Any:
+    """Recursively convert snake_case dict keys to camelCase.
+
+    For the handful of mutation endpoints that return plain dicts (onboarding,
+    admin, finalize, brand-apply) rather than a ``CamelModel``. Applying this at
+    the route layer keeps the whole API on one camelCase wire convention so the
+    frontend never has to special-case snake_case keys. Idempotent on keys that
+    are already camelCase / single words.
+    """
+
+    if isinstance(value, dict):
+        return {to_camel(k): camelize(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [camelize(v) for v in value]
+    return value
 
 
 class CamelModel(BaseModel):

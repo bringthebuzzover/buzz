@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Local quality gate — same order CI runs in:
-#   Black -> Ruff -> mypy -> pytest
+#   Black -> Ruff -> mypy -> Alembic (apply + drift) -> pytest
 # Each stage short-circuits the next on failure (`set -e`). Pass `--check`
 # to skip in-place reformatting (handy for CI / pre-push hooks). Run from
 # any CWD; the script chdirs into `backend/` itself.
@@ -32,11 +32,19 @@ echo "==> [2/4] Ruff (lint)"
 poetry run ruff check "${TARGETS[@]}"
 
 echo
-echo "==> [3/4] mypy (type-check)"
+echo "==> [3/5] mypy (type-check)"
 poetry run mypy app/
 
 echo
-echo "==> [4/4] Pytest"
+echo "==> [4/5] Alembic (apply migrations + model/migration drift)"
+# Catches what tests miss: tests build the schema with create_all, so a model
+# change without a matching migration still passes pytest but breaks CI / a real
+# deploy. `upgrade head` proves migrations apply; `check` proves no drift.
+poetry run alembic upgrade head
+poetry run alembic check
+
+echo
+echo "==> [5/5] Pytest"
 poetry run pytest -v
 
 echo
