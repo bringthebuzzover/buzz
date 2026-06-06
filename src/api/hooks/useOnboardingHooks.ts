@@ -1,9 +1,11 @@
 /**
  * TanStack Query mutations for the Stage 7 onboarding + brand-auth surface.
  *
- * Note: the org-onboarding and brand-auth endpoints return plain (snake_case)
- * payloads — `UserResponse` / `TokenResponse` and small dicts — not the
- * camelCase brand/org models. The hooks here read snake_case fields directly.
+ * Wire format: dict mutation responses (onboarding/verify/resend/brand-apply)
+ * are camelCase (camelized at the route layer). The auth token endpoints
+ * (`set-password`, `brand/login`) return `TokenResponse`/`UserResponse`, which
+ * stay snake_case (`access_token`, `portal_role`) — the established auth
+ * contract the SPA already consumes.
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../client";

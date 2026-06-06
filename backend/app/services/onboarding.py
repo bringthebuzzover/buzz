@@ -95,16 +95,25 @@ async def submit_org_onboarding(
     )
     db.add(evt)
 
-    # The SELECT above narrows the common case, but two concurrent submits can
-    # still race past it — the unique constraint on users.edu_email is the real
-    # guard. Translate its IntegrityError into the same typed 409.
+    # The SELECTs above narrow the common cases, but two concurrent submits can
+    # still race past them. Map each unique violation to its own typed error
+    # rather than blanket-labelling everything "edu email taken": a duplicate
+    # edu_email → 409 EDU_EMAIL_TAKEN; a duplicate organizations.user_id (same
+    # user double-submitting) → the profile was already created → 400.
     try:
         await db.flush()
     except IntegrityError as exc:
+        detail = str(exc.orig).lower()
+        if "edu_email" in detail:
+            raise BuzzAPIException(
+                errors.EDU_EMAIL_TAKEN,
+                "This .edu email is already associated with another account.",
+                status_code=409,
+            ) from exc
         raise BuzzAPIException(
-            errors.EDU_EMAIL_TAKEN,
-            "This .edu email is already associated with another account.",
-            status_code=409,
+            errors.INVALID_ONBOARDING_STATE,
+            "Profile has already been submitted.",
+            status_code=400,
         ) from exc
 
     await send_verification_email(payload.edu_email, token, org_name=payload.org_name)
@@ -174,6 +183,12 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
 
 async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, Any]:
     """Re-send the verification email (max 3 active tokens at a time)."""
+    if user.portal_role != "org":
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Only organization users verify a .edu email.",
+            status_code=400,
+        )
     if user.status != OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,

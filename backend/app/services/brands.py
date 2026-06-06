@@ -21,7 +21,7 @@ from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, BrandTrackerStage
+from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage
 from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.social_post import SocialPost
@@ -31,9 +31,13 @@ from app.models.user import User
 async def _require_brand(db: AsyncSession, user: User) -> Brand:
     """Resolve the caller's brand profile.
 
-    ``CurrentBrand`` already guarantees role=brand + active, so an active
+    ``CurrentBrand`` already guarantees role=brand + active user, so an active
     brand with no ``brands`` row is an invariant violation → 500 (same
     pattern as ``_require_org`` in ``drops.py``).
+
+    Also re-check ``brand.status`` here (defense-in-depth): the user-status gate
+    can't see a brand that was un-approved after login, so a future admin-revoke
+    flow can't leave a live session with portal access.
     """
 
     brand = await db.scalar(select(Brand).where(Brand.user_id == user.id))
@@ -42,6 +46,12 @@ async def _require_brand(db: AsyncSession, user: User) -> Brand:
             errors.INTERNAL_ERROR,
             "Active brand account is missing its profile.",
             status_code=500,
+        )
+    if brand.status != BrandStatus.APPROVED.value:
+        raise BuzzAPIException(
+            errors.FORBIDDEN,
+            "This brand account is not approved.",
+            status_code=403,
         )
     return brand
 

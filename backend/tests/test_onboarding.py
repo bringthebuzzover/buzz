@@ -90,6 +90,41 @@ async def test_onboarding_requires_auth(app_client: AsyncClient) -> None:
     assert resp.status_code == 401
 
 
+async def test_onboarding_duplicate_edu_email_conflict(app_client: AsyncClient, db_session) -> None:
+    # An existing account already owns this .edu email.
+    existing = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.ACTIVE, instagram_user_id="ig_dup_existing"),
+    )
+    existing.edu_email = "club@test.edu"
+    await db_session.flush()
+
+    user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_dup_new"),
+    )
+    resp = await app_client.post(
+        "/api/orgs/onboarding",
+        json=_VALID_PROFILE,  # eduEmail = club@test.edu
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "EDU_EMAIL_TAKEN"
+
+
+async def test_onboarding_rejects_unknown_field(app_client: AsyncClient, db_session) -> None:
+    user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_extra"),
+    )
+    resp = await app_client.post(
+        "/api/orgs/onboarding",
+        json={**_VALID_PROFILE, "bogusField": "x"},
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 422
+
+
 # --- Org onboarding: email verification -------------------------------------
 
 

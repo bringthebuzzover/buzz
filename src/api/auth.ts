@@ -70,16 +70,39 @@ export async function devLogin(): Promise<LoginData | null> {
   }
 }
 
-/** Fetch the current user from GET /api/auth/me. Returns null on failure. */
+async function _meRequest(token: string): Promise<Response> {
+  return fetch(`${API_BASE_URL}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: "include",
+  });
+}
+
+/**
+ * Fetch the current user from GET /api/auth/me. Returns null on failure.
+ *
+ * On a 401 (expired access token) it refreshes once from the cookie and retries,
+ * so long-lived sessions (e.g. the pending-approval poller) don't get kicked to
+ * /login after the 1h access-token TTL while the refresh cookie is still valid.
+ * Uses raw fetch (not `apiFetch`) to avoid an import cycle with `client.ts`.
+ */
 export async function fetchMe(): Promise<AuthUser | null> {
   try {
-    const token = getAccessToken();
-    if (!token) return null;
-    const resp = await fetch(`${API_BASE_URL}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-      credentials: "include",
-    });
+    let token = getAccessToken();
+    if (!token) {
+      if (!(await refreshAccessToken())) return null;
+      token = getAccessToken();
+      if (!token) return null;
+    }
+
+    let resp = await _meRequest(token);
+    if (resp.status === 401) {
+      if (!(await refreshAccessToken())) return null;
+      const refreshed = getAccessToken();
+      if (!refreshed) return null;
+      resp = await _meRequest(refreshed);
+    }
     if (!resp.ok) return null;
+
     const body = await resp.json();
     const u = body.data;
     if (!u) return null;

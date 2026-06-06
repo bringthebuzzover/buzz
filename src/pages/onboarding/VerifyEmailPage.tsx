@@ -19,9 +19,10 @@ import {
   useVerifyEmail,
 } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
+import { pathForUser } from "../../utils/landing";
 
 export default function VerifyEmailPage() {
-  const { user } = useAuth();
+  const { status, user } = useAuth();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
 
@@ -29,8 +30,19 @@ export default function VerifyEmailPage() {
     return <VerifyWithToken token={token} />;
   }
 
+  // This page is public (not behind RequireAuth) so the email link works in a
+  // fresh tab. That means on reload we must wait for the auth bootstrap before
+  // deciding — otherwise the redirect fires while user is still null.
+  if (status === "idle" || status === "authenticating") {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <p className="text-sm font-medium text-buzz-inkMuted">Loading...</p>
+      </div>
+    );
+  }
+
   if (!user || user.status !== "pending_email_verification") {
-    return <Navigate to="/" replace />;
+    return <Navigate to={pathForUser(user)} replace />;
   }
 
   return <AwaitVerification />;

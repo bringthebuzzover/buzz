@@ -4,12 +4,15 @@
 import { useAuth } from "../../contexts/AuthContext";
 import { Link, Navigate } from "react-router-dom";
 import instagramIcon from "../../assets/insta-icon.png";
+import { pathForUser } from "../../utils/landing";
 
 export default function LoginPage() {
-  const { status, login } = useAuth();
+  const { status, user, login } = useAuth();
 
   if (status === "authenticated") {
-    return <Navigate to="/" replace />;
+    // Status-aware landing: an active org → feed, mid-onboarding org → their
+    // onboarding step, brand → dashboard (matches the OAuth-callback target).
+    return <Navigate to={pathForUser(user)} replace />;
   }
 
   return (

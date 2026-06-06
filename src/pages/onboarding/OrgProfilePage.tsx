@@ -11,6 +11,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSubmitOnboarding } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
+import { pathForUser } from "../../utils/landing";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
@@ -30,7 +31,7 @@ export default function OrgProfilePage() {
   const [error, setError] = useState<string | null>(null);
 
   if (!user || user.status !== "pending_org_profile") {
-    return <Navigate to="/" replace />;
+    return <Navigate to={pathForUser(user)} replace />;
   }
 
   const onSubmit = async (e: React.FormEvent) => {
