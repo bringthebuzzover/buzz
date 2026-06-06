@@ -10,6 +10,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import SiteLayout from "./layouts/SiteLayout";
 import DemoOnly from "./components/routing/DemoOnly";
 import RequireAuth from "./components/routing/RequireAuth";
+import ApiOnly from "./components/routing/ApiOnly";
 import RequireRole from "./components/routing/RequireRole";
 import RequireStatus from "./components/routing/RequireStatus";
 import HomePage from "./pages/home/HomePage";
@@ -60,14 +61,18 @@ export default function AppRoot(): ReactElement {
       <Route element={<SiteLayout />}>
         <Route index element={<HomePage />} />
 
-        {/* Public auth pages (API path only) */}
-        <Route path="login" element={<LoginPage />} />
-        <Route path="auth/instagram/callback" element={<InstagramCallbackPage />} />
-        <Route path="brand/login" element={<BrandLoginPage />} />
-        <Route path="brand/setup" element={<BrandSetupPage />} />
-        <Route path="brand/apply" element={<BrandApplyPage />} />
+        {/* Public auth pages (API build only — ApiOnly redirects to / in demo
+            mode, where there is no AuthProvider). */}
+        <Route path="login" element={<ApiOnly><LoginPage /></ApiOnly>} />
+        <Route
+          path="auth/instagram/callback"
+          element={<ApiOnly><InstagramCallbackPage /></ApiOnly>}
+        />
+        <Route path="brand/login" element={<ApiOnly><BrandLoginPage /></ApiOnly>} />
+        <Route path="brand/setup" element={<ApiOnly><BrandSetupPage /></ApiOnly>} />
+        <Route path="brand/apply" element={<ApiOnly><BrandApplyPage /></ApiOnly>} />
 
-        {/* Onboarding pages (API path only). These require an authenticated
+        {/* Onboarding pages (API build only). These require an authenticated
             session (architecture §6.4) — RequireAuth standardizes the redirect
             to /login; each page still self-routes on its specific status.
             verify-email is intentionally public: the email link is opened in a
@@ -75,26 +80,39 @@ export default function AppRoot(): ReactElement {
         <Route
           path="onboarding/profile"
           element={
-            <RequireAuth>
-              <OrgProfilePage />
-            </RequireAuth>
+            <ApiOnly>
+              <RequireAuth>
+                <OrgProfilePage />
+              </RequireAuth>
+            </ApiOnly>
           }
         />
-        <Route path="onboarding/verify-email" element={<VerifyEmailPage />} />
+        <Route
+          path="onboarding/verify-email"
+          element={
+            <ApiOnly>
+              <VerifyEmailPage />
+            </ApiOnly>
+          }
+        />
         <Route
           path="onboarding/pending-approval"
           element={
-            <RequireAuth>
-              <PendingApprovalPage />
-            </RequireAuth>
+            <ApiOnly>
+              <RequireAuth>
+                <PendingApprovalPage />
+              </RequireAuth>
+            </ApiOnly>
           }
         />
         <Route
           path="onboarding/denied"
           element={
-            <RequireAuth>
-              <DeniedPage />
-            </RequireAuth>
+            <ApiOnly>
+              <RequireAuth>
+                <DeniedPage />
+              </RequireAuth>
+            </ApiOnly>
           }
         />
 

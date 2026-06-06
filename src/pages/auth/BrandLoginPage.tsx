@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { useBrandLogin } from "../../api/hooks/useOnboardingHooks";
+import { useBrandLogin, usePublicConfig } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
 
 const inputClass =
@@ -17,6 +17,8 @@ export default function BrandLoginPage() {
   const { status, user, refreshUser } = useAuth();
   const navigate = useNavigate();
   const brandLogin = useBrandLogin();
+  const config = usePublicConfig();
+  const selfRegistration = config.data?.brandSelfRegistrationEnabled === true;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -90,12 +92,14 @@ export default function BrandLoginPage() {
           {brandLogin.isPending ? "Signing in…" : "Sign in"}
         </button>
 
-        <p className="text-center text-xs text-buzz-inkMuted">
-          New to Buzz?{" "}
-          <Link to="/brand/apply" className="font-bold text-buzz-coral hover:underline">
-            Apply as a brand
-          </Link>
-        </p>
+        {selfRegistration ? (
+          <p className="text-center text-xs text-buzz-inkMuted">
+            New to Buzz?{" "}
+            <Link to="/brand/apply" className="font-bold text-buzz-coral hover:underline">
+              Apply as a brand
+            </Link>
+          </p>
+        ) : null}
       </form>
     </div>
   );

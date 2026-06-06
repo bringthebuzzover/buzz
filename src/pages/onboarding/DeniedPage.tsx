@@ -5,11 +5,12 @@
  */
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { pathForUser } from "../../utils/landing";
 
 export default function DeniedPage() {
   const { user } = useAuth();
   if (!user || (user.status !== "denied" && user.status !== "suspended")) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={pathForUser(user)} replace />;
   }
 
   const suspended = user.status === "suspended";

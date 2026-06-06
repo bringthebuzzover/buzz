@@ -8,31 +8,19 @@
 import { Navigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { pathForUser } from "../../utils/landing";
 
 export default function RequireStatus({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
   if (!user) return null;
 
-  if (user.portalRole === "org") {
-    switch (user.status) {
-      case "pending_org_profile":
-        return <Navigate to="/onboarding/profile" replace />;
-      case "pending_email_verification":
-        return <Navigate to="/onboarding/verify-email" replace />;
-      case "pending_approval":
-        return <Navigate to="/onboarding/pending-approval" replace />;
-      case "denied":
-      case "suspended":
-        // Both are terminal "no portal access" states; the denied page renders
-        // status-appropriate copy. Without this, suspended fell through to the
-        // portal shell (the API still 403s, but the UX was wrong).
-        return <Navigate to="/onboarding/denied" replace />;
-      case "active":
-        break;
-      default:
-        break;
-    }
+  // Any non-active org is redirected to where it belongs (onboarding step or the
+  // denied/suspended page) via the shared mapping — one source of truth shared
+  // with the login page and the onboarding pages. Active orgs, brands, and
+  // admins fall through to the portal.
+  if (user.portalRole === "org" && user.status !== "active") {
+    return <Navigate to={pathForUser(user)} replace />;
   }
 
   return <>{children}</>;

@@ -8,6 +8,7 @@
 import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { pathForUser } from "../../utils/landing";
 
 const POLL_INTERVAL_MS = 15_000;
 
@@ -22,19 +23,10 @@ export default function PendingApprovalPage() {
     return () => window.clearInterval(id);
   }, [user, refreshUser]);
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-  if (user.status !== "pending_approval") {
-    // Poll resolved: send the org to the right place rather than the public
-    // landing. Active → their portal; denied → the denial page.
-    if (user.status === "active") {
-      return <Navigate to="/org/browse" replace />;
-    }
-    if (user.status === "denied") {
-      return <Navigate to="/onboarding/denied" replace />;
-    }
-    return <Navigate to="/" replace />;
+  if (!user || user.status !== "pending_approval") {
+    // Poll resolved (or wrong status / no session): route to where the user
+    // belongs — active → portal, denied/suspended → denial page, none → login.
+    return <Navigate to={pathForUser(user)} replace />;
   }
 
   return (

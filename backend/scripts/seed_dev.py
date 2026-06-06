@@ -46,7 +46,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker  # noqa: E40
 
 from app.config import settings  # noqa: E402
 from app.deps.db import engine  # noqa: E402
+from app.security.password import hash_password  # noqa: E402
 from app.security.token_crypto import encrypt_token  # noqa: E402
+
+# Dev brand-login password for seeded brands (real bcrypt hash so brand login is
+# exercisable locally and won't 500 on a placeholder). Both seed brands use it.
+_DEV_BRAND_PASSWORD = "buzzdev123"
 from app.models import (  # noqa: E402
     Base,
     Brand,
@@ -170,13 +175,13 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         id=_uuid(4),
         portal_role=PortalRole.BRAND.value,
         status=OrgUserStatus.ACTIVE.value,
-        password_hash="$argon2id$placeholder",
+        password_hash=hash_password(_DEV_BRAND_PASSWORD),
     )
     brand_user_2 = User(
         id=_uuid(5),
         portal_role=PortalRole.BRAND.value,
         status=OrgUserStatus.ACTIVE.value,
-        password_hash="$argon2id$placeholder",
+        password_hash=hash_password(_DEV_BRAND_PASSWORD),
     )
 
     # --- Organizations -----------------------------------------------------

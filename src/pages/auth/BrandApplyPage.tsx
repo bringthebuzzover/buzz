@@ -49,6 +49,14 @@ export default function BrandApplyPage() {
     }
   };
 
+  if (config.isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <p className="text-sm font-medium text-buzz-inkMuted">Loading...</p>
+      </div>
+    );
+  }
+
   if (submitted) {
     return (
       <div className="mx-auto max-w-md px-8 py-24 text-center">

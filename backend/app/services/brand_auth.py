@@ -82,11 +82,16 @@ async def apply_brand(
     try:
         await db.flush()
     except IntegrityError as exc:
-        raise BuzzAPIException(
-            errors.BRAND_EMAIL_TAKEN,
-            "A brand account already exists for this email.",
-            status_code=409,
-        ) from exc
+        # Only the company-email uniqueness maps to the typed 409; any other
+        # constraint is unexpected and should surface as a 500, not a misleading
+        # "email taken".
+        if "company_email" in str(exc.orig).lower():
+            raise BuzzAPIException(
+                errors.BRAND_EMAIL_TAKEN,
+                "A brand account already exists for this email.",
+                status_code=409,
+            ) from exc
+        raise
 
     return {"brand_id": str(brand.id), "status": brand.status}
 

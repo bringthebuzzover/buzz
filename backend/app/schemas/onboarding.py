@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
-from pydantic import field_validator
+from pydantic import ConfigDict, field_validator
+from pydantic.alias_generators import to_camel
 
 from app.schemas.common import CamelModel
 
 
 class OrgOnboardingRequest(CamelModel):
     """Phase 2: submit org profile after Instagram OAuth."""
+
+    # extra="forbid" so a typo'd/unknown key is a 422, not silently dropped
+    # (matches OrgProfileUpdate).
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
 
     org_name: str
     university: str
@@ -37,6 +42,13 @@ class OrgOnboardingRequest(CamelModel):
         if not v.strip():
             raise ValueError("Must not be empty")
         return v.strip()
+
+    @field_validator("follower_count", "member_count")
+    @classmethod
+    def _non_negative(cls, v: int | None) -> int | None:
+        if v is not None and v < 0:
+            raise ValueError("Must be zero or greater")
+        return v
 
 
 class VerifyEmailRequest(CamelModel):
