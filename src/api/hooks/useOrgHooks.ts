@@ -213,7 +213,40 @@ export function useUnlinkPost(applicationId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaign-aggregate", applicationId] });
+      queryClient.invalidateQueries({ queryKey: ["suggestions", applicationId] });
       queryClient.invalidateQueries({ queryKey: ["org-posts"] });
+    },
+  });
+}
+
+export function useAcceptSuggestion(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (postId: string) => {
+      await apiFetch(
+        `/api/campaigns/${applicationId}/suggestions/${postId}/accept`,
+        { method: "POST" },
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaign-aggregate", applicationId] });
+      queryClient.invalidateQueries({ queryKey: ["suggestions", applicationId] });
+      queryClient.invalidateQueries({ queryKey: ["org-posts"] });
+    },
+  });
+}
+
+export function useDismissSuggestion(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (postId: string) => {
+      await apiFetch(
+        `/api/campaigns/${applicationId}/suggestions/${postId}/dismiss`,
+        { method: "POST" },
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suggestions", applicationId] });
     },
   });
 }

@@ -14,6 +14,7 @@ import {
 import { deriveOrgCampaignStatus } from "../../utils/orgCampaignStatus";
 import { ORG_CAMPAIGN_STATUS_LABELS } from "../../types/orgCampaign";
 import PostSelector from "../../components/org/PostSelector";
+import ApiPostSelector from "../../components/org/ApiPostSelector";
 import AggregateScoreCard from "../../components/org/AggregateScoreCard";
 import { DEMO_ORG_ID } from "../../data/seed/seedOrgs";
 import { USE_API } from "../../config/featureFlags";
@@ -322,10 +323,15 @@ function ApiCampaignDetail() {
                 Final results
               </h2>
               <p className="text-sm font-medium text-buzz-inkMuted">
-                This campaign has ended. Final metrics are shown above.
+                This campaign has ended. Your linked posts are read-only — final
+                metrics are shown above.
               </p>
             </StatusPanel>
           ) : null}
+          <ApiPostSelector
+            applicationId={detail.id}
+            readOnly={status === "finished"}
+          />
         </div>
       ) : null}
     </div>

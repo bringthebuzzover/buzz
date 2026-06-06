@@ -75,11 +75,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const dev = await devLogin();
       if (dev) {
         const me = await fetchMe();
-        setUser(me);
-        setStatus(dev ? "authenticated" : "error");
-      } else {
-        setStatus("error");
+        // Only "authenticated" when we actually resolved a user; a token with
+        // no /me would otherwise let RequireRole 403 a valid session.
+        if (me) {
+          setUser(me);
+          setStatus("authenticated");
+          return;
+        }
       }
+      setStatus("error");
     };
     void bootstrap().catch(() => setStatus("error"));
   }, []);
