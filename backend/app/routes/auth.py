@@ -28,6 +28,7 @@ from app.schemas.auth import (
     RefreshResponse,
     TokenResponse,
 )
+from app.schemas.common import camelize
 from app.schemas.onboarding import (
     BrandLoginRequest,
     BrandSetPasswordRequest,
@@ -261,7 +262,7 @@ async def verify_email_endpoint(
 ) -> APIResponse:
     """Phase 3: consume a one-time .edu verification token."""
     result = await verify_email(db, payload.token)
-    return api_response(data=result)
+    return api_response(data=camelize(result))
 
 
 @router.post("/verify-email/resend", response_model=APIResponse)
@@ -272,7 +273,7 @@ async def resend_verification_endpoint(
 ) -> APIResponse:
     """Re-send the .edu verification email (rate-limited, auth required)."""
     result = await resend_verification_email(db, user)
-    return api_response(data=result)
+    return api_response(data=camelize(result))
 
 
 # ── Brand auth (Stage 7) ────────────────────────────────────────────────────

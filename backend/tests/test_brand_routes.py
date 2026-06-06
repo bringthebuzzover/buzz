@@ -28,9 +28,7 @@ from tests.conftest import (
 async def _brand_ctx(db_session):
     """Create an active brand user + brand profile, return (user, brand, headers)."""
     brand_user = await persist(db_session, make_user(role=PortalRole.BRAND))
-    brand = await make_brand(
-        db_session, brand_name="Acme Test", company_email="brand@test.com"
-    )
+    brand = await make_brand(db_session, brand_name="Acme Test", company_email="brand@test.com")
     brand.user_id = brand_user.id
     await db_session.flush()
     headers = {"Authorization": f"Bearer {mint_access_token(brand_user)}"}
@@ -208,8 +206,8 @@ class TestFinalizeApplicants:
         )
         assert res.status_code == 200
         data = res.json()["data"]
-        assert data["accepted_count"] == 2
-        assert data["denied_count"] == 1
+        assert data["acceptedCount"] == 2
+        assert data["deniedCount"] == 1
 
         # Verify DB state
         apps = list(
@@ -383,8 +381,8 @@ class TestFinalizeApplicants:
         )
         assert res.status_code == 200
         data = res.json()["data"]
-        assert data["accepted_count"] == 0
-        assert data["denied_count"] == 3
+        assert data["acceptedCount"] == 0
+        assert data["deniedCount"] == 3
 
     async def test_unit_budget_exceeded(self, app_client: AsyncClient, db_session):
         _, drop, orgs, headers = await self._setup_finalize(db_session, with_units=True)

@@ -32,6 +32,7 @@ from app.schemas.brands import (
     EngagementSeriesPoint,
     FinalizeApplicantsRequest,
 )
+from app.schemas.common import camelize
 from app.schemas.drops import BrandDropCreateRequest
 from app.services.brand_auth import apply_brand
 from app.services.brands import (
@@ -71,7 +72,7 @@ async def brand_apply(
         instagram_handle=payload.instagram_handle,
         intent_message=payload.intent_message,
     )
-    return api_response(data=result)
+    return api_response(data=camelize(result))
 
 
 @router.get("/me", response_model=APIResponse)
@@ -216,7 +217,7 @@ async def finalize_drop_applicants(
     brand = await _require_brand(db, user)
     allocations = [{"org_id": a.org_id, "units": a.units} for a in payload.allocations]
     result = await finalize_applicants(db, brand, drop_id, allocations)
-    return api_response(data=result)
+    return api_response(data=camelize(result))
 
 
 @router.get("/me/aggregate", response_model=APIResponse)
