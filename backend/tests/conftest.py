@@ -249,8 +249,14 @@ async def make_brand(
     db: AsyncSession,
     *,
     brand_name: str = "Test Brand",
+    company_email: str | None = None,
 ) -> Brand:
-    """Persist a brand (and its owning brand user) for drops to reference."""
+    """Persist a brand (and its owning brand user) for drops to reference.
+
+    ``company_email`` defaults to a unique value per call so multiple brands in
+    one test don't collide on the ``lower(company_email)`` unique index; pass an
+    explicit value when a test asserts a specific email.
+    """
 
     brand_user = User(
         id=uuid.uuid4(),
@@ -263,7 +269,7 @@ async def make_brand(
         id=uuid.uuid4(),
         user_id=brand_user.id,
         brand_name=brand_name,
-        company_email="brand@test.com",
+        company_email=company_email or f"brand-{uuid.uuid4().hex[:12]}@test.com",
         status=BrandStatus.APPROVED.value,
     )
     db.add(brand)

@@ -19,6 +19,16 @@ from app.models.enums import BrandStatusEnum
 
 class Brand(Base):
     __tablename__ = "brands"
+    # One brand account per company email, case-insensitive. The apply service
+    # pre-checks + catches IntegrityError, but this index is the hard invariant
+    # that makes two concurrent self-registrations safe.
+    __table_args__ = (
+        sa.Index(
+            "uq_brands_company_email_lower",
+            sa.func.lower(sa.text("company_email")),
+            unique=True,
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(

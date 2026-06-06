@@ -17,6 +17,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -236,7 +237,15 @@ async def apply_to_drop(
         pitch=pitch_clean,
     )
     db.add(application)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        # Lost the race against a concurrent apply: the partial unique index
+        # uq_drop_application_active rejects a second non-denied row. Surface
+        # the typed 409 the pre-check would have, not an unhandled 500.
+        raise BuzzAPIException(
+            errors.ALREADY_APPLIED, "You have already applied to this drop."
+        ) from exc
     return application
 
 

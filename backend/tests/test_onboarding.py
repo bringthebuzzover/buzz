@@ -224,7 +224,7 @@ async def test_brand_apply_creates_pending_brand(app_client: AsyncClient, db_ses
 
 
 async def test_brand_apply_duplicate_email_conflict(app_client: AsyncClient, db_session) -> None:
-    await make_brand(db_session, brand_name="Existing")  # company_email brand@test.com
+    await make_brand(db_session, brand_name="Existing", company_email="brand@test.com")
     resp = await app_client.post(
         "/api/brands/apply",
         json={"brandName": "Dup", "companyEmail": "BRAND@test.com"},

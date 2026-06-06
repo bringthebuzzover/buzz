@@ -28,7 +28,9 @@ from tests.conftest import (
 async def _brand_ctx(db_session):
     """Create an active brand user + brand profile, return (user, brand, headers)."""
     brand_user = await persist(db_session, make_user(role=PortalRole.BRAND))
-    brand = await make_brand(db_session, brand_name="Acme Test")
+    brand = await make_brand(
+        db_session, brand_name="Acme Test", company_email="brand@test.com"
+    )
     brand.user_id = brand_user.id
     await db_session.flush()
     headers = {"Authorization": f"Bearer {mint_access_token(brand_user)}"}
