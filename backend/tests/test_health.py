@@ -26,3 +26,27 @@ async def test_health_returns_envelope() -> None:
         "meta": None,
         "error": None,
     }
+
+
+@pytest.mark.asyncio
+async def test_unknown_route_returns_envelope() -> None:
+    """A framework 404 must use the { data, meta, error } envelope, not FastAPI's
+    default {"detail": ...}, so the frontend can branch on error.code."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/does-not-exist")
+
+    assert response.status_code == 404
+    body = response.json()
+    assert body["data"] is None
+    assert body["error"]["code"] == "NOT_FOUND"
+
+
+@pytest.mark.asyncio
+async def test_public_config_exposes_flag() -> None:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/config")
+
+    assert response.status_code == 200
+    assert "brandSelfRegistrationEnabled" in response.json()["data"]

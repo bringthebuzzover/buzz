@@ -17,6 +17,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app import errors
 from app.deps.db import engine
@@ -106,6 +107,25 @@ async def validation_exception_handler(
         details={"errors": jsonable_encoder(exc.errors())},
     )
     return JSONResponse(status_code=422, content=payload.model_dump())
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(
+    request: Request,
+    exc: StarletteHTTPException,
+) -> JSONResponse:
+    """Wrap framework HTTP errors (unknown route 404, method 405) in the envelope.
+
+    Without this, FastAPI's default body is ``{"detail": "..."}``, which bypasses
+    the ``{ data, meta, error }`` contract the frontend branches on (§5.2).
+    ``BuzzAPIException`` has its own handler; this only catches the framework's
+    own ``HTTPException`` (raised for routing failures, not by our handlers).
+    """
+
+    code = errors.NOT_FOUND if exc.status_code == 404 else errors.HTTP_ERROR
+    message = exc.detail if isinstance(exc.detail, str) else "Request failed."
+    payload = api_error_response(code=code, message=message)
+    return JSONResponse(status_code=exc.status_code, content=payload.model_dump())
 
 
 @app.exception_handler(Exception)
