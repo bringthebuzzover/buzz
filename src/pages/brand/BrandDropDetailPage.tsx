@@ -15,6 +15,7 @@ import {
 import BrandDropTrackerStepper from "../../components/brand/BrandDropTrackerStepper";
 import BrandApplicantSelection from "../../components/brand/BrandApplicantSelection";
 import PerDropPostsTable from "../../components/brand/PerDropPostsTable";
+import ApiDropOrgTable from "../../components/brand/ApiDropOrgTable";
 import DropKPISummary from "../../components/brand/DropKPISummary";
 import { computeDropAggregate } from "../../utils/metrics";
 import { DEMO_BRAND_ID } from "../../data/seed/seedBrands";
@@ -274,6 +275,7 @@ function ApiDropDetail() {
       {showResults ? (
         <div className="mt-8 space-y-6">
           <DropKPISummary metrics={aggregateMetrics} />
+          <ApiDropOrgTable applicants={detail.applications ?? []} />
         </div>
       ) : !isSelectionStage ? (
         <div className="mt-8 rounded-2xl border border-dashed border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-inkMuted">

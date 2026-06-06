@@ -107,14 +107,21 @@ async def create_brand_invite(db: AsyncSession, brand: Brand, user: User) -> str
     return token
 
 
-async def set_brand_password(db: AsyncSession, token: str, password: str) -> UserResponse:
+async def set_brand_password(
+    db: AsyncSession, token: str, password: str
+) -> tuple[User, UserResponse]:
     """Consume a brand invite token and set the user's password.
 
-    On success the user is activated so they can log in.
+    On success the user is activated and ``(user, user_response)`` is returned so
+    the route can mint a session immediately (no separate login step).
     """
     now = _now()
 
-    bit = await db.scalar(select(BrandInviteToken).where(BrandInviteToken.token == token))
+    # FOR UPDATE locks the invite row so two concurrent set-password calls
+    # serialize: the second sees used_at set and is rejected.
+    bit = await db.scalar(
+        select(BrandInviteToken).where(BrandInviteToken.token == token).with_for_update()
+    )
     if bit is None:
         raise BuzzAPIException(
             errors.VERIFICATION_TOKEN_EXPIRED,
@@ -151,13 +158,14 @@ async def set_brand_password(db: AsyncSession, token: str, password: str) -> Use
     user.status = OrgUserStatus.ACTIVE.value
     await db.flush()
 
-    return UserResponse(
+    resp = UserResponse(
         id=user.id,
         portal_role=user.portal_role,
         status=user.status,
         instagram_username=user.instagram_username,
         email=brand.company_email,
     )
+    return user, resp
 
 
 async def login_brand(db: AsyncSession, email: str, password: str) -> tuple[User, UserResponse]:
@@ -170,38 +178,22 @@ async def login_brand(db: AsyncSession, email: str, password: str) -> tuple[User
     normalized = email.strip().lower()
     brand = await db.scalar(select(Brand).where(func.lower(Brand.company_email) == normalized))
     user = await db.get(User, brand.user_id) if brand is not None else None
-    if brand is None or user is None:
-        # Equalize timing with the wrong-password branch so a missing email
-        # can't be distinguished from a valid one by response latency.
-        verify_password(password, _DUMMY_HASH)
-        raise BuzzAPIException(
-            errors.UNAUTHORIZED,
-            "Invalid email or password.",
-            status_code=401,
-        )
 
-    if brand.status != BrandStatus.APPROVED.value:
-        raise BuzzAPIException(
-            errors.UNAUTHORIZED,
-            "This brand account has not been approved yet.",
-            status_code=401,
-        )
-
-    if user.status != OrgUserStatus.ACTIVE.value:
-        raise BuzzAPIException(
-            errors.UNAUTHORIZED,
-            "Account setup is not complete. Use your invite link to set a password.",
-            status_code=401,
-        )
-
-    if not user.password_hash:
-        raise BuzzAPIException(
-            errors.UNAUTHORIZED,
-            "Account setup is not complete. Use your invite link to set a password.",
-            status_code=401,
-        )
-
-    if not verify_password(password, user.password_hash):
+    # Single generic failure for *every* rejection (unknown email, unapproved
+    # brand, incomplete setup, wrong password) so error messages can't be used
+    # to enumerate which company emails are registered. Always run exactly one
+    # bcrypt verify (against a dummy hash when there's nothing real to check) so
+    # response timing doesn't leak the distinction either.
+    eligible = (
+        user is not None
+        and brand is not None
+        and brand.status == BrandStatus.APPROVED.value
+        and user.status == OrgUserStatus.ACTIVE.value
+        and bool(user.password_hash)
+    )
+    stored_hash = user.password_hash if (eligible and user and user.password_hash) else _DUMMY_HASH
+    password_ok = verify_password(password, stored_hash)
+    if not eligible or not password_ok or user is None or brand is None:
         raise BuzzAPIException(
             errors.UNAUTHORIZED,
             "Invalid email or password.",

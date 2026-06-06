@@ -89,7 +89,7 @@ type UserPayload = {
 export function useBrandSetPassword() {
   return useMutation({
     mutationFn: async (input: { token: string; password: string }) => {
-      const { data } = await apiFetch<UserPayload>(
+      const { data } = await apiFetch<{ access_token: string; user: UserPayload }>(
         "/api/auth/brand/set-password",
         {
           method: "POST",
@@ -97,6 +97,9 @@ export function useBrandSetPassword() {
           body: JSON.stringify(input),
         },
       );
+      // Set-password starts a session (same as login) — store the token so the
+      // SPA can go straight to the portal without a separate login step.
+      setAccessToken(data.access_token);
       return data;
     },
   });

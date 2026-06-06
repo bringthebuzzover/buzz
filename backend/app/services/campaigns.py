@@ -98,22 +98,28 @@ async def resolve_owned_application(
     db: AsyncSession,
     org_user: User,
     application_id: uuid.UUID,
+    *,
+    require_accepted: bool = False,
 ) -> DropApplication:
     """Load an application the caller org owns, or raise 404.
 
     Unknown / other-org / denied all collapse to the same 404 (no existence
     leak). Shared by every ``/api/campaigns/{id}/*`` sub-resource so they
     enforce ownership uniformly (no IDOR).
+
+    ``require_accepted`` additionally collapses non-accepted (e.g. still
+    ``applied``) applications to 404 — used by the post-linking paths, since an
+    org only links posts once accepted into the campaign. Keeping this off for
+    reads lets an applied org still view their pending campaign.
     """
 
     org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
     application = await db.get(DropApplication, application_id)
-    if (
-        application is None
-        or org_id is None
-        or application.org_id != org_id
-        or application.decision == ApplicationDecision.DENIED.value
-    ):
+    blocked = application is not None and (
+        application.decision == ApplicationDecision.DENIED.value
+        or (require_accepted and application.decision != ApplicationDecision.ACCEPTED.value)
+    )
+    if application is None or org_id is None or application.org_id != org_id or blocked:
         raise BuzzAPIException(errors.NOT_FOUND, "Campaign not found.", status_code=404)
     return application
 

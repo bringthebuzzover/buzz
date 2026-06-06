@@ -1,22 +1,28 @@
 /**
- * /onboarding/denied — shown when an org application is denied.
+ * /onboarding/denied — terminal "no portal access" screen for orgs whose
+ * application was denied or whose account was suspended. RequireStatus routes
+ * both statuses here; the copy adapts to which one.
  */
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
 export default function DeniedPage() {
   const { user } = useAuth();
-  if (!user || user.status !== "denied") {
+  if (!user || (user.status !== "denied" && user.status !== "suspended")) {
     return <Navigate to="/" replace />;
   }
+
+  const suspended = user.status === "suspended";
 
   return (
     <div className="mx-auto max-w-md px-8 py-24 text-center">
       <h1 className="mb-4 text-3xl font-bold text-buzz-coral">
-        Application Denied
+        {suspended ? "Account Suspended" : "Application Denied"}
       </h1>
       <p className="text-sm font-medium text-buzz-inkMuted">
-        Your organization's application was not approved. Contact Buzz support if you have questions.
+        {suspended
+          ? "Your organization's account has been suspended. Contact Buzz support if you have questions."
+          : "Your organization's application was not approved. Contact Buzz support if you have questions."}
       </p>
     </div>
   );
