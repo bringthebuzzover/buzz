@@ -4,19 +4,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../client";
 import { useAuth } from "../../contexts/AuthContext";
+import type { components } from "../generated/schema";
 
 // ── Types matching backend camelCase responses ──────────────────────────
 
-export type BrandProfile = {
-  id: string;
-  brandName: string;
-  companyEmail: string;
-  intentMessage: string | null;
-  instagramHandle: string | null;
-  status: string;
-  approvedAt: number | null;
-  createdAt: number;
-};
+// Sourced from the backend OpenAPI spec (run `npm run gen:api`), so a backend
+// change to GET /api/brands/me's response shape becomes a TypeScript error here
+// instead of a silent runtime drift. This is the pattern to copy as more
+// endpoints adopt the typed `DataResponse[T]` envelope.
+export type BrandProfile =
+  components["schemas"]["BrandProfileResponse"];
 
 export type BrandDropItem = {
   id: string;

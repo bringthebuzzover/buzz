@@ -18,7 +18,8 @@
     "build": "craco build",
     "test": "craco test",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "deploy": "gh-pages -d build",
+    "gen:api": "npx -y openapi-typescript@7.13.0 openapi.json -o src/api/generated/schema.ts"
   },
   "eslintConfig": {
     "extends": [
