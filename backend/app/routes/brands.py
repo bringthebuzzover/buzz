@@ -13,14 +13,18 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select as sa_select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import errors
+from app.config import settings
 from app.deps.auth import CurrentBrand
 from app.deps.db import get_db
+from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.organization import Organization
 from app.response import APIResponse, api_response
 from app.schemas.brands import (
     BrandAggregateResponse,
+    BrandApplyRequest,
     BrandDropDetailApplicant,
     BrandDropDetailResponse,
     BrandDropListItem,
@@ -29,6 +33,7 @@ from app.schemas.brands import (
     FinalizeApplicantsRequest,
 )
 from app.schemas.drops import BrandDropCreateRequest
+from app.services.brand_auth import apply_brand
 from app.services.brands import (
     _drop_aggregate,
     _org_attributed_totals,
@@ -41,6 +46,32 @@ from app.services.brands import (
 from app.services.drops import build_brand_drop_response, create_brand_drop
 
 router = APIRouter(prefix="/brands", tags=["brands"])
+
+
+@router.post("/apply", response_model=APIResponse)
+async def brand_apply(
+    payload: BrandApplyRequest,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Public brand self-registration (→ pending_review).
+
+    Disabled (403) when ``BRAND_SELF_REGISTRATION_ENABLED`` is false, so brands
+    can be admin-provisioned only without any other code change.
+    """
+    if not settings.BRAND_SELF_REGISTRATION_ENABLED:
+        raise BuzzAPIException(
+            errors.BRAND_REGISTRATION_DISABLED,
+            "Brand self-registration is currently disabled.",
+            status_code=403,
+        )
+    result = await apply_brand(
+        db,
+        brand_name=payload.brand_name,
+        company_email=payload.company_email,
+        instagram_handle=payload.instagram_handle,
+        intent_message=payload.intent_message,
+    )
+    return api_response(data=result)
 
 
 @router.get("/me", response_model=APIResponse)

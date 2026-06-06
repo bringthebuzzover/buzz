@@ -113,6 +113,14 @@ class Settings(BaseSettings):
         default="",
         description="Resend API key for transactional emails (empty = dev/console).",
     )
+    BRAND_SELF_REGISTRATION_ENABLED: bool = Field(
+        default=True,
+        description=(
+            "When True, the public POST /api/brands/apply route accepts brand "
+            "self-registrations (-> pending_review). When False, the route is "
+            "disabled (403) and brands are admin-provisioned only."
+        ),
+    )
 
     # --- Token encryption at rest (architecture.md §10.5 / §11.1) ---
     TOKEN_ENCRYPTION_KEY: str = Field(

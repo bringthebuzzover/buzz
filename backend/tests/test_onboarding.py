@@ -197,6 +197,56 @@ async def test_resend_rate_limited(app_client: AsyncClient, db_session) -> None:
     assert resp.json()["error"]["code"] == "MAX_VERIFICATION_ATTEMPTS"
 
 
+# --- Brand self-registration (Phase 1) --------------------------------------
+
+
+async def test_brand_apply_creates_pending_brand(app_client: AsyncClient, db_session) -> None:
+    resp = await app_client.post(
+        "/api/brands/apply",
+        json={
+            "brandName": "Acme Co",
+            "companyEmail": "Hello@Acme.com",
+            "instagramHandle": "@acme",
+            "intentMessage": "We want campus reach.",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert data["status"] == BrandStatus.PENDING_REVIEW.value
+
+    brand = await db_session.scalar(select(Brand).where(Brand.company_email == "hello@acme.com"))
+    assert brand is not None
+    assert brand.instagram_handle == "acme" or brand.instagram_handle == "@acme"
+    user = await db_session.get(User, brand.user_id)
+    assert user.portal_role == PortalRole.BRAND.value
+    assert user.status != OrgUserStatus.ACTIVE.value
+    assert user.password_hash is None
+
+
+async def test_brand_apply_duplicate_email_conflict(app_client: AsyncClient, db_session) -> None:
+    await make_brand(db_session, brand_name="Existing")  # company_email brand@test.com
+    resp = await app_client.post(
+        "/api/brands/apply",
+        json={"brandName": "Dup", "companyEmail": "BRAND@test.com"},
+    )
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "BRAND_EMAIL_TAKEN"
+
+
+async def test_brand_apply_disabled_returns_403(
+    app_client: AsyncClient, db_session, monkeypatch
+) -> None:
+    from app.config import settings as app_settings
+
+    monkeypatch.setattr(app_settings, "BRAND_SELF_REGISTRATION_ENABLED", False)
+    resp = await app_client.post(
+        "/api/brands/apply",
+        json={"brandName": "Nope", "companyEmail": "nope@brand.com"},
+    )
+    assert resp.status_code == 403
+    assert resp.json()["error"]["code"] == "BRAND_REGISTRATION_DISABLED"
+
+
 # --- Brand auth: invite issued on approval ----------------------------------
 
 

@@ -6,12 +6,16 @@ are needed. ``app_client`` shares the rolled-back ``db_session``.
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlparse
 
+import jwt as pyjwt
 from httpx import AsyncClient
 from sqlalchemy import select
 
+from app import errors
 from app.config import settings
+from app.exceptions import BuzzAPIException
 from app.models.user import User
 from app.security import jwt
 from app.security.token_crypto import decrypt_token
@@ -165,3 +169,53 @@ async def test_returning_active_user_not_downgraded(
     )
     assert resp.status_code == 200
     assert resp.json()["data"]["user"]["status"] == "active"
+
+
+async def test_callback_expired_state_unauthorized(
+    app_client: AsyncClient, fake_instagram: FakeInstagramClient
+) -> None:
+    # An expired (but correctly-signed) state token, with a matching cookie so
+    # the double-submit check passes, must still be rejected on decode.
+    now = datetime.now(timezone.utc)
+    expired = pyjwt.encode(
+        {
+            "sub": "oauth",
+            "type": jwt.OAUTH_STATE_TOKEN_TYPE,
+            "nonce": "n",
+            "iat": now - timedelta(minutes=30),
+            "exp": now - timedelta(minutes=20),
+            "jti": "j",
+        },
+        settings.SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+    resp = await app_client.post(
+        "/api/auth/instagram/callback",
+        json={"code": "c", "state": expired},
+        cookies={settings.OAUTH_STATE_COOKIE_NAME: expired},
+    )
+    assert resp.status_code == 401
+    assert resp.json()["error"]["code"] == "UNAUTHORIZED"
+
+
+async def test_callback_instagram_failure_returns_error(
+    app_client: AsyncClient, fake_instagram: FakeInstagramClient, monkeypatch
+) -> None:
+    # The real client maps an Instagram HTTP failure during code exchange to a
+    # typed 401 (see services.instagram._ig_error). The callback must surface
+    # that error envelope rather than a partial login.
+    async def _boom(_code: str):
+        raise BuzzAPIException(
+            code=errors.UNAUTHORIZED,
+            message="Instagram code exchange failed.",
+            status_code=401,
+        )
+
+    monkeypatch.setattr(fake_instagram, "exchange_code", _boom)
+    state = await _begin_login(app_client)
+    resp = await app_client.post(
+        "/api/auth/instagram/callback",
+        json={"code": "c", "state": state},
+    )
+    assert resp.status_code == 401
+    assert resp.json()["error"]["code"] == "UNAUTHORIZED"
