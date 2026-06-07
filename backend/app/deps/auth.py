@@ -160,7 +160,8 @@ def require_active_role(role: PortalRole) -> Callable[[User], Awaitable[User]]:
 CurrentUser = Annotated[User, Depends(get_current_user)]
 CurrentOrg = Annotated[User, Depends(require_active_role(PortalRole.ORG))]
 CurrentBrand = Annotated[User, Depends(require_active_role(PortalRole.BRAND))]
-CurrentAdmin = Annotated[User, Depends(require_role(PortalRole.ADMIN))]
+# Admins must also be active (a suspended admin → 403), matching org/brand.
+CurrentAdmin = Annotated[User, Depends(require_active_role(PortalRole.ADMIN))]
 
 __all__ = [
     "get_current_user",

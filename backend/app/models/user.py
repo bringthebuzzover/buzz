@@ -56,6 +56,13 @@ class User(Base):
 
     password_hash: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
 
+    # Bumped to invalidate all of a user's outstanding refresh tokens at once
+    # (logout, admin deny/suspend). Refresh tokens carry the version they were
+    # minted at; a mismatch on refresh is rejected (architecture §11.1, Stage 9).
+    token_version: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, server_default=sa.text("0")
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
     )

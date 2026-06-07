@@ -9,7 +9,7 @@ liveness route. Docs are exposed under `/api/docs` and the spec at
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -18,8 +18,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.responses import Response
 
 from app import errors
+from app.config import settings
 from app.deps.db import engine
 from app.exceptions import BuzzAPIException
 from app.response import api_error_response
@@ -35,11 +37,17 @@ from app.services.instagram import close_instagram_client
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_ORIGINS = [
-    "http://localhost:3000",
+_PROD_ORIGINS = [
     "https://bringthebuzzover.com",
     "https://www.bringthebuzzover.com",
 ]
+# localhost is only an allowed origin in local dev (credentials + a real
+# allowlist in prod; no localhost leaking into the prod CORS policy).
+ALLOWED_ORIGINS = (
+    [*_PROD_ORIGINS, "http://localhost:3000"]
+    if settings.ENVIRONMENT == "development"
+    else _PROD_ORIGINS
+)
 
 
 @asynccontextmanager
@@ -69,6 +77,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def _security_headers(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    """Baseline hardening headers on every response (§11, Stage 9).
+
+    Cheap defense-in-depth for an API behind a SPA: no MIME sniffing, deny
+    framing, and HSTS (off in dev where there's no HTTPS). A page CSP belongs on
+    the static frontend host, not the API.
+    """
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    if settings.ENVIRONMENT != "development":
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+        )
+    return response
 
 
 @app.exception_handler(BuzzAPIException)

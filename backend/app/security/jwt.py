@@ -52,6 +52,7 @@ class TokenPayload(BaseModel):
     role: str | None = None
     status: str | None = None
     nonce: str | None = None
+    ver: int | None = None  # users.token_version at mint time (refresh tokens)
 
 
 def _now() -> datetime:
@@ -78,8 +79,12 @@ def create_access_token(user_id: uuid.UUID | str, role: str, status: str) -> str
     return _encode(claims)
 
 
-def create_refresh_token(user_id: uuid.UUID | str) -> str:
-    """Mint a long-lived refresh token (no role/status; reload on use)."""
+def create_refresh_token(user_id: uuid.UUID | str, token_version: int = 0) -> str:
+    """Mint a long-lived refresh token (no role/status; reload on use).
+
+    Carries the user's ``token_version`` so a server-side bump (logout / admin
+    revoke) invalidates every outstanding refresh token at once (§11.1).
+    """
 
     issued = _now()
     claims: dict[str, Any] = {
@@ -88,6 +93,7 @@ def create_refresh_token(user_id: uuid.UUID | str) -> str:
         "iat": issued,
         "exp": issued + timedelta(days=settings.REFRESH_TOKEN_TTL_DAYS),
         "jti": uuid.uuid4().hex,
+        "ver": token_version,
     }
     return _encode(claims)
 
