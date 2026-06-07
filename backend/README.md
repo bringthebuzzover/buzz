@@ -251,16 +251,25 @@ backend/
       posts.py     # Post library / aggregate / suggestion / link-post models
       brands.py    # Brand profile, drop list/detail, finalize, aggregate, engagement-series
     services/
-      instagram.py # InstagramClient protocol + HttpInstagramClient + DI
+      instagram.py       # InstagramClient protocol + HttpInstagramClient (OAuth + §10 media/refresh)
+      instagram_token.py # §10.5.1 on-login long-lived token refresh (BackgroundTasks + advisory lock)
       auth.py      # handle_instagram_callback, token issuance, user response
       orgs.py      # Org profile orchestration
       drops.py     # Feed + drop detail + apply + notify + create_brand_drop
       campaigns.py # My-campaigns list/detail + resolve_owned_application gate
       posts.py     # Post library + link/unlink + aggregate + suggestions
       brands.py    # Brand aggregate, engagement series, finalize (7 rules + atomic txn)
+    jobs/          # Stage 8 background jobs (architecture §10), run by scripts/run_job.py
+      drop_autoclose.py # §10.2
+      token_cleanup.py  # §10.3
+      autolink_scan.py  # §10.4
+      token_refresh.py  # §10.5.2 safety-net cron
+      metric_sync.py    # §10.1 Instagram metric sync
   scripts/
-    check.sh       # Local quality gate (black → ruff → mypy → pytest)
-    seed_dev.py    # Destructive local dev seed
+    check.sh        # Local quality gate (black → ruff → mypy → alembic → pytest)
+    run_job.py      # Background-job runner: run_job.py <name> (Railway Cron)
+    dump_openapi.py # Write openapi.json (frontend type generation source)
+    seed_dev.py     # Destructive local dev seed
   tests/
     conftest.py    # engine / db_session / app_client / fake IG / token helpers
     test_health.py

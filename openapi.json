@@ -3127,7 +3127,7 @@
     },
     "/api/orgs/me/posts/refresh": {
       "post": {
-        "description": "Pull fresh posts/metrics from the IG API.\n\nStage 5B stub: the real Instagram sync (\u00a710.1) lands in Stage 8. For now\nthis returns the currently-stored posts so the route exists and the SPA can\nwire the \"Refresh\" affordance without a 404.",
+        "description": "Return the caller org's currently-stored posts.\n\nThe canonical Instagram sync is the Stage 8 daily batch job\n(``app.jobs.metric_sync``, \u00a710.1). This endpoint intentionally does NOT call\nInstagram on demand (it would burn rate-limit per click and add latency);\nit just returns the stored posts so the SPA's \"Refresh\" affordance reflects\nthe latest synced metrics. A future single-org on-demand sync could hang\nhere if needed.",
         "operationId": "refresh_my_posts_api_orgs_me_posts_refresh_post",
         "parameters": [
           {
