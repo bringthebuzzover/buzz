@@ -5,7 +5,7 @@
  * RequireRole, architecture §5.4).
  */
 import type { ReactElement } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import SiteLayout from "./layouts/SiteLayout";
 import RequireAuth from "./components/routing/RequireAuth";
 import RequireRole from "./components/routing/RequireRole";
@@ -45,6 +45,18 @@ function PortalGuard({
         <RequireRole role={role}>{children}</RequireRole>
       </RequireStatus>
     </RequireAuth>
+  );
+}
+
+/** Forward a legacy `/campaigns/:id` deep link to the real campaign detail
+ * route, preserving the id (don't drop it onto the generic feed). */
+function LegacyCampaignRedirect(): ReactElement {
+  const { campaignId } = useParams<{ campaignId: string }>();
+  return (
+    <Navigate
+      to={campaignId ? `/org/campaigns/${campaignId}` : "/org/campaigns"}
+      replace
+    />
   );
 }
 
@@ -163,7 +175,7 @@ export default function AppRoot(): ReactElement {
           path="campaigns/:campaignId"
           element={
             <PortalGuard role="org">
-              <Navigate to="/org/browse" replace />
+              <LegacyCampaignRedirect />
             </PortalGuard>
           }
         />

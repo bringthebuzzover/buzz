@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import DropFeedCard from "../../components/org/DropFeedCard";
 import { getDropFeedStatus } from "../../utils/dropStatus";
 import type { DropFeedRow, DropFeedStatus } from "../../types/drop";
+import { useDemoNow } from "../../contexts/DemoClockContext";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
 import { useApplyToDrop } from "../../api/hooks/useDropHooks";
 
@@ -44,16 +45,17 @@ function FeedHeader() {
 /** Shared presentational feed: filter chips + status-sorted card grid. */
 function FeedContent({
   rows,
-  now,
   onApply,
   disableApply = false,
 }: {
   rows: DropFeedRow[];
-  now: number;
   onApply: (dropId: string) => void;
   disableApply?: boolean;
 }) {
   const [filter, setFilter] = useState<FilterId>("all");
+  // Live wall-clock so a drop flips Upcoming→Open the moment its countdown ends
+  // (status/chips/Apply re-derive on each tick, not just on refetch).
+  const now = useDemoNow();
 
   /** Visible cards after status filter. Drops are sorted: Open -> Upcoming -> Closed. */
   const visibleDrops = useMemo(() => {
@@ -153,14 +155,7 @@ function ApiDropFeed() {
     );
   }
 
-  return (
-    <FeedContent
-      rows={items}
-      now={Date.now()}
-      onApply={handleApply}
-      disableApply={false}
-    />
-  );
+  return <FeedContent rows={items} onApply={handleApply} disableApply={false} />;
 }
 
 /** Inline apply form shown when user clicks Apply on a drop card. */

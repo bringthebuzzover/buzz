@@ -145,6 +145,15 @@ async def instagram_callback(
     _clear_state_cookie(response)
 
     user = await handle_instagram_callback(db, ig, payload.code)
+    # Don't mint fresh credentials for a terminally-denied/suspended account —
+    # symmetric with the refresh boundary (refresh already rejects these). New
+    # users are pending_org_profile, so signup is unaffected.
+    if user.status in {OrgUserStatus.DENIED.value, OrgUserStatus.SUSPENDED.value}:
+        raise BuzzAPIException(
+            code=errors.FORBIDDEN,
+            message="This account is not permitted to sign in.",
+            status_code=403,
+        )
     access, refresh = issue_token_pair(user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
@@ -314,7 +323,11 @@ async def verify_email_endpoint(
     return api_response(data=camelize(result))
 
 
-@router.post("/verify-email/resend", response_model=APIResponse)
+@router.post(
+    "/verify-email/resend",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("verify_resend", limit=3, window=60))],
+)
 async def resend_verification_endpoint(
     _payload: ResendVerificationRequest,
     user: User = Depends(get_current_user),

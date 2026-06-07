@@ -65,8 +65,12 @@ class Settings(BaseSettings):
     # --- Refresh cookie (architecture.md §11.1) ---
     REFRESH_COOKIE_NAME: str = Field(default="buzz_refresh")
     REFRESH_COOKIE_SECURE: bool = Field(
-        default=True,
-        description="Set False for local HTTP dev so the cookie is sent.",
+        default=False,
+        description=(
+            "Dev-friendly default (False) so the cookie is sent over http://localhost. "
+            "The startup validator REJECTS startup unless this is True when "
+            "ENVIRONMENT != development, so prod can never ship insecure."
+        ),
     )
     REFRESH_COOKIE_SAMESITE: Literal["lax", "strict", "none"] = Field(
         default="lax",

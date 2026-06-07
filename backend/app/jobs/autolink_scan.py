@@ -18,6 +18,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.application import DropApplication
@@ -135,15 +136,22 @@ async def scan_autolink(db: AsyncSession) -> dict[str, Any]:
             if hit is None:
                 continue
             reason, evidence = hit
-            db.add(
-                PostCampaignSuggestion(
-                    post_id=post.id,
-                    application_id=application.id,
-                    drop_id=drop.id,
-                    match_reason=reason,
-                    match_evidence=evidence,
-                )
-            )
+            # Savepoint so a concurrent run losing the
+            # UNIQUE(post_id, application_id) race skips this pair instead of
+            # aborting the whole scan's transaction.
+            try:
+                async with db.begin_nested():
+                    db.add(
+                        PostCampaignSuggestion(
+                            post_id=post.id,
+                            application_id=application.id,
+                            drop_id=drop.id,
+                            match_reason=reason,
+                            match_evidence=evidence,
+                        )
+                    )
+            except IntegrityError:
+                continue
             created += 1
 
     await db.flush()

@@ -237,6 +237,19 @@ async def advance_tracker(
             status_code=400,
         )
 
+    # Applicant selection must happen before any fulfillment stage. Forbid
+    # skipping past finalizing_agreements while the drop is unfinalized — a
+    # multi-stage jump (e.g. request_received -> drop_active) would otherwise
+    # strand applied orgs that can never be decided (finalize requires the
+    # finalizing_agreements stage and there is no backward transition).
+    finalizing_idx = _STAGE_ORDER.index(BrandTrackerStage.FINALIZING_AGREEMENTS.value)
+    if requested_idx > finalizing_idx and drop.applicant_selection_finalized_at is None:
+        raise BuzzAPIException(
+            errors.DROP_NOT_IN_SELECTION_STAGE,
+            "Finalize applicant selection before advancing past the selection stage.",
+            status_code=400,
+        )
+
     drop.brand_tracker_stage = requested
     event = DropTrackerEvent(
         drop_id=drop.id,
@@ -264,11 +277,37 @@ async def advance_tracker(
 
 
 async def reopen_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
-    """Set ``manual_reopen=true`` on a drop (§8.5)."""
+    """Reopen a drop's apply window (§4.1, §8.5).
+
+    Always re-opens the apply window (``manual_reopen=true``). If the drop was
+    already **finalized**, also re-enables a new selection round so the orgs that
+    apply after reopen aren't stranded: clear ``applicant_selection_finalized_at``
+    and move the tracker back to ``finalizing_agreements`` (the one controlled
+    backward transition), writing a tracker event. Previously-``accepted`` orgs
+    keep their decision (finalize only re-touches ``applied`` rows).
+
+    Note (reopen UX is PRODUCT.md §12 TBD): capacity is not re-checked across
+    rounds, and finalize still keys off ``apply_close_at`` — an org applying
+    during a brand's finalize is a benign TOCTOU. Both are acceptable for the MVP
+    admin-driven flow.
+    """
     drop = await db.get(Drop, drop_id)
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
 
     drop.manual_reopen = True
+
+    if drop.applicant_selection_finalized_at is not None:
+        drop.applicant_selection_finalized_at = None
+        finalizing = BrandTrackerStage.FINALIZING_AGREEMENTS.value
+        if _STAGE_ORDER.index(drop.brand_tracker_stage) > _STAGE_ORDER.index(finalizing):
+            drop.brand_tracker_stage = finalizing
+            db.add(
+                DropTrackerEvent(
+                    drop_id=drop.id,
+                    stage=finalizing,
+                    note="reopened for a new selection round",
+                )
+            )
     await db.flush()
     return {"drop_id": str(drop.id), "manual_reopen": True}

@@ -78,42 +78,58 @@ async function _meRequest(token: string): Promise<Response> {
 }
 
 /**
- * Fetch the current user from GET /api/auth/me. Returns null on failure.
+ * Result of {@link fetchMe}, distinguishing a *definitively unauthenticated*
+ * session (401 the refresh cookie can't rescue) from a *transient* failure
+ * (network blip / 5xx). Callers must NOT log a user out on `"error"` — only on
+ * `"unauthenticated"` — otherwise a single failed 15s poll bounces a valid
+ * session to /login.
+ */
+export type MeResult =
+  | { kind: "user"; user: AuthUser }
+  | { kind: "unauthenticated" }
+  | { kind: "error" };
+
+/**
+ * Fetch the current user from GET /api/auth/me.
  *
  * On a 401 (expired access token) it refreshes once from the cookie and retries,
- * so long-lived sessions (e.g. the pending-approval poller) don't get kicked to
- * /login after the 1h access-token TTL while the refresh cookie is still valid.
+ * so long-lived sessions (e.g. the pending-approval poller) survive the access-
+ * token TTL while the refresh cookie is still valid. A still-401 after refresh is
+ * `"unauthenticated"`; a 5xx or network throw is `"error"` (transient).
  * Uses raw fetch (not `apiFetch`) to avoid an import cycle with `client.ts`.
  */
-export async function fetchMe(): Promise<AuthUser | null> {
+export async function fetchMe(): Promise<MeResult> {
   try {
     let token = getAccessToken();
     if (!token) {
-      if (!(await refreshAccessToken())) return null;
+      if (!(await refreshAccessToken())) return { kind: "unauthenticated" };
       token = getAccessToken();
-      if (!token) return null;
+      if (!token) return { kind: "unauthenticated" };
     }
 
     let resp = await _meRequest(token);
     if (resp.status === 401) {
-      if (!(await refreshAccessToken())) return null;
+      if (!(await refreshAccessToken())) return { kind: "unauthenticated" };
       const refreshed = getAccessToken();
-      if (!refreshed) return null;
+      if (!refreshed) return { kind: "unauthenticated" };
       resp = await _meRequest(refreshed);
     }
-    if (!resp.ok) return null;
-
+    if (resp.status === 401) return { kind: "unauthenticated" };
+    if (!resp.ok) return { kind: "error" }; // 5xx / other → transient, keep session
     const body = await resp.json();
     const u = body.data;
-    if (!u) return null;
+    if (!u) return { kind: "error" };
     return {
-      id: u.id,
-      portalRole: u.portalRole ?? u.portal_role,
-      status: u.status,
-      instagramUsername: u.instagramUsername ?? u.instagram_username,
+      kind: "user",
+      user: {
+        id: u.id,
+        portalRole: u.portalRole ?? u.portal_role,
+        status: u.status,
+        instagramUsername: u.instagramUsername ?? u.instagram_username,
+      },
     };
   } catch {
-    return null;
+    return { kind: "error" }; // network throw → transient
   }
 }
 

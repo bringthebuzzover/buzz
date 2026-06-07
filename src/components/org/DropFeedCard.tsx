@@ -249,16 +249,21 @@ function UpcomingActions({ drop }: { drop: DropCardData }) {
       : [];
   const notified = serverMinutes.length > 0;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const handleConfirm = (selected: number[]) => {
+    setFailed(false);
     const valid = selected.filter((m) =>
       (REMINDER_CHOICES as readonly number[]).includes(m),
     );
+    // Surface failures (F6): don't leave the user believing they're subscribed
+    // when the write failed.
+    const opts = { onError: () => setFailed(true) };
     if (valid.length === 0) {
-      notify.mutate(null);
+      notify.mutate(null, opts);
       return;
     }
-    notify.mutate(Math.min(...valid));
+    notify.mutate(Math.min(...valid), opts);
   };
 
   return (
@@ -269,7 +274,11 @@ function UpcomingActions({ drop }: { drop: DropCardData }) {
         disabled={notify.isPending}
         onClick={() => setIsModalOpen(true)}
       />
-      {notified ? (
+      {failed ? (
+        <p className="text-center text-[11px] font-semibold text-red-600">
+          Couldn't update your reminder. Please try again.
+        </p>
+      ) : notified ? (
         <p className="text-center text-[11px] font-semibold text-buzz-coral">
           You're on the list — we'll let you know when this opens.
         </p>

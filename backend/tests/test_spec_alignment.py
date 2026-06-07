@@ -113,8 +113,10 @@ async def test_advance_to_awaiting_sets_drop_tracking_number(
 ) -> None:
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
-    # Advance into awaiting_products is forward-only; start one stage back.
+    # Advance into awaiting_products is forward-only; start one stage back, and
+    # mark selection finalized (required before advancing past finalizing_agreements).
     drop.brand_tracker_stage = BrandTrackerStage.FINALIZING_AGREEMENTS.value
+    drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
     await db_session.flush()
 
     resp = await app_client.patch(
@@ -254,3 +256,83 @@ async def test_org_profile_patch_updates_category(app_client: AsyncClient, db_se
     assert resp.json()["data"]["category"] == "social"
     await db_session.refresh(org)
     assert org.category == OrgCategory.SOCIAL.value
+
+
+# --- Stage 12: lifecycle fixes (reopen, tracker skip, reach) -----------------
+
+
+async def test_tracker_blocks_skip_past_selection_unfinalized(
+    app_client: AsyncClient, db_session
+) -> None:
+    """L10: advancing past finalizing_agreements while unfinalized is rejected."""
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
+    resp = await app_client.patch(
+        f"/api/admin/drops/{drop.id}/tracker",
+        json={"stage": "drop_active"},
+        headers=await _admin_headers(db_session),
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "DROP_NOT_IN_SELECTION_STAGE"
+
+
+async def test_tracker_advance_allowed_after_finalized(app_client: AsyncClient, db_session) -> None:
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
+    drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
+    await db_session.flush()
+    resp = await app_client.patch(
+        f"/api/admin/drops/{drop.id}/tracker",
+        json={"stage": "drop_active"},
+        headers=await _admin_headers(db_session),
+    )
+    assert resp.status_code == 200, resp.text
+
+
+async def test_reopen_finalized_drop_resets_selection(app_client: AsyncClient, db_session) -> None:
+    """L9: reopening a finalized drop re-enables a new selection round."""
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+    drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
+    await db_session.flush()
+
+    resp = await app_client.post(
+        f"/api/admin/drops/{drop.id}/reopen", headers=await _admin_headers(db_session)
+    )
+    assert resp.status_code == 200, resp.text
+    await db_session.refresh(drop)
+    assert drop.manual_reopen is True
+    assert drop.applicant_selection_finalized_at is None
+    assert drop.brand_tracker_stage == BrandTrackerStage.FINALIZING_AGREEMENTS.value
+
+
+async def test_reopen_unfinalized_drop_only_sets_flag(app_client: AsyncClient, db_session) -> None:
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.REQUEST_RECEIVED)
+    resp = await app_client.post(
+        f"/api/admin/drops/{drop.id}/reopen", headers=await _admin_headers(db_session)
+    )
+    assert resp.status_code == 200, resp.text
+    await db_session.refresh(drop)
+    assert drop.manual_reopen is True
+    assert drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
+
+
+async def test_brand_aggregate_reach_dedupes_org_across_drops(
+    app_client: AsyncClient, db_session
+) -> None:
+    """L11: an org accepted on multiple drops counts once toward total_reach."""
+    _, brand, headers = await _brand_ctx(db_session)
+    org_user = await persist(db_session, make_user(instagram_user_id="ig_reach"))
+    org = await make_org(db_session, org_user)
+    org.follower_count = 1000
+    await db_session.flush()
+    for i in range(2):
+        drop = await make_drop(db_session, brand, title=f"Reach Drop {i}")
+        await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+
+    resp = await app_client.get("/api/brands/me/aggregate", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["totalReach"] == 1000  # deduped, not 2000
+    assert data["totalOrgs"] == 1

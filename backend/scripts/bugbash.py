@@ -321,6 +321,15 @@ async def db_org_id_for_user(user_id: uuid.UUID) -> uuid.UUID | None:
         return await db.scalar(select(Organization.id).where(Organization.user_id == user_id))
 
 
+async def db_mark_finalized(drop_id: str) -> None:
+    """Mark a drop's applicant selection finalized (so the tracker can advance)."""
+    async with async_session_factory() as db:
+        drop = await db.get(Drop, uuid.UUID(drop_id))
+        if drop is not None:
+            drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
+            await db.commit()
+
+
 # --------------------------------------------------------------------------- #
 # Journey scenarios
 # --------------------------------------------------------------------------- #
@@ -520,14 +529,29 @@ async def scenario_admin_tracker(api: Api) -> None:
     if not api.report.check(bool(admin_tok), "dev-login admin"):
         return
     did = fx["drop_id"]
-    # forward-only: finalizing_agreements -> awaiting_products with tracking number
+    # L10: advancing past finalizing_agreements while unfinalized is rejected.
     r = await api.req(
         "PATCH",
         f"/api/admin/drops/{did}/tracker",
         token=admin_tok,
         json={"stage": "awaiting_products", "trackingNumber": "BASH-TRK-1"},
     )
-    api.report.check(_ok(r, 200), "tracker -> awaiting_products 200", str(r.status_code))
+    api.report.check(
+        _err_code(r) == "DROP_NOT_IN_SELECTION_STAGE",
+        "tracker skip past selection blocked (unfinalized)",
+        f"{r.status_code} {_err_code(r)}",
+    )
+    # Finalize, then the advance is allowed.
+    await db_mark_finalized(did)
+    r = await api.req(
+        "PATCH",
+        f"/api/admin/drops/{did}/tracker",
+        token=admin_tok,
+        json={"stage": "awaiting_products", "trackingNumber": "BASH-TRK-1"},
+    )
+    api.report.check(
+        _ok(r, 200), "tracker -> awaiting_products 200 (finalized)", str(r.status_code)
+    )
     # backward move rejected
     r = await api.req(
         "PATCH",
