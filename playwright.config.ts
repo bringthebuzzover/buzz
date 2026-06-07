@@ -4,9 +4,11 @@ import { defineConfig, devices } from "@playwright/test";
  * Thin E2E suite (a few critical cross-stack journeys). Kept deliberately small
  * and on `data-testid` selectors to bound maintenance — see TESTING.md.
  *
- * `globalSetup` resets the DB to a deterministic fixture (the dev seed + one
- * guaranteed-open drop) before the run. `webServer` starts the backend (dev
- * mode, so dev-login works) and the frontend, reusing them if already up.
+ * `globalSetup` applies migrations + resets the DB to a deterministic fixture
+ * (the dev seed + one guaranteed-open drop) before the run. `webServer` starts
+ * the backend (ENVIRONMENT=development, so dev-login works) and the frontend.
+ * `reuseExistingServer` is off in CI (always a fresh dev-mode backend); locally
+ * it reuses a running server for speed — keep your local :8000 in dev mode.
  *
  * Prereqs: local Postgres running, backend deps installed (poetry), browsers
  * installed (`npx playwright install chromium`).

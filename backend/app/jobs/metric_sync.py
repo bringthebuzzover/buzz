@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.application import DropApplication
@@ -167,22 +168,29 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
             except Exception:  # noqa: BLE001
                 failed += 1
                 continue
-            db.add(
-                SocialPost(
-                    org_id=org.id,
-                    platform=Platform.INSTAGRAM.value,
-                    external_id=ref.id,
-                    url=fields.permalink,
-                    media_url=fields.media_url,
-                    thumbnail_url=fields.thumbnail_url,
-                    caption=fields.caption,
-                    media_type=fields.media_type,
-                    media_product_type=fields.media_product_type,
-                    posted_at=posted,
-                    likes=fields.like_count,
-                    comments=fields.comments_count,
-                )
-            )
+            # Insert in a savepoint so a concurrent run losing the
+            # UNIQUE(platform, external_id) race skips that post instead of
+            # aborting the whole job's transaction.
+            try:
+                async with db.begin_nested():
+                    db.add(
+                        SocialPost(
+                            org_id=org.id,
+                            platform=Platform.INSTAGRAM.value,
+                            external_id=ref.id,
+                            url=fields.permalink,
+                            media_url=fields.media_url,
+                            thumbnail_url=fields.thumbnail_url,
+                            caption=fields.caption,
+                            media_type=fields.media_type,
+                            media_product_type=fields.media_product_type,
+                            posted_at=posted,
+                            likes=fields.like_count,
+                            comments=fields.comments_count,
+                        )
+                    )
+            except IntegrityError:
+                continue
             discovered += 1
         await db.flush()
 

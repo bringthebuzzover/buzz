@@ -26,6 +26,7 @@ import {
   fetchMe,
   logout as apiLogout,
 } from "../api/auth";
+import { API_BASE_URL } from "../api/config";
 import type { PortalRole } from "../types/auth";
 
 export type AuthStatus =
@@ -52,10 +53,29 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** True when the browser is on a login/auth page (don't dev-auto-login there). */
+function onAuthRoute(): boolean {
+  const p = window.location.pathname;
+  return (
+    p === "/login" ||
+    p.startsWith("/brand/login") ||
+    p.startsWith("/brand/setup") ||
+    p.startsWith("/brand/apply") ||
+    p.startsWith("/auth/")
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("idle");
   const [user, setUser] = useState<AuthUser | null>(null);
   const startedRef = useRef(false);
+  // Latest known user (read inside async callbacks without re-creating them) and
+  // a generation counter so a slow refreshUser can't overwrite a newer result.
+  const userRef = useRef<AuthUser | null>(null);
+  const genRef = useRef(0);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -66,21 +86,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const refreshed = await refreshAccessToken();
       if (refreshed) {
         const me = await fetchMe();
-        if (me) {
-          setUser(me);
+        if (me.kind === "user") {
+          setUser(me.user);
           setStatus("authenticated");
           return;
         }
       }
-      const dev = await devLogin();
-      if (dev) {
-        const me = await fetchMe();
-        // Only "authenticated" when we actually resolved a user; a token with
-        // no /me would otherwise let RequireRole 403 a valid session.
-        if (me) {
-          setUser(me);
-          setStatus("authenticated");
-          return;
+      // Dev-only convenience: auto-login as the seeded org so local dev has a
+      // session without the Instagram flow (dev-login 404s in prod). Skip it on
+      // an auth route — someone explicitly visiting /login or /brand/login should
+      // not be silently signed in as the default org.
+      if (!onAuthRoute()) {
+        const dev = await devLogin();
+        if (dev) {
+          const me = await fetchMe();
+          // Only "authenticated" when we actually resolved a user; a token with
+          // no /me would otherwise let RequireRole 403 a valid session.
+          if (me.kind === "user") {
+            setUser(me.user);
+            setStatus("authenticated");
+            return;
+          }
         }
       }
       setStatus("error");
@@ -91,9 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(() => {
     // Redirect to Instagram OAuth login endpoint.
     // The backend responds with a 302 to Instagram; the browser follows it.
-    const apiBase = (
-      process.env.REACT_APP_API_URL ?? "http://localhost:8000"
-    ).replace(/\/$/, "");
+    // Single source of truth for the API base (so the prod-URL guard covers it).
+    const apiBase = API_BASE_URL.replace(/\/$/, "");
     window.location.href = `${apiBase}/api/auth/instagram/login`;
   }, []);
 
@@ -106,13 +131,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
-    const me = await fetchMe();
-    setUser(me);
-    // Keep status in sync so guards (RequireAuth) see the post-login state.
-    // Used after a brand login (client-side nav, no full reload) and after an
-    // onboarding status transition.
-    setStatus(me ? "authenticated" : "error");
-    return me;
+    const gen = ++genRef.current;
+    const result = await fetchMe();
+    // Drop a stale result if a newer refreshUser started while we awaited (F3).
+    if (gen !== genRef.current) return userRef.current;
+
+    if (result.kind === "user") {
+      setUser(result.user);
+      setStatus("authenticated");
+      return result.user;
+    }
+    if (result.kind === "unauthenticated") {
+      setUser(null);
+      setStatus("error");
+      return null;
+    }
+    // Transient failure (network/5xx): keep the current session — a single
+    // failed poll must not log a valid user out (F2).
+    return userRef.current;
   }, []);
 
   const value = useMemo<AuthContextValue>(

@@ -29,7 +29,10 @@ export default function BrandApplyPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const disabled = config.data?.brandSelfRegistrationEnabled === false;
+  // Restrictive default: show the form ONLY when self-registration is explicitly
+  // enabled. A failed/empty config fetch falls back to "invitation only" rather
+  // than rendering a form the backend will 403 (F7).
+  const disabled = config.data?.brandSelfRegistrationEnabled !== true;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

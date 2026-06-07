@@ -43,9 +43,20 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
 
   const busy =
     link.isPending || unlink.isPending || accept.isPending || dismiss.isPending;
+  // Surface link/unlink/accept/dismiss failures (F8) — don't silently re-enable
+  // the buttons leaving the user thinking the action worked.
+  const mutationError = (link.error ||
+    unlink.error ||
+    accept.error ||
+    dismiss.error) as Error | null;
 
   return (
     <div className="space-y-6">
+      {mutationError ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm font-medium text-red-700">
+          {mutationError.message || "Something went wrong. Please try again."}
+        </p>
+      ) : null}
       {!readOnly && suggestions && suggestions.length > 0 ? (
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-6 shadow-sm">
           <h3 className="mb-1 text-lg font-bold text-buzz-ink">Suggested posts</h3>

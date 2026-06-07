@@ -230,7 +230,6 @@ async def compute_brand_aggregate(db: AsyncSession, brand: Brand) -> dict[str, i
     total_posts = 0
     total_likes = 0
     total_comments = 0
-    total_reach = 0
     org_ids_all: set[UUID] = set()
     campus_set: set[str] = set()
 
@@ -239,7 +238,6 @@ async def compute_brand_aggregate(db: AsyncSession, brand: Brand) -> dict[str, i
         total_posts += agg["total_posts"]
         total_likes += agg["total_likes"]
         total_comments += agg["total_comments"]
-        total_reach += agg["total_reach"]
 
         # Accepted orgs for this drop
         rows = list(
@@ -255,6 +253,20 @@ async def compute_brand_aggregate(db: AsyncSession, brand: Brand) -> dict[str, i
         for org_id, university in rows:
             org_ids_all.add(org_id)
             campus_set.add(university)
+
+    # Reach is the audience of the DISTINCT accepted orgs across all drops —
+    # summing per-drop reach would double-count an org accepted on multiple
+    # drops and contradict the (deduped) total_orgs (architecture.md §8.1).
+    total_reach = 0
+    if org_ids_all:
+        total_reach = int(
+            await db.scalar(
+                select(func.coalesce(func.sum(Organization.follower_count), 0)).where(
+                    Organization.id.in_(org_ids_all)
+                )
+            )
+            or 0
+        )
 
     return {
         "total_drops": total_drops,

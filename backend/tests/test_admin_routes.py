@@ -286,9 +286,12 @@ class TestTrackerAdvance:
             apply_open_at=datetime.now(timezone.utc) - timedelta(days=30),
             apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
         )
+        # Selection must be finalized before advancing past finalizing_agreements.
+        drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, org_user)
         await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+        await db_session.flush()
 
         # Advance to awaiting_products with tracking number
         res = await app_client.patch(

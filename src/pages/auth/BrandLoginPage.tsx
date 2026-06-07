@@ -9,6 +9,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useBrandLogin, usePublicConfig } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
+import { pathForUser } from "../../utils/landing";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
@@ -24,8 +25,10 @@ export default function BrandLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  if (status === "authenticated" && user?.portalRole === "brand") {
-    return <Navigate to="/brand/dashboard" replace />;
+  // Any already-authenticated user is forwarded to their own landing — an org
+  // must never see the brand form and clobber its session by submitting it.
+  if (status === "authenticated" && user) {
+    return <Navigate to={pathForUser(user)} replace />;
   }
 
   const onSubmit = async (e: React.FormEvent) => {
