@@ -1,14 +1,10 @@
 /**
- * Hero video block: full CTAs in demo mode; public mode emphasizes waitlist scroll (no browse campaigns).
+ * Hero video block: public mode emphasizes waitlist scroll.
  */
-import { useNavigate } from "react-router-dom";
 import { siteIdentity } from "../../data/siteIdentity";
-import { useAccessGate } from "../../contexts/AccessGateContext";
 import { scrollToHomeWaitlist } from "../../utils/scrollHomeWaitlist";
 
 export default function HomeHero() {
-  const navigate = useNavigate();
-  const { isDemoActive, demoView, openPasscodeModal } = useAccessGate();
   const publicUrl = process.env.PUBLIC_URL ?? "";
 
   return (
@@ -33,66 +29,13 @@ export default function HomeHero() {
           campus activations nationwide.
         </h2>
         <div className="flex flex-col justify-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0 md:justify-start">
-          {isDemoActive ? (
-            <>
-              {demoView === "brand" ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/brand/dashboard")}
-                    className="rounded-lg bg-buzz-coral px-8 py-3 font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
-                  >
-                    See Dashboard
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate("/brand/dashboard", {
-                        state: { openPlanCampaign: true },
-                      })
-                    }
-                    className="rounded-lg border border-buzz-paper/50 bg-buzz-overlay/30 px-8 py-3 font-bold text-buzz-paper shadow-sm backdrop-blur-sm transition hover:bg-buzz-overlay/50"
-                  >
-                    Plan your Campaign
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/org/campaigns")}
-                    className="rounded-lg bg-buzz-coral px-8 py-3 font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
-                  >
-                    My Campaigns
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/org/browse")}
-                    className="rounded-lg border border-buzz-paper/50 bg-buzz-overlay/30 px-8 py-3 font-bold text-buzz-paper shadow-sm backdrop-blur-sm transition hover:bg-buzz-overlay/50"
-                  >
-                    Browse Campaigns
-                  </button>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={scrollToHomeWaitlist}
-                className="rounded-lg bg-buzz-coral px-8 py-3 font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
-              >
-                Join Waitlist!
-              </button>
-              <button
-                type="button"
-                onClick={openPasscodeModal}
-                className="rounded-lg border border-buzz-paper/50 bg-buzz-overlay/30 px-8 py-3 font-bold text-buzz-paper shadow-sm backdrop-blur-sm transition hover:bg-buzz-overlay/50"
-              >
-                View Demo
-              </button>
-            </>
-          )}
+          <button
+            type="button"
+            onClick={scrollToHomeWaitlist}
+            className="rounded-lg bg-buzz-coral px-8 py-3 font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
+          >
+            Join Waitlist!
+          </button>
         </div>
         <div className="mt-8 inline-block px-4 py-1 text-sm font-medium text-buzz-paper/80">
           {siteIdentity.content.heroSpotlightLine}

@@ -1,18 +1,9 @@
 /**
  * Brand waitlist route inside `SiteLayout`: photo-forward hero background + refined
- * glass card form.
- *
- * Stage 6: when USE_API is true, submits to POST /api/waitlist instead of Firestore.
+ * glass card form. Submits to POST /api/waitlist.
  */
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { collection, addDoc } from "firebase/firestore";
-import {
-  buildBrandWaitlistSubmission,
-  db,
-  FIRESTORE_COLLECTIONS,
-} from "../../firebase";
-import { USE_API } from "../../config/featureFlags";
 import { API_BASE_URL } from "../../api/config";
 import waitlistBackground from "../../assets/boxesImage.png";
 
@@ -49,32 +40,20 @@ export default function Waitlist() {
     setSubmitting(true);
 
     try {
-      if (USE_API) {
-        const resp = await fetch(`${API_BASE_URL}/api/waitlist`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            submitterName: form.submitterName.trim(),
-            entityName: form.entityName.trim(),
-            email: form.email.trim(),
-            entityType: form.entityType,
-            details: form.details.trim() || undefined,
-          }),
-        });
-        if (!resp.ok) {
-          const body = await resp.json().catch(() => null);
-          throw new Error(body?.error?.message ?? "Submission failed");
-        }
-      } else {
-        await addDoc(
-          collection(db, FIRESTORE_COLLECTIONS.brandWaitlist),
-          buildBrandWaitlistSubmission({
-            submitterName: form.submitterName.trim(),
-            brandName: form.entityName.trim(),
-            email: form.email.trim(),
-            details: form.details.trim(),
-          }),
-        );
+      const resp = await fetch(`${API_BASE_URL}/api/waitlist`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          submitterName: form.submitterName.trim(),
+          entityName: form.entityName.trim(),
+          email: form.email.trim(),
+          entityType: form.entityType,
+          details: form.details.trim() || undefined,
+        }),
+      });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => null);
+        throw new Error(body?.error?.message ?? "Submission failed");
       }
 
       alert("You're on the waitlist!");

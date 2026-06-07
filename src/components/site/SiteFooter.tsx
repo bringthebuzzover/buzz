@@ -5,14 +5,9 @@
 import { Link } from "react-router-dom";
 import { siteIdentity } from "../../data/siteIdentity";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
-import { useAccessGate } from "../../contexts/AccessGateContext";
 
 export default function SiteFooter() {
   const { openContactModal } = useSiteChrome();
-  const { isDemoActive, demoView } = useAccessGate();
-  const showStudentLinks = isDemoActive && demoView === "org";
-  const showBrandDemoLinks = isDemoActive && demoView === "brand";
-  const showPublicBrandLinks = !isDemoActive;
 
   return (
     <footer className="mt-16 border-t border-buzz-line bg-buzz-paper px-8 py-12">
@@ -29,59 +24,16 @@ export default function SiteFooter() {
           </p>
         </div>
 
-        {showStudentLinks ? (
-          <div>
-            <h4 className="mb-4 font-bold text-buzz-ink">For Organizations</h4>
-            <ul className="space-y-2 text-sm font-medium text-buzz-inkMuted">
-              <li>
-                <Link to="/org/browse" className="hover:text-buzz-coral">
-                  Browse Campaigns
-                </Link>
-              </li>
-              <li>
-                <Link to="/org/campaigns" className="hover:text-buzz-coral">
-                  My Campaigns
-                </Link>
-              </li>
-            </ul>
-          </div>
-        ) : null}
-
-        {!showStudentLinks ? (
-          <div>
-            <h4 className="mb-4 font-bold text-buzz-ink">For Brands</h4>
-            <ul className="space-y-2 text-sm font-medium text-buzz-inkMuted">
-              {showBrandDemoLinks ? (
-                <>
-                  <li>
-                    <Link
-                      to="/brand/dashboard"
-                      className="hover:text-buzz-coral"
-                    >
-                      Brand Dashboard
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      to="/brand/dashboard"
-                      state={{ openPlanCampaign: true }}
-                      className="hover:text-buzz-coral"
-                    >
-                      Plan your Campaign
-                    </Link>
-                  </li>
-                </>
-              ) : null}
-              {showPublicBrandLinks ? (
-                <li>
-                  <Link to="/waitlist" className="hover:text-buzz-coral">
-                    Brand waitlist
-                  </Link>
-                </li>
-              ) : null}
-            </ul>
-          </div>
-        ) : null}
+        <div>
+          <h4 className="mb-4 font-bold text-buzz-ink">For Brands</h4>
+          <ul className="space-y-2 text-sm font-medium text-buzz-inkMuted">
+            <li>
+              <Link to="/waitlist" className="hover:text-buzz-coral">
+                Brand waitlist
+              </Link>
+            </li>
+          </ul>
+        </div>
 
         <div>
           <h4 className="mb-4 font-bold text-buzz-ink">Company</h4>

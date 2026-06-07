@@ -33,8 +33,8 @@ export type SocialPost = {
 
 /**
  * Link join row connecting a post to a campaign (an org's participation in a drop).
- * Uniqueness is enforced at the application layer via `utils/postAttribution`:
- * a single `postId` may appear in at most one link.
+ * Uniqueness is enforced server-side (a UNIQUE constraint on `post_id`): a single
+ * `postId` may appear in at most one link.
  */
 export type PostCampaignLink = {
   /** Post id (also unique within the links table). */

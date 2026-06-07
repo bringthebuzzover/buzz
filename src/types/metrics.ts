@@ -1,6 +1,7 @@
 /**
- * Aggregated metrics types used by per-drop and aggregate brand dashboards.
- * Computed by `utils/metrics` from raw `SocialPost` snapshots and `PostCampaignLink` rows.
+ * Aggregated-metrics view types consumed by the per-drop and aggregate brand
+ * dashboard components. The values themselves come from the backend brand
+ * endpoints (GET /api/brands/me/aggregate, /me/drops, /me/engagement-series).
  */
 
 /** Aggregated metrics for a single drop (rolled up across all orgs). */

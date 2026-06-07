@@ -8,9 +8,9 @@
  * - Closed: disabled action with reason chip.
  *
  * The card is presentational; data fetching + mutations are wired by the parent
- * (`OrgDropFeedPage`) and the apply modal (`ApplyToDropModal`).
+ * (`OrgDropFeedPage`) and the inline apply form.
  */
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useState } from "react";
 import { Bell, BellRing, Calendar, MapPin } from "lucide-react";
 import type { DropCardData, DropFeedStatus } from "../../types/drop";
 import { useCountdown } from "../../utils/useCountdown";
@@ -21,13 +21,7 @@ import {
   spotsRemaining,
 } from "../../utils/dropStatus";
 import { useDemoNow } from "../../contexts/DemoClockContext";
-import {
-  getDropReminderMinutes,
-  isDropNotified,
-  setDropReminderMinutes,
-} from "../../utils/notifyMe";
 import NotifyMeModal from "./modals/NotifyMeModal";
-import { USE_API } from "../../config/featureFlags";
 import { REMINDER_CHOICES, useDropNotify } from "../../api/hooks/useDropHooks";
 
 type DropFeedCardProps = {
@@ -41,21 +35,6 @@ type DropFeedCardProps = {
   /** Read-only mode (e.g. the API slice before writes land in Stage 5). */
   disableApply?: boolean;
 };
-
-/** Subscribes to localStorage so multiple cards re-render when one toggles Notify Me. */
-function useDropNotifiedFlag(dropId: string): boolean {
-  return useSyncExternalStore(
-    (notify) => {
-      const handler = (e: StorageEvent) => {
-        if (!e.key || e.key.endsWith(`.notify.${dropId}`)) notify();
-      };
-      window.addEventListener("storage", handler);
-      return () => window.removeEventListener("storage", handler);
-    },
-    () => isDropNotified(dropId),
-    () => false,
-  );
-}
 
 function pad2(n: number): string {
   return n.toString().padStart(2, "0");
@@ -212,16 +191,7 @@ function FeedStatusChip({
   );
 }
 
-/** Notify-Me toggle: real backend write on the API path, localStorage in demo. */
-function UpcomingActions({ drop }: { drop: DropCardData }) {
-  return USE_API ? (
-    <ApiUpcomingActions drop={drop} />
-  ) : (
-    <DemoUpcomingActions drop={drop} />
-  );
-}
-
-/** Presentational toggle shared by both paths. */
+/** Presentational toggle. */
 function NotifyToggle({
   notified,
   reminderMinutes,
@@ -259,41 +229,15 @@ function NotifyToggle({
   );
 }
 
-function DemoUpcomingActions({ drop }: { drop: DropCardData }) {
-  const notified = useDropNotifiedFlag(drop.id);
-  const reminderMinutes = getDropReminderMinutes(drop.id);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  return (
-    <div className="space-y-3">
-      <NotifyToggle
-        notified={notified}
-        reminderMinutes={reminderMinutes}
-        onClick={() => setIsModalOpen(true)}
-      />
-      {isModalOpen ? (
-        <NotifyMeModal
-          dropTitle={drop.title}
-          initialSelection={
-            reminderMinutes.length > 0 ? reminderMinutes : notified ? [15] : []
-          }
-          onClose={() => setIsModalOpen(false)}
-          onConfirm={(selected) => setDropReminderMinutes(drop.id, selected)}
-        />
-      ) : null}
-    </div>
-  );
-}
-
 /**
- * API path: the toggle performs a real backend write (POST/DELETE
- * /api/drops/{id}/notify). The backend stores a single lead-time, so a
- * multi-select in the modal collapses to the soonest valid choice. Initial
- * state is sourced from the server (`drop.notifyRequested`/`reminderMinutes`,
- * §6.3.1) so a revisit shows the already-subscribed state; the toggle
- * invalidates the feed so the next render re-reads it.
+ * The toggle performs a real backend write (POST/DELETE /api/drops/{id}/notify).
+ * The backend stores a single lead-time, so a multi-select in the modal collapses
+ * to the soonest valid choice. Initial state is sourced from the server
+ * (`drop.notifyRequested`/`reminderMinutes`, §6.3.1) so a revisit shows the
+ * already-subscribed state; the toggle invalidates the feed so the next render
+ * re-reads it.
  */
-function ApiUpcomingActions({ drop }: { drop: DropCardData }) {
+function UpcomingActions({ drop }: { drop: DropCardData }) {
   const notify = useDropNotify(drop.id);
   const serverMinutes =
     drop.notifyRequested && drop.reminderMinutes != null

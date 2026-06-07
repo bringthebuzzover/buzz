@@ -1,40 +1,24 @@
 /**
- * Smoke render tests for the `USE_API` provider tree.
+ * Smoke render tests for the API provider tree.
  *
- * The `REACT_APP_USE_API=true` entry tree (index.tsx) deliberately omits the
- * demo providers (AccessGateProvider, DemoClockProvider). Shared chrome and
- * card components still call `useAccessGate()` / `useDemoNow()`, which used to
- * THROW without a provider — white-screening every route. These tests render
- * the shell and a feed card *without* the demo providers and assert they don't
- * throw, so that regression can't silently come back.
+ * The entry tree (index.tsx) mounts the real `AuthProvider` and React Query.
+ * These tests render the marketing shell and a feed card and assert they don't
+ * throw — guarding the white-screen crash class.
  *
  * We use `react-dom/server`'s `renderToString` (no extra test deps): it throws
- * if a component throws during render, which is exactly the crash class here.
- * Effects don't run under SSR, so AuthProvider issues no network calls.
+ * if a component throws during render. Effects don't run under SSR, so
+ * AuthProvider issues no network calls.
  */
 import { renderToString } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useAccessGate } from "./contexts/AccessGateContext";
-import { useDemoNow } from "./contexts/DemoClockContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import AppRoot from "./AppRoot";
 import DropFeedCard from "./components/org/DropFeedCard";
 import type { DropCardData } from "./types/drop";
 
-function HookProbe() {
-  const gate = useAccessGate();
-  const now = useDemoNow();
-  // Single interpolated string so SSR doesn't split it with comment markers.
-  return <div>{`gate=${gate.isDemoActive} now=${typeof now}`}</div>;
-}
-
-describe("USE_API provider-tree smoke", () => {
-  it("demo-context hooks return inert fallbacks without their providers", () => {
-    expect(renderToString(<HookProbe />)).toContain("gate=false now=number");
-  });
-
-  it("renders the marketing shell + home at / without demo providers", () => {
+describe("API provider-tree smoke", () => {
+  it("renders the marketing shell + home at / without throwing", () => {
     const queryClient = new QueryClient();
     const render = () =>
       renderToString(
