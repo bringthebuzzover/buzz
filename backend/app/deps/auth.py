@@ -19,7 +19,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Annotated
 
-from fastapi import Depends, Header
+from fastapi import BackgroundTasks, Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -28,6 +28,8 @@ from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.user import User
 from app.security import jwt
+from app.services.instagram import InstagramClient, get_instagram_client
+from app.services.instagram_token import maybe_refresh_on_login
 
 _BEARER_PREFIX = "Bearer "
 
@@ -60,20 +62,28 @@ async def _load_user_from_bearer(authorization: str | None, db: AsyncSession) ->
     user = await db.get(User, user_id)
     if user is None:
         raise _unauthorized("User no longer exists.")
-
-    # NOTE (Stage 8, architecture.md §10.5): the on-login Instagram long-lived
-    # token refresh hooks in here — enqueue a background refresh when the token
-    # is <30 days from expiry. No logic yet; this is the documented seam.
     return user
 
 
 async def get_current_user(
     authorization: Annotated[str | None, Header()] = None,
     db: AsyncSession = Depends(get_db),
+    # FastAPI injects a real BackgroundTasks from the annotation; the None
+    # default is only to satisfy Python's "defaults-after-defaults" rule.
+    background_tasks: BackgroundTasks = None,  # type: ignore[assignment]
+    ig: InstagramClient = Depends(get_instagram_client),
 ) -> User:
-    """Authenticated user, or raise 401 (``UNAUTHORIZED`` / ``TOKEN_EXPIRED``)."""
+    """Authenticated user, or raise 401 (``UNAUTHORIZED`` / ``TOKEN_EXPIRED``).
 
-    return await _load_user_from_bearer(authorization, db)
+    On every authenticated request this also runs the §10.5.1 on-login Instagram
+    token check: a fire-and-forget background refresh when the long-lived token
+    is within 30 days of expiry, or ``INSTAGRAM_TOKEN_EXPIRED`` once it's past.
+    A no-op for non-org users and orgs without an IG token.
+    """
+
+    user = await _load_user_from_bearer(authorization, db)
+    maybe_refresh_on_login(user, background_tasks, ig)
+    return user
 
 
 async def get_current_user_optional(
