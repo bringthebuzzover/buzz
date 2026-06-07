@@ -63,6 +63,8 @@ from app.security import jwt
 from app.services.instagram import (
     InstagramProfile,
     LongLivedToken,
+    MediaFields,
+    MediaRef,
     ShortLivedToken,
     get_instagram_client,
 )
@@ -161,6 +163,37 @@ class FakeInstagramClient:
             username="testorg",
             account_type=self.account_type,
         )
+
+    # --- Stage 8 surface (configurable per test; sensible defaults) ---
+
+    async def refresh_long_lived(self, long_token: str) -> LongLivedToken:
+        self.refreshed_with = long_token
+        return LongLivedToken(access_token="fake-refreshed-token", expires_in=5183944)
+
+    async def fetch_user_media(self, long_token: str, *, limit: int = 50) -> list["MediaRef"]:
+        return list(getattr(self, "media", []))
+
+    async def fetch_media(self, long_token: str, media_id: str) -> "MediaFields":
+        fields = getattr(self, "media_fields", {})
+        if media_id in fields:
+            return fields[media_id]
+        return MediaFields(
+            id=media_id,
+            caption="default caption",
+            media_type="IMAGE",
+            media_product_type="FEED",
+            permalink=f"https://instagram.com/p/{media_id}",
+            thumbnail_url=None,
+            media_url=None,
+            timestamp="2030-01-01T00:00:00+0000",
+            like_count=10,
+            comments_count=2,
+        )
+
+    async def fetch_media_insights(
+        self, long_token: str, media_id: str, *, is_reel: bool = False
+    ) -> dict[str, int]:
+        return dict(getattr(self, "insights", {"reach": 100, "saved": 5}))
 
 
 @pytest_asyncio.fixture

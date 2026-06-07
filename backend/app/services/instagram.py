@@ -52,9 +52,33 @@ class InstagramProfile:
     account_type: str
 
 
+@dataclass(frozen=True)
+class MediaRef:
+    """Lightweight ``/me/media`` discovery row (§10.1): id + post time."""
+
+    id: str
+    timestamp: str  # ISO-8601 from Instagram
+
+
+@dataclass(frozen=True)
+class MediaFields:
+    """Basic fields for one media item (§10.1)."""
+
+    id: str
+    caption: str
+    media_type: str
+    media_product_type: str
+    permalink: str
+    thumbnail_url: str | None
+    media_url: str | None
+    timestamp: str
+    like_count: int
+    comments_count: int
+
+
 @runtime_checkable
 class InstagramClient(Protocol):
-    """The four IG operations Stage 3 needs. Implemented by HTTP + fakes."""
+    """The IG operations Buzz needs (OAuth + Stage 8 sync). HTTP + fakes."""
 
     def build_authorize_url(self, state: str) -> str: ...
 
@@ -63,6 +87,17 @@ class InstagramClient(Protocol):
     async def exchange_for_long_lived(self, short_token: str) -> LongLivedToken: ...
 
     async def fetch_profile(self, long_token: str) -> InstagramProfile: ...
+
+    # --- Stage 8 (§10.1 metric sync / §10.5 token refresh) ---
+    async def refresh_long_lived(self, long_token: str) -> LongLivedToken: ...
+
+    async def fetch_user_media(self, long_token: str, *, limit: int = 50) -> list[MediaRef]: ...
+
+    async def fetch_media(self, long_token: str, media_id: str) -> MediaFields: ...
+
+    async def fetch_media_insights(
+        self, long_token: str, media_id: str, *, is_reel: bool = False
+    ) -> dict[str, int]: ...
 
 
 def _ig_error(message: str) -> BuzzAPIException:
@@ -175,6 +210,102 @@ class HttpInstagramClient:
             username=str(body.get("username", "")),
             account_type=str(body["account_type"]),
         )
+
+    # --- Stage 8: media sync (§10.1) + token refresh (§10.5) -----------------
+
+    async def refresh_long_lived(self, long_token: str) -> LongLivedToken:
+        client = await self._client()
+        try:
+            resp = await client.get(
+                f"{settings.INSTAGRAM_GRAPH_BASE}/refresh_access_token",
+                params={"grant_type": "ig_refresh_token", "access_token": long_token},
+            )
+            resp.raise_for_status()
+            body = resp.json()
+        except httpx.HTTPError as exc:
+            raise _ig_error("Instagram token refresh failed.") from exc
+
+        access_token = body.get("access_token")
+        expires_in = body.get("expires_in")
+        if not access_token or expires_in is None:
+            raise _ig_error("Instagram token refresh returned no token.")
+        return LongLivedToken(access_token=str(access_token), expires_in=int(expires_in))
+
+    async def fetch_user_media(self, long_token: str, *, limit: int = 50) -> list[MediaRef]:
+        client = await self._client()
+        try:
+            resp = await client.get(
+                f"{settings.INSTAGRAM_GRAPH_BASE}/me/media",
+                params={"fields": "id,timestamp", "limit": limit, "access_token": long_token},
+            )
+            resp.raise_for_status()
+            body = resp.json()
+        except httpx.HTTPError as exc:
+            raise _ig_error("Instagram media list failed.") from exc
+
+        return [
+            MediaRef(id=str(m["id"]), timestamp=str(m.get("timestamp", "")))
+            for m in body.get("data", [])
+            if m.get("id")
+        ]
+
+    async def fetch_media(self, long_token: str, media_id: str) -> MediaFields:
+        client = await self._client()
+        fields = (
+            "like_count,comments_count,caption,media_type,media_product_type,"
+            "permalink,thumbnail_url,media_url,timestamp"
+        )
+        try:
+            resp = await client.get(
+                f"{settings.INSTAGRAM_GRAPH_BASE}/{media_id}",
+                params={"fields": fields, "access_token": long_token},
+            )
+            resp.raise_for_status()
+            b = resp.json()
+        except httpx.HTTPError as exc:
+            raise _ig_error("Instagram media fetch failed.") from exc
+
+        return MediaFields(
+            id=str(b.get("id", media_id)),
+            caption=str(b.get("caption", "")),
+            media_type=str(b.get("media_type", "IMAGE")),
+            media_product_type=str(b.get("media_product_type", "FEED")),
+            permalink=str(b.get("permalink", "")),
+            thumbnail_url=b.get("thumbnail_url"),
+            media_url=b.get("media_url"),
+            timestamp=str(b.get("timestamp", "")),
+            like_count=int(b.get("like_count", 0)),
+            comments_count=int(b.get("comments_count", 0)),
+        )
+
+    async def fetch_media_insights(
+        self, long_token: str, media_id: str, *, is_reel: bool = False
+    ) -> dict[str, int]:
+        client = await self._client()
+        metrics = (
+            "reach,views,saved,shares,reposts,total_interactions,"
+            "profile_visits,profile_activity,follows"
+        )
+        if is_reel:
+            metrics += ",ig_reels_avg_watch_time,ig_reels_video_view_total_time,reels_skip_rate"
+        try:
+            resp = await client.get(
+                f"{settings.INSTAGRAM_GRAPH_BASE}/{media_id}/insights",
+                params={"metric": metrics, "access_token": long_token},
+            )
+            resp.raise_for_status()
+            body = resp.json()
+        except httpx.HTTPError as exc:
+            raise _ig_error("Instagram insights fetch failed.") from exc
+
+        # Insights come back as [{name, values:[{value}]}]; flatten to {name: value}.
+        out: dict[str, int] = {}
+        for row in body.get("data", []):
+            name = row.get("name")
+            values = row.get("values") or []
+            if name and values:
+                out[str(name)] = int(values[0].get("value", 0))
+        return out
 
 
 _default_client = HttpInstagramClient()

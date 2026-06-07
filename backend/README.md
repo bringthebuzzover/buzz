@@ -193,6 +193,24 @@ Run all three stages — **Black → Ruff → pytest** — fail-fast:
 CI runs `black --check`, then `ruff check`, then `mypy`, then `pytest`
 ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)).
 
+## Background jobs (Stage 8, architecture §10)
+
+Scheduled work runs as one-shot scripts a scheduler (Railway Cron) invokes — no
+extra runtime/worker. Each job is idempotent and prints a JSON summary.
+
+```bash
+poetry run python scripts/run_job.py drop_autoclose   # §10.2 — every ~5 min
+poetry run python scripts/run_job.py metric_sync      # §10.1 — daily (Instagram)
+poetry run python scripts/run_job.py autolink_scan    # §10.4 — daily, after metric_sync
+poetry run python scripts/run_job.py token_refresh    # §10.5.2 — daily safety net (Instagram)
+poetry run python scripts/run_job.py token_cleanup    # §10.3 — daily
+```
+
+Suggested cron (UTC): `metric_sync` 03:00 → `autolink_scan` 03:30 →
+`token_refresh` 04:00; `token_cleanup` 03:00; `drop_autoclose` every 5 min. The
+primary Instagram token refresh is **on-login** (`get_current_user`, §10.5.1);
+`token_refresh` only catches inactive orgs and is optional for a tight MVP.
+
 ## Layout
 
 ```
