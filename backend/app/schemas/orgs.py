@@ -13,6 +13,7 @@ from datetime import datetime
 from pydantic import ConfigDict, field_serializer, field_validator
 from pydantic.alias_generators import to_camel
 
+from app.models.enums import OrgCategory
 from app.schemas.common import CamelModel, to_epoch_ms
 
 
@@ -27,6 +28,7 @@ class OrgProfileResponse(CamelModel):
     tiktok_handle: str | None
     follower_count: int | None
     member_count: int | None
+    category: str | None
     city: str | None
     state: str | None
     contact_name: str | None
@@ -59,6 +61,7 @@ class OrgProfileUpdate(CamelModel):
     tiktok_handle: str | None = None
     follower_count: int | None = None
     member_count: int | None = None
+    category: OrgCategory | None = None
     city: str | None = None
     state: str | None = None
     contact_name: str | None = None

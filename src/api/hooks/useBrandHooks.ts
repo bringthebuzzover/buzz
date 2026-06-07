@@ -40,7 +40,21 @@ export type BrandDropItem = {
 };
 
 export type BrandDropDetail = BrandDropItem & {
+  trackingNumber: string | null;
   applications: BrandDropApplicant[];
+};
+
+export type BrandDropPost = {
+  id: string;
+  url: string;
+  mediaUrl: string | null;
+  thumbnailUrl: string | null;
+  caption: string;
+  mediaType: string;
+  mediaProductType: string;
+  postedAt: number;
+  likes: number;
+  comments: number;
 };
 
 export type BrandDropApplicant = {
@@ -58,10 +72,12 @@ export type BrandDropApplicant = {
   instagramHandle: string;
   followerCount: number | null;
   memberCount: number | null;
+  category: string | null;
   attributedPostCount: number;
   attributedLikes: number;
   attributedComments: number;
   attributedEngagement: number;
+  posts: BrandDropPost[];
 };
 
 export type BrandAggregate = {

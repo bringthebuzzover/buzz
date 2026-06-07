@@ -70,6 +70,7 @@ from app.models.enums import (  # noqa: E402
     ApplicationDecision,
     BrandStatus,
     BrandTrackerStage,
+    OrgCategory,
     OrgUserStatus,
     Platform,
     PortalRole,
@@ -194,6 +195,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         instagram_handle="berkeleyrowing",
         follower_count=4200,
         member_count=85,
+        category=OrgCategory.SPORTS.value,
         city="Berkeley",
         state="CA",
         contact_name="Avery Lin",
@@ -209,6 +211,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         instagram_handle="stanfordhackers",
         follower_count=1100,
         member_count=42,
+        category=OrgCategory.ACADEMIC.value,
         city="Stanford",
         state="CA",
     )

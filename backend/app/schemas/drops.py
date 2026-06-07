@@ -40,6 +40,11 @@ class DropFeedItem(CamelModel):
     manual_reopen: bool
     accepted_count: int
     already_applied: bool
+    # Notify-Me state for the caller org (§6.3.1): whether a reminder is set and
+    # its lead time, so the Upcoming card shows the already-subscribed state from
+    # the server on revisit rather than reverting to "Notify Me".
+    notify_requested: bool
+    reminder_minutes: int | None
 
     @field_serializer("apply_open_at", "apply_close_at")
     def _epoch(self, value: datetime) -> int | None:

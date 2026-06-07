@@ -28,6 +28,7 @@ from app.schemas.brands import (
     BrandDropDetailApplicant,
     BrandDropDetailResponse,
     BrandDropListItem,
+    BrandDropPostItem,
     BrandProfileResponse,
     EngagementSeriesPoint,
     FinalizeApplicantsRequest,
@@ -37,6 +38,7 @@ from app.schemas.drops import BrandDropCreateRequest
 from app.security.rate_limit import rate_limited
 from app.services.brand_auth import apply_brand
 from app.services.brands import (
+    _application_linked_posts,
     _drop_aggregate,
     _org_attributed_totals,
     _require_brand,
@@ -171,6 +173,7 @@ async def get_brand_drop_detail(
     applicants: list[BrandDropDetailApplicant] = []
     for app, org in rows:
         attr = await _org_attributed_totals(db, org.id, drop.id)
+        posts = await _application_linked_posts(db, app.id)
         applicants.append(
             BrandDropDetailApplicant(
                 id=app.id,
@@ -187,10 +190,14 @@ async def get_brand_drop_detail(
                 instagram_handle=org.instagram_handle,
                 follower_count=org.follower_count,
                 member_count=org.member_count,
+                category=org.category,
                 attributed_post_count=attr["attributed_post_count"],
                 attributed_likes=attr["attributed_likes"],
                 attributed_comments=attr["attributed_comments"],
                 attributed_engagement=attr["attributed_engagement"],
+                posts=[
+                    BrandDropPostItem.model_validate(post, from_attributes=True) for post in posts
+                ],
             )
         )
 
@@ -211,6 +218,7 @@ async def get_brand_drop_detail(
         campaign_hashtag=drop.campaign_hashtag,
         applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
         created_at=drop.created_at,
+        tracking_number=drop.tracking_number,
         applications=applicants,
     )
     return api_response(data=detail)

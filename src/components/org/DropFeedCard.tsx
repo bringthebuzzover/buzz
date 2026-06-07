@@ -292,38 +292,47 @@ function DemoUpcomingActions({ drop }: { drop: DropCardData }) {
  * API path: the toggle performs a real backend write (POST/DELETE
  * /api/drops/{id}/notify). The backend stores a single lead-time, so a
  * multi-select in the modal collapses to the soonest valid choice. Initial
- * state is local (the feed doesn't yet return existing notify rows).
+ * state is sourced from the server (`drop.notifyRequested`/`reminderMinutes`,
+ * §6.3.1) so a revisit shows the already-subscribed state; the toggle
+ * invalidates the feed so the next render re-reads it.
  */
 function ApiUpcomingActions({ drop }: { drop: DropCardData }) {
   const notify = useDropNotify(drop.id);
-  const [reminderMinutes, setReminderMinutes] = useState<number[]>([]);
+  const serverMinutes =
+    drop.notifyRequested && drop.reminderMinutes != null
+      ? [drop.reminderMinutes]
+      : [];
+  const notified = serverMinutes.length > 0;
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const notified = reminderMinutes.length > 0;
 
   const handleConfirm = (selected: number[]) => {
     const valid = selected.filter((m) =>
       (REMINDER_CHOICES as readonly number[]).includes(m),
     );
     if (valid.length === 0) {
-      notify.mutate(null, { onSuccess: () => setReminderMinutes([]) });
+      notify.mutate(null);
       return;
     }
-    const chosen = Math.min(...valid);
-    notify.mutate(chosen, { onSuccess: () => setReminderMinutes([chosen]) });
+    notify.mutate(Math.min(...valid));
   };
 
   return (
     <div className="space-y-3">
       <NotifyToggle
         notified={notified}
-        reminderMinutes={reminderMinutes}
+        reminderMinutes={serverMinutes}
         disabled={notify.isPending}
         onClick={() => setIsModalOpen(true)}
       />
+      {notified ? (
+        <p className="text-center text-[11px] font-semibold text-buzz-coral">
+          You're on the list — we'll let you know when this opens.
+        </p>
+      ) : null}
       {isModalOpen ? (
         <NotifyMeModal
           dropTitle={drop.title}
-          initialSelection={reminderMinutes}
+          initialSelection={serverMinutes}
           onClose={() => setIsModalOpen(false)}
           onConfirm={handleConfirm}
         />

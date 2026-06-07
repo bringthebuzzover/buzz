@@ -1059,10 +1059,21 @@ export interface components {
             reminderMinutes: number;
         };
         /**
+         * OrgCategory
+         * @description Classification of a student org (``organizations.category``).
+         *
+         *     Drives brand-side applicant filtering (PRODUCT.md §5.3.1). Nullable on the
+         *     column — orgs onboarded before this field, or that decline to classify,
+         *     have no category.
+         * @enum {string}
+         */
+        OrgCategory: "sorority" | "fraternity" | "sports" | "academic" | "social" | "other";
+        /**
          * OrgOnboardingRequest
          * @description Phase 2: submit org profile after Instagram OAuth.
          */
         OrgOnboardingRequest: {
+            category?: components["schemas"]["OrgCategory"] | null;
             /** City */
             city?: string | null;
             /** Contactname */
@@ -1096,6 +1107,7 @@ export interface components {
          *     ``eduEmail``) is a 422 rather than a silently-ignored no-op write.
          */
         OrgProfileUpdate: {
+            category?: components["schemas"]["OrgCategory"] | null;
             /** City */
             city?: string | null;
             /** Contactname */

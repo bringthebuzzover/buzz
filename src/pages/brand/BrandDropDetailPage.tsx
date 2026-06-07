@@ -23,7 +23,8 @@ import { SEED_ORGS } from "../../data/seed/seedOrgs";
 import { USE_API } from "../../config/featureFlags";
 import { useBrandDropDetail, useFinalizeApplicants } from "../../api/hooks/useBrandHooks";
 import type { BrandDropDetail, BrandDropApplicant } from "../../api/hooks/useBrandHooks";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { orgCategoryLabel } from "../../types/orgCategory";
 
 /** Map backend drop detail to the shape components expect. */
 function mapDropToView(d: BrandDropDetail) {
@@ -43,7 +44,7 @@ function mapDropToView(d: BrandDropDetail) {
     totalProductUnits: d.totalProductUnits ?? undefined,
     applicantSelectionFinalizedAt: d.applicantSelectionFinalizedAt ?? undefined,
     createdAt: d.createdAt,
-    trackingNumber: undefined as string | undefined,
+    trackingNumber: d.trackingNumber ?? undefined,
   };
 }
 
@@ -127,6 +128,20 @@ function ApiApplicantTable({
 }) {
   const finalizeMutation = useFinalizeApplicants(dropId);
   const [allocations, setAllocations] = useState<Record<string, number>>({});
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  const categories = useMemo(() => {
+    const present = new Set<string>();
+    applicants.forEach((a) => {
+      if (a.category) present.add(a.category);
+    });
+    return Array.from(present).sort();
+  }, [applicants]);
+
+  const visible =
+    categoryFilter === "all"
+      ? applicants
+      : applicants.filter((a) => a.category === categoryFilter);
 
   const handleFinalize = () => {
     const payload = Object.entries(allocations).map(([orgId, units]) => ({
@@ -140,13 +155,31 @@ function ApiApplicantTable({
 
   return (
     <div className="mt-8 space-y-4">
-      <h2 className="text-lg font-bold text-buzz-ink">Applicants</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-bold text-buzz-ink">Applicants</h2>
+        {categories.length > 0 ? (
+          <select
+            aria-label="Filter by organization type"
+            className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-1.5 text-xs font-semibold text-buzz-ink"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="all">All types</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {orgCategoryLabel(c)}
+              </option>
+            ))}
+          </select>
+        ) : null}
+      </div>
       <div className="overflow-x-auto rounded-2xl border border-buzz-lineMid bg-buzz-paper">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-buzz-line bg-buzz-cream">
               <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Org</th>
               <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">University</th>
+              <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Type</th>
               <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Instagram</th>
               <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Followers</th>
               <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Pitch</th>
@@ -154,10 +187,13 @@ function ApiApplicantTable({
             </tr>
           </thead>
           <tbody>
-            {applicants.map((app) => (
+            {visible.map((app) => (
               <tr key={app.id} className="border-b border-buzz-line">
                 <td className="px-4 py-3 font-medium">{app.orgName}</td>
                 <td className="px-4 py-3 text-buzz-inkMuted">{app.university}</td>
+                <td className="px-4 py-3 text-buzz-inkMuted">
+                  {orgCategoryLabel(app.category)}
+                </td>
                 <td className="px-4 py-3 text-buzz-inkMuted">{app.instagramHandle}</td>
                 <td className="px-4 py-3">{app.followerCount ?? "-"}</td>
                 <td className="px-4 py-3 text-buzz-inkMuted max-w-48 truncate">

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pydantic import ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
+from app.models.enums import OrgCategory
 from app.schemas.common import CamelModel
 
 
@@ -22,6 +23,7 @@ class OrgOnboardingRequest(CamelModel):
     tiktok_handle: str | None = None
     follower_count: int | None = None
     member_count: int | None = None
+    category: OrgCategory | None = None
     city: str | None = None
     state: str | None = None
     contact_name: str | None = None

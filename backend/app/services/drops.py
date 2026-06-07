@@ -73,6 +73,7 @@ async def list_org_drop_feed(
     page_ids = [drop.id for drop in drops]
     accepted_counts = await _accepted_counts(db, page_ids)
     applied_ids = await _applied_drop_ids(db, org_id, page_ids)
+    notify_state = await _notify_state(db, org_id, page_ids)
 
     items = [
         DropFeedItem(
@@ -88,6 +89,8 @@ async def list_org_drop_feed(
             manual_reopen=drop.manual_reopen,
             accepted_count=accepted_counts.get(drop.id, 0),
             already_applied=drop.id in applied_ids,
+            notify_requested=drop.id in notify_state,
+            reminder_minutes=notify_state.get(drop.id),
         )
         for drop in drops
     ]
@@ -127,6 +130,30 @@ async def _applied_drop_ids(
         )
     )
     return set(rows.all())
+
+
+async def _notify_state(
+    db: AsyncSession,
+    org_id: uuid.UUID | None,
+    drop_ids: list[uuid.UUID],
+) -> dict[uuid.UUID, int]:
+    """Map drop_id -> reminder lead-time for the calling org's *enabled* notify rows.
+
+    Lets the Upcoming card render the already-subscribed state from the server
+    (§6.3.1). Mirrors ``_applied_drop_ids``: a mid-onboarding org with no profile
+    (``org_id is None``) gets an empty map, not an error.
+    """
+
+    if org_id is None or not drop_ids:
+        return {}
+    rows = await db.execute(
+        select(NotifyMe.drop_id, NotifyMe.reminder_minutes).where(
+            NotifyMe.org_id == org_id,
+            NotifyMe.enabled.is_(True),
+            NotifyMe.drop_id.in_(drop_ids),
+        )
+    )
+    return {drop_id: reminder_minutes for drop_id, reminder_minutes in rows.all()}
 
 
 # --- Drop detail + apply + notify (Stage 5A) ---------------------------------

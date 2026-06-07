@@ -59,6 +59,22 @@ class BrandStatus(StrEnum):
     DENIED = "denied"
 
 
+class OrgCategory(StrEnum):
+    """Classification of a student org (``organizations.category``).
+
+    Drives brand-side applicant filtering (PRODUCT.md §5.3.1). Nullable on the
+    column — orgs onboarded before this field, or that decline to classify,
+    have no category.
+    """
+
+    SORORITY = "sorority"
+    FRATERNITY = "fraternity"
+    SPORTS = "sports"
+    ACADEMIC = "academic"
+    SOCIAL = "social"
+    OTHER = "other"
+
+
 class ApplicationDecision(StrEnum):
     """Brand decision on a drop application (``drop_applications.decision``)."""
 
@@ -161,6 +177,9 @@ OrgUserStatusEnum = sa.Enum(
 BrandStatusEnum = sa.Enum(
     BrandStatus, name="brand_status", native_enum=True, values_callable=_enum_values
 )
+OrgCategoryEnum = sa.Enum(
+    OrgCategory, name="org_category", native_enum=True, values_callable=_enum_values
+)
 ApplicationDecisionEnum = sa.Enum(
     ApplicationDecision,
     name="application_decision",
@@ -207,6 +226,7 @@ ALL_ENUM_TYPES: tuple[sa.Enum, ...] = (
     PortalRoleEnum,
     OrgUserStatusEnum,
     BrandStatusEnum,
+    OrgCategoryEnum,
     ApplicationDecisionEnum,
     BrandTrackerStageEnum,
     PlatformEnum,

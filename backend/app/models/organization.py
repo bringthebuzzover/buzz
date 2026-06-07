@@ -13,6 +13,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
+from app.models.enums import OrgCategoryEnum
 
 
 class Organization(Base):
@@ -34,6 +35,8 @@ class Organization(Base):
 
     follower_count: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
     member_count: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    # Org classification for brand-side applicant filtering (PRODUCT.md §5.3.1).
+    category: Mapped[str | None] = mapped_column(OrgCategoryEnum, nullable=True)
 
     city: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     state: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)

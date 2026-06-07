@@ -12,6 +12,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useSubmitOnboarding } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
+import {
+  ORG_CATEGORY_OPTIONS,
+  type OrgCategory,
+} from "../../types/orgCategory";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
@@ -28,6 +32,9 @@ export default function OrgProfilePage() {
     user?.instagramUsername ?? "",
   );
   const [followerCount, setFollowerCount] = useState("");
+  const [memberCount, setMemberCount] = useState("");
+  const [category, setCategory] = useState<OrgCategory | "">("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   if (!user || user.status !== "pending_org_profile") {
@@ -44,6 +51,9 @@ export default function OrgProfilePage() {
         eduEmail: eduEmail.trim(),
         instagramHandle: instagramHandle.trim().replace(/^@/, ""),
         followerCount: followerCount ? Number(followerCount) : undefined,
+        memberCount: memberCount ? Number(memberCount) : undefined,
+        category: category || undefined,
+        deliveryAddress: deliveryAddress.trim() || undefined,
       });
       await refreshUser();
       navigate("/onboarding/verify-email", { replace: true });
@@ -130,6 +140,53 @@ export default function OrgProfilePage() {
             className={inputClass}
             value={followerCount}
             onChange={(e) => setFollowerCount(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
+            Number of members{" "}
+            <span className="font-normal text-buzz-inkMuted">(optional)</span>
+          </label>
+          <input
+            type="number"
+            min="0"
+            className={inputClass}
+            value={memberCount}
+            onChange={(e) => setMemberCount(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
+            Organization type{" "}
+            <span className="font-normal text-buzz-inkMuted">(optional)</span>
+          </label>
+          <select
+            className={inputClass}
+            value={category}
+            onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
+          >
+            <option value="">Select a type…</option>
+            {ORG_CATEGORY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
+            Shipping address{" "}
+            <span className="font-normal text-buzz-inkMuted">(optional)</span>
+          </label>
+          <textarea
+            className={inputClass}
+            rows={2}
+            value={deliveryAddress}
+            onChange={(e) => setDeliveryAddress(e.target.value)}
+            placeholder="Where should brands ship products?"
           />
         </div>
 
