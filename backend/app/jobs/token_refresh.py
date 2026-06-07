@@ -12,7 +12,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -42,7 +42,19 @@ async def refresh_due_tokens(db: AsyncSession, ig: InstagramClient) -> dict[str,
 
     refreshed = 0
     failed = 0
+    skipped = 0
     for user in users:
+        # Per-user advisory lock keyed identically to the on-login path
+        # (services.instagram_token) so the cron and a concurrent login — or a
+        # second cron run — can't double-refresh the same user. Non-blocking: a
+        # contended user is skipped this run and retried next time. Held for the
+        # job's transaction.
+        locked = await db.scalar(
+            select(func.pg_try_advisory_xact_lock(func.hashtext(str(user.id))))
+        )
+        if not locked:
+            skipped += 1
+            continue
         try:
             assert user.instagram_access_token is not None
             new = await ig.refresh_long_lived(decrypt_token(user.instagram_access_token))
@@ -57,4 +69,9 @@ async def refresh_due_tokens(db: AsyncSession, ig: InstagramClient) -> dict[str,
         refreshed += 1
 
     await db.flush()
-    return {"candidates": len(users), "refreshed": refreshed, "failed": failed}
+    return {
+        "candidates": len(users),
+        "refreshed": refreshed,
+        "failed": failed,
+        "skipped": skipped,
+    }

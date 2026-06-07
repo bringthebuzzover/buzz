@@ -6,7 +6,7 @@
  * the original demo behavior.
  */
 import { Link, Navigate, useParams } from "react-router-dom";
-import { ChevronLeft, ClipboardList, Clock, Truck } from "lucide-react";
+import { ChevronLeft, ClipboardList, Truck } from "lucide-react";
 import {
   useApplications,
   useDrops,
@@ -96,7 +96,7 @@ function DemoCampaignDetail() {
             <ClipboardList size={28} className="mt-1 text-buzz-coral" />
             <div>
               <h2 className="mb-1 text-xl font-bold text-buzz-ink">
-                Buzz is reviewing your application
+                {drop.brandName} is reviewing your application
               </h2>
               <p className="text-sm font-medium text-buzz-inkMuted">
                 Submitted on{" "}
@@ -108,23 +108,6 @@ function DemoCampaignDetail() {
                   {application.pitch}
                 </blockquote>
               ) : null}
-            </div>
-          </div>
-        </StatusPanel>
-      ) : null}
-
-      {status === "waitlisted" ? (
-        <StatusPanel>
-          <div className="flex items-start gap-4">
-            <Clock size={28} className="mt-1 text-buzz-coral" />
-            <div>
-              <h2 className="mb-1 text-xl font-bold text-buzz-ink">
-                You are on the waitlist
-              </h2>
-              <p className="text-sm font-medium text-buzz-inkMuted">
-                This drop has filled all spots, but we will bump you to accepted
-                if anyone drops out. We will email you the moment that happens.
-              </p>
             </div>
           </div>
         </StatusPanel>
@@ -252,7 +235,7 @@ function ApiCampaignDetail() {
             <ClipboardList size={28} className="mt-1 text-buzz-coral" />
             <div>
               <h2 className="mb-1 text-xl font-bold text-buzz-ink">
-                Buzz is reviewing your application
+                {detail.brandName} is reviewing your application
               </h2>
               <p className="text-sm font-medium text-buzz-inkMuted">
                 Submitted on{" "}

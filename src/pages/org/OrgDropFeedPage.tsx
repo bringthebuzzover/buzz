@@ -13,7 +13,7 @@ import DropFeedCard from "../../components/org/DropFeedCard";
 import ApplyToDropModal from "../../components/org/modals/ApplyToDropModal";
 import { useApplications, useDrops } from "../../contexts/MockDataContext";
 import { useDemoNow } from "../../contexts/DemoClockContext";
-import { getDropFeedStatus, isDropFull } from "../../utils/dropStatus";
+import { getDropFeedStatus } from "../../utils/dropStatus";
 import type { Drop, DropFeedRow, DropFeedStatus } from "../../types/drop";
 import { DEMO_ORG_ID } from "../../data/seed/seedOrgs";
 import { USE_API } from "../../config/featureFlags";
@@ -54,13 +54,11 @@ function FeedContent({
   rows,
   now,
   onApply,
-  onJoinWaitlist,
   disableApply = false,
 }: {
   rows: DropFeedRow[];
   now: number;
   onApply: (dropId: string) => void;
-  onJoinWaitlist: (dropId: string) => void;
   disableApply?: boolean;
 }) {
   const [filter, setFilter] = useState<FilterId>("all");
@@ -118,7 +116,6 @@ function FeedContent({
                 alreadyApplied={row.alreadyApplied}
                 disableApply={disableApply}
                 onApply={() => onApply(row.id)}
-                onJoinWaitlist={() => onJoinWaitlist(row.id)}
               />
             );
           })}
@@ -128,12 +125,9 @@ function FeedContent({
   );
 }
 
-type ModalState =
-  | { kind: "closed" }
-  | { kind: "apply"; drop: Drop }
-  | { kind: "waitlist"; drop: Drop };
+type ModalState = { kind: "closed" } | { kind: "apply"; drop: Drop };
 
-/** Demo path: localStorage stores + demo clock + working apply/waitlist modal. */
+/** Demo path: localStorage stores + demo clock + working apply modal. */
 function DemoDropFeed() {
   const drops = useDrops();
   const applications = useApplications();
@@ -178,26 +172,18 @@ function DemoDropFeed() {
     [drops, acceptedCounts, myDropIds],
   );
 
-  const openModal = (kind: "apply" | "waitlist") => (dropId: string) => {
+  const openApply = (dropId: string) => {
     const drop = drops.find((d) => d.id === dropId);
     if (!drop) return;
-    const acceptedCount = acceptedCounts.get(dropId) ?? 0;
-    const full = isDropFull(drop, acceptedCount);
-    setModal({ kind: kind === "waitlist" && full ? "waitlist" : "apply", drop });
+    setModal({ kind: "apply", drop });
   };
 
   return (
     <>
-      <FeedContent
-        rows={rows}
-        now={now}
-        onApply={openModal("apply")}
-        onJoinWaitlist={openModal("waitlist")}
-      />
+      <FeedContent rows={rows} now={now} onApply={openApply} />
       {modal.kind !== "closed" ? (
         <ApplyToDropModal
           drop={modal.drop}
-          mode={modal.kind === "waitlist" ? "waitlist" : "apply"}
           onClose={() => setModal({ kind: "closed" })}
         />
       ) : null}
@@ -246,7 +232,6 @@ function ApiDropFeed() {
       rows={items}
       now={Date.now()}
       onApply={handleApply}
-      onJoinWaitlist={handleApply}
       disableApply={false}
     />
   );

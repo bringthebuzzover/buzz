@@ -6,8 +6,9 @@ org's recent posts for a mention of the brand handle (or the campaign hashtag)
 and write a ``post_campaign_suggestions`` row the org can one-tap confirm
 (§7.4.1). Never auto-confirms — the org must accept.
 
-Idempotent via ``UNIQUE(post_id, application_id)`` (a re-insert is skipped). The
-same logic backs an on-demand re-scan when an org opens a campaign.
+Idempotent via ``UNIQUE(post_id, application_id)`` (a re-insert is skipped), so
+this is safe to run on a cron. (An on-demand re-scan endpoint — e.g. when an org
+opens a campaign — could reuse this logic but is not currently wired.)
 """
 
 from __future__ import annotations

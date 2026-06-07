@@ -7,6 +7,7 @@ otherwise the invariant is broken → 500).
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -26,6 +27,9 @@ from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.social_post import SocialPost
 from app.models.user import User
+from app.services.email import send_application_denied_email
+
+logger = logging.getLogger(__name__)
 
 
 async def _require_brand(db: AsyncSession, user: User) -> Brand:
@@ -437,6 +441,7 @@ async def finalize_applicants(
     # Atomic txn: accept selected, deny the rest
     allocation_by_org = {item["org_id"]: item["units"] for item in allocations}
     denied_count = 0
+    denied_org_ids: set[UUID] = set()
     for org_id, app_id in app_id_by_org.items():
         if org_id in selected_org_ids:
             units = allocation_by_org[org_id] if drop.total_product_units is not None else None
@@ -459,9 +464,35 @@ async def finalize_applicants(
                 )
             )
             denied_count += 1
+            denied_org_ids.add(org_id)
 
     drop.applicant_selection_finalized_at = now
     await db.flush()
+
+    # PRODUCT §7.1: denied applicants get an email (their only channel — no row in
+    # My Campaigns). Sent inline (matching the admin deny pattern); a per-org send
+    # failure must not roll back the finalize, so swallow + log.
+    if denied_org_ids:
+        contacts = await db.execute(
+            select(Organization.edu_email, Organization.org_name).where(
+                Organization.id.in_(denied_org_ids)
+            )
+        )
+        for edu_email, org_name in contacts.all():
+            try:
+                await send_application_denied_email(
+                    edu_email,
+                    org_name=org_name,
+                    drop_title=drop.title,
+                    brand_name=brand.brand_name,
+                )
+            except Exception:  # noqa: BLE001 — email best-effort; don't fail finalize
+                logger.warning(
+                    "application-denied email failed for %s on drop %s",
+                    edu_email,
+                    drop.id,
+                    exc_info=True,
+                )
 
     return {
         "finalized_count": len(applied_org_ids),

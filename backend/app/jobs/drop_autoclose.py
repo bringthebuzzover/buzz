@@ -30,13 +30,17 @@ _AUTO_NOTE = "auto: application window closed — ready for applicant selection"
 async def auto_close_drops(db: AsyncSession) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
 
+    # FOR UPDATE SKIP LOCKED so two overlapping runs don't both advance the same
+    # drop and write duplicate tracker events — the second run skips locked rows.
     drops = list(
         await db.scalars(
-            select(Drop).where(
+            select(Drop)
+            .where(
                 Drop.apply_close_at < now,
                 Drop.manual_reopen.is_(False),
                 Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
             )
+            .with_for_update(skip_locked=True)
         )
     )
 

@@ -36,9 +36,7 @@ type DropFeedCardProps = {
   feedStatus: DropFeedStatus;
   /** Called when the user clicks Apply on an open drop with spots remaining. */
   onApply: () => void;
-  /** Called when the user clicks Join Waitlist on a full but open drop. */
-  onJoinWaitlist: () => void;
-  /** True when the org already has an application/waitlist row for this drop. */
+  /** True when the org already has an application row for this drop. */
   alreadyApplied: boolean;
   /** Read-only mode (e.g. the API slice before writes land in Stage 5). */
   disableApply?: boolean;
@@ -93,7 +91,6 @@ export default function DropFeedCard({
   acceptedCount,
   feedStatus,
   onApply,
-  onJoinWaitlist,
   alreadyApplied,
   disableApply = false,
 }: DropFeedCardProps) {
@@ -162,13 +159,13 @@ export default function DropFeedCard({
               {alreadyApplied ? "Already applied" : "Apply"}
             </button>
           ) : feedStatus === "open" && full ? (
+            // PRODUCT.md §7.2: a full drop is Closed for new applies (no waitlist).
             <button
               type="button"
-              onClick={onJoinWaitlist}
-              disabled={alreadyApplied || disableApply}
-              className="w-full rounded-lg border-2 border-buzz-coral bg-buzz-paper py-3 font-semibold text-buzz-coral shadow-sm transition hover:bg-buzz-cream disabled:cursor-not-allowed disabled:opacity-60"
+              disabled
+              className="w-full cursor-not-allowed rounded-lg border border-buzz-lineMid bg-buzz-cream py-3 font-semibold text-buzz-inkMuted"
             >
-              {alreadyApplied ? "On the waitlist" : "Join Waitlist"}
+              {alreadyApplied ? "Applied" : "Spots filled"}
             </button>
           ) : (
             <button

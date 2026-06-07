@@ -1,5 +1,5 @@
 /**
- * Derives the org-facing campaign status (Applied / Waitlisted / Accepted / Active /
+ * Derives the org-facing campaign status (Applied / Accepted / Active /
  * Finished) from a `DropApplication` plus the parent `Drop`. `Denied` applications
  * intentionally have no visible status — callers should filter them out before
  * calling this helper, or treat the `null` return as "do not render".
@@ -24,8 +24,6 @@ export function deriveOrgCampaignStatus(
       return null;
     case "applied":
       return "applied";
-    case "waitlisted":
-      return "waitlisted";
     case "accepted":
       if (drop.brandTrackerStage === "drop_finished") return "finished";
       if (drop.brandTrackerStage === "drop_active") return "active";

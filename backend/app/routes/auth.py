@@ -150,7 +150,11 @@ async def instagram_callback(
     return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
 
 
-@router.post("/refresh", response_model=APIResponse)
+@router.post(
+    "/refresh",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("refresh", limit=60, window=60))],
+)
 async def refresh(
     request: Request,
     response: Response,

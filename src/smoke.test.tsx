@@ -71,7 +71,6 @@ describe("USE_API provider-tree smoke", () => {
             feedStatus="open"
             alreadyApplied={false}
             onApply={() => {}}
-            onJoinWaitlist={() => {}}
           />
         </MemoryRouter>,
       );
