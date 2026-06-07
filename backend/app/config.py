@@ -114,6 +114,10 @@ class Settings(BaseSettings):
         default="",
         description="Resend API key for transactional emails (empty = dev/console).",
     )
+    EMAIL_FROM: str = Field(
+        default="Buzz <noreply@bringthebuzzover.com>",
+        description="From header for transactional emails (must be a Resend-verified sender).",
+    )
     BRAND_SELF_REGISTRATION_ENABLED: bool = Field(
         default=True,
         description=(

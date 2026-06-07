@@ -1,16 +1,29 @@
 """Transactional email service (architecture §3.4, §4).
 
 Dev mode logs to console so the developer can copy verification links from stderr.
-In production this would dispatch through Resend / SendGrid / SES.
+Off-dev, mail is dispatched through **Resend** when ``RESEND_API_KEY`` is set;
+with no key configured it logs (so a misconfigured deploy degrades to "no email"
+rather than crashing). Sends are **best-effort**: a provider failure is logged,
+never raised, so a failed email can't roll back the operation that triggered it
+(account verification, brand invite, applicant denial).
 """
 
 from __future__ import annotations
 
 import logging
 
+import httpx
+
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+_RESEND_ENDPOINT = "https://api.resend.com/emails"
+
+
+def _email_client() -> httpx.AsyncClient:
+    """HTTP client for the email provider (seam for tests to inject a transport)."""
+    return httpx.AsyncClient(timeout=10.0)
 
 
 async def send_verification_email(
@@ -151,8 +164,31 @@ async def send_application_denied_email(
 
 
 async def _dispatch(to_email: str, subject: str, body: str) -> None:
-    """Dispatch through the configured email provider."""
-    # Resend / SendGrid / SES integration goes here when needed.
+    """Send one email through Resend. Best-effort: never raises.
+
+    With no ``RESEND_API_KEY`` configured this logs and returns, so a deploy that
+    hasn't wired email yet degrades gracefully instead of 500-ing the flows that
+    send mail.
+    """
+    if not settings.RESEND_API_KEY:
+        logger.warning("Email not sent (RESEND_API_KEY unset): to=%s subject=%s", to_email, subject)
+        return
+    try:
+        async with _email_client() as client:
+            resp = await client.post(
+                _RESEND_ENDPOINT,
+                headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                json={
+                    "from": settings.EMAIL_FROM,
+                    "to": [to_email],
+                    "subject": subject,
+                    "text": body,
+                },
+            )
+            resp.raise_for_status()
+    except Exception:  # noqa: BLE001 — email is best-effort; log, don't break the caller
+        logger.exception("Email send failed: to=%s subject=%s", to_email, subject)
+        return
     logger.info("Email dispatched: to=%s subject=%s", to_email, subject)
 
 
