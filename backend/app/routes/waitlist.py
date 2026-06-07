@@ -8,12 +8,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.deps.db import get_db
 from app.response import APIResponse, api_response
 from app.schemas.waitlist import WaitlistSubmitRequest
+from app.security.rate_limit import rate_limited
 from app.services.waitlist import submit_waitlist
 
 router = APIRouter(prefix="/waitlist", tags=["waitlist"])
 
 
-@router.post("", response_model=APIResponse)
+@router.post(
+    "",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("waitlist", limit=5, window=60))],
+)
 async def submit_waitlist_entry(
     payload: WaitlistSubmitRequest,
     db: AsyncSession = Depends(get_db),

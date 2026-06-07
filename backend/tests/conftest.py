@@ -23,6 +23,7 @@ import uuid
 from collections.abc import AsyncIterator
 from datetime import datetime, timedelta, timezone
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import event
@@ -59,7 +60,7 @@ from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
 from app.models.tracker_event import DropTrackerEvent
-from app.security import jwt
+from app.security import jwt, rate_limit
 from app.services.instagram import (
     InstagramProfile,
     LongLivedToken,
@@ -70,6 +71,19 @@ from app.services.instagram import (
 )
 
 _SCHEMA_READY = False
+
+
+@pytest.fixture(autouse=True)
+def _disable_rate_limiting():
+    """Rate limiting off for the suite (in-memory counters would leak across the
+    many auth-endpoint hits in one process). The dedicated rate-limit test
+    re-enables it and resets the store itself."""
+    prev = settings.RATE_LIMIT_ENABLED
+    settings.RATE_LIMIT_ENABLED = False
+    rate_limit.reset()
+    yield
+    settings.RATE_LIMIT_ENABLED = prev
+    rate_limit.reset()
 
 
 @pytest_asyncio.fixture

@@ -117,6 +117,7 @@ async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
         )
 
     user.status = OrgUserStatus.DENIED.value
+    user.token_version = (user.token_version or 0) + 1  # revoke outstanding sessions
     await db.flush()
 
     await send_org_denied_email(org.edu_email, org_name=org.org_name)
@@ -193,6 +194,9 @@ async def deny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
         )
 
     brand.status = BrandStatus.DENIED.value
+    user = await db.get(User, brand.user_id)
+    if user is not None:
+        user.token_version = (user.token_version or 0) + 1  # revoke outstanding sessions
     await db.flush()
 
     await send_brand_denied_email(brand.company_email, brand_name=brand.brand_name)

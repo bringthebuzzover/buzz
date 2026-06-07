@@ -152,6 +152,11 @@ export interface paths {
         /**
          * Brand Login
          * @description Brand email + password login. Issues JWT tokens on success.
+         *
+         *     Rate-limited per-IP (decorator) and per-account (below) — the per-account cap
+         *     runs *before* the bcrypt verify so credential-stuffing across rotating IPs
+         *     can't burn CPU. The cap is generous so a third party can't easily lock out a
+         *     brand by hammering its email.
          */
         post: operations["brand_login_api_auth_brand_login_post"];
         delete?: never;
@@ -264,7 +269,12 @@ export interface paths {
         put?: never;
         /**
          * Logout
-         * @description Clear the refresh cookie (stateless logout).
+         * @description Log out: revoke outstanding refresh tokens and clear the cookie.
+         *
+         *     Bumping ``token_version`` invalidates every refresh token the user holds
+         *     (not just the cookie being cleared), so a stolen/duplicated refresh token
+         *     can no longer be exchanged. Always succeeds and clears the cookie, even if
+         *     the presented token is missing/expired/garbage (nothing to revoke then).
          */
         post: operations["logout_api_auth_logout_post"];
         delete?: never;
@@ -324,7 +334,7 @@ export interface paths {
         put?: never;
         /**
          * Verify Email Endpoint
-         * @description Phase 3: consume a one-time .edu verification token.
+         * @description Phase 3: consume a one-time .edu verification token (rate-limited: token guessing).
          */
         post: operations["verify_email_endpoint_api_auth_verify_email_post"];
         delete?: never;

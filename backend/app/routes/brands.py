@@ -34,6 +34,7 @@ from app.schemas.brands import (
 )
 from app.schemas.common import camelize
 from app.schemas.drops import BrandDropCreateRequest
+from app.security.rate_limit import rate_limited
 from app.services.brand_auth import apply_brand
 from app.services.brands import (
     _drop_aggregate,
@@ -49,7 +50,11 @@ from app.services.drops import build_brand_drop_response, create_brand_drop
 router = APIRouter(prefix="/brands", tags=["brands"])
 
 
-@router.post("/apply", response_model=APIResponse)
+@router.post(
+    "/apply",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("brand_apply", limit=5, window=60))],
+)
 async def brand_apply(
     payload: BrandApplyRequest,
     db: AsyncSession = Depends(get_db),

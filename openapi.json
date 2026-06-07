@@ -1255,7 +1255,7 @@
     },
     "/api/auth/brand/login": {
       "post": {
-        "description": "Brand email + password login. Issues JWT tokens on success.",
+        "description": "Brand email + password login. Issues JWT tokens on success.\n\nRate-limited per-IP (decorator) and per-account (below) \u2014 the per-account cap\nruns *before* the bcrypt verify so credential-stuffing across rotating IPs\ncan't burn CPU. The cap is generous so a third party can't easily lock out a\nbrand by hammering its email.",
         "operationId": "brand_login_api_auth_brand_login_post",
         "requestBody": {
           "content": {
@@ -1443,7 +1443,7 @@
     },
     "/api/auth/logout": {
       "post": {
-        "description": "Clear the refresh cookie (stateless logout).",
+        "description": "Log out: revoke outstanding refresh tokens and clear the cookie.\n\nBumping ``token_version`` invalidates every refresh token the user holds\n(not just the cookie being cleared), so a stolen/duplicated refresh token\ncan no longer be exchanged. Always succeeds and clears the cookie, even if\nthe presented token is missing/expired/garbage (nothing to revoke then).",
         "operationId": "logout_api_auth_logout_post",
         "responses": {
           "200": {
@@ -1537,7 +1537,7 @@
     },
     "/api/auth/verify-email": {
       "post": {
-        "description": "Phase 3: consume a one-time .edu verification token.",
+        "description": "Phase 3: consume a one-time .edu verification token (rate-limited: token guessing).",
         "operationId": "verify_email_endpoint_api_auth_verify_email_post",
         "requestBody": {
           "content": {

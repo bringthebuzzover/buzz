@@ -36,6 +36,7 @@ from app.schemas.onboarding import (
     VerifyEmailRequest,
 )
 from app.security import jwt
+from app.security.rate_limit import enforce_account_limit, rate_limited
 from app.services.auth import (
     build_user_response,
     handle_instagram_callback,
@@ -110,7 +111,11 @@ async def instagram_login(
     return redirect
 
 
-@router.post("/instagram/callback", response_model=APIResponse)
+@router.post(
+    "/instagram/callback",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("ig_callback", limit=20, window=60))],
+)
 async def instagram_callback(
     payload: InstagramCallbackRequest,
     request: Request,
@@ -190,14 +195,46 @@ async def refresh(
             status_code=401,
         )
 
+    # Revocation: a refresh token is only valid while its `ver` matches the
+    # user's current token_version. Logout / admin-deny bump the version,
+    # invalidating every outstanding refresh token (§11.1). Tokens minted before
+    # this field existed carry no `ver`; treat that as version 0.
+    if (payload.ver or 0) != (user.token_version or 0):
+        raise BuzzAPIException(
+            code=errors.UNAUTHORIZED,
+            message="This session has been revoked. Please sign in again.",
+            status_code=401,
+        )
+
     access, new_refresh = issue_token_pair(user)
     _set_refresh_cookie(response, new_refresh)
     return api_response(data=RefreshResponse(access_token=access))
 
 
 @router.post("/logout", response_model=APIResponse)
-async def logout(response: Response) -> APIResponse:
-    """Clear the refresh cookie (stateless logout)."""
+async def logout(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Log out: revoke outstanding refresh tokens and clear the cookie.
+
+    Bumping ``token_version`` invalidates every refresh token the user holds
+    (not just the cookie being cleared), so a stolen/duplicated refresh token
+    can no longer be exchanged. Always succeeds and clears the cookie, even if
+    the presented token is missing/expired/garbage (nothing to revoke then).
+    """
+
+    cookie = request.cookies.get(settings.REFRESH_COOKIE_NAME)
+    if cookie:
+        try:
+            payload = jwt.decode_token(cookie, expected_type=jwt.REFRESH_TOKEN_TYPE)
+            user = await db.get(User, uuid.UUID(payload.sub))
+            if user is not None:
+                user.token_version = (user.token_version or 0) + 1
+                await db.flush()
+        except (jwt.TokenError, ValueError):
+            pass  # nothing valid to revoke; just clear the cookie
 
     _clear_refresh_cookie(response)
     return api_response(data={"ok": True})
@@ -210,7 +247,11 @@ async def me(user: User = Depends(get_current_user)) -> APIResponse:
     return api_response(data=build_user_response(user))
 
 
-@router.post("/dev-login", response_model=APIResponse)
+@router.post(
+    "/dev-login",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("dev_login", limit=20, window=60))],
+)
 async def dev_login(
     payload: DevLoginRequest,
     response: Response,
@@ -255,12 +296,16 @@ async def dev_login(
 # ── Org onboarding (Stage 7) ────────────────────────────────────────────────
 
 
-@router.post("/verify-email", response_model=APIResponse)
+@router.post(
+    "/verify-email",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("verify_email", limit=20, window=60))],
+)
 async def verify_email_endpoint(
     payload: VerifyEmailRequest,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Phase 3: consume a one-time .edu verification token."""
+    """Phase 3: consume a one-time .edu verification token (rate-limited: token guessing)."""
     result = await verify_email(db, payload.token)
     return api_response(data=camelize(result))
 
@@ -296,13 +341,24 @@ async def brand_set_password(
     return api_response(data=TokenResponse(access_token=access, user=user_resp))
 
 
-@router.post("/brand/login", response_model=APIResponse)
+@router.post(
+    "/brand/login",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("brand_login", limit=10, window=60))],
+)
 async def brand_login(
     payload: BrandLoginRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Brand email + password login. Issues JWT tokens on success."""
+    """Brand email + password login. Issues JWT tokens on success.
+
+    Rate-limited per-IP (decorator) and per-account (below) — the per-account cap
+    runs *before* the bcrypt verify so credential-stuffing across rotating IPs
+    can't burn CPU. The cap is generous so a third party can't easily lock out a
+    brand by hammering its email.
+    """
+    enforce_account_limit("brand_login", payload.email.strip().lower(), limit=20, window=300)
     user, user_resp = await login_brand(db, payload.email, payload.password)
     access, refresh = issue_token_pair(user)
     _set_refresh_cookie(response, refresh)

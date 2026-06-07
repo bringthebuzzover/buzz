@@ -106,5 +106,5 @@ def issue_token_pair(user: User) -> tuple[str, str]:
     """Mint ``(access_token, refresh_token)`` for an authenticated user."""
 
     access = jwt.create_access_token(user.id, user.portal_role, user.status)
-    refresh = jwt.create_refresh_token(user.id)
+    refresh = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
     return access, refresh

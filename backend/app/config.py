@@ -9,6 +9,7 @@ of truth that callers import rather than reaching into the environment.
 from __future__ import annotations
 
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -122,6 +123,16 @@ class Settings(BaseSettings):
         ),
     )
 
+    # --- Rate limiting (architecture §11.1, Stage 9) ---
+    RATE_LIMIT_ENABLED: bool = Field(
+        default=True,
+        description=(
+            "In-memory per-IP (and per-account for login) rate limiting on auth "
+            "+ public endpoints. Per-process: assumes a single web replica "
+            "(see DEPLOYMENT.md). Disabled in the test suite."
+        ),
+    )
+
     # --- Token encryption at rest (architecture.md §10.5 / §11.1) ---
     TOKEN_ENCRYPTION_KEY: str = Field(
         default=_DEV_TOKEN_ENCRYPTION_KEY,
@@ -154,6 +165,20 @@ class Settings(BaseSettings):
                 f"ENVIRONMENT={self.ENVIRONMENT!r} but these still use the "
                 f"committed dev default(s): {', '.join(offenders)}. Set real "
                 "secrets before deploying."
+            )
+
+        # Refresh/OAuth cookies must be Secure off-dev (they ride HTTPS only),
+        # and the SPA base URL must be a real remote host so email links don't
+        # point at localhost. Fail fast rather than ship a broken session layer.
+        misconfig = []
+        if not self.REFRESH_COOKIE_SECURE:
+            misconfig.append("REFRESH_COOKIE_SECURE must be True")
+        host = urlparse(self.FRONTEND_URL).hostname or ""
+        if not host or host in {"localhost", "127.0.0.1", "0.0.0.0", "::1"}:
+            misconfig.append("FRONTEND_URL must be the real SPA URL (not localhost)")
+        if misconfig:
+            raise ValueError(
+                f"ENVIRONMENT={self.ENVIRONMENT!r} misconfigured: " + "; ".join(misconfig) + "."
             )
         return self
 
