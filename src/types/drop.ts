@@ -64,6 +64,14 @@ export type Drop = {
   /** When true, ignore `applyCloseAt` auto-close (Buzz manually reopened). */
   manualReopen: boolean;
 
+  /**
+   * Notify-Me state for the calling org (API feed, §6.3.1): whether a reminder
+   * is set and its lead time, so the Upcoming card shows the already-subscribed
+   * state from the server. Optional — the demo path uses localStorage instead.
+   */
+  notifyRequested?: boolean;
+  reminderMinutes?: number | null;
+
   /** Brand-facing tracker stage. */
   brandTrackerStage: BrandDropTrackerStage;
 
@@ -109,6 +117,8 @@ export type DropCardData = Pick<
   | "applyOpenAt"
   | "applyCloseAt"
   | "manualReopen"
+  | "notifyRequested"
+  | "reminderMinutes"
 >;
 
 /** A feed row: card data plus the two server-computed (or demo-derived) fields. */

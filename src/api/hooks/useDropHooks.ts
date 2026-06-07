@@ -18,6 +18,8 @@ export type DropFeedItem = {
   manualReopen: boolean;
   acceptedCount: number;
   alreadyApplied: boolean;
+  notifyRequested: boolean;
+  reminderMinutes: number | null;
 };
 
 export type DropDetail = DropFeedItem & {
@@ -100,10 +102,11 @@ export const REMINDER_CHOICES = [5, 15, 60] as const;
  * Set/clear a "Notify Me" reminder for an upcoming drop via the real backend
  * (`POST`/`DELETE /api/drops/{id}/notify`). The backend stores a single
  * reminder lead-time per (org, drop); callers pass one of `REMINDER_CHOICES`,
- * or `null` to clear. (The feed doesn't yet return existing notify state, so
- * the card seeds its toggle from local state — the write itself is real.)
+ * or `null` to clear. On success the feed query is invalidated so the card
+ * re-reads the server-sourced `notifyRequested`/`reminderMinutes` (§6.3.1).
  */
 export function useDropNotify(dropId: string) {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (reminderMinutes: number | null) => {
       if (reminderMinutes === null) {
@@ -115,6 +118,9 @@ export function useDropNotify(dropId: string) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reminderMinutes }),
       });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["org-drop-feed"] });
     },
   });
 }

@@ -91,6 +91,29 @@ class BrandDropListItem(CamelModel):
         return to_epoch_ms(value)
 
 
+class BrandDropPostItem(CamelModel):
+    """One linked social post under an applicant (brand per-drop view, §5.3.1).
+
+    The brand sees individual posts grouped by org (not just the per-org
+    roll-up) so it can preview/attribute each contribution.
+    """
+
+    id: uuid.UUID
+    url: str
+    media_url: str | None
+    thumbnail_url: str | None
+    caption: str
+    media_type: str
+    media_product_type: str
+    posted_at: datetime
+    likes: int
+    comments: int
+
+    @field_serializer("posted_at")
+    def _epoch(self, value: datetime) -> int | None:
+        return to_epoch_ms(value)
+
+
 class BrandDropDetailApplicant(CamelModel):
     """One applicant row in the brand drop detail view (§8.2)."""
 
@@ -109,11 +132,14 @@ class BrandDropDetailApplicant(CamelModel):
     instagram_handle: str
     follower_count: int | None
     member_count: int | None
+    category: str | None
     # Attributed campaign totals (likes/comments from linked posts)
     attributed_post_count: int
     attributed_likes: int
     attributed_comments: int
     attributed_engagement: int
+    # Individual linked posts, grouped under this org (§5.3.1)
+    posts: list[BrandDropPostItem]
 
     @field_serializer("applied_at", "decision_at")
     def _epoch(self, value: datetime | None) -> int | None:
@@ -139,6 +165,7 @@ class BrandDropDetailResponse(CamelModel):
     campaign_hashtag: str | None
     applicant_selection_finalized_at: datetime | None
     created_at: datetime
+    tracking_number: str | None
     applications: list[BrandDropDetailApplicant]
 
     @field_serializer(

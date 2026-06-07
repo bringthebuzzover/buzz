@@ -74,6 +74,7 @@ async def submit_org_onboarding(
         tiktok_handle=payload.tiktok_handle,
         follower_count=payload.follower_count,
         member_count=payload.member_count,
+        category=payload.category.value if payload.category is not None else None,
         city=payload.city,
         state=payload.state,
         contact_name=payload.contact_name,

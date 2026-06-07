@@ -178,6 +178,33 @@ async def _org_attributed_totals(db: AsyncSession, org_id: UUID, drop_id: UUID) 
     }
 
 
+async def _application_linked_posts(db: AsyncSession, application_id: UUID) -> list[SocialPost]:
+    """Individual social posts linked to one application row.
+
+    Feeds the brand's "posts grouped by org" per-drop view (§5.3.1). Keyed on the
+    specific application (not the org) so an org holding more than one row on a
+    drop — e.g. a denied row plus a re-applied row, allowed by the partial unique
+    index — doesn't render another row's posts. Newest first.
+    """
+
+    post_ids = list(
+        await db.scalars(
+            select(PostCampaignLink.post_id).where(
+                PostCampaignLink.application_id == application_id
+            )
+        )
+    )
+    if not post_ids:
+        return []
+    return list(
+        await db.scalars(
+            select(SocialPost)
+            .where(SocialPost.id.in_(post_ids))
+            .order_by(SocialPost.posted_at.desc(), SocialPost.id.desc())
+        )
+    )
+
+
 # --- Brand aggregate (port of computeBrandAggregate from metrics.ts) -----------
 
 

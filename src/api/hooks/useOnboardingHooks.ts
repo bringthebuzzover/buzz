@@ -10,6 +10,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../client";
 import { setAccessToken } from "../auth";
+import type { OrgCategory } from "../../types/orgCategory";
 
 // ── Org onboarding ─────────────────────────────────────────────────────────
 
@@ -21,6 +22,7 @@ export type OrgOnboardingInput = {
   tiktokHandle?: string;
   followerCount?: number;
   memberCount?: number;
+  category?: OrgCategory;
   city?: string;
   state?: string;
   contactName?: string;

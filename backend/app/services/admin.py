@@ -245,8 +245,11 @@ async def advance_tracker(
     )
     db.add(event)
 
-    # At awaiting_products, mirror tracking_number onto accepted applications
+    # At awaiting_products, store the tracking number on the drop (the brand's
+    # read-only tracker shows it here, §5.2) and mirror it onto accepted
+    # applications (the org-facing campaign view, §6.4.1).
     if requested == BrandTrackerStage.AWAITING_PRODUCTS.value and tracking_number:
+        drop.tracking_number = tracking_number
         await db.execute(
             sa_update(DropApplication)
             .where(

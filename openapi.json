@@ -424,10 +424,33 @@
         "title": "NotifyRequest",
         "type": "object"
       },
+      "OrgCategory": {
+        "description": "Classification of a student org (``organizations.category``).\n\nDrives brand-side applicant filtering (PRODUCT.md \u00a75.3.1). Nullable on the\ncolumn \u2014 orgs onboarded before this field, or that decline to classify,\nhave no category.",
+        "enum": [
+          "sorority",
+          "fraternity",
+          "sports",
+          "academic",
+          "social",
+          "other"
+        ],
+        "title": "OrgCategory",
+        "type": "string"
+      },
       "OrgOnboardingRequest": {
         "additionalProperties": false,
         "description": "Phase 2: submit org profile after Instagram OAuth.",
         "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgCategory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "city": {
             "anyOf": [
               {
@@ -535,6 +558,16 @@
         "additionalProperties": false,
         "description": "Editable subset of the org profile (all optional; PATCH semantics).\n\nOnly provided fields are applied (``model_dump(exclude_unset=True)``).\n``edu_email`` is intentionally absent \u2014 it is the verified login identity.\n``extra=\"forbid\"`` so an unknown/typo'd key (or an attempt to send\n``eduEmail``) is a 422 rather than a silently-ignored no-op write.",
         "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgCategory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "city": {
             "anyOf": [
               {

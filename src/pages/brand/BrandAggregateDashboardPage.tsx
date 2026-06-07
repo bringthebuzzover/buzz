@@ -23,6 +23,7 @@ import { DEMO_BRAND_ID } from "../../data/seed/seedBrands";
 import { SEED_ORGS } from "../../data/seed/seedOrgs";
 import AggregateTotalsCards from "../../components/brand/AggregateTotalsCards";
 import CompareDropsTable from "../../components/brand/CompareDropsTable";
+import ApiCompareDropsTable from "../../components/brand/ApiCompareDropsTable";
 import EngagementOverTimeChart from "../../components/brand/EngagementOverTimeChart";
 import RunningTotalsBar from "../../components/brand/RunningTotalsBar";
 import PlanCampaignModal from "../../components/site/modals/PlanCampaignModal";
@@ -216,7 +217,7 @@ function ApiDashboard() {
           <RunningTotalsBar metrics={mapAggregate(agg)} />
           <AggregateTotalsCards metrics={mapAggregate(agg)} />
           <EngagementOverTimeChart points={mapEngagementSeries(pts)} />
-          {/* CompareDropsTable uses demo data types; rendered only in demo path */}
+          <ApiCompareDropsTable drops={items} />
         </div>
       )}
       {planCampaignOpen ? (
