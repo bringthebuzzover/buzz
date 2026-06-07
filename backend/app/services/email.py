@@ -123,6 +123,33 @@ async def send_brand_denied_email(to_email: str, *, brand_name: str = "") -> Non
     await _dispatch(to_email, subject, body)
 
 
+async def send_application_denied_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+    drop_title: str = "",
+    brand_name: str = "",
+) -> None:
+    """Tell an org their drop application was not selected (PRODUCT §7.1: email-only).
+
+    Denied applicants get no My Campaigns row, so this email is the only channel
+    they ever hear back on.
+    """
+    subject = "Update on your Buzz drop application"
+    body = _application_denied_body(org_name, drop_title, brand_name)
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Drop application denied:                       ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return
+
+    await _dispatch(to_email, subject, body)
+
+
 async def _dispatch(to_email: str, subject: str, body: str) -> None:
     """Dispatch through the configured email provider."""
     # Resend / SendGrid / SES integration goes here when needed.
@@ -163,4 +190,15 @@ def _org_denied_body(org_name: str) -> str:
         f"Thanks for your interest in Buzz. After review, {name} was not "
         "approved at this time. If you think this was a mistake, reply to this "
         "email and our team will take another look."
+    )
+
+
+def _application_denied_body(org_name: str, drop_title: str, brand_name: str) -> str:
+    name = org_name or "your organization"
+    drop = f' for "{drop_title}"' if drop_title else ""
+    brand = f" by {brand_name}" if brand_name else ""
+    return (
+        f"Thanks for applying{drop}{brand} on Buzz. After review, {name} was not "
+        "selected for this drop. Keep an eye on your Drop Feed — new opportunities "
+        "open regularly, and you're welcome to apply again."
     )

@@ -476,7 +476,7 @@ async def test_token_refresh_cron_counts_failures_and_keeps_token(db_session) ->
     user = await persist(db_session, _org_with_token(days_to_expiry=7))
     original = user.instagram_access_token
     result = await refresh_due_tokens(db_session, _FailingRefreshClient())
-    assert result == {"candidates": 1, "refreshed": 0, "failed": 1}
+    assert result == {"candidates": 1, "refreshed": 0, "failed": 1, "skipped": 0}
     await db_session.refresh(user)
     assert user.instagram_access_token == original  # old token preserved
 

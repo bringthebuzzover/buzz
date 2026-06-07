@@ -73,6 +73,14 @@ function VerifyWithToken({ token }: { token: string }) {
         const me = await refreshUser();
         setState({ kind: "success", authenticated: !!me });
       } catch (err) {
+        // Re-clicking an already-used link is success, not failure: the email is
+        // verified. Show the success screen (refreshUser decides where Continue
+        // goes).
+        if (err instanceof ApiError && err.code === "EMAIL_ALREADY_VERIFIED") {
+          const me = await refreshUser();
+          setState({ kind: "success", authenticated: !!me });
+          return;
+        }
         setState({
           kind: "error",
           message:
@@ -141,10 +149,23 @@ function VerifyWithToken({ token }: { token: string }) {
   );
 }
 
+const POLL_INTERVAL_MS = 15_000;
+
 function AwaitVerification() {
+  const { refreshUser } = useAuth();
   const resend = useResendVerification();
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Poll so a verify completed in another tab/device advances this waiting tab
+  // automatically (the parent redirects once status leaves
+  // pending_email_verification), mirroring PendingApprovalPage.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      void refreshUser();
+    }, POLL_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [refreshUser]);
 
   const onResend = async () => {
     setNotice(null);

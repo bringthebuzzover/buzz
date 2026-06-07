@@ -127,6 +127,10 @@ function ApiApplicantTable({
   dropId: string;
 }) {
   const finalizeMutation = useFinalizeApplicants(dropId);
+  // Explicit accept selection: finalize ACCEPTS the checked orgs and DENIES every
+  // other applicant (an irreversible, email-triggering action). Without explicit
+  // checkboxes an empty submit silently denied everyone (§7.1 footgun).
+  const [accepted, setAccepted] = useState<Record<string, boolean>>({});
   const [allocations, setAllocations] = useState<Record<string, number>>({});
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
@@ -143,15 +147,27 @@ function ApiApplicantTable({
       ? applicants
       : applicants.filter((a) => a.category === categoryFilter);
 
+  // Counts span ALL applicants, not just the filtered view — finalize denies
+  // every unaccepted applicant regardless of the category filter.
+  const acceptedCount = applicants.filter((a) => accepted[a.orgId]).length;
+  const deniedCount = applicants.length - acceptedCount;
+
   const handleFinalize = () => {
-    const payload = Object.entries(allocations).map(([orgId, units]) => ({
-      orgId,
-      units,
-    }));
-    finalizeMutation.mutate(payload);
+    const payload = applicants
+      .filter((a) => accepted[a.orgId])
+      .map((a) => ({ orgId: a.orgId, units: allocations[a.orgId] ?? 0 }));
+    const ok = window.confirm(
+      `Finalize this drop?\n\n` +
+        `Accept ${acceptedCount} ${acceptedCount === 1 ? "org" : "orgs"} · ` +
+        `Deny ${deniedCount} ${deniedCount === 1 ? "org" : "orgs"}.\n\n` +
+        `Denied applicants are emailed and this cannot be undone.`,
+    );
+    if (ok) finalizeMutation.mutate(payload);
   };
 
-  const totalAllocated = Object.values(allocations).reduce((s, u) => s + u, 0);
+  const totalAllocated = applicants
+    .filter((a) => accepted[a.orgId])
+    .reduce((s, a) => s + (allocations[a.orgId] ?? 0), 0);
 
   return (
     <div className="mt-8 space-y-4">
@@ -177,6 +193,7 @@ function ApiApplicantTable({
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-buzz-line bg-buzz-cream">
+              <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Accept</th>
               <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Org</th>
               <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">University</th>
               <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Type</th>
@@ -187,41 +204,58 @@ function ApiApplicantTable({
             </tr>
           </thead>
           <tbody>
-            {visible.map((app) => (
-              <tr key={app.id} className="border-b border-buzz-line">
-                <td className="px-4 py-3 font-medium">{app.orgName}</td>
-                <td className="px-4 py-3 text-buzz-inkMuted">{app.university}</td>
-                <td className="px-4 py-3 text-buzz-inkMuted">
-                  {orgCategoryLabel(app.category)}
-                </td>
-                <td className="px-4 py-3 text-buzz-inkMuted">{app.instagramHandle}</td>
-                <td className="px-4 py-3">{app.followerCount ?? "-"}</td>
-                <td className="px-4 py-3 text-buzz-inkMuted max-w-48 truncate">
-                  {app.pitch ?? "-"}
-                </td>
-                <td className="px-4 py-3">
-                  <input
-                    type="number"
-                    min={0}
-                    className="w-16 rounded border border-buzz-lineMid px-2 py-1 text-sm"
-                    value={allocations[app.orgId] ?? 0}
-                    onChange={(e) =>
-                      setAllocations((prev) => ({
-                        ...prev,
-                        [app.orgId]: Math.max(0, parseInt(e.target.value, 10) || 0),
-                      }))
-                    }
-                  />
-                </td>
-              </tr>
-            ))}
+            {visible.map((app) => {
+              const isAccepted = !!accepted[app.orgId];
+              return (
+                <tr key={app.id} className="border-b border-buzz-line">
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      aria-label={`Accept ${app.orgName}`}
+                      checked={isAccepted}
+                      onChange={(e) =>
+                        setAccepted((prev) => ({
+                          ...prev,
+                          [app.orgId]: e.target.checked,
+                        }))
+                      }
+                    />
+                  </td>
+                  <td className="px-4 py-3 font-medium">{app.orgName}</td>
+                  <td className="px-4 py-3 text-buzz-inkMuted">{app.university}</td>
+                  <td className="px-4 py-3 text-buzz-inkMuted">
+                    {orgCategoryLabel(app.category)}
+                  </td>
+                  <td className="px-4 py-3 text-buzz-inkMuted">{app.instagramHandle}</td>
+                  <td className="px-4 py-3">{app.followerCount ?? "-"}</td>
+                  <td className="px-4 py-3 text-buzz-inkMuted max-w-48 truncate">
+                    {app.pitch ?? "-"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <input
+                      type="number"
+                      min={0}
+                      disabled={!isAccepted}
+                      className="w-16 rounded border border-buzz-lineMid px-2 py-1 text-sm disabled:bg-buzz-cream disabled:opacity-50"
+                      value={isAccepted ? allocations[app.orgId] ?? 0 : 0}
+                      onChange={(e) =>
+                        setAllocations((prev) => ({
+                          ...prev,
+                          [app.orgId]: Math.max(0, parseInt(e.target.value, 10) || 0),
+                        }))
+                      }
+                    />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-buzz-inkMuted">
-          Total allocated: {totalAllocated} units
+          Accept {acceptedCount} · Deny {deniedCount} · {totalAllocated} units allocated
         </span>
         <button
           type="button"
@@ -229,11 +263,11 @@ function ApiApplicantTable({
           disabled={finalizeMutation.isPending}
           className="rounded-xl bg-buzz-coral px-6 py-2 text-sm font-bold text-buzz-paper hover:bg-buzz-coralDark disabled:opacity-60"
         >
-          {finalizeMutation.isPending ? "Finalizing..." : "Finalize Allocations"}
+          {finalizeMutation.isPending ? "Finalizing..." : "Finalize Selection"}
         </button>
       </div>
       {finalizeMutation.isSuccess ? (
-        <p className="text-sm font-medium text-green-600">Allocations finalized.</p>
+        <p className="text-sm font-medium text-green-600">Selection finalized.</p>
       ) : null}
       {finalizeMutation.error ? (
         <p className="text-sm font-medium text-buzz-coral">

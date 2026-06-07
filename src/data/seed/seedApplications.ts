@@ -1,7 +1,7 @@
 /**
- * Seed applications covering all decision states (`applied`, `accepted`, `denied`,
- * `waitlisted`) so the org persona sees Applied/Waitlisted/Accepted/Active/Finished
- * and so the demo proves Denied stays hidden in My Campaigns.
+ * Seed applications covering the decision states (`applied`, `accepted`,
+ * `denied`) so the org persona sees Applied/Accepted/Active/Finished and so the
+ * demo proves Denied stays hidden in My Campaigns. PRODUCT.md §7.1: no waitlist.
  *
  * The demo org id is referenced for first-person campaigns; other orgs populate
  * the brand-side aggregations and per-drop fill counts.
@@ -46,16 +46,6 @@ export function buildSeedApplications(now: number): DropApplication[] {
       decision: "applied",
       appliedAt: now - 1 * MS_PER_DAY,
       pitch: "We have a glam-room space perfect for a sensory activation.",
-    },
-
-    /** Waitlisted on Rare Beauty (full but the org opted into the waitlist). */
-    {
-      id: "app-demo-rare-waitlist",
-      dropId: "drop-rare-beauty-soft-pinch",
-      orgId: DEMO_ORG_ID,
-      decision: "waitlisted",
-      appliedAt: now - 2 * MS_PER_DAY,
-      decisionAt: now - 1 * MS_PER_DAY,
     },
 
     /** Finished campaign for the demo org (Yerba Madre — Energy for Your Run). */

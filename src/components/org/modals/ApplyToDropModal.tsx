@@ -1,12 +1,9 @@
 /**
- * Apply (or Join Waitlist) modal — writes a `DropApplication` row to the
- * mock store. Reframed from the legacy `ApplyModal`: drops the per-org IG
- * sharing copy (the brand-side surface no longer shows org breakdowns) and
- * instead surfaces a clear pitch field plus capacity/window context.
- *
- * Mode is determined by `mode`: `"apply"` writes `decision: "applied"`,
- * `"waitlist"` writes `decision: "waitlisted"`. Both routes the user to
- * `/org/campaigns` on success so they can see their new participation.
+ * Apply modal — writes an `applied` `DropApplication` row to the mock store.
+ * Reframed from the legacy `ApplyModal`: drops the per-org IG sharing copy (the
+ * brand-side surface no longer shows org breakdowns) and instead surfaces a
+ * clear pitch field plus capacity/window context. Routes to `/org/campaigns`
+ * on success. PRODUCT.md §7.1: no waitlist.
  */
 import { useState, type FormEvent } from "react";
 import { X } from "lucide-react";
@@ -15,11 +12,8 @@ import type { Drop } from "../../../types/drop";
 import { useMockData } from "../../../contexts/MockDataContext";
 import { DEMO_ORG_ID } from "../../../data/seed/seedOrgs";
 
-type Mode = "apply" | "waitlist";
-
 type ApplyToDropModalProps = {
   drop: Drop;
-  mode: Mode;
   onClose: () => void;
 };
 
@@ -31,7 +25,6 @@ function generateId(): string {
 
 export default function ApplyToDropModal({
   drop,
-  mode,
   onClose,
 }: ApplyToDropModalProps) {
   const [pitch, setPitch] = useState("");
@@ -39,11 +32,8 @@ export default function ApplyToDropModal({
   const navigate = useNavigate();
   const { insertApplication } = useMockData();
 
-  const isWaitlist = mode === "waitlist";
-  const heading = isWaitlist
-    ? `Join the waitlist for ${drop.title}`
-    : `Apply to ${drop.title}`;
-  const cta = isWaitlist ? "Join Waitlist" : "Submit Application";
+  const heading = `Apply to ${drop.title}`;
+  const cta = "Submit Application";
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -54,7 +44,7 @@ export default function ApplyToDropModal({
       id: generateId(),
       dropId: drop.id,
       orgId: DEMO_ORG_ID,
-      decision: isWaitlist ? "waitlisted" : "applied",
+      decision: "applied",
       appliedAt: Date.now(),
       pitch: pitch.trim() || undefined,
     });
@@ -78,9 +68,7 @@ export default function ApplyToDropModal({
         <div className="border-b border-buzz-line bg-buzz-cream p-6">
           <h2 className="text-lg font-bold text-buzz-coral">{heading}</h2>
           <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
-            {isWaitlist
-              ? "Spots are filled. We'll bump you to accepted if a spot opens up."
-              : `Tell ${drop.brandName} why your org would be a great fit.`}
+            Tell {drop.brandName} why your org would be a great fit.
           </p>
         </div>
 

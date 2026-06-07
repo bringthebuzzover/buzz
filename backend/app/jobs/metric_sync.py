@@ -132,6 +132,13 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
         user = await db.get(User, org.user_id)
         token = _token_for(user, now)
         if token is None:
+            # Surface silent drop-offs: an org with a token we can't use (expired
+            # or undecryptable) stops syncing until it re-auths on next login.
+            if user is not None and user.instagram_access_token:
+                logger.warning(
+                    "metric sync skipped org %s: Instagram token missing/expired (needs re-auth)",
+                    org.id,
+                )
             continue
 
         # --- Discovery: insert newly-posted media in the window ---

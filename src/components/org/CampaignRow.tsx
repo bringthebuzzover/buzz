@@ -21,7 +21,6 @@ type CampaignRowProps = {
 const STATUS_TONE: Record<OrgCampaignStatus, string> = {
   active: "bg-emerald-100 text-emerald-800",
   accepted: "bg-buzz-butter text-buzz-ink",
-  waitlisted: "bg-amber-100 text-amber-800",
   applied: "bg-buzz-cream text-buzz-inkMuted",
   finished: "bg-slate-100 text-slate-700",
 };

@@ -7,12 +7,9 @@
  *   surface (PRODUCT.md §6.4: denials are email-only).
  */
 
-/** Decision recorded against an application by Buzz. */
-export type ApplicationDecision =
-  | "applied"
-  | "accepted"
-  | "denied"
-  | "waitlisted";
+/** Decision recorded against an application. PRODUCT.md §7.1: no waitlist —
+ * each applicant is pending (`applied`), `accepted`, or `denied`. */
+export type ApplicationDecision = "applied" | "accepted" | "denied";
 
 /**
  * Visible org-facing campaign status. Note the absence of `denied`: denied applications
@@ -20,7 +17,6 @@ export type ApplicationDecision =
  */
 export type OrgCampaignStatus =
   | "applied"
-  | "waitlisted"
   | "accepted"
   | "active"
   | "finished";
@@ -29,7 +25,6 @@ export type OrgCampaignStatus =
 export const ORG_CAMPAIGN_STATUS_ORDER: readonly OrgCampaignStatus[] = [
   "active",
   "accepted",
-  "waitlisted",
   "applied",
   "finished",
 ] as const;
@@ -37,7 +32,6 @@ export const ORG_CAMPAIGN_STATUS_ORDER: readonly OrgCampaignStatus[] = [
 /** Human-readable labels for status badges. */
 export const ORG_CAMPAIGN_STATUS_LABELS: Record<OrgCampaignStatus, string> = {
   applied: "Applied",
-  waitlisted: "Waitlisted",
   accepted: "Accepted",
   active: "Active",
   finished: "Finished",
@@ -50,9 +44,9 @@ export type DropApplication = {
   orgId: string;
   /** Decision recorded by Buzz (or `applied` initial state). */
   decision: ApplicationDecision;
-  /** When the org applied (or opted into waitlist). */
+  /** When the org applied. */
   appliedAt: number;
-  /** When Buzz made a decision (accept/deny/waitlist). */
+  /** When the brand made a decision (accept/deny). */
   decisionAt?: number;
   /** Optional pitch text submitted by the org with the application. */
   pitch?: string;

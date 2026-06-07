@@ -35,7 +35,6 @@ function deriveApiStatus(item: CampaignItem) {
     if (stage === "drop_finished") return "finished" as const;
     return "accepted" as const;
   }
-  // "waitlisted" decision — backend doesn't have this, but handle gracefully
   return null;
 }
 
@@ -127,7 +126,7 @@ function ApiCampaigns() {
       id: item.id,
       dropId: item.dropId,
       orgId: "",
-      decision: item.decision as "applied" | "accepted" | "denied" | "waitlisted",
+      decision: item.decision as "applied" | "accepted" | "denied",
       appliedAt: item.appliedAt,
       decisionAt: item.decisionAt,
       pitch: item.pitch ?? undefined,
