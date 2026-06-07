@@ -1,162 +1,12 @@
 /**
- * DemoClock — drives the demo's time-based behavior.
+ * Wall-clock hook used by countdowns and time-derived UI.
  *
- * Stage 6: updated to use the 5-stage tracker vocabulary matching the backend.
+ * `useDemoNow` ticks once a second via a tiny external store, so components that
+ * read "now" (e.g. `useCountdown`, the org drop feed) stay live without each
+ * mounting their own interval. The store's interval only runs while something is
+ * subscribed.
  */
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react";
-
-import { applicationsStore } from "../data/store/applicationsStore";
-import { dropsStore } from "../data/store/dropsStore";
-import { linksStore } from "../data/store/linksStore";
-import { postsStore } from "../data/store/postsStore";
-import { brandTrackerStore } from "../data/store/brandTrackerStore";
-import { BRAND_DROP_TRACKER_ORDER } from "../types/brandPortal";
-
-type DemoClockValue = {
-  now: number;
-};
-
-const DemoClockContext = createContext<DemoClockValue | null>(null);
-
-const NOW_TICK_MS = 1000;
-const METRICS_TICK_MS = 10_000;
-const TRANSITION_TICK_MS = 2000;
-
-function jitter(max: number): number {
-  return Math.floor(Math.random() * (max + 1));
-}
-
-export function DemoClockProvider({ children }: { children: ReactNode }) {
-  const [now, setNow] = useState<number>(() => Date.now());
-
-  /** 1s tick — drives countdowns. */
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setNow(Date.now());
-    }, NOW_TICK_MS);
-    return () => window.clearInterval(id);
-  }, []);
-
-  /** Metric jitter — only touches posts linked to currently-active drops. */
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      const drops = dropsStore.getAll();
-      const activeDropIds = new Set(
-        drops
-          .filter((d) => d.brandTrackerStage === "drop_active")
-          .map((d) => d.id),
-      );
-      if (activeDropIds.size === 0) return;
-      const links = linksStore.getAll();
-      const activePostIds = new Set(
-        links.filter((l) => activeDropIds.has(l.dropId)).map((l) => l.postId),
-      );
-      if (activePostIds.size === 0) return;
-      const posts = postsStore.getAll();
-      const updated = posts.map((p) => {
-        if (!activePostIds.has(p.id)) return p;
-        const dLikes = jitter(8);
-        const dComments = jitter(2);
-        if (dLikes === 0 && dComments === 0) return p;
-        return {
-          ...p,
-          metrics: {
-            likes: p.metrics.likes + dLikes,
-            comments: p.metrics.comments + dComments,
-            fetchedAt: Date.now(),
-          },
-        };
-      });
-      postsStore.replaceAll(updated);
-    }, METRICS_TICK_MS);
-    return () => window.clearInterval(id);
-  }, []);
-
-  /** Scheduled-transition pump. */
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      const drops = dropsStore.getAll();
-      let touched = false;
-      for (const drop of drops) {
-        if (!drop.scheduledTransitions?.length) continue;
-        const currentIdx = BRAND_DROP_TRACKER_ORDER.indexOf(
-          drop.brandTrackerStage,
-        );
-        const due = drop.scheduledTransitions
-          .filter((t) => Date.now() - drop.createdAt >= t.offsetMs)
-          .filter(
-            (t) => BRAND_DROP_TRACKER_ORDER.indexOf(t.toStage) > currentIdx,
-          )
-          .sort(
-            (a, b) =>
-              BRAND_DROP_TRACKER_ORDER.indexOf(a.toStage) -
-              BRAND_DROP_TRACKER_ORDER.indexOf(b.toStage),
-          );
-        if (due.length === 0) continue;
-        const target = due[due.length - 1];
-        const trackingNumber =
-          due.find((d) => d.assignTrackingNumber)?.assignTrackingNumber ??
-          drop.trackingNumber;
-        dropsStore.setBrandTrackerStage(drop.id, target.toStage, trackingNumber);
-        for (const transition of due) {
-          brandTrackerStore.insert({
-            id: `evt-${drop.id}-${transition.toStage}-${transition.offsetMs}`,
-            dropId: drop.id,
-            stage: transition.toStage,
-            occurredAt: drop.createdAt + transition.offsetMs,
-            note:
-              transition.assignTrackingNumber != null
-                ? `Tracking #${transition.assignTrackingNumber}`
-                : undefined,
-          });
-        }
-        // Mirror tracking number onto accepted applications at awaiting_products.
-        if (
-          target.toStage === "awaiting_products" &&
-          trackingNumber
-        ) {
-          const apps = applicationsStore.getAll();
-          const updated = apps.map((a) =>
-            a.dropId === drop.id && a.decision === "accepted"
-              ? { ...a, trackingNumber }
-              : a,
-          );
-          applicationsStore.replaceAll(updated);
-        }
-        touched = true;
-      }
-      if (touched) {
-        setNow(Date.now());
-      }
-    }, TRANSITION_TICK_MS);
-    return () => window.clearInterval(id);
-  }, []);
-
-  const value = useMemo<DemoClockValue>(() => ({ now }), [now]);
-
-  return (
-    <DemoClockContext.Provider value={value}>
-      {children}
-    </DemoClockContext.Provider>
-  );
-}
-
-// --- Wall-clock store (API path) ---------------------------------------------
-//
-// When no DemoClockProvider is mounted (the USE_API tree), `useDemoNow` must
-// still *tick* — otherwise countdowns (useCountdown) compute from a frozen
-// Date.now() and never update. A tiny external store ticks once a second and
-// only runs its interval while something is subscribed. In demo mode the
-// provider drives re-renders, so we pass a no-op subscriber and read ctx.now —
-// no double-ticking.
+import { useSyncExternalStore } from "react";
 
 let _wallNow = 0;
 const _wallListeners = new Set<() => void>();
@@ -184,13 +34,9 @@ function _getWall(): number {
   return _wallNow || Date.now();
 }
 
-const _noopSubscribe = () => () => {};
-
 export function useDemoNow(): number {
-  const ctx = useContext(DemoClockContext);
-  // useSyncExternalStore is called unconditionally; its args vary by provider
-  // presence. With a provider: no-op subscribe + read ctx.now. Without one:
-  // subscribe to the 1s wall clock so countdowns stay live in the API path.
-  const getNow = ctx ? () => ctx.now : _getWall;
-  return useSyncExternalStore(ctx ? _noopSubscribe : _subscribeWall, getNow, getNow);
+  // Subscribe to the 1s wall clock so countdowns stay live. On the server
+  // (SSR/tests) `getServerSnapshot` returns a stable Date.now() and no interval
+  // is started.
+  return useSyncExternalStore(_subscribeWall, _getWall, _getWall);
 }

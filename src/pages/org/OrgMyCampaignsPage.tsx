@@ -1,19 +1,11 @@
 /**
  * `/org/campaigns` — My Campaigns (PRODUCT.md §6.4).
  *
- * Stage 6 (strangler): behind USE_API this page renders from the real backend
- * (GET /api/campaigns). With the flag off it keeps the original demo behavior.
+ * Renders from the real backend (GET /api/campaigns).
  */
 import { useMemo } from "react";
 import CampaignRow from "../../components/org/CampaignRow";
-import {
-  useApplicationsForOrg,
-  useDrops,
-} from "../../contexts/MockDataContext";
 import { ORG_CAMPAIGN_STATUS_ORDER } from "../../types/orgCampaign";
-import { deriveOrgCampaignStatus } from "../../utils/orgCampaignStatus";
-import { DEMO_ORG_ID } from "../../data/seed/seedOrgs";
-import { USE_API } from "../../config/featureFlags";
 import { useCampaigns } from "../../api/hooks/useOrgHooks";
 import type { CampaignItem } from "../../api/hooks/useOrgHooks";
 
@@ -53,54 +45,6 @@ function CampaignsHeader() {
   );
 }
 
-/** Demo path: localStorage stores. */
-function DemoCampaigns() {
-  const drops = useDrops();
-  const applications = useApplicationsForOrg(DEMO_ORG_ID);
-
-  const rows = useMemo(() => {
-    const dropById = new Map(drops.map((d) => [d.id, d]));
-    return applications
-      .map((application) => {
-        const drop = dropById.get(application.dropId);
-        if (!drop) return null;
-        const status = deriveOrgCampaignStatus(application, drop);
-        if (status == null) return null;
-        return { application, drop, status };
-      })
-      .filter((row): row is NonNullable<typeof row> => row !== null)
-      .sort((a, b) => {
-        const aRank = ORG_CAMPAIGN_STATUS_ORDER.indexOf(a.status);
-        const bRank = ORG_CAMPAIGN_STATUS_ORDER.indexOf(b.status);
-        if (aRank !== bRank) return aRank - bRank;
-        return b.application.appliedAt - a.application.appliedAt;
-      });
-  }, [applications, drops]);
-
-  return (
-    <div className={PAGE_SHELL}>
-      <CampaignsHeader />
-      {rows.length === 0 ? (
-        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
-          You have no campaigns yet. Browse Campaigns to apply to one.
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {rows.map(({ application, drop, status }) => (
-            <CampaignRow
-              key={application.id}
-              application={application}
-              drop={drop}
-              status={status}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** API path: GET /api/campaigns. */
 function ApiCampaigns() {
   const { data: items, isLoading, error } = useCampaigns();
 
@@ -197,5 +141,5 @@ function ApiCampaigns() {
 }
 
 export default function OrgMyCampaignsPage() {
-  return USE_API ? <ApiCampaigns /> : <DemoCampaigns />;
+  return <ApiCampaigns />;
 }

@@ -14,10 +14,6 @@
  * states (queries are disabled until `status === "authenticated"`).
  */
 
-// Force the API path so pages render their Api* variants (not the demo
-// variants, which need providers we deliberately don't mount here).
-jest.mock("./config/featureFlags", () => ({ USE_API: true }));
-
 import type { ComponentType } from "react";
 import { renderToString } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";

@@ -1,26 +1,13 @@
 /**
  * `/brand/drops/:dropId` — per-drop detail.
  *
- * Stage 6 (strangler): behind USE_API this page renders from the real backend
- * (GET /api/brands/me/drops/:id). With the flag off it keeps the original demo behavior.
+ * Renders from the real backend (GET /api/brands/me/drops/:id).
  */
 import { Link, Navigate, useParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
-import {
-  useApplications,
-  useDrop,
-  useLinks,
-  usePosts,
-} from "../../contexts/MockDataContext";
 import BrandDropTrackerStepper from "../../components/brand/BrandDropTrackerStepper";
-import BrandApplicantSelection from "../../components/brand/BrandApplicantSelection";
-import PerDropPostsTable from "../../components/brand/PerDropPostsTable";
 import ApiDropOrgTable from "../../components/brand/ApiDropOrgTable";
 import DropKPISummary from "../../components/brand/DropKPISummary";
-import { computeDropAggregate } from "../../utils/metrics";
-import { DEMO_BRAND_ID } from "../../data/seed/seedBrands";
-import { SEED_ORGS } from "../../data/seed/seedOrgs";
-import { USE_API } from "../../config/featureFlags";
 import { useBrandDropDetail, useFinalizeApplicants } from "../../api/hooks/useBrandHooks";
 import type { BrandDropDetail, BrandDropApplicant } from "../../api/hooks/useBrandHooks";
 import { useMemo, useState } from "react";
@@ -46,76 +33,6 @@ function mapDropToView(d: BrandDropDetail) {
     createdAt: d.createdAt,
     trackingNumber: d.trackingNumber ?? undefined,
   };
-}
-
-/** Demo path: localStorage stores. */
-function DemoDropDetail() {
-  const { dropId } = useParams<{ dropId: string }>();
-  const drop = useDrop(dropId);
-  const applications = useApplications();
-  const posts = usePosts();
-  const links = useLinks();
-
-  if (!drop || drop.brandId !== DEMO_BRAND_ID) {
-    return <Navigate to="/brand/dashboard" replace />;
-  }
-
-  const showResults =
-    drop.brandTrackerStage === "drop_active" ||
-    drop.brandTrackerStage === "drop_finished";
-
-  const metrics = computeDropAggregate({
-    drop,
-    applications,
-    links,
-    posts,
-    orgs: SEED_ORGS,
-  });
-
-  return (
-    <div className="mx-auto max-w-5xl px-8 py-12">
-      <Link
-        to="/brand/dashboard"
-        className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
-      >
-        <ChevronLeft size={16} className="mr-1" />
-        Back to dashboard
-      </Link>
-
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-buzz-ink">{drop.title}</h1>
-        <p className="mt-2 text-sm font-medium text-buzz-inkMuted">
-          {drop.description}
-        </p>
-      </header>
-
-      <BrandDropTrackerStepper
-        currentStage={drop.brandTrackerStage as any}
-        trackingNumber={drop.trackingNumber}
-      />
-
-      {drop.brandTrackerStage === "finalizing_agreements" ? (
-        <BrandApplicantSelection
-          drop={drop}
-          applications={applications}
-          orgs={SEED_ORGS}
-          links={links}
-          posts={posts}
-        />
-      ) : null}
-
-      {showResults ? (
-        <div className="mt-8 space-y-6">
-          <DropKPISummary metrics={metrics} />
-          <PerDropPostsTable dropId={drop.id} />
-        </div>
-      ) : (
-        <div className="mt-8 rounded-2xl border border-dashed border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-inkMuted">
-          Posts and KPIs will appear here once your drop goes live.
-        </div>
-      )}
-    </div>
-  );
 }
 
 /** Simple applicant table for the API path at finalizing_agreements stage. */
@@ -280,7 +197,7 @@ function ApiApplicantTable({
   );
 }
 
-/** API path: GET /api/brands/me/drops/:id. */
+/** GET /api/brands/me/drops/:id. */
 function ApiDropDetail() {
   const { dropId } = useParams<{ dropId: string }>();
   const { data: detail, isLoading, error } = useBrandDropDetail(dropId);
@@ -357,5 +274,5 @@ function ApiDropDetail() {
 }
 
 export default function BrandDropDetailPage() {
-  return USE_API ? <ApiDropDetail /> : <DemoDropDetail />;
+  return <ApiDropDetail />;
 }

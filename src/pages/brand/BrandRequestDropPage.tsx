@@ -1,40 +1,10 @@
 /**
- * `/brand/requests/new` — Request a Drop.
- *
- * Stage 6 (strangler): behind USE_API this page POSTs to /api/brands/me/drops.
- * With the flag off it keeps the original demo behavior (localStorage + demo clock).
+ * `/brand/requests/new` — Request a Drop. POSTs to /api/brands/me/drops.
  */
-import { useState, type FormEvent } from "react";
+import { type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
-import type { Drop, ScheduledTransition } from "../../types/drop";
-import { useMockData } from "../../contexts/MockDataContext";
-import { DEMO_BRAND_ID } from "../../data/seed/seedBrands";
-import { USE_API } from "../../config/featureFlags";
 import { useCreateBrandDrop } from "../../api/hooks/useBrandHooks";
-import boxesImage from "../../assets/boxesImage.png";
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-/** Demo schedule: walks the new drop through every tracker stage on a short loop. */
-function buildDemoSchedule(): ScheduledTransition[] {
-  return [
-    { offsetMs: 20_000, toStage: "finalizing_agreements" },
-    { offsetMs: 40_000, toStage: "awaiting_products" },
-    {
-      offsetMs: 60_000,
-      toStage: "drop_active",
-      assignTrackingNumber: `1Z999BUZZ${Math.floor(Math.random() * 9_000_000) + 1_000_000}`,
-    },
-    { offsetMs: 140_000, toStage: "drop_finished" },
-  ];
-}
-
-function generateDropId(): string {
-  return `drop-${Date.now().toString(36)}-${Math.random()
-    .toString(36)
-    .slice(2, 6)}`;
-}
 
 function RequestForm({
   onSubmit,
@@ -115,52 +85,7 @@ function RequestForm({
   );
 }
 
-/** Demo path: localStorage stores + demo clock transitions. */
-function DemoRequestDrop() {
-  const navigate = useNavigate();
-  const { insertDrop, recordTrackerEvent } = useMockData();
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = (title: string, description: string) => {
-    if (submitting) return;
-    setSubmitting(true);
-
-    const now = Date.now();
-    const drop: Drop = {
-      id: generateDropId(),
-      brandId: DEMO_BRAND_ID,
-      brandName: "Poppi",
-      title: title || "Untitled drop",
-      description:
-        description ||
-        "A new campus activation. We'll be in touch with the details shortly.",
-      image: boxesImage,
-      location: "Multiple Campuses",
-      capacityTotal: 10,
-      applyOpenAt: now + 1 * MS_PER_DAY,
-      applyCloseAt: now + 8 * MS_PER_DAY,
-      manualReopen: false,
-      brandTrackerStage: "request_received",
-      totalProductUnits: 360,
-      createdAt: now,
-      scheduledTransitions: buildDemoSchedule(),
-    };
-
-    insertDrop(drop);
-    recordTrackerEvent({
-      id: `evt-${drop.id}-request_received`,
-      dropId: drop.id,
-      stage: "request_received",
-      occurredAt: now,
-    });
-
-    navigate(`/brand/drops/${drop.id}`);
-  };
-
-  return <RequestForm onSubmit={handleSubmit} submitting={submitting} />;
-}
-
-/** API path: POST /api/brands/me/drops. */
+/** POST /api/brands/me/drops. */
 function ApiRequestDrop() {
   const navigate = useNavigate();
   const mutation = useCreateBrandDrop();
@@ -194,5 +119,5 @@ function ApiRequestDrop() {
 }
 
 export default function BrandRequestDropPage() {
-  return USE_API ? <ApiRequestDrop /> : <DemoRequestDrop />;
+  return <ApiRequestDrop />;
 }

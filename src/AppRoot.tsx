@@ -1,16 +1,13 @@
 /**
  * Top-level routes: `SiteLayout` for marketing shell; `/waitlist` standalone.
  *
- * Stage 6 (strangler): when USE_API is true, portal routes use the real auth guards
- * (RequireAuth → RequireStatus → RequireRole, architecture §5.4). When false, the
- * demo DemoOnly guards are unchanged.
+ * Portal routes use the real auth guards (RequireAuth → RequireStatus →
+ * RequireRole, architecture §5.4).
  */
 import type { ReactElement } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import SiteLayout from "./layouts/SiteLayout";
-import DemoOnly from "./components/routing/DemoOnly";
 import RequireAuth from "./components/routing/RequireAuth";
-import ApiOnly from "./components/routing/ApiOnly";
 import RequireRole from "./components/routing/RequireRole";
 import RequireStatus from "./components/routing/RequireStatus";
 import HomePage from "./pages/home/HomePage";
@@ -30,7 +27,6 @@ import VerifyEmailPage from "./pages/onboarding/VerifyEmailPage";
 import PendingApprovalPage from "./pages/onboarding/PendingApprovalPage";
 import DeniedPage from "./pages/onboarding/DeniedPage";
 import Waitlist from "./pages/waitlist/waitlist";
-import { USE_API } from "./config/featureFlags";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
 function PortalGuard({
@@ -40,9 +36,6 @@ function PortalGuard({
   children: ReactElement;
   role: "org" | "brand";
 }) {
-  if (!USE_API) {
-    return <DemoOnly requiredDemoView={role}>{children}</DemoOnly>;
-  }
   // Order per architecture §5.4: Auth → Status → Role. Status gating takes
   // precedence so an org mid-onboarding is sent to finish onboarding before a
   // role mismatch is surfaced.
@@ -61,58 +54,47 @@ export default function AppRoot(): ReactElement {
       <Route element={<SiteLayout />}>
         <Route index element={<HomePage />} />
 
-        {/* Public auth pages (API build only — ApiOnly redirects to / in demo
-            mode, where there is no AuthProvider). */}
-        <Route path="login" element={<ApiOnly><LoginPage /></ApiOnly>} />
+        {/* Public auth pages. */}
+        <Route path="login" element={<LoginPage />} />
         <Route
           path="auth/instagram/callback"
-          element={<ApiOnly><InstagramCallbackPage /></ApiOnly>}
+          element={<InstagramCallbackPage />}
         />
-        <Route path="brand/login" element={<ApiOnly><BrandLoginPage /></ApiOnly>} />
-        <Route path="brand/setup" element={<ApiOnly><BrandSetupPage /></ApiOnly>} />
-        <Route path="brand/apply" element={<ApiOnly><BrandApplyPage /></ApiOnly>} />
+        <Route path="brand/login" element={<BrandLoginPage />} />
+        <Route path="brand/setup" element={<BrandSetupPage />} />
+        <Route path="brand/apply" element={<BrandApplyPage />} />
 
-        {/* Onboarding pages (API build only). These require an authenticated
-            session (architecture §6.4) — RequireAuth standardizes the redirect
-            to /login; each page still self-routes on its specific status.
+        {/* Onboarding pages. These require an authenticated session
+            (architecture §6.4) — RequireAuth standardizes the redirect to
+            /login; each page still self-routes on its specific status.
             verify-email is intentionally public: the email link is opened in a
             fresh tab/browser with no session and carries its own ?token. */}
         <Route
           path="onboarding/profile"
           element={
-            <ApiOnly>
-              <RequireAuth>
-                <OrgProfilePage />
-              </RequireAuth>
-            </ApiOnly>
+            <RequireAuth>
+              <OrgProfilePage />
+            </RequireAuth>
           }
         />
         <Route
           path="onboarding/verify-email"
-          element={
-            <ApiOnly>
-              <VerifyEmailPage />
-            </ApiOnly>
-          }
+          element={<VerifyEmailPage />}
         />
         <Route
           path="onboarding/pending-approval"
           element={
-            <ApiOnly>
-              <RequireAuth>
-                <PendingApprovalPage />
-              </RequireAuth>
-            </ApiOnly>
+            <RequireAuth>
+              <PendingApprovalPage />
+            </RequireAuth>
           }
         />
         <Route
           path="onboarding/denied"
           element={
-            <ApiOnly>
-              <RequireAuth>
-                <DeniedPage />
-              </RequireAuth>
-            </ApiOnly>
+            <RequireAuth>
+              <DeniedPage />
+            </RequireAuth>
           }
         />
 

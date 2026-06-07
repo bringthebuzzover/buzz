@@ -2,21 +2,13 @@
  * `/org/browse` — Drop Feed (PRODUCT.md §6.3). Renders all drops with status-aware
  * cards (Upcoming / Open / Closed / Full) plus a status filter chip group.
  *
- * Stage 4 (strangler): behind `USE_API` this page renders from the real backend
- * (`GET /api/drops`, read-only — apply is disabled until Stage 5). With the flag
- * off it keeps the original demo behavior (localStorage stores + demo clock +
- * the apply/waitlist modal) unchanged. Both paths feed the same `DropFeedRow[]`
- * into the shared presentational `FeedContent`.
+ * Renders from the real backend (`GET /api/drops`) with working apply, feeding a
+ * `DropFeedRow[]` into the shared presentational `FeedContent`.
  */
 import { useMemo, useState } from "react";
 import DropFeedCard from "../../components/org/DropFeedCard";
-import ApplyToDropModal from "../../components/org/modals/ApplyToDropModal";
-import { useApplications, useDrops } from "../../contexts/MockDataContext";
-import { useDemoNow } from "../../contexts/DemoClockContext";
 import { getDropFeedStatus } from "../../utils/dropStatus";
-import type { Drop, DropFeedRow, DropFeedStatus } from "../../types/drop";
-import { DEMO_ORG_ID } from "../../data/seed/seedOrgs";
-import { USE_API } from "../../config/featureFlags";
+import type { DropFeedRow, DropFeedStatus } from "../../types/drop";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
 import { useApplyToDrop } from "../../api/hooks/useDropHooks";
 
@@ -125,73 +117,7 @@ function FeedContent({
   );
 }
 
-type ModalState = { kind: "closed" } | { kind: "apply"; drop: Drop };
-
-/** Demo path: localStorage stores + demo clock + working apply modal. */
-function DemoDropFeed() {
-  const drops = useDrops();
-  const applications = useApplications();
-  const now = useDemoNow();
-  const [modal, setModal] = useState<ModalState>({ kind: "closed" });
-
-  const acceptedCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const app of applications) {
-      if (app.decision !== "accepted") continue;
-      counts.set(app.dropId, (counts.get(app.dropId) ?? 0) + 1);
-    }
-    return counts;
-  }, [applications]);
-
-  const myDropIds = useMemo(() => {
-    const set = new Set<string>();
-    for (const app of applications) {
-      if (app.orgId !== DEMO_ORG_ID) continue;
-      if (app.decision === "denied") continue;
-      set.add(app.dropId);
-    }
-    return set;
-  }, [applications]);
-
-  const rows = useMemo<DropFeedRow[]>(
-    () =>
-      drops.map((drop) => ({
-        id: drop.id,
-        brandName: drop.brandName,
-        title: drop.title,
-        description: drop.description,
-        image: drop.image,
-        location: drop.location,
-        capacityTotal: drop.capacityTotal,
-        applyOpenAt: drop.applyOpenAt,
-        applyCloseAt: drop.applyCloseAt,
-        manualReopen: drop.manualReopen,
-        acceptedCount: acceptedCounts.get(drop.id) ?? 0,
-        alreadyApplied: myDropIds.has(drop.id),
-      })),
-    [drops, acceptedCounts, myDropIds],
-  );
-
-  const openApply = (dropId: string) => {
-    const drop = drops.find((d) => d.id === dropId);
-    if (!drop) return;
-    setModal({ kind: "apply", drop });
-  };
-
-  return (
-    <>
-      <FeedContent rows={rows} now={now} onApply={openApply} />
-      {modal.kind !== "closed" ? (
-        <ApplyToDropModal
-          drop={modal.drop}
-          onClose={() => setModal({ kind: "closed" })}
-        />
-      ) : null}
-    </>
-  );
-}
-
-/** API path (Stage 6): live feed from `GET /api/drops` with working apply. */
+/** Live feed from `GET /api/drops` with working apply. */
 function ApiDropFeed() {
   const { items, isLoading, error } = useOrgDropFeed();
   const [applyingId, setApplyingId] = useState<string | null>(null);
@@ -290,5 +216,5 @@ function ApiApplyForm({ dropId, onDone }: { dropId: string; onDone: () => void }
 }
 
 export default function OrgDropFeedPage() {
-  return USE_API ? <ApiDropFeed /> : <DemoDropFeed />;
+  return <ApiDropFeed />;
 }

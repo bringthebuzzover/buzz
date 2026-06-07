@@ -1,10 +1,7 @@
 /**
- * Sticky two-row header: utility bar (socials, join waitlist / change demo view / login),
- * coral nav with centered logo.
- *
- * Stage 6: when USE_API is true and user is authenticated, shows persona-aware nav
- * links from the auth context instead of demo view. Shows Login/Logout instead of
- * passcode icon.
+ * Sticky two-row header: utility bar (socials, join waitlist / login / logout),
+ * coral nav with centered logo. When a user is authenticated, shows persona-aware
+ * nav links from the auth context.
  */
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -14,14 +11,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { ChevronRight, LogOut, Menu, User } from "lucide-react";
+import { ChevronRight, LogOut, Menu } from "lucide-react";
 import { siteIdentity } from "../../data/siteIdentity";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
-import { useAccessGate } from "../../contexts/AccessGateContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { goToHomeWaitlist } from "../../utils/scrollHomeWaitlist";
-import ChangeViewMenu from "./ChangeViewMenu";
-import { USE_API } from "../../config/featureFlags";
 
 const ORG_NAV_LINKS = [
   { to: "/org/browse", label: "Browse Campaigns" },
@@ -36,7 +30,6 @@ export default function SiteHeader() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { openContactModal } = useSiteChrome();
-  const { isDemoActive, openPasscodeModal, demoView } = useAccessGate();
   const { user, status: authStatus, logout } = useAuth();
   const { images, social } = siteIdentity;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -81,21 +74,15 @@ export default function SiteHeader() {
     };
   }, [mobileNavOpen]);
 
-  // Determine nav links: API path uses auth user role, demo path uses demoView.
-  const isApiAuth = USE_API && authStatus === "authenticated" && user;
+  // Determine nav links from the authenticated user's role.
+  const isApiAuth = authStatus === "authenticated" && user;
   const navLinks = isApiAuth
     ? user.portalRole === "brand"
       ? BRAND_NAV_LINKS
       : user.portalRole === "org"
         ? ORG_NAV_LINKS
         : []
-    : isDemoActive
-      ? demoView === "brand"
-        ? BRAND_NAV_LINKS
-        : demoView === "org"
-          ? ORG_NAV_LINKS
-          : []
-      : [];
+    : [];
 
   const isNavActive = (to: string): boolean => {
     if (to === "/") return pathname === "/";
@@ -106,7 +93,7 @@ export default function SiteHeader() {
     goToHomeWaitlist(pathname, navigate);
   };
 
-  const showCenterItem = isDemoActive || isApiAuth;
+  const showCenterItem = !!isApiAuth;
 
   return (
     <header
@@ -137,13 +124,9 @@ export default function SiteHeader() {
         </div>
 
         {showCenterItem ? (
-          isDemoActive ? (
-            <ChangeViewMenu />
-          ) : (
-            <span className="text-center font-bold text-buzz-coral">
-              {user?.portalRole === "brand" ? "Brand Portal" : "Org Portal"}
-            </span>
-          )
+          <span className="text-center font-bold text-buzz-coral">
+            {user?.portalRole === "brand" ? "Brand Portal" : "Org Portal"}
+          </span>
         ) : (
           <button
             type="button"
@@ -165,27 +148,16 @@ export default function SiteHeader() {
               <LogOut size={16} />
               <span className="hidden sm:inline text-xs font-bold">Logout</span>
             </button>
-          ) : !isDemoActive ? (
-            USE_API ? (
-              <button
-                type="button"
-                onClick={() => navigate("/login")}
-                className="text-buzz-inkMuted hover:text-buzz-coral"
-                aria-label="Log in"
-              >
-                <span className="text-xs font-bold">Login</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={openPasscodeModal}
-                aria-label="Open demo access"
-                className="text-buzz-inkMuted hover:text-buzz-coral"
-              >
-                <User size={18} />
-              </button>
-            )
-          ) : null}
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="text-buzz-inkMuted hover:text-buzz-coral"
+              aria-label="Log in"
+            >
+              <span className="text-xs font-bold">Login</span>
+            </button>
+          )}
         </div>
       </div>
 
