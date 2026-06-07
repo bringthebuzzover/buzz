@@ -804,11 +804,14 @@ export interface paths {
         put?: never;
         /**
          * Refresh My Posts
-         * @description Pull fresh posts/metrics from the IG API.
+         * @description Return the caller org's currently-stored posts.
          *
-         *     Stage 5B stub: the real Instagram sync (§10.1) lands in Stage 8. For now
-         *     this returns the currently-stored posts so the route exists and the SPA can
-         *     wire the "Refresh" affordance without a 404.
+         *     The canonical Instagram sync is the Stage 8 daily batch job
+         *     (``app.jobs.metric_sync``, §10.1). This endpoint intentionally does NOT call
+         *     Instagram on demand (it would burn rate-limit per click and add latency);
+         *     it just returns the stored posts so the SPA's "Refresh" affordance reflects
+         *     the latest synced metrics. A future single-org on-demand sync could hang
+         *     here if needed.
          */
         post: operations["refresh_my_posts_api_orgs_me_posts_refresh_post"];
         delete?: never;
