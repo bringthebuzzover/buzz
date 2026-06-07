@@ -58,6 +58,7 @@ export default function BrandLoginPage() {
           </label>
           <input
             type="email"
+            data-testid="brand-email"
             className={inputClass}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -71,6 +72,7 @@ export default function BrandLoginPage() {
           </label>
           <input
             type="password"
+            data-testid="brand-password"
             className={inputClass}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -86,6 +88,7 @@ export default function BrandLoginPage() {
 
         <button
           type="submit"
+          data-testid="brand-login-submit"
           disabled={brandLogin.isPending}
           className="w-full rounded-lg bg-buzz-coral py-3 text-sm font-bold text-buzz-paper shadow-md transition enabled:hover:bg-buzz-coralDark disabled:cursor-not-allowed disabled:opacity-60"
         >

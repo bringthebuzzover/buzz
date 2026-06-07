@@ -95,6 +95,20 @@ class TestWaitlistSubmit:
         )
         assert res.status_code == 422
 
+    async def test_overlong_name_is_422_not_500(self, app_client: AsyncClient):
+        """Regression (found by scripts/bugbash fuzz): an overlong submitter_name
+        used to pass validation and 500 on the String(255) DB insert."""
+        res = await app_client.post(
+            "/api/waitlist",
+            json={
+                "submitterName": "x" * 500,
+                "entityName": "Test",
+                "email": "test@test.com",
+                "entityType": "org",
+            },
+        )
+        assert res.status_code == 422
+
     async def test_dedupe_none(self, app_client: AsyncClient, db_session):
         """No deduplication — two identical submissions create two rows."""
         payload = {

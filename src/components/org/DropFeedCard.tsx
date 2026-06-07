@@ -82,7 +82,10 @@ export default function DropFeedCard({
   );
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-buzz-lineMid bg-buzz-butter shadow-sm transition hover:shadow-md">
+    <div
+      data-testid="drop-card"
+      className="flex flex-col overflow-hidden rounded-2xl border border-buzz-lineMid bg-buzz-butter shadow-sm transition hover:shadow-md"
+    >
       <div className="relative h-48 overflow-hidden border-b border-buzz-lineMid">
         <img
           src={drop.image}
@@ -131,6 +134,7 @@ export default function DropFeedCard({
           ) : feedStatus === "open" && !full ? (
             <button
               type="button"
+              data-testid="apply-button"
               onClick={onApply}
               disabled={alreadyApplied || disableApply}
               className="w-full rounded-lg bg-buzz-coral py-3 font-semibold text-buzz-paper shadow-sm transition hover:bg-buzz-coralDark disabled:cursor-not-allowed disabled:opacity-60"

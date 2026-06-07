@@ -198,6 +198,7 @@ function ApiApplyForm({ dropId, onDone }: { dropId: string; onDone: () => void }
           </button>
           <button
             type="button"
+            data-testid="apply-submit"
             onClick={handleSubmit}
             disabled={mutation.isPending}
             className="flex-1 rounded-lg bg-buzz-coral px-4 py-2 text-sm font-bold text-buzz-paper hover:bg-buzz-coralDark disabled:opacity-60"

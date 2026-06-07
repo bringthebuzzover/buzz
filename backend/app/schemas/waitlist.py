@@ -33,6 +33,18 @@ class WaitlistSubmitRequest(CamelModel):
     @field_validator("submitter_name", "entity_name")
     @classmethod
     def _non_empty(cls, v: str) -> str:
-        if not v.strip():
+        v = v.strip()
+        if not v:
             raise ValueError("Must not be empty")
-        return v.strip()
+        # Bound to the column width (String(255)) so overlong input is a clean
+        # 422, not a DB DataError -> 500.
+        if len(v) > 255:
+            raise ValueError("Must be 255 characters or fewer")
+        return v
+
+    @field_validator("details")
+    @classmethod
+    def _details_bound(cls, v: str | None) -> str | None:
+        if v is not None and len(v) > 5000:
+            raise ValueError("Must be 5000 characters or fewer")
+        return v
