@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
@@ -37,17 +38,32 @@ from app.services.instagram import close_instagram_client
 
 logger = logging.getLogger(__name__)
 
-_PROD_ORIGINS = [
+_STATIC_PROD_ORIGINS = [
     "https://bringthebuzzover.com",
     "https://www.bringthebuzzover.com",
 ]
-# localhost is only an allowed origin in local dev (credentials + a real
-# allowlist in prod; no localhost leaking into the prod CORS policy).
-ALLOWED_ORIGINS = (
-    [*_PROD_ORIGINS, "http://localhost:3000"]
-    if settings.ENVIRONMENT == "development"
-    else _PROD_ORIGINS
-)
+
+
+def _allowed_origins() -> list[str]:
+    """Exact-origin CORS allowlist (credentials require no wildcards).
+
+    Always includes the static production hosts. Also includes
+    ``FRONTEND_URL``'s origin so temporary Railway ``*.up.railway.app``
+    hosts work before custom DNS is wired.
+    """
+
+    origins = list(_STATIC_PROD_ORIGINS)
+    parsed = urlparse(settings.FRONTEND_URL)
+    if parsed.scheme and parsed.netloc:
+        frontend_origin = f"{parsed.scheme}://{parsed.netloc}"
+        if frontend_origin not in origins:
+            origins.append(frontend_origin)
+    if settings.ENVIRONMENT == "development":
+        origins.append("http://localhost:3000")
+    return origins
+
+
+ALLOWED_ORIGINS = _allowed_origins()
 
 
 @asynccontextmanager
