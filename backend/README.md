@@ -118,7 +118,7 @@ POST   /api/campaigns/{id}/suggestions/{postId}/accept   confirm + link -> 404/4
 POST   /api/campaigns/{id}/suggestions/{postId}/dismiss  reject -> 404 SUGGESTION_NOT_FOUND
 ```
 
-Feed items carry server-computed `acceptedCount`/`alreadyApplied`; list pagination rides `meta` (`page`/`per_page`/`total`). Every `/api/campaigns/{id}/*` sub-resource gates on ownership via `resolve_owned_application` (404 for unknown/other-org/denied — no existence leak); the aggregate ports `src/utils/metrics.ts` `computeCampaignAggregate`. `POST /api/auth/dev-login` (above) lets the SPA obtain a session in local dev without Meta credentials.
+Feed items carry server-computed `acceptedCount`/`alreadyApplied`; list pagination rides `meta` (`page`/`per_page`/`total`). Every `/api/campaigns/{id}/*` sub-resource gates on ownership via `resolve_owned_application` (404 for unknown/other-org/denied — no existence leak); the aggregate ports `frontend/src/utils/metrics.ts` `computeCampaignAggregate`. `POST /api/auth/dev-login` (above) lets the SPA obtain a session in local dev without Meta credentials.
 
 ## Brand portal (Stage 5C)
 
@@ -134,7 +134,7 @@ GET    /api/brands/me/aggregate                 brand-level rollup (drops, posts
 GET    /api/brands/me/engagement-series         cumulative engagement time series (?bucket_count=&window_days=)
 ```
 
-`finalize-applicants` enforces 7 rules before the atomic accept/deny transaction: no duplicate orgs, stage must be `finalizing_agreements`, apply window closed, not already finalized, selected ≤ capacity, unit allocation ≤ budget, all allocated orgs must have applied. `resolve_brand_drop` gates every per-drop endpoint (404 not 403, no existence leak). Aggregates port `src/utils/metrics.ts` (`computeDropAggregate`, `computeBrandAggregate`, `computeEngagementTimeSeries`) — all SQL SUMs are COALESCE'd.
+`finalize-applicants` enforces 7 rules before the atomic accept/deny transaction: no duplicate orgs, stage must be `finalizing_agreements`, apply window closed, not already finalized, selected ≤ capacity, unit allocation ≤ budget, all allocated orgs must have applied. `resolve_brand_drop` gates every per-drop endpoint (404 not 403, no existence leak). Aggregates port `frontend/src/utils/metrics.ts` (`computeDropAggregate`, `computeBrandAggregate`, `computeEngagementTimeSeries`) — all SQL SUMs are COALESCE'd.
 
 Remaining Stage 5 surface — admin + waitlist (5D) — is tracked in the transition plan.
 
@@ -268,7 +268,7 @@ backend/
   scripts/
     check.sh        # Local quality gate (black → ruff → mypy → alembic → pytest)
     run_job.py      # Background-job runner: run_job.py <name> (Railway Cron)
-    dump_openapi.py # Write openapi.json (frontend type generation source)
+    dump_openapi.py # Write ../openapi.json at the repo root (source for `cd ../frontend && npm run gen:api`)
     seed_dev.py     # Destructive local dev seed
   tests/
     conftest.py    # engine / db_session / app_client / fake IG / token helpers

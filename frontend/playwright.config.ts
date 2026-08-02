@@ -32,7 +32,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        "cd backend && ENVIRONMENT=development poetry run uvicorn app.main:app --port 8000 --log-level warning",
+        "cd ../backend && ENVIRONMENT=development poetry run uvicorn app.main:app --port 8000 --log-level warning",
       url: "http://localhost:8000/api/health",
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,

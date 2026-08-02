@@ -32,21 +32,22 @@ You do **not** need App Review to run a small, hand-picked pilot. In **Developme
 - Each pilot org's IG account must be a **Business or Creator** account (the backend already gates out Personal accounts) **and** must accept a tester invite in their Meta account.
 - It doesn't scale — you can't hand-add every org, so this is a bridge, not the launch state. Public signups still require the Advanced Access review above.
 - Keep the app in **Development mode** (or Live without the scope approved) until review passes; flip to **Live mode** only after Advanced Access is granted.
-- [ ] **Legal review.** `/privacy` and `/terms` ship as good-faith engineering drafts (`src/pages/legal/`). Have counsel review before public launch — a published Privacy Policy URL is also required for Meta app review, and we collect PII (waitlist emails, `.edu` addresses, org profiles).
+- [ ] **Legal review.** `/privacy` and `/terms` ship as good-faith engineering drafts (`frontend/src/pages/legal/`). Have counsel review before public launch — a published Privacy Policy URL is also required for Meta app review, and we collect PII (waitlist emails, `.edu` addresses, org profiles).
 - [ ] **Resend sender domain.** Verify the `bringthebuzzover.com` sending domain in Resend and obtain a real `RESEND_API_KEY` (empty key = console-only, so verification and denial emails silently no-op).
 
 ---
 
 ## Phase 2 — Provision infrastructure (Railway)
 
-| Service        | What                                                                   | Notes                                                                                     |
-| -------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Frontend**   | React SPA, static build (`npm run build`)                              | Set `REACT_APP_USE_API=true` and `REACT_APP_API_URL` **at build time** (CRA inlines them) |
-| **Backend**    | FastAPI + Uvicorn (`uvicorn app.main:app --host 0.0.0.0 --port $PORT`) | **Run a single replica** (see "Rate limiting")                                            |
-| **PostgreSQL** | Railway-managed                                                        | `DATABASE_URL` injected                                                                   |
-| **Cron**       | Railway Cron running `scripts/run_job.py <name>`                       | Schedule below                                                                            |
+| Service        | What                                                                   | Notes                                                                                                                     |
+| -------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend**   | React SPA, static build (`npm run build`)                              | Root Directory `/frontend`; watch paths `/frontend/**`; set `REACT_APP_API_URL` **at build time** (CRA inlines it)        |
+| **Backend**    | FastAPI + Uvicorn (`uvicorn app.main:app --host 0.0.0.0 --port $PORT`) | Root Directory `/backend`; watch paths `/backend/**`; **run a single replica** (see "Rate limiting")                      |
+| **PostgreSQL** | Railway-managed                                                        | `DATABASE_URL` injected                                                                                                   |
+| **Cron**       | Railway Cron running `scripts/run_job.py <name>`                       | Root Directory `/backend`; schedule below                                                                                 |
 
 - [ ] Create the four services in one Railway project.
+- [ ] Set each service's **Root Directory** (`/frontend` or `/backend`) and **Watch Paths** so a change on one side doesn't rebuild the other.
 - [ ] Add `alembic upgrade head` as a release/deploy step that runs **before** the backend starts.
 
 ### Cron schedule (UTC)
@@ -90,7 +91,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 ```
 
 - [ ] Backend env set (table above); secrets generated fresh, never committed.
-- [ ] Frontend built with `REACT_APP_USE_API=true` and the real `REACT_APP_API_URL` (the `predeploy` guard, `scripts/check-deploy-env.js`, hard-fails if `REACT_APP_API_URL` is missing).
+- [ ] Frontend built with the real `REACT_APP_API_URL` (the `predeploy` guard, `frontend/scripts/check-deploy-env.js`, hard-fails if `REACT_APP_API_URL` is missing).
 - [ ] `BRAND_SELF_REGISTRATION_ENABLED` set intentionally (`true` = public `POST /api/brands/apply`; `false` = admin-provisioned brands only).
 
 **Operational gotcha:** `staging` and `production` both take the hardened path (HSTS, Secure cookies, prod-only CORS), so you can't bring one up over plain `http://localhost` — use `ENVIRONMENT=development` for local bring-up.

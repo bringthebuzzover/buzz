@@ -8,7 +8,7 @@ import path from "node:path";
  * Requires local Postgres + backend deps (`poetry install`).
  */
 export default async function globalSetup() {
-  const backend = path.resolve(__dirname, "..", "backend");
+  const backend = path.resolve(__dirname, "..", "..", "backend");
   const env = { ...process.env, ENVIRONMENT: "development" };
   try {
     // Migrations first — seed_e2e TRUNCATEs, which errors on a tableless DB.
