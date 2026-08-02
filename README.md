@@ -82,7 +82,9 @@ Run inside [`frontend/`](frontend/):
 | Command           | Description                                                              |
 | ----------------- | ------------------------------------------------------------------------ |
 | `npm start`       | Frontend dev server                                                      |
-| `npm run build`   | Production SPA bundle → `frontend/build/`                                |
+| `npm run build`      | Production SPA bundle → `frontend/build/` (CI; no API URL required)           |
+| `npm run build:prod` | Guard `REACT_APP_API_URL` then build (Railway / real deploys)                 |
+| `npm run start:prod` | Serve `build/` with History API fallback (`serve -s`, binds `$PORT`)          |
 | `npm test`        | Frontend Jest/CRACO smoke tests                                          |
 | `npm run e2e`     | Playwright end-to-end tests                                              |
 | `npm run gen:api` | Regenerate `src/api/generated/schema.ts` from the root `../openapi.json` |

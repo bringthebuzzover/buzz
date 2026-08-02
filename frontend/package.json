@@ -11,13 +11,16 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.12.0",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "serve": "^14.2.6"
   },
   "scripts": {
     "start": "craco start",
     "build": "craco build",
+    "build:prod": "node scripts/check-deploy-env.js && npm run build",
+    "start:prod": "serve -s build -l $PORT",
     "test": "craco test",
-    "predeploy": "node scripts/check-deploy-env.js && npm run build",
+    "predeploy": "npm run build:prod",
     "deploy": "gh-pages -d build",
     "gen:api": "npx -y openapi-typescript@7.13.0 ../openapi.json -o src/api/generated/schema.ts",
     "e2e": "playwright test",

@@ -72,8 +72,8 @@ Reference: <https://developers.facebook.com/docs/instagram-platform/instagram-ap
 
    Do **not** add publishing, comments, or messaging scopes — requesting scopes the app doesn't use slows down App Review.
 
-4. **Deauthorize callback URL:** `https://<frontend-domain>/api/auth/instagram/deauthorize` — the backend endpoint that runs when a user removes the app from their Instagram (verifies Meta's `signed_request` and revokes the stored token).
-5. **Data Deletion Instructions URL:** `https://<frontend-domain>/data-deletion` — the public page that tells users how to request account deletion by email. (Meta accepts an instructions page in place of a callback endpoint.)
+4. **Deauthorize callback URL:** `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize` — the **API** host (not the SPA). Meta POSTs here when a user removes the app from Instagram; the backend verifies `signed_request` and revokes the stored token.
+5. **Data Deletion Instructions URL:** `https://www.bringthebuzzover.com/data-deletion` — the public **SPA** page that tells users how to request account deletion by email. (Meta accepts an instructions page in place of a callback endpoint.)
 6. Click **Save**.
 
 ---

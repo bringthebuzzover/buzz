@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Literal
 from urllib.parse import urlparse
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Dev defaults that MUST NOT reach staging/production. Declared as module
@@ -33,7 +33,11 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = Field(
         default="postgresql+asyncpg://localhost/buzz",
-        description="SQLAlchemy async PostgreSQL URL.",
+        description=(
+            "SQLAlchemy async PostgreSQL URL. Accepts Railway-style "
+            "`postgres://` / `postgresql://` and rewrites to "
+            "`postgresql+asyncpg://` at load time."
+        ),
     )
     SECRET_KEY: str = Field(
         default=_DEV_SECRET_KEY,
@@ -151,6 +155,26 @@ class Settings(BaseSettings):
             "decrypt previously persisted tokens)."
         ),
     )
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def _normalize_database_url(cls, value: object) -> object:
+        """Rewrite Railway/libpq URLs to the asyncpg SQLAlchemy dialect.
+
+        Railway injects ``postgres://…`` or ``postgresql://…``. SQLAlchemy
+        async needs ``postgresql+asyncpg://…``. Already-normalized URLs and
+        other dialects are left unchanged.
+        """
+
+        if not isinstance(value, str) or not value:
+            return value
+        if value.startswith("postgresql+asyncpg://"):
+            return value
+        if value.startswith("postgres://"):
+            return "postgresql+asyncpg://" + value.removeprefix("postgres://")
+        if value.startswith("postgresql://"):
+            return "postgresql+asyncpg://" + value.removeprefix("postgresql://")
+        return value
 
     @model_validator(mode="after")
     def _forbid_default_secrets_outside_dev(self) -> "Settings":

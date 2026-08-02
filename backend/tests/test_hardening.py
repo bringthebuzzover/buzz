@@ -184,6 +184,28 @@ def test_prod_config_rejects_missing_resend_key() -> None:
         Settings(**_prod_kwargs(RESEND_API_KEY=""))
 
 
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (
+            "postgres://user:pass@host:5432/buzz",
+            "postgresql+asyncpg://user:pass@host:5432/buzz",
+        ),
+        (
+            "postgresql://user:pass@host:5432/buzz",
+            "postgresql+asyncpg://user:pass@host:5432/buzz",
+        ),
+        (
+            "postgresql+asyncpg://user:pass@host:5432/buzz",
+            "postgresql+asyncpg://user:pass@host:5432/buzz",
+        ),
+    ],
+)
+def test_database_url_normalized_to_asyncpg(raw: str, expected: str) -> None:
+    cfg = Settings(**_prod_kwargs(DATABASE_URL=raw))
+    assert cfg.DATABASE_URL == expected
+
+
 # --- Edge cases surfaced by review -------------------------------------------
 
 

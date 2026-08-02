@@ -2,7 +2,7 @@
 
 The go-live runbook for Buzz: what has to be true before we launch, how to provision and deploy, and the environment/operational invariants to respect. The application code is feature-complete and tested (backend `pytest`, frontend smoke + Playwright E2E, live API bug-bash). The remaining work to launch is **external provisioning and configuration**, not code.
 
-Deploy target: **Railway** — three services in one project (architecture §1.3) plus a Cron. Run `alembic upgrade head` as a release step before the backend starts.
+Deploy target: **Railway** from branch **`mvp`** — Frontend (`/frontend`) + Backend (`/backend`) + PostgreSQL + **five** cron services. Run `alembic upgrade head` as a pre-deploy step before the backend starts. Custom domains: `www.bringthebuzzover.com` (SPA) + `api.bringthebuzzover.com` (API).
 
 ---
 
@@ -39,30 +39,44 @@ You do **not** need App Review to run a small, hand-picked pilot. In **Developme
 
 ## Phase 2 — Provision infrastructure (Railway)
 
-| Service        | What                                                                   | Notes                                                                                                                     |
-| -------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Frontend**   | React SPA, static build (`npm run build`)                              | Root Directory `/frontend`; watch paths `/frontend/**`; set `REACT_APP_API_URL` **at build time** (CRA inlines it)        |
-| **Backend**    | FastAPI + Uvicorn (`uvicorn app.main:app --host 0.0.0.0 --port $PORT`) | Root Directory `/backend`; watch paths `/backend/**`; **run a single replica** (see "Rate limiting")                      |
-| **PostgreSQL** | Railway-managed                                                        | `DATABASE_URL` injected                                                                                                   |
-| **Cron**       | Railway Cron running `scripts/run_job.py <name>`                       | Root Directory `/backend`; schedule below                                                                                 |
+Branch: **`mvp`** (autodeploy on). One Railway project.
 
-- [ ] Create the four services in one Railway project.
-- [ ] Set each service's **Root Directory** (`/frontend` or `/backend`) and **Watch Paths** so a change on one side doesn't rebuild the other.
-- [ ] Add `alembic upgrade head` as a release/deploy step that runs **before** the backend starts.
+| Service        | What                                                                                      | Notes                                                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend**   | React SPA under `/frontend`                                                               | Root Directory `/frontend`; Watch Paths `/frontend/**`; Build `npm ci && npm run build:prod`; Start `npm run start:prod` (`serve -s`) |
+| **Backend**    | FastAPI + Uvicorn (`poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT`)         | Root Directory `/backend`; Watch Paths `/backend/**`; Pre-deploy `poetry run alembic upgrade head`; **1 replica**; Health `/api/health` |
+| **PostgreSQL** | Railway-managed                                                                           | Injects `DATABASE_URL` (`postgres://…` / `postgresql://…`); backend rewrites to `postgresql+asyncpg://` at startup                    |
+| **Cron ×5**    | One service per job: `poetry run python scripts/run_job.py <name>`                        | Root Directory `/backend`; no public domain; share API env group; see schedule below                                                  |
+
+- [ ] Create the services in one Railway project (Frontend + Backend + Postgres + 5 crons).
+- [ ] Set each service's **Root Directory** and **Watch Paths** so a change on one side doesn't rebuild the other.
+- [ ] Custom domains: `www.bringthebuzzover.com` → Frontend; `api.bringthebuzzover.com` → Backend (CNAME + TXT).
+- [ ] Enable **Wait for CI** on Frontend + Backend (CI includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
+- [ ] Optional: `RAILPACK_PYTHON_VERSION=3.12` on API + cron services.
+
+### Frontend build / start
+
+CRA inlines `REACT_APP_API_URL` at **build** time. Railway Build Command should be `npm run build:prod` (runs `frontend/scripts/check-deploy-env.js`, then `craco build`) with:
+
+```text
+REACT_APP_API_URL=https://api.bringthebuzzover.com
+```
+
+Start Command: `npm run start:prod` → `serve -s build -l $PORT` (History API fallback for deep links / OAuth callback; `serve` binds `0.0.0.0` by default). Plain `npm run build` stays for CI (no API URL required).
 
 ### Cron schedule (UTC)
 
-Background jobs are one-shot scripts the scheduler invokes — no worker. Each is idempotent (`backend/README.md`, architecture §10):
+Background jobs are one-shot scripts the scheduler invokes — no worker. Each is idempotent (`backend/README.md`, architecture §10). **One Railway cron service per row:**
 
-| Job              | Cadence      | Purpose                                              |
-| ---------------- | ------------ | ---------------------------------------------------- |
-| `drop_autoclose` | every ~5 min | close drops past their apply window (§10.2)          |
-| `metric_sync`    | daily 03:00  | Instagram metric sync (§10.1)                        |
-| `token_cleanup`  | daily 03:00  | sweep used/expired tokens (§10.3)                    |
-| `autolink_scan`  | daily 03:30  | auto-link suggestion scan, after metric_sync (§10.4) |
-| `token_refresh`  | daily 04:00  | IG long-lived token refresh safety net (§10.5.2)     |
+| Service             | Start command                                         | Cron UTC      | Purpose                                              |
+| ------------------- | ----------------------------------------------------- | ------------- | ---------------------------------------------------- |
+| cron-drop-autoclose | `poetry run python scripts/run_job.py drop_autoclose` | `*/5 * * * *` | close drops past their apply window (§10.2)          |
+| cron-metric-sync    | `… metric_sync`                                       | `0 3 * * *`   | Instagram metric sync (§10.1)                        |
+| cron-token-cleanup  | `… token_cleanup`                                     | `0 3 * * *`   | sweep used/expired tokens (§10.3)                    |
+| cron-autolink-scan  | `… autolink_scan`                                     | `30 3 * * *`  | auto-link suggestion scan, after metric_sync (§10.4) |
+| cron-token-refresh  | `… token_refresh`                                     | `0 4 * * *`   | IG long-lived token refresh safety net (§10.5.2)     |
 
-The primary IG token refresh is **on-login**; `token_refresh` only catches inactive orgs and is optional for a tight MVP.
+The primary IG token refresh is **on-login**; `token_refresh` only catches inactive orgs and is optional for a tight MVP. Confirm each cron run **exits** (Completed, not stuck Active).
 
 ---
 
@@ -79,9 +93,9 @@ The backend **fails fast at startup** (`backend/app/config.py`) when `ENVIRONMEN
 | `FRONTEND_URL`                                      | real SPA host, not `localhost` (enforced)    |
 | `INSTAGRAM_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | real Meta creds (enforced)                   |
 | `RESEND_API_KEY`                                    | real key (enforced; empty would no-op email) |
-| `DATABASE_URL`                                      | Railway Postgres URL                         |
-| `REFRESH_COOKIE_SAMESITE`                           | `lax` (same-origin) or `none` (cross-site)   |
-| `RATE_LIMIT_ENABLED`                                | `true`                                       |
+| `DATABASE_URL`                                      | Railway Postgres URL (rewritten to `postgresql+asyncpg://` at startup) |
+| `REFRESH_COOKIE_SAMESITE`                           | `lax` for www+api on `bringthebuzzover.com` (same eTLD+1)              |
+| `RATE_LIMIT_ENABLED`                                | `true`                                                                 |
 
 Generate secrets:
 
@@ -91,25 +105,31 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 ```
 
 - [ ] Backend env set (table above); secrets generated fresh, never committed.
-- [ ] Frontend built with the real `REACT_APP_API_URL` (the `predeploy` guard, `frontend/scripts/check-deploy-env.js`, hard-fails if `REACT_APP_API_URL` is missing).
+- [ ] Frontend built via `npm run build:prod` with `REACT_APP_API_URL=https://api.bringthebuzzover.com` (guard: `frontend/scripts/check-deploy-env.js`).
 - [ ] `BRAND_SELF_REGISTRATION_ENABLED` set intentionally (`true` = public `POST /api/brands/apply`; `false` = admin-provisioned brands only).
+- [ ] Meta dashboard URLs after domains are live:
+  - OAuth redirect: `https://www.bringthebuzzover.com/auth/instagram/callback`
+  - Deauthorize: `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize`
+  - Data deletion: `https://www.bringthebuzzover.com/data-deletion`
 
 **Operational gotcha:** `staging` and `production` both take the hardened path (HSTS, Secure cookies, prod-only CORS), so you can't bring one up over plain `http://localhost` — use `ENVIRONMENT=development` for local bring-up.
 
-### Same-origin vs cross-origin (auth cookies)
+### Same-site SPA + API (auth cookies)
 
-The refresh + OAuth cookies are `SameSite=lax`, so the SPA and API must be **same-site**. Two supported topologies (see `backend/.env.example`):
+Chosen topology: SPA on `www.bringthebuzzover.com`, API on `api.bringthebuzzover.com` (same eTLD+1). Use `REFRESH_COOKIE_SAMESITE=lax` + `REFRESH_COOKIE_SECURE=true`. CORS already allowlists www + apex (`backend/app/main.py`).
 
-1. **Same-origin (preferred):** serve the API under the SPA's domain at `/api` via a reverse proxy. Cookies "just work".
-2. **Cross-site:** API on a different registrable domain → set `REFRESH_COOKIE_SAMESITE=none` + `REFRESH_COOKIE_SECURE=true` (HTTPS) and keep the exact-origin CORS allowlist with credentials.
+Alternative: same-origin reverse proxy (`/api` under the SPA domain) — cookies "just work"; not the first deploy path. Cross-registrable-domain would need `SameSite=none` + Secure.
 
 ---
 
 ## Phase 4 — Deploy
 
-- [ ] Run migrations: `alembic upgrade head` (release step, before backend boot).
+Order: Postgres → API (migrate + health) → Frontend (baked API URL) → Crons → DNS for custom domains → Meta URL update.
+
+- [ ] Pre-deploy migrations: `poetry run alembic upgrade head` (before backend boot).
 - [ ] Deploy backend; confirm it boots (a bad env crashes it here by design).
-- [ ] Build + deploy the frontend with the API URL baked in.
+- [ ] Build + deploy the frontend with `build:prod` + real `REACT_APP_API_URL`.
+- [ ] Confirm cron services exit after each run.
 
 ---
 
