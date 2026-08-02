@@ -165,10 +165,10 @@ function ApiApplyForm({ dropId, onDone }: { dropId: string; onDone: () => void }
 
   const handleSubmit = () => {
     // Only dismiss on success — on failure keep the form (and the typed pitch)
-    // open so the inline error shows and the user can retry.
-    mutation.mutate(pitch || undefined, {
-      onSuccess: () => onDone(),
-    });
+    // open so the inline error shows and the user can retry. Await mutateAsync
+    // so the hook's optimistic alreadyApplied + invalidate finish before we
+    // remount the feed (otherwise E2E still sees "Apply").
+    void mutation.mutateAsync(pitch || undefined).then(() => onDone());
   };
 
   return (

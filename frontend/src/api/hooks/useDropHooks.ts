@@ -87,10 +87,17 @@ export function useApplyToDrop(dropId: string) {
       );
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["org-drop-feed"] });
-      queryClient.invalidateQueries({ queryKey: ["drop-detail", dropId] });
-      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+    onSuccess: async () => {
+      // Optimistic flip so the feed card shows "Already applied" before the
+      // refetch lands (E2E and UX both race the invalidate otherwise).
+      queryClient.setQueryData<DropFeedItem[]>(["org-drop-feed"], (rows) =>
+        rows?.map((row) =>
+          row.id === dropId ? { ...row, alreadyApplied: true } : row,
+        ),
+      );
+      await queryClient.invalidateQueries({ queryKey: ["org-drop-feed"] });
+      await queryClient.invalidateQueries({ queryKey: ["drop-detail", dropId] });
+      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },
   });
 }
