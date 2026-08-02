@@ -12,5 +12,5 @@ __pycache__/
 .venv/
 
 # Playwright
-/playwright-report/
-/test-results/
+playwright-report/
+test-results/

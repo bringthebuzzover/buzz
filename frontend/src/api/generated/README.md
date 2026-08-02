@@ -8,12 +8,14 @@ snake/camel issues).
 
 ## Regenerating
 
+Run from the repo root:
+
 ```bash
 # 1. Re-dump the spec from the backend (when a route's request/response changed):
-cd backend && poetry run python scripts/dump_openapi.py   # writes ../openapi.json
+cd backend && poetry run python scripts/dump_openapi.py   # writes ../openapi.json (repo root)
 
 # 2. Regenerate the TS types from it:
-cd .. && npm run gen:api                                  # writes this file
+cd ../frontend && npm run gen:api                         # reads ../openapi.json, writes this file
 ```
 
 CI fails if either is stale (`openapi.json` vs routes, or `schema.ts` vs

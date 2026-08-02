@@ -5,9 +5,9 @@ Four layers, cheapest → most expensive to maintain:
 | Layer | Where | Runs against | Maintenance |
 | --- | --- | --- | --- |
 | Backend unit/integration | `backend/tests/` (`pytest`) | rolled-back DB session | low |
-| Frontend smoke | `src/*.smoke.test.tsx` (`craco test`) | jsdom render | low |
+| Frontend smoke | `frontend/src/*.smoke.test.tsx` (`craco test`) | jsdom render | low |
 | **API bug-bash (journey + fuzz)** | `backend/scripts/bugbash.py` | a **live** local server | low |
-| **E2E (Playwright)** | `e2e/` | live backend **+** frontend in a real browser | medium |
+| **E2E (Playwright)** | `frontend/e2e/` | live backend **+** frontend in a real browser | medium |
 
 The bottom two are the bug-bash tools. Both need a **local Postgres** and
 `ENVIRONMENT=development` (so the dev-login shortcut works without Meta/Instagram).
@@ -50,20 +50,22 @@ inputs and asserts the server never 5xxes and every 4xx carries an `error.code`.
 Re-seed for a clean slate; the harness creates uniquely-suffixed fixtures so
 repeat runs don't collide.
 
-## E2E — Playwright (`e2e/`)
+## E2E — Playwright (`frontend/e2e/`)
 
 Deliberately **thin** (6 critical cross-stack journeys) and on `data-testid`
-selectors to bound maintenance. `playwright.config.ts` starts the backend (dev
-mode) + frontend (reusing them if already up) and `e2e/global-setup.ts` resets
-the DB to a deterministic fixture (`scripts/seed_e2e.py` = dev seed + one
-guaranteed-open drop for the apply journey).
+selectors to bound maintenance. `frontend/playwright.config.ts` starts the
+backend (dev mode) + frontend (reusing them if already up) and
+`frontend/e2e/global-setup.ts` resets the DB to a deterministic fixture
+(`backend/scripts/seed_e2e.py` = dev seed + one guaranteed-open drop for the
+apply journey).
 
 ```bash
-# one-time
-npm install
-npx playwright install chromium
+# one-time — install both sides (Playwright boots the backend for you)
+(cd backend && poetry install)
+(cd frontend && npm install && npx playwright install chromium)
 
-# run (boots both servers + seeds automatically; needs local Postgres + poetry)
+# run (from frontend/; boots both servers + seeds automatically; needs local Postgres)
+cd frontend
 npm run e2e
 npm run e2e:ui        # interactive
 ```

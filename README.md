@@ -32,11 +32,13 @@ Portals are gated by real auth (`RequireAuth` → `RequireStatus` → `RequireRo
 
 ## Local setup
 
+The repo is a monorepo: SPA under [`frontend/`](frontend/), FastAPI service under [`backend/`](backend/), shared [`openapi.json`](openapi.json) at the root.
+
 ### Frontend
 
 ```bash
 git clone <repository-url>
-cd buzz
+cd buzz/frontend
 npm install
 cp .env.example .env
 ```
@@ -50,6 +52,8 @@ npm start
 App: [http://localhost:3000](http://localhost:3000).
 
 ### Backend
+
+From the repo root (or `cd ../backend` if you're still in `frontend/`):
 
 ```bash
 cd backend
@@ -73,15 +77,17 @@ Full backend setup, jobs, and tests: [`backend/README.md`](backend/README.md).
 
 ## Scripts
 
-| Command           | Description                                                  |
-| ----------------- | ------------------------------------------------------------ |
-| `npm start`       | Frontend dev server                                          |
-| `npm run build`   | Production SPA bundle → `build/`                             |
-| `npm test`        | Frontend Jest/CRACO smoke tests                              |
-| `npm run e2e`     | Playwright end-to-end tests                                  |
-| `npm run gen:api` | Regenerate `src/api/generated/schema.ts` from `openapi.json` |
+Run inside [`frontend/`](frontend/):
 
-Backend: `poetry run pytest`, `poetry run alembic upgrade head`, `poetry run python scripts/run_job.py <job>` (see backend README).
+| Command           | Description                                                              |
+| ----------------- | ------------------------------------------------------------------------ |
+| `npm start`       | Frontend dev server                                                      |
+| `npm run build`   | Production SPA bundle → `frontend/build/`                                |
+| `npm test`        | Frontend Jest/CRACO smoke tests                                          |
+| `npm run e2e`     | Playwright end-to-end tests                                              |
+| `npm run gen:api` | Regenerate `src/api/generated/schema.ts` from the root `../openapi.json` |
+
+Backend (inside `backend/`): `poetry run pytest`, `poetry run alembic upgrade head`, `poetry run python scripts/run_job.py <job>` (see backend README).
 
 ---
 
@@ -96,17 +102,20 @@ A legacy `npm run deploy` (GitHub Pages) still exists in `package.json` but is *
 ## Project layout (high level)
 
 ```
-src/
-  AppRoot.tsx              # Routes + auth guards
-  api/                     # API client, hooks, generated OpenAPI types
-  contexts/                # AuthContext, SiteChromeContext
-  pages/                   # home, auth, onboarding, org, brand, waitlist, legal
-  components/              # site chrome, org/brand UI, routing guards
-  data/siteIdentity.ts     # Brand, contact, social (single source)
-  types/                   # Domain types
+frontend/                  # CRA/CRACO SPA (own package.json)
+  src/
+    AppRoot.tsx            # Routes + auth guards
+    api/                   # API client, hooks, generated OpenAPI types
+    contexts/              # AuthContext, SiteChromeContext
+    pages/                 # home, auth, onboarding, org, brand, waitlist, legal
+    components/            # site chrome, org/brand UI, routing guards
+    data/siteIdentity.ts   # Brand, contact, social (single source)
+    types/                 # Domain types
+  e2e/                     # Playwright specs + global-setup
+  public/                  # index.html, CNAME, static assets
 backend/                   # FastAPI app, Alembic migrations, jobs, tests
+openapi.json               # API contract (regen TS types via cd frontend && npm run gen:api)
 DEPLOYMENT.md              # Launch & Railway runbook
 META.md                    # Meta / Instagram API setup
 PRODUCT.md                 # Product spec
-openapi.json               # API contract (regen TS types via npm run gen:api)
 ```

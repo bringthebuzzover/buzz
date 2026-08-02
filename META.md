@@ -145,11 +145,11 @@ These are the technical things that must be true **on the Buzz platform** for In
 - [x] **Business/Creator-only gating** — Personal accounts rejected with a specific error (`ALLOWED_ACCOUNT_TYPES` → `INSTAGRAM_PERSONAL_ACCOUNT`).
 - [x] **DB schema** — `instagram_*` columns + `token_version` exist via migrations (`0392d8ea3a28_initial_schema`, `00f8ab49f469_..._token_version`).
 - [x] **Long-lived token refresh job** — cron refreshes tokens before the ~60-day expiry (`app/jobs/token_refresh.py`; uses `refresh_long_lived`).
-- [x] **Frontend flow** — `login()` redirects to `/api/auth/instagram/login`, and the SPA callback route `/auth/instagram/callback` POSTs `{code, state}` with credentials (`AuthContext.tsx`, `pages/auth/InstagramCallbackPage.tsx`, `AppRoot.tsx`).
+- [x] **Frontend flow** — `login()` redirects to `/api/auth/instagram/login`, and the SPA callback route `/auth/instagram/callback` POSTs `{code, state}` with credentials (`frontend/src/contexts/AuthContext.tsx`, `frontend/src/pages/auth/InstagramCallbackPage.tsx`, `frontend/src/AppRoot.tsx`).
 - [x] **Config fail-fast** — off-`development`, startup crashes if the IG creds / secrets are missing (`backend/app/config.py` guard).
 - [x] **Session cookies configurable for cross-site** — `REFRESH_COOKIE_SAMESITE` / `_SECURE` / `_PATH` knobs exist for SPA-on-different-domain topologies.
 - [x] **Deauthorize webhook** — `POST /api/auth/instagram/deauthorize` verifies Meta's `signed_request` (HMAC-SHA256 with `INSTAGRAM_CLIENT_SECRET`), nulls the stored token, and bumps `token_version` to kill live sessions (`app/security/signed_request.py`, `services/auth.py::revoke_instagram_authorization`).
-- [x] **Data deletion via instructions page** — public `/data-deletion` page tells users how to request deletion by email; reuses `siteIdentity.contact` so the address stays single-sourced (`src/pages/legal/DataDeletionPage.tsx`).
+- [x] **Data deletion via instructions page** — public `/data-deletion` page tells users how to request deletion by email; reuses `siteIdentity.contact` so the address stays single-sourced (`frontend/src/pages/legal/DataDeletionPage.tsx`).
 
 ### Config you must supply at deploy (code is ready, values are not)
 
