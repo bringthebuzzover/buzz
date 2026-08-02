@@ -37,9 +37,7 @@ def _build_signed_request(payload: dict, secret: str) -> str:
     """Build a valid Meta-style ``signed_request`` for a given payload/secret."""
 
     encoded_payload = _b64url_encode(json.dumps(payload).encode("utf-8"))
-    sig = hmac.new(
-        secret.encode("utf-8"), encoded_payload.encode("ascii"), hashlib.sha256
-    ).digest()
+    sig = hmac.new(secret.encode("utf-8"), encoded_payload.encode("ascii"), hashlib.sha256).digest()
     return f"{_b64url_encode(sig)}.{encoded_payload}"
 
 
@@ -123,9 +121,7 @@ async def test_deauthorize_clears_token_and_bumps_version(
     assert user.token_version == 4  # bumped from 3
 
 
-async def test_deauthorize_unknown_user_is_idempotent(
-    app_client: AsyncClient, db_session
-) -> None:
+async def test_deauthorize_unknown_user_is_idempotent(app_client: AsyncClient, db_session) -> None:
     signed = _build_signed_request(
         {"algorithm": "HMAC-SHA256", "user_id": "ig_never_seen"},
         settings.INSTAGRAM_CLIENT_SECRET,
@@ -139,9 +135,7 @@ async def test_deauthorize_unknown_user_is_idempotent(
     assert resp.status_code == 200
     assert resp.json()["data"] == {"ok": True}
     # And no phantom user was created.
-    row = await db_session.scalar(
-        select(User).where(User.instagram_user_id == "ig_never_seen")
-    )
+    row = await db_session.scalar(select(User).where(User.instagram_user_id == "ig_never_seen"))
     assert row is None
 
 

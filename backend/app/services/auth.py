@@ -90,9 +90,7 @@ async def handle_instagram_callback(
     return user
 
 
-async def revoke_instagram_authorization(
-    db: AsyncSession, instagram_user_id: str
-) -> None:
+async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: str) -> None:
     """Handle a Meta deauthorize webhook: drop the token, kill live sessions.
 
     The user removed our app from their Instagram, so their stored token is
@@ -104,9 +102,7 @@ async def revoke_instagram_authorization(
     retry safely.
     """
 
-    user = await db.scalar(
-        select(User).where(User.instagram_user_id == instagram_user_id)
-    )
+    user = await db.scalar(select(User).where(User.instagram_user_id == instagram_user_id))
     if user is None:
         return
     user.instagram_access_token = None
