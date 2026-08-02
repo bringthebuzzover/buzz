@@ -233,6 +233,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/instagram/deauthorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Instagram Deauthorize
+         * @description Meta deauthorize webhook (public, unauthenticated, HMAC-verified).
+         *
+         *     Meta POSTs ``signed_request`` (application/x-www-form-urlencoded) when a
+         *     user removes our app from their Instagram. We verify the signature with
+         *     ``INSTAGRAM_CLIENT_SECRET`` and, if the payload's ``user_id`` matches a
+         *     known org user, drop their token and bump ``token_version`` to kill any
+         *     live sessions. The user row itself is preserved — account deletion is a
+         *     separate flow (see ``/data-deletion``).
+         */
+        post: operations["instagram_deauthorize_api_auth_instagram_deauthorize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/instagram/login": {
         parameters: {
             query?: never;
@@ -886,6 +913,14 @@ export interface components {
             meta?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /** Body_instagram_deauthorize_api_auth_instagram_deauthorize_post */
+        Body_instagram_deauthorize_api_auth_instagram_deauthorize_post: {
+            /**
+             * Signed Request
+             * @default
+             */
+            signed_request: string;
         };
         /**
          * BrandApplyRequest
@@ -1559,6 +1594,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["InstagramCallbackRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    instagram_deauthorize_api_auth_instagram_deauthorize_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_instagram_deauthorize_api_auth_instagram_deauthorize_post"];
             };
         };
         responses: {

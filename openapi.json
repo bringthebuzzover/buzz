@@ -33,6 +33,17 @@
         "title": "APIResponse",
         "type": "object"
       },
+      "Body_instagram_deauthorize_api_auth_instagram_deauthorize_post": {
+        "properties": {
+          "signed_request": {
+            "default": "",
+            "title": "Signed Request",
+            "type": "string"
+          }
+        },
+        "title": "Body_instagram_deauthorize_api_auth_instagram_deauthorize_post",
+        "type": "object"
+      },
       "BrandApplyRequest": {
         "description": "Public brand self-registration body for ``POST /api/brands/apply``.",
         "properties": {
@@ -1449,6 +1460,47 @@
           }
         },
         "summary": "Instagram Callback",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/instagram/deauthorize": {
+      "post": {
+        "description": "Meta deauthorize webhook (public, unauthenticated, HMAC-verified).\n\nMeta POSTs ``signed_request`` (application/x-www-form-urlencoded) when a\nuser removes our app from their Instagram. We verify the signature with\n``INSTAGRAM_CLIENT_SECRET`` and, if the payload's ``user_id`` matches a\nknown org user, drop their token and bump ``token_version`` to kill any\nlive sessions. The user row itself is preserved \u2014 account deletion is a\nseparate flow (see ``/data-deletion``).",
+        "operationId": "instagram_deauthorize_api_auth_instagram_deauthorize_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_instagram_deauthorize_api_auth_instagram_deauthorize_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Instagram Deauthorize",
         "tags": [
           "auth"
         ]
