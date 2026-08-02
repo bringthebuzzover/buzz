@@ -1,6 +1,7 @@
 /**
- * Site-wide footer: brand blurb plus three link columns (students, brands, company).
- * “Contact” opens the same global modal as the header; “Privacy Policy” is a non-functional placeholder.
+ * Site-wide footer: brand blurb plus link columns. “Contact” opens the same
+ * global modal as the header; Privacy Policy, Terms, and Data Deletion link to
+ * the static legal pages (`/privacy`, `/terms`, `/data-deletion`).
  */
 import { Link } from "react-router-dom";
 import { siteIdentity } from "../../data/siteIdentity";
@@ -46,6 +47,21 @@ export default function SiteFooter() {
               >
                 Contact
               </button>
+            </li>
+            <li>
+              <Link to="/privacy" className="hover:text-buzz-coral">
+                Privacy Policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/terms" className="hover:text-buzz-coral">
+                Terms of Service
+              </Link>
+            </li>
+            <li>
+              <Link to="/data-deletion" className="hover:text-buzz-coral">
+                Data Deletion
+              </Link>
             </li>
           </ul>
         </div>

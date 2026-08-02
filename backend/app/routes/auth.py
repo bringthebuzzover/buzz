@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,10 +37,12 @@ from app.schemas.onboarding import (
 )
 from app.security import jwt
 from app.security.rate_limit import enforce_account_limit, rate_limited
+from app.security.signed_request import SignedRequestError, parse_signed_request
 from app.services.auth import (
     build_user_response,
     handle_instagram_callback,
     issue_token_pair,
+    revoke_instagram_authorization,
 )
 from app.services.brand_auth import login_brand, set_brand_password
 from app.services.instagram import InstagramClient, get_instagram_client
@@ -157,6 +159,45 @@ async def instagram_callback(
     access, refresh = issue_token_pair(user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
+
+
+@router.post(
+    "/instagram/deauthorize",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("ig_deauth", limit=60, window=60))],
+)
+async def instagram_deauthorize(
+    signed_request: str = Form(default=""),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Meta deauthorize webhook (public, unauthenticated, HMAC-verified).
+
+    Meta POSTs ``signed_request`` (application/x-www-form-urlencoded) when a
+    user removes our app from their Instagram. We verify the signature with
+    ``INSTAGRAM_CLIENT_SECRET`` and, if the payload's ``user_id`` matches a
+    known org user, drop their token and bump ``token_version`` to kill any
+    live sessions. The user row itself is preserved — account deletion is a
+    separate flow (see ``/data-deletion``).
+    """
+
+    if not signed_request:
+        raise BuzzAPIException(
+            code=errors.VALIDATION_ERROR,
+            message="Missing signed_request.",
+            status_code=400,
+        )
+    try:
+        payload = parse_signed_request(signed_request, settings.INSTAGRAM_CLIENT_SECRET)
+    except SignedRequestError as exc:
+        raise BuzzAPIException(
+            code=errors.UNAUTHORIZED,
+            message="Invalid signed_request.",
+            status_code=401,
+        ) from exc
+
+    if user_id := payload.get("user_id"):
+        await revoke_instagram_authorization(db, str(user_id))
+    return api_response(data={"ok": True})
 
 
 @router.post(

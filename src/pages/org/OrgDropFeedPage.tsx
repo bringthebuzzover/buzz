@@ -9,7 +9,7 @@ import { useMemo, useState } from "react";
 import DropFeedCard from "../../components/org/DropFeedCard";
 import { getDropFeedStatus } from "../../utils/dropStatus";
 import type { DropFeedRow, DropFeedStatus } from "../../types/drop";
-import { useDemoNow } from "../../contexts/DemoClockContext";
+import { useWallClockNow } from "../../utils/wallClock";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
 import { useApplyToDrop } from "../../api/hooks/useDropHooks";
 
@@ -55,7 +55,7 @@ function FeedContent({
   const [filter, setFilter] = useState<FilterId>("all");
   // Live wall-clock so a drop flips Upcoming→Open the moment its countdown ends
   // (status/chips/Apply re-derive on each tick, not just on refetch).
-  const now = useDemoNow();
+  const now = useWallClockNow();
 
   /** Visible cards after status filter. Drops are sorted: Open -> Upcoming -> Closed. */
   const visibleDrops = useMemo(() => {

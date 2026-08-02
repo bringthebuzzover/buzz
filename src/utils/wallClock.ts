@@ -1,10 +1,11 @@
 /**
- * Wall-clock hook used by countdowns and time-derived UI.
+ * Shared 1-second wall-clock hook for countdowns and time-derived UI.
  *
- * `useDemoNow` ticks once a second via a tiny external store, so components that
- * read "now" (e.g. `useCountdown`, the org drop feed) stay live without each
+ * `useWallClockNow` ticks once a second via a tiny external store, so components
+ * that read "now" (e.g. `useCountdown`, the org drop feed) stay live without each
  * mounting their own interval. The store's interval only runs while something is
- * subscribed.
+ * subscribed; on the server (SSR/tests) it returns a stable `Date.now()` and
+ * starts no interval.
  */
 import { useSyncExternalStore } from "react";
 
@@ -34,9 +35,6 @@ function _getWall(): number {
   return _wallNow || Date.now();
 }
 
-export function useDemoNow(): number {
-  // Subscribe to the 1s wall clock so countdowns stay live. On the server
-  // (SSR/tests) `getServerSnapshot` returns a stable Date.now() and no interval
-  // is started.
+export function useWallClockNow(): number {
   return useSyncExternalStore(_subscribeWall, _getWall, _getWall);
 }

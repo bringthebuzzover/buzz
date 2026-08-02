@@ -4,22 +4,18 @@
  * Renders from the real backend (GET /api/brands/me/aggregate,
  * /api/brands/me/drops, /api/brands/me/engagement-series).
  */
-import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import AggregateTotalsCards from "../../components/brand/AggregateTotalsCards";
 import ApiCompareDropsTable from "../../components/brand/ApiCompareDropsTable";
 import EngagementOverTimeChart from "../../components/brand/EngagementOverTimeChart";
 import RunningTotalsBar from "../../components/brand/RunningTotalsBar";
-import PlanCampaignModal from "../../components/site/modals/PlanCampaignModal";
 import {
   useBrandAggregate,
   useBrandDrops,
   useEngagementSeries,
 } from "../../api/hooks/useBrandHooks";
 import type { BrandAggregate, EngagementPoint } from "../../api/hooks/useBrandHooks";
-
-type DashboardLocationState = { openPlanCampaign?: boolean };
 
 const PAGE_SHELL = "mx-auto max-w-6xl px-8 py-12";
 
@@ -70,21 +66,12 @@ function mapEngagementSeries(points: EngagementPoint[]) {
 }
 
 function ApiDashboard() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const [planCampaignOpen, setPlanCampaignOpen] = useState(false);
+  const planCampaign = () => navigate("/brand/requests/new");
   const { data: aggregate, isLoading: aggLoading, isError: aggError } = useBrandAggregate();
   const { data: drops, isLoading: dropsLoading, isError: dropsError } = useBrandDrops();
   const { data: series, isLoading: seriesLoading, isError: seriesError } =
     useEngagementSeries();
-
-  useEffect(() => {
-    const st = location.state as DashboardLocationState | null;
-    if (st?.openPlanCampaign) {
-      setPlanCampaignOpen(true);
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location.pathname, location.state, navigate]);
 
   const isLoading = aggLoading || dropsLoading || seriesLoading;
   const isError = aggError || dropsError || seriesError;
@@ -92,7 +79,7 @@ function ApiDashboard() {
   if (isLoading) {
     return (
       <div className={PAGE_SHELL}>
-        <DashboardHeader onPlanCampaign={() => {}} />
+        <DashboardHeader onPlanCampaign={planCampaign} />
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
           Loading dashboard…
         </div>
@@ -103,7 +90,7 @@ function ApiDashboard() {
   if (isError) {
     return (
       <div className={PAGE_SHELL}>
-        <DashboardHeader onPlanCampaign={() => {}} />
+        <DashboardHeader onPlanCampaign={planCampaign} />
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-coral">
           Couldn’t load your dashboard. Please try again.
         </div>
@@ -120,12 +107,12 @@ function ApiDashboard() {
 
   return (
     <div className={PAGE_SHELL}>
-      <DashboardHeader onPlanCampaign={() => setPlanCampaignOpen(true)} />
+      <DashboardHeader onPlanCampaign={planCampaign} />
       {items.length === 0 ? (
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center">
           <p className="text-sm font-medium text-buzz-inkMuted">
-            No drops yet. Use Plan your Campaign to connect with a Buzz
-            consultant about your activation.
+            No drops yet. Use Plan your Campaign to request a drop and a Buzz
+            rep will take it from there.
           </p>
         </div>
       ) : (
@@ -136,9 +123,6 @@ function ApiDashboard() {
           <ApiCompareDropsTable drops={items} />
         </div>
       )}
-      {planCampaignOpen ? (
-        <PlanCampaignModal onClose={() => setPlanCampaignOpen(false)} />
-      ) : null}
     </div>
   );
 }

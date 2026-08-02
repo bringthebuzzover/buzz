@@ -27,6 +27,9 @@ import VerifyEmailPage from "./pages/onboarding/VerifyEmailPage";
 import PendingApprovalPage from "./pages/onboarding/PendingApprovalPage";
 import DeniedPage from "./pages/onboarding/DeniedPage";
 import Waitlist from "./pages/waitlist/waitlist";
+import PrivacyPolicyPage from "./pages/legal/PrivacyPolicyPage";
+import TermsPage from "./pages/legal/TermsPage";
+import DataDeletionPage from "./pages/legal/DataDeletionPage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
 function PortalGuard({
@@ -204,6 +207,9 @@ export default function AppRoot(): ReactElement {
           }
         />
         <Route path="waitlist" element={<Waitlist />} />
+        <Route path="privacy" element={<PrivacyPolicyPage />} />
+        <Route path="terms" element={<TermsPage />} />
+        <Route path="data-deletion" element={<DataDeletionPage />} />
       </Route>
     </Routes>
   );

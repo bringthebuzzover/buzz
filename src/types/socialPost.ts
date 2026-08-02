@@ -6,11 +6,11 @@
 /** Supported social platforms in v1. */
 export type SocialPlatform = "instagram" | "tiktok";
 
-/** Latest periodic snapshot of post metrics (refreshed by demo clock). */
+/** Latest periodic snapshot of post metrics (refreshed by the Instagram metric-sync job). */
 export type PostMetricsSnapshot = {
   likes: number;
   comments: number;
-  /** When the snapshot was last refreshed by the demo clock. */
+  /** When the snapshot was last refreshed. */
   fetchedAt: number;
 };
 

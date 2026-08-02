@@ -144,6 +144,12 @@ def _prod_kwargs(**over):
         TOKEN_ENCRYPTION_KEY=Fernet.generate_key().decode(),
         REFRESH_COOKIE_SECURE=True,
         FRONTEND_URL="https://app.example.com",
+        # Org login + transactional email are hard deps off-dev (§3.4, §4); the
+        # validator now requires them, so the "valid" baseline must supply them.
+        INSTAGRAM_CLIENT_ID="ig-client-id",
+        INSTAGRAM_CLIENT_SECRET="ig-client-secret",
+        INSTAGRAM_REDIRECT_URI="https://app.example.com/auth/instagram/callback",
+        RESEND_API_KEY="re_test_key",
     )
     base.update(over)
     return base
@@ -166,6 +172,16 @@ def test_prod_config_rejects_localhost_frontend() -> None:
 def test_prod_config_rejects_dev_secret() -> None:
     with pytest.raises(ValueError, match="SECRET_KEY"):
         Settings(**_prod_kwargs(SECRET_KEY="dev-secret-change-me"))
+
+
+def test_prod_config_rejects_missing_instagram_creds() -> None:
+    with pytest.raises(ValueError, match="INSTAGRAM_CLIENT_ID"):
+        Settings(**_prod_kwargs(INSTAGRAM_CLIENT_ID=""))
+
+
+def test_prod_config_rejects_missing_resend_key() -> None:
+    with pytest.raises(ValueError, match="RESEND_API_KEY"):
+        Settings(**_prod_kwargs(RESEND_API_KEY=""))
 
 
 # --- Edge cases surfaced by review -------------------------------------------
