@@ -110,3 +110,84 @@ jobs:
 
       - name: Tests (pytest)
         run: poetry run pytest
+
+  frontend-e2e:
+    name: Frontend E2E (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: buzz
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Playwright's global-setup + the backend webServer both read these:
+      # global-setup runs alembic + seed_e2e against the runner Postgres, and
+      # the webServer boots uvicorn in development so dev-login works in tests.
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/buzz
+      ENVIRONMENT: development
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Configure Poetry cache
+        run: poetry config virtualenvs.in-project true
+
+      - name: Cache virtualenv
+        uses: actions/cache@v4
+        with:
+          path: backend/.venv
+          key: poetry-${{ runner.os }}-py3.12-${{ hashFiles('backend/poetry.lock') }}
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: poetry install --no-interaction --no-root
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        # --with-deps pulls the runner's system libs alongside chromium; skipping
+        # it is the most common cause of CI-only Playwright launch failures.
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E
+        # `webServer` in playwright.config.ts boots the backend (cd ../backend,
+        # ENVIRONMENT=development, poetry run uvicorn) + frontend (npm start),
+        # and global-setup.ts applies migrations + seed_e2e first.
+        working-directory: frontend
+        run: npm run e2e
+        env:
+          CI: "true"
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7
+          if-no-files-found: ignore
