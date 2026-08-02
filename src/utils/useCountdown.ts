@@ -1,10 +1,10 @@
 /**
  * `useCountdown` — given a target timestamp, returns the remaining { days, hours,
- * minutes, seconds, done } using the demo clock's tick. `done` flips true once
+ * minutes, seconds, done } using the shared 1s wall clock. `done` flips true once
  * `now >= target`.
  */
 import { useMemo } from "react";
-import { useDemoNow } from "../contexts/DemoClockContext";
+import { useWallClockNow } from "./wallClock";
 
 export type Countdown = {
   days: number;
@@ -21,7 +21,7 @@ const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
 
 export function useCountdown(targetMs: number): Countdown {
-  const now = useDemoNow();
+  const now = useWallClockNow();
   return useMemo(() => {
     const remainingMs = targetMs - now;
     if (remainingMs <= 0) {

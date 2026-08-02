@@ -20,7 +20,7 @@ import {
   isDropFull,
   spotsRemaining,
 } from "../../utils/dropStatus";
-import { useDemoNow } from "../../contexts/DemoClockContext";
+import { useWallClockNow } from "../../utils/wallClock";
 import NotifyMeModal from "./modals/NotifyMeModal";
 import { REMINDER_CHOICES, useDropNotify } from "../../api/hooks/useDropHooks";
 
@@ -73,7 +73,7 @@ export default function DropFeedCard({
   alreadyApplied,
   disableApply = false,
 }: DropFeedCardProps) {
-  const now = useDemoNow();
+  const now = useWallClockNow();
   const remaining = spotsRemaining(drop, acceptedCount);
   const full = isDropFull(drop, acceptedCount);
   const closedReason = useMemo(

@@ -184,6 +184,20 @@ class Settings(BaseSettings):
         host = urlparse(self.FRONTEND_URL).hostname or ""
         if not host or host in {"localhost", "127.0.0.1", "0.0.0.0", "::1"}:
             misconfig.append("FRONTEND_URL must be the real SPA URL (not localhost)")
+
+        # Instagram OAuth is the org portal's only login path (§3.4); empty creds
+        # would let the backend boot "healthy" and then fail every org login. The
+        # startup crash surfaces the missing config at deploy time instead.
+        for var in ("INSTAGRAM_CLIENT_ID", "INSTAGRAM_CLIENT_SECRET", "INSTAGRAM_REDIRECT_URI"):
+            if not getattr(self, var):
+                misconfig.append(f"{var} must be set (org login depends on it)")
+
+        # Transactional email (verification + denial notices) silently no-ops
+        # without a Resend key — email verification gates org portal access, so
+        # a missing key strands every real signup. Fail fast off-dev.
+        if not self.RESEND_API_KEY:
+            misconfig.append("RESEND_API_KEY must be set (verification/denial email depends on it)")
+
         if misconfig:
             raise ValueError(
                 f"ENVIRONMENT={self.ENVIRONMENT!r} misconfigured: " + "; ".join(misconfig) + "."

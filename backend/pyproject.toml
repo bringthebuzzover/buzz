@@ -19,6 +19,7 @@ pyjwt = ">=2.8"
 cryptography = ">=43.0"
 httpx = ">=0.27"
 bcrypt = "^5.0.0"
+python-multipart = ">=0.0.18"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.0"

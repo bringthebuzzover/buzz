@@ -1,14 +1,10 @@
 /**
- * Public landing waitlist: routes to `brand_waitlist` or `org_waitlist` by selection;
- * does not persist a type field — shape matches the target collection.
+ * Public landing waitlist. Submits to `POST /api/waitlist` (Postgres), the same
+ * backend surface the full-page `/waitlist` form uses — the org/brand selection
+ * maps to the request's `entityType`.
  */
 import { useState, type FormEvent } from "react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import {
-  buildBrandWaitlistSubmission,
-  db,
-  FIRESTORE_COLLECTIONS,
-} from "../../firebase";
+import { submitWaitlist } from "../../api/waitlist";
 
 const HOME_WAITLIST_KINDS = [
   { value: "org", label: "Student organization" },
@@ -16,13 +12,7 @@ const HOME_WAITLIST_KINDS = [
 ] as const;
 
 type HomeWaitlistKind = (typeof HOME_WAITLIST_KINDS)[number]["value"];
-type SubmitState = "idle" | "submitting" | "sent";
-
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
-}
+type SubmitState = "idle" | "submitting" | "sent" | "error";
 
 export default function HomeWaitlistSection() {
   const [submitterName, setSubmitterName] = useState("");
@@ -33,37 +23,26 @@ export default function HomeWaitlistSection() {
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!kind || !orgOrBrandName.trim() || submitState !== "idle") {
+    if (
+      !kind ||
+      !orgOrBrandName.trim() ||
+      submitState === "submitting" ||
+      submitState === "sent"
+    ) {
       return;
     }
     setSubmitState("submitting");
     try {
-      const collectionId =
-        kind === "brand"
-          ? FIRESTORE_COLLECTIONS.brandWaitlist
-          : FIRESTORE_COLLECTIONS.orgWaitlist;
-      const payload =
-        kind === "brand"
-          ? buildBrandWaitlistSubmission({
-              submitterName: submitterName.trim(),
-              brandName: orgOrBrandName.trim(),
-              email: email.trim(),
-              details: "",
-            })
-          : {
-              submitterName: submitterName.trim(),
-              orgName: orgOrBrandName.trim(),
-              email: email.trim(),
-              createdAt: serverTimestamp(),
-            };
-
-      await addDoc(collection(db, collectionId), payload);
-      await wait(1500);
+      await submitWaitlist({
+        submitterName,
+        entityName: orgOrBrandName,
+        email,
+        entityType: kind,
+      });
       setSubmitState("sent");
     } catch (err) {
       console.error(err);
-      alert("Something went wrong. Please try again.");
-      setSubmitState("idle");
+      setSubmitState("error");
     }
   };
 
@@ -161,16 +140,24 @@ export default function HomeWaitlistSection() {
               className="w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-2 focus:ring-buzz-coral"
             />
           </div>
+          {submitState === "error" ? (
+            <p
+              role="alert"
+              className="rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700"
+            >
+              Something went wrong. Please try again.
+            </p>
+          ) : null}
           <button
             type="submit"
-            disabled={submitState !== "idle"}
+            disabled={submitState === "submitting" || submitState === "sent"}
             className="w-full rounded-lg bg-buzz-coral py-3 text-sm font-bold text-buzz-paper shadow-md transition enabled:hover:bg-buzz-coralDark disabled:opacity-60"
           >
-            {submitState === "idle"
-              ? "Submit"
-              : submitState === "submitting"
-                ? "Sending..."
-                : "Sent!"}
+            {submitState === "submitting"
+              ? "Sending..."
+              : submitState === "sent"
+                ? "Sent!"
+                : "Submit"}
           </button>
         </form>
       </div>

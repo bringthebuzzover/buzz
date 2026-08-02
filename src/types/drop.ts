@@ -20,16 +20,6 @@ export type DropClosedReason =
   | "spots_filled"
   | "manual";
 
-/** Pre-baked status transition applied by the demo clock at a relative offset (ms from creation). */
-export type ScheduledTransition = {
-  /** ms after `createdAt` to trigger this transition. */
-  offsetMs: number;
-  /** New brand tracker stage to advance to. */
-  toStage: BrandDropTrackerStage;
-  /** Optional tracking number to assign at this transition (typically on `products_in_transit`). */
-  assignTrackingNumber?: string;
-};
-
 /** Re-exported for callers that only consume drop types. */
 export type { BrandDropTrackerStage } from "./brandPortal";
 
@@ -67,7 +57,7 @@ export type Drop = {
   /**
    * Notify-Me state for the calling org (API feed, §6.3.1): whether a reminder
    * is set and its lead time, so the Upcoming card shows the already-subscribed
-   * state from the server. Optional — the demo path uses localStorage instead.
+   * state from the server.
    */
   notifyRequested?: boolean;
   reminderMinutes?: number | null;
@@ -75,12 +65,12 @@ export type Drop = {
   /** Brand-facing tracker stage. */
   brandTrackerStage: BrandDropTrackerStage;
 
-  /** Tracking number surfaced once products ship (shown on Products in Transit and beyond). */
+  /** Tracking number surfaced once products ship (shown on Awaiting Products and beyond). */
   trackingNumber?: string;
 
   /**
-   * Total product units the brand is allocating across selected orgs during
-   * Applicant Selection (demo/local only).
+   * Total product units the brand allocates across selected orgs during
+   * applicant selection (nullable when unknown at request time).
    */
   totalProductUnits?: number;
 
@@ -90,20 +80,15 @@ export type Drop = {
    */
   applicantSelectionFinalizedAt?: number;
 
-  /** Created timestamp; used as origin for `scheduledTransitions`. */
+  /** Created timestamp. */
   createdAt: number;
-
-  /** Pre-baked stage transitions applied by the demo clock (set by request flow / seed). */
-  scheduledTransitions?: ScheduledTransition[];
 };
 
 /**
  * The subset of `Drop` the org browse feed actually renders (see `DropFeedCard`
- * + `utils/dropStatus`). The Stage 4 API feed (`GET /api/drops`) returns exactly
- * these fields — brand/fulfillment fields (e.g. `brandTrackerStage`, whose
- * backend/frontend enum vocabularies differ) are intentionally omitted until the
- * Stage 5 brand surface reconciles them. A full `Drop` is assignable to this, so
- * the demo path is unaffected.
+ * + `utils/dropStatus`). The API feed (`GET /api/drops`) returns exactly these
+ * fields — brand/fulfillment fields (e.g. `brandTrackerStage`) are intentionally
+ * omitted from the org feed. A full `Drop` is assignable to this.
  */
 export type DropCardData = Pick<
   Drop,
@@ -121,7 +106,7 @@ export type DropCardData = Pick<
   | "reminderMinutes"
 >;
 
-/** A feed row: card data plus the two server-computed (or demo-derived) fields. */
+/** A feed row: card data plus the two server-computed fields. */
 export type DropFeedRow = DropCardData & {
   /** Number of accepted applications (drives "spots remaining"/full). */
   acceptedCount: number;

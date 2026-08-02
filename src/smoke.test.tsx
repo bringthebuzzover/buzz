@@ -33,7 +33,7 @@ describe("API provider-tree smoke", () => {
     expect(render).not.toThrow();
   });
 
-  it("renders an org DropFeedCard without the demo clock provider", () => {
+  it("renders an org DropFeedCard using the shared wall clock (no provider needed)", () => {
     const card: DropCardData = {
       id: "d1",
       brandName: "Acme",

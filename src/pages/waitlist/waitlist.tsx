@@ -4,7 +4,7 @@
  */
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { API_BASE_URL } from "../../api/config";
+import { submitWaitlist } from "../../api/waitlist";
 import waitlistBackground from "../../assets/boxesImage.png";
 
 type WaitlistForm = {
@@ -23,46 +23,39 @@ const initialForm: WaitlistForm = {
   details: "",
 };
 
+type SubmitStatus = "idle" | "submitting" | "sent" | "error";
+
 export default function Waitlist() {
   const [form, setForm] = useState<WaitlistForm>(initialForm);
-  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState<SubmitStatus>("idle");
+  const submitting = status === "submitting";
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
     const key = e.target.name as keyof WaitlistForm;
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
+    if (status === "error") setStatus("idle");
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting) return;
-    setSubmitting(true);
+    setStatus("submitting");
 
     try {
-      const resp = await fetch(`${API_BASE_URL}/api/waitlist`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          submitterName: form.submitterName.trim(),
-          entityName: form.entityName.trim(),
-          email: form.email.trim(),
-          entityType: form.entityType,
-          details: form.details.trim() || undefined,
-        }),
+      await submitWaitlist({
+        submitterName: form.submitterName,
+        entityName: form.entityName,
+        email: form.email,
+        entityType: form.entityType,
+        details: form.details,
       });
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => null);
-        throw new Error(body?.error?.message ?? "Submission failed");
-      }
-
-      alert("You're on the waitlist!");
       setForm(initialForm);
+      setStatus("sent");
     } catch (err) {
       console.error(err);
-      alert("Something went wrong.");
-    } finally {
-      setSubmitting(false);
+      setStatus("error");
     }
   };
 
@@ -82,6 +75,19 @@ export default function Waitlist() {
             representative is ready to onboard your next drop.
           </p>
 
+          {status === "sent" ? (
+            <div
+              role="status"
+              className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-6 text-center"
+            >
+              <p className="text-lg font-black text-buzz-coral">
+                You&apos;re on the waitlist!
+              </p>
+              <p className="mt-2 text-sm font-medium text-buzz-inkMuted">
+                Thanks — a BUZZ representative will reach out soon.
+              </p>
+            </div>
+          ) : (
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <input
               name="submitterName"
@@ -129,6 +135,15 @@ export default function Waitlist() {
               className="min-h-28 rounded-lg border border-buzz-lineMid bg-buzz-paper px-4 py-3 font-inherit text-base text-buzz-waitlistInk transition-shadow duration-200 ease-out placeholder:text-buzz-inkFaint focus:outline-none focus:ring-2 focus:ring-inset focus:ring-buzz-waitlistPink"
             />
 
+            {status === "error" ? (
+              <p
+                role="alert"
+                className="rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-700"
+              >
+                Something went wrong. Please try again.
+              </p>
+            ) : null}
+
             <button
               type="submit"
               disabled={submitting}
@@ -137,6 +152,7 @@ export default function Waitlist() {
               {submitting ? "Submitting..." : "Join Waitlist"}
             </button>
           </form>
+          )}
         </div>
       </div>
     </section>

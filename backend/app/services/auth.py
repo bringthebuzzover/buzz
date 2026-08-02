@@ -90,6 +90,33 @@ async def handle_instagram_callback(
     return user
 
 
+async def revoke_instagram_authorization(
+    db: AsyncSession, instagram_user_id: str
+) -> None:
+    """Handle a Meta deauthorize webhook: drop the token, kill live sessions.
+
+    The user removed our app from their Instagram, so their stored token is
+    dead. We null out the token fields and bump ``token_version`` (same trick
+    logout / admin-deny use) to invalidate every outstanding refresh token.
+    The user row is kept — deauthorize is not account deletion.
+
+    Idempotent: unknown ``instagram_user_id`` is a silent no-op so Meta can
+    retry safely.
+    """
+
+    user = await db.scalar(
+        select(User).where(User.instagram_user_id == instagram_user_id)
+    )
+    if user is None:
+        return
+    user.instagram_access_token = None
+    user.instagram_token_issued_at = None
+    user.instagram_token_expires_at = None
+    user.instagram_token_refreshed_at = None
+    user.token_version = (user.token_version or 0) + 1
+    await db.flush()
+
+
 def build_user_response(user: User) -> UserResponse:
     """Serialize a ``User`` into the API user payload."""
 
