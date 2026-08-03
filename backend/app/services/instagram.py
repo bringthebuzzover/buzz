@@ -28,10 +28,10 @@ ALLOWED_ACCOUNT_TYPES = frozenset({"BUSINESS", "CREATOR"})
 
 
 def canonical_instagram_handle(username: str | None) -> str:
-    """Normalize an IG username for storage (no leading ``@``, stripped).
+    """Normalize an IG username for display/storage (no leading ``@``, stripped).
 
-    Used when mirroring ``users.instagram_username`` onto
-    ``organizations.instagram_handle`` so OAuth login is the org identity.
+    Org portal identity is ``users.instagram_username``; use this when projecting
+    that value as a wire ``instagram_handle``.
     """
 
     return (username or "").strip().lstrip("@")

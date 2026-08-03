@@ -150,9 +150,7 @@ async def list_impersonatable_users(db: AsyncSession) -> list[dict[str, object]]
                 org.org_name if org is not None else (brand.brand_name if brand else None)
             ),
             "email": (brand.company_email if brand is not None else user.edu_email),
-            "instagram_handle": (
-                org.instagram_handle if org is not None else user.instagram_username
-            ),
+            "instagram_handle": user.instagram_username,
             "impersonatable": user.status == OrgUserStatus.ACTIVE.value,
             "created_at": user.created_at,
         }

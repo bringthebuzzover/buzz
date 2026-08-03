@@ -5,8 +5,7 @@ belong to at most one campaign**. Anything that would create a second link
 for the same post must raise ``IntegrityError`` at the DB layer — tested
 in ``tests/test_constraints.py``.
 
-``drop_id`` is denormalized so dashboard queries can filter without joining
-through ``drop_applications``.
+Campaign membership is ``application_id`` → ``drop_applications.drop_id``.
 """
 
 from __future__ import annotations
@@ -31,7 +30,6 @@ class PostCampaignLink(Base):
     application_id: Mapped[uuid.UUID] = mapped_column(
         sa.Uuid, sa.ForeignKey("drop_applications.id"), nullable=False
     )
-    drop_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("drops.id"), nullable=False)
 
     source: Mapped[str] = mapped_column(PostLinkSourceEnum, nullable=False)
     linked_at: Mapped[datetime] = mapped_column(

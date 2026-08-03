@@ -4,6 +4,8 @@ Written by the auto-link scan job (§10.4) when a post's caption mentions
 a brand handle or campaign hashtag. ``UNIQUE(post_id, application_id)``
 makes re-running the scan idempotent.
 
+Campaign membership is ``application_id`` → ``drop_applications.drop_id``.
+
 ``confirmed_at`` and ``dismissed_at`` are both nullable. The lifecycle is:
 
 * both ``NULL`` — pending review by the org
@@ -40,7 +42,6 @@ class PostCampaignSuggestion(Base):
     application_id: Mapped[uuid.UUID] = mapped_column(
         sa.Uuid, sa.ForeignKey("drop_applications.id"), nullable=False
     )
-    drop_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("drops.id"), nullable=False)
 
     match_reason: Mapped[str] = mapped_column(SuggestionMatchReasonEnum, nullable=False)
     match_evidence: Mapped[str] = mapped_column(sa.Text, nullable=False)

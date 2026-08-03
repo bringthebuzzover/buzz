@@ -1,5 +1,8 @@
 """``drops`` table — a single brand campaign offered to student orgs.
 
+Brand display name lives on ``brands.brand_name`` (join via ``brand_id``).
+``tracking_number`` on this table is the campaign shipment SOT.
+
 ``total_product_units`` is nullable to distinguish two campaign modes
 (architecture §3.2 + PRODUCT.md §4.1):
 
@@ -25,7 +28,6 @@ class Drop(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
     brand_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("brands.id"), nullable=False)
-    brand_name: Mapped[str] = mapped_column(sa.String(255), nullable=False)
 
     title: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     description: Mapped[str] = mapped_column(sa.Text, nullable=False)

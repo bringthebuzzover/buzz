@@ -143,16 +143,14 @@ async def submit_org_onboarding(
 
     await _release_unverified_edu_claim(db, claimant_id=user.id, edu_email=payload.edu_email)
 
-    # Org IG handle mirrors the OAuth login account — never client-supplied.
-    handle = require_instagram_handle(user.instagram_username)
+    # Require OAuth username (org identity) before creating the profile row.
+    require_instagram_handle(user.instagram_username)
 
     org = Organization(
         id=uuid.uuid4(),
         user_id=user.id,
         org_name=payload.org_name,
         university=payload.university,
-        edu_email=payload.edu_email,
-        instagram_handle=handle,
         tiktok_handle=payload.tiktok_handle,
         follower_count=payload.follower_count,
         member_count=payload.member_count,
@@ -227,7 +225,6 @@ async def change_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict
         )
 
     user.edu_email = edu_email
-    org.edu_email = edu_email
     await _invalidate_verification_tokens(db, user.id)
 
     try:

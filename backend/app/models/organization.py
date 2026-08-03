@@ -3,8 +3,8 @@
 Owns university + delivery address and related club metadata. ``user_id`` is
 unique so one Buzz account maps to one org profile; deleting the user cascades.
 
-``instagram_handle`` mirrors ``users.instagram_username`` (OAuth login = org
-identity); it is not independently editable.
+Login identity lives on the user: ``users.edu_email`` and
+``users.instagram_username`` (join via ``user_id``).
 """
 
 from __future__ import annotations
@@ -32,8 +32,6 @@ class Organization(Base):
 
     org_name: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     university: Mapped[str] = mapped_column(sa.String(255), nullable=False)
-    edu_email: Mapped[str] = mapped_column(sa.String(320), nullable=False)
-    instagram_handle: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     tiktok_handle: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
 
     follower_count: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)

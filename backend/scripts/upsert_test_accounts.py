@@ -150,8 +150,6 @@ async def _upsert_org(session: AsyncSession) -> User:
         session.add(org)
     org.org_name = "Buzz Test Organization"
     org.university = "Cornell University"
-    org.edu_email = ORG_EDU_EMAIL
-    org.instagram_handle = "buzztestorg"
     org.category = OrgCategory.SOCIAL.value
     org.follower_count = 1200
     org.member_count = 40

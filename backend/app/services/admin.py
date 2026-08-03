@@ -10,16 +10,13 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
-from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.exceptions import BuzzAPIException
-from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
 from app.models.enums import (
-    ApplicationDecision,
     BrandStatus,
     BrandTrackerStage,
     OrgUserStatus,
@@ -80,14 +77,12 @@ async def list_orgs(db: AsyncSession, *, status: str | None = None) -> list[dict
             "user_id": user.id,
             "org_name": org.org_name if org is not None else None,
             "university": org.university if org is not None else None,
-            "instagram_handle": (
-                org.instagram_handle if org is not None else user.instagram_username
-            ),
+            "instagram_handle": user.instagram_username,
             "follower_count": org.follower_count if org is not None else None,
             "member_count": org.member_count if org is not None else None,
             "category": org.category if org is not None else None,
             "status": user.status,
-            "edu_email": org.edu_email if org is not None else user.edu_email,
+            "edu_email": user.edu_email,
             "email_verified_at": user.email_verified_at,
             "approved_at": org.approved_at if org is not None else None,
             "last_login_at": user.last_login_at,
@@ -121,7 +116,7 @@ async def approve_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     org.approved_at = now
     await db.flush()
 
-    await send_org_approved_email(org.edu_email, org_name=org.org_name)
+    await send_org_approved_email(user.edu_email or "", org_name=org.org_name)
 
     return {"org_id": str(org.id), "status": user.status}
 
@@ -147,7 +142,7 @@ async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     user.token_version = (user.token_version or 0) + 1  # revoke outstanding sessions
     await db.flush()
 
-    await send_org_denied_email(org.edu_email, org_name=org.org_name)
+    await send_org_denied_email(user.edu_email or "", org_name=org.org_name)
 
     return {"org_id": str(org.id), "status": user.status}
 
@@ -404,14 +399,6 @@ async def set_drop_tracking_number(
         )
 
     drop.tracking_number = cleaned
-    await db.execute(
-        sa_update(DropApplication)
-        .where(
-            DropApplication.drop_id == drop.id,
-            DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-        )
-        .values(tracking_number=cleaned)
-    )
     await db.flush()
     return {"drop_id": str(drop.id), "tracking_number": drop.tracking_number}
 
@@ -492,18 +479,9 @@ async def advance_tracker(
     db.add(event)
 
     # At awaiting_products, store the tracking number on the drop (the brand's
-    # read-only tracker shows it here, §5.2) and mirror it onto accepted
-    # applications (the org-facing campaign view, §6.4.1).
+    # read-only tracker and org campaign views both read drops.tracking_number).
     if requested == awaiting and tracking_number:
         drop.tracking_number = tracking_number
-        await db.execute(
-            sa_update(DropApplication)
-            .where(
-                DropApplication.drop_id == drop.id,
-                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-            )
-            .values(tracking_number=tracking_number)
-        )
 
     await db.flush()
     return {"drop_id": str(drop.id), "stage": drop.brand_tracker_stage}

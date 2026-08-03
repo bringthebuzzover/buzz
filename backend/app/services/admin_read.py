@@ -584,7 +584,7 @@ async def get_org_detail(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
         "org_name": org.org_name if org is not None else None,
         "university": org.university if org is not None else None,
         "category": org.category if org is not None else None,
-        "instagram_handle": org.instagram_handle if org is not None else user.instagram_username,
+        "instagram_handle": user.instagram_username,
         "instagram_username": user.instagram_username,
         "tiktok_handle": org.tiktok_handle if org is not None else None,
         "follower_count": org.follower_count if org is not None else None,
@@ -593,8 +593,7 @@ async def get_org_detail(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
         "state": org.state if org is not None else None,
         "contact_name": org.contact_name if org is not None else None,
         "delivery_address": org.delivery_address if org is not None else None,
-        "edu_email": org.edu_email if org is not None else user.edu_email,
-        "user_edu_email": user.edu_email,
+        "edu_email": user.edu_email,
         "email_verified_at": user.email_verified_at,
         "approved_at": org.approved_at if org is not None else None,
         "created_at": user.created_at,
@@ -708,6 +707,7 @@ async def list_drops(
     stmt = (
         select(
             Drop,
+            Brand.brand_name,
             Brand.status,
             func.coalesce(applied_sq.c.n, 0),
             func.coalesce(accepted_sq.c.n, 0),
@@ -728,7 +728,7 @@ async def list_drops(
         {
             "id": drop.id,
             "brand_id": drop.brand_id,
-            "brand_name": drop.brand_name,
+            "brand_name": brand_name,
             "brand_status": brand_status,
             "title": drop.title,
             "stage": drop.brand_tracker_stage,
@@ -744,7 +744,9 @@ async def list_drops(
             "finalized_at": drop.applicant_selection_finalized_at,
             "created_at": drop.created_at,
         }
-        for drop, brand_status, applied_count, accepted_count in (await db.execute(stmt)).all()
+        for drop, brand_name, brand_status, applied_count, accepted_count in (
+            await db.execute(stmt)
+        ).all()
     ]
 
 
@@ -793,7 +795,8 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
 
     links_sq = (
         select(PostCampaignLink.application_id, func.count().label("n"))
-        .where(PostCampaignLink.drop_id == drop.id)
+        .join(DropApplication, DropApplication.id == PostCampaignLink.application_id)
+        .where(DropApplication.drop_id == drop.id)
         .group_by(PostCampaignLink.application_id)
         .subquery()
     )
@@ -804,21 +807,22 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
             "user_id": org.user_id,
             "org_name": org.org_name,
             "university": org.university,
-            "instagram_handle": org.instagram_handle,
+            "instagram_handle": org_user.instagram_username,
             "follower_count": org.follower_count,
             "delivery_address": org.delivery_address,
             "decision": application.decision,
             "allocated_units": application.allocated_units,
             "pitch": application.pitch,
-            "tracking_number": application.tracking_number,
+            "tracking_number": drop.tracking_number,
             "linked_post_count": int(linked or 0),
             "applied_at": application.applied_at,
             "decision_at": application.decision_at,
         }
-        for application, org, linked in (
+        for application, org, org_user, linked in (
             await db.execute(
-                select(DropApplication, Organization, func.coalesce(links_sq.c.n, 0))
+                select(DropApplication, Organization, User, func.coalesce(links_sq.c.n, 0))
                 .join(Organization, Organization.id == DropApplication.org_id)
+                .join(User, User.id == Organization.user_id)
                 .outerjoin(links_sq, links_sq.c.application_id == DropApplication.id)
                 .where(DropApplication.drop_id == drop.id)
                 .order_by(DropApplication.applied_at.asc())
@@ -838,12 +842,17 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     ]
 
     linked_posts = await _scalar_int(
-        db, select(func.count(PostCampaignLink.id)).where(PostCampaignLink.drop_id == drop.id)
+        db,
+        select(func.count(PostCampaignLink.id))
+        .join(DropApplication, DropApplication.id == PostCampaignLink.application_id)
+        .where(DropApplication.drop_id == drop.id),
     )
     pending_suggestions = await _scalar_int(
         db,
-        select(func.count(PostCampaignSuggestion.id)).where(
-            PostCampaignSuggestion.drop_id == drop.id,
+        select(func.count(PostCampaignSuggestion.id))
+        .join(DropApplication, DropApplication.id == PostCampaignSuggestion.application_id)
+        .where(
+            DropApplication.drop_id == drop.id,
             PostCampaignSuggestion.confirmed_at.is_(None),
             PostCampaignSuggestion.dismissed_at.is_(None),
         ),
@@ -859,7 +868,7 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     return {
         "id": drop.id,
         "brand_id": brand.id,
-        "brand_name": drop.brand_name,
+        "brand_name": brand.brand_name,
         "brand_status": brand.status,
         "brand_instagram_handle": brand.instagram_handle,
         "title": drop.title,

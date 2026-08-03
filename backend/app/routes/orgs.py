@@ -57,7 +57,7 @@ async def get_my_org(
     """Return the caller org's profile (JWT + ``org`` role + ``active``)."""
 
     org = await _require_org_profile(db, user)
-    return api_response(data=build_org_profile(org))
+    return api_response(data=build_org_profile(org, user))
 
 
 @router.patch("/me", response_model=APIResponse)
@@ -70,7 +70,7 @@ async def update_my_org(
 
     org = await _require_org_profile(db, user)
     org = await update_org_profile(db, org, payload)
-    return api_response(data=build_org_profile(org))
+    return api_response(data=build_org_profile(org, user))
 
 
 @router.get("/me/posts", response_model=APIResponse)

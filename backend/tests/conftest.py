@@ -285,8 +285,6 @@ async def make_org(
         user_id=user.id,
         org_name=org_name,
         university="Test University",
-        edu_email="org@test.edu",
-        instagram_handle="testorg",
     )
     db.add(org)
     await db.flush()
@@ -343,7 +341,6 @@ async def make_drop(
     drop = Drop(
         id=uuid.uuid4(),
         brand_id=brand.id,
-        brand_name=brand.brand_name,
         title=title,
         description="A test drop.",
         image="https://example.test/img.png",
@@ -455,7 +452,6 @@ async def make_post_link(
         id=uuid.uuid4(),
         post_id=post.id,
         application_id=application.id,
-        drop_id=application.drop_id,
         source=source.value,
     )
     db.add(link)
@@ -477,7 +473,6 @@ async def make_suggestion(
         id=uuid.uuid4(),
         post_id=post.id,
         application_id=application.id,
-        drop_id=application.drop_id,
         match_reason=match_reason.value,
         match_evidence=match_evidence,
     )

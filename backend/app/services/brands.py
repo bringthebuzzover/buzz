@@ -87,7 +87,7 @@ async def _drop_aggregate(db: AsyncSession, drop_id: UUID) -> dict[str, int]:
             select(PostCampaignLink.post_id)
             .join(DropApplication, DropApplication.id == PostCampaignLink.application_id)
             .where(
-                PostCampaignLink.drop_id == drop_id,
+                DropApplication.drop_id == drop_id,
                 DropApplication.decision == ApplicationDecision.ACCEPTED.value,
             )
         )
@@ -299,7 +299,9 @@ async def compute_engagement_series(
 
     linked_post_ids = list(
         await db.scalars(
-            select(PostCampaignLink.post_id).where(PostCampaignLink.drop_id.in_(drop_ids))
+            select(PostCampaignLink.post_id)
+            .join(DropApplication, DropApplication.id == PostCampaignLink.application_id)
+            .where(DropApplication.drop_id.in_(drop_ids))
         )
     )
     if not linked_post_ids:
@@ -507,11 +509,13 @@ async def finalize_applicants(
     # failure must not roll back the finalize, so swallow + log.
     if denied_org_ids:
         contacts = await db.execute(
-            select(Organization.edu_email, Organization.org_name).where(
-                Organization.id.in_(denied_org_ids)
-            )
+            select(User.edu_email, Organization.org_name)
+            .join(User, User.id == Organization.user_id)
+            .where(Organization.id.in_(denied_org_ids))
         )
         for edu_email, org_name in contacts.all():
+            if not edu_email:
+                continue
             try:
                 await send_application_denied_email(
                     edu_email,

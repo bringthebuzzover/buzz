@@ -167,16 +167,15 @@ export default function AdminOrgDetailPage() {
                   </span>
                 )}
               </Field>
-              <Field label="Profile email">{data.eduEmail ?? "—"}</Field>
             </FieldGrid>
           </Panel>
 
           <Panel
             title="Account"
-            description="The verified email lives on the user row; the profile keeps its own copy, and only the former is unique."
+            description="Login identity (.edu email and Instagram) lives on the user row."
           >
             <FieldGrid>
-              <Field label="Verified email">{data.userEduEmail ?? "—"}</Field>
+              <Field label="Email">{data.eduEmail ?? "—"}</Field>
               <Field label="Email verified">
                 {data.emailVerifiedAt ? (
                   formatDate(data.emailVerifiedAt)

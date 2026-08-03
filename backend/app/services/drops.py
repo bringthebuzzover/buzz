@@ -7,8 +7,8 @@ returns a page of drops enriched with two server-computed fields:
 * ``already_applied`` — whether the *calling* org has a non-denied application.
 
 Both are computed with set/grouped queries keyed by the page's drop ids, so the
-feed is two extra queries regardless of page size (no N+1). ``Drop.brand_name``
-is denormalized, so no brand join is needed.
+feed is two extra queries regardless of page size (no N+1). Brand display name
+comes from ``brands`` via join on ``Drop.brand_id``.
 """
 
 from __future__ import annotations
@@ -61,16 +61,19 @@ async def list_org_drop_feed(
     # ``id`` is the tiebreaker: ``created_at`` defaults to the transaction clock,
     # so rows seeded in one transaction share a timestamp — ordering on it alone
     # is not stable and LIMIT/OFFSET could skip or duplicate rows across pages.
-    drops = list(
-        await db.scalars(
-            select(Drop)
-            .order_by(Drop.created_at.desc(), Drop.id.desc())
-            .limit(per_page)
-            .offset((page - 1) * per_page)
-        )
+    rows = list(
+        (
+            await db.execute(
+                select(Drop, Brand)
+                .join(Brand, Brand.id == Drop.brand_id)
+                .order_by(Drop.created_at.desc(), Drop.id.desc())
+                .limit(per_page)
+                .offset((page - 1) * per_page)
+            )
+        ).all()
     )
 
-    page_ids = [drop.id for drop in drops]
+    page_ids = [drop.id for drop, _brand in rows]
     accepted_counts = await _accepted_counts(db, page_ids)
     applied_ids = await _applied_drop_ids(db, org_id, page_ids)
     notify_state = await _notify_state(db, org_id, page_ids)
@@ -78,7 +81,7 @@ async def list_org_drop_feed(
     items = [
         DropFeedItem(
             id=drop.id,
-            brand_name=drop.brand_name,
+            brand_name=brand.brand_name,
             title=drop.title,
             description=drop.description,
             image=drop.image,
@@ -93,7 +96,7 @@ async def list_org_drop_feed(
             notify_requested=drop.id in notify_state,
             reminder_minutes=notify_state.get(drop.id),
         )
-        for drop in drops
+        for drop, brand in rows
     ]
     return items, total
 
@@ -202,10 +205,13 @@ async def build_drop_detail(
     org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
     accepted = (await _accepted_counts(db, [drop.id])).get(drop.id, 0)
     applied_ids = await _applied_drop_ids(db, org_id, [drop.id])
+    brand = await db.get(Brand, drop.brand_id)
+    if brand is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
     return DropDetailResponse(
         id=drop.id,
         brand_id=drop.brand_id,
-        brand_name=drop.brand_name,
+        brand_name=brand.brand_name,
         title=drop.title,
         description=drop.description,
         image=drop.image,
@@ -282,10 +288,23 @@ async def apply_to_drop(
     return application
 
 
-def build_application_response(application: DropApplication) -> ApplicationResponse:
-    """Serialize a ``DropApplication`` ORM row into the wire schema."""
+async def build_application_response(
+    db: AsyncSession, application: DropApplication
+) -> ApplicationResponse:
+    """Serialize a ``DropApplication`` with tracking from the parent drop."""
 
-    return ApplicationResponse.model_validate(application, from_attributes=True)
+    drop = await db.get(Drop, application.drop_id)
+    return ApplicationResponse(
+        id=application.id,
+        drop_id=application.drop_id,
+        org_id=application.org_id,
+        decision=application.decision,
+        pitch=application.pitch,
+        tracking_number=drop.tracking_number if drop is not None else None,
+        allocated_units=application.allocated_units,
+        applied_at=application.applied_at,
+        decision_at=application.decision_at,
+    )
 
 
 async def set_notify(
@@ -348,7 +367,6 @@ async def create_brand_drop(
     drop = Drop(
         id=uuid.uuid4(),
         brand_id=brand.id,
-        brand_name=brand.brand_name,
         title=title,
         description=description,
         image=_PLACEHOLDER_IMAGE,
@@ -371,6 +389,23 @@ async def create_brand_drop(
     return drop
 
 
-def build_brand_drop_response(drop: Drop) -> schemas.BrandDropResponse:
+def build_brand_drop_response(drop: Drop, brand: Brand) -> schemas.BrandDropResponse:
     """Serialize a ``Drop`` into the brand-facing wire shape."""
-    return schemas.BrandDropResponse.model_validate(drop, from_attributes=True)
+    return schemas.BrandDropResponse(
+        id=drop.id,
+        brand_id=drop.brand_id,
+        brand_name=brand.brand_name,
+        title=drop.title,
+        description=drop.description,
+        image=drop.image,
+        location=drop.location,
+        capacity_total=drop.capacity_total,
+        apply_open_at=drop.apply_open_at,
+        apply_close_at=drop.apply_close_at,
+        manual_reopen=drop.manual_reopen,
+        brand_tracker_stage=drop.brand_tracker_stage,
+        total_product_units=drop.total_product_units,
+        campaign_hashtag=drop.campaign_hashtag,
+        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
+        created_at=drop.created_at,
+    )

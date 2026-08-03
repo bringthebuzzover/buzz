@@ -53,7 +53,7 @@ async def test_finalize_emails_denied_applicants(
     accepted_org = await make_org(db_session, accepted_user, org_name="Accepted Org")
     denied_user = await persist(db_session, make_user(instagram_user_id="ig_den"))
     denied_org = await make_org(db_session, denied_user, org_name="Denied Org")
-    denied_org.edu_email = "denied@campus.edu"
+    denied_user.edu_email = "denied@campus.edu"
     await make_application(db_session, drop, accepted_org, decision=ApplicationDecision.APPLIED)
     await make_application(db_session, drop, denied_org, decision=ApplicationDecision.APPLIED)
     await db_session.flush()

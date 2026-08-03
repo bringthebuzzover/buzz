@@ -258,7 +258,6 @@ class AdminOrgDetail(CamelModel):
     contact_name: str | None
     delivery_address: str | None
     edu_email: str | None
-    user_edu_email: str | None
     email_verified_at: datetime | None
     approved_at: datetime | None
     created_at: datetime

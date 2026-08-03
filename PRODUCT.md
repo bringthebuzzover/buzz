@@ -56,6 +56,20 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 - **Organization users** sign in with **Login with Instagram** (Instagram is the account identity for the org portal). The Instagram account used at login **is** the organization account (Business/Creator); the org handle is not separately choosable.
 - On first signup, the org completes a short profile—**university**, **org name**, \# of members, address, and a **university .edu email** address—and must **verify** that email before the Organization portal **grants access**. Until verification succeeds, the user remains in a pending state (no full portal access).
 
+### 3.1.1 Data ownership (single source of truth)
+
+Each fact is stored once; APIs may still expose familiar field names by joining the owner table.
+
+| Fact | Owner column | Notes |
+| --- | --- | --- |
+| Org Instagram identity | `users.instagram_username` | Exposed as `instagramHandle` on org profile / applicant rows |
+| Org `.edu` email | `users.edu_email` | Unique login/verification identity; not editable via `PATCH /orgs/me` |
+| Brand display name | `brands.brand_name` | Drop/campaign responses join brand for `brandName` |
+| Campaign tracking number | `drops.tracking_number` | One TN per drop; org/brand/admin surfaces read the drop |
+| Post↔campaign membership | `drop_applications.drop_id` | Links/suggestions reference `application_id` only |
+
+`organizations` holds club profile metadata (name, campus, address, etc.). `brands.instagram_handle` remains a separate brand-side field used for autolink caption matching.
+
 ### 3.2 Demo behavior
 
 Users who have **demo access** can choose how they experience the web app:
