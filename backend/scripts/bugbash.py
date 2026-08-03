@@ -570,12 +570,18 @@ async def scenario_rate_limit(api: Api) -> None:
     if not settings.RATE_LIMIT_ENABLED:
         api.report.check(True, "(rate limiting disabled — skipped)", "")
         return
-    body = {"submitterName": "x", "entityName": "x", "email": "rl@b.com", "entityType": "brand"}
     codes = []
-    for _ in range(7):
-        r = await api.req("POST", "/api/waitlist", json=body)
+    for i in range(7):
+        r = await api.req(
+            "POST",
+            "/api/brands/apply",
+            json={
+                "brandName": f"RL Brand {i}",
+                "companyEmail": f"rl-bash-{i}@example.com",
+            },
+        )
         codes.append(r.status_code)
-    api.report.check(429 in codes, "waitlist rate-limited (429 within 7 calls)", str(codes))
+    api.report.check(429 in codes, "brand_apply rate-limited (429 within 7 calls)", str(codes))
 
 
 async def run_journey(api: Api) -> None:
@@ -608,12 +614,10 @@ def _rand_body(kind: str) -> Any:
         }
     if kind == "tracker":
         return {"stage": random.choice(["awaiting_products", "bogus", "", "drop_active"])}
-    if kind == "waitlist":
+    if kind == "brand_apply":
         return {
-            "submitterName": random.choice(["", "x" * 500]),
-            "entityName": "e",
-            "email": random.choice(["a@b.com", "nope"]),
-            "entityType": random.choice(["brand", "org", "bogus"]),
+            "brandName": random.choice(["", "x" * 500]),
+            "companyEmail": random.choice(["a@b.com", "nope"]),
         }
     return {}
 
@@ -637,7 +641,7 @@ async def run_fuzz(api: Api, n: int, tokens: dict[str, str | None]) -> None:
         ("PATCH", "/api/admin/drops/{id}/tracker", "tracker", "admin"),
         ("POST", "/api/admin/orgs/{id}/approve", None, "admin"),
         ("POST", "/api/admin/orgs/{id}/deny", None, "admin"),
-        ("POST", "/api/waitlist", "waitlist", None),
+        ("POST", "/api/brands/apply", "brand_apply", None),
         ("GET", "/api/brands/me", None, "org"),  # cross-role
     ]
     bad_envelope = 0

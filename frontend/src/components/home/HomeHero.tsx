@@ -1,8 +1,8 @@
 /**
- * Hero video block: public mode emphasizes waitlist scroll.
+ * Hero video block: public mode emphasizes Join Us scroll.
  */
 import { siteIdentity } from "../../data/siteIdentity";
-import { scrollToHomeWaitlist } from "../../utils/scrollHomeWaitlist";
+import { scrollToHomeJoin } from "../../utils/scrollHomeJoin";
 
 export default function HomeHero() {
   const publicUrl = process.env.PUBLIC_URL ?? "";
@@ -31,10 +31,10 @@ export default function HomeHero() {
         <div className="flex flex-col justify-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0 md:justify-start">
           <button
             type="button"
-            onClick={scrollToHomeWaitlist}
+            onClick={scrollToHomeJoin}
             className="rounded-lg bg-buzz-coral px-8 py-3 font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
           >
-            Join Waitlist!
+            Join Us!
           </button>
         </div>
         <div className="mt-8 inline-block px-4 py-1 text-sm font-medium text-buzz-paper/80">

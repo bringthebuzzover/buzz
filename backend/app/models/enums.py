@@ -143,13 +143,6 @@ class SuggestionMatchReason(StrEnum):
     BOTH = "both"
 
 
-class WaitlistEntityType(StrEnum):
-    """Kind of submitter for a public waitlist entry (``waitlist.entity_type``)."""
-
-    BRAND = "brand"
-    ORG = "org"
-
-
 # --- Reusable SQLAlchemy `sa.Enum` instances ---------------------------------
 #
 # Declared once at module level so the same Python object is referenced by
@@ -214,12 +207,6 @@ SuggestionMatchReasonEnum = sa.Enum(
     native_enum=True,
     values_callable=_enum_values,
 )
-WaitlistEntityTypeEnum = sa.Enum(
-    WaitlistEntityType,
-    name="waitlist_entity_type",
-    native_enum=True,
-    values_callable=_enum_values,
-)
 
 
 ALL_ENUM_TYPES: tuple[sa.Enum, ...] = (
@@ -234,7 +221,6 @@ ALL_ENUM_TYPES: tuple[sa.Enum, ...] = (
     SocialMediaProductTypeEnum,
     PostLinkSourceEnum,
     SuggestionMatchReasonEnum,
-    WaitlistEntityTypeEnum,
 )
 """Ordered tuple of every native ENUM type, used by the initial migration's
 ``downgrade()`` to drop the corresponding PG types after the tables are gone.

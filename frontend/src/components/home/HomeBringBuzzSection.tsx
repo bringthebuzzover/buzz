@@ -1,5 +1,5 @@
 /**
- * Public home only: value props for brands vs student orgs, above the waitlist form.
+ * Public home only: value props for brands vs student orgs, above the Join Us section.
  */
 import type { LucideIcon } from "lucide-react";
 import {

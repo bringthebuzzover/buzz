@@ -1,7 +1,8 @@
 /**
  * Public Privacy Policy. Grounded in the data the platform actually collects
- * (Instagram OAuth identity, university `.edu` email, waitlist details) and the
- * processors it relies on (Meta/Instagram, Resend, the hosting provider).
+ * (Instagram OAuth identity, university `.edu` email, brand application
+ * details) and the processors it relies on (Meta/Instagram, Resend, the
+ * hosting provider).
  *
  * NOTE: This is a good-faith engineering draft, NOT legal advice. Have counsel
  * review and adjust jurisdiction-specific clauses before public launch.
@@ -22,8 +23,9 @@ export default function PrivacyPolicyPage() {
       <h2>Information we collect</h2>
       <ul>
         <li>
-          <strong>Waitlist &amp; contact details:</strong> your name, email
-          address, brand or organization name, and any message you submit.
+          <strong>Contact &amp; inquiry details:</strong> your name, email
+          address, brand or organization name, and any message you submit via
+          our contact form or a brand application.
         </li>
         <li>
           <strong>Student organization accounts:</strong> when you log in with

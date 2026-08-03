@@ -36,7 +36,6 @@ import OrgProfilePage from "./pages/onboarding/OrgProfilePage";
 import VerifyEmailPage from "./pages/onboarding/VerifyEmailPage";
 import PendingApprovalPage from "./pages/onboarding/PendingApprovalPage";
 import DeniedPage from "./pages/onboarding/DeniedPage";
-import Waitlist from "./pages/waitlist/waitlist";
 
 const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["HomePage", HomePage],
@@ -55,7 +54,6 @@ const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["VerifyEmailPage", VerifyEmailPage],
   ["PendingApprovalPage", PendingApprovalPage],
   ["DeniedPage", DeniedPage],
-  ["Waitlist", Waitlist],
 ];
 
 describe("page render smoke (API tree)", () => {

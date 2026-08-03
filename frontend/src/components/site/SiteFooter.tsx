@@ -26,11 +26,16 @@ export default function SiteFooter() {
         </div>
 
         <div>
-          <h4 className="mb-4 font-bold text-buzz-ink">For Brands</h4>
+          <h4 className="mb-4 font-bold text-buzz-ink">Get Started</h4>
           <ul className="space-y-2 text-sm font-medium text-buzz-inkMuted">
             <li>
-              <Link to="/waitlist" className="hover:text-buzz-coral">
-                Brand waitlist
+              <Link to="/login" className="hover:text-buzz-coral">
+                Login
+              </Link>
+            </li>
+            <li>
+              <Link to="/brand/apply" className="hover:text-buzz-coral">
+                Apply as Brand
               </Link>
             </li>
           </ul>

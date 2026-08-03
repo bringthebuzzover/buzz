@@ -880,23 +880,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/waitlist": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Submit Waitlist Entry */
-        post: operations["submit_waitlist_entry_api_waitlist_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1198,19 +1181,6 @@ export interface components {
         VerifyEmailRequest: {
             /** Token */
             token: string;
-        };
-        /** WaitlistSubmitRequest */
-        WaitlistSubmitRequest: {
-            /** Details */
-            details?: string | null;
-            /** Email */
-            email: string;
-            /** Entityname */
-            entityName: string;
-            /** Entitytype */
-            entityType: string;
-            /** Submittername */
-            submitterName: string;
         };
     };
     responses: never;
@@ -2700,39 +2670,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["OrgOnboardingRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    submit_waitlist_entry_api_waitlist_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WaitlistSubmitRequest"];
             };
         };
         responses: {

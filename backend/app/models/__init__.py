@@ -20,7 +20,6 @@ from app.models.social_post import SocialPost
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
-from app.models.waitlist import Waitlist
 
 __all__ = [
     "Base",
@@ -36,5 +35,4 @@ __all__ = [
     "PostCampaignSuggestion",
     "SocialPost",
     "User",
-    "Waitlist",
 ]

@@ -46,11 +46,6 @@ export const tailwindThemeExtend = {
       spectrumStart: "#facc15",
       spectrumMid: "#f97316",
       spectrumEnd: "#9333ea",
-
-      // Waitlist block (3)
-      waitlistInk: "#0e2a47",
-      waitlistRose: "#e6005c",
-      waitlistPink: "#ff005d",
     },
   },
   boxShadow: {

@@ -136,7 +136,7 @@ GET    /api/brands/me/engagement-series         cumulative engagement time serie
 
 `finalize-applicants` enforces 7 rules before the atomic accept/deny transaction: no duplicate orgs, stage must be `finalizing_agreements`, apply window closed, not already finalized, selected ≤ capacity, unit allocation ≤ budget, all allocated orgs must have applied. `resolve_brand_drop` gates every per-drop endpoint (404 not 403, no existence leak). Aggregates port `frontend/src/utils/metrics.ts` (`computeDropAggregate`, `computeBrandAggregate`, `computeEngagementTimeSeries`) — all SQL SUMs are COALESCE'd.
 
-Remaining Stage 5 surface — admin + waitlist (5D) — is tracked in the transition plan.
+Remaining Stage 5 surface — admin tooling (5D) — is tracked in the transition plan.
 
 New env vars are documented in [`.env.example`](./.env.example); only `SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, and the three `INSTAGRAM_*` credentials must be set for staging/prod (and for a live local OAuth run). Tests use a fake Instagram client and need none of them.
 

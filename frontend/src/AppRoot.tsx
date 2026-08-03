@@ -1,8 +1,7 @@
 /**
- * Top-level routes: `SiteLayout` for marketing shell; `/waitlist` standalone.
- *
- * Portal routes use the real auth guards (RequireAuth → RequireStatus →
- * RequireRole, architecture §5.4).
+ * Top-level routes: `SiteLayout` for marketing shell; portal routes use the
+ * real auth guards (RequireAuth → RequireStatus → RequireRole, architecture
+ * §5.4).
  */
 import type { ReactElement } from "react";
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
@@ -26,7 +25,6 @@ import OrgProfilePage from "./pages/onboarding/OrgProfilePage";
 import VerifyEmailPage from "./pages/onboarding/VerifyEmailPage";
 import PendingApprovalPage from "./pages/onboarding/PendingApprovalPage";
 import DeniedPage from "./pages/onboarding/DeniedPage";
-import Waitlist from "./pages/waitlist/waitlist";
 import PrivacyPolicyPage from "./pages/legal/PrivacyPolicyPage";
 import TermsPage from "./pages/legal/TermsPage";
 import DataDeletionPage from "./pages/legal/DataDeletionPage";
@@ -206,7 +204,6 @@ export default function AppRoot(): ReactElement {
             </PortalGuard>
           }
         />
-        <Route path="waitlist" element={<Waitlist />} />
         <Route path="privacy" element={<PrivacyPolicyPage />} />
         <Route path="terms" element={<TermsPage />} />
         <Route path="data-deletion" element={<DataDeletionPage />} />

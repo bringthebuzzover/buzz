@@ -1,5 +1,5 @@
 /**
- * Sticky two-row header: utility bar (socials, join waitlist / login / logout),
+ * Sticky two-row header: utility bar (socials, join us / login / logout),
  * coral nav with centered logo. When a user is authenticated, shows persona-aware
  * nav links from the auth context.
  */
@@ -15,7 +15,7 @@ import { ChevronRight, LogOut, Menu } from "lucide-react";
 import { siteIdentity } from "../../data/siteIdentity";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { goToHomeWaitlist } from "../../utils/scrollHomeWaitlist";
+import { goToHomeJoin } from "../../utils/scrollHomeJoin";
 
 const ORG_NAV_LINKS = [
   { to: "/org/browse", label: "Browse Campaigns" },
@@ -89,8 +89,8 @@ export default function SiteHeader() {
     return pathname === to || pathname.startsWith(`${to}/`);
   };
 
-  const handleJoinWaitlist = () => {
-    goToHomeWaitlist(pathname, navigate);
+  const handleJoinClick = () => {
+    goToHomeJoin(pathname, navigate);
   };
 
   const showCenterItem = !!isApiAuth;
@@ -130,10 +130,10 @@ export default function SiteHeader() {
         ) : (
           <button
             type="button"
-            onClick={handleJoinWaitlist}
+            onClick={handleJoinClick}
             className="cursor-pointer text-center font-bold text-buzz-coral hover:underline"
           >
-            Join Waitlist!
+            Join Us!
           </button>
         )}
 
@@ -213,10 +213,10 @@ export default function SiteHeader() {
             {!showCenterItem ? (
               <button
                 type="button"
-                onClick={handleJoinWaitlist}
+                onClick={handleJoinClick}
                 className="transition hover:text-buzz-butterBright"
               >
-                Join Waitlist!
+                Join Us!
               </button>
             ) : null}
           </div>
@@ -314,10 +314,10 @@ export default function SiteHeader() {
                       className="flex w-full items-center justify-between gap-3 py-4 pr-1 text-left transition hover:text-buzz-coral"
                       onClick={() => {
                         setMobileNavOpen(false);
-                        handleJoinWaitlist();
+                        handleJoinClick();
                       }}
                     >
-                      Join Waitlist!
+                      Join Us!
                       <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
                     </button>
                   </li>

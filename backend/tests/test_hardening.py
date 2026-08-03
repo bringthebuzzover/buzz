@@ -85,18 +85,35 @@ async def test_logout_with_garbage_cookie_succeeds(app_client: AsyncClient) -> N
 
 async def test_rate_limit_blocks_after_threshold(app_client: AsyncClient) -> None:
     settings.RATE_LIMIT_ENABLED = True
+    settings.BRAND_SELF_REGISTRATION_ENABLED = True
     rate_limit.reset()
-    body = {"submitterName": "x", "entityName": "x", "email": "a@b.com", "entityType": "brand"}
-    statuses = [(await app_client.post("/api/waitlist", json=body)).status_code for _ in range(6)]
+    statuses = [
+        (
+            await app_client.post(
+                "/api/brands/apply",
+                json={
+                    "brandName": f"RL Brand {i}",
+                    "companyEmail": f"rl-{i}@example.com",
+                },
+            )
+        ).status_code
+        for i in range(6)
+    ]
     assert statuses[:5] == [200, 200, 200, 200, 200]
     assert statuses[5] == 429
 
 
 async def test_rate_limit_disabled_does_not_block(app_client: AsyncClient) -> None:
-    # autouse fixture leaves it disabled
-    body = {"submitterName": "x", "entityName": "x", "email": "a@b.com", "entityType": "brand"}
-    for _ in range(8):
-        resp = await app_client.post("/api/waitlist", json=body)
+    # autouse fixture leaves RATE_LIMIT_ENABLED disabled
+    settings.BRAND_SELF_REGISTRATION_ENABLED = True
+    for i in range(8):
+        resp = await app_client.post(
+            "/api/brands/apply",
+            json={
+                "brandName": f"RL Off Brand {i}",
+                "companyEmail": f"rl-off-{i}@example.com",
+            },
+        )
         assert resp.status_code == 200
 
 
