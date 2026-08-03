@@ -53,6 +53,8 @@ class TokenPayload(BaseModel):
     status: str | None = None
     nonce: str | None = None
     ver: int | None = None  # users.token_version at mint time (refresh tokens)
+    imp: str | None = None  # admin user id when this is an impersonation token
+    imp_readonly: bool | None = None  # impersonation session may not mutate
 
 
 def _now() -> datetime:
@@ -63,19 +65,40 @@ def _encode(claims: dict[str, Any]) -> str:
     return jwt.encode(claims, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def create_access_token(user_id: uuid.UUID | str, role: str, status: str) -> str:
-    """Mint a short-lived access token carrying role + status (§5.3)."""
+def create_access_token(
+    user_id: uuid.UUID | str,
+    role: str,
+    status: str,
+    *,
+    impersonated_by: uuid.UUID | str | None = None,
+    readonly: bool = False,
+) -> str:
+    """Mint a short-lived access token carrying role + status (§5.3).
+
+    When ``impersonated_by`` is set the token is an *impersonation* token: it
+    acts as ``user_id`` but records the admin behind it in ``imp`` and uses the
+    shorter ``IMPERSONATION_TOKEN_TTL_MINUTES`` lifetime. ``readonly`` stamps
+    ``imp_readonly``, which the auth dependency enforces on mutating requests.
+    """
 
     issued = _now()
+    ttl_minutes = (
+        settings.IMPERSONATION_TOKEN_TTL_MINUTES
+        if impersonated_by is not None
+        else settings.ACCESS_TOKEN_TTL_MINUTES
+    )
     claims: dict[str, Any] = {
         "sub": str(user_id),
         "type": ACCESS_TOKEN_TYPE,
         "role": role,
         "status": status,
         "iat": issued,
-        "exp": issued + timedelta(minutes=settings.ACCESS_TOKEN_TTL_MINUTES),
+        "exp": issued + timedelta(minutes=ttl_minutes),
         "jti": uuid.uuid4().hex,
     }
+    if impersonated_by is not None:
+        claims["imp"] = str(impersonated_by)
+        claims["imp_readonly"] = readonly
     return _encode(claims)
 
 

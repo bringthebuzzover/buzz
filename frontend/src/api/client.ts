@@ -3,7 +3,13 @@
  * envelope unwrap, and a single-shot 401→refresh→replay interceptor. Every
  * later slice fetches through `apiFetch`.
  */
-import { getAccessToken, refreshAccessToken, setAccessToken } from "./auth";
+import {
+  endImpersonation,
+  getAccessToken,
+  isImpersonating,
+  refreshAccessToken,
+  setAccessToken,
+} from "./auth";
 import { API_BASE_URL } from "./config";
 import { ApiError } from "./errors";
 import type { ApiEnvelope, Meta } from "./types";
@@ -62,6 +68,12 @@ export async function apiFetch<T>(
     return await doFetch<T>(path, init);
   } catch (err) {
     if (err instanceof ApiError && err.code === "TOKEN_EXPIRED") {
+      // The refresh cookie belongs to the admin, not the impersonated user, so
+      // refreshing here would quietly escalate the session. End it instead.
+      if (isImpersonating()) {
+        endImpersonation("expired");
+        throw err;
+      }
       const refreshed = await refreshAccessToken();
       if (refreshed) {
         return await doFetch<T>(path, init);

@@ -14,12 +14,15 @@ Product behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md). Launch ops: [`
 | -------------- | ------------------------------------------------------------------------------------------------------- |
 | Marketing      | `/` (Join Us → `/login` or `/brand/apply`)                                                              |
 | Legal          | `/privacy`, `/terms`, `/data-deletion`                                                                  |
-| Auth           | `/login` (org Instagram), `/auth/instagram/callback`, `/brand/login`, `/brand/setup`, `/brand/apply`    |
+| Auth           | `/login` (org Instagram), `/auth/instagram/callback`, `/brand/login`, `/brand/setup`, `/brand/apply`, `/admin/login` |
 | Org onboarding | `/onboarding/profile`, `/onboarding/verify-email`, `/onboarding/pending-approval`, `/onboarding/denied` |
 | Org portal     | `/org/browse`, `/org/campaigns`, `/org/campaigns/:campaignId`                                           |
 | Brand portal   | `/brand/dashboard`, `/brand/drops/:dropId`, `/brand/requests/new`                                       |
+| Admin          | `/admin` (impersonation console)                                                                        |
 
 Portals are gated by real auth (`RequireAuth` → `RequireStatus` → `RequireRole`), not a demo passcode. Public join intent goes through real account paths: student orgs via Instagram (`/login`), brands via `/brand/apply`.
+
+Admins sign in with email + password (`/admin/login`) and can "View as" any active org or brand from `/admin`. Impersonation rides a short-lived access token — the admin's own refresh cookie is untouched — and is read-only unless `IMPERSONATION_READONLY=false`. See [`TESTING.md`](TESTING.md) for the permanent test accounts.
 
 ---
 

@@ -7,12 +7,15 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.deps.auth import CurrentAdmin
 from app.deps.db import get_db
 from app.response import APIResponse, api_response
 from app.schemas.admin import (
     AdminPendingBrandItem,
     AdminPendingOrgItem,
+    AdminUserItem,
+    ImpersonateResponse,
     TrackerAdvanceRequest,
 )
 from app.schemas.common import camelize
@@ -26,6 +29,7 @@ from app.services.admin import (
     list_pending_orgs,
     reopen_drop,
 )
+from app.services.admin_auth import list_impersonatable_users, mint_impersonation_token
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -109,3 +113,37 @@ async def reopen_drop_endpoint(
 ) -> APIResponse:
     result = await reopen_drop(db, drop_id)
     return api_response(data=camelize(result))
+
+
+# ── Impersonation ───────────────────────────────────────────────────────────
+
+
+@router.get("/users", response_model=APIResponse)
+async def list_users_endpoint(
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Org + brand users for the admin impersonation picker."""
+    rows = await list_impersonatable_users(db)
+    return api_response(data=[AdminUserItem(**r) for r in rows])
+
+
+@router.post("/impersonate/{user_id}", response_model=APIResponse)
+async def impersonate_endpoint(
+    user_id: uuid.UUID,
+    user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Mint a short-lived access token that acts as ``user_id``.
+
+    Intentionally does NOT set a refresh cookie: the admin's own refresh session
+    must survive so exiting impersonation is a client-side token drop.
+    """
+    token, target = await mint_impersonation_token(db, user, user_id)
+    return api_response(
+        data=ImpersonateResponse(
+            access_token=token,
+            user=target,
+            readonly=settings.IMPERSONATION_READONLY,
+        )
+    )

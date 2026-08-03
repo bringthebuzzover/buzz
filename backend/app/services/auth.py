@@ -7,6 +7,7 @@ profile collection, email verification, and admin approval are Stage 7.
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
@@ -116,12 +117,19 @@ async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: st
 def build_user_response(user: User) -> UserResponse:
     """Serialize a ``User`` into the API user payload."""
 
+    # Imported lazily: app.deps.auth imports this module, so a module-level
+    # import would be circular.
+    from app.deps.auth import impersonated_by, impersonation_readonly
+
+    admin_id = impersonated_by(user)
     return UserResponse(
         id=user.id,
         portal_role=user.portal_role,
         status=user.status,
         instagram_username=user.instagram_username,
         email=user.edu_email,
+        impersonated_by=uuid.UUID(admin_id) if admin_id else None,
+        impersonation_readonly=impersonation_readonly(user) if admin_id else None,
     )
 
 

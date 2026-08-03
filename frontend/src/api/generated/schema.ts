@@ -89,6 +89,29 @@ export interface paths {
         patch: operations["advance_tracker_endpoint_api_admin_drops__drop_id__tracker_patch"];
         trace?: never;
     };
+    "/api/admin/impersonate/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Impersonate Endpoint
+         * @description Mint a short-lived access token that acts as ``user_id``.
+         *
+         *     Intentionally does NOT set a refresh cookie: the admin's own refresh session
+         *     must survive so exiting impersonation is a client-side token drop.
+         */
+        post: operations["impersonate_endpoint_api_admin_impersonate__user_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/orgs/pending": {
         parameters: {
             query?: never;
@@ -134,6 +157,50 @@ export interface paths {
         put?: never;
         /** Deny Org Endpoint */
         post: operations["deny_org_endpoint_api_admin_orgs__org_id__deny_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Users Endpoint
+         * @description Org + brand users for the admin impersonation picker.
+         */
+        get: operations["list_users_endpoint_api_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/admin/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Login
+         * @description Admin email + password login — the only admin session entry point.
+         *
+         *     Admins have neither an Instagram identity nor an invite flow, so without
+         *     this they are unreachable outside local dev (``dev-login`` 404s off-dev).
+         *     Rate-limited per-IP and per-account like the brand path.
+         */
+        post: operations["admin_login_api_auth_admin_login_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -897,6 +964,16 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /**
+         * AdminLoginRequest
+         * @description Admin email + password login (admins have no Instagram identity).
+         */
+        AdminLoginRequest: {
+            /** Email */
+            email: string;
+            /** Password */
+            password: string;
+        };
         /** Body_instagram_deauthorize_api_auth_instagram_deauthorize_post */
         Body_instagram_deauthorize_api_auth_instagram_deauthorize_post: {
             /**
@@ -1358,6 +1435,39 @@ export interface operations {
             };
         };
     };
+    impersonate_endpoint_api_admin_impersonate__user_id__post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_pending_orgs_api_admin_orgs_pending_get: {
         parameters: {
             query?: never;
@@ -1434,6 +1544,70 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_endpoint_api_admin_users_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_login_api_auth_admin_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminLoginRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

@@ -12,6 +12,11 @@ import { API_BASE_URL } from "./config";
 import type { AuthUser } from "../contexts/AuthContext";
 
 let accessToken: string | null = null;
+// True while the in-memory token is an admin impersonation token. The refresh
+// cookie still belongs to the *admin*, so refreshing during impersonation would
+// silently promote the session back to admin while the UI still reads as the
+// target user. Callers must check this before refreshing.
+let impersonating = false;
 
 export function getAccessToken(): string | null {
   return accessToken;
@@ -19,6 +24,30 @@ export function getAccessToken(): string | null {
 
 export function setAccessToken(token: string | null): void {
   accessToken = token;
+}
+
+/** Swap in an impersonation token minted by `POST /api/admin/impersonate/:id`. */
+export function setImpersonationToken(token: string): void {
+  accessToken = token;
+  impersonating = true;
+}
+
+export function isImpersonating(): boolean {
+  return impersonating;
+}
+
+/**
+ * Drop the impersonation token and return to the admin session.
+ *
+ * A full page load (rather than SPA navigation) is deliberate: it discards the
+ * impersonated user's cached query data, and the bootstrap in `AuthProvider`
+ * re-derives the admin session from the untouched refresh cookie.
+ */
+export function endImpersonation(reason?: "expired"): void {
+  accessToken = null;
+  impersonating = false;
+  const suffix = reason === "expired" ? "?impersonation=expired" : "";
+  window.location.href = `/admin${suffix}`;
 }
 
 type LoginData = {
@@ -102,6 +131,10 @@ export async function fetchMe(): Promise<MeResult> {
   try {
     let token = getAccessToken();
     if (!token) {
+      if (impersonating) {
+        endImpersonation("expired");
+        return { kind: "unauthenticated" };
+      }
       if (!(await refreshAccessToken())) return { kind: "unauthenticated" };
       token = getAccessToken();
       if (!token) return { kind: "unauthenticated" };
@@ -109,6 +142,12 @@ export async function fetchMe(): Promise<MeResult> {
 
     let resp = await _meRequest(token);
     if (resp.status === 401) {
+      // Refreshing here would hand back the admin's own token, so an expired
+      // impersonation ends the session instead of silently escalating it.
+      if (impersonating) {
+        endImpersonation("expired");
+        return { kind: "unauthenticated" };
+      }
       if (!(await refreshAccessToken())) return { kind: "unauthenticated" };
       const refreshed = getAccessToken();
       if (!refreshed) return { kind: "unauthenticated" };
@@ -126,6 +165,9 @@ export async function fetchMe(): Promise<MeResult> {
         portalRole: u.portalRole ?? u.portal_role,
         status: u.status,
         instagramUsername: u.instagramUsername ?? u.instagram_username,
+        impersonatedBy: u.impersonatedBy ?? u.impersonated_by ?? undefined,
+        impersonationReadonly:
+          u.impersonationReadonly ?? u.impersonation_readonly ?? undefined,
       },
     };
   } catch {

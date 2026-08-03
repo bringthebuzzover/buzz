@@ -7,6 +7,7 @@ from datetime import datetime
 
 from pydantic import field_serializer
 
+from app.schemas.auth import UserResponse
 from app.schemas.common import CamelModel
 
 
@@ -45,3 +46,33 @@ class TrackerAdvanceRequest(CamelModel):
     stage: str
     tracking_number: str | None = None
     note: str | None = None
+
+
+class AdminUserItem(CamelModel):
+    """A row in the ``/api/admin/users`` impersonation picker."""
+
+    id: uuid.UUID
+    portal_role: str
+    status: str
+    display_name: str | None
+    email: str | None
+    instagram_handle: str | None
+    impersonatable: bool
+    created_at: datetime
+
+    @field_serializer("created_at")
+    def _created_at_epoch(self, value: datetime) -> int:
+        return int(value.timestamp() * 1000)
+
+
+class ImpersonateResponse(CamelModel):
+    """Result of ``POST /api/admin/impersonate/{user_id}``.
+
+    Access token only — no refresh cookie is set, so the admin's own session
+    survives and "Exit impersonation" is a pure client-side drop.
+    """
+
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+    readonly: bool
