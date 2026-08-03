@@ -18,10 +18,12 @@ export default function LoginPage() {
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-8 py-24 text-center">
       <h1 className="mb-4 text-3xl font-black text-buzz-ink">
-        Welcome to <span className="text-buzz-coral">Buzz</span>
+        Join or sign in to <span className="text-buzz-coral">Buzz</span>
       </h1>
       <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
-        Log in with your Instagram account to get started.
+        Student organizations sign in with Instagram. You&apos;ll verify a
+        <span className="whitespace-nowrap"> .edu </span>
+        email and go through a quick Buzz review before your portal unlocks.
       </p>
 
       <button
@@ -31,7 +33,9 @@ export default function LoginPage() {
         className="flex items-center gap-3 rounded-xl border-2 border-buzz-coral bg-buzz-paper px-8 py-4 text-base font-bold text-buzz-coral shadow-sm transition hover:bg-buzz-coral hover:text-buzz-paper disabled:cursor-not-allowed disabled:opacity-60"
       >
         <img src={instagramIcon} alt="" className="h-5 w-5" />
-        {status === "authenticating" ? "Logging in..." : "Login with Instagram"}
+        {status === "authenticating"
+          ? "Logging in..."
+          : "Continue with Instagram"}
       </button>
 
       <p className="mt-8 text-sm font-medium text-buzz-inkMuted">

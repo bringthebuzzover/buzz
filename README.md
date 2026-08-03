@@ -12,14 +12,14 @@ Product behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md). Launch ops: [`
 
 | Surface        | Routes (high level)                                                                                     |
 | -------------- | ------------------------------------------------------------------------------------------------------- |
-| Marketing      | `/`, `/waitlist`                                                                                        |
+| Marketing      | `/` (Join Us → `/login` or `/brand/apply`)                                                              |
 | Legal          | `/privacy`, `/terms`, `/data-deletion`                                                                  |
 | Auth           | `/login` (org Instagram), `/auth/instagram/callback`, `/brand/login`, `/brand/setup`, `/brand/apply`    |
 | Org onboarding | `/onboarding/profile`, `/onboarding/verify-email`, `/onboarding/pending-approval`, `/onboarding/denied` |
 | Org portal     | `/org/browse`, `/org/campaigns`, `/org/campaigns/:campaignId`                                           |
 | Brand portal   | `/brand/dashboard`, `/brand/drops/:dropId`, `/brand/requests/new`                                       |
 
-Portals are gated by real auth (`RequireAuth` → `RequireStatus` → `RequireRole`), not a demo passcode. Waitlist submissions go to `POST /api/waitlist` (Postgres), not Firebase.
+Portals are gated by real auth (`RequireAuth` → `RequireStatus` → `RequireRole`), not a demo passcode. Public join intent goes through real account paths: student orgs via Instagram (`/login`), brands via `/brand/apply`.
 
 ---
 
@@ -109,7 +109,7 @@ frontend/                  # CRA/CRACO SPA (own package.json)
     AppRoot.tsx            # Routes + auth guards
     api/                   # API client, hooks, generated OpenAPI types
     contexts/              # AuthContext, SiteChromeContext
-    pages/                 # home, auth, onboarding, org, brand, waitlist, legal
+    pages/                 # home, auth, onboarding, org, brand, legal
     components/            # site chrome, org/brand UI, routing guards
     data/siteIdentity.ts   # Brand, contact, social (single source)
     types/                 # Domain types

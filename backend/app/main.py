@@ -33,7 +33,6 @@ from app.routes.campaigns import router as campaigns_router
 from app.routes.drops import router as drops_router
 from app.routes.health import router as health_router
 from app.routes.orgs import router as orgs_router
-from app.routes.waitlist import router as waitlist_router
 from app.services.instagram import close_instagram_client
 
 logger = logging.getLogger(__name__)
@@ -195,4 +194,3 @@ app.include_router(brands_router, prefix="/api")
 app.include_router(drops_router, prefix="/api")
 app.include_router(campaigns_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
-app.include_router(waitlist_router, prefix="/api")

@@ -787,45 +787,6 @@
         ],
         "title": "VerifyEmailRequest",
         "type": "object"
-      },
-      "WaitlistSubmitRequest": {
-        "properties": {
-          "details": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Details"
-          },
-          "email": {
-            "title": "Email",
-            "type": "string"
-          },
-          "entityName": {
-            "title": "Entityname",
-            "type": "string"
-          },
-          "entityType": {
-            "title": "Entitytype",
-            "type": "string"
-          },
-          "submitterName": {
-            "title": "Submittername",
-            "type": "string"
-          }
-        },
-        "required": [
-          "submitterName",
-          "entityName",
-          "email",
-          "entityType"
-        ],
-        "title": "WaitlistSubmitRequest",
-        "type": "object"
       }
     }
   },
@@ -3317,47 +3278,6 @@
         "summary": "Org Onboarding",
         "tags": [
           "orgs"
-        ]
-      }
-    },
-    "/api/waitlist": {
-      "post": {
-        "operationId": "submit_waitlist_entry_api_waitlist_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WaitlistSubmitRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Submit Waitlist Entry",
-        "tags": [
-          "waitlist"
         ]
       }
     }

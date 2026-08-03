@@ -30,7 +30,6 @@ from app.models import (
     PostCampaignSuggestion,
     SocialPost,
     User,
-    Waitlist,
 )
 from app.models.enums import (
     ApplicationDecision,
@@ -43,7 +42,6 @@ from app.models.enums import (
     SocialMediaProductType,
     SocialMediaType,
     SuggestionMatchReason,
-    WaitlistEntityType,
 )
 
 
@@ -334,23 +332,6 @@ async def test_notify_me_roundtrip(db_session: AsyncSession) -> None:
     assert fetched is not None
     assert fetched.reminder_minutes == 15
     assert fetched.enabled is True
-
-
-@pytest.mark.asyncio
-async def test_waitlist_roundtrip(db_session: AsyncSession) -> None:
-    row = Waitlist(
-        submitter_name="Sam Casey",
-        entity_name="Forge Beverages",
-        email="sam@forge.example",
-        entity_type=WaitlistEntityType.BRAND.value,
-        details="fall pilots",
-    )
-    db_session.add(row)
-    await db_session.flush()
-
-    fetched = await db_session.scalar(select(Waitlist).where(Waitlist.id == row.id))
-    assert fetched is not None
-    assert fetched.entity_type == WaitlistEntityType.BRAND.value
 
 
 @pytest.mark.asyncio

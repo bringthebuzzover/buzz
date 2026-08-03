@@ -18,7 +18,8 @@ import uuid
 import pytest
 
 from app.deps.db import async_session_factory, engine, get_db
-from app.models.waitlist import Waitlist
+from app.models.enums import OrgUserStatus, PortalRole
+from app.models.user import User
 
 
 async def _reset_pool() -> None:
@@ -33,22 +34,21 @@ async def _reset_pool() -> None:
     await engine.dispose()
 
 
-def _row(wid: uuid.UUID) -> Waitlist:
-    return Waitlist(
-        id=wid,
-        submitter_name="commit-test",
-        entity_name="commit-test",
-        email=f"{wid}@commit-test.example",
-        entity_type="brand",
+def _row(uid: uuid.UUID) -> User:
+    return User(
+        id=uid,
+        portal_role=PortalRole.ORG.value,
+        status=OrgUserStatus.PENDING_ORG_PROFILE.value,
+        instagram_user_id=f"commit-test-{uid}",
     )
 
 
 async def test_get_db_commits_on_clean_exit() -> None:
     await _reset_pool()
-    wid = uuid.uuid4()
+    uid = uuid.uuid4()
     agen = get_db()
     session = await agen.__anext__()
-    session.add(_row(wid))
+    session.add(_row(uid))
     await session.flush()
     # Exhausting the generator runs the code after `yield` → commit.
     with pytest.raises(StopAsyncIteration):
@@ -56,11 +56,11 @@ async def test_get_db_commits_on_clean_exit() -> None:
 
     try:
         async with async_session_factory() as verify:
-            got = await verify.get(Waitlist, wid)
+            got = await verify.get(User, uid)
             assert got is not None, "flush()-only write must persist (get_db commits)"
     finally:
         async with async_session_factory() as cleanup:
-            row = await cleanup.get(Waitlist, wid)
+            row = await cleanup.get(User, uid)
             if row is not None:
                 await cleanup.delete(row)
                 await cleanup.commit()
@@ -68,14 +68,14 @@ async def test_get_db_commits_on_clean_exit() -> None:
 
 async def test_get_db_rolls_back_on_error() -> None:
     await _reset_pool()
-    wid = uuid.uuid4()
+    uid = uuid.uuid4()
     agen = get_db()
     session = await agen.__anext__()
-    session.add(_row(wid))
+    session.add(_row(uid))
     await session.flush()
     # Throwing into the generator simulates a handler raising → get_db rolls back.
     with pytest.raises(ValueError):
         await agen.athrow(ValueError("boom"))
 
     async with async_session_factory() as verify:
-        assert await verify.get(Waitlist, wid) is None, "a raising request must not persist"
+        assert await verify.get(User, uid) is None, "a raising request must not persist"

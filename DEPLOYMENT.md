@@ -32,7 +32,7 @@ You do **not** need App Review to run a small, hand-picked pilot. In **Developme
 - Each pilot org's IG account must be a **Business or Creator** account (the backend already gates out Personal accounts) **and** must accept a tester invite in their Meta account.
 - It doesn't scale — you can't hand-add every org, so this is a bridge, not the launch state. Public signups still require the Advanced Access review above.
 - Keep the app in **Development mode** (or Live without the scope approved) until review passes; flip to **Live mode** only after Advanced Access is granted.
-- [ ] **Legal review.** `/privacy` and `/terms` ship as good-faith engineering drafts (`frontend/src/pages/legal/`). Have counsel review before public launch — a published Privacy Policy URL is also required for Meta app review, and we collect PII (waitlist emails, `.edu` addresses, org profiles).
+- [ ] **Legal review.** `/privacy` and `/terms` ship as good-faith engineering drafts (`frontend/src/pages/legal/`). Have counsel review before public launch — a published Privacy Policy URL is also required for Meta app review, and we collect PII (`.edu` addresses, org profiles, brand application details).
 - [ ] **Resend sender domain.** Verify the `bringthebuzzover.com` sending domain in Resend and obtain a real `RESEND_API_KEY` (empty key = console-only, so verification and denial emails silently no-op).
 
 ---
@@ -138,7 +138,7 @@ Order: Postgres → API (migrate + health) → Frontend (baked API URL) → Cron
 - [ ] `GET /api/health` returns `{"data":{"status":"ok",...},"error":null}`.
 - [ ] Instagram login completes end-to-end (real Meta creds, redirect URI matches).
 - [ ] A verification email actually arrives (Resend live path).
-- [ ] Waitlist submit from the home page and `/waitlist` both persist (`POST /api/waitlist` → Postgres).
+- [ ] Home Join Us section routes: "Join as Student Organization" → `/login` (Instagram OAuth), "Apply as Brand" → `/brand/apply` (POST /api/brands/apply).
 - [ ] Brand login → dashboard; org role is blocked from the brand dashboard (403).
 - [ ] Security headers present on API responses (see below).
 
@@ -163,7 +163,7 @@ Logout and admin-deny bump `users.token_version`, invalidating outstanding **ref
 ## Known follow-ups (non-blocking)
 
 - **Admin tooling.** Org approval, tracker advance, and reopen are API-only (admin JWT + curl). Fine for a hand-held pilot; add a minimal admin UI or a documented runbook before onboarding at volume.
-- **Dead `firebase` dependency.** Nothing imports Firebase anymore (waitlist moved to `POST /api/waitlist`). The `firebase` package and `REACT_APP_FIREBASE_*` entries in `.env.example` can be removed to shrink the bundle.
+- **Dead `firebase` dependency.** Nothing imports Firebase anymore. The `firebase` package and `REACT_APP_FIREBASE_*` entries in `.env.example` can be removed to shrink the bundle.
 - **Legal pages** should be replaced with counsel-reviewed copy (see Phase 1).
 
 ---

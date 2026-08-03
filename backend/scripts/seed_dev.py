@@ -64,7 +64,6 @@ from app.models import (  # noqa: E402
     PostCampaignSuggestion,
     SocialPost,
     User,
-    Waitlist,
 )
 from app.models.enums import (  # noqa: E402
     ApplicationDecision,
@@ -78,7 +77,6 @@ from app.models.enums import (  # noqa: E402
     SocialMediaProductType,
     SocialMediaType,
     SuggestionMatchReason,
-    WaitlistEntityType,
 )
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", ""}
@@ -433,15 +431,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         enabled=True,
     )
 
-    waitlist_brand = Waitlist(
-        id=_uuid(100),
-        submitter_name="Sam Casey",
-        entity_name="Forge Beverages",
-        email="sam@forge.example",
-        entity_type=WaitlistEntityType.BRAND.value,
-        details="Interested in fall campus pilots.",
-    )
-
     return {
         "users": [
             admin,
@@ -467,7 +456,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         "post_campaign_suggestions": [suggestion],
         "drop_tracker_events": [tracker_brief],
         "notify_me": [notify],
-        "waitlist": [waitlist_brand],
     }
 
 

@@ -1,5 +1,5 @@
 /**
- * Home: public lead-gen (hero + marquee + bring-buzz + waitlist + featured).
+ * Home: public lead-gen (hero + marquee + bring-buzz + join + featured).
  */
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -7,12 +7,12 @@ import Marquee from "../../components/site/Marquee";
 import HomeHero from "../../components/home/HomeHero";
 import FeaturedCollaborations from "../../components/home/FeaturedCollaborations";
 import HomeBringBuzzSection from "../../components/home/HomeBringBuzzSection";
-import HomeWaitlistSection from "../../components/home/HomeWaitlistSection";
+import HomeJoinSection from "../../components/home/HomeJoinSection";
 import { COLLEGES } from "../../data/colleges";
 import {
-  scrollToHomeWaitlist,
+  scrollToHomeJoin,
   type HomeLocationState,
-} from "../../utils/scrollHomeWaitlist";
+} from "../../utils/scrollHomeJoin";
 
 export default function HomePage() {
   const location = useLocation();
@@ -20,11 +20,11 @@ export default function HomePage() {
 
   useEffect(() => {
     const state = location.state as HomeLocationState | null;
-    if (!state?.scrollToWaitlist) {
+    if (!state?.scrollToJoin) {
       return;
     }
     const t = window.setTimeout(() => {
-      scrollToHomeWaitlist();
+      scrollToHomeJoin();
       navigate(".", { replace: true, state: {} });
     }, 0);
     return () => window.clearTimeout(t);
@@ -40,7 +40,7 @@ export default function HomePage() {
         hideBottomBorder
       />
       <HomeBringBuzzSection />
-      <HomeWaitlistSection />
+      <HomeJoinSection />
       <FeaturedCollaborations />
     </div>
   );
