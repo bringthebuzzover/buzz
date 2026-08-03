@@ -1573,8 +1573,6 @@ export interface components {
             eduEmail: string;
             /** Followercount */
             followerCount?: number | null;
-            /** Instagramhandle */
-            instagramHandle: string;
             /** Membercount */
             memberCount?: number | null;
             /** Orgname */
@@ -1591,9 +1589,12 @@ export interface components {
          * @description Editable subset of the org profile (all optional; PATCH semantics).
          *
          *     Only provided fields are applied (``model_dump(exclude_unset=True)``).
-         *     ``edu_email`` is intentionally absent — it is the verified login identity.
+         *     ``edu_email`` and ``instagram_handle`` are intentionally absent — edu is
+         *     the verified login identity; the IG handle mirrors the OAuth username and
+         *     is not separately choosable.
          *     ``extra="forbid"`` so an unknown/typo'd key (or an attempt to send
-         *     ``eduEmail``) is a 422 rather than a silently-ignored no-op write.
+         *     ``eduEmail`` / ``instagramHandle``) is a 422 rather than a silently-ignored
+         *     no-op write.
          */
         OrgProfileUpdate: {
             category?: components["schemas"]["OrgCategory"] | null;
@@ -1605,8 +1606,6 @@ export interface components {
             deliveryAddress?: string | null;
             /** Followercount */
             followerCount?: number | null;
-            /** Instagramhandle */
-            instagramHandle?: string | null;
             /** Membercount */
             memberCount?: number | null;
             /** Orgname */

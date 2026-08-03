@@ -27,6 +27,29 @@ from app.exceptions import BuzzAPIException
 ALLOWED_ACCOUNT_TYPES = frozenset({"BUSINESS", "CREATOR"})
 
 
+def canonical_instagram_handle(username: str | None) -> str:
+    """Normalize an IG username for storage (no leading ``@``, stripped).
+
+    Used when mirroring ``users.instagram_username`` onto
+    ``organizations.instagram_handle`` so OAuth login is the org identity.
+    """
+
+    return (username or "").strip().lstrip("@")
+
+
+def require_instagram_handle(username: str | None) -> str:
+    """Like :func:`canonical_instagram_handle`, but reject empty usernames."""
+
+    handle = canonical_instagram_handle(username)
+    if not handle:
+        raise BuzzAPIException(
+            code=errors.INVALID_ONBOARDING_STATE,
+            message="Instagram username is missing from your login account.",
+            status_code=400,
+        )
+    return handle
+
+
 @dataclass(frozen=True)
 class ShortLivedToken:
     """Result of the ``code → access_token`` exchange (never persisted)."""

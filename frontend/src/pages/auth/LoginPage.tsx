@@ -21,7 +21,9 @@ export default function LoginPage() {
         Join or sign in to <span className="text-buzz-coral">Buzz</span>
       </h1>
       <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
-        Student organizations sign in with Instagram. You&apos;ll verify a
+        Student organizations sign in with the organization&apos;s Instagram
+        Business or Creator account (not a personal member account). You&apos;ll
+        verify a
         <span className="whitespace-nowrap"> .edu </span>
         email and go through a quick Buzz review before your portal unlocks.
       </p>

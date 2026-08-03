@@ -193,6 +193,37 @@ async def test_returning_active_user_not_downgraded(
     assert resp.json()["data"]["user"]["status"] == "active"
 
 
+async def test_relogin_syncs_org_instagram_handle(
+    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
+) -> None:
+    """Renamed IG username must update both user and org handle mirrors."""
+    from app.models.enums import OrgUserStatus
+    from tests.conftest import make_org, make_user, persist
+
+    fake_instagram.user_id = "ig_rename_1"
+    fake_instagram.username = "newchapter"
+    user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.ACTIVE, instagram_user_id="ig_rename_1"),
+    )
+    user.instagram_username = "oldchapter"
+    org = await make_org(db_session, user)
+    org.instagram_handle = "oldchapter"
+    await db_session.commit()
+
+    state = await _begin_login(app_client)
+    resp = await app_client.post(
+        "/api/auth/instagram/callback",
+        json={"code": "c", "state": state},
+    )
+    assert resp.status_code == 200
+
+    await db_session.refresh(user)
+    await db_session.refresh(org)
+    assert user.instagram_username == "newchapter"
+    assert org.instagram_handle == "newchapter"
+
+
 async def test_callback_expired_state_unauthorized(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient
 ) -> None:

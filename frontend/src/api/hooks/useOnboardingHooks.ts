@@ -18,7 +18,6 @@ export type OrgOnboardingInput = {
   orgName: string;
   university: string;
   eduEmail: string;
-  instagramHandle: string;
   tiktokHandle?: string;
   followerCount?: number;
   memberCount?: number;

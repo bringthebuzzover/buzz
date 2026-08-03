@@ -155,6 +155,7 @@ class FakeInstagramClient:
     def __init__(self, *, account_type: str = "BUSINESS", user_id: str = "ig_test_1") -> None:
         self.account_type = account_type
         self.user_id = user_id
+        self.username = "testorg"
         self.long_lived_token = "fake-long-lived-token"
         self.seen_code: str | None = None
 
@@ -174,7 +175,7 @@ class FakeInstagramClient:
     async def fetch_profile(self, long_token: str) -> InstagramProfile:
         return InstagramProfile(
             id=self.user_id,
-            username="testorg",
+            username=self.username,
             account_type=self.account_type,
         )
 

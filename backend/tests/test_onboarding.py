@@ -28,7 +28,6 @@ _VALID_PROFILE = {
     "orgName": "Buzz Club",
     "university": "Test University",
     "eduEmail": "club@test.edu",
-    "instagramHandle": "buzzclub",
     "followerCount": 1200,
 }
 
@@ -52,10 +51,28 @@ async def test_onboarding_submit_advances_status(app_client: AsyncClient, db_ses
     org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
     assert org is not None
     assert org.edu_email == "club@test.edu"
+    # Handle mirrors OAuth username, not a client-supplied field.
+    assert org.instagram_handle == user.instagram_username
     evt = await db_session.scalar(
         select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
     )
     assert evt is not None
+
+
+async def test_onboarding_rejects_client_instagram_handle(
+    app_client: AsyncClient, db_session
+) -> None:
+    user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_ob_handle"),
+    )
+    resp = await app_client.post(
+        "/api/orgs/onboarding",
+        json={**_VALID_PROFILE, "instagramHandle": "someoneelse"},
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
 async def test_onboarding_rejects_non_edu_email(app_client: AsyncClient, db_session) -> None:

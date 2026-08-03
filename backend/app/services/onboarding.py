@@ -23,6 +23,7 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.schemas.onboarding import OrgOnboardingRequest
 from app.services.email import send_verification_email
+from app.services.instagram import require_instagram_handle
 
 
 def _now() -> datetime:
@@ -142,13 +143,16 @@ async def submit_org_onboarding(
 
     await _release_unverified_edu_claim(db, claimant_id=user.id, edu_email=payload.edu_email)
 
+    # Org IG handle mirrors the OAuth login account — never client-supplied.
+    handle = require_instagram_handle(user.instagram_username)
+
     org = Organization(
         id=uuid.uuid4(),
         user_id=user.id,
         org_name=payload.org_name,
         university=payload.university,
         edu_email=payload.edu_email,
-        instagram_handle=payload.instagram_handle,
+        instagram_handle=handle,
         tiktok_handle=payload.tiktok_handle,
         follower_count=payload.follower_count,
         member_count=payload.member_count,

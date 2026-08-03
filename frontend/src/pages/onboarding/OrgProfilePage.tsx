@@ -28,9 +28,6 @@ export default function OrgProfilePage() {
   const [orgName, setOrgName] = useState("");
   const [university, setUniversity] = useState("");
   const [eduEmail, setEduEmail] = useState("");
-  const [instagramHandle, setInstagramHandle] = useState(
-    user?.instagramUsername ?? "",
-  );
   const [followerCount, setFollowerCount] = useState("");
   const [memberCount, setMemberCount] = useState("");
   const [category, setCategory] = useState<OrgCategory | "">("");
@@ -41,6 +38,10 @@ export default function OrgProfilePage() {
     return <Navigate to={pathForUser(user)} replace />;
   }
 
+  const signedInAs = user.instagramUsername
+    ? `@${user.instagramUsername.replace(/^@/, "")}`
+    : null;
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -49,7 +50,6 @@ export default function OrgProfilePage() {
         orgName: orgName.trim(),
         university: university.trim(),
         eduEmail: eduEmail.trim(),
-        instagramHandle: instagramHandle.trim().replace(/^@/, ""),
         followerCount: followerCount ? Number(followerCount) : undefined,
         memberCount: memberCount ? Number(memberCount) : undefined,
         category: category || undefined,
@@ -72,10 +72,24 @@ export default function OrgProfilePage() {
         Set Up Your <span className="text-buzz-coral">Org Profile</span>
       </h1>
       <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
-        Tell us about your organization to continue.
+        Tell us about your organization to continue. Sign in with the
+        organization&apos;s Instagram Business or Creator account — not a
+        personal member account.
       </p>
 
       <form onSubmit={onSubmit} className="space-y-4">
+        {signedInAs && (
+          <div className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
+              Signed in as
+            </p>
+            <p className="mt-1 text-sm font-semibold text-buzz-ink">{signedInAs}</p>
+            <p className="mt-1 text-xs text-buzz-inkMuted">
+              This Instagram account is your org identity on Buzz.
+            </p>
+          </div>
+        )}
+
         <div>
           <label className="mb-1 block text-sm font-semibold text-buzz-ink">
             Organization name
@@ -115,19 +129,6 @@ export default function OrgProfilePage() {
           <p className="mt-1 text-xs text-buzz-inkMuted">
             We'll send a verification link here.
           </p>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Instagram handle
-          </label>
-          <input
-            className={inputClass}
-            value={instagramHandle}
-            onChange={(e) => setInstagramHandle(e.target.value)}
-            placeholder="yourorg"
-            required
-          />
         </div>
 
         <div>
