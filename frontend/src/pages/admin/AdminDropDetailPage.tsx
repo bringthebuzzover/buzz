@@ -15,7 +15,9 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   useAdminDrop,
   useAdvanceTracker,
+  useClearReopen,
   useReopenDrop,
+  useSetDropTracking,
   type AdminApplicant,
 } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
@@ -68,14 +70,21 @@ function TrackerControls({
   dropId,
   currentStage,
   finalized,
+  manualReopen,
+  currentTracking,
 }: {
   dropId: string;
   currentStage: string;
   finalized: boolean;
+  manualReopen: boolean;
+  currentTracking: string | null;
 }) {
   const advance = useAdvanceTracker(dropId);
   const reopen = useReopenDrop(dropId);
+  const clearReopen = useClearReopen(dropId);
+  const setTracking = useSetDropTracking(dropId);
   const [error, setError] = useState<string | null>(null);
+  const [repairTracking, setRepairTracking] = useState(currentTracking ?? "");
 
   const currentIndex = STAGE_ORDER.indexOf(
     currentStage as (typeof STAGE_ORDER)[number],
@@ -86,13 +95,23 @@ function TrackerControls({
   const [note, setNote] = useState("");
 
   const needsTracking = stage === "awaiting_products";
+  const awaitingIdx = STAGE_ORDER.indexOf("awaiting_products");
+  const stageIdx = STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]);
   // The backend refuses any jump past selection while the brand has not decided
   // its applicants, because finalize requires the selection stage and there is no
   // way back.
   const blockedByFinalize =
     !finalized &&
-    STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]) >
-      STAGE_ORDER.indexOf("finalizing_agreements");
+    stageIdx > STAGE_ORDER.indexOf("finalizing_agreements");
+  // Jumping over awaiting_products would strand accepted orgs without tracking.
+  const blockedBySkipAwaiting =
+    currentIndex < awaitingIdx && stageIdx > awaitingIdx;
+  const canRepairTracking = currentIndex >= awaitingIdx;
+  const advanceDisabled =
+    advance.isPending ||
+    blockedByFinalize ||
+    blockedBySkipAwaiting ||
+    (needsTracking && !trackingNumber.trim());
 
   const submit = async () => {
     setError(null);
@@ -118,10 +137,36 @@ function TrackerControls({
     }
   };
 
+  const doClearReopen = async () => {
+    setError(null);
+    try {
+      await clearReopen.mutateAsync(undefined);
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not clear the reopen flag.",
+      );
+    }
+  };
+
+  const doRepairTracking = async () => {
+    setError(null);
+    try {
+      await setTracking.mutateAsync(repairTracking.trim());
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not update the tracking number.",
+      );
+    }
+  };
+
   return (
     <Panel
       title="Tracker"
-      description="Stages only move forward. Reopening re-opens the apply window and, if selection was already finalized, hands it back to the brand for another round."
+      description="Stages only move forward. Tracking is required on the move into awaiting products. Live/finished drops can reopen the apply window without regressing the stage."
     >
       <div className="space-y-4 px-4 py-4">
         {error && <ErrorNote>{error}</ErrorNote>}
@@ -153,14 +198,14 @@ function TrackerControls({
             {needsTracking && (
               <label className="block">
                 <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
-                  Tracking number
+                  Tracking number (required)
                 </span>
                 <input
                   data-testid="tracker-tracking-number"
                   className={inputClass}
                   value={trackingNumber}
                   onChange={(event) => setTrackingNumber(event.target.value)}
-                  placeholder="Only settable on this transition"
+                  placeholder="Required for this transition"
                 />
               </label>
             )}
@@ -179,10 +224,9 @@ function TrackerControls({
           </div>
         )}
 
-        {needsTracking && !trackingNumber && (
+        {needsTracking && !trackingNumber.trim() && (
           <p className="text-xs font-bold text-amber-700">
-            Tracking is only writable on the move into this stage. Leave it blank
-            and accepted orgs will never see one.
+            Tracking is required on the move into this stage.
           </p>
         )}
 
@@ -193,12 +237,44 @@ function TrackerControls({
           </p>
         )}
 
+        {blockedBySkipAwaiting && (
+          <p className="text-xs font-bold text-red-700">
+            Advance to awaiting_products with a tracking number before
+            drop_active.
+          </p>
+        )}
+
+        {canRepairTracking && (
+          <div className="grid grid-cols-1 gap-3 border-t border-buzz-lineMid pt-4 sm:grid-cols-[1fr_auto]">
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
+                Repair tracking number
+              </span>
+              <input
+                data-testid="repair-tracking-number"
+                className={inputClass}
+                value={repairTracking}
+                onChange={(event) => setRepairTracking(event.target.value)}
+              />
+            </label>
+            <div className="flex items-end">
+              <ActionButton
+                testId="repair-tracking"
+                disabled={setTracking.isPending || !repairTracking.trim()}
+                onClick={() => void doRepairTracking()}
+              >
+                {setTracking.isPending ? "Saving…" : "Save tracking"}
+              </ActionButton>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           {forwardStages.length > 0 && (
             <ActionButton
               variant="primary"
               testId="tracker-advance"
-              disabled={advance.isPending || blockedByFinalize}
+              disabled={advanceDisabled}
               onClick={() => void submit()}
             >
               {advance.isPending ? "Advancing…" : "Advance stage"}
@@ -211,6 +287,15 @@ function TrackerControls({
           >
             {reopen.isPending ? "Reopening…" : "Reopen apply window"}
           </ActionButton>
+          {manualReopen && (
+            <ActionButton
+              testId="drop-clear-reopen"
+              disabled={clearReopen.isPending}
+              onClick={() => void doClearReopen()}
+            >
+              {clearReopen.isPending ? "Clearing…" : "Clear reopen"}
+            </ActionButton>
+          )}
         </div>
       </div>
     </Panel>
@@ -332,6 +417,8 @@ export default function AdminDropDetailPage() {
             dropId={data.id}
             currentStage={data.stage}
             finalized={data.finalizedAt !== null}
+            manualReopen={data.manualReopen}
+            currentTracking={data.trackingNumber}
           />
 
           <div className="mb-4 flex gap-2 border-b border-buzz-lineMid">

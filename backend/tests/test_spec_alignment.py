@@ -281,6 +281,13 @@ async def test_tracker_advance_allowed_after_finalized(app_client: AsyncClient, 
     drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
     drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
     await db_session.flush()
+    # Must enter awaiting_products with tracking — cannot jump past it.
+    resp = await app_client.patch(
+        f"/api/admin/drops/{drop.id}/tracker",
+        json={"stage": "awaiting_products", "trackingNumber": "1Z-TEST"},
+        headers=await _admin_headers(db_session),
+    )
+    assert resp.status_code == 200, resp.text
     resp = await app_client.patch(
         f"/api/admin/drops/{drop.id}/tracker",
         json={"stage": "drop_active"},
@@ -289,8 +296,24 @@ async def test_tracker_advance_allowed_after_finalized(app_client: AsyncClient, 
     assert resp.status_code == 200, resp.text
 
 
+async def test_tracker_blocks_jump_past_awaiting_products(
+    app_client: AsyncClient, db_session
+) -> None:
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
+    drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
+    await db_session.flush()
+    resp = await app_client.patch(
+        f"/api/admin/drops/{drop.id}/tracker",
+        json={"stage": "drop_active"},
+        headers=await _admin_headers(db_session),
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
 async def test_reopen_finalized_drop_resets_selection(app_client: AsyncClient, db_session) -> None:
-    """L9: reopening a finalized drop re-enables a new selection round."""
+    """L9: reopening a finalized pre-live drop re-enables a new selection round."""
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
     drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
@@ -304,6 +327,23 @@ async def test_reopen_finalized_drop_resets_selection(app_client: AsyncClient, d
     assert drop.manual_reopen is True
     assert drop.applicant_selection_finalized_at is None
     assert drop.brand_tracker_stage == BrandTrackerStage.FINALIZING_AGREEMENTS.value
+
+
+async def test_reopen_live_drop_does_not_rewind(app_client: AsyncClient, db_session) -> None:
+    """Live drops only get the apply-window flag — stage and finalized stay put."""
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
+    await db_session.flush()
+
+    resp = await app_client.post(
+        f"/api/admin/drops/{drop.id}/reopen", headers=await _admin_headers(db_session)
+    )
+    assert resp.status_code == 200, resp.text
+    await db_session.refresh(drop)
+    assert drop.manual_reopen is True
+    assert drop.applicant_selection_finalized_at is not None
+    assert drop.brand_tracker_stage == BrandTrackerStage.DROP_ACTIVE.value
 
 
 async def test_reopen_unfinalized_drop_only_sets_flag(app_client: AsyncClient, db_session) -> None:

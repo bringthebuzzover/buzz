@@ -11,9 +11,14 @@ import { orgCategoryLabel } from "../../types/orgCategory";
 
 type Props = {
   applicants: BrandDropApplicant[];
+  /** Override the section heading (e.g. roster-only before live). */
+  title?: string;
 };
 
-export default function ApiDropOrgTable({ applicants }: Props) {
+export default function ApiDropOrgTable({
+  applicants,
+  title = "Posts by organization",
+}: Props) {
   const accepted = useMemo(
     () => applicants.filter((a) => a.decision === "accepted"),
     [applicants],
@@ -44,7 +49,7 @@ export default function ApiDropOrgTable({ applicants }: Props) {
   return (
     <div className="overflow-hidden rounded-2xl border border-buzz-lineMid bg-buzz-paper shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-buzz-line bg-buzz-cream px-6 py-4">
-        <h3 className="text-lg font-bold text-buzz-ink">Posts by organization</h3>
+        <h3 className="text-lg font-bold text-buzz-ink">{title}</h3>
         <div className="flex items-center gap-3">
           {categories.length > 0 ? (
             <select
@@ -92,25 +97,37 @@ export default function ApiDropOrgTable({ applicants }: Props) {
 
             {a.posts.length > 0 ? (
               <ul className="mt-3 space-y-2">
-                {a.posts.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex items-center justify-between gap-4 rounded-lg border border-buzz-line bg-buzz-cream px-4 py-2"
-                  >
-                    <a
-                      href={p.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="truncate text-xs font-semibold text-buzz-coral hover:underline"
-                      title={p.caption}
+                {a.posts.map((p) => {
+                  const thumb = p.thumbnailUrl || p.mediaUrl;
+                  return (
+                    <li
+                      key={p.id}
+                      className="flex items-center justify-between gap-4 rounded-lg border border-buzz-line bg-buzz-cream px-4 py-2"
                     >
-                      {p.caption || p.url}
-                    </a>
-                    <span className="shrink-0 text-[11px] font-bold text-buzz-inkMuted">
-                      {p.likes} likes · {p.comments} comments
-                    </span>
-                  </li>
-                ))}
+                      <div className="flex min-w-0 items-center gap-3">
+                        {thumb ? (
+                          <img
+                            src={thumb}
+                            alt=""
+                            className="h-12 w-12 shrink-0 rounded-md object-cover"
+                          />
+                        ) : null}
+                        <a
+                          href={p.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="truncate text-xs font-semibold text-buzz-coral hover:underline"
+                          title={p.caption}
+                        >
+                          {p.caption || p.url}
+                        </a>
+                      </div>
+                      <span className="shrink-0 text-[11px] font-bold text-buzz-inkMuted">
+                        {p.likes} likes · {p.comments} comments
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className="mt-2 text-xs font-medium text-buzz-inkMuted">

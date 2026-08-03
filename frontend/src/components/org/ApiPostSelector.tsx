@@ -14,6 +14,7 @@ import {
   useDismissSuggestion,
   useLinkPost,
   useOrgPosts,
+  useRefreshOrgPosts,
   useSuggestions,
   useUnlinkPost,
   type PostItem,
@@ -35,6 +36,7 @@ function PlatformIcon({ platform }: { platform: string }) {
 
 export default function ApiPostSelector({ applicationId, readOnly = false }: Props) {
   const { data: posts, isLoading } = useOrgPosts();
+  const refreshPosts = useRefreshOrgPosts();
   const { data: suggestions } = useSuggestions(applicationId);
   const link = useLinkPost(applicationId);
   const unlink = useUnlinkPost(applicationId);
@@ -42,7 +44,11 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
   const dismiss = useDismissSuggestion(applicationId);
 
   const busy =
-    link.isPending || unlink.isPending || accept.isPending || dismiss.isPending;
+    link.isPending ||
+    unlink.isPending ||
+    accept.isPending ||
+    dismiss.isPending ||
+    refreshPosts.isPending;
   // Surface link/unlink/accept/dismiss failures (F8) — don't silently re-enable
   // the buttons leaving the user thinking the action worked.
   const mutationError = (link.error ||
@@ -102,11 +108,22 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
       ) : null}
 
       <div className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-buzz-ink">Linked posts</h3>
-          <p className="text-xs font-medium text-buzz-inkMuted">
-            One post can only belong to one campaign.
-          </p>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold text-buzz-ink">Linked posts</h3>
+            <p className="text-xs font-medium text-buzz-inkMuted">
+              One post can only belong to one campaign.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => refreshPosts.mutate()}
+            title="Reload the posts Buzz already synced — does not fetch from Instagram"
+            className="rounded-lg border border-buzz-lineMid px-3 py-1.5 text-xs font-bold text-buzz-inkMuted transition hover:bg-buzz-cream disabled:opacity-60"
+          >
+            {refreshPosts.isPending ? "Reloading…" : "Show latest synced posts"}
+          </button>
         </div>
 
         {isLoading ? (

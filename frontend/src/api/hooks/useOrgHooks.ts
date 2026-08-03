@@ -126,6 +126,22 @@ export function useOrgPosts() {
   });
 }
 
+/** Reloads the stored post list from Buzz (does not pull from Meta/Instagram). */
+export function useRefreshOrgPosts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiFetch<PostItem[]>("/api/orgs/me/posts/refresh", {
+        method: "POST",
+      });
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["org-posts"], data);
+    },
+  });
+}
+
 export function useCampaigns() {
   const { status } = useAuth();
   return useQuery({

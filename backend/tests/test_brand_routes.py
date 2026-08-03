@@ -145,6 +145,9 @@ class TestGetBrandDropDetail:
         assert "attributedPostCount" in app
         assert "attributedLikes" in app
         assert "attributedEngagement" in app
+        assert "totalEngagement" in data
+        assert "totalReach" in data
+        assert "totalPosts" in data
 
     async def test_404_for_other_brand_drop(self, app_client: AsyncClient, db_session):
         _, _, headers = await _brand_ctx(db_session)
@@ -341,6 +344,19 @@ class TestFinalizeApplicants:
         )
         assert res.status_code == 400
         assert res.json()["error"]["code"] == "ALREADY_FINALIZED"
+
+    async def test_finalize_clears_manual_reopen(self, app_client: AsyncClient, db_session):
+        _, drop, orgs, headers = await self._setup_finalize(db_session)
+        drop.manual_reopen = True
+        await db_session.flush()
+        res = await app_client.post(
+            f"/api/brands/me/drops/{drop.id}/finalize-applicants",
+            json={"allocations": [{"orgId": str(orgs[0].id), "units": 0}]},
+            headers=headers,
+        )
+        assert res.status_code == 200, res.text
+        await db_session.refresh(drop)
+        assert drop.manual_reopen is False
 
     async def test_org_not_applied(self, app_client: AsyncClient, db_session):
         _, drop, orgs, headers = await self._setup_finalize(db_session)

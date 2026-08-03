@@ -73,8 +73,9 @@ function ApiDashboard() {
   const { data: series, isLoading: seriesLoading, isError: seriesError } =
     useEngagementSeries();
 
-  const isLoading = aggLoading || dropsLoading || seriesLoading;
-  const isError = aggError || dropsError || seriesError;
+  // Engagement series is chart-only — don't fail the whole dashboard if it errors.
+  const isLoading = aggLoading || dropsLoading;
+  const isError = aggError || dropsError;
 
   if (isLoading) {
     return (
@@ -119,7 +120,17 @@ function ApiDashboard() {
         <div className="space-y-8">
           <RunningTotalsBar metrics={mapAggregate(agg)} />
           <AggregateTotalsCards metrics={mapAggregate(agg)} />
-          <EngagementOverTimeChart points={mapEngagementSeries(pts)} />
+          {seriesError ? (
+            <div className="rounded-2xl border border-dashed border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-inkMuted">
+              Engagement over time is temporarily unavailable.
+            </div>
+          ) : seriesLoading ? (
+            <div className="rounded-2xl border border-dashed border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-inkMuted">
+              Loading engagement chart…
+            </div>
+          ) : (
+            <EngagementOverTimeChart points={mapEngagementSeries(pts)} />
+          )}
           <ApiCompareDropsTable drops={items} />
         </div>
       )}

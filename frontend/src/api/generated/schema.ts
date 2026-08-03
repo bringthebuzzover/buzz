@@ -89,6 +89,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/brands/{brand_id}/resend-invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Brand Invite Endpoint */
+        post: operations["resend_brand_invite_endpoint_api_admin_brands__brand_id__resend_invite_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/brands/{brand_id}/undeny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undeny Brand Endpoint */
+        post: operations["undeny_brand_endpoint_api_admin_brands__brand_id__undeny_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/drops": {
         parameters: {
             query?: never;
@@ -117,6 +151,23 @@ export interface paths {
         get: operations["get_drop_detail_endpoint_api_admin_drops__drop_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/drops/{drop_id}/clear-reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clear Reopen Endpoint */
+        post: operations["clear_reopen_endpoint_api_admin_drops__drop_id__clear_reopen_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -155,6 +206,23 @@ export interface paths {
         head?: never;
         /** Advance Tracker Endpoint */
         patch: operations["advance_tracker_endpoint_api_admin_drops__drop_id__tracker_patch"];
+        trace?: never;
+    };
+    "/api/admin/drops/{drop_id}/tracking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Drop Tracking Endpoint */
+        patch: operations["set_drop_tracking_endpoint_api_admin_drops__drop_id__tracking_patch"];
         trace?: never;
     };
     "/api/admin/health": {
@@ -270,6 +338,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/orgs/{org_id}/undeny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undeny Org Endpoint */
+        post: operations["undeny_org_endpoint_api_admin_orgs__org_id__undeny_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/orgs/{user_id}": {
         parameters: {
             query?: never;
@@ -281,6 +366,26 @@ export interface paths {
         get: operations["get_org_detail_endpoint_api_admin_orgs__user_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/orgs/{user_id}/clear-instagram-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear Org Instagram Token Endpoint
+         * @description Clear an expired/stuck IG token so the org can authenticate again.
+         */
+        post: operations["clear_org_instagram_token_endpoint_api_admin_orgs__user_id__clear_instagram_token_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1382,6 +1487,11 @@ export interface components {
             /** Trackingnumber */
             trackingNumber?: string | null;
         };
+        /** TrackingRepairRequest */
+        TrackingRepairRequest: {
+            /** Trackingnumber */
+            trackingNumber: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1575,6 +1685,72 @@ export interface operations {
             };
         };
     };
+    resend_brand_invite_endpoint_api_admin_brands__brand_id__resend_invite_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                brand_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    undeny_brand_endpoint_api_admin_brands__brand_id__undeny_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                brand_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_drops_endpoint_api_admin_drops_get: {
         parameters: {
             query?: {
@@ -1610,6 +1786,39 @@ export interface operations {
         };
     };
     get_drop_detail_endpoint_api_admin_drops__drop_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_reopen_endpoint_api_admin_drops__drop_id__clear_reopen_post: {
         parameters: {
             query?: never;
             header?: {
@@ -1689,6 +1898,43 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["TrackerAdvanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_drop_tracking_endpoint_api_admin_drops__drop_id__tracking_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackingRepairRequest"];
             };
         };
         responses: {
@@ -1906,7 +2152,73 @@ export interface operations {
             };
         };
     };
+    undeny_org_endpoint_api_admin_orgs__org_id__undeny_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_org_detail_endpoint_api_admin_orgs__user_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_org_instagram_token_endpoint_api_admin_orgs__user_id__clear_instagram_token_post: {
         parameters: {
             query?: never;
             header?: {

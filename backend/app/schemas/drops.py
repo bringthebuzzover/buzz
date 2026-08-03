@@ -38,6 +38,7 @@ class DropFeedItem(CamelModel):
     apply_open_at: datetime
     apply_close_at: datetime
     manual_reopen: bool
+    applicant_selection_finalized_at: datetime | None
     accepted_count: int
     already_applied: bool
     # Notify-Me state for the caller org (§6.3.1): whether a reminder is set and
@@ -46,8 +47,8 @@ class DropFeedItem(CamelModel):
     notify_requested: bool
     reminder_minutes: int | None
 
-    @field_serializer("apply_open_at", "apply_close_at")
-    def _epoch(self, value: datetime) -> int | None:
+    @field_serializer("apply_open_at", "apply_close_at", "applicant_selection_finalized_at")
+    def _epoch(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 

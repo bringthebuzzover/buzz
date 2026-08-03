@@ -160,6 +160,7 @@ async def get_brand_drop_detail(
 ) -> APIResponse:
     brand = await _require_brand(db, user)
     drop = await resolve_brand_drop(db, brand, drop_id)
+    agg = await _drop_aggregate(db, drop.id)
 
     # Load all applications on this drop, joined with org profiles
     rows = list(
@@ -220,6 +221,11 @@ async def get_brand_drop_detail(
         created_at=drop.created_at,
         tracking_number=drop.tracking_number,
         applications=applicants,
+        total_posts=agg["total_posts"],
+        total_likes=agg["total_likes"],
+        total_comments=agg["total_comments"],
+        total_engagement=agg["total_engagement"],
+        total_reach=agg["total_reach"],
     )
     return api_response(data=detail)
 

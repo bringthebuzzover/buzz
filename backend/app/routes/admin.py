@@ -1,9 +1,9 @@
 """Admin routes — ``/api/admin`` (architecture.md §5.1, §8.5).
 
-Reads are all ``GET`` and back the admin panel's sidebar sections. The mutating
-surface is deliberately narrow: approve/deny an account, move a drop's tracker,
-reopen a drop, and mint an impersonation token. Anything else an admin might
-want to fix by hand is catalogued in ``KNOWN_GAPS.md`` instead.
+Reads are all ``GET`` and back the admin panel's sidebar sections. Mutations cover
+account approve/deny/recovery, drop tracker/reopen/tracking repair, and
+impersonation. Remaining stuck states without a product path stay in
+``KNOWN_GAPS.md``.
 """
 
 from __future__ import annotations
@@ -32,17 +32,24 @@ from app.schemas.admin import (
     AdminUserItem,
     ImpersonateResponse,
     TrackerAdvanceRequest,
+    TrackingRepairRequest,
 )
 from app.schemas.common import camelize
 from app.services.admin import (
     advance_tracker,
     approve_brand,
     approve_org,
+    clear_manual_reopen,
+    clear_org_instagram_token,
     deny_brand,
     deny_org,
     list_brands,
     list_orgs,
     reopen_drop,
+    resend_brand_invite,
+    set_drop_tracking_number,
+    undeny_brand,
+    undeny_org,
 )
 from app.services.admin_auth import list_impersonatable_users, mint_impersonation_token
 from app.services.admin_read import (
@@ -113,6 +120,17 @@ async def get_org_detail_endpoint(
     return api_response(data=AdminOrgDetail(**await get_org_detail(db, user_id)))
 
 
+@router.post("/orgs/{user_id}/clear-instagram-token", response_model=APIResponse)
+async def clear_org_instagram_token_endpoint(
+    user_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Clear an expired/stuck IG token so the org can authenticate again."""
+    result = await clear_org_instagram_token(db, user_id)
+    return api_response(data=camelize(result))
+
+
 @router.post("/orgs/{org_id}/approve", response_model=APIResponse)
 async def approve_org_endpoint(
     org_id: uuid.UUID,
@@ -130,6 +148,16 @@ async def deny_org_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await deny_org(db, org_id)
+    return api_response(data=camelize(result))
+
+
+@router.post("/orgs/{org_id}/undeny", response_model=APIResponse)
+async def undeny_org_endpoint(
+    org_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await undeny_org(db, org_id)
     return api_response(data=camelize(result))
 
 
@@ -184,6 +212,26 @@ async def deny_brand_endpoint(
     return api_response(data=camelize(result))
 
 
+@router.post("/brands/{brand_id}/undeny", response_model=APIResponse)
+async def undeny_brand_endpoint(
+    brand_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await undeny_brand(db, brand_id)
+    return api_response(data=camelize(result))
+
+
+@router.post("/brands/{brand_id}/resend-invite", response_model=APIResponse)
+async def resend_brand_invite_endpoint(
+    brand_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await resend_brand_invite(db, brand_id)
+    return api_response(data=camelize(result))
+
+
 # ── Drops ───────────────────────────────────────────────────────────────────
 
 
@@ -220,6 +268,17 @@ async def advance_tracker_endpoint(
     return api_response(data=camelize(result))
 
 
+@router.patch("/drops/{drop_id}/tracking", response_model=APIResponse)
+async def set_drop_tracking_endpoint(
+    drop_id: uuid.UUID,
+    payload: TrackingRepairRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await set_drop_tracking_number(db, drop_id, payload.tracking_number)
+    return api_response(data=camelize(result))
+
+
 @router.post("/drops/{drop_id}/reopen", response_model=APIResponse)
 async def reopen_drop_endpoint(
     drop_id: uuid.UUID,
@@ -227,6 +286,16 @@ async def reopen_drop_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await reopen_drop(db, drop_id)
+    return api_response(data=camelize(result))
+
+
+@router.post("/drops/{drop_id}/clear-reopen", response_model=APIResponse)
+async def clear_reopen_endpoint(
+    drop_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await clear_manual_reopen(db, drop_id)
     return api_response(data=camelize(result))
 
 

@@ -18,7 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.exceptions import BuzzAPIException
-from app.models.enums import PostLinkSource
+from app.models.drop import Drop
+from app.models.enums import BrandTrackerStage, PostLinkSource
 from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
@@ -34,6 +35,17 @@ from app.services.campaigns import resolve_owned_application
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+async def _reject_if_drop_finished(db: AsyncSession, drop_id: uuid.UUID) -> None:
+    """Finished campaigns are FE read-only; enforce the same on the API."""
+    drop = await db.get(Drop, drop_id)
+    if drop is not None and drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "This campaign is finished; posts can no longer be linked or unlinked.",
+            status_code=400,
+        )
 
 
 def build_post_response(
@@ -145,6 +157,7 @@ async def link_post(
     application = await resolve_owned_application(
         db, org_user, application_id, require_accepted=True
     )
+    await _reject_if_drop_finished(db, application.drop_id)
     post = await db.get(SocialPost, post_id)
     if post is None or post.org_id != application.org_id:
         raise BuzzAPIException(errors.NOT_FOUND, "Post not found.", status_code=404)
@@ -202,6 +215,7 @@ async def unlink_post(
     """
 
     application = await resolve_owned_application(db, org_user, application_id)
+    await _reject_if_drop_finished(db, application.drop_id)
     link = await db.scalar(
         select(PostCampaignLink).where(
             PostCampaignLink.post_id == post_id,
@@ -303,6 +317,7 @@ async def accept_suggestion(
     application = await resolve_owned_application(
         db, org_user, application_id, require_accepted=True
     )
+    await _reject_if_drop_finished(db, application.drop_id)
     suggestion = await db.scalar(
         select(PostCampaignSuggestion).where(
             PostCampaignSuggestion.application_id == application.id,

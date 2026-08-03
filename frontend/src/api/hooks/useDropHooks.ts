@@ -20,6 +20,8 @@ export type DropFeedItem = {
   alreadyApplied: boolean;
   notifyRequested: boolean;
   reminderMinutes: number | null;
+  /** Set when brand finalized picks — feed treats as closed for new applies. */
+  applicantSelectionFinalizedAt: number | null;
 };
 
 export type DropDetail = DropFeedItem & {

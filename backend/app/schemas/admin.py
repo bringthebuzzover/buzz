@@ -53,6 +53,10 @@ class TrackerAdvanceRequest(CamelModel):
     note: str | None = None
 
 
+class TrackingRepairRequest(CamelModel):
+    tracking_number: str
+
+
 class AdminUserItem(CamelModel):
     """A row in the ``/api/admin/users`` impersonation picker."""
 

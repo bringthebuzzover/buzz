@@ -10,6 +10,7 @@ import ApiDropOrgTable from "../../components/brand/ApiDropOrgTable";
 import DropKPISummary from "../../components/brand/DropKPISummary";
 import { useBrandDropDetail, useFinalizeApplicants } from "../../api/hooks/useBrandHooks";
 import type { BrandDropDetail, BrandDropApplicant } from "../../api/hooks/useBrandHooks";
+import { ApiError } from "../../api/errors";
 import { useMemo, useState } from "react";
 import { orgCategoryLabel } from "../../types/orgCategory";
 
@@ -35,15 +36,20 @@ function mapDropToView(d: BrandDropDetail) {
   };
 }
 
-/** Simple applicant table for the API path at finalizing_agreements stage. */
+/** Editable applicant table — only while selection is open. */
 function ApiApplicantTable({
   applicants,
   dropId,
+  capacityTotal,
+  totalProductUnits,
 }: {
   applicants: BrandDropApplicant[];
   dropId: string;
+  capacityTotal: number;
+  totalProductUnits: number | null | undefined;
 }) {
   const finalizeMutation = useFinalizeApplicants(dropId);
+  const showUnits = totalProductUnits != null;
   // Explicit accept selection: finalize ACCEPTS the checked orgs and DENIES every
   // other applicant (an irreversible, email-triggering action). Without explicit
   // checkboxes an empty submit silently denied everyone (§7.1 footgun).
@@ -89,7 +95,15 @@ function ApiApplicantTable({
   return (
     <div className="mt-8 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold text-buzz-ink">Applicants</h2>
+        <div>
+          <h2 className="text-lg font-bold text-buzz-ink">Applicants</h2>
+          <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
+            Capacity: {acceptedCount} of {capacityTotal} spots
+            {showUnits
+              ? ` · ${totalAllocated} of ${totalProductUnits} units allocated`
+              : ""}
+          </p>
+        </div>
         {categories.length > 0 ? (
           <select
             aria-label="Filter by organization type"
@@ -117,7 +131,9 @@ function ApiApplicantTable({
               <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Instagram</th>
               <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Followers</th>
               <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Pitch</th>
-              <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Units</th>
+              {showUnits ? (
+                <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Units</th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -148,21 +164,23 @@ function ApiApplicantTable({
                   <td className="px-4 py-3 text-buzz-inkMuted max-w-48 truncate">
                     {app.pitch ?? "-"}
                   </td>
-                  <td className="px-4 py-3">
-                    <input
-                      type="number"
-                      min={0}
-                      disabled={!isAccepted}
-                      className="w-16 rounded border border-buzz-lineMid px-2 py-1 text-sm disabled:bg-buzz-cream disabled:opacity-50"
-                      value={isAccepted ? allocations[app.orgId] ?? 0 : 0}
-                      onChange={(e) =>
-                        setAllocations((prev) => ({
-                          ...prev,
-                          [app.orgId]: Math.max(0, parseInt(e.target.value, 10) || 0),
-                        }))
-                      }
-                    />
-                  </td>
+                  {showUnits ? (
+                    <td className="px-4 py-3">
+                      <input
+                        type="number"
+                        min={0}
+                        disabled={!isAccepted}
+                        className="w-16 rounded border border-buzz-lineMid px-2 py-1 text-sm disabled:bg-buzz-cream disabled:opacity-50"
+                        value={isAccepted ? allocations[app.orgId] ?? 0 : 0}
+                        onChange={(e) =>
+                          setAllocations((prev) => ({
+                            ...prev,
+                            [app.orgId]: Math.max(0, parseInt(e.target.value, 10) || 0),
+                          }))
+                        }
+                      />
+                    </td>
+                  ) : null}
                 </tr>
               );
             })}
@@ -172,7 +190,8 @@ function ApiApplicantTable({
 
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-buzz-inkMuted">
-          Accept {acceptedCount} · Deny {deniedCount} · {totalAllocated} units allocated
+          Accept {acceptedCount} · Deny {deniedCount}
+          {showUnits ? ` · ${totalAllocated} units allocated` : ""}
         </span>
         <button
           type="button"
@@ -197,6 +216,28 @@ function ApiApplicantTable({
   );
 }
 
+/** Read-only accepted roster after finalize (before live KPIs). */
+function FinalizedRoster({
+  applicants,
+  capacityTotal,
+}: {
+  applicants: BrandDropApplicant[];
+  capacityTotal: number;
+}) {
+  const accepted = applicants.filter((a) => a.decision === "accepted");
+  return (
+    <div className="mt-8 space-y-3">
+      <div>
+        <h2 className="text-lg font-bold text-buzz-ink">Selected organizations</h2>
+        <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
+          {accepted.length} of {capacityTotal} capacity · selection finalized
+        </p>
+      </div>
+      <ApiDropOrgTable applicants={applicants} title="Accepted organizations" />
+    </div>
+  );
+}
+
 /** GET /api/brands/me/drops/:id. */
 function ApiDropDetail() {
   const { dropId } = useParams<{ dropId: string }>();
@@ -210,23 +251,49 @@ function ApiDropDetail() {
     );
   }
 
-  if (error || !detail) {
+  if (error instanceof ApiError && error.status === 404) {
     return <Navigate to="/brand/dashboard" replace />;
+  }
+
+  if (error || !detail) {
+    return (
+      <div className="mx-auto max-w-5xl px-8 py-12">
+        <Link
+          to="/brand/dashboard"
+          className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
+        >
+          <ChevronLeft size={16} className="mr-1" />
+          Back to dashboard
+        </Link>
+        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-coral">
+          {error instanceof Error
+            ? error.message
+            : "Couldn’t load this drop. Please try again."}
+        </div>
+      </div>
+    );
   }
 
   const drop = mapDropToView(detail);
   const showResults =
     drop.brandTrackerStage === "drop_active" ||
     drop.brandTrackerStage === "drop_finished";
-  const isSelectionStage = drop.brandTrackerStage === "finalizing_agreements";
+  const canEditSelection =
+    drop.brandTrackerStage === "finalizing_agreements" &&
+    drop.applicantSelectionFinalizedAt == null;
+  const showFinalizedRoster =
+    drop.applicantSelectionFinalizedAt != null &&
+    (drop.brandTrackerStage === "finalizing_agreements" ||
+      drop.brandTrackerStage === "awaiting_products");
+  const showAwaitingRoster = drop.brandTrackerStage === "awaiting_products";
 
   const aggregateMetrics = {
     dropId: detail.id,
-    totalPosts: detail.totalPosts,
-    totalLikes: detail.totalLikes,
-    totalComments: detail.totalComments,
-    totalEngagement: detail.totalEngagement,
-    totalReach: detail.totalReach,
+    totalPosts: detail.totalPosts ?? 0,
+    totalLikes: detail.totalLikes ?? 0,
+    totalComments: detail.totalComments ?? 0,
+    totalEngagement: detail.totalEngagement ?? 0,
+    totalReach: detail.totalReach ?? 0,
     costPerEngagement: null as number | null,
   };
 
@@ -252,11 +319,29 @@ function ApiDropDetail() {
         trackingNumber={drop.trackingNumber}
       />
 
-      {isSelectionStage ? (
+      {canEditSelection ? (
         <ApiApplicantTable
           applicants={detail.applications ?? []}
           dropId={detail.id}
+          capacityTotal={detail.capacityTotal}
+          totalProductUnits={detail.totalProductUnits}
         />
+      ) : null}
+
+      {showFinalizedRoster && !showResults ? (
+        <FinalizedRoster
+          applicants={detail.applications ?? []}
+          capacityTotal={detail.capacityTotal}
+        />
+      ) : null}
+
+      {showAwaitingRoster && !showFinalizedRoster && !showResults ? (
+        <div className="mt-8">
+          <ApiDropOrgTable
+            applicants={detail.applications ?? []}
+            title="Accepted organizations"
+          />
+        </div>
       ) : null}
 
       {showResults ? (
@@ -264,7 +349,7 @@ function ApiDropDetail() {
           <DropKPISummary metrics={aggregateMetrics} />
           <ApiDropOrgTable applicants={detail.applications ?? []} />
         </div>
-      ) : !isSelectionStage ? (
+      ) : !canEditSelection && !showFinalizedRoster && !showAwaitingRoster ? (
         <div className="mt-8 rounded-2xl border border-dashed border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-inkMuted">
           Posts and KPIs will appear here once your drop goes live.
         </div>
