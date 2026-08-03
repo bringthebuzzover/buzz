@@ -123,6 +123,17 @@ function FeedContent({
 function ApiDropFeed() {
   const { items, isLoading, error } = useOrgDropFeed();
   const [applyingId, setApplyingId] = useState<string | null>(null);
+  // Survive a refetch that briefly (or incorrectly) returns alreadyApplied=false
+  // after a successful POST — otherwise the card flips back to "Apply".
+  const [justAppliedIds, setJustAppliedIds] = useState(() => new Set<string>());
+
+  const rows = useMemo(
+    () =>
+      items.map((row) =>
+        justAppliedIds.has(row.id) ? { ...row, alreadyApplied: true } : row,
+      ),
+    [items, justAppliedIds],
+  );
 
   const handleApply = (dropId: string) => {
     setApplyingId(dropId);
@@ -130,7 +141,20 @@ function ApiDropFeed() {
 
   // Simple inline apply: call mutation directly, no modal for now.
   if (applyingId) {
-    return <ApiApplyForm dropId={applyingId} onDone={() => setApplyingId(null)} />;
+    return (
+      <ApiApplyForm
+        dropId={applyingId}
+        onCancel={() => setApplyingId(null)}
+        onSuccess={() => {
+          setJustAppliedIds((prev) => {
+            const next = new Set(prev);
+            next.add(applyingId);
+            return next;
+          });
+          setApplyingId(null);
+        }}
+      />
+    );
   }
 
   if (isLoading) {
@@ -155,11 +179,19 @@ function ApiDropFeed() {
     );
   }
 
-  return <FeedContent rows={items} onApply={handleApply} disableApply={false} />;
+  return <FeedContent rows={rows} onApply={handleApply} disableApply={false} />;
 }
 
 /** Inline apply form shown when user clicks Apply on a drop card. */
-function ApiApplyForm({ dropId, onDone }: { dropId: string; onDone: () => void }) {
+function ApiApplyForm({
+  dropId,
+  onCancel,
+  onSuccess,
+}: {
+  dropId: string;
+  onCancel: () => void;
+  onSuccess: () => void;
+}) {
   const mutation = useApplyToDrop(dropId);
   const [pitch, setPitch] = useState("");
 
@@ -168,7 +200,7 @@ function ApiApplyForm({ dropId, onDone }: { dropId: string; onDone: () => void }
     // open so the inline error shows and the user can retry. Await mutateAsync
     // so the hook's optimistic alreadyApplied + invalidate finish before we
     // remount the feed (otherwise E2E still sees "Apply").
-    void mutation.mutateAsync(pitch || undefined).then(() => onDone());
+    void mutation.mutateAsync(pitch || undefined).then(() => onSuccess());
   };
 
   return (
@@ -186,7 +218,7 @@ function ApiApplyForm({ dropId, onDone }: { dropId: string; onDone: () => void }
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={onDone}
+            onClick={onCancel}
             className="flex-1 rounded-lg border border-buzz-lineMid px-4 py-2 text-sm font-bold text-buzz-inkMuted hover:bg-buzz-cream"
           >
             Cancel

@@ -70,6 +70,21 @@ function onAuthRoute(): boolean {
   );
 }
 
+/**
+ * Public marketing/legal pages also skip auto-dev-login. Visiting `/` must stay
+ * anonymous so Join Us → `/login` is testable; portal routes (`/org/*`, etc.)
+ * still auto-login for local DX without Instagram.
+ */
+function onPublicMarketingRoute(): boolean {
+  const p = window.location.pathname;
+  return (
+    p === "/" ||
+    p.startsWith("/privacy") ||
+    p.startsWith("/terms") ||
+    p.startsWith("/data-deletion")
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("idle");
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -99,9 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       // Dev-only convenience: auto-login as the seeded org so local dev has a
       // session without the Instagram flow (dev-login 404s in prod). Skip it on
-      // an auth route — someone explicitly visiting /login or /brand/login should
-      // not be silently signed in as the default org.
-      if (!onAuthRoute()) {
+      // auth + public marketing routes — Join Us → /login must not bounce an
+      // already-authenticated org to /org/browse.
+      if (!onAuthRoute() && !onPublicMarketingRoute()) {
         const dev = await devLogin();
         if (dev) {
           const me = await fetchMe();
