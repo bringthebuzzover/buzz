@@ -251,7 +251,7 @@ class TestFinalizeApplicants:
 
     async def test_drop_not_in_selection_stage(self, app_client: AsyncClient, db_session):
         _, _, headers = await _brand_ctx(db_session)
-        # Create a drop in request_received stage (not finalizing_agreements)
+        # A live drop must not finalize (request_received auto-advances when closed).
         brand_user = await persist(db_session, make_user(role=PortalRole.BRAND))
         brand = await make_brand(db_session, brand_name="Stage Brand")
         brand.user_id = brand_user.id
@@ -259,7 +259,7 @@ class TestFinalizeApplicants:
         drop = await make_drop(
             db_session,
             brand,
-            stage=BrandTrackerStage.REQUEST_RECEIVED,
+            stage=BrandTrackerStage.DROP_ACTIVE,
             apply_open_at=datetime.now(timezone.utc) - timedelta(days=30),
             apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
         )
@@ -357,6 +357,69 @@ class TestFinalizeApplicants:
         assert res.status_code == 200, res.text
         await db_session.refresh(drop)
         assert drop.manual_reopen is False
+
+    async def test_finalize_auto_advances_from_request_received(
+        self, app_client: AsyncClient, db_session
+    ):
+        """When autoclose missed, brand finalize can enter the selection stage."""
+        user = await persist(db_session, make_user(role=PortalRole.BRAND))
+        brand = await make_brand(db_session, brand_name="Stuck Brand")
+        brand.user_id = user.id
+        await db_session.flush()
+        headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+        drop = await make_drop(
+            db_session,
+            brand,
+            stage=BrandTrackerStage.REQUEST_RECEIVED,
+            capacity_total=2,
+            apply_open_at=datetime.now(timezone.utc) - timedelta(days=10),
+            apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
+        )
+        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, org_user)
+        await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
+
+        res = await app_client.post(
+            f"/api/brands/me/drops/{drop.id}/finalize-applicants",
+            json={"allocations": [{"orgId": str(org.id), "units": 0}]},
+            headers=headers,
+        )
+        assert res.status_code == 200, res.text
+        await db_session.refresh(drop)
+        assert drop.brand_tracker_stage == BrandTrackerStage.FINALIZING_AGREEMENTS.value
+        assert drop.applicant_selection_finalized_at is not None
+
+    async def test_finalize_manual_reopen_blocks_auto_advance(
+        self, app_client: AsyncClient, db_session
+    ):
+        user = await persist(db_session, make_user(role=PortalRole.BRAND))
+        brand = await make_brand(db_session, brand_name="Reopen Brand")
+        brand.user_id = user.id
+        await db_session.flush()
+        headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+        drop = await make_drop(
+            db_session,
+            brand,
+            stage=BrandTrackerStage.REQUEST_RECEIVED,
+            capacity_total=2,
+            apply_open_at=datetime.now(timezone.utc) - timedelta(days=10),
+            apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
+        )
+        drop.manual_reopen = True
+        await db_session.flush()
+        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, org_user)
+        await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
+
+        res = await app_client.post(
+            f"/api/brands/me/drops/{drop.id}/finalize-applicants",
+            json={"allocations": [{"orgId": str(org.id), "units": 0}]},
+            headers=headers,
+        )
+        assert res.status_code == 400
+        assert res.json()["error"]["code"] == "DROP_NOT_IN_SELECTION_STAGE"
+        await db_session.refresh(drop)
+        assert drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
 
     async def test_org_not_applied(self, app_client: AsyncClient, db_session):
         _, drop, orgs, headers = await self._setup_finalize(db_session)

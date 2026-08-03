@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
+  useChangeEduEmail,
   useResendVerification,
   useVerifyEmail,
 } from "../../api/hooks/useOnboardingHooks";
@@ -154,8 +155,11 @@ const POLL_INTERVAL_MS = 15_000;
 function AwaitVerification() {
   const { refreshUser } = useAuth();
   const resend = useResendVerification();
+  const changeEmail = useChangeEduEmail();
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showChange, setShowChange] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
 
   // Poll so a verify completed in another tab/device advances this waiting tab
   // automatically (the parent redirects once status leaves
@@ -182,6 +186,24 @@ function AwaitVerification() {
     }
   };
 
+  const onChangeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNotice(null);
+    setError(null);
+    try {
+      const result = await changeEmail.mutateAsync(newEmail.trim());
+      await refreshUser();
+      setShowChange(false);
+      setNotice(`Verification email sent to ${result.emailSentTo}.`);
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not update your email. Please try again.",
+      );
+    }
+  };
+
   return (
     <div className="mx-auto max-w-md px-8 py-24 text-center">
       <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
@@ -204,6 +226,48 @@ function AwaitVerification() {
       >
         {resend.isPending ? "Sending…" : "Resend email"}
       </button>
+
+      <div className="mt-6">
+        {!showChange ? (
+          <button
+            type="button"
+            onClick={() => setShowChange(true)}
+            className="text-sm font-medium text-buzz-inkMuted underline-offset-2 hover:underline"
+          >
+            Wrong email? Change it
+          </button>
+        ) : (
+          <form onSubmit={onChangeEmail} className="space-y-3 text-left">
+            <label className="block text-sm font-medium text-buzz-ink">
+              School email
+              <input
+                type="email"
+                required
+                value={newEmail}
+                onChange={(ev) => setNewEmail(ev.target.value)}
+                className="mt-1 w-full rounded-lg border border-buzz-ink/15 bg-buzz-paper px-3 py-2 text-sm"
+                placeholder="you@university.edu"
+              />
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={changeEmail.isPending}
+                className="rounded-lg bg-buzz-coral px-4 py-2 text-sm font-bold text-buzz-paper disabled:opacity-60"
+              >
+                {changeEmail.isPending ? "Updating…" : "Update & resend"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowChange(false)}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-buzz-inkMuted"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
 
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">

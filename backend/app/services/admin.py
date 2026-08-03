@@ -193,6 +193,31 @@ async def list_brands(db: AsyncSession, *, status: str | None = None) -> list[di
     ]
 
 
+async def create_brand(
+    db: AsyncSession,
+    *,
+    brand_name: str,
+    company_email: str,
+    instagram_handle: str | None,
+    intent_message: str | None,
+    approve_now: bool = False,
+) -> dict[str, Any]:
+    """Admin-provision a brand account; optionally approve and send the invite."""
+    from app.services.brand_auth import apply_brand
+
+    created = await apply_brand(
+        db,
+        brand_name=brand_name,
+        company_email=company_email,
+        instagram_handle=instagram_handle,
+        intent_message=intent_message,
+    )
+    brand_id = UUID(created["brand_id"])
+    if approve_now:
+        return await approve_brand(db, brand_id)
+    return created
+
+
 async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     """Approve a pending brand, create an invite token, and send the setup email."""
     brand = await db.get(Brand, brand_id)

@@ -21,6 +21,7 @@ from app.response import APIResponse, api_response
 from app.schemas.admin import (
     AdminBrandDetail,
     AdminBrandItem,
+    AdminCreateBrandRequest,
     AdminDropDetail,
     AdminDropItem,
     AdminHealthResponse,
@@ -41,6 +42,7 @@ from app.services.admin import (
     approve_org,
     clear_manual_reopen,
     clear_org_instagram_token,
+    create_brand,
     deny_brand,
     deny_org,
     list_brands,
@@ -190,6 +192,24 @@ async def get_brand_detail_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     return api_response(data=AdminBrandDetail(**await get_brand_detail(db, brand_id)))
+
+
+@router.post("/brands", response_model=APIResponse)
+async def create_brand_endpoint(
+    payload: AdminCreateBrandRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Provision a brand (and optionally approve + invite) when self-reg is off."""
+    result = await create_brand(
+        db,
+        brand_name=payload.brand_name,
+        company_email=payload.company_email,
+        instagram_handle=payload.instagram_handle,
+        intent_message=payload.intent_message,
+        approve_now=payload.approve_now,
+    )
+    return api_response(data=camelize(result))
 
 
 @router.post("/brands/{brand_id}/approve", response_model=APIResponse)

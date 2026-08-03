@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +29,92 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
+
+
+async def _release_unverified_edu_claim(
+    db: AsyncSession,
+    *,
+    claimant_id: uuid.UUID,
+    edu_email: str,
+) -> None:
+    """Raise EDU_EMAIL_TAKEN or clear an abandoned unverified peer claim.
+
+    Verified addresses are never released. Unverified peers younger than
+    ``EDU_EMAIL_UNVERIFIED_CLAIM_TTL_HOURS`` still block; older claims are
+    cleared so a typo / abandoned signup cannot permanently lock the address.
+    """
+    existing = await db.scalar(
+        select(User).where(User.edu_email == edu_email, User.id != claimant_id)
+    )
+    if existing is None:
+        return
+
+    if existing.email_verified_at is not None:
+        raise BuzzAPIException(
+            errors.EDU_EMAIL_TAKEN,
+            "This .edu email is already associated with another account.",
+            status_code=409,
+        )
+
+    org = await db.scalar(select(Organization).where(Organization.user_id == existing.id))
+    claim_at = _as_utc(org.created_at if org is not None else existing.created_at)
+    age = _now() - claim_at
+    if age < timedelta(hours=settings.EDU_EMAIL_UNVERIFIED_CLAIM_TTL_HOURS):
+        raise BuzzAPIException(
+            errors.EDU_EMAIL_TAKEN,
+            "This .edu email is already associated with another account.",
+            status_code=409,
+        )
+
+    existing.edu_email = None
+    await db.execute(
+        update(EmailVerificationToken)
+        .where(
+            EmailVerificationToken.user_id == existing.id,
+            EmailVerificationToken.used_at.is_(None),
+        )
+        .values(expires_at=_now())
+    )
+    await db.flush()
+
+
+async def _invalidate_verification_tokens(db: AsyncSession, user_id: uuid.UUID) -> None:
+    """Expire unused verification tokens so old inbox links stop working."""
+    await db.execute(
+        update(EmailVerificationToken)
+        .where(
+            EmailVerificationToken.user_id == user_id,
+            EmailVerificationToken.used_at.is_(None),
+        )
+        .values(expires_at=_now())
+    )
+
+
+async def _mint_and_send_verification(
+    db: AsyncSession,
+    user: User,
+    edu_email: str,
+    *,
+    org_name: str = "",
+) -> str:
+    token = secrets.token_urlsafe(48)
+    evt = EmailVerificationToken(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        token=token,
+        email=edu_email,
+        expires_at=_now() + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
+    )
+    db.add(evt)
+    await db.flush()
+    await send_verification_email(edu_email, token, org_name=org_name)
+    return token
+
+
 async def submit_org_onboarding(
     db: AsyncSession,
     user: User,
@@ -38,7 +124,8 @@ async def submit_org_onboarding(
 
     Guards:
     - User must be org role + pending_org_profile status.
-    - edu_email must not already be verified by another user.
+    - edu_email must not already be verified by another user (unverified
+      claims older than the TTL may be taken over).
     """
     if user.portal_role != "org":
         raise BuzzAPIException(
@@ -53,16 +140,7 @@ async def submit_org_onboarding(
             status_code=400,
         )
 
-    # Check for duplicate .edu email (unique constraint across users).
-    existing = await db.scalar(
-        select(User).where(User.edu_email == payload.edu_email, User.id != user.id)
-    )
-    if existing is not None:
-        raise BuzzAPIException(
-            errors.EDU_EMAIL_TAKEN,
-            "This .edu email is already associated with another account.",
-            status_code=409,
-        )
+    await _release_unverified_edu_claim(db, claimant_id=user.id, edu_email=payload.edu_email)
 
     org = Organization(
         id=uuid.uuid4(),
@@ -85,17 +163,6 @@ async def submit_org_onboarding(
     user.edu_email = payload.edu_email
     user.status = OrgUserStatus.PENDING_EMAIL_VERIFICATION.value
 
-    token = secrets.token_urlsafe(48)
-    now = _now()
-    evt = EmailVerificationToken(
-        id=uuid.uuid4(),
-        user_id=user.id,
-        token=token,
-        email=payload.edu_email,
-        expires_at=now + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
-    )
-    db.add(evt)
-
     # The SELECTs above narrow the common cases, but two concurrent submits can
     # still race past them. Map each unique violation to its own typed error
     # rather than blanket-labelling everything "edu email taken": a duplicate
@@ -117,13 +184,59 @@ async def submit_org_onboarding(
             status_code=400,
         ) from exc
 
-    await send_verification_email(payload.edu_email, token, org_name=payload.org_name)
+    await _mint_and_send_verification(db, user, payload.edu_email, org_name=payload.org_name)
 
     return {
         "org_id": str(org.id),
         "status": user.status,
         "email_sent_to": payload.edu_email,
     }
+
+
+async def change_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict[str, Any]:
+    """Correct the .edu address while still awaiting verification."""
+    if user.portal_role != "org":
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Only organization users verify a .edu email.",
+            status_code=400,
+        )
+    if user.status != OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Account is not awaiting email verification.",
+            status_code=400,
+        )
+
+    if user.edu_email == edu_email:
+        # Same address — behave like a resend rather than a no-op conflict.
+        return await resend_verification_email(db, user)
+
+    await _release_unverified_edu_claim(db, claimant_id=user.id, edu_email=edu_email)
+
+    org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+    if org is None:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Organization profile is missing.",
+            status_code=400,
+        )
+
+    user.edu_email = edu_email
+    org.edu_email = edu_email
+    await _invalidate_verification_tokens(db, user.id)
+
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        raise BuzzAPIException(
+            errors.EDU_EMAIL_TAKEN,
+            "This .edu email is already associated with another account.",
+            status_code=409,
+        ) from exc
+
+    await _mint_and_send_verification(db, user, edu_email, org_name=org.org_name)
+    return {"email_sent_to": edu_email, "status": user.status}
 
 
 async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
@@ -220,17 +333,6 @@ async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, A
             status_code=429,
         )
 
-    token = secrets.token_urlsafe(48)
-    evt = EmailVerificationToken(
-        id=uuid.uuid4(),
-        user_id=user.id,
-        token=token,
-        email=user.edu_email,
-        expires_at=now + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
-    )
-    db.add(evt)
-    await db.flush()
-
-    await send_verification_email(user.edu_email, token)
+    await _mint_and_send_verification(db, user, user.edu_email)
 
     return {"email_sent_to": user.edu_email}

@@ -491,3 +491,69 @@ class TestAdminRecovery:
         brand = await make_brand(db_session)
         res = await app_client.post(f"/api/admin/brands/{brand.id}/undeny", headers=headers)
         assert res.status_code == 403
+
+
+class TestAdminCreateBrand:
+    async def test_admin_create_without_approve(self, app_client: AsyncClient, db_session):
+        headers = await _admin_headers(db_session)
+        res = await app_client.post(
+            "/api/admin/brands",
+            json={
+                "brandName": "Invited Co",
+                "companyEmail": "invite@brand.test",
+                "instagramHandle": "@invited",
+                "approveNow": False,
+            },
+            headers=headers,
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert data["status"] == BrandStatus.PENDING_REVIEW.value
+
+    async def test_admin_create_approve_now(self, app_client: AsyncClient, db_session):
+        headers = await _admin_headers(db_session)
+        res = await app_client.post(
+            "/api/admin/brands",
+            json={
+                "brandName": "Approve Now Co",
+                "companyEmail": "approve-now@brand.test",
+                "approveNow": True,
+            },
+            headers=headers,
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["data"]["status"] == BrandStatus.APPROVED.value
+        invite = await db_session.scalar(
+            select(BrandInviteToken).where(BrandInviteToken.email == "approve-now@brand.test")
+        )
+        assert invite is not None
+
+    async def test_admin_create_duplicate_email(self, app_client: AsyncClient, db_session):
+        await make_brand(db_session, company_email="dup@brand.test")
+        res = await app_client.post(
+            "/api/admin/brands",
+            json={
+                "brandName": "Dup Co",
+                "companyEmail": "dup@brand.test",
+            },
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 409
+        assert res.json()["error"]["code"] == "BRAND_EMAIL_TAKEN"
+
+    async def test_public_apply_still_gated(self, app_client: AsyncClient, db_session, monkeypatch):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "BRAND_SELF_REGISTRATION_ENABLED", False)
+        public = await app_client.post(
+            "/api/brands/apply",
+            json={"brandName": "Nope", "companyEmail": "nope@brand.test"},
+        )
+        assert public.status_code == 403
+
+        admin = await app_client.post(
+            "/api/admin/brands",
+            json={"brandName": "Admin Path", "companyEmail": "admin-path@brand.test"},
+            headers=await _admin_headers(db_session),
+        )
+        assert admin.status_code == 200, admin.text

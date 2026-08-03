@@ -132,9 +132,20 @@ class Settings(BaseSettings):
         default=24,
         description="Email verification link lifetime in hours.",
     )
+    EDU_EMAIL_UNVERIFIED_CLAIM_TTL_HOURS: int = Field(
+        default=24,
+        description=(
+            "How long an unverified .edu claim blocks another signup. After "
+            "this TTL, a new onboarding/change-email may take over the address."
+        ),
+    )
     BRAND_INVITE_TOKEN_TTL_DAYS: int = Field(
         default=7,
         description="Brand account setup link lifetime in days.",
+    )
+    PASSWORD_RESET_TOKEN_TTL_HOURS: int = Field(
+        default=1,
+        description="Password-reset link lifetime in hours.",
     )
     RESEND_API_KEY: str = Field(
         default="",

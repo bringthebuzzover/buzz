@@ -26,6 +26,7 @@ from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage
 from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.social_post import SocialPost
+from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.services.email import send_application_denied_email
 
@@ -384,14 +385,8 @@ async def finalize_applicants(
             )
         seen.add(oid)
 
-    # Rule 2: stage must be finalizing_agreements
-    if drop.brand_tracker_stage != BrandTrackerStage.FINALIZING_AGREEMENTS.value:
-        raise BuzzAPIException(
-            errors.DROP_NOT_IN_SELECTION_STAGE,
-            "Drop is not in the applicant selection stage.",
-        )
-
-    # Rule 3: apply window must be closed
+    # Rule 3: apply window must be closed (checked before stage so brands can
+    # self-advance out of request_received when autoclose missed).
     now = datetime.now(timezone.utc)
     if drop.apply_close_at.tzinfo is None:
         apply_close = drop.apply_close_at.replace(tzinfo=timezone.utc)
@@ -408,6 +403,29 @@ async def finalize_applicants(
         raise BuzzAPIException(
             errors.ALREADY_FINALIZED,
             "Applicant selection has already been finalized.",
+        )
+
+    # Escape hatch: if autoclose (or admin) never moved the drop into selection,
+    # allow the brand to enter finalizing_agreements on finalize itself.
+    if (
+        drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
+        and not drop.manual_reopen
+    ):
+        drop.brand_tracker_stage = BrandTrackerStage.FINALIZING_AGREEMENTS.value
+        db.add(
+            DropTrackerEvent(
+                drop_id=drop.id,
+                stage=BrandTrackerStage.FINALIZING_AGREEMENTS.value,
+                note="auto-advanced on brand finalize (apply window closed)",
+            )
+        )
+        await db.flush()
+
+    # Rule 2: stage must be finalizing_agreements
+    if drop.brand_tracker_stage != BrandTrackerStage.FINALIZING_AGREEMENTS.value:
+        raise BuzzAPIException(
+            errors.DROP_NOT_IN_SELECTION_STAGE,
+            "Drop is not in the applicant selection stage.",
         )
 
     # Rule 5: selected count ≤ capacity

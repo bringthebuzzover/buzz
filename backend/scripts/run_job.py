@@ -10,7 +10,8 @@ A scheduler (Railway Cron) invokes one job per command, e.g.::
 
 Each job opens its own session, runs, commits, and prints a JSON summary. The
 IG-backed jobs use the real ``get_instagram_client``. Exit code is non-zero on
-failure so the scheduler can alert.
+failure so the scheduler can alert. Every invocation also writes a ``job_runs``
+row for thin observability.
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -30,6 +32,7 @@ from app.jobs.drop_autoclose import auto_close_drops  # noqa: E402
 from app.jobs.metric_sync import sync_metrics  # noqa: E402
 from app.jobs.token_cleanup import cleanup_tokens  # noqa: E402
 from app.jobs.token_refresh import refresh_due_tokens  # noqa: E402
+from app.models.job_run import JobRun  # noqa: E402
 from app.services.instagram import close_instagram_client, get_instagram_client  # noqa: E402
 
 # job name -> (callable, needs_instagram_client)
@@ -44,11 +47,27 @@ _JOBS = {
 
 async def _run(name: str) -> dict:
     fn, needs_ig = _JOBS[name]
+    started = datetime.now(timezone.utc)
     async with async_session_factory() as db:
+        run = JobRun(job=name, started_at=started, ok=False)
+        db.add(run)
+        await db.flush()
         try:
             result = await (fn(db, get_instagram_client()) if needs_ig else fn(db))
+            run.ok = True
+            run.summary = result
+            run.finished_at = datetime.now(timezone.utc)
             await db.commit()
             return result
+        except Exception:
+            run.ok = False
+            run.finished_at = datetime.now(timezone.utc)
+            run.summary = {"error": "job failed"}
+            try:
+                await db.commit()
+            except Exception:  # noqa: BLE001 — best-effort persist of failure row
+                await db.rollback()
+            raise
         finally:
             if needs_ig:
                 await close_instagram_client()

@@ -1,9 +1,9 @@
 """Token cleanup job (architecture.md §10.3).
 
-Daily. Deletes spent (used or expired) email-verification and brand-invite
-tokens after a grace period — they're kept briefly for audit/debugging, then
-swept so the tables don't grow unbounded. Active, unredeemed tokens are never
-touched. Idempotent.
+Daily. Deletes spent (used or expired) email-verification, brand-invite, and
+password-reset tokens after a grace period — they're kept briefly for
+audit/debugging, then swept so the tables don't grow unbounded. Active,
+unredeemed tokens are never touched. Idempotent.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from sqlalchemy import delete, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.brand_invite_token import BrandInviteToken
+from app.models.password_reset_token import PasswordResetToken
 from app.models.verification_token import EmailVerificationToken
 
 _DEFAULT_GRACE_DAYS = 7
@@ -44,9 +45,18 @@ async def cleanup_tokens(
             )
         )
     )
+    resets = await db.execute(
+        delete(PasswordResetToken).where(
+            or_(
+                PasswordResetToken.used_at < cutoff,
+                PasswordResetToken.expires_at < cutoff,
+            )
+        )
+    )
 
     await db.flush()
     return {
         "verification_tokens_deleted": getattr(verif, "rowcount", 0) or 0,
         "brand_invite_tokens_deleted": getattr(invites, "rowcount", 0) or 0,
+        "password_reset_tokens_deleted": getattr(resets, "rowcount", 0) or 0,
     }

@@ -14,11 +14,11 @@ Product behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md). Launch ops: [`
 | -------------- | ------------------------------------------------------------------------------------------------------- |
 | Marketing      | `/` (Join Us → `/login` or `/brand/apply`)                                                              |
 | Legal          | `/privacy`, `/terms`, `/data-deletion`                                                                  |
-| Auth           | `/login` (org Instagram), `/auth/instagram/callback`, `/brand/login`, `/brand/setup`, `/brand/apply`, `/admin/login` |
+| Auth           | `/login` (org Instagram), `/auth/instagram/callback`, `/brand/login`, `/brand/forgot-password`, `/brand/reset-password`, `/brand/setup`, `/brand/apply`, `/admin/login`, `/admin/forgot-password`, `/admin/reset-password` |
 | Org onboarding | `/onboarding/profile`, `/onboarding/verify-email`, `/onboarding/pending-approval`, `/onboarding/denied` |
 | Org portal     | `/org/browse`, `/org/campaigns`, `/org/campaigns/:campaignId`                                           |
 | Brand portal   | `/brand/dashboard`, `/brand/drops/:dropId`, `/brand/requests/new`                                       |
-| Admin          | `/admin` (impersonation console)                                                                        |
+| Admin          | `/admin` (overview, queues, drops, health, Invite brand, View as)                                       |
 
 Portals are gated by real auth (`RequireAuth` → `RequireStatus` → `RequireRole`), not a demo passcode. Public join intent goes through real account paths: student orgs via Instagram (`/login`), brands via `/brand/apply`.
 

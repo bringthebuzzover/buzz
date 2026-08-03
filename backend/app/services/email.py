@@ -163,6 +163,36 @@ async def send_application_denied_email(
     await _dispatch(to_email, subject, body)
 
 
+async def send_password_reset_email(
+    to_email: str,
+    token: str,
+    *,
+    portal: str,
+) -> None:
+    """Send a brand or admin password-reset link."""
+    path = "/brand/reset-password" if portal == "brand" else "/admin/reset-password"
+    reset_url = f"{settings.FRONTEND_URL}{path}?token={token}"
+    subject = "Reset your Buzz password"
+    body = (
+        "We received a request to reset your Buzz password.\n\n"
+        f"Click the link below to choose a new password:\n\n{reset_url}\n\n"
+        "If you did not request this, you can ignore this email. "
+        "The link expires in one hour."
+    )
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Password reset link:                           ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            f"║  URL: {reset_url:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return
+
+    await _dispatch(to_email, subject, body)
+
+
 async def _dispatch(to_email: str, subject: str, body: str) -> None:
     """Send one email through Resend. Best-effort: never raises.
 
@@ -186,10 +216,20 @@ async def _dispatch(to_email: str, subject: str, body: str) -> None:
                 },
             )
             resp.raise_for_status()
+            resend_id = None
+            try:
+                resend_id = resp.json().get("id")
+            except Exception:  # noqa: BLE001 — body parse is best-effort
+                resend_id = None
     except Exception:  # noqa: BLE001 — email is best-effort; log, don't break the caller
         logger.exception("Email send failed: to=%s subject=%s", to_email, subject)
         return
-    logger.info("Email dispatched: to=%s subject=%s", to_email, subject)
+    logger.info(
+        "Email dispatched: to=%s subject=%s resend_id=%s",
+        to_email,
+        subject,
+        resend_id,
+    )
 
 
 def _verification_body(verify_url: str, org_name: str) -> str:

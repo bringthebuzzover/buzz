@@ -247,6 +247,15 @@ def test_on_login_enqueues_near_expiry() -> None:
     assert len(bg.tasks) == 1
 
 
+def test_on_login_enqueues_last_day_not_expired() -> None:
+    """Sub-day remaining must refresh, not raise INSTAGRAM_TOKEN_EXPIRED."""
+    user = _org_with_token(days_to_expiry=0)
+    user.instagram_token_expires_at = _now() + timedelta(hours=12)
+    bg = BackgroundTasks()
+    maybe_refresh_on_login(user, bg, FakeInstagramClient())
+    assert len(bg.tasks) == 1
+
+
 def test_on_login_raises_when_expired() -> None:
     user = _org_with_token(days_to_expiry=-1)
     try:
@@ -255,6 +264,15 @@ def test_on_login_raises_when_expired() -> None:
         assert exc.code == "INSTAGRAM_TOKEN_EXPIRED"
     else:
         raise AssertionError("expected INSTAGRAM_TOKEN_EXPIRED")
+
+
+async def test_token_refresh_cron_includes_last_day(db_session) -> None:
+    user = await persist(db_session, _org_with_token(days_to_expiry=0))
+    user.instagram_token_expires_at = _now() + timedelta(hours=12)
+    await db_session.flush()
+    result = await refresh_due_tokens(db_session, FakeInstagramClient())
+    assert result["candidates"] == 1
+    assert result["refreshed"] == 1
 
 
 def test_on_login_noop_for_brand() -> None:
@@ -481,11 +499,10 @@ async def test_token_refresh_cron_counts_failures_and_keeps_token(db_session) ->
     assert user.instagram_access_token == original  # old token preserved
 
 
-async def test_token_refresh_cron_skips_imminent_expiry(db_session) -> None:
-    # expires in 12h -> inside the "don't bother" minimum -> not a candidate
-    user = make_user(instagram_user_id="ig_soon")
+async def test_token_refresh_cron_skips_already_expired(db_session) -> None:
+    user = make_user(instagram_user_id="ig_expired")
     user.instagram_access_token = encrypt_token("x")
-    user.instagram_token_expires_at = _now() + timedelta(hours=12)
+    user.instagram_token_expires_at = _now() - timedelta(hours=1)
     await persist(db_session, user)
     result = await refresh_due_tokens(db_session, FakeInstagramClient())
     assert result["candidates"] == 0
@@ -619,3 +636,45 @@ async def test_metric_sync_discovery_skips_old_and_existing(db_session) -> None:
     ]
     result = await sync_metrics(db_session, fake)
     assert result["posts_discovered"] == 0
+
+
+async def test_job_runner_persists_job_run(db_session, monkeypatch) -> None:
+    """``scripts/run_job.py`` writes a job_runs row per invocation."""
+    import importlib.util
+    from pathlib import Path
+
+    from app.models.job_run import JobRun
+
+    path = Path(__file__).resolve().parents[1] / "scripts" / "run_job.py"
+    spec = importlib.util.spec_from_file_location("run_job_under_test", path)
+    assert spec is not None and spec.loader is not None
+    run_job = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_job)
+
+    async def _noop(_db):
+        return {"cleaned": 0}
+
+    monkeypatch.setitem(run_job._JOBS, "token_cleanup", (_noop, False))
+
+    class _Ctx:
+        async def __aenter__(self):
+            return db_session
+
+        async def __aexit__(self, *args):
+            return None
+
+    monkeypatch.setattr(run_job, "async_session_factory", lambda: _Ctx())
+
+    # Avoid committing the outer test transaction; flush is enough for assertions.
+    async def _flush_only():
+        await db_session.flush()
+
+    monkeypatch.setattr(db_session, "commit", _flush_only)
+
+    result = await run_job._run("token_cleanup")
+    assert result == {"cleaned": 0}
+    row = await db_session.scalar(select(JobRun).where(JobRun.job == "token_cleanup"))
+    assert row is not None
+    assert row.ok is True
+    assert row.finished_at is not None
+    assert row.summary == {"cleaned": 0}

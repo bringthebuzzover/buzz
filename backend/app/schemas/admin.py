@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import field_serializer
+from pydantic import field_serializer, field_validator
 
 from app.schemas.auth import UserResponse
 from app.schemas.common import CamelModel, to_epoch_ms
@@ -55,6 +55,24 @@ class TrackerAdvanceRequest(CamelModel):
 
 class TrackingRepairRequest(CamelModel):
     tracking_number: str
+
+
+class AdminCreateBrandRequest(CamelModel):
+    """Admin-provisioned brand (works when public self-reg is off)."""
+
+    brand_name: str
+    company_email: str
+    instagram_handle: str | None = None
+    intent_message: str | None = None
+    approve_now: bool = False
+
+    @field_validator("company_email")
+    @classmethod
+    def _valid_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        if "@" not in v or "." not in v.split("@")[-1] or len(v) > 320:
+            raise ValueError("Invalid email address")
+        return v
 
 
 class AdminUserItem(CamelModel):

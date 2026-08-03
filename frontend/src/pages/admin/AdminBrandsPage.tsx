@@ -7,10 +7,12 @@
  * the brand status and the password together to say whether anyone can actually
  * log in.
  */
+import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   useAdminBrands,
   useApproveBrand,
+  useCreateBrand,
   useDenyBrand,
   useViewAs,
   type AdminBrandRow,
@@ -38,6 +40,9 @@ const FILTERS = [
 
 const HEADERS = ["Brand", "Status", "Access", "Contact", "Waiting", ""] as const;
 
+const inputClass =
+  "w-full rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-2 text-sm font-medium text-buzz-ink outline-none focus:border-buzz-coral";
+
 /** Can this brand actually sign in, and if not, why not? */
 function AccessPill({ row }: { row: AdminBrandRow }) {
   if (row.status === "approved" && !row.passwordSet) {
@@ -48,6 +53,98 @@ function AccessPill({ row }: { row: AdminBrandRow }) {
   }
   if (row.passwordSet) return <Pill tone="good">Can sign in</Pill>;
   return <Pill>Not invited yet</Pill>;
+}
+
+function InviteBrandForm() {
+  const create = useCreateBrand();
+  const [brandName, setBrandName] = useState("");
+  const [companyEmail, setCompanyEmail] = useState("");
+  const [instagramHandle, setInstagramHandle] = useState("");
+  const [approveNow, setApproveNow] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    setError(null);
+    try {
+      await create.mutateAsync({
+        brandName: brandName.trim(),
+        companyEmail: companyEmail.trim(),
+        instagramHandle: instagramHandle.trim() || undefined,
+        approveNow,
+      });
+      setBrandName("");
+      setCompanyEmail("");
+      setInstagramHandle("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create brand.");
+    }
+  };
+
+  return (
+    <Panel
+      title="Invite brand"
+      description="Works even when public self-registration is off. Approve now sends the setup invite immediately."
+    >
+      <div className="space-y-3 px-4 py-4">
+        {error && <ErrorNote>{error}</ErrorNote>}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
+              Brand name
+            </span>
+            <input
+              data-testid="invite-brand-name"
+              className={inputClass}
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
+              Company email
+            </span>
+            <input
+              data-testid="invite-brand-email"
+              type="email"
+              className={inputClass}
+              value={companyEmail}
+              onChange={(e) => setCompanyEmail(e.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
+              Instagram (optional)
+            </span>
+            <input
+              data-testid="invite-brand-instagram"
+              className={inputClass}
+              value={instagramHandle}
+              onChange={(e) => setInstagramHandle(e.target.value)}
+            />
+          </label>
+          <label className="flex items-end gap-2 pb-2 text-sm font-medium text-buzz-ink">
+            <input
+              data-testid="invite-brand-approve-now"
+              type="checkbox"
+              checked={approveNow}
+              onChange={(e) => setApproveNow(e.target.checked)}
+            />
+            Approve and send invite now
+          </label>
+        </div>
+        <ActionButton
+          variant="primary"
+          testId="invite-brand-submit"
+          disabled={
+            create.isPending || !brandName.trim() || !companyEmail.trim()
+          }
+          onClick={() => void submit()}
+        >
+          {create.isPending ? "Creating…" : "Create brand"}
+        </ActionButton>
+      </div>
+    </Panel>
+  );
 }
 
 export default function AdminBrandsPage() {
@@ -65,7 +162,7 @@ export default function AdminBrandsPage() {
     <div>
       <PageHeading
         title="Brands"
-        subtitle="Approving a brand emails a setup invite that expires in 7 days. If it lapses, the account has no way to set a password."
+        subtitle="Approving a brand emails a setup invite that expires in 7 days. If it lapses, use Resend invite on the brand detail page."
       />
 
       {viewAsError && <ErrorNote>{viewAsError}</ErrorNote>}
@@ -74,6 +171,8 @@ export default function AdminBrandsPage() {
           That decision did not go through. Reload and try again.
         </ErrorNote>
       )}
+
+      <InviteBrandForm />
 
       <FilterChips
         options={FILTERS}
