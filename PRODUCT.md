@@ -53,7 +53,7 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 
 - No end user may belong to **both** the Brand portal and the Organization portal.
 - Routing and permissions enforce a **single portal** per authenticated user.
-- **Organization users** sign in with **Login with Instagram** (Instagram is the account identity for the org portal).
+- **Organization users** sign in with **Login with Instagram** (Instagram is the account identity for the org portal). The Instagram account used at login **is** the organization account (Business/Creator); the org handle is not separately choosable.
 - On first signup, the org completes a short profile—**university**, **org name**, \# of members, address, and a **university .edu email** address—and must **verify** that email before the Organization portal **grants access**. Until verification succeeds, the user remains in a pending state (no full portal access).
 
 ### 3.2 Demo behavior
@@ -181,7 +181,7 @@ A separate **high-level** view across **all** the brand’s drops:
 
 ### 6.1 Onboarding
 
-1. Org user chooses **Login with Instagram** (creates or signs into a Buzz account tied to that Instagram identity).
+1. Org user chooses **Login with Instagram** using the **organization’s** Instagram Business/Creator account (creates or signs into a Buzz account tied to that Instagram identity; this login account is the org identity — not a personal member account).
 2. The app collects **university**, **org name**, and a **university .edu email** address (must match the org’s campus).
 3. Buzz sends a **verification** to that **.edu** address; the user completes verification.
 4. After **verified .edu** email, the org enters **pending Buzz review** — a Buzz admin manually reviews the org and **approves** or **denies** it.
@@ -336,7 +336,7 @@ Aggregated all drops →  Brand aggregate dashboard
 | Brand | Drop request        | Submit request; view read-only tracker                                                                                           |
 | Brand | Per-drop dashboard  | Approve/deny applicants by org; per-org posts + metrics; drop KPIs; UGC preview/download                                         |
 | Brand | Aggregate dashboard | Totals, time series, compare drops, running totals                                                                               |
-| Org   | Onboarding          | Login with Instagram; university + org name + **.edu**; verify email → access                                                    |
+| Org   | Onboarding          | Login with org Instagram account; university + org name + **.edu**; verify email → access                                                    |
 | Org   | Drop Feed           | Browse; countdown + Notify Me (local); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts when Active                                                                                           |
 | Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; timing/reopen/fulfillment coordination; integrations (see §5.2.1 TODO) |

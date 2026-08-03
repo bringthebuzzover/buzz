@@ -45,9 +45,12 @@ class OrgProfileUpdate(CamelModel):
     """Editable subset of the org profile (all optional; PATCH semantics).
 
     Only provided fields are applied (``model_dump(exclude_unset=True)``).
-    ``edu_email`` is intentionally absent — it is the verified login identity.
+    ``edu_email`` and ``instagram_handle`` are intentionally absent — edu is
+    the verified login identity; the IG handle mirrors the OAuth username and
+    is not separately choosable.
     ``extra="forbid"`` so an unknown/typo'd key (or an attempt to send
-    ``eduEmail``) is a 422 rather than a silently-ignored no-op write.
+    ``eduEmail`` / ``instagramHandle``) is a 422 rather than a silently-ignored
+    no-op write.
     """
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
@@ -56,7 +59,6 @@ class OrgProfileUpdate(CamelModel):
     # otherwise flush an IntegrityError → 500). Omitting them is still fine.
     org_name: str | None = None
     university: str | None = None
-    instagram_handle: str | None = None
     # Genuinely-nullable columns: sending ``null`` is an intentional "clear".
     tiktok_handle: str | None = None
     follower_count: int | None = None
@@ -67,7 +69,7 @@ class OrgProfileUpdate(CamelModel):
     contact_name: str | None = None
     delivery_address: str | None = None
 
-    @field_validator("org_name", "university", "instagram_handle")
+    @field_validator("org_name", "university")
     @classmethod
     def _required_non_blank(cls, value: str | None) -> str | None:
         if value is None:

@@ -78,14 +78,26 @@ async def test_patch_me_validation_error(app_client: AsyncClient, db_session) ->
     assert isinstance(body["error"]["details"]["errors"], list)
 
 
-async def test_patch_me_null_required_field_rejected(app_client: AsyncClient, db_session) -> None:
+async def test_patch_me_rejects_instagram_handle(app_client: AsyncClient, db_session) -> None:
     headers, org = await _org_headers(db_session)
-    # instagram_handle is NOT NULL — explicit null must 422, not flush a 500.
-    resp = await app_client.patch("/api/orgs/me", headers=headers, json={"instagramHandle": None})
+    # Handle mirrors OAuth username — not editable via PATCH.
+    resp = await app_client.patch(
+        "/api/orgs/me", headers=headers, json={"instagramHandle": "evilorg"}
+    )
     assert resp.status_code == 422
     assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
     refreshed = await db_session.scalar(select(Organization).where(Organization.id == org.id))
     assert refreshed.instagram_handle == "testorg"
+
+
+async def test_patch_me_null_required_field_rejected(app_client: AsyncClient, db_session) -> None:
+    headers, org = await _org_headers(db_session)
+    # org_name is NOT NULL — explicit null must 422, not flush a 500.
+    resp = await app_client.patch("/api/orgs/me", headers=headers, json={"orgName": None})
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
+    refreshed = await db_session.scalar(select(Organization).where(Organization.id == org.id))
+    assert refreshed.org_name == "Berkeley Rowing"
 
 
 async def test_get_me_requires_auth(app_client: AsyncClient, db_session) -> None:

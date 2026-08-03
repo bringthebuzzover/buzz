@@ -603,10 +603,6 @@
             ],
             "title": "Followercount"
           },
-          "instagramHandle": {
-            "title": "Instagramhandle",
-            "type": "string"
-          },
           "memberCount": {
             "anyOf": [
               {
@@ -652,15 +648,14 @@
         "required": [
           "orgName",
           "university",
-          "eduEmail",
-          "instagramHandle"
+          "eduEmail"
         ],
         "title": "OrgOnboardingRequest",
         "type": "object"
       },
       "OrgProfileUpdate": {
         "additionalProperties": false,
-        "description": "Editable subset of the org profile (all optional; PATCH semantics).\n\nOnly provided fields are applied (``model_dump(exclude_unset=True)``).\n``edu_email`` is intentionally absent \u2014 it is the verified login identity.\n``extra=\"forbid\"`` so an unknown/typo'd key (or an attempt to send\n``eduEmail``) is a 422 rather than a silently-ignored no-op write.",
+        "description": "Editable subset of the org profile (all optional; PATCH semantics).\n\nOnly provided fields are applied (``model_dump(exclude_unset=True)``).\n``edu_email`` and ``instagram_handle`` are intentionally absent \u2014 edu is\nthe verified login identity; the IG handle mirrors the OAuth username and\nis not separately choosable.\n``extra=\"forbid\"`` so an unknown/typo'd key (or an attempt to send\n``eduEmail`` / ``instagramHandle``) is a 422 rather than a silently-ignored\nno-op write.",
         "properties": {
           "category": {
             "anyOf": [
@@ -715,17 +710,6 @@
               }
             ],
             "title": "Followercount"
-          },
-          "instagramHandle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Instagramhandle"
           },
           "memberCount": {
             "anyOf": [

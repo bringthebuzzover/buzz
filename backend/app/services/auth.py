@@ -16,11 +16,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
+from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.security import jwt
 from app.security.token_crypto import encrypt_token
-from app.services.instagram import ALLOWED_ACCOUNT_TYPES, InstagramClient
+from app.services.instagram import (
+    ALLOWED_ACCOUNT_TYPES,
+    InstagramClient,
+    canonical_instagram_handle,
+)
 
 
 def _now() -> datetime:
@@ -81,6 +86,12 @@ async def handle_instagram_callback(
         existing.instagram_token_refreshed_at = now
         existing.last_login_at = now
         user = existing
+
+        # Keep organizations.instagram_handle in lockstep with the OAuth username
+        # (org portal identity = Instagram login account).
+        org = await db.scalar(select(Organization).where(Organization.user_id == existing.id))
+        if org is not None:
+            org.instagram_handle = canonical_instagram_handle(profile.username)
 
     # flush (not commit): the request-scoped get_db dependency commits on a
     # clean response and rolls back on error, so every service uses flush() for

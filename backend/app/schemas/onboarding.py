@@ -19,7 +19,7 @@ class OrgOnboardingRequest(CamelModel):
     org_name: str
     university: str
     edu_email: str
-    instagram_handle: str
+    # instagram_handle is derived from the OAuth login username — not client-supplied.
     tiktok_handle: str | None = None
     follower_count: int | None = None
     member_count: int | None = None
@@ -43,7 +43,7 @@ class OrgOnboardingRequest(CamelModel):
             raise ValueError("Must be a valid .edu email address")
         return v
 
-    @field_validator("org_name", "university", "instagram_handle")
+    @field_validator("org_name", "university")
     @classmethod
     def _non_empty(cls, v: str) -> str:
         if not v.strip():

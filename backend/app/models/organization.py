@@ -1,7 +1,10 @@
 """``organizations`` table — student-org profile.
 
-Owns IG handle + university + delivery address. ``user_id`` is unique so
-one Buzz account maps to one org profile; deleting the user cascades.
+Owns university + delivery address and related club metadata. ``user_id`` is
+unique so one Buzz account maps to one org profile; deleting the user cascades.
+
+``instagram_handle`` mirrors ``users.instagram_username`` (OAuth login = org
+identity); it is not independently editable.
 """
 
 from __future__ import annotations
