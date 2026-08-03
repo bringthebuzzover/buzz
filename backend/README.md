@@ -104,8 +104,8 @@ GET    /api/drops/{id}                         org-facing drop detail (acceptedC
 POST   /api/drops/{id}/apply                   apply { pitch? } -> DROP_NOT_OPEN | ALREADY_APPLIED | CAPACITY_EXCEEDED
 POST   /api/drops/{id}/notify                  set reminder { reminderMinutes: 5|15|60 } (upsert)
 DELETE /api/drops/{id}/notify                  remove reminder (idempotent)
-GET    /api/orgs/me                            org profile
-PATCH  /api/orgs/me                            update editable subset (extra=forbid; edu_email not editable)
+GET    /api/orgs/me                            org profile (eduEmail + instagramHandle projected from users)
+PATCH  /api/orgs/me                            update editable subset (extra=forbid; edu_email / instagram_handle not editable)
 GET    /api/orgs/me/posts                      post library (flattened metrics + linkedApplicationId)
 POST   /api/orgs/me/posts/refresh              IG re-sync (Stage 8 stub: returns current posts)
 GET    /api/campaigns                          my campaigns (excludes denied; sorted active→accepted→applied→finished)

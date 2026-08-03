@@ -66,7 +66,7 @@ async def apply_drop(
     """Apply to a drop (``DROP_NOT_OPEN`` / ``ALREADY_APPLIED`` / ``CAPACITY_EXCEEDED``)."""
 
     application = await apply_to_drop(db, user, drop_id, payload.pitch)
-    return api_response(data=build_application_response(application))
+    return api_response(data=await build_application_response(db, application))
 
 
 @router.post("/{drop_id}/notify", response_model=APIResponse)

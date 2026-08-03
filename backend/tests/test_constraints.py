@@ -78,8 +78,6 @@ async def _seed_org_brand_drop_post(
         user_id=org_user.id,
         org_name=f"Org {suffix}",
         university="Test U",
-        edu_email=org_user.edu_email or f"{suffix}@uni.edu",
-        instagram_handle=f"org_{suffix}",
     )
     brand = Brand(
         user_id=brand_user.id,
@@ -92,7 +90,6 @@ async def _seed_org_brand_drop_post(
 
     drop = Drop(
         brand_id=brand.id,
-        brand_name=brand.brand_name,
         title=f"Drop {suffix}",
         description="x",
         image="https://example.com/img.png",
@@ -135,13 +132,12 @@ async def test_one_post_one_campaign(db_session: AsyncSession) -> None:
     flow is allowed to be naive (just insert a new link after deleting the old).
     """
 
-    _, _, drop, post, app = await _seed_org_brand_drop_post(db_session, "linkone")
+    _, _, _drop, post, app = await _seed_org_brand_drop_post(db_session, "linkone")
 
     db_session.add(
         PostCampaignLink(
             post_id=post.id,
             application_id=app.id,
-            drop_id=drop.id,
             source=PostLinkSource.ORG_MANUAL.value,
         )
     )
@@ -151,7 +147,6 @@ async def test_one_post_one_campaign(db_session: AsyncSession) -> None:
         PostCampaignLink(
             post_id=post.id,  # same post — must collide
             application_id=app.id,
-            drop_id=drop.id,
             source=PostLinkSource.AUTO_SUGGESTED.value,
         )
     )
@@ -216,13 +211,12 @@ async def test_drop_application_denied_coexists_with_active(
 async def test_suggestion_unique_post_application(db_session: AsyncSession) -> None:
     """``post_campaign_suggestions`` is idempotent on (post_id, application_id)."""
 
-    _, _, drop, post, app = await _seed_org_brand_drop_post(db_session, "sugone")
+    _, _, _drop, post, app = await _seed_org_brand_drop_post(db_session, "sugone")
 
     db_session.add(
         PostCampaignSuggestion(
             post_id=post.id,
             application_id=app.id,
-            drop_id=drop.id,
             match_reason=SuggestionMatchReason.BRAND_HANDLE_CAPTION.value,
             match_evidence="@brand",
         )
@@ -233,7 +227,6 @@ async def test_suggestion_unique_post_application(db_session: AsyncSession) -> N
         PostCampaignSuggestion(
             post_id=post.id,
             application_id=app.id,
-            drop_id=drop.id,
             match_reason=SuggestionMatchReason.CAMPAIGN_HASHTAG.value,
             match_evidence="#brandtag",
         )

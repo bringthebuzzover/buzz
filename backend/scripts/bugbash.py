@@ -198,8 +198,6 @@ async def db_make_active_org(suffix: str) -> tuple[uuid.UUID, uuid.UUID]:
             user_id=user.id,
             org_name=f"Bash Org {suffix}",
             university="Bash University",
-            edu_email=user.edu_email,
-            instagram_handle=f"bashorg{suffix}",
             follower_count=1000,
         )
         db.add(org)
@@ -234,7 +232,6 @@ async def db_make_finalize_ready_drop() -> dict[str, Any]:
         drop = Drop(
             id=uuid.uuid4(),
             brand_id=brand.id,
-            brand_name=brand.brand_name,
             title=f"Bash Drop {suffix}",
             description="finalize-ready",
             image="https://example.test/i.png",
@@ -264,8 +261,6 @@ async def db_make_finalize_ready_drop() -> dict[str, Any]:
                 user_id=ou.id,
                 org_name=f"Applicant {i} {suffix}",
                 university="Bash U",
-                edu_email=ou.edu_email,
-                instagram_handle=f"bashapp{suffix}{i}",
                 follower_count=500 * (i + 1),
             )
             db.add(org)

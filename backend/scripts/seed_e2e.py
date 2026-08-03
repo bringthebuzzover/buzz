@@ -37,7 +37,6 @@ async def _add_open_drop() -> None:
             Drop(
                 id=E2E_DROP_ID,
                 brand_id=_uuid(20),  # Acme Coffee (from seed_dev)
-                brand_name="Acme Coffee",
                 title=E2E_DROP_TITLE,
                 description="Deterministic open drop for the apply E2E.",
                 image="https://example.test/e2e.png",

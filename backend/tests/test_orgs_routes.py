@@ -7,17 +7,19 @@ from sqlalchemy import select
 
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.organization import Organization
+from app.models.user import User
 from tests.conftest import make_org, make_user, mint_access_token, persist
 
 
-async def _org_headers(db_session) -> tuple[dict[str, str], Organization]:
+async def _org_headers(db_session) -> tuple[dict[str, str], Organization, User]:
     user = await persist(db_session, make_user())
+    user.edu_email = "org@test.edu"
     org = await make_org(db_session, user, org_name="Berkeley Rowing")
-    return {"Authorization": f"Bearer {mint_access_token(user)}"}, org
+    return {"Authorization": f"Bearer {mint_access_token(user)}"}, org, user
 
 
 async def test_get_me_returns_profile(app_client: AsyncClient, db_session) -> None:
-    headers, org = await _org_headers(db_session)
+    headers, org, _user = await _org_headers(db_session)
     resp = await app_client.get("/api/orgs/me", headers=headers)
     assert resp.status_code == 200
     data = resp.json()["data"]
@@ -38,7 +40,7 @@ async def test_get_me_404_when_no_profile(app_client: AsyncClient, db_session) -
 
 
 async def test_patch_me_updates_field(app_client: AsyncClient, db_session) -> None:
-    headers, org = await _org_headers(db_session)
+    headers, org, _user = await _org_headers(db_session)
     resp = await app_client.patch(
         "/api/orgs/me",
         headers=headers,
@@ -51,25 +53,25 @@ async def test_patch_me_updates_field(app_client: AsyncClient, db_session) -> No
 
 
 async def test_patch_me_rejects_unknown_field(app_client: AsyncClient, db_session) -> None:
-    headers, org = await _org_headers(db_session)
+    headers, org, user = await _org_headers(db_session)
     # edu_email is not editable; unknown/typo keys are forbidden (not silently
     # ignored) so they can't masquerade as a no-op write.
     resp = await app_client.patch("/api/orgs/me", headers=headers, json={"eduEmail": "evil@x.edu"})
     assert resp.status_code == 422
     assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
-    refreshed = await db_session.scalar(select(Organization).where(Organization.id == org.id))
-    assert refreshed.edu_email == "org@test.edu"
+    await db_session.refresh(user)
+    assert user.edu_email == "org@test.edu"
 
 
 async def test_patch_me_empty_body_noop(app_client: AsyncClient, db_session) -> None:
-    headers, _ = await _org_headers(db_session)
+    headers, _org, _user = await _org_headers(db_session)
     resp = await app_client.patch("/api/orgs/me", headers=headers, json={})
     assert resp.status_code == 200
     assert resp.json()["data"]["orgName"] == "Berkeley Rowing"
 
 
 async def test_patch_me_validation_error(app_client: AsyncClient, db_session) -> None:
-    headers, _ = await _org_headers(db_session)
+    headers, _org, _user = await _org_headers(db_session)
     resp = await app_client.patch("/api/orgs/me", headers=headers, json={"followerCount": -5})
     assert resp.status_code == 422
     body = resp.json()
@@ -79,19 +81,19 @@ async def test_patch_me_validation_error(app_client: AsyncClient, db_session) ->
 
 
 async def test_patch_me_rejects_instagram_handle(app_client: AsyncClient, db_session) -> None:
-    headers, org = await _org_headers(db_session)
+    headers, org, user = await _org_headers(db_session)
     # Handle mirrors OAuth username — not editable via PATCH.
     resp = await app_client.patch(
         "/api/orgs/me", headers=headers, json={"instagramHandle": "evilorg"}
     )
     assert resp.status_code == 422
     assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
-    refreshed = await db_session.scalar(select(Organization).where(Organization.id == org.id))
-    assert refreshed.instagram_handle == "testorg"
+    await db_session.refresh(user)
+    assert user.instagram_username == "testorg"
 
 
 async def test_patch_me_null_required_field_rejected(app_client: AsyncClient, db_session) -> None:
-    headers, org = await _org_headers(db_session)
+    headers, org, _user = await _org_headers(db_session)
     # org_name is NOT NULL — explicit null must 422, not flush a 500.
     resp = await app_client.patch("/api/orgs/me", headers=headers, json={"orgName": None})
     assert resp.status_code == 422

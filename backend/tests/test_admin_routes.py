@@ -7,7 +7,6 @@ from datetime import datetime, timedelta, timezone
 from httpx import AsyncClient
 from sqlalchemy import select
 
-from app.models.application import DropApplication
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import (
     ApplicationDecision,
@@ -280,7 +279,7 @@ class TestTrackerAdvance:
         assert res.status_code == 400
 
     async def test_tracking_number_on_awaiting_products(self, app_client: AsyncClient, db_session):
-        """Tracking number should be mirrored to accepted applications at awaiting_products."""
+        """Tracking number is stored on the drop when advancing to awaiting_products."""
         brand = await make_brand(db_session, brand_name="TN Brand")
         drop = await make_drop(
             db_session,
@@ -304,13 +303,9 @@ class TestTrackerAdvance:
         )
         assert res.status_code == 200
 
-        # Verify tracking number mirrored
-        app = await db_session.scalar(
-            select(DropApplication).where(
-                DropApplication.drop_id == drop.id, DropApplication.org_id == org.id
-            )
-        )
-        assert app.tracking_number == "TRACK-123"
+        # Verify tracking number stored on the drop (SOT)
+        await db_session.refresh(drop)
+        assert drop.tracking_number == "TRACK-123"
 
     async def test_drop_not_found(self, app_client: AsyncClient, db_session):
         res = await app_client.patch(
@@ -453,14 +448,6 @@ class TestAdminRecovery:
         assert res.status_code == 200
         await db_session.refresh(drop)
         assert drop.tracking_number == "REPAIR-99"
-        app = await db_session.scalar(
-            select(DropApplication).where(
-                DropApplication.drop_id == drop.id,
-                DropApplication.org_id == org.id,
-            )
-        )
-        assert app is not None
-        assert app.tracking_number == "REPAIR-99"
 
     async def test_set_tracking_rejected_before_awaiting(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)

@@ -145,7 +145,6 @@ async def scan_autolink(db: AsyncSession) -> dict[str, Any]:
                         PostCampaignSuggestion(
                             post_id=post.id,
                             application_id=application.id,
-                            drop_id=drop.id,
                             match_reason=reason,
                             match_evidence=evidence,
                         )

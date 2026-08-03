@@ -47,12 +47,12 @@ async def test_onboarding_submit_advances_status(app_client: AsyncClient, db_ses
     assert data["status"] == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value
     assert data["emailSentTo"] == "club@test.edu"
 
-    # Org row + verification token created.
+    # Org row + verification token created; identity lives on the user.
     org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
     assert org is not None
-    assert org.edu_email == "club@test.edu"
-    # Handle mirrors OAuth username, not a client-supplied field.
-    assert org.instagram_handle == user.instagram_username
+    await db_session.refresh(user)
+    assert user.edu_email == "club@test.edu"
+    assert user.instagram_username is not None
     evt = await db_session.scalar(
         select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
     )
@@ -146,8 +146,6 @@ async def test_onboarding_takeover_stale_unverified_edu(
         user_id=peer.id,
         org_name="Stale Club",
         university="Test University",
-        edu_email="club@test.edu",
-        instagram_handle="staleclub",
         created_at=datetime.now(timezone.utc)
         - timedelta(hours=settings.EDU_EMAIL_UNVERIFIED_CLAIM_TTL_HOURS + 1),
     )
@@ -175,8 +173,6 @@ async def test_change_edu_email_while_pending(app_client: AsyncClient, db_sessio
         user_id=user.id,
         org_name="Change Club",
         university="Test University",
-        edu_email="old@test.edu",
-        instagram_handle="changeclub",
     )
     db_session.add(org)
     await db_session.flush()
@@ -189,10 +185,8 @@ async def test_change_edu_email_while_pending(app_client: AsyncClient, db_sessio
     assert resp.status_code == 200, resp.text
     assert resp.json()["data"]["emailSentTo"] == "new@test.edu"
     await db_session.refresh(user)
-    await db_session.refresh(org)
     await db_session.refresh(evt)
     assert user.edu_email == "new@test.edu"
-    assert org.edu_email == "new@test.edu"
     assert evt.expires_at <= datetime.now(timezone.utc)
 
 

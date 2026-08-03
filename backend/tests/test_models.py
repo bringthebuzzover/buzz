@@ -80,8 +80,6 @@ async def _make_org(session: AsyncSession, suffix: str = "x") -> Organization:
         user_id=user.id,
         org_name=f"Org {suffix}",
         university="Test U",
-        edu_email=user.edu_email or f"{suffix}@uni.edu",
-        instagram_handle=f"org_{suffix}",
     )
     session.add(org)
     await session.flush()
@@ -107,7 +105,6 @@ async def _make_drop(session: AsyncSession) -> Drop:
     now = _now()
     drop = Drop(
         brand_id=brand.id,
-        brand_name=brand.brand_name,
         title="Test Drop",
         description="desc",
         image="https://example.com/img.png",
@@ -246,7 +243,6 @@ async def test_post_campaign_link_roundtrip(db_session: AsyncSession) -> None:
     link = PostCampaignLink(
         post_id=post.id,
         application_id=app.id,
-        drop_id=drop.id,
         source=PostLinkSource.ORG_MANUAL.value,
     )
     db_session.add(link)
@@ -282,7 +278,6 @@ async def test_post_campaign_suggestion_roundtrip(db_session: AsyncSession) -> N
     suggestion = PostCampaignSuggestion(
         post_id=post.id,
         application_id=app.id,
-        drop_id=drop.id,
         match_reason=SuggestionMatchReason.BRAND_HANDLE_CAPTION.value,
         match_evidence="@testbrand",
     )

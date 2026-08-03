@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
+from app.models.brand import Brand
 from app.models.drop import Drop
 from app.models.enums import ApplicationDecision, BrandTrackerStage
 from app.models.organization import Organization
@@ -53,8 +54,9 @@ async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignLi
     rows = list(
         (
             await db.execute(
-                select(DropApplication, Drop)
+                select(DropApplication, Drop, Brand)
                 .join(Drop, Drop.id == DropApplication.drop_id)
+                .join(Brand, Brand.id == Drop.brand_id)
                 .where(
                     DropApplication.org_id == org_id,
                     DropApplication.decision != ApplicationDecision.DENIED.value,
@@ -81,16 +83,16 @@ async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignLi
             drop_id=application.drop_id,
             decision=application.decision,
             pitch=application.pitch,
-            tracking_number=application.tracking_number,
+            tracking_number=drop.tracking_number,
             allocated_units=application.allocated_units,
             applied_at=application.applied_at,
             decision_at=application.decision_at,
             title=drop.title,
-            brand_name=drop.brand_name,
+            brand_name=brand.brand_name,
             brand_tracker_stage=drop.brand_tracker_stage,
             image=drop.image,
         )
-        for application, drop in rows
+        for application, drop, brand in rows
     ]
 
 
@@ -134,8 +136,9 @@ async def get_my_campaign(
     org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
     row = (
         await db.execute(
-            select(DropApplication, Drop)
+            select(DropApplication, Drop, Brand)
             .join(Drop, Drop.id == DropApplication.drop_id)
+            .join(Brand, Brand.id == Drop.brand_id)
             .where(DropApplication.id == application_id)
         )
     ).first()
@@ -143,7 +146,7 @@ async def get_my_campaign(
     if row is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Campaign not found.", status_code=404)
 
-    application, drop = row
+    application, drop, brand = row
     # Ownership + denied-invisibility collapse to the same 404 (don't leak
     # existence of other orgs' or denied applications).
     if (
@@ -159,13 +162,13 @@ async def get_my_campaign(
         org_id=application.org_id,
         decision=application.decision,
         pitch=application.pitch,
-        tracking_number=application.tracking_number,
+        tracking_number=drop.tracking_number,
         allocated_units=application.allocated_units,
         applied_at=application.applied_at,
         decision_at=application.decision_at,
         title=drop.title,
         description=drop.description,
-        brand_name=drop.brand_name,
+        brand_name=brand.brand_name,
         image=drop.image,
         brand_tracker_stage=drop.brand_tracker_stage,
         apply_open_at=drop.apply_open_at,

@@ -1,8 +1,9 @@
 """Pydantic models for the org profile surface (architecture.md §5.1, §3.1).
 
 ``GET /api/orgs/me`` returns the full org profile; ``PATCH /api/orgs/me`` accepts
-the editable subset (``edu_email``/``approved_at``/timestamps are not editable
-here — email changes go through verification in Stage 7).
+the editable subset. ``edu_email`` and ``instagram_handle`` on the response are
+projected from ``users`` (login identity) — they are not editable here (email
+changes go through verification; IG handle tracks the OAuth username).
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from app.schemas.common import CamelModel, to_epoch_ms
 
 
 class OrgProfileResponse(CamelModel):
-    """An org's own profile (architecture §3.1 ``organizations``)."""
+    """Org profile wire shape. ``edu_email`` / ``instagram_handle`` come from ``users``."""
 
     id: uuid.UUID
     org_name: str

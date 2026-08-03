@@ -21,6 +21,7 @@ from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.organization import Organization
+from app.models.user import User
 from app.response import APIResponse, DataResponse, api_response
 from app.schemas.brands import (
     BrandAggregateResponse,
@@ -103,7 +104,7 @@ async def create_drop(
 ) -> APIResponse:
     brand = await _require_brand(db, user)
     drop = await create_brand_drop(db, brand, payload.title, payload.description)
-    return api_response(data=build_brand_drop_response(drop))
+    return api_response(data=build_brand_drop_response(drop, brand))
 
 
 @router.get("/me/drops", response_model=APIResponse)
@@ -128,7 +129,7 @@ async def list_brand_drops(
             BrandDropListItem(
                 id=drop.id,
                 brand_id=drop.brand_id,
-                brand_name=drop.brand_name,
+                brand_name=brand.brand_name,
                 title=drop.title,
                 description=drop.description,
                 image=drop.image,
@@ -162,17 +163,19 @@ async def get_brand_drop_detail(
     drop = await resolve_brand_drop(db, brand, drop_id)
     agg = await _drop_aggregate(db, drop.id)
 
-    # Load all applications on this drop, joined with org profiles
+    # Load all applications on this drop, joined with org profiles + owning user
+    # (edu email / IG identity live on users).
     rows = list(
         await db.execute(
-            sa_select(DropApplication, Organization)
+            sa_select(DropApplication, Organization, User)
             .join(Organization, Organization.id == DropApplication.org_id)
+            .join(User, User.id == Organization.user_id)
             .where(DropApplication.drop_id == drop.id)
         )
     )
 
     applicants: list[BrandDropDetailApplicant] = []
-    for app, org in rows:
+    for app, org, org_user in rows:
         attr = await _org_attributed_totals(db, org.id, drop.id)
         posts = await _application_linked_posts(db, app.id)
         applicants.append(
@@ -182,13 +185,13 @@ async def get_brand_drop_detail(
                 org_id=app.org_id,
                 decision=app.decision,
                 pitch=app.pitch,
-                tracking_number=app.tracking_number,
+                tracking_number=drop.tracking_number,
                 allocated_units=app.allocated_units,
                 applied_at=app.applied_at,
                 decision_at=app.decision_at,
                 org_name=org.org_name,
                 university=org.university,
-                instagram_handle=org.instagram_handle,
+                instagram_handle=org_user.instagram_username or "",
                 follower_count=org.follower_count,
                 member_count=org.member_count,
                 category=org.category,
@@ -205,7 +208,7 @@ async def get_brand_drop_detail(
     detail = BrandDropDetailResponse(
         id=drop.id,
         brand_id=drop.brand_id,
-        brand_name=drop.brand_name,
+        brand_name=brand.brand_name,
         title=drop.title,
         description=drop.description,
         image=drop.image,

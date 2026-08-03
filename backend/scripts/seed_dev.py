@@ -189,8 +189,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         user_id=org_user_active.id,
         org_name="Berkeley Rowing Club",
         university="UC Berkeley",
-        edu_email=org_user_active.edu_email or "active-org@berkeley.edu",
-        instagram_handle="berkeleyrowing",
         follower_count=4200,
         member_count=85,
         category=OrgCategory.SPORTS.value,
@@ -205,8 +203,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         user_id=org_user_pending.id,
         org_name="Stanford Hackers",
         university="Stanford University",
-        edu_email=org_user_pending.edu_email or "pending-org@stanford.edu",
-        instagram_handle="stanfordhackers",
         follower_count=1100,
         member_count=42,
         category=OrgCategory.ACADEMIC.value,
@@ -238,7 +234,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
     drop_brief = Drop(
         id=_uuid(30),
         brand_id=brand_a.id,
-        brand_name=brand_a.brand_name,
         title="Fall Cold Brew Launch",
         description="200 cans of single-origin cold brew for fall rush events.",
         image="https://placehold.co/600x400/png",
@@ -254,7 +249,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
     drop_review = Drop(
         id=_uuid(31),
         brand_id=brand_a.id,
-        brand_name=brand_a.brand_name,
         title="Spring Espresso Sampler",
         description="Espresso pucks + branded mugs for hosted tasting events.",
         image="https://placehold.co/600x400/png",
@@ -269,7 +263,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
     drop_shipped = Drop(
         id=_uuid(32),
         brand_id=brand_b.id,
-        brand_name=brand_b.brand_name,
         title="Game Day Hoodies",
         description="Branded hoodies for collegiate game-day giveaways.",
         image="https://placehold.co/600x400/png",
@@ -287,7 +280,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
     drop_finished = Drop(
         id=_uuid(33),
         brand_id=brand_b.id,
-        brand_name=brand_b.brand_name,
         title="Summer Tote Drop",
         description="Limited canvas totes for summer orientation events.",
         image="https://placehold.co/600x400/png",
@@ -402,7 +394,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         id=_uuid(60),
         post_id=post_reels.id,
         application_id=app_accepted.id,
-        drop_id=app_accepted.drop_id,
         source=PostLinkSource.ORG_MANUAL.value,
         linked_at=now - timedelta(days=3),
     )
@@ -410,7 +401,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         id=_uuid(70),
         post_id=post_feed.id,
         application_id=app_accepted.id,
-        drop_id=app_accepted.drop_id,
         match_reason=SuggestionMatchReason.BRAND_HANDLE_CAPTION.value,
         match_evidence="@acmecoffee",
     )

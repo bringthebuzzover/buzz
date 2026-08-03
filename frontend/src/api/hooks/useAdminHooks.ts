@@ -159,7 +159,6 @@ export type AdminOrgDetail = AdminOrgRow & {
   state: string | null;
   contactName: string | null;
   deliveryAddress: string | null;
-  userEduEmail: string | null;
   instagramTokenRefreshedAt: number | null;
   applications: { applied: number; accepted: number; denied: number };
   postCount: number;

@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.exceptions import BuzzAPIException
+from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.enums import BrandTrackerStage, PostLinkSource
 from app.models.organization import Organization
@@ -120,8 +121,10 @@ async def list_org_posts(db: AsyncSession, org_user: User) -> list[PostResponse]
             select(
                 PostCampaignLink.post_id,
                 PostCampaignLink.application_id,
-                PostCampaignLink.drop_id,
-            ).where(PostCampaignLink.post_id.in_(post_ids))
+                DropApplication.drop_id,
+            )
+            .join(DropApplication, DropApplication.id == PostCampaignLink.application_id)
+            .where(PostCampaignLink.post_id.in_(post_ids))
         )
     ).all()
     links = {post_id: (app_id, drop_id) for post_id, app_id, drop_id in link_rows}
@@ -181,7 +184,6 @@ async def link_post(
             id=uuid.uuid4(),
             post_id=post_id,
             application_id=application.id,
-            drop_id=application.drop_id,
             source=PostLinkSource.ORG_MANUAL.value,
         )
     )
@@ -362,7 +364,6 @@ async def accept_suggestion(
             id=uuid.uuid4(),
             post_id=post_id,
             application_id=application.id,
-            drop_id=application.drop_id,
             source=PostLinkSource.AUTO_SUGGESTED.value,
         )
     )
