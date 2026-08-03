@@ -23,6 +23,7 @@ from app.models.enums import (
     BrandStatus,
     BrandTrackerStage,
     OrgUserStatus,
+    PortalRole,
 )
 from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
@@ -42,31 +43,57 @@ _STAGE_ORDER = [
     BrandTrackerStage.DROP_FINISHED.value,
 ]
 
+_ORG_STATUSES = frozenset(member.value for member in OrgUserStatus)
+_BRAND_STATUSES = frozenset(member.value for member in BrandStatus)
 
-async def list_pending_orgs(db: AsyncSession) -> list[dict[str, Any]]:
-    """Return all org users with ``status=pending_approval`` joined to their profile."""
-    rows = list(
-        await db.execute(
-            select(User, Organization)
-            .join(Organization, Organization.user_id == User.id)
-            .where(
-                User.portal_role == "org",
-                User.status == OrgUserStatus.PENDING_APPROVAL.value,
-            )
-            .order_by(User.created_at.asc())
+
+async def list_orgs(db: AsyncSession, *, status: str | None = None) -> list[dict[str, Any]]:
+    """Org users joined to their profile, oldest first.
+
+    ``Organization`` is **outer**-joined so ``pending_org_profile`` users — who
+    abandoned onboarding right after the Instagram handshake and have no
+    ``organizations`` row — still appear. Their org-side fields come back
+    ``None``, which is why callers rendering the narrow pending-queue schema
+    filter on ``id``.
+    """
+
+    if status is not None and status not in _ORG_STATUSES:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            f"Unknown org status: {status}.",
+            status_code=400,
         )
+
+    stmt = (
+        select(User, Organization)
+        .outerjoin(Organization, Organization.user_id == User.id)
+        .where(User.portal_role == PortalRole.ORG.value)
+        .order_by(User.created_at.asc())
     )
+    if status is not None:
+        stmt = stmt.where(User.status == status)
+
+    rows = list(await db.execute(stmt))
     return [
         {
-            "id": org.id,
+            "id": org.id if org is not None else None,
             "user_id": user.id,
-            "org_name": org.org_name,
-            "university": org.university,
-            "instagram_handle": org.instagram_handle,
-            "follower_count": org.follower_count,
-            "member_count": org.member_count,
+            "org_name": org.org_name if org is not None else None,
+            "university": org.university if org is not None else None,
+            "instagram_handle": (
+                org.instagram_handle if org is not None else user.instagram_username
+            ),
+            "follower_count": org.follower_count if org is not None else None,
+            "member_count": org.member_count if org is not None else None,
+            "category": org.category if org is not None else None,
             "status": user.status,
-            "created_at": org.created_at,
+            "edu_email": org.edu_email if org is not None else user.edu_email,
+            "email_verified_at": user.email_verified_at,
+            "approved_at": org.approved_at if org is not None else None,
+            "last_login_at": user.last_login_at,
+            "instagram_token_expires_at": user.instagram_token_expires_at,
+            "impersonatable": user.status == OrgUserStatus.ACTIVE.value,
+            "created_at": user.created_at,
         }
         for user, org in rows
     ]
@@ -125,15 +152,28 @@ async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     return {"org_id": str(org.id), "status": user.status}
 
 
-async def list_pending_brands(db: AsyncSession) -> list[dict[str, Any]]:
-    """Return all brands with ``status=pending_review``."""
-    rows = list(
-        await db.scalars(
-            select(Brand)
-            .where(Brand.status == BrandStatus.PENDING_REVIEW.value)
-            .order_by(Brand.created_at.asc())
+async def list_brands(db: AsyncSession, *, status: str | None = None) -> list[dict[str, Any]]:
+    """Brands joined to their owning user, oldest first.
+
+    ``user_status`` and ``password_set`` are carried separately from
+    ``brands.status`` because the two disagree on purpose: ``approve_brand``
+    leaves the user at ``pending_approval`` until the invite is redeemed, and
+    ``deny_brand`` never touches the user at all. Together the three fields
+    distinguish live, invite-never-redeemed, and denied-with-orphan-user.
+    """
+
+    if status is not None and status not in _BRAND_STATUSES:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            f"Unknown brand status: {status}.",
+            status_code=400,
         )
-    )
+
+    stmt = select(Brand, User).join(User, User.id == Brand.user_id).order_by(Brand.created_at.asc())
+    if status is not None:
+        stmt = stmt.where(Brand.status == status)
+
+    rows = list(await db.execute(stmt))
     return [
         {
             "id": brand.id,
@@ -143,9 +183,14 @@ async def list_pending_brands(db: AsyncSession) -> list[dict[str, Any]]:
             "intent_message": brand.intent_message,
             "instagram_handle": brand.instagram_handle,
             "status": brand.status,
+            "user_status": user.status,
+            "password_set": bool(user.password_hash),
+            "approved_at": brand.approved_at,
+            "last_login_at": user.last_login_at,
+            "impersonatable": user.status == OrgUserStatus.ACTIVE.value,
             "created_at": brand.created_at,
         }
-        for brand in rows
+        for brand, user in rows
     ]
 
 

@@ -1,12 +1,13 @@
 /**
- * Top-level routes: `SiteLayout` for marketing shell; portal routes use the
- * real auth guards (RequireAuth → RequireStatus → RequireRole, architecture
- * §5.4).
+ * Top-level routes: `SiteLayout` for the marketing shell, `AdminLayout` for the
+ * admin panel; portal routes use the real auth guards (RequireAuth →
+ * RequireStatus → RequireRole, architecture §5.4).
  */
 import type { ReactElement } from "react";
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import type { PortalRole } from "./types/auth";
 import SiteLayout from "./layouts/SiteLayout";
+import AdminLayout from "./layouts/AdminLayout";
 import RequireAuth from "./components/routing/RequireAuth";
 import RequireRole from "./components/routing/RequireRole";
 import RequireStatus from "./components/routing/RequireStatus";
@@ -30,7 +31,14 @@ import PrivacyPolicyPage from "./pages/legal/PrivacyPolicyPage";
 import TermsPage from "./pages/legal/TermsPage";
 import DataDeletionPage from "./pages/legal/DataDeletionPage";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
-import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminOverviewPage from "./pages/admin/AdminOverviewPage";
+import AdminOrgsPage from "./pages/admin/AdminOrgsPage";
+import AdminOrgDetailPage from "./pages/admin/AdminOrgDetailPage";
+import AdminBrandsPage from "./pages/admin/AdminBrandsPage";
+import AdminBrandDetailPage from "./pages/admin/AdminBrandDetailPage";
+import AdminDropsPage from "./pages/admin/AdminDropsPage";
+import AdminDropDetailPage from "./pages/admin/AdminDropDetailPage";
+import AdminHealthPage from "./pages/admin/AdminHealthPage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
 function PortalGuard({
@@ -207,21 +215,33 @@ export default function AppRoot(): ReactElement {
             </PortalGuard>
           }
         />
-        {/* Admin console. `/admin/login` is public (admins have no Instagram
-            identity, so this is their only session entry point off-dev). */}
+        {/* Admin login is public (admins have no Instagram identity, so this is
+            their only session entry point off-dev) and keeps the marketing
+            chrome; the panel itself lives outside this layout. */}
         <Route path="admin/login" element={<AdminLoginPage />} />
-        <Route
-          path="admin"
-          element={
-            <PortalGuard role="admin">
-              <AdminUsersPage />
-            </PortalGuard>
-          }
-        />
 
         <Route path="privacy" element={<PrivacyPolicyPage />} />
         <Route path="terms" element={<TermsPage />} />
         <Route path="data-deletion" element={<DataDeletionPage />} />
+      </Route>
+
+      {/* Admin panel — its own shell, so no marketing header/footer. */}
+      <Route
+        path="admin"
+        element={
+          <PortalGuard role="admin">
+            <AdminLayout />
+          </PortalGuard>
+        }
+      >
+        <Route index element={<AdminOverviewPage />} />
+        <Route path="orgs" element={<AdminOrgsPage />} />
+        <Route path="orgs/:userId" element={<AdminOrgDetailPage />} />
+        <Route path="brands" element={<AdminBrandsPage />} />
+        <Route path="brands/:brandId" element={<AdminBrandDetailPage />} />
+        <Route path="drops" element={<AdminDropsPage />} />
+        <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
+        <Route path="health" element={<AdminHealthPage />} />
       </Route>
     </Routes>
   );
