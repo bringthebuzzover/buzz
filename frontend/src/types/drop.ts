@@ -104,6 +104,7 @@ export type DropCardData = Pick<
   | "manualReopen"
   | "notifyRequested"
   | "reminderMinutes"
+  | "applicantSelectionFinalizedAt"
 >;
 
 /** A feed row: card data plus the two server-computed fields. */

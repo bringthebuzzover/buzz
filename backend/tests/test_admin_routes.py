@@ -8,6 +8,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 
 from app.models.application import DropApplication
+from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
@@ -16,6 +17,8 @@ from app.models.enums import (
     PortalRole,
 )
 from app.models.tracker_event import DropTrackerEvent
+from app.models.user import User
+from app.security.password import hash_password
 from tests.conftest import (
     make_application,
     make_brand,
@@ -338,3 +341,153 @@ class TestReopenDrop:
             headers=await _admin_headers(db_session),
         )
         assert res.status_code == 404
+
+
+class TestAdminRecovery:
+    async def test_undeny_org(self, app_client: AsyncClient, db_session):
+        user = await persist(
+            db_session,
+            make_user(role=PortalRole.ORG, status=OrgUserStatus.DENIED),
+        )
+        org = await make_org(db_session, user)
+        headers = await _admin_headers(db_session)
+
+        res = await app_client.post(f"/api/admin/orgs/{org.id}/undeny", headers=headers)
+        assert res.status_code == 200
+        await db_session.refresh(user)
+        assert user.status == OrgUserStatus.PENDING_APPROVAL.value
+
+        # Wrong state rejected
+        res = await app_client.post(f"/api/admin/orgs/{org.id}/undeny", headers=headers)
+        assert res.status_code == 400
+
+    async def test_undeny_brand(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        brand.status = BrandStatus.DENIED.value
+        user = await db_session.get(User, brand.user_id)
+        assert user is not None
+        user.status = OrgUserStatus.DENIED.value
+        await db_session.flush()
+        headers = await _admin_headers(db_session)
+
+        res = await app_client.post(f"/api/admin/brands/{brand.id}/undeny", headers=headers)
+        assert res.status_code == 200
+        await db_session.refresh(brand)
+        await db_session.refresh(user)
+        assert brand.status == BrandStatus.PENDING_REVIEW.value
+        assert user.status == OrgUserStatus.PENDING_APPROVAL.value
+
+    async def test_resend_invite(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        brand.status = BrandStatus.APPROVED.value
+        user = await db_session.get(User, brand.user_id)
+        assert user is not None
+        user.password_hash = None
+        await db_session.flush()
+        headers = await _admin_headers(db_session)
+
+        res = await app_client.post(f"/api/admin/brands/{brand.id}/resend-invite", headers=headers)
+        assert res.status_code == 200, res.text
+
+        invite = await db_session.scalar(
+            select(BrandInviteToken).where(BrandInviteToken.brand_id == brand.id)
+        )
+        assert invite is not None
+
+    async def test_resend_invite_rejected_when_password_set(
+        self, app_client: AsyncClient, db_session
+    ):
+        brand = await make_brand(db_session)
+        user = await db_session.get(User, brand.user_id)
+        assert user is not None
+        user.password_hash = hash_password("Password1!")
+        await db_session.flush()
+
+        res = await app_client.post(
+            f"/api/admin/brands/{brand.id}/resend-invite",
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 400
+
+    async def test_clear_reopen(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, manual_reopen=True)
+        headers = await _admin_headers(db_session)
+
+        res = await app_client.post(f"/api/admin/drops/{drop.id}/clear-reopen", headers=headers)
+        assert res.status_code == 200
+        assert res.json()["data"]["manualReopen"] is False
+        await db_session.refresh(drop)
+        assert drop.manual_reopen is False
+
+    async def test_clear_instagram_token(self, app_client: AsyncClient, db_session):
+        user = await persist(db_session, make_user(role=PortalRole.ORG))
+        user.instagram_access_token = "tok"
+        user.instagram_token_expires_at = datetime.now(timezone.utc)
+        user.token_version = 1
+        await db_session.flush()
+        headers = await _admin_headers(db_session)
+
+        res = await app_client.post(
+            f"/api/admin/orgs/{user.id}/clear-instagram-token", headers=headers
+        )
+        assert res.status_code == 200
+        await db_session.refresh(user)
+        assert user.instagram_access_token is None
+        assert user.instagram_token_expires_at is None
+        assert user.token_version == 2
+
+    async def test_set_tracking_repair(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, org_user)
+        await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+        headers = await _admin_headers(db_session)
+
+        res = await app_client.patch(
+            f"/api/admin/drops/{drop.id}/tracking",
+            json={"trackingNumber": "REPAIR-99"},
+            headers=headers,
+        )
+        assert res.status_code == 200
+        await db_session.refresh(drop)
+        assert drop.tracking_number == "REPAIR-99"
+        app = await db_session.scalar(
+            select(DropApplication).where(
+                DropApplication.drop_id == drop.id,
+                DropApplication.org_id == org.id,
+            )
+        )
+        assert app is not None
+        assert app.tracking_number == "REPAIR-99"
+
+    async def test_set_tracking_rejected_before_awaiting(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
+        res = await app_client.patch(
+            f"/api/admin/drops/{drop.id}/tracking",
+            json={"trackingNumber": "TOO-EARLY"},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 400
+
+    async def test_awaiting_products_requires_tracking(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
+        drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
+        await db_session.flush()
+
+        res = await app_client.patch(
+            f"/api/admin/drops/{drop.id}/tracker",
+            json={"stage": "awaiting_products"},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 400
+
+    async def test_non_admin_forbidden_on_recovery(self, app_client: AsyncClient, db_session):
+        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        headers = {"Authorization": f"Bearer {mint_access_token(org_user)}"}
+        brand = await make_brand(db_session)
+        res = await app_client.post(f"/api/admin/brands/{brand.id}/undeny", headers=headers)
+        assert res.status_code == 403

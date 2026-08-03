@@ -210,3 +210,18 @@ async def test_unlink_rearms_confirmed_suggestion(app_client: AsyncClient, db_se
         select(PostCampaignSuggestion).where(PostCampaignSuggestion.id == suggestion.id)
     )
     assert refreshed.confirmed_at is None
+
+
+async def test_link_post_rejected_when_drop_finished(app_client: AsyncClient, db_session) -> None:
+    from app.models.enums import BrandTrackerStage
+
+    user, org, drop, application, headers = await _campaign_ctx(db_session)
+    drop.brand_tracker_stage = BrandTrackerStage.DROP_FINISHED.value
+    await db_session.flush()
+    post = await make_social_post(db_session, org)
+    resp = await app_client.post(
+        f"/api/campaigns/{application.id}/link-post",
+        headers=headers,
+        json={"postId": str(post.id)},
+    )
+    assert resp.status_code == 400

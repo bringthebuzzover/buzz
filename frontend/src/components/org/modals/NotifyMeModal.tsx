@@ -5,7 +5,8 @@ type NotifyMeModalProps = {
   dropTitle: string;
   initialSelection: number[];
   onClose: () => void;
-  onConfirm: (selectedMinutes: number[]) => void;
+  /** Single lead-time, or null to opt out (DELETE). */
+  onConfirm: (selectedMinutes: number | null) => void;
 };
 
 const REMINDER_OPTIONS = [
@@ -20,24 +21,15 @@ export default function NotifyMeModal({
   onClose,
   onConfirm,
 }: NotifyMeModalProps) {
-  const [selectedMinutes, setSelectedMinutes] = useState<number[]>(
-    initialSelection.length > 0 ? initialSelection : [15]
+  const [selectedMinutes, setSelectedMinutes] = useState<number | null>(
+    initialSelection[0] ?? null,
   );
 
   const summary = useMemo(() => {
-    if (selectedMinutes.length === 0) return "No reminders selected";
-    return `${selectedMinutes.length} reminder${
-      selectedMinutes.length === 1 ? "" : "s"
-    } selected`;
+    if (selectedMinutes == null) return "No reminder — Confirm to opt out";
+    const option = REMINDER_OPTIONS.find((o) => o.minutes === selectedMinutes);
+    return option ? option.label : "1 reminder selected";
   }, [selectedMinutes]);
-
-  const toggleOption = (minutes: number) => {
-    setSelectedMinutes((prev) =>
-      prev.includes(minutes)
-        ? prev.filter((value) => value !== minutes)
-        : [...prev, minutes].sort((a, b) => b - a)
-    );
-  };
 
   const handleConfirm = () => {
     onConfirm(selectedMinutes);
@@ -63,7 +55,8 @@ export default function NotifyMeModal({
           </div>
           <h2 className="text-2xl font-black text-buzz-coral">{dropTitle}</h2>
           <p className="mt-1 text-sm font-medium text-buzz-inkMuted">
-            Pick when you want BUZZ reminders before the drop opens.
+            Pick one reminder before the drop opens, or confirm with none to
+            opt out.
           </p>
         </div>
 
@@ -72,14 +65,20 @@ export default function NotifyMeModal({
             Reminder timing
           </p>
 
-          <div className="space-y-2">
+          <div className="space-y-2" role="radiogroup" aria-label="Reminder timing">
             {REMINDER_OPTIONS.map((option) => {
-              const selected = selectedMinutes.includes(option.minutes);
+              const selected = selectedMinutes === option.minutes;
               return (
                 <button
                   key={option.minutes}
                   type="button"
-                  onClick={() => toggleOption(option.minutes)}
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() =>
+                    setSelectedMinutes((prev) =>
+                      prev === option.minutes ? null : option.minutes,
+                    )
+                  }
                   className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
                     selected
                       ? "border-buzz-coral bg-buzz-paper text-buzz-ink"
@@ -102,10 +101,9 @@ export default function NotifyMeModal({
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={selectedMinutes.length === 0}
-            className="w-full rounded-xl bg-buzz-coral py-3 text-sm font-black uppercase tracking-wide text-buzz-paper transition hover:bg-buzz-coralDark disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl bg-buzz-coral py-3 text-sm font-black uppercase tracking-wide text-buzz-paper transition hover:bg-buzz-coralDark"
           >
-            Confirm reminders
+            {selectedMinutes == null ? "Confirm — no reminder" : "Confirm reminder"}
           </button>
 
           <div className="flex items-center justify-center gap-2 text-xs font-medium text-buzz-inkMuted">

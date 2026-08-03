@@ -156,7 +156,7 @@ export default function DropFeedCard({
               disabled
               className="w-full cursor-not-allowed rounded-lg border border-buzz-lineMid bg-buzz-cream py-3 font-semibold text-buzz-inkMuted"
             >
-              Closed
+              {alreadyApplied ? "Applied" : "Closed"}
             </button>
           )}
         </div>
@@ -251,19 +251,17 @@ function UpcomingActions({ drop }: { drop: DropCardData }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  const handleConfirm = (selected: number[]) => {
+  const handleConfirm = (selected: number | null) => {
     setFailed(false);
-    const valid = selected.filter((m) =>
-      (REMINDER_CHOICES as readonly number[]).includes(m),
-    );
-    // Surface failures (F6): don't leave the user believing they're subscribed
-    // when the write failed.
     const opts = { onError: () => setFailed(true) };
-    if (valid.length === 0) {
+    if (
+      selected == null ||
+      !(REMINDER_CHOICES as readonly number[]).includes(selected)
+    ) {
       notify.mutate(null, opts);
       return;
     }
-    notify.mutate(Math.min(...valid), opts);
+    notify.mutate(selected, opts);
   };
 
   return (

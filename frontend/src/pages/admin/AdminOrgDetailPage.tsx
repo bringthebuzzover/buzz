@@ -11,7 +11,9 @@ import { Link, useParams } from "react-router-dom";
 import {
   useAdminOrg,
   useApproveOrg,
+  useClearOrgInstagramToken,
   useDenyOrg,
+  useUndenyOrg,
   useViewAs,
 } from "../../api/hooks/useAdminHooks";
 import {
@@ -36,14 +38,20 @@ export default function AdminOrgDetailPage() {
   const org = useAdminOrg(userId);
   const approve = useApproveOrg();
   const deny = useDenyOrg();
+  const undeny = useUndenyOrg();
+  const clearIg = useClearOrgInstagramToken();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
 
   const data = org.data;
-  const busy = approve.isPending || deny.isPending;
+  const busy =
+    approve.isPending || deny.isPending || undeny.isPending || clearIg.isPending;
   const tokenExpired =
     data?.instagramTokenExpiresAt !== null &&
     data?.instagramTokenExpiresAt !== undefined &&
     data.instagramTokenExpiresAt <= Date.now();
+  const hasIgToken =
+    data?.instagramTokenExpiresAt !== null &&
+    data?.instagramTokenExpiresAt !== undefined;
 
   return (
     <div>
@@ -60,6 +68,11 @@ export default function AdminOrgDetailPage() {
         label="this organization"
       />
       {viewAsError && <ErrorNote>{viewAsError}</ErrorNote>}
+      {(undeny.isError || clearIg.isError) && (
+        <ErrorNote>
+          That recovery action did not go through. Reload and try again.
+        </ErrorNote>
+      )}
 
       {data && (
         <>
@@ -89,6 +102,25 @@ export default function AdminOrgDetailPage() {
                     </ActionButton>
                   </>
                 )}
+                {data.status === "denied" && data.orgId && (
+                  <ActionButton
+                    variant="primary"
+                    testId="undeny-org"
+                    disabled={busy}
+                    onClick={() => undeny.mutate(data.orgId as string)}
+                  >
+                    Un-deny
+                  </ActionButton>
+                )}
+                {(tokenExpired || hasIgToken) && (
+                  <ActionButton
+                    testId="clear-ig-token"
+                    disabled={busy}
+                    onClick={() => clearIg.mutate(data.userId)}
+                  >
+                    Clear IG token
+                  </ActionButton>
+                )}
                 <ActionButton
                   testId="view-as"
                   disabled={!data.impersonatable || viewAsPending}
@@ -104,7 +136,8 @@ export default function AdminOrgDetailPage() {
             <ErrorNote>
               This org's Instagram token expired {formatElapsed(data.instagramTokenExpiresAt)} ago.
               Every authenticated request they make is rejected, and the nightly
-              refresh job will not retry an already-expired token.
+              refresh job will not retry an already-expired token. Clear the token
+              so they can authenticate again and reconnect via Instagram.
             </ErrorNote>
           )}
 

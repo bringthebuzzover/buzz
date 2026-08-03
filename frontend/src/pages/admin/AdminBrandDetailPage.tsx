@@ -11,6 +11,8 @@ import {
   useAdminBrand,
   useApproveBrand,
   useDenyBrand,
+  useResendBrandInvite,
+  useUndenyBrand,
   useViewAs,
 } from "../../api/hooks/useAdminHooks";
 import {
@@ -40,15 +42,23 @@ export default function AdminBrandDetailPage() {
   const brand = useAdminBrand(brandId);
   const approve = useApproveBrand();
   const deny = useDenyBrand();
+  const undeny = useUndenyBrand();
+  const resend = useResendBrandInvite();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
 
   const data = brand.data;
-  const busy = approve.isPending || deny.isPending;
+  const busy =
+    approve.isPending ||
+    deny.isPending ||
+    undeny.isPending ||
+    resend.isPending;
+  // Survives token_cleanup deleting the invite row: approved + no password is
+  // enough, whether or not expiresAt is still present.
   const inviteLapsed =
     data?.status === "approved" &&
     !data.passwordSet &&
-    data.invite.expiresAt !== null &&
-    data.invite.expiresAt <= Date.now();
+    (data.invite.expiresAt === null || data.invite.expiresAt <= Date.now());
+  const canResendInvite = data?.status === "approved" && !data.passwordSet;
 
   return (
     <div>
@@ -65,6 +75,11 @@ export default function AdminBrandDetailPage() {
         label="this brand"
       />
       {viewAsError && <ErrorNote>{viewAsError}</ErrorNote>}
+      {(undeny.isError || resend.isError) && (
+        <ErrorNote>
+          That recovery action did not go through. Reload and try again.
+        </ErrorNote>
+      )}
 
       {data && (
         <>
@@ -94,6 +109,26 @@ export default function AdminBrandDetailPage() {
                     </ActionButton>
                   </>
                 )}
+                {data.status === "denied" && (
+                  <ActionButton
+                    variant="primary"
+                    testId="undeny-brand"
+                    disabled={busy}
+                    onClick={() => undeny.mutate(data.id)}
+                  >
+                    Un-deny
+                  </ActionButton>
+                )}
+                {canResendInvite && (
+                  <ActionButton
+                    variant="primary"
+                    testId="resend-invite"
+                    disabled={busy}
+                    onClick={() => resend.mutate(data.id)}
+                  >
+                    Resend invite
+                  </ActionButton>
+                )}
                 <ActionButton
                   testId="view-as"
                   disabled={!data.impersonatable || viewAsPending}
@@ -107,9 +142,11 @@ export default function AdminBrandDetailPage() {
 
           {inviteLapsed && (
             <ErrorNote>
-              This brand was approved but never set a password, and its invite has
-              expired. There is no way to re-issue one — a new invite is only
-              generated when a brand moves out of pending review.
+              This brand was approved but never set a password
+              {data.invite.expiresAt === null
+                ? ", and its invite row was cleaned up"
+                : ", and its invite has expired"}
+              . Use Resend invite to issue a fresh setup link.
             </ErrorNote>
           )}
 

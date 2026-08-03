@@ -8,6 +8,8 @@ import { ChevronLeft, ClipboardList, Truck } from "lucide-react";
 import { ORG_CAMPAIGN_STATUS_LABELS } from "../../types/orgCampaign";
 import ApiPostSelector from "../../components/org/ApiPostSelector";
 import { useCampaignDetail, useCampaignAggregate } from "../../api/hooks/useOrgHooks";
+import { ApiError } from "../../api/errors";
+import { BRAND_DROP_TRACKER_ORDER } from "../../types/brandPortal";
 
 function StatusPanel({ children }: { children: React.ReactNode }) {
   return (
@@ -33,6 +35,18 @@ function apiDeriveStatus(detail: {
   return null;
 }
 
+function shipmentOnTheWay(detail: {
+  trackingNumber: string | null;
+  brandTrackerStage: string;
+}): boolean {
+  if (detail.trackingNumber) return true;
+  const idx = BRAND_DROP_TRACKER_ORDER.indexOf(
+    detail.brandTrackerStage as (typeof BRAND_DROP_TRACKER_ORDER)[number],
+  );
+  const awaitingIdx = BRAND_DROP_TRACKER_ORDER.indexOf("awaiting_products");
+  return idx >= awaitingIdx && idx !== -1;
+}
+
 function ApiCampaignDetail() {
   const { campaignId } = useParams<{ campaignId: string }>();
   const { data: detail, isLoading, error } = useCampaignDetail(campaignId);
@@ -46,8 +60,27 @@ function ApiCampaignDetail() {
     );
   }
 
-  if (error || !detail) {
+  if (error instanceof ApiError && error.status === 404) {
     return <Navigate to="/org/campaigns" replace />;
+  }
+
+  if (error || !detail) {
+    return (
+      <div className="mx-auto max-w-4xl px-8 py-12">
+        <Link
+          to="/org/campaigns"
+          className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
+        >
+          <ChevronLeft size={16} className="mr-1" />
+          Back to My Campaigns
+        </Link>
+        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-coral">
+          {error instanceof Error
+            ? error.message
+            : "Couldn’t load this campaign. Please try again."}
+        </div>
+      </div>
+    );
   }
 
   const status = apiDeriveStatus(detail);
@@ -62,6 +95,7 @@ function ApiCampaignDetail() {
     engagement: 0,
     estimatedReach: 0,
   };
+  const onTheWay = shipmentOnTheWay(detail);
 
   return (
     <div className="mx-auto max-w-4xl px-8 py-12">
@@ -117,10 +151,12 @@ function ApiCampaignDetail() {
             <Truck size={28} className="mt-1 text-buzz-coral" />
             <div>
               <h2 className="mb-1 text-xl font-bold text-buzz-ink">
-                Awaiting product
+                {onTheWay ? "Awaiting product" : "Accepted"}
               </h2>
               <p className="text-sm font-medium text-buzz-inkMuted">
-                You are accepted! Your shipment is on the way.
+                {onTheWay
+                  ? "You are accepted! Your shipment is on the way."
+                  : "Accepted — awaiting shipping."}
               </p>
               {detail.trackingNumber ? (
                 <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-buzz-lineMid bg-buzz-cream px-4 py-2">
@@ -137,7 +173,7 @@ function ApiCampaignDetail() {
         </StatusPanel>
       ) : null}
 
-      {(status === "active" || status === "finished") ? (
+      {status === "active" || status === "finished" ? (
         <div className="space-y-6">
           <StatusPanel>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

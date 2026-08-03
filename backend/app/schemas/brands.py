@@ -167,6 +167,12 @@ class BrandDropDetailResponse(CamelModel):
     created_at: datetime
     tracking_number: str | None
     applications: list[BrandDropDetailApplicant]
+    # Same roll-up as the list endpoint so live-stage KPI cards don't crash.
+    total_posts: int
+    total_likes: int
+    total_comments: int
+    total_engagement: int
+    total_reach: int
 
     @field_serializer(
         "apply_open_at",

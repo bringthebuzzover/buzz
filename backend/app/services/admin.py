@@ -156,10 +156,9 @@ async def list_brands(db: AsyncSession, *, status: str | None = None) -> list[di
     """Brands joined to their owning user, oldest first.
 
     ``user_status`` and ``password_set`` are carried separately from
-    ``brands.status`` because the two disagree on purpose: ``approve_brand``
-    leaves the user at ``pending_approval`` until the invite is redeemed, and
-    ``deny_brand`` never touches the user at all. Together the three fields
-    distinguish live, invite-never-redeemed, and denied-with-orphan-user.
+    ``brands.status`` because ``approve_brand`` leaves the user at
+    ``pending_approval`` until the invite is redeemed. Pre-fix denies could
+    leave an orphaned ``pending_approval`` user; new denies set both to denied.
     """
 
     if status is not None and status not in _BRAND_STATUSES:
@@ -226,7 +225,7 @@ async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
 
 
 async def deny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
-    """Deny a pending brand: set brand.status=denied + email the brand."""
+    """Deny a pending brand: set brand + user to denied, then email the brand."""
     brand = await db.get(Brand, brand_id)
     if brand is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
@@ -241,12 +240,155 @@ async def deny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     brand.status = BrandStatus.DENIED.value
     user = await db.get(User, brand.user_id)
     if user is not None:
+        user.status = OrgUserStatus.DENIED.value
         user.token_version = (user.token_version or 0) + 1  # revoke outstanding sessions
     await db.flush()
 
     await send_brand_denied_email(brand.company_email, brand_name=brand.brand_name)
 
     return {"brand_id": str(brand.id), "status": brand.status}
+
+
+async def undeny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
+    """Return a denied org to pending_approval so approve_org can run again."""
+    org = await db.get(Organization, org_id)
+    if org is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+
+    user = await db.get(User, org.user_id)
+    if user is None or user.portal_role != PortalRole.ORG.value:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+
+    if user.status != OrgUserStatus.DENIED.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Organization is not denied.",
+            status_code=400,
+        )
+
+    user.status = OrgUserStatus.PENDING_APPROVAL.value
+    await db.flush()
+    return {"org_id": str(org.id), "status": user.status}
+
+
+async def undeny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
+    """Return a denied brand to pending_review so approve_brand can run again."""
+    brand = await db.get(Brand, brand_id)
+    if brand is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
+
+    if brand.status != BrandStatus.DENIED.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Brand is not denied.",
+            status_code=400,
+        )
+
+    brand.status = BrandStatus.PENDING_REVIEW.value
+    user = await db.get(User, brand.user_id)
+    if user is not None:
+        user.status = OrgUserStatus.PENDING_APPROVAL.value
+    await db.flush()
+    return {"brand_id": str(brand.id), "status": brand.status}
+
+
+async def resend_brand_invite(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
+    """Re-issue a setup invite for an approved brand that never set a password."""
+    brand = await db.get(Brand, brand_id)
+    if brand is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
+
+    if brand.status != BrandStatus.APPROVED.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Brand must be approved to resend an invite.",
+            status_code=400,
+        )
+
+    user = await db.get(User, brand.user_id)
+    if user is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand user not found.", status_code=404)
+
+    if user.password_hash is not None:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Brand already set a password; invite is no longer needed.",
+            status_code=400,
+        )
+
+    from app.services.brand_auth import create_brand_invite
+
+    token = await create_brand_invite(db, brand, user)
+    await send_brand_invite_email(brand.company_email, token, brand_name=brand.brand_name)
+    return {"brand_id": str(brand.id), "status": brand.status}
+
+
+async def clear_manual_reopen(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
+    """Clear the permanent reopen flag so drop_autoclose can run again."""
+    drop = await db.get(Drop, drop_id)
+    if drop is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+
+    drop.manual_reopen = False
+    await db.flush()
+    return {"drop_id": str(drop.id), "manual_reopen": False}
+
+
+async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
+    """Null an org's IG token so get_current_user no longer raises INSTAGRAM_TOKEN_EXPIRED.
+
+    Same field clears as Meta deauthorize, but keyed by Buzz user id and without
+    requiring a matching Graph user_id. Status is left alone so a
+    pending_email_verification org can reach resend again after reconnecting.
+    """
+    user = await db.get(User, user_id)
+    if user is None or user.portal_role != PortalRole.ORG.value:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization user not found.", status_code=404)
+
+    user.instagram_access_token = None
+    user.instagram_token_issued_at = None
+    user.instagram_token_expires_at = None
+    user.instagram_token_refreshed_at = None
+    user.token_version = (user.token_version or 0) + 1
+    await db.flush()
+    return {"user_id": str(user.id), "instagram_token_cleared": True}
+
+
+async def set_drop_tracking_number(
+    db: AsyncSession, drop_id: UUID, tracking_number: str
+) -> dict[str, Any]:
+    """Repair tracking on a drop already at or past awaiting_products."""
+    drop = await db.get(Drop, drop_id)
+    if drop is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+
+    awaiting_idx = _STAGE_ORDER.index(BrandTrackerStage.AWAITING_PRODUCTS.value)
+    if _STAGE_ORDER.index(drop.brand_tracker_stage) < awaiting_idx:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Tracking can only be set once the drop has reached awaiting_products.",
+            status_code=400,
+        )
+
+    cleaned = tracking_number.strip()
+    if not cleaned:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "tracking_number must be non-empty.",
+            status_code=400,
+        )
+
+    drop.tracking_number = cleaned
+    await db.execute(
+        sa_update(DropApplication)
+        .where(
+            DropApplication.drop_id == drop.id,
+            DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+        )
+        .values(tracking_number=cleaned)
+    )
+    await db.flush()
+    return {"drop_id": str(drop.id), "tracking_number": drop.tracking_number}
 
 
 async def advance_tracker(
@@ -295,6 +437,27 @@ async def advance_tracker(
             status_code=400,
         )
 
+    awaiting = BrandTrackerStage.AWAITING_PRODUCTS.value
+    awaiting_idx = _STAGE_ORDER.index(awaiting)
+    # Tracking is only writable on the transition *into* awaiting_products, so
+    # jumping over that stage (or entering it without a number) permanently
+    # strands accepted orgs without a shipment reference.
+    if requested_idx > awaiting_idx and current_idx < awaiting_idx:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Advance to awaiting_products with a tracking number before drop_active.",
+            status_code=400,
+        )
+    if requested == awaiting:
+        cleaned = (tracking_number or "").strip()
+        if not cleaned:
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                "tracking_number is required when advancing to awaiting_products.",
+                status_code=400,
+            )
+        tracking_number = cleaned
+
     drop.brand_tracker_stage = requested
     event = DropTrackerEvent(
         drop_id=drop.id,
@@ -306,7 +469,7 @@ async def advance_tracker(
     # At awaiting_products, store the tracking number on the drop (the brand's
     # read-only tracker shows it here, §5.2) and mirror it onto accepted
     # applications (the org-facing campaign view, §6.4.1).
-    if requested == BrandTrackerStage.AWAITING_PRODUCTS.value and tracking_number:
+    if requested == awaiting and tracking_number:
         drop.tracking_number = tracking_number
         await db.execute(
             sa_update(DropApplication)
@@ -324,17 +487,15 @@ async def advance_tracker(
 async def reopen_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     """Reopen a drop's apply window (§4.1, §8.5).
 
-    Always re-opens the apply window (``manual_reopen=true``). If the drop was
-    already **finalized**, also re-enables a new selection round so the orgs that
-    apply after reopen aren't stranded: clear ``applicant_selection_finalized_at``
-    and move the tracker back to ``finalizing_agreements`` (the one controlled
-    backward transition), writing a tracker event. Previously-``accepted`` orgs
-    keep their decision (finalize only re-touches ``applied`` rows).
+    Always sets ``manual_reopen=true``. For drops still in selection
+    (``request_received`` / ``finalizing_agreements``), also clears
+    ``applicant_selection_finalized_at`` and rewinds to ``finalizing_agreements``
+    when past it so a new selection round can run.
 
-    Note (reopen UX is PRODUCT.md §12 TBD): capacity is not re-checked across
-    rounds, and finalize still keys off ``apply_close_at`` — an org applying
-    during a brand's finalize is a benign TOCTOU. Both are acceptable for the MVP
-    admin-driven flow.
+    Live / finished drops (``drop_active`` / ``drop_finished``) only get the
+    apply-window flag — stage and finalized_at stay put so org campaigns do not
+    regress to "Awaiting product" and lose the post selector. Admin can still
+    PATCH the tracker explicitly if a new selection round is needed.
     """
     drop = await db.get(Drop, drop_id)
     if drop is None:
@@ -342,7 +503,14 @@ async def reopen_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
 
     drop.manual_reopen = True
 
-    if drop.applicant_selection_finalized_at is not None:
+    live_or_finished = {
+        BrandTrackerStage.DROP_ACTIVE.value,
+        BrandTrackerStage.DROP_FINISHED.value,
+    }
+    if (
+        drop.applicant_selection_finalized_at is not None
+        and drop.brand_tracker_stage not in live_or_finished
+    ):
         drop.applicant_selection_finalized_at = None
         finalizing = BrandTrackerStage.FINALIZING_AGREEMENTS.value
         if _STAGE_ORDER.index(drop.brand_tracker_stage) > _STAGE_ORDER.index(finalizing):

@@ -14,6 +14,7 @@ import {
 import { ChevronRight, LogOut, Menu } from "lucide-react";
 import { siteIdentity } from "../../data/siteIdentity";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
+import { endImpersonation } from "../../api/auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { goToHomeJoin } from "../../utils/scrollHomeJoin";
 
@@ -35,6 +36,16 @@ export default function SiteHeader() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const [mobilePanelTopPx, setMobilePanelTopPx] = useState(0);
+
+  // During View-as, Logout must exit impersonation — not POST /logout, which
+  // would clear the admin session cookie underneath.
+  const handleLogout = () => {
+    if (user?.impersonatedBy) {
+      endImpersonation();
+      return;
+    }
+    logout();
+  };
 
   const updateMobilePanelTop = useCallback(() => {
     const el = headerRef.current;
@@ -141,7 +152,7 @@ export default function SiteHeader() {
           {isApiAuth ? (
             <button
               type="button"
-              onClick={() => logout()}
+              onClick={handleLogout}
               className="flex items-center gap-1 text-buzz-inkMuted hover:text-buzz-coral"
               aria-label="Log out"
             >
@@ -329,7 +340,7 @@ export default function SiteHeader() {
                       className="flex w-full items-center justify-between gap-3 py-4 pr-1 text-left font-bold text-buzz-coral transition hover:text-buzz-coralDark"
                       onClick={() => {
                         setMobileNavOpen(false);
-                        logout();
+                        handleLogout();
                       }}
                     >
                       Logout

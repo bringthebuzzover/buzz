@@ -308,6 +308,9 @@ async def test_approve_brand_issues_invite(app_client: AsyncClient, db_session) 
 async def test_deny_brand_sets_denied(app_client: AsyncClient, db_session) -> None:
     brand = await make_brand(db_session, brand_name="Acme")
     brand.status = BrandStatus.PENDING_REVIEW.value
+    user = await db_session.get(User, brand.user_id)
+    assert user is not None
+    user.status = OrgUserStatus.PENDING_APPROVAL.value
     await db_session.flush()
 
     admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
@@ -317,6 +320,9 @@ async def test_deny_brand_sets_denied(app_client: AsyncClient, db_session) -> No
     )
     assert resp.status_code == 200, resp.text
     assert resp.json()["data"]["status"] == BrandStatus.DENIED.value
+
+    await db_session.refresh(user)
+    assert user.status == OrgUserStatus.DENIED.value
 
     # No invite token issued on denial.
     invite = await db_session.scalar(

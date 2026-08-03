@@ -479,6 +479,9 @@ async def finalize_applicants(
             denied_org_ids.add(org_id)
 
     drop.applicant_selection_finalized_at = now
+    # Finalize closes the apply window for good — a leftover manual_reopen would
+    # otherwise keep accepting applications under a finalized selection.
+    drop.manual_reopen = False
     await db.flush()
 
     # PRODUCT §7.1: denied applicants get an email (their only channel — no row in

@@ -392,6 +392,48 @@ export function useDenyBrand() {
   );
 }
 
+export function useUndenyOrg() {
+  return useAdminMutation((orgId: string) =>
+    apiFetch(`/api/admin/orgs/${orgId}/undeny`, { method: "POST" }),
+  );
+}
+
+export function useUndenyBrand() {
+  return useAdminMutation((brandId: string) =>
+    apiFetch(`/api/admin/brands/${brandId}/undeny`, { method: "POST" }),
+  );
+}
+
+export function useResendBrandInvite() {
+  return useAdminMutation((brandId: string) =>
+    apiFetch(`/api/admin/brands/${brandId}/resend-invite`, { method: "POST" }),
+  );
+}
+
+export function useClearOrgInstagramToken() {
+  return useAdminMutation((userId: string) =>
+    apiFetch(`/api/admin/orgs/${userId}/clear-instagram-token`, {
+      method: "POST",
+    }),
+  );
+}
+
+export function useClearReopen(dropId: string) {
+  return useAdminMutation((_: void) =>
+    apiFetch(`/api/admin/drops/${dropId}/clear-reopen`, { method: "POST" }),
+  );
+}
+
+export function useSetDropTracking(dropId: string) {
+  return useAdminMutation((trackingNumber: string) =>
+    apiFetch(`/api/admin/drops/${dropId}/tracking`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trackingNumber }),
+    }),
+  );
+}
+
 export function useAdvanceTracker(dropId: string) {
   return useAdminMutation(
     (input: { stage: string; trackingNumber?: string; note?: string }) =>

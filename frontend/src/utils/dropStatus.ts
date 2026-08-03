@@ -35,6 +35,8 @@ export function getDropFeedStatus(
 ): DropFeedStatus {
   if (now < drop.applyOpenAt) return "upcoming";
   if (isDropFull(drop, acceptedCount)) return "closed";
+  // Finalized selection closes new applies even if manual_reopen was left true.
+  if (drop.applicantSelectionFinalizedAt != null) return "closed";
   if (now > drop.applyCloseAt && !drop.manualReopen) return "closed";
   return "open";
 }
@@ -50,6 +52,7 @@ export function getDropClosedReason(
 ): DropClosedReason | null {
   if (getDropFeedStatus(drop, acceptedCount, now) !== "closed") return null;
   if (isDropFull(drop, acceptedCount)) return "spots_filled";
+  if (drop.applicantSelectionFinalizedAt != null) return "manual";
   if (now > drop.applyCloseAt) return "apply_window_ended";
   return "manual";
 }

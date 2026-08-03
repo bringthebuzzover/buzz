@@ -87,6 +87,7 @@ async def list_org_drop_feed(
             apply_open_at=drop.apply_open_at,
             apply_close_at=drop.apply_close_at,
             manual_reopen=drop.manual_reopen,
+            applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
             accepted_count=accepted_counts.get(drop.id, 0),
             already_applied=drop.id in applied_ids,
             notify_requested=drop.id in notify_state,
@@ -238,6 +239,11 @@ async def apply_to_drop(
     now = datetime.now(timezone.utc)
     if now < _as_utc(drop.apply_open_at):
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not open for applications yet.")
+    if drop.applicant_selection_finalized_at is not None:
+        raise BuzzAPIException(
+            errors.DROP_NOT_OPEN,
+            "Applicant selection for this drop is already finalized.",
+        )
     if now > _as_utc(drop.apply_close_at) and not drop.manual_reopen:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is closed for applications.")
 

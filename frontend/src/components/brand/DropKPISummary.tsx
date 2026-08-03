@@ -15,12 +15,12 @@ export default function DropKPISummary({ metrics }: DropKPISummaryProps) {
     {
       icon: Heart,
       label: "Total engagement",
-      value: metrics.totalEngagement.toLocaleString(),
+      value: (metrics.totalEngagement ?? 0).toLocaleString(),
     },
     {
       icon: Eye,
       label: "Total reach",
-      value: metrics.totalReach.toLocaleString(),
+      value: (metrics.totalReach ?? 0).toLocaleString(),
     },
     {
       icon: DollarSign,
