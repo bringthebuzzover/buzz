@@ -37,7 +37,14 @@ import VerifyEmailPage from "./pages/onboarding/VerifyEmailPage";
 import PendingApprovalPage from "./pages/onboarding/PendingApprovalPage";
 import DeniedPage from "./pages/onboarding/DeniedPage";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
-import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminOverviewPage from "./pages/admin/AdminOverviewPage";
+import AdminOrgsPage from "./pages/admin/AdminOrgsPage";
+import AdminOrgDetailPage from "./pages/admin/AdminOrgDetailPage";
+import AdminBrandsPage from "./pages/admin/AdminBrandsPage";
+import AdminBrandDetailPage from "./pages/admin/AdminBrandDetailPage";
+import AdminDropsPage from "./pages/admin/AdminDropsPage";
+import AdminDropDetailPage from "./pages/admin/AdminDropDetailPage";
+import AdminHealthPage from "./pages/admin/AdminHealthPage";
 
 const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["HomePage", HomePage],
@@ -57,7 +64,14 @@ const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["PendingApprovalPage", PendingApprovalPage],
   ["DeniedPage", DeniedPage],
   ["AdminLoginPage", AdminLoginPage],
-  ["AdminUsersPage", AdminUsersPage],
+  ["AdminOverviewPage", AdminOverviewPage],
+  ["AdminOrgsPage", AdminOrgsPage],
+  ["AdminOrgDetailPage", AdminOrgDetailPage],
+  ["AdminBrandsPage", AdminBrandsPage],
+  ["AdminBrandDetailPage", AdminBrandDetailPage],
+  ["AdminDropsPage", AdminDropsPage],
+  ["AdminDropDetailPage", AdminDropDetailPage],
+  ["AdminHealthPage", AdminHealthPage],
 ];
 
 describe("page render smoke (API tree)", () => {

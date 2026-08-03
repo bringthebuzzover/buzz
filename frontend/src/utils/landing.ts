@@ -30,6 +30,6 @@ export function pathForUser(user: AuthUser | null): string {
   }
 
   if (user.portalRole === "brand") return "/brand/dashboard";
-  // Admin lands on the impersonation console.
+  // Admin lands on the panel overview.
   return "/admin";
 }
