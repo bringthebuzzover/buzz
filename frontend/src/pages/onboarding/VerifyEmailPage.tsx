@@ -196,11 +196,6 @@ function AwaitVerification() {
           {notice}
         </p>
       )}
-      {error && (
-        <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-          {error}
-        </p>
-      )}
 
       <button
         onClick={onResend}
@@ -209,6 +204,12 @@ function AwaitVerification() {
       >
         {resend.isPending ? "Sending…" : "Resend email"}
       </button>
+
+      {error && (
+        <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

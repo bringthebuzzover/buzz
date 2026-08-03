@@ -190,12 +190,6 @@ export default function OrgProfilePage() {
           />
         </div>
 
-        {error && (
-          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-            {error}
-          </p>
-        )}
-
         <button
           type="submit"
           disabled={submit.isPending}
@@ -203,6 +197,12 @@ export default function OrgProfilePage() {
         >
           {submit.isPending ? "Submitting…" : "Continue"}
         </button>
+
+        {error && (
+          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
+            {error}
+          </p>
+        )}
       </form>
     </div>
   );

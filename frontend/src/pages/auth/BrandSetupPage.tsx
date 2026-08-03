@@ -91,12 +91,6 @@ export default function BrandSetupPage() {
           />
         </div>
 
-        {error && (
-          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-            {error}
-          </p>
-        )}
-
         <button
           type="submit"
           disabled={setPassword.isPending}
@@ -104,6 +98,12 @@ export default function BrandSetupPage() {
         >
           {setPassword.isPending ? "Saving…" : "Activate account"}
         </button>
+
+        {error && (
+          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
+            {error}
+          </p>
+        )}
       </form>
     </div>
   );

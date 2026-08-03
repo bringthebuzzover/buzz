@@ -81,12 +81,6 @@ export default function AdminLoginPage() {
           />
         </div>
 
-        {error && (
-          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-            {error}
-          </p>
-        )}
-
         <button
           type="submit"
           data-testid="admin-login-submit"
@@ -95,6 +89,12 @@ export default function AdminLoginPage() {
         >
           {adminLogin.isPending ? "Signing in…" : "Sign in"}
         </button>
+
+        {error && (
+          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
+            {error}
+          </p>
+        )}
       </form>
     </div>
   );
