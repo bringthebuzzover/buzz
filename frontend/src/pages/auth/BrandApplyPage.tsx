@@ -160,12 +160,6 @@ export default function BrandApplyPage() {
           />
         </div>
 
-        {error && (
-          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-            {error}
-          </p>
-        )}
-
         <button
           type="submit"
           disabled={apply.isPending}
@@ -173,6 +167,12 @@ export default function BrandApplyPage() {
         >
           {apply.isPending ? "Submitting…" : "Submit application"}
         </button>
+
+        {error && (
+          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
+            {error}
+          </p>
+        )}
 
         <p className="text-center text-xs text-buzz-inkMuted">
           Already have an account?{" "}
