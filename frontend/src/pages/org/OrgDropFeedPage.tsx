@@ -11,7 +11,10 @@ import { getDropFeedStatus } from "../../utils/dropStatus";
 import type { DropFeedRow, DropFeedStatus } from "../../types/drop";
 import { useWallClockNow } from "../../utils/wallClock";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
-import { useApplyToDrop } from "../../api/hooks/useDropHooks";
+import {
+  useApplyToDrop,
+  type DropFeedItem,
+} from "../../api/hooks/useDropHooks";
 
 type FilterId = "all" | "upcoming" | "open" | "closed";
 
@@ -129,7 +132,7 @@ function ApiDropFeed() {
 
   const rows = useMemo(
     () =>
-      items.map((row) =>
+      items.map((row: DropFeedItem) =>
         justAppliedIds.has(row.id) ? { ...row, alreadyApplied: true } : row,
       ),
     [items, justAppliedIds],
