@@ -91,12 +91,13 @@ async def test_onboarding_requires_auth(app_client: AsyncClient) -> None:
 
 
 async def test_onboarding_duplicate_edu_email_conflict(app_client: AsyncClient, db_session) -> None:
-    # An existing account already owns this .edu email.
+    # An existing account already owns this .edu email (verified).
     existing = await persist(
         db_session,
         make_user(status=OrgUserStatus.ACTIVE, instagram_user_id="ig_dup_existing"),
     )
     existing.edu_email = "club@test.edu"
+    existing.email_verified_at = datetime.now(timezone.utc)
     await db_session.flush()
 
     user = await persist(
@@ -110,6 +111,72 @@ async def test_onboarding_duplicate_edu_email_conflict(app_client: AsyncClient, 
     )
     assert resp.status_code == 409
     assert resp.json()["error"]["code"] == "EDU_EMAIL_TAKEN"
+
+
+async def test_onboarding_takeover_stale_unverified_edu(
+    app_client: AsyncClient, db_session
+) -> None:
+    peer = await persist(
+        db_session,
+        make_user(
+            status=OrgUserStatus.PENDING_EMAIL_VERIFICATION,
+            instagram_user_id="ig_stale_peer",
+        ),
+    )
+    peer.edu_email = "club@test.edu"
+    org = Organization(
+        id=uuid.uuid4(),
+        user_id=peer.id,
+        org_name="Stale Club",
+        university="Test University",
+        edu_email="club@test.edu",
+        instagram_handle="staleclub",
+        created_at=datetime.now(timezone.utc)
+        - timedelta(hours=settings.EDU_EMAIL_UNVERIFIED_CLAIM_TTL_HOURS + 1),
+    )
+    db_session.add(org)
+    await db_session.flush()
+
+    user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_takeover"),
+    )
+    resp = await app_client.post(
+        "/api/orgs/onboarding",
+        json=_VALID_PROFILE,
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 200, resp.text
+    await db_session.refresh(peer)
+    assert peer.edu_email is None
+
+
+async def test_change_edu_email_while_pending(app_client: AsyncClient, db_session) -> None:
+    user, evt = await _seed_pending_verification(db_session, email="old@test.edu", suffix="chg1")
+    org = Organization(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        org_name="Change Club",
+        university="Test University",
+        edu_email="old@test.edu",
+        instagram_handle="changeclub",
+    )
+    db_session.add(org)
+    await db_session.flush()
+
+    resp = await app_client.post(
+        "/api/auth/verify-email/change",
+        json={"eduEmail": "new@test.edu"},
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["data"]["emailSentTo"] == "new@test.edu"
+    await db_session.refresh(user)
+    await db_session.refresh(org)
+    await db_session.refresh(evt)
+    assert user.edu_email == "new@test.edu"
+    assert org.edu_email == "new@test.edu"
+    assert evt.expires_at <= datetime.now(timezone.utc)
 
 
 async def test_onboarding_rejects_unknown_field(app_client: AsyncClient, db_session) -> None:

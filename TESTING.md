@@ -18,8 +18,8 @@ The bottom two are the bug-bash tools. Both need a **local Postgres** and
 | --- | --- | --- |
 | Org (active) | auto dev-login on app load | full portal |
 | Org (pending approval / profile / onboarding) | `POST /api/auth/dev-login {instagram_user_id}` | onboarding gates |
-| Brand | `/brand/login` → `partnerships@acme.coffee` / `buzzdev123` (also `brand@northwind.example`) | brand portal |
-| Admin | API token (dev-login by `user_id`), or `/admin/login` after the upsert below | approve/deny, tracker, reopen, impersonate |
+| Brand | `/brand/login` → `partnerships@acme.coffee` / `buzzdev123` (also `brand@northwind.example`); forgot/reset via `/brand/forgot-password` | brand portal |
+| Admin | API token (dev-login by `user_id`), or `/admin/login` after the upsert below; forgot/reset via `/admin/forgot-password` | approve/deny, invite brand, tracker, reopen, impersonate |
 
 ## Permanent test accounts (`backend/scripts/upsert_test_accounts.py`)
 

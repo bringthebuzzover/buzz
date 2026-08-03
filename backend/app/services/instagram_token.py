@@ -39,8 +39,8 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def days_until_expiry(user: User, *, now: datetime | None = None) -> int | None:
-    """Whole days until the user's IG token expires, or None if not applicable."""
+def time_until_expiry(user: User, *, now: datetime | None = None) -> timedelta | None:
+    """Remaining time until the user's IG token expires, or None if not applicable."""
     if user.portal_role != "org" or not user.instagram_access_token:
         return None
     if user.instagram_token_expires_at is None:
@@ -48,7 +48,19 @@ def days_until_expiry(user: User, *, now: datetime | None = None) -> int | None:
     exp = user.instagram_token_expires_at
     if exp.tzinfo is None:
         exp = exp.replace(tzinfo=timezone.utc)
-    return (exp - (now or _now())).days
+    return exp - (now or _now())
+
+
+def days_until_expiry(user: User, *, now: datetime | None = None) -> int | None:
+    """Whole days of remaining IG token lifetime (floor), or None if not applicable.
+
+    Prefer :func:`time_until_expiry` for expiry decisions — a token with 12 hours
+    left has ``days_until_expiry == 0`` but is still valid.
+    """
+    remaining = time_until_expiry(user, now=now)
+    if remaining is None:
+        return None
+    return int(remaining.total_seconds() // 86400)
 
 
 def maybe_refresh_on_login(
@@ -61,16 +73,16 @@ def maybe_refresh_on_login(
     A no-op for non-org users and orgs without an IG token. Never blocks the
     request — the refresh itself runs as a background task.
     """
-    days = days_until_expiry(user)
-    if days is None:
+    remaining = time_until_expiry(user)
+    if remaining is None:
         return
-    if days <= 0:
+    if remaining <= timedelta(0):
         raise BuzzAPIException(
             code=errors.INSTAGRAM_TOKEN_EXPIRED,
             message="Your Instagram connection has expired. Please reconnect.",
             status_code=401,
         )
-    if days < REFRESH_WINDOW_DAYS and background_tasks is not None:
+    if remaining < timedelta(days=REFRESH_WINDOW_DAYS) and background_tasks is not None:
         background_tasks.add_task(refresh_instagram_token, user.id)
 
 

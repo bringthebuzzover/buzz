@@ -70,6 +70,23 @@ class ResendVerificationRequest(CamelModel):
     pass
 
 
+class ChangeEduEmailRequest(CamelModel):
+    """Correct a typo'd .edu while still awaiting verification."""
+
+    edu_email: str
+
+    @field_validator("edu_email")
+    @classmethod
+    def _validate_edu(cls, v: str) -> str:
+        v = v.strip().lower()
+        if len(v) > 320 or v.count("@") != 1:
+            raise ValueError("Invalid email address")
+        local, _, domain = v.partition("@")
+        if not local or not domain.endswith(".edu") or len(domain) <= len(".edu"):
+            raise ValueError("Must be a valid .edu email address")
+        return v
+
+
 class BrandSetPasswordRequest(CamelModel):
     """Brand Phase 3: accept invite and set a password."""
 
@@ -96,3 +113,23 @@ class AdminLoginRequest(CamelModel):
 
     email: str
     password: str
+
+
+class ForgotPasswordRequest(CamelModel):
+    """Enumerate-safe password-reset request (brand or admin)."""
+
+    email: str
+
+
+class ResetPasswordRequest(CamelModel):
+    """Consume a password-reset token and set a new password."""
+
+    token: str
+    password: str
+
+    @field_validator("password")
+    @classmethod
+    def _password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        return v

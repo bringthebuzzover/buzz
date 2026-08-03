@@ -7,17 +7,18 @@ exercise once it ships.
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.deps.db import get_db
 from app.main import app
 
 
 @pytest.mark.asyncio
-async def test_health_returns_envelope() -> None:
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/api/health")
+async def test_health_returns_envelope(app_client: AsyncClient) -> None:
+    response = await app_client.get("/api/health")
 
     assert response.status_code == 200
     body = response.json()
@@ -26,6 +27,31 @@ async def test_health_returns_envelope() -> None:
         "meta": None,
         "error": None,
     }
+
+
+@pytest.mark.asyncio
+async def test_health_503_when_db_unreachable() -> None:
+    """A dead Postgres must fail the probe closed (Railway healthcheck)."""
+
+    bad = AsyncMock()
+    bad.execute = AsyncMock(side_effect=RuntimeError("db down"))
+
+    async def _override():
+        yield bad
+
+    app.dependency_overrides[get_db] = _override
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/api/health")
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body["data"] is None
+    assert body["error"]["code"] == "INTERNAL_ERROR"
+    assert "Database" in body["error"]["message"]
 
 
 @pytest.mark.asyncio

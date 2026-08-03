@@ -2,15 +2,10 @@
 health signals. Every function here is a SELECT; mutations live in
 :mod:`app.services.admin`.
 
-A note on the health block, because it is easy to misread. Buzz persists no
-job-run history and no record of an email send (see ``KNOWN_GAPS.md``), so
-"did last night's cron work?" cannot be answered directly. What we can do is
-watch for the *absence* of a job's effect: a drop past its apply window still
-sitting in ``request_received`` means ``drop_autoclose`` has not run. These are
-proxies, and the UI labels them as such rather than implying real monitoring.
-
-Signal counts are computed in one place — :func:`_signal_counts` — so the
-overview band and the health page can never drift on what a given signal means.
+Pipeline signals still watch for the *absence* of a job's effect (e.g. a drop
+past its apply window still in ``request_received``). When ``job_runs`` rows
+exist, each pipeline signal's ``detail`` also includes the last recorded run
+age so ops can tell whether the cron fired recently.
 """
 
 from __future__ import annotations
@@ -35,6 +30,7 @@ from app.models.enums import (
     OrgUserStatus,
     PortalRole,
 )
+from app.models.job_run import JobRun
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
@@ -309,16 +305,16 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
                 ),
             )
         ),
-        # ``refresh_due_tokens`` rotates anything 1-14 days out, so nothing
-        # should ever slip inside 1 day. Anything here means the job missed its
-        # whole 13-day window.
+        # ``refresh_due_tokens`` rotates anything still-valid and <14 days out,
+        # including the last day. Anything already expired (or past) means the
+        # org needs reconnect — cron cannot help.
         "token_refresh_overdue": await _scalar_int(
             db,
             select(func.count(User.id)).where(
                 User.portal_role == PortalRole.ORG.value,
                 User.instagram_access_token.is_not(None),
                 User.instagram_token_expires_at.is_not(None),
-                User.instagram_token_expires_at < now + timedelta(days=1),
+                User.instagram_token_expires_at <= now,
             ),
         ),
     }
@@ -418,30 +414,61 @@ async def get_health(db: AsyncSession) -> dict[str, Any]:
     now = _now()
     counts = await _signal_counts(db, now)
 
+    last_runs = {
+        row.job: row.last_finished
+        for row in (
+            await db.execute(
+                select(JobRun.job, func.max(JobRun.finished_at).label("last_finished"))
+                .where(JobRun.finished_at.is_not(None))
+                .group_by(JobRun.job)
+            )
+        ).all()
+    }
+
+    def _with_run_age(job: str, detail: str) -> str:
+        age = _describe_age(last_runs.get(job), now)
+        if age:
+            return f"{detail}; last run {age}"
+        return detail
+
     last_metric_sync = await db.scalar(select(func.max(SocialPost.metrics_updated_at)))
     metric_detail = _describe_age(last_metric_sync, now)
     pipeline = [
         _signal(
             "drop_autoclose",
             counts["autoclose_overdue"],
-            detail="drops past their apply window still awaiting auto-close",
+            detail=_with_run_age(
+                "drop_autoclose",
+                "drops past their apply window still awaiting auto-close",
+            ),
         ),
         _signal(
             "metric_sync",
             counts["metric_sync_stale"],
-            detail=(
-                f"last refresh {metric_detail}" if metric_detail else "no post metrics recorded yet"
+            detail=_with_run_age(
+                "metric_sync",
+                (
+                    f"last refresh {metric_detail}"
+                    if metric_detail
+                    else "no post metrics recorded yet"
+                ),
             ),
         ),
         _signal(
             "token_cleanup",
             counts["token_cleanup_backlog"],
-            detail="expired tokens past the 7-day sweep grace",
+            detail=_with_run_age(
+                "token_cleanup",
+                "expired tokens past the 7-day sweep grace",
+            ),
         ),
         _signal(
             "token_refresh",
             counts["token_refresh_overdue"],
-            detail="Instagram tokens inside 1 day of expiry",
+            detail=_with_run_age(
+                "token_refresh",
+                "Instagram tokens at or past expiry",
+            ),
         ),
     ]
 

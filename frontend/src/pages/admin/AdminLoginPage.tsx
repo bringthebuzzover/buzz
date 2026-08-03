@@ -5,7 +5,7 @@
  * session entry point outside local dev.
  */
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAdminLogin } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
@@ -89,6 +89,15 @@ export default function AdminLoginPage() {
         >
           {adminLogin.isPending ? "Signing in…" : "Sign in"}
         </button>
+
+        <p className="text-center text-xs text-buzz-inkMuted">
+          <Link
+            to="/admin/forgot-password"
+            className="font-bold text-buzz-coral hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </p>
 
         {error && (
           <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">

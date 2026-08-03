@@ -1,9 +1,9 @@
 """Instagram token refresh safety-net cron (architecture.md §10.5.2).
 
 Daily. Catches *inactive* orgs the on-login refresh (§10.5.1) misses: refreshes
-long-lived tokens in the safe window (expiring within 14 days but not yet
-expired). Per-user failures don't block the batch — the old token stays valid
-and the next run retries.
+long-lived tokens in the safe window (still valid, expiring within 14 days).
+Per-user failures don't block the batch — the old token stays valid and the
+next run retries.
 """
 
 from __future__ import annotations
@@ -21,8 +21,8 @@ from app.services.instagram import InstagramClient
 
 logger = logging.getLogger(__name__)
 
-_SAFE_MIN = timedelta(days=1)  # don't bother if it expires within a day...
-_SAFE_MAX = timedelta(days=14)  # ...but do refresh if within two weeks
+_SAFE_MIN = timedelta(0)  # include the last day; Meta tokens refresh while still valid
+_SAFE_MAX = timedelta(days=14)  # refresh if within two weeks
 
 
 async def refresh_due_tokens(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:

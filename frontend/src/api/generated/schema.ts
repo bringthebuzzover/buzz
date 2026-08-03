@@ -14,7 +14,11 @@ export interface paths {
         /** List Brands Endpoint */
         get: operations["list_brands_endpoint_api_admin_brands_get"];
         put?: never;
-        post?: never;
+        /**
+         * Create Brand Endpoint
+         * @description Provision a brand (and optionally approve + invite) when self-reg is off.
+         */
+        post: operations["create_brand_endpoint_api_admin_brands_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -432,6 +436,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/admin/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Forgot Password
+         * @description Enumerate-safe admin password-reset request.
+         */
+        post: operations["admin_forgot_password_api_auth_admin_forgot_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/admin/login": {
         parameters: {
             query?: never;
@@ -450,6 +474,46 @@ export interface paths {
          *     Rate-limited per-IP and per-account like the brand path.
          */
         post: operations["admin_login_api_auth_admin_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/admin/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Admin Reset Password
+         * @description Consume an admin password-reset token and set a new password.
+         */
+        post: operations["admin_reset_password_api_auth_admin_reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/brand/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Brand Forgot Password
+         * @description Enumerate-safe brand password-reset request.
+         */
+        post: operations["brand_forgot_password_api_auth_brand_forgot_password_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -475,6 +539,26 @@ export interface paths {
          *     brand by hammering its email.
          */
         post: operations["brand_login_api_auth_brand_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/brand/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Brand Reset Password
+         * @description Consume a brand password-reset token and set a new password.
+         */
+        post: operations["brand_reset_password_api_auth_brand_reset_password_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -658,6 +742,9 @@ export interface paths {
         /**
          * Refresh
          * @description Issue a new access token from the refresh cookie; rotate the cookie.
+         *
+         *     Every failure path clears the refresh cookie so the SPA stops re-POSTing a
+         *     dead httpOnly cookie on bootstrap.
          */
         post: operations["refresh_api_auth_refresh_post"];
         delete?: never;
@@ -680,6 +767,26 @@ export interface paths {
          * @description Phase 3: consume a one-time .edu verification token (rate-limited: token guessing).
          */
         post: operations["verify_email_endpoint_api_auth_verify_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/verify-email/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Change Edu Email Endpoint
+         * @description Correct a typo'd .edu while still awaiting verification.
+         */
+        post: operations["change_edu_email_endpoint_api_auth_verify_email_change_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1092,6 +1199,9 @@ export interface paths {
         /**
          * Get Health
          * @description Liveness probe used by smoke tests and the CI envelope check.
+         *
+         *     Returns 503 when Postgres is unreachable so Railway healthchecks fail
+         *     closed rather than reporting a healthy API with a dead DB.
          */
         get: operations["get_health_api_health_get"];
         put?: never;
@@ -1214,6 +1324,25 @@ export interface components {
             } | null;
         };
         /**
+         * AdminCreateBrandRequest
+         * @description Admin-provisioned brand (works when public self-reg is off).
+         */
+        AdminCreateBrandRequest: {
+            /**
+             * Approvenow
+             * @default false
+             */
+            approveNow: boolean;
+            /** Brandname */
+            brandName: string;
+            /** Companyemail */
+            companyEmail: string;
+            /** Instagramhandle */
+            instagramHandle?: string | null;
+            /** Intentmessage */
+            intentMessage?: string | null;
+        };
+        /**
          * AdminLoginRequest
          * @description Admin email + password login (admins have no Instagram identity).
          */
@@ -1300,6 +1429,14 @@ export interface components {
             /** Token */
             token: string;
         };
+        /**
+         * ChangeEduEmailRequest
+         * @description Correct a typo'd .edu while still awaiting verification.
+         */
+        ChangeEduEmailRequest: {
+            /** Eduemail */
+            eduEmail: string;
+        };
         /** DataResponse[BrandProfileResponse] */
         DataResponse_BrandProfileResponse_: {
             data?: components["schemas"]["BrandProfileResponse"] | null;
@@ -1367,6 +1504,14 @@ export interface components {
         FinalizeApplicantsRequest: {
             /** Allocations */
             allocations: components["schemas"]["FinalizeAllocation"][];
+        };
+        /**
+         * ForgotPasswordRequest
+         * @description Enumerate-safe password-reset request (brand or admin).
+         */
+        ForgotPasswordRequest: {
+            /** Email */
+            email: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1478,6 +1623,16 @@ export interface components {
          * @description Re-send the verification email (rate-limited).
          */
         ResendVerificationRequest: Record<string, never>;
+        /**
+         * ResetPasswordRequest
+         * @description Consume a password-reset token and set a new password.
+         */
+        ResetPasswordRequest: {
+            /** Password */
+            password: string;
+            /** Token */
+            token: string;
+        };
         /** TrackerAdvanceRequest */
         TrackerAdvanceRequest: {
             /** Note */
@@ -1534,6 +1689,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_brand_endpoint_api_admin_brands_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCreateBrandRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -2313,6 +2503,39 @@ export interface operations {
             };
         };
     };
+    admin_forgot_password_api_auth_admin_forgot_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     admin_login_api_auth_admin_login_post: {
         parameters: {
             query?: never;
@@ -2346,6 +2569,72 @@ export interface operations {
             };
         };
     };
+    admin_reset_password_api_auth_admin_reset_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    brand_forgot_password_api_auth_brand_forgot_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     brand_login_api_auth_brand_login_post: {
         parameters: {
             query?: never;
@@ -2356,6 +2645,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["BrandLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    brand_reset_password_api_auth_brand_reset_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordRequest"];
             };
         };
         responses: {
@@ -2612,6 +2934,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["VerifyEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_edu_email_endpoint_api_auth_verify_email_change_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeEduEmailRequest"];
             };
         };
         responses: {

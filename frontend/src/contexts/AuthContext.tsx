@@ -65,6 +65,8 @@ function onAuthRoute(): boolean {
     p.startsWith("/brand/login") ||
     p.startsWith("/brand/setup") ||
     p.startsWith("/brand/apply") ||
+    p.startsWith("/brand/forgot-password") ||
+    p.startsWith("/brand/reset-password") ||
     p.startsWith("/admin") ||
     p.startsWith("/auth/")
   );

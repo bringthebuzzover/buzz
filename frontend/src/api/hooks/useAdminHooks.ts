@@ -386,6 +386,23 @@ export function useApproveBrand() {
   );
 }
 
+export function useCreateBrand() {
+  return useAdminMutation(
+    (input: {
+      brandName: string;
+      companyEmail: string;
+      instagramHandle?: string;
+      intentMessage?: string;
+      approveNow?: boolean;
+    }) =>
+      apiFetch("/api/admin/brands", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      }),
+  );
+}
+
 export function useDenyBrand() {
   return useAdminMutation((brandId: string) =>
     apiFetch(`/api/admin/brands/${brandId}/deny`, { method: "POST" }),

@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, Form, Request, Response
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,7 @@ from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.user import User
-from app.response import APIResponse, api_response
+from app.response import APIResponse, api_error_response, api_response
 from app.schemas.auth import (
     DevLoginRequest,
     InstagramCallbackRequest,
@@ -33,7 +33,10 @@ from app.schemas.onboarding import (
     AdminLoginRequest,
     BrandLoginRequest,
     BrandSetPasswordRequest,
+    ChangeEduEmailRequest,
+    ForgotPasswordRequest,
     ResendVerificationRequest,
+    ResetPasswordRequest,
     VerifyEmailRequest,
 )
 from app.security import jwt
@@ -48,7 +51,12 @@ from app.services.auth import (
 )
 from app.services.brand_auth import login_brand, set_brand_password
 from app.services.instagram import InstagramClient, get_instagram_client
-from app.services.onboarding import resend_verification_email, verify_email
+from app.services.onboarding import (
+    change_edu_email,
+    resend_verification_email,
+    verify_email,
+)
+from app.services.password_reset import request_password_reset, reset_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -211,56 +219,48 @@ async def refresh(
     request: Request,
     response: Response,
     db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    """Issue a new access token from the refresh cookie; rotate the cookie."""
+) -> APIResponse | JSONResponse:
+    """Issue a new access token from the refresh cookie; rotate the cookie.
+
+    Every failure path clears the refresh cookie so the SPA stops re-POSTing a
+    dead httpOnly cookie on bootstrap.
+    """
+
+    def _unauthorized(message: str) -> JSONResponse:
+        body = api_error_response(code=errors.UNAUTHORIZED, message=message)
+        resp = JSONResponse(status_code=401, content=body.model_dump())
+        _clear_refresh_cookie(resp)
+        return resp
 
     cookie = request.cookies.get(settings.REFRESH_COOKIE_NAME)
     if not cookie:
-        raise BuzzAPIException(
-            code=errors.UNAUTHORIZED, message="Missing refresh token.", status_code=401
-        )
+        return _unauthorized("Missing refresh token.")
     try:
         payload = jwt.decode_token(cookie, expected_type=jwt.REFRESH_TOKEN_TYPE)
-    except jwt.TokenError as exc:
-        raise BuzzAPIException(
-            code=errors.UNAUTHORIZED,
-            message="Invalid or expired refresh token.",
-            status_code=401,
-        ) from exc
+    except jwt.TokenError:
+        return _unauthorized("Invalid or expired refresh token.")
 
     try:
         user_id = uuid.UUID(payload.sub)
-    except ValueError as exc:
-        raise BuzzAPIException(
-            code=errors.UNAUTHORIZED, message="Invalid refresh token.", status_code=401
-        ) from exc
+    except ValueError:
+        return _unauthorized("Invalid refresh token.")
 
     user = await db.get(User, user_id)
     if user is None:
-        raise BuzzAPIException(
-            code=errors.UNAUTHORIZED, message="User no longer exists.", status_code=401
-        )
+        return _unauthorized("User no longer exists.")
 
     # Cut off terminal accounts at the refresh boundary (defense-in-depth).
     # Onboarding states (pending_*) are intentionally allowed — those users
     # are non-active but still need a live session to finish onboarding.
     if user.status in {OrgUserStatus.SUSPENDED.value, OrgUserStatus.DENIED.value}:
-        raise BuzzAPIException(
-            code=errors.UNAUTHORIZED,
-            message="This account can no longer refresh its session.",
-            status_code=401,
-        )
+        return _unauthorized("This account can no longer refresh its session.")
 
     # Revocation: a refresh token is only valid while its `ver` matches the
     # user's current token_version. Logout / admin-deny bump the version,
     # invalidating every outstanding refresh token (§11.1). Tokens minted before
     # this field existed carry no `ver`; treat that as version 0.
     if (payload.ver or 0) != (user.token_version or 0):
-        raise BuzzAPIException(
-            code=errors.UNAUTHORIZED,
-            message="This session has been revoked. Please sign in again.",
-            status_code=401,
-        )
+        return _unauthorized("This session has been revoked. Please sign in again.")
 
     access, new_refresh = issue_token_pair(user)
     _set_refresh_cookie(response, new_refresh)
@@ -394,6 +394,21 @@ async def resend_verification_endpoint(
     return api_response(data=camelize(result))
 
 
+@router.post(
+    "/verify-email/change",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("verify_change", limit=5, window=60))],
+)
+async def change_edu_email_endpoint(
+    payload: ChangeEduEmailRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Correct a typo'd .edu while still awaiting verification."""
+    result = await change_edu_email(db, user, payload.edu_email)
+    return api_response(data=camelize(result))
+
+
 # ── Brand auth (Stage 7) ────────────────────────────────────────────────────
 
 
@@ -438,6 +453,37 @@ async def brand_login(
     return api_response(data=TokenResponse(access_token=access, user=user_resp))
 
 
+@router.post(
+    "/brand/forgot-password",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("brand_forgot", limit=5, window=60))],
+)
+async def brand_forgot_password(
+    payload: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Enumerate-safe brand password-reset request."""
+    enforce_account_limit("brand_forgot", payload.email.strip().lower(), limit=5, window=300)
+    result = await request_password_reset(db, portal="brand", email=payload.email)
+    return api_response(data=result)
+
+
+@router.post(
+    "/brand/reset-password",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("brand_reset", limit=10, window=60))],
+)
+async def brand_reset_password(
+    payload: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Consume a brand password-reset token and set a new password."""
+    result = await reset_password(
+        db, portal="brand", token=payload.token, password=payload.password
+    )
+    return api_response(data=result)
+
+
 # ── Admin auth ──────────────────────────────────────────────────────────────
 
 
@@ -462,3 +508,34 @@ async def admin_login(
     access, refresh = issue_token_pair(user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=user_resp))
+
+
+@router.post(
+    "/admin/forgot-password",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("admin_forgot", limit=5, window=60))],
+)
+async def admin_forgot_password(
+    payload: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Enumerate-safe admin password-reset request."""
+    enforce_account_limit("admin_forgot", payload.email.strip().lower(), limit=5, window=300)
+    result = await request_password_reset(db, portal="admin", email=payload.email)
+    return api_response(data=result)
+
+
+@router.post(
+    "/admin/reset-password",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("admin_reset", limit=10, window=60))],
+)
+async def admin_reset_password(
+    payload: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Consume an admin password-reset token and set a new password."""
+    result = await reset_password(
+        db, portal="admin", token=payload.token, password=payload.password
+    )
+    return api_response(data=result)

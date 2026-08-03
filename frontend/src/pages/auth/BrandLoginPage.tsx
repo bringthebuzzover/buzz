@@ -92,6 +92,15 @@ export default function BrandLoginPage() {
           {brandLogin.isPending ? "Signing in…" : "Sign in"}
         </button>
 
+        <p className="text-center text-xs text-buzz-inkMuted">
+          <Link
+            to="/brand/forgot-password"
+            className="font-bold text-buzz-coral hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </p>
+
         {error && (
           <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
             {error}

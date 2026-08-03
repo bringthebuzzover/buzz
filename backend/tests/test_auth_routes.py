@@ -64,6 +64,21 @@ async def test_refresh_garbage_cookie_unauthorized(app_client: AsyncClient) -> N
     resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: "garbage"})
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"
+    set_cookie = resp.headers.get("set-cookie", "")
+    assert REFRESH in set_cookie
+    assert "max-age=0" in set_cookie.lower() or "expires=thu, 01 jan 1970" in set_cookie.lower()
+
+
+async def test_refresh_revoked_clears_cookie(app_client: AsyncClient, db_session) -> None:
+    user = await persist(db_session, make_user())
+    refresh = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
+    user.token_version = (user.token_version or 0) + 1
+    await db_session.flush()
+    resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: refresh})
+    assert resp.status_code == 401
+    set_cookie = resp.headers.get("set-cookie", "")
+    assert REFRESH in set_cookie
+    assert "max-age=0" in set_cookie.lower() or "expires=thu, 01 jan 1970" in set_cookie.lower()
 
 
 async def test_refresh_access_token_rejected(app_client: AsyncClient, db_session) -> None:

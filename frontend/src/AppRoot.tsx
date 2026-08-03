@@ -23,6 +23,8 @@ import InstagramCallbackPage from "./pages/auth/InstagramCallbackPage";
 import BrandSetupPage from "./pages/auth/BrandSetupPage";
 import BrandLoginPage from "./pages/auth/BrandLoginPage";
 import BrandApplyPage from "./pages/auth/BrandApplyPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import OrgProfilePage from "./pages/onboarding/OrgProfilePage";
 import VerifyEmailPage from "./pages/onboarding/VerifyEmailPage";
 import PendingApprovalPage from "./pages/onboarding/PendingApprovalPage";
@@ -85,6 +87,26 @@ export default function AppRoot(): ReactElement {
           element={<InstagramCallbackPage />}
         />
         <Route path="brand/login" element={<BrandLoginPage />} />
+        <Route
+          path="brand/forgot-password"
+          element={
+            <ForgotPasswordPage
+              portal="brand"
+              loginPath="/brand/login"
+              title="Forgot password"
+            />
+          }
+        />
+        <Route
+          path="brand/reset-password"
+          element={
+            <ResetPasswordPage
+              portal="brand"
+              loginPath="/brand/login"
+              title="Reset password"
+            />
+          }
+        />
         <Route path="brand/setup" element={<BrandSetupPage />} />
         <Route path="brand/apply" element={<BrandApplyPage />} />
 
@@ -219,6 +241,26 @@ export default function AppRoot(): ReactElement {
             their only session entry point off-dev) and keeps the marketing
             chrome; the panel itself lives outside this layout. */}
         <Route path="admin/login" element={<AdminLoginPage />} />
+        <Route
+          path="admin/forgot-password"
+          element={
+            <ForgotPasswordPage
+              portal="admin"
+              loginPath="/admin/login"
+              title="Forgot password"
+            />
+          }
+        />
+        <Route
+          path="admin/reset-password"
+          element={
+            <ResetPasswordPage
+              portal="admin"
+              loginPath="/admin/login"
+              title="Reset password"
+            />
+          }
+        />
 
         <Route path="privacy" element={<PrivacyPolicyPage />} />
         <Route path="terms" element={<TermsPage />} />

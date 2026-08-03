@@ -33,6 +33,52 @@
         "title": "APIResponse",
         "type": "object"
       },
+      "AdminCreateBrandRequest": {
+        "description": "Admin-provisioned brand (works when public self-reg is off).",
+        "properties": {
+          "approveNow": {
+            "default": false,
+            "title": "Approvenow",
+            "type": "boolean"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "companyEmail": {
+            "title": "Companyemail",
+            "type": "string"
+          },
+          "instagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramhandle"
+          },
+          "intentMessage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intentmessage"
+          }
+        },
+        "required": [
+          "brandName",
+          "companyEmail"
+        ],
+        "title": "AdminCreateBrandRequest",
+        "type": "object"
+      },
       "AdminLoginRequest": {
         "description": "Admin email + password login (admins have no Instagram identity).",
         "properties": {
@@ -239,6 +285,20 @@
         "title": "BrandSetPasswordRequest",
         "type": "object"
       },
+      "ChangeEduEmailRequest": {
+        "description": "Correct a typo'd .edu while still awaiting verification.",
+        "properties": {
+          "eduEmail": {
+            "title": "Eduemail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eduEmail"
+        ],
+        "title": "ChangeEduEmailRequest",
+        "type": "object"
+      },
       "DataResponse_BrandProfileResponse_": {
         "properties": {
           "data": {
@@ -391,6 +451,20 @@
           "allocations"
         ],
         "title": "FinalizeApplicantsRequest",
+        "type": "object"
+      },
+      "ForgotPasswordRequest": {
+        "description": "Enumerate-safe password-reset request (brand or admin).",
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "ForgotPasswordRequest",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -718,6 +792,25 @@
         "title": "ResendVerificationRequest",
         "type": "object"
       },
+      "ResetPasswordRequest": {
+        "description": "Consume a password-reset token and set a new password.",
+        "properties": {
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "password"
+        ],
+        "title": "ResetPasswordRequest",
+        "type": "object"
+      },
       "TrackerAdvanceRequest": {
         "properties": {
           "note": {
@@ -888,6 +981,64 @@
           }
         },
         "summary": "List Brands Endpoint",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "description": "Provision a brand (and optionally approve + invite) when self-reg is off.",
+        "operationId": "create_brand_endpoint_api_admin_brands_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCreateBrandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Brand Endpoint",
         "tags": [
           "admin"
         ]
@@ -2253,6 +2404,48 @@
         ]
       }
     },
+    "/api/auth/admin/forgot-password": {
+      "post": {
+        "description": "Enumerate-safe admin password-reset request.",
+        "operationId": "admin_forgot_password_api_auth_admin_forgot_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Forgot Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/auth/admin/login": {
       "post": {
         "description": "Admin email + password login \u2014 the only admin session entry point.\n\nAdmins have neither an Instagram identity nor an invite flow, so without\nthis they are unreachable outside local dev (``dev-login`` 404s off-dev).\nRate-limited per-IP and per-account like the brand path.",
@@ -2295,6 +2488,90 @@
         ]
       }
     },
+    "/api/auth/admin/reset-password": {
+      "post": {
+        "description": "Consume an admin password-reset token and set a new password.",
+        "operationId": "admin_reset_password_api_auth_admin_reset_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Reset Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/brand/forgot-password": {
+      "post": {
+        "description": "Enumerate-safe brand password-reset request.",
+        "operationId": "brand_forgot_password_api_auth_brand_forgot_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Brand Forgot Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/auth/brand/login": {
       "post": {
         "description": "Brand email + password login. Issues JWT tokens on success.\n\nRate-limited per-IP (decorator) and per-account (below) \u2014 the per-account cap\nruns *before* the bcrypt verify so credential-stuffing across rotating IPs\ncan't burn CPU. The cap is generous so a third party can't easily lock out a\nbrand by hammering its email.",
@@ -2332,6 +2609,48 @@
           }
         },
         "summary": "Brand Login",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/brand/reset-password": {
+      "post": {
+        "description": "Consume a brand password-reset token and set a new password.",
+        "operationId": "brand_reset_password_api_auth_brand_reset_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Brand Reset Password",
         "tags": [
           "auth"
         ]
@@ -2598,7 +2917,7 @@
     },
     "/api/auth/refresh": {
       "post": {
-        "description": "Issue a new access token from the refresh cookie; rotate the cookie.",
+        "description": "Issue a new access token from the refresh cookie; rotate the cookie.\n\nEvery failure path clears the refresh cookie so the SPA stops re-POSTing a\ndead httpOnly cookie on bootstrap.",
         "operationId": "refresh_api_auth_refresh_post",
         "responses": {
           "200": {
@@ -2655,6 +2974,66 @@
           }
         },
         "summary": "Verify Email Endpoint",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/verify-email/change": {
+      "post": {
+        "description": "Correct a typo'd .edu while still awaiting verification.",
+        "operationId": "change_edu_email_endpoint_api_auth_verify_email_change_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeEduEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change Edu Email Endpoint",
         "tags": [
           "auth"
         ]
@@ -4030,7 +4409,7 @@
     },
     "/api/health": {
       "get": {
-        "description": "Liveness probe used by smoke tests and the CI envelope check.",
+        "description": "Liveness probe used by smoke tests and the CI envelope check.\n\nReturns 503 when Postgres is unreachable so Railway healthchecks fail\nclosed rather than reporting a healthy API with a dead DB.",
         "operationId": "get_health_api_health_get",
         "responses": {
           "200": {

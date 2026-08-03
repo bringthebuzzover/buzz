@@ -80,6 +80,22 @@ export function useResendVerification() {
   });
 }
 
+export function useChangeEduEmail() {
+  return useMutation({
+    mutationFn: async (eduEmail: string) => {
+      const { data } = await apiFetch<{ emailSentTo: string; status?: string }>(
+        "/api/auth/verify-email/change",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eduEmail }),
+        },
+      );
+      return data;
+    },
+  });
+}
+
 // ── Brand auth ─────────────────────────────────────────────────────────────
 
 type UserPayload = {

@@ -1,8 +1,21 @@
 # Launch & Deployment
 
-The go-live runbook for Buzz: what has to be true before we launch, how to provision and deploy, and the environment/operational invariants to respect. The application code is feature-complete and tested (backend `pytest`, frontend smoke + Playwright E2E, live API bug-bash). The remaining work to launch is **external provisioning and configuration**, not code.
+The go-live runbook for Buzz: what has to be true before we launch, how to provision and deploy, and the environment/operational invariants to respect. The application code is feature-complete and tested (backend `pytest`, frontend smoke + Playwright E2E, live API bug-bash). The remaining work to launch is **external configuration** (custom DNS, Meta go-live, Resend domain verify) — not application code, and not greenfield Railway provisioning.
 
-Deploy target: **Railway** from branch **`mvp`** — Frontend (`/frontend`) + Backend (`/backend`) + PostgreSQL + **five** cron services. Run `alembic upgrade head` as a pre-deploy step before the backend starts. Custom domains: `www.bringthebuzzover.com` (SPA) + `api.bringthebuzzover.com` (API).
+Deploy target: **Railway** from branch **`mvp`** (autodeploy on) — Frontend (`/frontend`) + Backend (`/backend`) + PostgreSQL + **five** cron services. Run `alembic upgrade head` as a pre-deploy step before the backend starts. Intended custom domains: `www.bringthebuzzover.com` (SPA) + `api.bringthebuzzover.com` (API) — **not attached yet**.
+
+### Environment vocabulary
+
+| Name | Meaning today |
+| ---- | ------------- |
+| **Local / `development`** | Laptop bring-up (`ENVIRONMENT=development`). Dev secrets, insecure cookies OK, localhost CORS. |
+| **Railway env `production`** | The **only** Railway environment today (project **buzz**). Pre-launch: serves Railway-generated hosts, not public custom DNS. `ENVIRONMENT` for the API is whatever is set on that service (must be `staging` or `production` for the fail-fast path — not `development`). |
+| **Staging (optional / future)** | A second Railway environment is **not** provisioned. Optional later if you want a separate stack from public launch. |
+
+**Live hosts (Railway-generated, today):**
+
+- Frontend: `https://frontend-production-3819.up.railway.app`
+- API: `https://api-production-fbbc1.up.railway.app`
 
 ---
 
@@ -13,8 +26,10 @@ Deploy target: **Railway** from branch **`mvp`** — Frontend (`/frontend`) + Ba
 | Application code (both portals, jobs, auth)          | Done + tested                       | No                                  |
 | Instagram / Meta app review (org login scopes)       | Not started                         | **Yes** — gates all org signups     |
 | Legal review of Privacy Policy + Terms               | Draft in app (`/privacy`, `/terms`) | **Yes** — required for Meta + PII   |
-| Railway services provisioned (API + Postgres + Cron) | Not started                         | **Yes**                             |
-| Real secrets + env parity set                        | Not started                         | **Yes**                             |
+| Railway stack (Frontend + API + Postgres + 5 crons)  | **Done** (env `production`, autodeploy from `mvp`) | No — stack exists                   |
+| Custom DNS (`www` / `api.bringthebuzzover.com`)      | Not attached                        | **Yes** for public brand URLs       |
+| Secrets + env for current Railway hosts              | Set (API fail-fast requires them)   | No for Railway URLs                 |
+| Env parity for custom domains (SPA/API URLs, Meta)   | Not done                            | **Yes** when cutting over DNS       |
 | Resend verified sender domain                        | Not started                         | **Yes** — verification/denial email |
 
 ---
@@ -33,32 +48,37 @@ You do **not** need App Review to run a small, hand-picked pilot. In **Developme
 - It doesn't scale — you can't hand-add every org, so this is a bridge, not the launch state. Public signups still require the Advanced Access review above.
 - Keep the app in **Development mode** (or Live without the scope approved) until review passes; flip to **Live mode** only after Advanced Access is granted.
 - [ ] **Legal review.** `/privacy` and `/terms` ship as good-faith engineering drafts (`frontend/src/pages/legal/`). Have counsel review before public launch — a published Privacy Policy URL is also required for Meta app review, and we collect PII (`.edu` addresses, org profiles, brand application details).
-- [ ] **Resend sender domain.** Verify the `bringthebuzzover.com` sending domain in Resend and obtain a real `RESEND_API_KEY` (empty key = console-only, so verification and denial emails silently no-op).
+- [ ] **Resend sender domain.** Verify the `bringthebuzzover.com` sending domain in Resend (DKIM/SPF). Off-dev the API already requires a non-empty `RESEND_API_KEY` to boot; without a **verified** sending domain, verification/denial emails still fail in practice even if the key is set.
 
 ---
 
 ## Phase 2 — Provision infrastructure (Railway)
 
-Branch: **`mvp`** (autodeploy on). One Railway project.
+Branch: **`mvp`** (autodeploy on). One Railway project (**buzz**). One Railway environment (**`production`**) — there is no separate staging environment.
 
-| Service        | What                                                                                      | Notes                                                                                                                                 |
-| -------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Frontend**   | React SPA under `/frontend`                                                               | Root Directory `/frontend`; Watch Paths `/frontend/**`; Build `npm ci && npm run build:prod`; Start `npm run start:prod` (`serve -s`) |
-| **Backend**    | FastAPI + Uvicorn (`poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT`)         | Root Directory `/backend`; Watch Paths `/backend/**`; Pre-deploy `poetry run alembic upgrade head`; **1 replica**; Health `/api/health` |
-| **PostgreSQL** | Railway-managed                                                                           | Injects `DATABASE_URL` (`postgres://…` / `postgresql://…`); backend rewrites to `postgresql+asyncpg://` at startup                    |
-| **Cron ×5**    | One service per job: `poetry run python scripts/run_job.py <name>`                        | Root Directory `/backend`; no public domain; share API env group; see schedule below                                                  |
+| Service                 | What                                                                                      | Notes                                                                                                                                 |
+| ----------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend**            | React SPA under `/frontend`                                                               | Root Directory `/frontend`; Watch Paths `/frontend/**`; Build `npm ci && npm run build:prod`; Start `npm run start:prod` (`serve -s`) |
+| **api**                 | FastAPI + Uvicorn (`poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT`)         | Root Directory `/backend`; Watch Paths `/backend/**`; Pre-deploy `poetry run alembic upgrade head`; **1 replica**; Health `/api/health` (DB ping — 503 if Postgres is down) |
+| **PostgreSQL**          | Railway-managed                                                                           | Injects `DATABASE_URL` (`postgres://…` / `postgresql://…`); backend rewrites to `postgresql+asyncpg://` at startup                    |
+| **Cron ×5** (named)     | One service per job: `poetry run python scripts/run_job.py <name>`                        | `cron-drop-autoclose`, `cron-metric-sync`, `cron-token-cleanup`, `cron-autolink-scan`, `cron-token-refresh`; Root `/backend`; no public domain; share API env |
 
-- [ ] Create the services in one Railway project (Frontend + Backend + Postgres + 5 crons).
-- [ ] Set each service's **Root Directory** and **Watch Paths** so a change on one side doesn't rebuild the other.
-- [ ] Custom domains: `www.bringthebuzzover.com` → Frontend; `api.bringthebuzzover.com` → Backend (CNAME + TXT).
-- [ ] Enable **Wait for CI** on Frontend + Backend (CI includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
+- [x] Create the services in one Railway project (Frontend + API + Postgres + 5 crons) — **done**.
+- [x] Set each service's **Root Directory** / Watch Paths and wire autodeploy from `mvp` — **done** (deploys follow `mvp` commits).
+- [ ] Custom domains: `www.bringthebuzzover.com` → Frontend; `api.bringthebuzzover.com` → Backend (CNAME + TXT). **Not attached** — traffic is on `*.up.railway.app` today.
+- [ ] Enable **Wait for CI** on Frontend + API (CI on `mvp` includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
 - [ ] Optional: `RAILPACK_PYTHON_VERSION=3.12` on API + cron services.
+- [ ] Optional later: a second Railway environment for true staging (not required for pilot on the current stack).
 
 ### Frontend build / start
 
-CRA inlines `REACT_APP_API_URL` at **build** time. Railway Build Command should be `npm run build:prod` (runs `frontend/scripts/check-deploy-env.js`, then `craco build`) with:
+CRA inlines `REACT_APP_API_URL` at **build** time. Railway Build Command should be `npm run build:prod` (runs `frontend/scripts/check-deploy-env.js`, then `craco build`) with the **current** API origin until custom DNS is live:
 
 ```text
+# Today (Railway-generated):
+REACT_APP_API_URL=https://api-production-fbbc1.up.railway.app
+
+# After custom DNS cutover:
 REACT_APP_API_URL=https://api.bringthebuzzover.com
 ```
 
@@ -76,7 +96,7 @@ Background jobs are one-shot scripts the scheduler invokes — no worker. Each i
 | cron-autolink-scan  | `… autolink_scan`                                     | `30 3 * * *`  | auto-link suggestion scan, after metric_sync (§10.4) |
 | cron-token-refresh  | `… token_refresh`                                     | `0 4 * * *`   | IG long-lived token refresh safety net (§10.5.2)     |
 
-The primary IG token refresh is **on-login**; `token_refresh` only catches inactive orgs and is optional for a tight MVP. Confirm each cron run **exits** (Completed, not stuck Active).
+The primary IG token refresh is **on-login**; `token_refresh` only catches inactive orgs and is optional for a tight MVP. Confirm each cron run **exits** (Completed, not stuck Active). Each invocation writes a `job_runs` row (`ok` + `summary`); `/api/admin/health` surfaces last-run age on pipeline signals.
 
 ---
 
@@ -94,7 +114,7 @@ The backend **fails fast at startup** (`backend/app/config.py`) when `ENVIRONMEN
 | `INSTAGRAM_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | real Meta creds (enforced)                   |
 | `RESEND_API_KEY`                                    | real key (enforced; empty would no-op email) |
 | `DATABASE_URL`                                      | Railway Postgres URL (rewritten to `postgresql+asyncpg://` at startup) |
-| `REFRESH_COOKIE_SAMESITE`                           | `lax` for www+api on `bringthebuzzover.com` (same eTLD+1)              |
+| `REFRESH_COOKIE_SAMESITE`                           | `lax` after www+api custom DNS; on today's `*.up.railway.app` hosts see SameSite note below (`none` may be required temporarily) |
 | `RATE_LIMIT_ENABLED`                                | `true`                                                                 |
 
 Generate secrets:
@@ -104,21 +124,23 @@ python -c "import secrets; print(secrets.token_urlsafe(64))"          # SECRET_K
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"  # TOKEN_ENCRYPTION_KEY
 ```
 
-- [ ] Backend env set (table above); secrets generated fresh, never committed.
-- [ ] Frontend built via `npm run build:prod` with `REACT_APP_API_URL=https://api.bringthebuzzover.com` (guard: `frontend/scripts/check-deploy-env.js`).
+- [x] Backend env set for the current Railway hosts (table above); secrets generated fresh, never committed. Re-check when cutting over custom domains (`FRONTEND_URL`, Instagram redirect URI, cookie SameSite — see below).
+- [x] Frontend built via `npm run build:prod` with a non-localhost `REACT_APP_API_URL` (guard: `frontend/scripts/check-deploy-env.js`). Rebuild with `https://api.bringthebuzzover.com` at DNS cutover.
 - [ ] `BRAND_SELF_REGISTRATION_ENABLED` set intentionally (`true` = public `POST /api/brands/apply`; `false` = admin-provisioned brands only).
-- [ ] Meta dashboard URLs after domains are live:
-  - OAuth redirect: `https://www.bringthebuzzover.com/auth/instagram/callback`
-  - Deauthorize: `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize`
+- [ ] Meta dashboard URLs after **custom** domains are live (or temporarily point at Railway SPA/API hosts for the pilot/tester path):
+  - OAuth redirect: `https://www.bringthebuzzover.com/auth/instagram/callback` (or current Railway frontend origin + `/auth/instagram/callback`)
+  - Deauthorize: `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize` (API host)
   - Data deletion: `https://www.bringthebuzzover.com/data-deletion`
 
-**Operational gotcha:** `staging` and `production` both take the hardened path (HSTS, Secure cookies, prod-only CORS), so you can't bring one up over plain `http://localhost` — use `ENVIRONMENT=development` for local bring-up.
+**Operational gotcha:** Off-dev (`staging` / `production`) both take the hardened path (HSTS, Secure cookies, no localhost CORS), so you can't bring one up over plain `http://localhost` — use `ENVIRONMENT=development` for local bring-up. CORS always allowlists apex + www and also adds `FRONTEND_URL`'s origin so temporary Railway SPA hosts work before custom DNS (`backend/app/main.py`).
 
 ### Same-site SPA + API (auth cookies)
 
-Chosen topology: SPA on `www.bringthebuzzover.com`, API on `api.bringthebuzzover.com` (same eTLD+1). Use `REFRESH_COOKIE_SAMESITE=lax` + `REFRESH_COOKIE_SECURE=true`. CORS already allowlists www + apex (`backend/app/main.py`).
+**Target topology (custom DNS):** SPA on `www.bringthebuzzover.com`, API on `api.bringthebuzzover.com` (same eTLD+1). Use `REFRESH_COOKIE_SAMESITE=lax` + `REFRESH_COOKIE_SECURE=true`.
 
-Alternative: same-origin reverse proxy (`/api` under the SPA domain) — cookies "just work"; not the first deploy path. Cross-registrable-domain would need `SameSite=none` + Secure.
+**Today (Railway-generated hosts):** Frontend and API are different `*.up.railway.app` hosts. Those are **cross-site** for cookies (`up.railway.app` is on the public suffix list), so `SameSite=lax` refresh/OAuth cookies set by the API often **will not** accompany credentialed XHR from the SPA. Practical options until custom DNS: (1) cut over to www+api ASAP and keep `lax`, or (2) temporarily use `REFRESH_COOKIE_SAMESITE=none` (+ Secure) on the Railway stack and accept the stricter browser rules. CORS already includes `FRONTEND_URL` so the origin allowlist is not the blocker — cookie SameSite is.
+
+Alternative long-term: same-origin reverse proxy (`/api` under the SPA domain) — cookies "just work"; not the first deploy path.
 
 ---
 
@@ -126,22 +148,25 @@ Alternative: same-origin reverse proxy (`/api` under the SPA domain) — cookies
 
 Order: Postgres → API (migrate + health) → Frontend (baked API URL) → Crons → DNS for custom domains → Meta URL update.
 
-- [ ] Pre-deploy migrations: `poetry run alembic upgrade head` (before backend boot).
-- [ ] Deploy backend; confirm it boots (a bad env crashes it here by design).
-- [ ] Build + deploy the frontend with `build:prod` + real `REACT_APP_API_URL`.
-- [ ] Confirm cron services exit after each run.
+- [x] Pre-deploy migrations: `poetry run alembic upgrade head` (before backend boot) — wired on the API service.
+- [x] Deploy backend; confirm it boots (a bad env crashes it here by design).
+- [x] Build + deploy the frontend with `build:prod` + real `REACT_APP_API_URL` (Railway API host today).
+- [ ] Confirm cron services exit after each run (Completed, not stuck Active) — spot-check after schedule changes.
+- [ ] Attach custom domains + rebuild SPA with `REACT_APP_API_URL=https://api.bringthebuzzover.com`; set `FRONTEND_URL` to `https://www.bringthebuzzover.com`.
+- [ ] Update Meta dashboard URLs to the custom hosts (see Phase 3).
 
 ---
 
 ## Phase 5 — Post-deploy verification
 
-- [ ] `GET /api/health` returns `{"data":{"status":"ok",...},"error":null}`.
-- [ ] Instagram login completes end-to-end (real Meta creds, redirect URI matches).
-- [ ] A verification email actually arrives (Resend live path).
+- [ ] `GET /api/health` returns `{"data":{"status":"ok","version":"0.1.0"},"meta":null,"error":null}` when Postgres is up (and **503** with an error envelope when it is not).
+- [ ] Instagram login completes end-to-end (real Meta creds, redirect URI matches). On Railway hosts, confirm refresh cookies actually stick (SameSite caveat above).
+- [ ] A verification email actually arrives (Resend live path + verified sending domain).
 - [ ] Home Join Us section routes: "Join as Student Organization" → `/login` (Instagram OAuth), "Apply as Brand" → `/brand/apply` (POST /api/brands/apply).
 - [ ] Brand login → dashboard; org role is blocked from the brand dashboard (403).
-- [ ] Test accounts created: `TEST_ADMIN_PASSWORD=... TEST_BRAND_PASSWORD=... railway run python scripts/upsert_test_accounts.py` (one-off, non-destructive — see `TESTING.md`).
-- [ ] `/admin/login` signs the admin in; `/admin` lists accounts and "View as" opens the org portal with the red impersonation banner.
+- [ ] Test accounts created: `TEST_ADMIN_PASSWORD=... TEST_BRAND_PASSWORD=... railway run python scripts/upsert_test_accounts.py` (one-off, non-destructive — see `TESTING.md`). Auth paths: admin email/password (`/admin/login`), brand email/password (`/brand/login`), org Instagram OAuth (`/login`).
+- [ ] `/admin/login` signs the admin in; `/admin` panel covers overview, orgs, brands (including **Invite brand** when self-reg is off), drops, and health — approve/deny, tracker advance, reopen, recovery actions, and **View as** (impersonation is read-only by default; see below).
+- [ ] Brand and admin **Forgot password?** flows work (`/brand/forgot-password`, `/admin/forgot-password` → email link → reset). Cron `token_cleanup` sweeps spent reset tokens with the other token tables; each cron writes a `job_runs` row.
 - [ ] Security headers present on API responses (see below).
 
 ---
@@ -160,11 +185,18 @@ The backend sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Re
 
 Logout and admin-deny bump `users.token_version`, invalidating outstanding **refresh** tokens immediately. **Access** tokens are stateless and remain valid until they expire — the 1-hour access TTL (`ACCESS_TOKEN_TTL_MINUTES`) is the load-bearing control, by design (no per-request DB check on the hot path).
 
+### Admin auth + recovery (ops note)
+
+- **Admin** = email/password at `/admin/login`. **Brand** = email/password. **Org** = Instagram OAuth only.
+- **View as** mints a short-lived access token; the admin refresh cookie is untouched. Default `IMPERSONATION_READONLY=true` (mutating requests rejected). Set `false` only for deliberate write debugging.
+- Recovery actions live in the admin panel (and matching `/api/admin/*` routes): resend brand invite, un-deny org/brand, clear reopen flag, clear stuck IG token, tracking-number repair. Prefer the UI for day-to-day ops; curl only when needed.
+
 ---
 
 ## Known follow-ups (non-blocking)
 
-- **Admin tooling.** `/admin` covers sign-in and impersonation only. Org approval, tracker advance, and reopen are still API-only (admin JWT + curl). Fine for a hand-held pilot; add UI for those before onboarding at volume.
+- **Custom DNS + cookie cutover.** Attach `www` / `api.bringthebuzzover.com`, rebuild the SPA, flip Meta URLs, and keep `REFRESH_COOKIE_SAMESITE=lax` on same-site custom hosts (see Phase 3).
+- **Optional staging Railway environment** if you want a stack separate from the current `production` env before public launch.
 - **Dead `firebase` dependency.** Nothing imports Firebase anymore. The `firebase` package and `REACT_APP_FIREBASE_*` entries in `.env.example` can be removed to shrink the bundle.
 - **Legal pages** should be replaced with counsel-reviewed copy (see Phase 1).
 
@@ -203,13 +235,16 @@ Set the resulting credentials in the backend env: `INSTAGRAM_CLIENT_ID`, `INSTAG
 
 Verify the `bringthebuzzover.com` sending domain, then set `RESEND_API_KEY` and `EMAIL_FROM` (a verified sender) in the backend env.
 
-### Railway (hosting: API + Postgres + Cron)
+### Railway (hosting: Frontend + API + Postgres + Cron)
+
+Stack is already provisioned (project **buzz**, env **`production`**). Remaining Railway work is custom domains, optional Wait-for-CI, and optional second env for staging.
 
 - Deploy a FastAPI app: <https://docs.railway.com/guides/fastapi>
 - PostgreSQL (provision + `DATABASE_URL`): <https://docs.railway.com/databases/postgresql>
 - Cron jobs (one service per job; min every 5 min; UTC): <https://docs.railway.com/guides/cron-workers-queues>
 - Variables & reference variables (share `DATABASE_URL` across services): <https://docs.railway.com/guides/variables>
 - Pre-deploy command (run `alembic upgrade head` before boot): <https://docs.railway.com/deployments/pre-deploy-command>
+- Custom domains: <https://docs.railway.com/guides/domains>
 
 ### Secret generation (local, no account needed)
 
