@@ -89,3 +89,10 @@ class BrandLoginRequest(CamelModel):
 
     email: str
     password: str
+
+
+class AdminLoginRequest(CamelModel):
+    """Admin email + password login (admins have no Instagram identity)."""
+
+    email: str
+    password: str

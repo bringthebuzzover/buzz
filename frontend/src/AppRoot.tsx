@@ -5,6 +5,7 @@
  */
 import type { ReactElement } from "react";
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
+import type { PortalRole } from "./types/auth";
 import SiteLayout from "./layouts/SiteLayout";
 import RequireAuth from "./components/routing/RequireAuth";
 import RequireRole from "./components/routing/RequireRole";
@@ -28,6 +29,8 @@ import DeniedPage from "./pages/onboarding/DeniedPage";
 import PrivacyPolicyPage from "./pages/legal/PrivacyPolicyPage";
 import TermsPage from "./pages/legal/TermsPage";
 import DataDeletionPage from "./pages/legal/DataDeletionPage";
+import AdminLoginPage from "./pages/admin/AdminLoginPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
 function PortalGuard({
@@ -35,7 +38,7 @@ function PortalGuard({
   role,
 }: {
   children: ReactElement;
-  role: "org" | "brand";
+  role: PortalRole;
 }) {
   // Order per architecture §5.4: Auth → Status → Role. Status gating takes
   // precedence so an org mid-onboarding is sent to finish onboarding before a
@@ -204,6 +207,18 @@ export default function AppRoot(): ReactElement {
             </PortalGuard>
           }
         />
+        {/* Admin console. `/admin/login` is public (admins have no Instagram
+            identity, so this is their only session entry point off-dev). */}
+        <Route path="admin/login" element={<AdminLoginPage />} />
+        <Route
+          path="admin"
+          element={
+            <PortalGuard role="admin">
+              <AdminUsersPage />
+            </PortalGuard>
+          }
+        />
+
         <Route path="privacy" element={<PrivacyPolicyPage />} />
         <Route path="terms" element={<TermsPage />} />
         <Route path="data-deletion" element={<DataDeletionPage />} />

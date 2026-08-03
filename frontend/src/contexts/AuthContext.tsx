@@ -40,6 +40,10 @@ export type AuthUser = {
   portalRole: PortalRole;
   status: string;
   instagramUsername?: string;
+  /** Admin user id, set only while an admin is viewing as this user. */
+  impersonatedBy?: string;
+  /** Whether that impersonation session is barred from mutating. */
+  impersonationReadonly?: boolean;
 };
 
 type AuthContextValue = {
@@ -61,6 +65,7 @@ function onAuthRoute(): boolean {
     p.startsWith("/brand/login") ||
     p.startsWith("/brand/setup") ||
     p.startsWith("/brand/apply") ||
+    p.startsWith("/admin") ||
     p.startsWith("/auth/")
   );
 }

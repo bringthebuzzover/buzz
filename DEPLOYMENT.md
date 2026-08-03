@@ -140,6 +140,8 @@ Order: Postgres → API (migrate + health) → Frontend (baked API URL) → Cron
 - [ ] A verification email actually arrives (Resend live path).
 - [ ] Home Join Us section routes: "Join as Student Organization" → `/login` (Instagram OAuth), "Apply as Brand" → `/brand/apply` (POST /api/brands/apply).
 - [ ] Brand login → dashboard; org role is blocked from the brand dashboard (403).
+- [ ] Test accounts created: `TEST_ADMIN_PASSWORD=... TEST_BRAND_PASSWORD=... railway run python scripts/upsert_test_accounts.py` (one-off, non-destructive — see `TESTING.md`).
+- [ ] `/admin/login` signs the admin in; `/admin` lists accounts and "View as" opens the org portal with the red impersonation banner.
 - [ ] Security headers present on API responses (see below).
 
 ---
@@ -162,7 +164,7 @@ Logout and admin-deny bump `users.token_version`, invalidating outstanding **ref
 
 ## Known follow-ups (non-blocking)
 
-- **Admin tooling.** Org approval, tracker advance, and reopen are API-only (admin JWT + curl). Fine for a hand-held pilot; add a minimal admin UI or a documented runbook before onboarding at volume.
+- **Admin tooling.** `/admin` covers sign-in and impersonation only. Org approval, tracker advance, and reopen are still API-only (admin JWT + curl). Fine for a hand-held pilot; add UI for those before onboarding at volume.
 - **Dead `firebase` dependency.** Nothing imports Firebase anymore. The `firebase` package and `REACT_APP_FIREBASE_*` entries in `.env.example` can be removed to shrink the bundle.
 - **Legal pages** should be replaced with counsel-reviewed copy (see Phase 1).
 

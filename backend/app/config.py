@@ -66,6 +66,24 @@ class Settings(BaseSettings):
         description="Lifetime of the signed OAuth `state` CSRF token.",
     )
 
+    # --- Admin impersonation ---
+    IMPERSONATION_READONLY: bool = Field(
+        default=True,
+        description=(
+            "When True (the default), impersonation tokens carry `imp_readonly` "
+            "and the API rejects every mutating request made while an admin is "
+            "viewing as another user. Set False to allow writes (local debugging)."
+        ),
+    )
+    IMPERSONATION_TOKEN_TTL_MINUTES: int = Field(
+        default=15,
+        description=(
+            "Lifetime of an impersonation access token. Deliberately shorter "
+            "than ACCESS_TOKEN_TTL_MINUTES; no refresh token is issued, so the "
+            "admin re-mints to continue."
+        ),
+    )
+
     # --- Refresh cookie (architecture.md §11.1) ---
     REFRESH_COOKIE_NAME: str = Field(default="buzz_refresh")
     REFRESH_COOKIE_SECURE: bool = Field(

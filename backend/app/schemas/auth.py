@@ -32,13 +32,19 @@ class DevLoginRequest(BaseModel):
 
 
 class UserResponse(BaseModel):
-    """Current-user payload returned by login + ``GET /api/auth/me`` (§6.2)."""
+    """Current-user payload returned by login + ``GET /api/auth/me`` (§6.2).
+
+    ``impersonated_by`` is set only while an admin is viewing as this user; the
+    SPA keys its exit banner off it.
+    """
 
     id: uuid.UUID
     portal_role: str
     status: str
     instagram_username: str | None = None
     email: str | None = None
+    impersonated_by: uuid.UUID | None = None
+    impersonation_readonly: bool | None = None
 
 
 class TokenResponse(BaseModel):

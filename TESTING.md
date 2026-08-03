@@ -19,7 +19,37 @@ The bottom two are the bug-bash tools. Both need a **local Postgres** and
 | Org (active) | auto dev-login on app load | full portal |
 | Org (pending approval / profile / onboarding) | `POST /api/auth/dev-login {instagram_user_id}` | onboarding gates |
 | Brand | `/brand/login` → `partnerships@acme.coffee` / `buzzdev123` (also `brand@northwind.example`) | brand portal |
-| Admin | API token (dev-login by `user_id`); no admin UI | approve/deny, tracker, reopen |
+| Admin | API token (dev-login by `user_id`), or `/admin/login` after the upsert below | approve/deny, tracker, reopen, impersonate |
+
+## Permanent test accounts (`backend/scripts/upsert_test_accounts.py`)
+
+`seed_dev.py` is destructive and localhost-only. This script is neither — it
+upserts exactly three fixed rows, so it is the one safe way to create test
+accounts on Railway.
+
+```bash
+# Local (passwords default to buzzdev123)
+cd backend && poetry run python scripts/upsert_test_accounts.py
+
+# Railway one-off, after a deploy. Passwords are REQUIRED off-dev.
+TEST_ADMIN_PASSWORD=... TEST_BRAND_PASSWORD=... \
+    railway run python scripts/upsert_test_accounts.py
+```
+
+| Account | Credentials | How to sign in |
+| --- | --- | --- |
+| Admin | `admin@bringthebuzzover.com` / `$TEST_ADMIN_PASSWORD` | `/admin/login` |
+| Brand | `test-brand@bringthebuzzover.com` / `$TEST_BRAND_PASSWORD` | `/brand/login` |
+| Org | no password, no Instagram token | `/admin` → **View as** |
+
+The org account has **no Instagram token** on purpose: org login is Instagram-only
+and a synthetic IG id cannot complete OAuth, so it is reachable through admin
+impersonation only. Instagram-backed features (metric sync, post pull) skip
+tokenless users, so its post feed renders empty.
+
+Impersonation is **read-only by default** (`IMPERSONATION_READONLY=true`): any
+non-`GET` request during a "View as" session is rejected with
+`IMPERSONATION_READONLY`. Set `IMPERSONATION_READONLY=false` to allow writes.
 
 ## API bug-bash harness — `backend/scripts/bugbash.py`
 

@@ -33,6 +33,25 @@
         "title": "APIResponse",
         "type": "object"
       },
+      "AdminLoginRequest": {
+        "description": "Admin email + password login (admins have no Instagram identity).",
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "AdminLoginRequest",
+        "type": "object"
+      },
       "Body_instagram_deauthorize_api_auth_instagram_deauthorize_post": {
         "properties": {
           "signed_request": {
@@ -1091,6 +1110,66 @@
         ]
       }
     },
+    "/api/admin/impersonate/{user_id}": {
+      "post": {
+        "description": "Mint a short-lived access token that acts as ``user_id``.\n\nIntentionally does NOT set a refresh cookie: the admin's own refresh session\nmust survive so exiting impersonation is a client-side token drop.",
+        "operationId": "impersonate_endpoint_api_admin_impersonate__user_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Impersonate Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/orgs/pending": {
       "get": {
         "operationId": "get_pending_orgs_api_admin_orgs_pending_get",
@@ -1255,6 +1334,98 @@
         "summary": "Deny Org Endpoint",
         "tags": [
           "admin"
+        ]
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "description": "Org + brand users for the admin impersonation picker.",
+        "operationId": "list_users_endpoint_api_admin_users_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Users Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/auth/admin/login": {
+      "post": {
+        "description": "Admin email + password login \u2014 the only admin session entry point.\n\nAdmins have neither an Instagram identity nor an invite flow, so without\nthis they are unreachable outside local dev (``dev-login`` 404s off-dev).\nRate-limited per-IP and per-account like the brand path.",
+        "operationId": "admin_login_api_auth_admin_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Login",
+        "tags": [
+          "auth"
         ]
       }
     },

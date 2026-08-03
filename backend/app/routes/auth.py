@@ -30,6 +30,7 @@ from app.schemas.auth import (
 )
 from app.schemas.common import camelize
 from app.schemas.onboarding import (
+    AdminLoginRequest,
     BrandLoginRequest,
     BrandSetPasswordRequest,
     ResendVerificationRequest,
@@ -38,6 +39,7 @@ from app.schemas.onboarding import (
 from app.security import jwt
 from app.security.rate_limit import enforce_account_limit, rate_limited
 from app.security.signed_request import SignedRequestError, parse_signed_request
+from app.services.admin_auth import login_admin
 from app.services.auth import (
     build_user_response,
     handle_instagram_callback,
@@ -418,6 +420,32 @@ async def brand_login(
     """
     enforce_account_limit("brand_login", payload.email.strip().lower(), limit=20, window=300)
     user, user_resp = await login_brand(db, payload.email, payload.password)
+    access, refresh = issue_token_pair(user)
+    _set_refresh_cookie(response, refresh)
+    return api_response(data=TokenResponse(access_token=access, user=user_resp))
+
+
+# ── Admin auth ──────────────────────────────────────────────────────────────
+
+
+@router.post(
+    "/admin/login",
+    response_model=APIResponse,
+    dependencies=[Depends(rate_limited("admin_login", limit=10, window=60))],
+)
+async def admin_login(
+    payload: AdminLoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Admin email + password login — the only admin session entry point.
+
+    Admins have neither an Instagram identity nor an invite flow, so without
+    this they are unreachable outside local dev (``dev-login`` 404s off-dev).
+    Rate-limited per-IP and per-account like the brand path.
+    """
+    enforce_account_limit("admin_login", payload.email.strip().lower(), limit=20, window=300)
+    user, user_resp = await login_admin(db, payload.email, payload.password)
     access, refresh = issue_token_pair(user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=user_resp))

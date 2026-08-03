@@ -19,7 +19,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Annotated
 
-from fastapi import BackgroundTasks, Depends, Header
+from fastapi import BackgroundTasks, Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -33,12 +33,46 @@ from app.services.instagram_token import maybe_refresh_on_login
 
 _BEARER_PREFIX = "Bearer "
 
+# Methods that never mutate state, so a read-only impersonation session may run
+# them. Everything else is rejected while `imp_readonly` is set.
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
 
 def _unauthorized(message: str = "Authentication required.") -> BuzzAPIException:
     return BuzzAPIException(code=errors.UNAUTHORIZED, message=message, status_code=401)
 
 
-async def _load_user_from_bearer(authorization: str | None, db: AsyncSession) -> User:
+# Impersonation state is request-scoped and rides the access token, so it is
+# stashed on the loaded ``User`` as plain (unmapped, never-flushed) attributes
+# rather than a column. These three helpers are the only sanctioned accessors.
+_IMPERSONATED_BY_ATTR = "_buzz_impersonated_by"
+_IMPERSONATION_READONLY_ATTR = "_buzz_impersonation_readonly"
+
+
+def set_impersonation(user: User, impersonated_by: str | None, readonly: bool) -> None:
+    """Record who is impersonating ``user`` for the duration of this request."""
+
+    object.__setattr__(user, _IMPERSONATED_BY_ATTR, impersonated_by)
+    object.__setattr__(user, _IMPERSONATION_READONLY_ATTR, readonly)
+
+
+def impersonated_by(user: User) -> str | None:
+    """Admin user id behind this request, or ``None`` when not impersonating."""
+
+    return getattr(user, _IMPERSONATED_BY_ATTR, None)
+
+
+def impersonation_readonly(user: User) -> bool:
+    """Whether the current impersonation session is barred from mutating."""
+
+    return bool(getattr(user, _IMPERSONATION_READONLY_ATTR, False))
+
+
+async def _load_user_from_bearer(
+    authorization: str | None,
+    db: AsyncSession,
+    method: str | None = None,
+) -> User:
     if not authorization or not authorization.startswith(_BEARER_PREFIX):
         raise _unauthorized("Missing or malformed Authorization header.")
 
@@ -62,10 +96,27 @@ async def _load_user_from_bearer(authorization: str | None, db: AsyncSession) ->
     user = await db.get(User, user_id)
     if user is None:
         raise _unauthorized("User no longer exists.")
+
+    # Impersonation lives entirely in the token — no schema, no server session.
+    # The attributes are transient (never flushed) and let /me + the read-only
+    # gate below see who is really behind the request.
+    impersonated_by = payload.imp
+    readonly = bool(payload.imp_readonly) if impersonated_by else False
+    set_impersonation(user, impersonated_by, readonly)
+
+    if readonly and method is not None and method.upper() not in _SAFE_METHODS:
+        raise BuzzAPIException(
+            code=errors.IMPERSONATION_READONLY,
+            message=(
+                "This is a read-only impersonation session. Exit impersonation " "to make changes."
+            ),
+            status_code=403,
+        )
     return user
 
 
 async def get_current_user(
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
     db: AsyncSession = Depends(get_db),
     # FastAPI injects a real BackgroundTasks from the annotation; the None
@@ -81,12 +132,13 @@ async def get_current_user(
     A no-op for non-org users and orgs without an IG token.
     """
 
-    user = await _load_user_from_bearer(authorization, db)
+    user = await _load_user_from_bearer(authorization, db, request.method)
     maybe_refresh_on_login(user, background_tasks, ig)
     return user
 
 
 async def get_current_user_optional(
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
     db: AsyncSession = Depends(get_db),
 ) -> User | None:
@@ -94,7 +146,7 @@ async def get_current_user_optional(
 
     if not authorization:
         return None
-    return await _load_user_from_bearer(authorization, db)
+    return await _load_user_from_bearer(authorization, db, request.method)
 
 
 def require_role(*allowed: PortalRole) -> Callable[[User], Awaitable[User]]:
@@ -169,6 +221,9 @@ __all__ = [
     "require_role",
     "require_status",
     "require_active_role",
+    "set_impersonation",
+    "impersonated_by",
+    "impersonation_readonly",
     "CurrentUser",
     "CurrentOrg",
     "CurrentBrand",
