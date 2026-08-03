@@ -90,14 +90,15 @@ export function useApplyToDrop(dropId: string) {
     onSuccess: async () => {
       // Optimistic flip so the feed card shows "Already applied" before the
       // refetch lands (E2E and UX both race the invalidate otherwise).
-      queryClient.setQueryData<DropFeedItem[]>(
-        ["org-drop-feed"],
-        (rows: DropFeedItem[] | undefined) =>
-          (rows ?? []).map((row) =>
-            row.id === dropId ? { ...row, alreadyApplied: true } : row,
-          ),
-      );
+      const markApplied = (rows: DropFeedItem[] | undefined) =>
+        (rows ?? []).map((row) =>
+          row.id === dropId ? { ...row, alreadyApplied: true } : row,
+        );
+      queryClient.setQueryData<DropFeedItem[]>(["org-drop-feed"], markApplied);
       await queryClient.invalidateQueries({ queryKey: ["org-drop-feed"] });
+      // Re-assert after refetch: a stale/incorrect alreadyApplied=false from the
+      // server must not wipe the successful apply state in the UI.
+      queryClient.setQueryData<DropFeedItem[]>(["org-drop-feed"], markApplied);
       await queryClient.invalidateQueries({ queryKey: ["drop-detail", dropId] });
       await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },

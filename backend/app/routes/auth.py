@@ -331,15 +331,28 @@ async def dev_login(
             select(User).where(User.instagram_user_id == payload.instagram_user_id)
         )
     else:
-        # Default: the first seeded active org user.
+        # Prefer an active org that has an IG token — that's the seed_dev default
+        # used by local DX and Playwright. ``upsert_test_accounts`` also inserts
+        # an active but tokenless org (View-as only); it must not win the default
+        # session via created_at ordering.
         user = await db.scalar(
             select(User)
             .where(
                 User.portal_role == PortalRole.ORG.value,
                 User.status == OrgUserStatus.ACTIVE.value,
+                User.instagram_access_token.isnot(None),
             )
             .order_by(User.created_at.asc())
         )
+        if user is None:
+            user = await db.scalar(
+                select(User)
+                .where(
+                    User.portal_role == PortalRole.ORG.value,
+                    User.status == OrgUserStatus.ACTIVE.value,
+                )
+                .order_by(User.created_at.asc())
+            )
 
     if user is None:
         raise BuzzAPIException(code=errors.NOT_FOUND, message="No matching user.", status_code=404)

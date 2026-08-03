@@ -22,6 +22,26 @@ async def test_dev_login_default_picks_active_org(app_client: AsyncClient, db_se
     assert REFRESH in resp.headers.get("set-cookie", "")
 
 
+async def test_dev_login_prefers_org_with_instagram_token(
+    app_client: AsyncClient, db_session
+) -> None:
+    """Tokenless active orgs (upsert_test_accounts View-as target) must not win."""
+    from app.security.token_crypto import encrypt_token
+
+    tokenless = await persist(db_session, make_user(status=OrgUserStatus.ACTIVE))
+    seeded = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.ACTIVE, instagram_user_id="ig_seeded"),
+    )
+    seeded.instagram_access_token = encrypt_token("dev-long-lived")
+    await db_session.flush()
+
+    resp = await app_client.post("/api/auth/dev-login", json={})
+    assert resp.status_code == 200
+    assert resp.json()["data"]["user"]["id"] == str(seeded.id)
+    assert resp.json()["data"]["user"]["id"] != str(tokenless.id)
+
+
 async def test_dev_login_by_user_id(app_client: AsyncClient, db_session) -> None:
     user = await persist(db_session, make_user())
     resp = await app_client.post("/api/auth/dev-login", json={"user_id": str(user.id)})
