@@ -56,6 +56,18 @@ class _FailingMediaClient(FakeInstagramClient):
         raise RuntimeError("instagram media fetch failed")
 
 
+class _FailingInsightsClient(FakeInstagramClient):
+    """Basics succeed; insights always fail."""
+
+    async def fetch_media_insights(self, long_token, media_id, *, is_reel=False):  # type: ignore[override]
+        raise RuntimeError("instagram insights fetch failed")
+
+
+class _FailingMediaListClient(FakeInstagramClient):
+    async def fetch_user_media(self, long_token, *, limit=50, max_pages=10):  # type: ignore[override]
+        raise RuntimeError("instagram media list failed")
+
+
 class _FailingRefreshClient(FakeInstagramClient):
     """Fake whose token refresh always fails."""
 
@@ -745,6 +757,15 @@ async def test_metric_sync_skips_expired_token_org(db_session) -> None:
     result = await sync_metrics(db_session, fake)
     assert result["posts_discovered"] == 0
     assert result["posts_refreshed"] == 0
+    assert result["failures"] >= 1
+    assert result["skipped_token"] >= 1
+
+
+async def test_metric_sync_media_list_failure_counts(db_session) -> None:
+    await _eligible_sync_org(db_session, suffix="listfail")
+    result = await sync_metrics(db_session, _FailingMediaListClient())
+    assert result["failures"] >= 1
+    assert result["posts_discovered"] == 0
 
 
 async def test_metric_sync_does_not_refresh_story(db_session) -> None:
@@ -773,12 +794,44 @@ async def test_metric_sync_applies_reel_insights(db_session) -> None:
     db_session.add(reel)
     await db_session.flush()
     fake = FakeInstagramClient()
-    fake.insights = {"reach": 300, "ig_reels_avg_watch_time": 1200, "reels_skip_rate": 1}
+    fake.insights = {"reach": 300, "ig_reels_avg_watch_time": 1200, "reels_skip_rate": 0.42}
     await sync_metrics(db_session, fake)
     await db_session.refresh(reel)
     assert reel.reach == 300
     assert reel.ig_reels_avg_watch_time == 1200
-    assert reel.reels_skip_rate == 1.0
+    assert reel.reels_skip_rate == 0.42
+
+
+async def test_metric_sync_keeps_basics_when_insights_fail(db_session) -> None:
+    user, org = await _eligible_sync_org(db_session, suffix="insfail")
+    post = _raw_post(
+        org.id, caption="x", posted_at=_now() - timedelta(hours=2), likes=99, ext="insfail1"
+    )
+    post.reach = 50
+    db_session.add(post)
+    await db_session.flush()
+    fake = _FailingInsightsClient()
+    fake.media_fields = {
+        "insfail1": MediaFields(
+            id="insfail1",
+            caption="updated",
+            media_type="IMAGE",
+            media_product_type="FEED",
+            permalink="https://instagram.com/p/insfail1",
+            thumbnail_url=None,
+            media_url=None,
+            timestamp="2030-01-01T00:00:00+0000",
+            like_count=12,
+            comments_count=3,
+        )
+    }
+    result = await sync_metrics(db_session, fake)
+    assert result["failures"] >= 1
+    await db_session.refresh(post)
+    assert post.likes == 12
+    assert post.comments == 3
+    assert post.reach == 50  # prior insights untouched
+    assert post.metrics_updated_at is not None
 
 
 async def test_metric_sync_counts_per_post_failure(db_session) -> None:

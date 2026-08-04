@@ -14,6 +14,7 @@ Only the long-lived token is persisted (encrypted) by the caller.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Protocol, runtime_checkable
 from urllib.parse import urlencode
 
@@ -114,18 +115,56 @@ class InstagramClient(Protocol):
     # --- Stage 8 (§10.1 metric sync / §10.5 token refresh) ---
     async def refresh_long_lived(self, long_token: str) -> LongLivedToken: ...
 
-    async def fetch_user_media(self, long_token: str, *, limit: int = 50) -> list[MediaRef]: ...
+    async def fetch_user_media(
+        self, long_token: str, *, limit: int = 50, max_pages: int = 10
+    ) -> list[MediaRef]: ...
 
     async def fetch_media(self, long_token: str, media_id: str) -> MediaFields: ...
 
     async def fetch_media_insights(
         self, long_token: str, media_id: str, *, is_reel: bool = False
-    ) -> dict[str, int]: ...
+    ) -> dict[str, int | float]: ...
 
 
 def _ig_error(message: str) -> BuzzAPIException:
     # Generic 401 — never echo request params (they carry ``client_secret``).
     return BuzzAPIException(code=errors.UNAUTHORIZED, message=message, status_code=401)
+
+
+# FEED (and non-reel) insights — profile_* / follows are FEED/STORY-only on Graph.
+_FEED_INSIGHT_METRICS = (
+    "reach,views,saved,shares,reposts,total_interactions," "profile_visits,profile_activity,follows"
+)
+# REELS — do not request profile_visits/profile_activity/follows (#100 on REELS).
+_REEL_INSIGHT_METRICS = (
+    "reach,views,saved,shares,reposts,total_interactions,"
+    "ig_reels_avg_watch_time,ig_reels_video_view_total_time,reels_skip_rate"
+)
+_FRACTIONAL_INSIGHTS = frozenset({"reels_skip_rate"})
+# Bound discovery runtime: 10 pages × default limit 50 = 500 media ids max.
+_MEDIA_LIST_MAX_PAGES = 10
+_MEDIA_LIST_WINDOW_DAYS = 30
+
+
+def _parse_insight_value(name: str, raw: object) -> int | float:
+    """Cast Graph insight values; keep fractional metrics as floats."""
+
+    if name in _FRACTIONAL_INSIGHTS:
+        return float(raw)  # type: ignore[arg-type]
+    # int(float(...)) so "3.0" and 3 both work without truncating via int("3.0").
+    return int(float(raw))  # type: ignore[arg-type]
+
+
+def _parse_media_timestamp(value: str) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        try:
+            return datetime.strptime(value, "%Y-%m-%dT%H:%M:%S%z")
+        except ValueError:
+            return None
 
 
 class HttpInstagramClient:
@@ -254,23 +293,61 @@ class HttpInstagramClient:
             raise _ig_error("Instagram token refresh returned no token.")
         return LongLivedToken(access_token=str(access_token), expires_in=int(expires_in))
 
-    async def fetch_user_media(self, long_token: str, *, limit: int = 50) -> list[MediaRef]:
-        client = await self._client()
-        try:
-            resp = await client.get(
-                f"{settings.INSTAGRAM_GRAPH_BASE}/me/media",
-                params={"fields": "id,timestamp", "limit": limit, "access_token": long_token},
-            )
-            resp.raise_for_status()
-            body = resp.json()
-        except httpx.HTTPError as exc:
-            raise _ig_error("Instagram media list failed.") from exc
+    async def fetch_user_media(
+        self, long_token: str, *, limit: int = 50, max_pages: int = _MEDIA_LIST_MAX_PAGES
+    ) -> list[MediaRef]:
+        """List recent media, following ``paging.next`` up to ``max_pages``.
 
-        return [
-            MediaRef(id=str(m["id"]), timestamp=str(m.get("timestamp", "")))
-            for m in body.get("data", [])
-            if m.get("id")
-        ]
+        Assumes Graph returns newest-first. Stops early when a page's items all
+        fall outside the 30-day discovery window. Caps pages to bound runtime
+        (default 10 × limit).
+        """
+
+        client = await self._client()
+        window_start = datetime.now(timezone.utc) - timedelta(days=_MEDIA_LIST_WINDOW_DAYS)
+        out: list[MediaRef] = []
+        url: str | None = f"{settings.INSTAGRAM_GRAPH_BASE}/me/media"
+        params: dict[str, str | int] | None = {
+            "fields": "id,timestamp",
+            "limit": limit,
+            "access_token": long_token,
+        }
+
+        for _ in range(max_pages):
+            if url is None:
+                break
+            try:
+                resp = await client.get(url, params=params)
+                resp.raise_for_status()
+                body = resp.json()
+            except httpx.HTTPError as exc:
+                raise _ig_error("Instagram media list failed.") from exc
+
+            page_refs: list[MediaRef] = []
+            page_has_in_window = False
+            for m in body.get("data", []):
+                if not m.get("id"):
+                    continue
+                ts_raw = str(m.get("timestamp", ""))
+                posted = _parse_media_timestamp(ts_raw)
+                ref = MediaRef(id=str(m["id"]), timestamp=ts_raw)
+                page_refs.append(ref)
+                if posted is not None:
+                    if posted.tzinfo is None:
+                        posted = posted.replace(tzinfo=timezone.utc)
+                    if posted >= window_start:
+                        page_has_in_window = True
+
+            out.extend(page_refs)
+            # Newest-first: if nothing on this page is in-window, older pages won't be.
+            if not page_has_in_window and page_refs:
+                break
+
+            next_url = (body.get("paging") or {}).get("next")
+            url = str(next_url) if next_url else None
+            params = None  # next URL already carries query params
+
+        return out
 
     async def fetch_media(self, long_token: str, media_id: str) -> MediaFields:
         client = await self._client()
@@ -303,14 +380,9 @@ class HttpInstagramClient:
 
     async def fetch_media_insights(
         self, long_token: str, media_id: str, *, is_reel: bool = False
-    ) -> dict[str, int]:
+    ) -> dict[str, int | float]:
         client = await self._client()
-        metrics = (
-            "reach,views,saved,shares,reposts,total_interactions,"
-            "profile_visits,profile_activity,follows"
-        )
-        if is_reel:
-            metrics += ",ig_reels_avg_watch_time,ig_reels_video_view_total_time,reels_skip_rate"
+        metrics = _REEL_INSIGHT_METRICS if is_reel else _FEED_INSIGHT_METRICS
         try:
             resp = await client.get(
                 f"{settings.INSTAGRAM_GRAPH_BASE}/{media_id}/insights",
@@ -322,12 +394,12 @@ class HttpInstagramClient:
             raise _ig_error("Instagram insights fetch failed.") from exc
 
         # Insights come back as [{name, values:[{value}]}]; flatten to {name: value}.
-        out: dict[str, int] = {}
+        out: dict[str, int | float] = {}
         for row in body.get("data", []):
             name = row.get("name")
             values = row.get("values") or []
             if name and values:
-                out[str(name)] = int(values[0].get("value", 0))
+                out[str(name)] = _parse_insight_value(str(name), values[0].get("value", 0))
         return out
 
 

@@ -15,7 +15,7 @@ Statuses: `pending` | `in_progress` | `done` | `parked` | `ops`
 
 ## jobs-metrics
 
-status: pending
+status: done
 gaps:
   - jobs.reels-insights-feed-metrics
   - jobs.insights-failure-drops-basics

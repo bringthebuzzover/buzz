@@ -291,6 +291,13 @@ async def compute_engagement_series(
     bucket_count: int = 12,
     window_days: int = 14,
 ) -> list[dict[str, int]]:
+    """Cumulative likes+comments over time, bucketed by ``posted_at``.
+
+    Uses post time (not ``metrics_updated_at``) so a metric sync does not cliff
+    all engagement into the last bucket. Includes linked posts that have
+    likes/comments even when insights are partial.
+    """
+
     window_ms = window_days * 24 * 60 * 60 * 1000
 
     drop_ids = list(await db.scalars(select(Drop.id).where(Drop.brand_id == brand.id)))
@@ -310,21 +317,15 @@ async def compute_engagement_series(
     posts = list(
         await db.scalars(
             select(SocialPost)
-            .where(
-                SocialPost.id.in_(linked_post_ids),
-                SocialPost.metrics_updated_at.isnot(None),
-            )
-            .order_by(SocialPost.metrics_updated_at.asc())
+            .where(SocialPost.id.in_(linked_post_ids))
+            .order_by(SocialPost.posted_at.asc())
         )
     )
     if not posts:
         return []
 
-    # Anchor to latest post data, not request time
-    # (posts with None metrics_updated_at are already filtered out above)
-    timestamps = [p.metrics_updated_at for p in posts]
-    assert None not in timestamps, "posts with null metrics_updated_at must be filtered"
-    latest_ts = max(t for t in timestamps if t is not None)
+    timestamps = [p.posted_at for p in posts]
+    latest_ts = max(timestamps)
     window_end = latest_ts
     start = window_end - timedelta(milliseconds=window_ms)
     step = window_ms / bucket_count
@@ -337,8 +338,8 @@ async def compute_engagement_series(
         bucket_end = start + timedelta(milliseconds=(i + 1) * step)
         while cursor < len(posts):
             p = posts[cursor]
-            ts = p.metrics_updated_at
-            if ts is None or ts > bucket_end:
+            ts = p.posted_at
+            if ts > bucket_end:
                 break
             cumulative += (p.likes or 0) + (p.comments or 0)
             cursor += 1

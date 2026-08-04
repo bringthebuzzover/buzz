@@ -2,15 +2,23 @@
 
 Daily. For each org with a live campaign and a valid long-lived token:
 
-1. **Discovery** — ``GET /me/media`` finds posts in the 30-day window; new ones
-   are inserted (``metrics_updated_at = NULL``).
+1. **Discovery** — ``GET /me/media`` (paged, capped) finds posts in the 30-day
+   window; new ones are inserted (``metrics_updated_at = NULL``).
 2. **Refresh** — for every refresh-eligible post (``posted_at >= now - 30d``,
-   not a STORY), pull basic fields + insights and write them, stamping
-   ``metrics_updated_at = now`` and stashing the raw insights JSON.
+   not a STORY), pull basic fields then insights separately. Basics
+   (likes/comments/media URLs) persist even when insights fail.
+   ``metrics_updated_at`` is stamped when basics succeed (including after an
+   insights failure) so charts can include the post; insight columns update
+   only on insights success.
 
 Per-post / per-org failures don't block the batch (rate limits, deleted posts,
 expired tokens). Posts older than 30 days are frozen (skipped). Idempotent via
 ``UNIQUE(platform, external_id)``.
+
+Eligibility (``_LIVE_STAGES``) is intentional for this job: orgs need an accepted
+application on ``awaiting_products`` / ``drop_active`` / ``drop_finished``. The
+finalize → awaiting_products gap is a known sync blackout; do not expand stage
+gating here without a product change.
 """
 
 from __future__ import annotations
@@ -74,20 +82,30 @@ def _parse_ts(value: str) -> datetime | None:
             return None
 
 
-def _apply_metrics(
-    post: SocialPost, fields: MediaFields, insights: dict[str, int], now: datetime
-) -> None:
+def _apply_basics(post: SocialPost, fields: MediaFields) -> None:
     post.caption = fields.caption
     post.likes = fields.like_count
     post.comments = fields.comments_count
     post.media_url = fields.media_url
     post.thumbnail_url = fields.thumbnail_url
+
+
+def _apply_insights(post: SocialPost, insights: dict[str, int | float]) -> None:
     for col in _INSIGHT_COLUMNS:
         if col in insights:
             setattr(post, col, insights[col])
     if "reels_skip_rate" in insights:
         post.reels_skip_rate = float(insights["reels_skip_rate"])
     post.insights_raw = dict(insights)
+
+
+def _apply_metrics(
+    post: SocialPost, fields: MediaFields, insights: dict[str, int | float], now: datetime
+) -> None:
+    """Full apply (basics + insights + stamp) — used by tests and happy path."""
+
+    _apply_basics(post, fields)
+    _apply_insights(post, insights)
     post.metrics_updated_at = now
 
 
@@ -128,18 +146,20 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
     discovered = 0
     refreshed = 0
     failed = 0
+    skipped_token = 0
 
     for org in orgs:
         user = await db.get(User, org.user_id)
         token = _token_for(user, now)
         if token is None:
-            # Surface silent drop-offs: an org with a token we can't use (expired
-            # or undecryptable) stops syncing until it re-auths on next login.
+            # Present-but-unusable token → non-clean run (expired / undecryptable).
             if user is not None and user.instagram_access_token:
                 logger.warning(
                     "metric sync skipped org %s: Instagram token missing/expired (needs re-auth)",
                     org.id,
                 )
+                skipped_token += 1
+                failed += 1
             continue
 
         # --- Discovery: insert newly-posted media in the window ---
@@ -147,6 +167,7 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
             media = await ig.fetch_user_media(token)
         except Exception:  # noqa: BLE001
             logger.warning("media list failed for org %s", org.id, exc_info=True)
+            failed += 1
             media = []
 
         for ref in media:
@@ -209,11 +230,23 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
             is_reel = post.media_product_type == SocialMediaProductType.REELS.value
             try:
                 fields = await ig.fetch_media(token, post.external_id)
-                insights = await ig.fetch_media_insights(token, post.external_id, is_reel=is_reel)
             except Exception:  # noqa: BLE001
                 failed += 1
                 continue
-            _apply_metrics(post, fields, insights, now)
+            _apply_basics(post, fields)
+
+            try:
+                insights = await ig.fetch_media_insights(token, post.external_id, is_reel=is_reel)
+            except Exception:  # noqa: BLE001
+                # Basics kept; prior insight columns untouched; stamp so charts
+                # include the post (LOCKED cluster approach).
+                failed += 1
+                post.metrics_updated_at = now
+                refreshed += 1
+                continue
+
+            _apply_insights(post, insights)
+            post.metrics_updated_at = now
             refreshed += 1
         await db.flush()
 
@@ -222,4 +255,5 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
         "posts_discovered": discovered,
         "posts_refreshed": refreshed,
         "failures": failed,
+        "skipped_token": skipped_token,
     }

@@ -648,3 +648,63 @@ class TestEngagementSeries:
         for point in data:
             assert "timestamp" in point
             assert "engagement" in point
+
+    async def test_buckets_by_posted_at_not_sync_stamp(self, app_client: AsyncClient, db_session):
+        """Two posts with distinct posted_at and identical metrics_updated_at.
+
+        Series must rise across buckets (posted_at axis), not cliff into the last
+        bucket the way a shared sync stamp would.
+        """
+        from datetime import datetime, timedelta, timezone
+
+        from app.models.social_post import SocialPost
+        from tests.conftest import make_post_link
+
+        _, brand, headers = await _brand_ctx(db_session)
+        drop = await make_drop(db_session, brand)
+        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, org_user)
+        app = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+
+        now = datetime.now(timezone.utc)
+        sync_stamp = now
+        older = SocialPost(
+            org_id=org.id,
+            platform="instagram",
+            external_id="eng_old",
+            url="https://instagram.test/p/old",
+            caption="old",
+            media_type="IMAGE",
+            media_product_type="FEED",
+            posted_at=now - timedelta(days=10),
+            likes=5,
+            comments=0,
+            metrics_updated_at=sync_stamp,
+        )
+        newer = SocialPost(
+            org_id=org.id,
+            platform="instagram",
+            external_id="eng_new",
+            url="https://instagram.test/p/new",
+            caption="new",
+            media_type="IMAGE",
+            media_product_type="FEED",
+            posted_at=now - timedelta(days=1),
+            likes=7,
+            comments=0,
+            metrics_updated_at=sync_stamp,
+        )
+        db_session.add_all([older, newer])
+        await db_session.flush()
+        await make_post_link(db_session, older, app)
+        await make_post_link(db_session, newer, app)
+
+        res = await app_client.get("/api/brands/me/engagement-series", headers=headers)
+        assert res.status_code == 200
+        data = res.json()["data"]
+        engagements = [p["engagement"] for p in data]
+        assert engagements[-1] == 12
+        # At least one earlier bucket is strictly below the final total
+        # (not a single-cliff of 0…0,12).
+        assert any(e < 12 for e in engagements[:-1])
+        assert any(e > 0 for e in engagements[:-1])

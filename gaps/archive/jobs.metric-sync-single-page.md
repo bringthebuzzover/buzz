@@ -3,7 +3,7 @@ id: jobs.metric-sync-single-page
 title: metric_sync discovery is single-page (limit=50)
 kind: silent_loss
 severity: P2
-status: open
+status: fixed
 surface: jobs
 evidence:
   - path: backend/app/services/instagram.py
@@ -18,3 +18,5 @@ fix_when: |
 ignores `paging.next`. Orgs with more than 50 media items in the 30-day window
 silently never insert the older in-window posts. Media-list exceptions set
 `media = []` without incrementing the job's `failures` counter.
+
+Fixed by following paging.next with a 10-page cap and age early-stop.

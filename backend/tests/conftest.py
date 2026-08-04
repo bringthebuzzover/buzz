@@ -185,7 +185,9 @@ class FakeInstagramClient:
         self.refreshed_with = long_token
         return LongLivedToken(access_token="fake-refreshed-token", expires_in=5183944)
 
-    async def fetch_user_media(self, long_token: str, *, limit: int = 50) -> list["MediaRef"]:
+    async def fetch_user_media(
+        self, long_token: str, *, limit: int = 50, max_pages: int = 10
+    ) -> list["MediaRef"]:
         return list(getattr(self, "media", []))
 
     async def fetch_media(self, long_token: str, media_id: str) -> "MediaFields":
@@ -207,7 +209,7 @@ class FakeInstagramClient:
 
     async def fetch_media_insights(
         self, long_token: str, media_id: str, *, is_reel: bool = False
-    ) -> dict[str, int]:
+    ) -> dict[str, int | float]:
         return dict(getattr(self, "insights", {"reach": 100, "saved": 5}))
 
 
