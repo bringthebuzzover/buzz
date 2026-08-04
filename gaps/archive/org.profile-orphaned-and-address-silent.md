@@ -4,6 +4,7 @@ title: Org profile API is orphaned; shipping address never reaches brands
 kind: ux_hole
 severity: P1
 status: fixed
+closed_in: 1dcd270
 surface: org
 evidence:
   - path: frontend/src/api/hooks

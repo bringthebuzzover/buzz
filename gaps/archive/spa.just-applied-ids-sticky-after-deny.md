@@ -4,6 +4,7 @@ title: Feed Already applied sticks after denial
 kind: ux_hole
 severity: P1
 status: fixed
+closed_in: 1dcd270
 surface: spa
 evidence:
   - path: frontend/src/pages/org/OrgDropFeedPage.tsx
