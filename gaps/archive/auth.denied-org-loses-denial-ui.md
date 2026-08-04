@@ -4,7 +4,7 @@ title: Denied org loses the denial UI once the access token dies
 kind: ux_hole
 severity: P2
 status: fixed
-closed_in:
+closed_in: c672f49
 surface: org
 evidence:
   - path: frontend/src/pages/onboarding

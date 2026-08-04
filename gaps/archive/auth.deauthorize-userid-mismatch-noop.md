@@ -4,7 +4,7 @@ title: Deauthorize can return ok while leaving the token live
 kind: silent_loss
 severity: P2
 status: fixed
-closed_in:
+closed_in: c672f49
 surface: auth
 evidence:
   - path: backend/app/services/auth.py

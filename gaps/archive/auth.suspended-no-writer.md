@@ -4,7 +4,7 @@ title: `suspended` has no writer and no reverse
 kind: unrecoverable
 severity: P2
 status: fixed
-closed_in:
+closed_in: c672f49
 surface: auth
 evidence:
   - path: backend/app/models/enums.py
