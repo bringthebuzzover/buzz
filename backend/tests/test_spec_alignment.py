@@ -327,11 +327,30 @@ async def test_reopen_finalized_drop_resets_selection(app_client: AsyncClient, d
     assert drop.brand_tracker_stage == BrandTrackerStage.FINALIZING_AGREEMENTS.value
 
 
-async def test_reopen_live_drop_does_not_rewind(app_client: AsyncClient, db_session) -> None:
-    """Live drops only get the apply-window flag — stage and finalized stay put."""
+async def test_reopen_live_drop_finalized_is_rejected(app_client: AsyncClient, db_session) -> None:
+    """Live + finalized reopen is a no-op for apply — reject instead of lying."""
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
     drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
+    drop.manual_reopen = False
+    await db_session.flush()
+
+    resp = await app_client.post(
+        f"/api/admin/drops/{drop.id}/reopen", headers=await _admin_headers(db_session)
+    )
+    assert resp.status_code == 409, resp.text
+    assert resp.json()["error"]["code"] == "ALREADY_FINALIZED"
+    await db_session.refresh(drop)
+    assert drop.manual_reopen is False
+    assert drop.applicant_selection_finalized_at is not None
+    assert drop.brand_tracker_stage == BrandTrackerStage.DROP_ACTIVE.value
+
+
+async def test_reopen_live_unfinalized_drop_sets_flag(app_client: AsyncClient, db_session) -> None:
+    """Live without finalize still gets the apply-window flag only."""
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop.applicant_selection_finalized_at = None
     await db_session.flush()
 
     resp = await app_client.post(
@@ -340,7 +359,7 @@ async def test_reopen_live_drop_does_not_rewind(app_client: AsyncClient, db_sess
     assert resp.status_code == 200, resp.text
     await db_session.refresh(drop)
     assert drop.manual_reopen is True
-    assert drop.applicant_selection_finalized_at is not None
+    assert drop.applicant_selection_finalized_at is None
     assert drop.brand_tracker_stage == BrandTrackerStage.DROP_ACTIVE.value
 
 
