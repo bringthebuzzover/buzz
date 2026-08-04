@@ -4,7 +4,7 @@ title: Autolink keeps matching forever after drop_finished
 kind: silent_loss
 severity: P2
 status: fixed
-closed_in:
+closed_in: c21fcc3
 surface: jobs
 evidence:
   - path: backend/app/jobs/autolink_scan.py
