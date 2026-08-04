@@ -50,10 +50,16 @@ function FeedContent({
   rows,
   onApply,
   disableApply = false,
+  hasMore = false,
+  isLoadingMore = false,
+  onLoadMore,
 }: {
   rows: DropFeedRow[];
   onApply: (dropId: string) => void;
   disableApply?: boolean;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
 }) {
   const [filter, setFilter] = useState<FilterId>("all");
   // Live wall-clock so a drop flips Upcoming→Open the moment its countdown ends
@@ -118,13 +124,33 @@ function FeedContent({
           })}
         </div>
       )}
+
+      {hasMore ? (
+        <div className="mt-10 flex justify-center">
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+            className="rounded-full border border-buzz-lineMid bg-buzz-paper px-6 py-3 text-sm font-bold text-buzz-inkMuted shadow-sm transition hover:bg-buzz-cream disabled:opacity-60"
+          >
+            {isLoadingMore ? "Loading…" : "Load more drops"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
 
 /** Live feed from `GET /api/drops` with working apply. */
 function ApiDropFeed() {
-  const { items, isLoading, error } = useOrgDropFeed();
+  const {
+    items,
+    isLoading,
+    error,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useOrgDropFeed();
   const [applyingId, setApplyingId] = useState<string | null>(null);
   // Survive a refetch that briefly (or incorrectly) returns alreadyApplied=false
   // after a successful POST — otherwise the card flips back to "Apply".
@@ -182,7 +208,16 @@ function ApiDropFeed() {
     );
   }
 
-  return <FeedContent rows={rows} onApply={handleApply} disableApply={false} />;
+  return (
+    <FeedContent
+      rows={rows}
+      onApply={handleApply}
+      disableApply={false}
+      hasMore={hasNextPage}
+      isLoadingMore={isFetchingNextPage}
+      onLoadMore={() => void fetchNextPage()}
+    />
+  );
 }
 
 /** Inline apply form shown when user clicks Apply on a drop card. */

@@ -14,7 +14,7 @@ At the core is the **BUZZ platform**: a technology suite that connects brands an
 
 # Product Specification
 
-This document describes Buzz’s product architecture, user experiences, lifecycle rules, data flow, and interactions. It reflects the intended behavior for the current product direction (including demo-specific affordances).
+This document describes Buzz’s product architecture, user experiences, lifecycle rules, data flow, and interactions. It reflects the intended behavior for the current product direction.
 
 ---
 
@@ -25,13 +25,13 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 | Dimension                  | Brands                                                          | Student organizations                                                                                     |
 | -------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | Go-to-market               | Sales-led (PLS)                                                 | Product-led (PLG) / sales-led (greek-life partnerships)                                                   |
-| Onboarding                 | Sales-led ; Buzz reviews and onboards                           | **Login with Instagram**; profile + verified university **.edu** email grants access (**§3.1**, **§6.1**) |
+| Onboarding                 | Sales-led ; Buzz reviews and onboards                           | **Login with Instagram**; profile + verified university **.edu** email, then **Buzz admin approval**, grants portal access (**§3.1**, **§6.1**) |
 | Scheduling / participation | Buzz coordinates ops; brands approve applicants per drop (§7.1) | Orgs discover campaigns, can enable notifications to be reminded when they drop, and apply (§6.3, §7)     |
 | Primary portal             | Status tracker + KPI dashboards + content library               | Drop feed + campaign history                                                                              |
 | Analytics lens             | Per-drop, aggregate across drops, engagement over time          | Own posts + aggregate engagement per active campaign                                                      |
 | Motion                     | Representative-driven                                           | Self-serve signup (Instagram + **.edu** verification)                                                     |
 
-**Key product rule:** A real user belongs to **exactly one** portal (Brand **or** Organization). **Demo users** with demo access may switch views for presentation purposes.
+**Key product rule:** A real user belongs to **exactly one** portal (Brand **or** Organization). Internal operators may use admin **View as** (impersonation) to open an org or brand session — that is not a production multi-portal capability.
 
 ---
 
@@ -54,7 +54,7 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 - No end user may belong to **both** the Brand portal and the Organization portal.
 - Routing and permissions enforce a **single portal** per authenticated user.
 - **Organization users** sign in with **Login with Instagram** (Instagram is the account identity for the org portal). The Instagram account used at login **is** the organization account (Business/Creator); the org handle is not separately choosable.
-- On first signup, the org completes a short profile—**university**, **org name**, \# of members, address, and a **university .edu email** address—and must **verify** that email before the Organization portal **grants access**. Until verification succeeds, the user remains in a pending state (no full portal access).
+- On first signup, the org completes a short profile—**university**, **org name**, \# of members, address, and a **university .edu email**—and must **verify** that email, then await **Buzz admin approval**, before the Organization portal grants access. Until approval, the user remains in a pending state (no full portal access).
 
 ### 3.1.1 Data ownership (single source of truth)
 
@@ -70,19 +70,9 @@ Each fact is stored once; APIs may still expose familiar field names by joining 
 
 `organizations` holds club profile metadata (name, campus, address, etc.). `brands.instagram_handle` remains a separate brand-side field used for autolink caption matching.
 
-### 3.2 Demo behavior
+### 3.2 Demo / internal preview
 
-Users who have **demo access** can choose how they experience the web app:
-
-- On first entry (or when appropriate), the app prompts whether to view as **Brand** or **Student Org**.
-- The top bar replaces a simple “Exit demo” pattern with **Change view**, which opens options:
-  - **Exit Demo View**
-  - **See as Brand**
-  - **See as Student Org**
-
-This allows internal stakeholders to switch personas quickly without implying that production users can do the same.
-
-**Implementation note:** Demo access is gated (e.g. passcode / feature flag). See application config for the current demo access mechanism.
+Production users cannot switch portals. Internal operators use admin **View as** (impersonation) to open an org or brand session; see [`TESTING.md`](TESTING.md) / [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ---
 
@@ -229,13 +219,14 @@ Each **drop card** shows:
 - Before `apply_open_at`, the drop is **Upcoming**.
 - Show a **live countdown** to `apply_open_at`.
 - **Notify Me** button:
-  - **v1:** Persisted **server-side** as a per-org, per-drop subscription; shows confirmation: _“You’re on the list — we’ll let you know when this opens.”_
-  - **Later:** Active notification delivery (email / push) driven from the same subscription records.
+  - Persisted **server-side** as a per-org, per-drop subscription; shows confirmation: _“You’re on the list — we’ll let you know when this opens.”_
+  - The org picks a lead time (5 / 15 / 60 minutes before `apply_open_at`).
 
 **Interactions:**
 
 - Tapping **Notify Me** records the subscription on the backend; revisits show the already-subscribed state from the server.
 - Org may opt out (remove the subscription) before `apply_open_at`.
+- **Delivery:** a reminder email goes to the org's `.edu` address once the chosen lead time is reached, sent at most once per subscription. The scheduler runs every ~5 minutes, so the shortest lead time can land a few minutes late. Push is still out of scope (**§11**).
 
 #### 6.3.2 Status: Open
 
@@ -350,8 +341,8 @@ Aggregated all drops →  Brand aggregate dashboard
 | Brand | Drop request        | Submit request; view read-only tracker                                                                                           |
 | Brand | Per-drop dashboard  | Approve/deny applicants by org; per-org posts + metrics; drop KPIs; UGC preview/download                                         |
 | Brand | Aggregate dashboard | Totals, time series, compare drops, running totals                                                                               |
-| Org   | Onboarding          | Login with org Instagram account; university + org name + **.edu**; verify email → access                                                    |
-| Org   | Drop Feed           | Browse; countdown + Notify Me (local); Apply                                                                                     |
+| Org   | Onboarding          | Login with org Instagram account; university + org name + **.edu**; verify email → Buzz approval → access                                                    |
+| Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts when Active                                                                                           |
 | Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; timing/reopen/fulfillment coordination; integrations (see §5.2.1 TODO) |
 
@@ -359,7 +350,7 @@ Aggregated all drops →  Brand aggregate dashboard
 
 ## 11. Non-goals and v1 scope boundaries
 
-- **Notify Me delivery (email / push):** Out of scope for v1 — only the subscription record is persisted; active delivery is deferred.
+- **Notify Me push notifications:** Out of scope — reminder delivery is **email only** (**§6.3.1**).
 - **In-app denial UI for orgs:** Out of scope — channel is **email**; rules **§7.1** (drop applicant denials).
 - **Rich drop scheduling beyond apply window:** Only `apply_open_at` and `apply_close_at` specified for v1; other timestamps may be implicit inside Buzz ops.
 

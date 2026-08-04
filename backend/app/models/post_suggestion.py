@@ -11,8 +11,12 @@ Campaign membership is ``application_id`` → ``drop_applications.drop_id``.
 * both ``NULL`` — pending review by the org
 * ``confirmed_at`` set — accepted; a matching ``post_campaign_links`` row
   is inserted in the same transaction
-* ``dismissed_at`` set — org rejected; row is kept so the scan job does
-  not resurface it
+* ``dismissed_at`` set — org rejected, or the candidate became impossible
+  (post gone, or the post was attributed to another campaign); the row is
+  kept so the scan job does not resurface it
+
+Because a post belongs to at most one campaign, attributing it dismisses every
+other campaign's pending suggestion for that post.
 """
 
 from __future__ import annotations

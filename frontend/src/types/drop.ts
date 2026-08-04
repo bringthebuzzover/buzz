@@ -32,7 +32,7 @@ export type Drop = {
   id: string;
   /** Owning brand id. */
   brandId: string;
-  /** Brand display name (denormalized for read paths). */
+  /** Brand display name (joined from brands on read). */
   brandName: string;
   /** Drop title (working name). */
   title: string;
@@ -104,8 +104,10 @@ export type DropCardData = Pick<
   | "manualReopen"
   | "notifyRequested"
   | "reminderMinutes"
-  | "applicantSelectionFinalizedAt"
->;
+> & {
+  /** Widened over `Drop`: the API sends `null` here, demo rows omit it. */
+  applicantSelectionFinalizedAt?: number | null;
+};
 
 /** A feed row: card data plus the two server-computed fields. */
 export type DropFeedRow = DropCardData & {

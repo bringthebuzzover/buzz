@@ -61,9 +61,10 @@ Branch: **`mvp`** (autodeploy on). One Railway project (**buzz**). One Railway e
 | **Frontend**            | React SPA under `/frontend`                                                               | Root Directory `/frontend`; Watch Paths `/frontend/**`; Build `npm ci && npm run build:prod`; Start `npm run start:prod` (`serve -s`) |
 | **api**                 | FastAPI + Uvicorn (`poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT`)         | Root Directory `/backend`; Watch Paths `/backend/**`; Pre-deploy `poetry run alembic upgrade head`; **1 replica**; Health `/api/health` (DB ping — 503 if Postgres is down) |
 | **PostgreSQL**          | Railway-managed                                                                           | Injects `DATABASE_URL` (`postgres://…` / `postgresql://…`); backend rewrites to `postgresql+asyncpg://` at startup                    |
-| **Cron ×5** (named)     | One service per job: `poetry run python scripts/run_job.py <name>`                        | `cron-drop-autoclose`, `cron-metric-sync`, `cron-token-cleanup`, `cron-autolink-scan`, `cron-token-refresh`; Root `/backend`; no public domain; share API env |
+| **Cron ×6** (named)     | One service per job: `poetry run python scripts/run_job.py <name>`                        | `cron-drop-autoclose`, `cron-notify-reminders`, `cron-metric-sync`, `cron-token-cleanup`, `cron-autolink-scan`, `cron-token-refresh`; Root `/backend`; no public domain; share API env |
 
-- [x] Create the services in one Railway project (Frontend + API + Postgres + 5 crons) — **done**.
+- [x] Create the services in one Railway project (Frontend + API + Postgres + 5 crons) — **done** (sixth cron below).
+- [ ] Add the sixth cron service **`cron-notify-reminders`** (`*/5 * * * *`) — new with Notify Me delivery; not created yet.
 - [x] Set each service's **Root Directory** / Watch Paths and wire autodeploy from `mvp` — **done** (deploys follow `mvp` commits).
 - [ ] Custom domains: `www.bringthebuzzover.com` → Frontend; `api.bringthebuzzover.com` → Backend (CNAME + TXT). **Not attached** — traffic is on `*.up.railway.app` today.
 - [ ] Enable **Wait for CI** on Frontend + API (CI on `mvp` includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
@@ -91,12 +92,13 @@ Background jobs are one-shot scripts the scheduler invokes — no worker. Each i
 | Service             | Start command                                         | Cron UTC      | Purpose                                              |
 | ------------------- | ----------------------------------------------------- | ------------- | ---------------------------------------------------- |
 | cron-drop-autoclose | `poetry run python scripts/run_job.py drop_autoclose` | `*/5 * * * *` | close drops past their apply window (§10.2)          |
+| cron-notify-reminders | `… notify_reminders`                                | `*/5 * * * *` | email Notify Me subscribers before a drop opens (§10.6) |
 | cron-metric-sync    | `… metric_sync`                                       | `0 3 * * *`   | Instagram metric sync (§10.1)                        |
 | cron-token-cleanup  | `… token_cleanup`                                     | `0 3 * * *`   | sweep used/expired tokens (§10.3)                    |
 | cron-autolink-scan  | `… autolink_scan`                                     | `30 3 * * *`  | auto-link suggestion scan, after metric_sync (§10.4) |
 | cron-token-refresh  | `… token_refresh`                                     | `0 4 * * *`   | IG long-lived token refresh safety net (§10.5.2)     |
 
-The primary IG token refresh is **on-login**; `token_refresh` only catches inactive orgs and is optional for a tight MVP. Confirm each cron run **exits** (Completed, not stuck Active). Each invocation writes a `job_runs` row (`ok` + `summary`); `/api/admin/health` surfaces last-run age on pipeline signals.
+The primary IG token refresh is **on-login**; `token_refresh` only catches inactive orgs and is optional for a tight MVP. A 5-minute cadence means the 5-minute reminder option can land up to ~5 minutes late, and the first `notify_reminders` run mails every already-due subscription that predates the job. Confirm each cron run **exits** (Completed, not stuck Active). Each invocation writes a `job_runs` row (`ok` + `summary`); `/api/admin/health` surfaces last-run age on pipeline signals.
 
 ---
 

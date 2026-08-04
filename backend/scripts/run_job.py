@@ -7,6 +7,7 @@ A scheduler (Railway Cron) invokes one job per command, e.g.::
     poetry run python scripts/run_job.py autolink_scan
     poetry run python scripts/run_job.py token_refresh
     poetry run python scripts/run_job.py metric_sync
+    poetry run python scripts/run_job.py notify_reminders
 
 Each job opens its own session, runs, commits, and prints a JSON summary. The
 IG-backed jobs use the real ``get_instagram_client``. Exit code is non-zero on
@@ -30,6 +31,7 @@ from app.deps.db import async_session_factory  # noqa: E402
 from app.jobs.autolink_scan import scan_autolink  # noqa: E402
 from app.jobs.drop_autoclose import auto_close_drops  # noqa: E402
 from app.jobs.metric_sync import sync_metrics  # noqa: E402
+from app.jobs.notify_reminders import send_due_reminders  # noqa: E402
 from app.jobs.token_cleanup import cleanup_tokens  # noqa: E402
 from app.jobs.token_refresh import refresh_due_tokens  # noqa: E402
 from app.models.job_run import JobRun  # noqa: E402
@@ -38,6 +40,7 @@ from app.services.instagram import close_instagram_client, get_instagram_client 
 # job name -> (callable, needs_instagram_client)
 _JOBS = {
     "drop_autoclose": (auto_close_drops, False),
+    "notify_reminders": (send_due_reminders, False),
     "token_cleanup": (cleanup_tokens, False),
     "autolink_scan": (scan_autolink, False),
     "token_refresh": (refresh_due_tokens, True),

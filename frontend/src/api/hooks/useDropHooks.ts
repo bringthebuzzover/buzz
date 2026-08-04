@@ -1,8 +1,14 @@
 /**
  * TanStack Query hooks for drop endpoints (org-side drops + apply).
  */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "../client";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useMutation,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
+import { apiFetch, type ApiResult } from "../client";
 import { useAuth } from "../../contexts/AuthContext";
 
 export type DropFeedItem = {
@@ -42,13 +48,30 @@ export type DropApplication = {
   decisionAt: number | null;
 };
 
+/** One `GET /api/drops` page: the rows plus the envelope's pagination meta. */
+type DropFeedPage = ApiResult<DropFeedItem[]>;
+
+const DROP_FEED_KEY = ["org-drop-feed"];
+const DROP_FEED_PAGE_SIZE = 50;
+
+/**
+ * Paged drop feed. The catalog can outgrow one page, so pages accumulate
+ * behind `fetchNextPage` and `meta.total` decides when there is nothing left
+ * to load (rather than silently truncating at the API default).
+ */
 export function useOrgDropFeed() {
   const { status } = useAuth();
-  const query = useQuery({
-    queryKey: ["org-drop-feed"],
-    queryFn: async () => {
-      const { data } = await apiFetch<DropFeedItem[]>("/api/drops");
-      return data;
+  const query = useInfiniteQuery({
+    queryKey: DROP_FEED_KEY,
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      apiFetch<DropFeedItem[]>(
+        `/api/drops?page=${pageParam}&per_page=${DROP_FEED_PAGE_SIZE}`,
+      ),
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((count, page) => count + page.data.length, 0);
+      const total = lastPage.meta?.total ?? loaded;
+      return loaded < total ? allPages.length + 1 : undefined;
     },
     enabled: status === "authenticated",
   });
@@ -57,9 +80,12 @@ export function useOrgDropFeed() {
     status === "error" ? new Error("Authentication failed.") : null;
 
   return {
-    items: query.data ?? [],
+    items: query.data?.pages.flatMap((page) => page.data) ?? [],
     isLoading: status === "authenticating" || query.isLoading,
     error: authError ?? query.error,
+    hasNextPage: query.hasNextPage,
+    isFetchingNextPage: query.isFetchingNextPage,
+    fetchNextPage: query.fetchNextPage,
   };
 }
 
@@ -92,15 +118,27 @@ export function useApplyToDrop(dropId: string) {
     onSuccess: async () => {
       // Optimistic flip so the feed card shows "Already applied" before the
       // refetch lands (E2E and UX both race the invalidate otherwise).
-      const markApplied = (rows: DropFeedItem[] | undefined) =>
-        (rows ?? []).map((row) =>
-          row.id === dropId ? { ...row, alreadyApplied: true } : row,
-        );
-      queryClient.setQueryData<DropFeedItem[]>(["org-drop-feed"], markApplied);
-      await queryClient.invalidateQueries({ queryKey: ["org-drop-feed"] });
+      const markApplied = (feed: InfiniteData<DropFeedPage> | undefined) =>
+        feed && {
+          ...feed,
+          pages: feed.pages.map((page) => ({
+            ...page,
+            data: page.data.map((row) =>
+              row.id === dropId ? { ...row, alreadyApplied: true } : row,
+            ),
+          })),
+        };
+      queryClient.setQueryData<InfiniteData<DropFeedPage>>(
+        DROP_FEED_KEY,
+        markApplied,
+      );
+      await queryClient.invalidateQueries({ queryKey: DROP_FEED_KEY });
       // Re-assert after refetch: a stale/incorrect alreadyApplied=false from the
       // server must not wipe the successful apply state in the UI.
-      queryClient.setQueryData<DropFeedItem[]>(["org-drop-feed"], markApplied);
+      queryClient.setQueryData<InfiniteData<DropFeedPage>>(
+        DROP_FEED_KEY,
+        markApplied,
+      );
       await queryClient.invalidateQueries({ queryKey: ["drop-detail", dropId] });
       await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },
@@ -132,7 +170,7 @@ export function useDropNotify(dropId: string) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["org-drop-feed"] });
+      queryClient.invalidateQueries({ queryKey: DROP_FEED_KEY });
     },
   });
 }

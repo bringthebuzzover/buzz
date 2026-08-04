@@ -50,7 +50,7 @@ export type DropApplication = {
   decisionAt?: number;
   /** Optional pitch text submitted by the org with the application. */
   pitch?: string;
-  /** Optional tracking number shipped to the org once accepted (mirrors brand tracking). */
+  /** Optional tracking number from the parent drop once products ship. */
   trackingNumber?: string;
 
   /** Units allocated to this org when the brand finalizes Applicant Selection. */

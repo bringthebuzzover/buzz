@@ -9,6 +9,9 @@ and write a ``post_campaign_suggestions`` row the org can one-tap confirm
 Idempotent via ``UNIQUE(post_id, application_id)`` (a re-insert is skipped), so
 this is safe to run on a cron. (An on-demand re-scan endpoint — e.g. when an org
 opens a campaign — could reuse this logic but is not currently wired.)
+
+The scan also heals suggestions that can no longer be accepted: the org would
+get 409/410 on them forever, so they're dismissed instead of sitting pending.
 """
 
 from __future__ import annotations
@@ -17,7 +20,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -73,6 +76,38 @@ def _match(caption: str, handle: str, hashtag: str | None) -> tuple[str, str] | 
     if hashtag_m:
         return SuggestionMatchReason.CAMPAIGN_HASHTAG.value, _evidence(caption, *hashtag_m.span())
     return None
+
+
+async def _heal_dangling(db: AsyncSession, now: datetime) -> int:
+    """Dismiss pending suggestions that could only ever 409 or 410.
+
+    Cross-campaign only: a pending suggestion whose post is already linked to
+    *this* campaign is accept's reconcile path (confirm), not a terminal 409.
+    Also retires rows whose post row has vanished.
+    """
+
+    linked_elsewhere = (
+        select(PostCampaignLink.id)
+        .where(
+            PostCampaignLink.post_id == PostCampaignSuggestion.post_id,
+            PostCampaignLink.application_id != PostCampaignSuggestion.application_id,
+        )
+        .exists()
+    )
+    post_missing = ~(
+        select(SocialPost.id).where(SocialPost.id == PostCampaignSuggestion.post_id).exists()
+    )
+    result = await db.execute(
+        update(PostCampaignSuggestion)
+        .where(
+            PostCampaignSuggestion.confirmed_at.is_(None),
+            PostCampaignSuggestion.dismissed_at.is_(None),
+            or_(linked_elsewhere, post_missing),
+        )
+        .values(dismissed_at=now)
+        .execution_options(synchronize_session=False)
+    )
+    return getattr(result, "rowcount", 0) or 0
 
 
 async def scan_autolink(db: AsyncSession) -> dict[str, Any]:
@@ -153,9 +188,12 @@ async def scan_autolink(db: AsyncSession) -> dict[str, Any]:
                 continue
             created += 1
 
+    healed = await _heal_dangling(db, now)
+
     await db.flush()
     return {
         "applications_scanned": len(rows),
         "posts_scanned": scanned,
         "suggestions_created": created,
+        "suggestions_healed": healed,
     }

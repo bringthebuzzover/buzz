@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import func, select
 
+from app import errors
+from app.exceptions import BuzzAPIException
 from app.models.enums import ApplicationDecision
 from app.models.post_link import PostCampaignLink
+from app.models.social_post import SocialPost
+from app.services.posts import accept_suggestion
 from tests.conftest import (
     make_application,
     make_brand,
@@ -103,7 +108,7 @@ async def test_accept_idempotent_when_already_linked_same_campaign(
 async def test_accept_conflict_already_linked(app_client: AsyncClient, db_session) -> None:
     _, org, _, application, headers = await _ctx(db_session)
     post = await make_social_post(db_session, org)
-    await make_suggestion(db_session, post, application)
+    suggestion = await make_suggestion(db_session, post, application)
     # Post already linked elsewhere (same org, different campaign).
     other_drop = await make_drop(db_session, await make_brand(db_session), title="Other")
     other_app = await make_application(
@@ -116,6 +121,83 @@ async def test_accept_conflict_already_linked(app_client: AsyncClient, db_sessio
     )
     assert resp.status_code == 409
     assert resp.json()["error"]["code"] == "POST_ALREADY_LINKED"
+    # The suggestion can never be accepted now, so it must not stay pending.
+    await db_session.refresh(suggestion)
+    assert suggestion.dismissed_at is not None
+    listed = await app_client.get(f"/api/campaigns/{application.id}/suggestions", headers=headers)
+    assert listed.json()["data"] == []
+
+
+async def test_accept_deleted_post_dismisses_suggestion(db_session, monkeypatch) -> None:
+    user, org, _, application, _ = await _ctx(db_session)
+    post = await make_social_post(db_session, org)
+    suggestion = await make_suggestion(db_session, post, application)
+
+    # The post vanished between the metric sync and this confirmation (§7.4.1).
+    # It can't actually be deleted here — the suggestion's FK holds it — so make
+    # the lookup miss instead.
+    real_get = db_session.get
+
+    async def _post_is_gone(entity, ident, *args, **kwargs):
+        if entity is SocialPost and ident == post.id:
+            return None
+        return await real_get(entity, ident, *args, **kwargs)
+
+    monkeypatch.setattr(db_session, "get", _post_is_gone)
+
+    with pytest.raises(BuzzAPIException) as exc:
+        await accept_suggestion(db_session, user, application.id, post.id)
+    assert exc.value.status_code == 410
+    assert exc.value.code == errors.POST_DELETED
+
+    monkeypatch.undo()
+    await db_session.refresh(suggestion)
+    assert suggestion.dismissed_at is not None
+
+
+async def test_accept_dismisses_sibling_suggestion(app_client: AsyncClient, db_session) -> None:
+    """One post, one campaign: accepting for A retires the pending row on B."""
+
+    _, org, _, application, headers = await _ctx(db_session)
+    other_drop = await make_drop(db_session, await make_brand(db_session), title="Other")
+    other_app = await make_application(
+        db_session, other_drop, org, decision=ApplicationDecision.ACCEPTED
+    )
+    post = await make_social_post(db_session, org)
+    accepted = await make_suggestion(db_session, post, application)
+    sibling = await make_suggestion(db_session, post, other_app)
+
+    resp = await app_client.post(
+        f"/api/campaigns/{application.id}/suggestions/{post.id}/accept", headers=headers
+    )
+    assert resp.status_code == 200
+    await db_session.refresh(accepted)
+    await db_session.refresh(sibling)
+    assert accepted.confirmed_at is not None and accepted.dismissed_at is None
+    assert sibling.dismissed_at is not None
+    other = await app_client.get(f"/api/campaigns/{other_app.id}/suggestions", headers=headers)
+    assert other.json()["data"] == []
+
+
+async def test_accept_same_campaign_reconcile_dismisses_sibling(
+    app_client: AsyncClient, db_session
+) -> None:
+    _, org, _, application, headers = await _ctx(db_session)
+    other_drop = await make_drop(db_session, await make_brand(db_session), title="Other")
+    other_app = await make_application(
+        db_session, other_drop, org, decision=ApplicationDecision.ACCEPTED
+    )
+    post = await make_social_post(db_session, org)
+    await make_suggestion(db_session, post, application)
+    sibling = await make_suggestion(db_session, post, other_app)
+    await make_post_link(db_session, post, application)
+
+    resp = await app_client.post(
+        f"/api/campaigns/{application.id}/suggestions/{post.id}/accept", headers=headers
+    )
+    assert resp.status_code == 200
+    await db_session.refresh(sibling)
+    assert sibling.dismissed_at is not None
 
 
 async def test_accept_no_pending_404(app_client: AsyncClient, db_session) -> None:

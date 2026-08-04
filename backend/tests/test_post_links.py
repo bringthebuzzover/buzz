@@ -212,6 +212,53 @@ async def test_unlink_rearms_confirmed_suggestion(app_client: AsyncClient, db_se
     assert refreshed.confirmed_at is None
 
 
+async def test_link_dismisses_pending_suggestions(app_client: AsyncClient, db_session) -> None:
+    """Manual link confirms this campaign's suggestion and dismisses siblings."""
+
+    _, org, _, application, headers = await _campaign_ctx(db_session)
+    other_drop = await make_drop(db_session, await make_brand(db_session), title="Other")
+    other_app = await make_application(
+        db_session, other_drop, org, decision=ApplicationDecision.ACCEPTED
+    )
+    post = await make_social_post(db_session, org)
+    own = await make_suggestion(db_session, post, application)
+    sibling = await make_suggestion(db_session, post, other_app)
+
+    resp = await app_client.post(
+        f"/api/campaigns/{application.id}/link-post",
+        headers=headers,
+        json={"postId": str(post.id)},
+    )
+    assert resp.status_code == 200
+    await db_session.refresh(own)
+    await db_session.refresh(sibling)
+    assert own.confirmed_at is not None and own.dismissed_at is None
+    assert sibling.dismissed_at is not None
+
+
+async def test_link_then_unlink_rearms_own_suggestion(app_client: AsyncClient, db_session) -> None:
+    """Manual link must confirm (not dismiss) so unlink can re-arm the row."""
+
+    _, org, _, application, headers = await _campaign_ctx(db_session)
+    post = await make_social_post(db_session, org)
+    own = await make_suggestion(db_session, post, application)
+
+    await app_client.post(
+        f"/api/campaigns/{application.id}/link-post",
+        headers=headers,
+        json={"postId": str(post.id)},
+    )
+    await app_client.request(
+        "DELETE",
+        f"/api/campaigns/{application.id}/link-post",
+        headers=headers,
+        json={"postId": str(post.id)},
+    )
+    await db_session.refresh(own)
+    assert own.confirmed_at is None
+    assert own.dismissed_at is None
+
+
 async def test_link_post_rejected_when_drop_finished(app_client: AsyncClient, db_session) -> None:
     from app.models.enums import BrandTrackerStage
 

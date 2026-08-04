@@ -107,7 +107,7 @@ export const SIGNAL_META: Record<string, SignalMeta> = {
   // Writes that silently go nowhere.
   notify_me_never_sent: {
     label: "Drop reminders never delivered",
-    note: "Nothing reads the notify_me table, so every reminder a student org requested was silently dropped.",
+    note: "An open drop's reminder window passed but the job never mailed these subscribers — usually a missing .edu address or a cron that stopped running.",
   },
   posts_never_refreshed: {
     label: "Posts with no metrics",
