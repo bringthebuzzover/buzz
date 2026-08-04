@@ -51,32 +51,52 @@ function ApiApplicantTable({
   const finalizeMutation = useFinalizeApplicants(dropId);
   const showUnits = totalProductUnits != null;
   // Explicit accept selection: finalize ACCEPTS the checked orgs and DENIES every
-  // other applicant (an irreversible, email-triggering action). Without explicit
-  // checkboxes an empty submit silently denied everyone (§7.1 footgun).
+  // other *pending* applicant (an irreversible, email-triggering action). Without
+  // explicit checkboxes an empty submit silently denied everyone (§7.1 footgun).
   const [accepted, setAccepted] = useState<Record<string, boolean>>({});
   const [allocations, setAllocations] = useState<Record<string, number>>({});
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
+  // After reopen, prior accepted/denied rows remain — selection only mutates applied.
+  const pending = useMemo(
+    () => applicants.filter((a) => a.decision === "applied"),
+    [applicants],
+  );
+  const priorAccepted = useMemo(
+    () => applicants.filter((a) => a.decision === "accepted"),
+    [applicants],
+  );
+  const seatsTaken = priorAccepted.length;
+  const unitsTaken = priorAccepted.reduce(
+    (s, a) => s + (a.allocatedUnits ?? 0),
+    0,
+  );
+  const remainingCapacity = Math.max(0, capacityTotal - seatsTaken);
+  const remainingUnits =
+    totalProductUnits != null
+      ? Math.max(0, totalProductUnits - unitsTaken)
+      : null;
+
   const categories = useMemo(() => {
     const present = new Set<string>();
-    applicants.forEach((a) => {
+    pending.forEach((a) => {
       if (a.category) present.add(a.category);
     });
     return Array.from(present).sort();
-  }, [applicants]);
+  }, [pending]);
 
   const visible =
     categoryFilter === "all"
-      ? applicants
-      : applicants.filter((a) => a.category === categoryFilter);
+      ? pending
+      : pending.filter((a) => a.category === categoryFilter);
 
-  // Counts span ALL applicants, not just the filtered view — finalize denies
-  // every unaccepted applicant regardless of the category filter.
-  const acceptedCount = applicants.filter((a) => accepted[a.orgId]).length;
-  const deniedCount = applicants.length - acceptedCount;
+  // Counts span ALL pending applicants, not just the filtered view — finalize
+  // denies every unaccepted pending applicant regardless of the category filter.
+  const acceptedCount = pending.filter((a) => accepted[a.orgId]).length;
+  const deniedCount = pending.length - acceptedCount;
 
   const handleFinalize = () => {
-    const payload = applicants
+    const payload = pending
       .filter((a) => accepted[a.orgId])
       .map((a) => ({ orgId: a.orgId, units: allocations[a.orgId] ?? 0 }));
     const ok = window.confirm(
@@ -88,7 +108,7 @@ function ApiApplicantTable({
     if (ok) finalizeMutation.mutate(payload);
   };
 
-  const totalAllocated = applicants
+  const totalAllocated = pending
     .filter((a) => accepted[a.orgId])
     .reduce((s, a) => s + (allocations[a.orgId] ?? 0), 0);
 
@@ -98,10 +118,12 @@ function ApiApplicantTable({
         <div>
           <h2 className="text-lg font-bold text-buzz-ink">Applicants</h2>
           <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
-            Capacity: {acceptedCount} of {capacityTotal} spots
-            {showUnits
-              ? ` · ${totalAllocated} of ${totalProductUnits} units allocated`
+            Capacity: {acceptedCount} of {remainingCapacity} remaining spots
+            {seatsTaken > 0 ? ` (${seatsTaken} already accepted)` : ""}
+            {showUnits && remainingUnits != null
+              ? ` · ${totalAllocated} of ${remainingUnits} remaining units`
               : ""}
+            {showUnits && unitsTaken > 0 ? ` (${unitsTaken} already allocated)` : ""}
           </p>
         </div>
         {categories.length > 0 ? (
@@ -137,53 +159,64 @@ function ApiApplicantTable({
             </tr>
           </thead>
           <tbody>
-            {visible.map((app) => {
-              const isAccepted = !!accepted[app.orgId];
-              return (
-                <tr key={app.id} className="border-b border-buzz-line">
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      aria-label={`Accept ${app.orgName}`}
-                      checked={isAccepted}
-                      onChange={(e) =>
-                        setAccepted((prev) => ({
-                          ...prev,
-                          [app.orgId]: e.target.checked,
-                        }))
-                      }
-                    />
-                  </td>
-                  <td className="px-4 py-3 font-medium">{app.orgName}</td>
-                  <td className="px-4 py-3 text-buzz-inkMuted">{app.university}</td>
-                  <td className="px-4 py-3 text-buzz-inkMuted">
-                    {orgCategoryLabel(app.category)}
-                  </td>
-                  <td className="px-4 py-3 text-buzz-inkMuted">{app.instagramHandle}</td>
-                  <td className="px-4 py-3">{app.followerCount ?? "-"}</td>
-                  <td className="px-4 py-3 text-buzz-inkMuted max-w-48 truncate">
-                    {app.pitch ?? "-"}
-                  </td>
-                  {showUnits ? (
+            {visible.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={showUnits ? 8 : 7}
+                  className="px-4 py-6 text-center text-sm text-buzz-inkMuted"
+                >
+                  No pending applicants.
+                </td>
+              </tr>
+            ) : (
+              visible.map((app) => {
+                const isAccepted = !!accepted[app.orgId];
+                return (
+                  <tr key={app.id} className="border-b border-buzz-line">
                     <td className="px-4 py-3">
                       <input
-                        type="number"
-                        min={0}
-                        disabled={!isAccepted}
-                        className="w-16 rounded border border-buzz-lineMid px-2 py-1 text-sm disabled:bg-buzz-cream disabled:opacity-50"
-                        value={isAccepted ? allocations[app.orgId] ?? 0 : 0}
+                        type="checkbox"
+                        aria-label={`Accept ${app.orgName}`}
+                        checked={isAccepted}
                         onChange={(e) =>
-                          setAllocations((prev) => ({
+                          setAccepted((prev) => ({
                             ...prev,
-                            [app.orgId]: Math.max(0, parseInt(e.target.value, 10) || 0),
+                            [app.orgId]: e.target.checked,
                           }))
                         }
                       />
                     </td>
-                  ) : null}
-                </tr>
-              );
-            })}
+                    <td className="px-4 py-3 font-medium">{app.orgName}</td>
+                    <td className="px-4 py-3 text-buzz-inkMuted">{app.university}</td>
+                    <td className="px-4 py-3 text-buzz-inkMuted">
+                      {orgCategoryLabel(app.category)}
+                    </td>
+                    <td className="px-4 py-3 text-buzz-inkMuted">{app.instagramHandle}</td>
+                    <td className="px-4 py-3">{app.followerCount ?? "-"}</td>
+                    <td className="px-4 py-3 text-buzz-inkMuted max-w-48 truncate">
+                      {app.pitch ?? "-"}
+                    </td>
+                    {showUnits ? (
+                      <td className="px-4 py-3">
+                        <input
+                          type="number"
+                          min={0}
+                          disabled={!isAccepted}
+                          className="w-16 rounded border border-buzz-lineMid px-2 py-1 text-sm disabled:bg-buzz-cream disabled:opacity-50"
+                          value={isAccepted ? allocations[app.orgId] ?? 0 : 0}
+                          onChange={(e) =>
+                            setAllocations((prev) => ({
+                              ...prev,
+                              [app.orgId]: Math.max(0, parseInt(e.target.value, 10) || 0),
+                            }))
+                          }
+                        />
+                      </td>
+                    ) : null}
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
@@ -279,8 +312,11 @@ function ApiDropDetail() {
     drop.brandTrackerStage === "drop_active" ||
     drop.brandTrackerStage === "drop_finished";
   const canEditSelection =
-    drop.brandTrackerStage === "finalizing_agreements" &&
-    drop.applicantSelectionFinalizedAt == null;
+    drop.applicantSelectionFinalizedAt == null &&
+    (drop.brandTrackerStage === "finalizing_agreements" ||
+      (drop.brandTrackerStage === "request_received" &&
+        !drop.manualReopen &&
+        Date.now() > drop.applyCloseAt));
   const showFinalizedRoster =
     drop.applicantSelectionFinalizedAt != null &&
     (drop.brandTrackerStage === "finalizing_agreements" ||
