@@ -613,9 +613,40 @@ async def test_autolink_skips_brand_without_handle(db_session) -> None:
 async def test_autolink_case_insensitive_but_boundary_aware(db_session) -> None:
     org, _, _, _ = await _accepted_live_ctx(db_session, handle="nike")
     await make_social_post(db_session, org, caption="HYPE @NIKE today")  # case-insensitive match
-    await make_social_post(db_session, org, caption="@nikeshoes are great")  # boundary → no match
+    await make_social_post(db_session, org, caption="@nikeshoes are great")  # prefix → no match
+    await make_social_post(db_session, org, caption="shoutout @nike.official")  # dotted → no match
+    await make_social_post(db_session, org, caption="via @nike_official")  # underscore handle → no
+    await make_social_post(
+        db_session, org, caption="see instagram.com/@nike/reel/abc"
+    )  # URL path → no
     result = await scan_autolink(db_session)
     assert result["suggestions_created"] == 1
+
+
+async def test_autolink_matches_exact_underscore_handle(db_session) -> None:
+    """Brand handle with underscore must still match the exact @mention."""
+
+    org, _, _, _ = await _accepted_live_ctx(db_session, handle="nike_official")
+    await make_social_post(db_session, org, caption="collab with @nike_official this week")
+    await make_social_post(db_session, org, caption="not @nike alone")
+    result = await scan_autolink(db_session)
+    assert result["suggestions_created"] == 1
+
+
+async def test_autolink_ignores_drop_finished(db_session) -> None:
+    """Finished drops must not mint new suggestions (org UI is read-only there)."""
+
+    org_user = await persist(db_session, make_user(instagram_user_id="ig_finished"))
+    org = await make_org(db_session, org_user)
+    brand = await make_brand(db_session)
+    brand.instagram_handle = "nike"
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
+    await db_session.flush()
+    await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    await make_social_post(db_session, org, caption="love @nike after the drop")
+    result = await scan_autolink(db_session)
+    assert result["applications_scanned"] == 0
+    assert result["suggestions_created"] == 0
 
 
 async def test_autolink_skips_out_of_window_and_ad(db_session) -> None:

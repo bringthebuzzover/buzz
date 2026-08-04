@@ -71,7 +71,7 @@ stop_if:
 
 ## jobs-autolink
 
-status: pending
+status: done
 gaps:
   - jobs.autolink-dotted-handle-false-positive
   - jobs.autolink-after-drop-finished
