@@ -133,9 +133,16 @@ def build_user_response(user: User) -> UserResponse:
     )
 
 
-def issue_token_pair(user: User) -> tuple[str, str]:
-    """Mint ``(access_token, refresh_token)`` for an authenticated user."""
+async def issue_token_pair(db: AsyncSession, user: User) -> tuple[str, str]:
+    """Bump ``token_version``, then mint ``(access_token, refresh_token)``.
 
-    access = jwt.create_access_token(user.id, user.portal_role, user.status)
-    refresh = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
+    Every login and refresh rotation invalidates prior access + refresh tokens
+    for this user (stolen cookies die on re-login / rotation).
+    """
+
+    user.token_version = (user.token_version or 0) + 1
+    await db.flush()
+    ver = user.token_version or 0
+    access = jwt.create_access_token(user.id, user.portal_role, user.status, token_version=ver)
+    refresh = jwt.create_refresh_token(user.id, token_version=ver)
     return access, refresh

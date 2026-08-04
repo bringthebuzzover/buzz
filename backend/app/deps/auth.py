@@ -97,6 +97,11 @@ async def _load_user_from_bearer(
     if user is None:
         raise _unauthorized("User no longer exists.")
 
+    # Revocation: access tokens stamp ``ver`` at mint time (same as refresh).
+    # Tokens minted before this field existed carry no ``ver``; treat as 0.
+    if (payload.ver or 0) != (user.token_version or 0):
+        raise _unauthorized("This session has been revoked. Please sign in again.")
+
     # Impersonation lives entirely in the token — no schema, no server session.
     # The attributes are transient (never flushed) and let /me + the read-only
     # gate below see who is really behind the request.

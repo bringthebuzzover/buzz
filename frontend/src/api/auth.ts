@@ -56,27 +56,37 @@ type LoginData = {
 };
 
 /** Exchange the refresh cookie for a fresh access token. Returns success. */
+let refreshInFlight: Promise<boolean> | null = null;
+
 export async function refreshAccessToken(): Promise<boolean> {
-  try {
-    const resp = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-    });
-    if (!resp.ok) {
-      setAccessToken(null);
-      return false;
-    }
-    const body = (await resp.json()) as { data: { access_token: string } | null };
-    if (!body.data?.access_token) {
-      setAccessToken(null);
-      return false;
-    }
-    setAccessToken(body.data.access_token);
-    return true;
-  } catch {
-    setAccessToken(null);
-    return false;
+  if (refreshInFlight) {
+    return refreshInFlight;
   }
+  refreshInFlight = (async () => {
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!resp.ok) {
+        setAccessToken(null);
+        return false;
+      }
+      const body = (await resp.json()) as { data: { access_token: string } | null };
+      if (!body.data?.access_token) {
+        setAccessToken(null);
+        return false;
+      }
+      setAccessToken(body.data.access_token);
+      return true;
+    } catch {
+      setAccessToken(null);
+      return false;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
 }
 
 /** Dev-only: mint a session for a seeded org user (404 outside development). */
@@ -175,12 +185,18 @@ export async function fetchMe(): Promise<MeResult> {
   }
 }
 
-/** Clear the server-side refresh cookie. */
+/** Clear the server-side refresh cookie (and revoke when Bearer is known). */
 export async function logout(): Promise<void> {
   try {
+    const headers: HeadersInit = {};
+    const token = getAccessToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     await fetch(`${API_BASE_URL}/api/auth/logout`, {
       method: "POST",
       credentials: "include",
+      headers,
     });
   } catch {
     // Best-effort — token is already cleared client-side.

@@ -696,12 +696,12 @@ export interface paths {
         put?: never;
         /**
          * Logout
-         * @description Log out: revoke outstanding refresh tokens and clear the cookie.
+         * @description Log out: revoke outstanding sessions when the caller is known, clear cookie.
          *
-         *     Bumping ``token_version`` invalidates every refresh token the user holds
-         *     (not just the cookie being cleared), so a stolen/duplicated refresh token
-         *     can no longer be exchanged. Always succeeds and clears the cookie, even if
-         *     the presented token is missing/expired/garbage (nothing to revoke then).
+         *     Prefer a valid Bearer access token (signature + type + exp; ``ver`` need not
+         *     match so a just-revoked access can still identify the user). Else use a
+         *     decodable refresh cookie. Bumping ``token_version`` invalidates every access
+         *     and refresh token the user holds. Always succeeds and clears the cookie.
          */
         post: operations["logout_api_auth_logout_post"];
         delete?: never;
@@ -743,8 +743,10 @@ export interface paths {
          * Refresh
          * @description Issue a new access token from the refresh cookie; rotate the cookie.
          *
-         *     Every failure path clears the refresh cookie so the SPA stops re-POSTing a
-         *     dead httpOnly cookie on bootstrap.
+         *     Successful refresh bumps ``token_version`` and mints a new pair, so the
+         *     previous refresh cookie (and any stolen copies) stop working. Every failure
+         *     path clears the refresh cookie so the SPA stops re-POSTing a dead httpOnly
+         *     cookie on bootstrap.
          */
         post: operations["refresh_api_auth_refresh_post"];
         delete?: never;
