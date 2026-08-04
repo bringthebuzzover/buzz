@@ -4,6 +4,7 @@ title: reels_skip_rate silently truncated to 0/1
 kind: silent_loss
 severity: P2
 status: fixed
+closed_in: 431f6c9
 surface: jobs
 evidence:
   - path: backend/app/services/instagram.py

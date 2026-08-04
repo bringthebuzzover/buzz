@@ -4,6 +4,7 @@ title: Per-post metric sync failures are not persisted
 kind: silent_loss
 severity: P2
 status: fixed
+closed_in: 431f6c9
 surface: jobs
 evidence:
   - path: backend/app/jobs
