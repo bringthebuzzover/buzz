@@ -73,6 +73,7 @@ export type BrandDropApplicant = {
   followerCount: number | null;
   memberCount: number | null;
   category: string | null;
+  deliveryAddress: string | null;
   attributedPostCount: number;
   attributedLikes: number;
   attributedComments: number;

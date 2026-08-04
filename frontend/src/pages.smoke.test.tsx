@@ -24,6 +24,7 @@ import HomePage from "./pages/home/HomePage";
 import OrgDropFeedPage from "./pages/org/OrgDropFeedPage";
 import OrgMyCampaignsPage from "./pages/org/OrgMyCampaignsPage";
 import OrgCampaignDetailPage from "./pages/org/OrgCampaignDetailPage";
+import OrgPortalProfilePage from "./pages/org/OrgPortalProfilePage";
 import BrandAggregateDashboardPage from "./pages/brand/BrandAggregateDashboardPage";
 import BrandDropDetailPage from "./pages/brand/BrandDropDetailPage";
 import BrandRequestDropPage from "./pages/brand/BrandRequestDropPage";
@@ -51,6 +52,7 @@ const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["OrgDropFeedPage", OrgDropFeedPage],
   ["OrgMyCampaignsPage", OrgMyCampaignsPage],
   ["OrgCampaignDetailPage", OrgCampaignDetailPage],
+  ["OrgPortalProfilePage", OrgPortalProfilePage],
   ["BrandAggregateDashboardPage", BrandAggregateDashboardPage],
   ["BrandDropDetailPage", BrandDropDetailPage],
   ["BrandRequestDropPage", BrandRequestDropPage],

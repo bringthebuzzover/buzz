@@ -133,6 +133,7 @@ class BrandDropDetailApplicant(CamelModel):
     follower_count: int | None
     member_count: int | None
     category: str | None
+    delivery_address: str | None
     # Attributed campaign totals (likes/comments from linked posts)
     attributed_post_count: int
     attributed_likes: int

@@ -16,12 +16,27 @@ export type OrgProfile = {
   tiktokHandle: string | null;
   followerCount: number | null;
   memberCount: number | null;
+  category: string | null;
   city: string | null;
   state: string | null;
   contactName: string | null;
   deliveryAddress: string | null;
   approvedAt: number | null;
   createdAt: number;
+};
+
+/** Editable PATCH body for `PATCH /api/orgs/me` (omit unchanged fields). */
+export type OrgProfileUpdate = {
+  orgName?: string;
+  university?: string;
+  tiktokHandle?: string | null;
+  followerCount?: number | null;
+  memberCount?: number | null;
+  category?: string | null;
+  city?: string | null;
+  state?: string | null;
+  contactName?: string | null;
+  deliveryAddress?: string | null;
 };
 
 export type PostItem = {
@@ -111,6 +126,23 @@ export function useOrgProfile() {
       return data;
     },
     enabled: status === "authenticated",
+  });
+}
+
+export function useUpdateOrgProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: OrgProfileUpdate) => {
+      const { data } = await apiFetch<OrgProfile>("/api/orgs/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["org-profile"], data);
+    },
   });
 }
 

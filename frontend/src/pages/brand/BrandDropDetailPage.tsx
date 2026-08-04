@@ -186,7 +186,18 @@ function ApiApplicantTable({
                         }
                       />
                     </td>
-                    <td className="px-4 py-3 font-medium">{app.orgName}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <div>{app.orgName}</div>
+                      {app.deliveryAddress ? (
+                        <div className="mt-0.5 text-xs font-medium text-buzz-inkMuted">
+                          Ship to: {app.deliveryAddress}
+                        </div>
+                      ) : (
+                        <div className="mt-0.5 text-xs font-medium text-amber-700">
+                          Ship to: Not set — nowhere to ship product
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-buzz-inkMuted">{app.university}</td>
                     <td className="px-4 py-3 text-buzz-inkMuted">
                       {orgCategoryLabel(app.category)}
