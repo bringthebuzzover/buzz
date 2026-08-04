@@ -4,6 +4,7 @@ title: Live Reopen apply window does not reopen apply
 kind: invariant_break
 severity: P1
 status: fixed
+closed_in: 15f8e17
 surface: admin
 evidence:
   - path: backend/app/services/admin.py
