@@ -649,9 +649,11 @@ export interface paths {
          *     Meta POSTs ``signed_request`` (application/x-www-form-urlencoded) when a
          *     user removes our app from their Instagram. We verify the signature with
          *     ``INSTAGRAM_CLIENT_SECRET`` and, if the payload's ``user_id`` matches a
-         *     known org user, drop their token and bump ``token_version`` to kill any
-         *     live sessions. The user row itself is preserved — account deletion is a
-         *     separate flow (see ``/data-deletion``).
+         *     known org user (Graph ``/me.id`` or token-exchange id), drop their token
+         *     and bump ``token_version`` to kill any live sessions. Unknown ids return
+         *     a distinct acknowledged-noop (HTTP 200, ``revoked: false``) so operators
+         *     can detect mismatches without Meta retry storms. The user row itself is
+         *     preserved — account deletion is a separate flow (see ``/data-deletion``).
          */
         post: operations["instagram_deauthorize_api_auth_instagram_deauthorize_post"];
         delete?: never;

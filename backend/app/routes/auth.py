@@ -7,6 +7,7 @@ Covers the org Instagram OAuth handshake plus the shared session surface
 
 from __future__ import annotations
 
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, Form, Request, Response
@@ -57,6 +58,8 @@ from app.services.onboarding import (
     verify_email,
 )
 from app.services.password_reset import request_password_reset, reset_password
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -157,13 +160,13 @@ async def instagram_callback(
     _clear_state_cookie(response)
 
     user = await handle_instagram_callback(db, ig, payload.code)
-    # Don't mint fresh credentials for a terminally-denied/suspended account —
-    # symmetric with the refresh boundary (refresh already rejects these). New
-    # users are pending_org_profile, so signup is unaffected.
-    if user.status in {OrgUserStatus.DENIED.value, OrgUserStatus.SUSPENDED.value}:
+    # Don't mint fresh credentials for a terminally-denied account — symmetric
+    # with the refresh boundary. New users are pending_org_profile, so signup
+    # is unaffected. Distinct code so the SPA can land on /onboarding/denied.
+    if user.status == OrgUserStatus.DENIED.value:
         raise BuzzAPIException(
-            code=errors.FORBIDDEN,
-            message="This account is not permitted to sign in.",
+            code=errors.ACCOUNT_DENIED,
+            message="This organization's application was not approved.",
             status_code=403,
         )
     access, refresh = await issue_token_pair(db, user)
@@ -185,9 +188,11 @@ async def instagram_deauthorize(
     Meta POSTs ``signed_request`` (application/x-www-form-urlencoded) when a
     user removes our app from their Instagram. We verify the signature with
     ``INSTAGRAM_CLIENT_SECRET`` and, if the payload's ``user_id`` matches a
-    known org user, drop their token and bump ``token_version`` to kill any
-    live sessions. The user row itself is preserved — account deletion is a
-    separate flow (see ``/data-deletion``).
+    known org user (Graph ``/me.id`` or token-exchange id), drop their token
+    and bump ``token_version`` to kill any live sessions. Unknown ids return
+    a distinct acknowledged-noop (HTTP 200, ``revoked: false``) so operators
+    can detect mismatches without Meta retry storms. The user row itself is
+    preserved — account deletion is a separate flow (see ``/data-deletion``).
     """
 
     if not signed_request:
@@ -205,9 +210,18 @@ async def instagram_deauthorize(
             status_code=401,
         ) from exc
 
-    if user_id := payload.get("user_id"):
-        await revoke_instagram_authorization(db, str(user_id))
-    return api_response(data={"ok": True})
+    user_id = payload.get("user_id")
+    if not user_id:
+        return api_response(data={"ok": True, "revoked": False, "reason": "missing_user_id"})
+
+    revoked = await revoke_instagram_authorization(db, str(user_id))
+    if not revoked:
+        logger.warning(
+            "instagram deauthorize: no user matched Meta user_id=%s",
+            user_id,
+        )
+        return api_response(data={"ok": True, "revoked": False, "reason": "unknown_user"})
+    return api_response(data={"ok": True, "revoked": True})
 
 
 @router.post(
@@ -254,7 +268,7 @@ async def refresh(
     # Cut off terminal accounts at the refresh boundary (defense-in-depth).
     # Onboarding states (pending_*) are intentionally allowed — those users
     # are non-active but still need a live session to finish onboarding.
-    if user.status in {OrgUserStatus.SUSPENDED.value, OrgUserStatus.DENIED.value}:
+    if user.status == OrgUserStatus.DENIED.value:
         return _unauthorized("This account can no longer refresh its session.")
 
     # Revocation: a refresh token is only valid while its `ver` matches the

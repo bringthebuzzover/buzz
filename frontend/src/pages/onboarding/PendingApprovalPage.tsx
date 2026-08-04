@@ -25,7 +25,7 @@ export default function PendingApprovalPage() {
 
   if (!user || user.status !== "pending_approval") {
     // Poll resolved (or wrong status / no session): route to where the user
-    // belongs — active → portal, denied/suspended → denial page, none → login.
+    // belongs — active → portal, denied → denial page, none → login.
     return <Navigate to={pathForUser(user)} replace />;
   }
 

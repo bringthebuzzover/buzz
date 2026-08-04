@@ -42,8 +42,9 @@ from app.models.enums import (
 from app.models.organization import Organization
 from app.models.social_post import SocialPost
 from app.models.user import User
-from app.security.token_crypto import decrypt_token
+from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.instagram import InstagramClient, MediaFields
+from app.services.instagram_token import clear_unusable_instagram_token
 
 logger = logging.getLogger(__name__)
 
@@ -134,6 +135,9 @@ def _token_for(user: User | None, now: datetime) -> str | None:
             return None  # expired — skip; on-login flow flags for re-auth
     try:
         return decrypt_token(user.instagram_access_token)
+    except TokenDecryptionError:
+        clear_unusable_instagram_token(user)
+        return None
     except Exception:  # noqa: BLE001
         return None
 

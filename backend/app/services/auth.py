@@ -10,7 +10,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -56,12 +56,23 @@ async def handle_instagram_callback(
 
     now = _now()
     expires_at = now + timedelta(seconds=long.expires_in)
-
-    existing = await db.scalar(select(User).where(User.instagram_user_id == profile.id))
+    # Match either Graph /me.id or the token-exchange user_id (deauthorize
+    # sends the latter; they usually match but we store both).
+    existing = await db.scalar(
+        select(User).where(
+            or_(
+                User.instagram_user_id == profile.id,
+                User.instagram_token_user_id == short.user_id,
+                User.instagram_user_id == short.user_id,
+                User.instagram_token_user_id == profile.id,
+            )
+        )
+    )
 
     if existing is None:
         user = User(
             instagram_user_id=profile.id,
+            instagram_token_user_id=short.user_id,
             instagram_username=profile.username,
             instagram_access_token=encrypt_token(long.access_token),
             instagram_token_issued_at=now,
@@ -74,6 +85,8 @@ async def handle_instagram_callback(
         db.add(user)
     else:
         # Returning user: refresh the token + login stamp, preserve role/status.
+        existing.instagram_user_id = profile.id
+        existing.instagram_token_user_id = short.user_id
         existing.instagram_username = profile.username
         existing.instagram_access_token = encrypt_token(long.access_token)
         existing.instagram_token_issued_at = now
@@ -91,7 +104,7 @@ async def handle_instagram_callback(
     return user
 
 
-async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: str) -> None:
+async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: str) -> bool:
     """Handle a Meta deauthorize webhook: drop the token, kill live sessions.
 
     The user removed our app from their Instagram, so their stored token is
@@ -99,19 +112,30 @@ async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: st
     logout / admin-deny use) to invalidate every outstanding refresh token.
     The user row is kept — deauthorize is not account deletion.
 
-    Idempotent: unknown ``instagram_user_id`` is a silent no-op so Meta can
-    retry safely.
+    Returns True when a matching user was revoked, False when the Meta
+    ``user_id`` is unknown (callers must surface that distinctly — silent
+    ``{ok:true}`` hid live tokens when Graph ``/me.id`` and exchange
+    ``user_id`` diverged). Matches either ``instagram_user_id`` or
+    ``instagram_token_user_id``.
     """
 
-    user = await db.scalar(select(User).where(User.instagram_user_id == instagram_user_id))
+    user = await db.scalar(
+        select(User).where(
+            or_(
+                User.instagram_user_id == instagram_user_id,
+                User.instagram_token_user_id == instagram_user_id,
+            )
+        )
+    )
     if user is None:
-        return
+        return False
     user.instagram_access_token = None
     user.instagram_token_issued_at = None
     user.instagram_token_expires_at = None
     user.instagram_token_refreshed_at = None
     user.token_version = (user.token_version or 0) + 1
     await db.flush()
+    return True
 
 
 def build_user_response(user: User) -> UserResponse:

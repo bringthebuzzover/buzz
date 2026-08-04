@@ -3,7 +3,8 @@ id: auth.suspended-no-writer
 title: `suspended` has no writer and no reverse
 kind: unrecoverable
 severity: P2
-status: open
+status: fixed
+closed_in:
 surface: auth
 evidence:
   - path: backend/app/models/enums.py

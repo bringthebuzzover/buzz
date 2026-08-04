@@ -2768,7 +2768,7 @@
     },
     "/api/auth/instagram/deauthorize": {
       "post": {
-        "description": "Meta deauthorize webhook (public, unauthenticated, HMAC-verified).\n\nMeta POSTs ``signed_request`` (application/x-www-form-urlencoded) when a\nuser removes our app from their Instagram. We verify the signature with\n``INSTAGRAM_CLIENT_SECRET`` and, if the payload's ``user_id`` matches a\nknown org user, drop their token and bump ``token_version`` to kill any\nlive sessions. The user row itself is preserved \u2014 account deletion is a\nseparate flow (see ``/data-deletion``).",
+        "description": "Meta deauthorize webhook (public, unauthenticated, HMAC-verified).\n\nMeta POSTs ``signed_request`` (application/x-www-form-urlencoded) when a\nuser removes our app from their Instagram. We verify the signature with\n``INSTAGRAM_CLIENT_SECRET`` and, if the payload's ``user_id`` matches a\nknown org user (Graph ``/me.id`` or token-exchange id), drop their token\nand bump ``token_version`` to kill any live sessions. Unknown ids return\na distinct acknowledged-noop (HTTP 200, ``revoked: false``) so operators\ncan detect mismatches without Meta retry storms. The user row itself is\npreserved \u2014 account deletion is a separate flow (see ``/data-deletion``).",
         "operationId": "instagram_deauthorize_api_auth_instagram_deauthorize_post",
         "requestBody": {
           "content": {

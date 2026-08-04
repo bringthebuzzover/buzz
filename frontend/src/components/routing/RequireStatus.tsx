@@ -18,7 +18,7 @@ export default function RequireStatus({ children }: { children: ReactNode }) {
   if (!user) return null;
 
   // Any non-active org is redirected to where it belongs (onboarding step or the
-  // denied/suspended page) via the shared mapping — one source of truth shared
+  // denied page) via the shared mapping — one source of truth shared
   // with the login page and the onboarding pages. Active orgs, brands, and
   // admins fall through to the portal.
   if (user.portalRole === "org" && user.status !== "active") {

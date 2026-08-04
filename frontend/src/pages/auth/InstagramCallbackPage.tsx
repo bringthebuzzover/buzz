@@ -44,6 +44,12 @@ export default function InstagramCallbackPage() {
         });
         if (!resp.ok) {
           const body = await resp.json().catch(() => null);
+          const code = body?.error?.code as string | undefined;
+          // Denied orgs must reach the denial screen even without a session.
+          if (code === "ACCOUNT_DENIED") {
+            window.location.href = "/onboarding/denied";
+            return;
+          }
           const msg =
             body?.error?.message ?? `Instagram login failed (${resp.status}).`;
           setState({ kind: "error", message: msg });

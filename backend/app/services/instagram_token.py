@@ -27,7 +27,7 @@ from app import errors
 from app.deps.db import async_session_factory
 from app.exceptions import BuzzAPIException
 from app.models.user import User
-from app.security.token_crypto import decrypt_token, encrypt_token
+from app.security.token_crypto import TokenDecryptionError, decrypt_token, encrypt_token
 from app.services.instagram import InstagramClient, get_instagram_client
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,21 @@ REFRESH_WINDOW_DAYS = 30  # start refreshing this far from expiry (on-login)
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def clear_unusable_instagram_token(user: User, *, bump_session: bool = True) -> None:
+    """Drop ciphertext that can never be used again (key rotation / corruption).
+
+    Bumps ``token_version`` so outstanding JWTs die the same way logout /
+    deauthorize do — the org must reconnect Instagram.
+    """
+
+    user.instagram_access_token = None
+    user.instagram_token_issued_at = None
+    user.instagram_token_expires_at = None
+    user.instagram_token_refreshed_at = None
+    if bump_session:
+        user.token_version = (user.token_version or 0) + 1
 
 
 def time_until_expiry(user: User, *, now: datetime | None = None) -> timedelta | None:
@@ -63,7 +78,7 @@ def days_until_expiry(user: User, *, now: datetime | None = None) -> int | None:
     return int(remaining.total_seconds() // 86400)
 
 
-def maybe_refresh_on_login(
+async def maybe_refresh_on_login(
     user: User,
     background_tasks: BackgroundTasks | None,
     ig: InstagramClient,
@@ -71,8 +86,32 @@ def maybe_refresh_on_login(
     """On-login check (§10.5.1). Enqueue a refresh near expiry; raise once expired.
 
     A no-op for non-org users and orgs without an IG token. Never blocks the
-    request — the refresh itself runs as a background task.
+    request — the refresh itself runs as a background task. Undecryptable
+    ciphertext (e.g. after ``TOKEN_ENCRYPTION_KEY`` rotation) is cleared in a
+    dedicated session (request ``get_db`` would roll back on the 401) and
+    surfaced as ``INSTAGRAM_TOKEN_EXPIRED`` so the org must reconnect.
     """
+    if user.portal_role != "org" or not user.instagram_access_token:
+        return
+    try:
+        decrypt_token(user.instagram_access_token)
+    except TokenDecryptionError:
+        logger.warning(
+            "clearing undecryptable Instagram token for user %s",
+            user.id,
+        )
+        async with async_session_factory() as clear_db:
+            row = await clear_db.get(User, user.id)
+            if row is not None and row.instagram_access_token:
+                clear_unusable_instagram_token(row)
+                await clear_db.commit()
+        clear_unusable_instagram_token(user)
+        raise BuzzAPIException(
+            code=errors.INSTAGRAM_TOKEN_EXPIRED,
+            message="Your Instagram connection has expired. Please reconnect.",
+            status_code=401,
+        ) from None
+
     remaining = time_until_expiry(user)
     if remaining is None:
         return
@@ -90,7 +129,8 @@ async def refresh_instagram_token(user_id: uuid.UUID) -> bool:
     """Background-safe refresh for one user. Returns True if the token was rotated.
 
     Failures are swallowed (logged): the existing token is still valid for up to
-    REFRESH_WINDOW_DAYS more, and the next login retries.
+    REFRESH_WINDOW_DAYS more, and the next login retries. Undecryptable
+    ciphertext is cleared so the org is forced to reconnect.
     """
     ig = get_instagram_client()
     async with async_session_factory() as db:
@@ -108,6 +148,14 @@ async def refresh_instagram_token(user_id: uuid.UUID) -> bool:
         try:
             current = decrypt_token(user.instagram_access_token)
             new = await ig.refresh_long_lived(current)
+        except TokenDecryptionError:
+            logger.warning(
+                "clearing undecryptable Instagram token for user %s",
+                user_id,
+            )
+            clear_unusable_instagram_token(user)
+            await db.commit()
+            return False
         except Exception:  # noqa: BLE001 — best-effort; keep the old token
             logger.warning("Instagram token refresh failed for user %s", user_id, exc_info=True)
             return False

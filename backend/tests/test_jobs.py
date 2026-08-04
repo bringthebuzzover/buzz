@@ -421,26 +421,26 @@ async def test_token_refresh_cron_skips_far_expiry(db_session) -> None:
     assert result["candidates"] == 0
 
 
-def test_on_login_enqueues_near_expiry() -> None:
+async def test_on_login_enqueues_near_expiry() -> None:
     user = _org_with_token(days_to_expiry=10)
     bg = BackgroundTasks()
-    maybe_refresh_on_login(user, bg, FakeInstagramClient())
+    await maybe_refresh_on_login(user, bg, FakeInstagramClient())
     assert len(bg.tasks) == 1
 
 
-def test_on_login_enqueues_last_day_not_expired() -> None:
+async def test_on_login_enqueues_last_day_not_expired() -> None:
     """Sub-day remaining must refresh, not raise INSTAGRAM_TOKEN_EXPIRED."""
     user = _org_with_token(days_to_expiry=0)
     user.instagram_token_expires_at = _now() + timedelta(hours=12)
     bg = BackgroundTasks()
-    maybe_refresh_on_login(user, bg, FakeInstagramClient())
+    await maybe_refresh_on_login(user, bg, FakeInstagramClient())
     assert len(bg.tasks) == 1
 
 
-def test_on_login_raises_when_expired() -> None:
+async def test_on_login_raises_when_expired() -> None:
     user = _org_with_token(days_to_expiry=-1)
     try:
-        maybe_refresh_on_login(user, BackgroundTasks(), FakeInstagramClient())
+        await maybe_refresh_on_login(user, BackgroundTasks(), FakeInstagramClient())
     except BuzzAPIException as exc:
         assert exc.code == "INSTAGRAM_TOKEN_EXPIRED"
     else:
@@ -456,12 +456,12 @@ async def test_token_refresh_cron_includes_last_day(db_session) -> None:
     assert result["refreshed"] == 1
 
 
-def test_on_login_noop_for_brand() -> None:
+async def test_on_login_noop_for_brand() -> None:
     brand_user = make_user()
     brand_user.portal_role = "brand"
     assert days_until_expiry(brand_user) is None
     bg = BackgroundTasks()
-    maybe_refresh_on_login(brand_user, bg, FakeInstagramClient())
+    await maybe_refresh_on_login(brand_user, bg, FakeInstagramClient())
     assert len(bg.tasks) == 0
 
 
@@ -720,18 +720,18 @@ async def test_token_refresh_cron_skips_already_expired(db_session) -> None:
     assert result["candidates"] == 0
 
 
-def test_on_login_noop_for_fresh_token() -> None:
+async def test_on_login_noop_for_fresh_token() -> None:
     user = _org_with_token(days_to_expiry=45)
     bg = BackgroundTasks()
-    maybe_refresh_on_login(user, bg, FakeInstagramClient())
+    await maybe_refresh_on_login(user, bg, FakeInstagramClient())
     assert len(bg.tasks) == 0
 
 
-def test_on_login_noop_without_token() -> None:
+async def test_on_login_noop_without_token() -> None:
     user = make_user(instagram_user_id="ig_notoken")  # org, no IG token
     assert days_until_expiry(user) is None
     bg = BackgroundTasks()
-    maybe_refresh_on_login(user, bg, FakeInstagramClient())
+    await maybe_refresh_on_login(user, bg, FakeInstagramClient())
     assert len(bg.tasks) == 0
 
 

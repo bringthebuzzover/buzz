@@ -18,7 +18,6 @@ export function pathForUser(user: AuthUser | null): string {
       case "pending_approval":
         return "/onboarding/pending-approval";
       case "denied":
-      case "suspended":
         return "/onboarding/denied";
       case "active":
         return "/org/browse";

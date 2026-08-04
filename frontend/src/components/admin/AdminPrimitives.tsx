@@ -21,7 +21,7 @@ const TONE_CLASS: Record<Tone, string> = {
 /** Terminal states read as bad, waiting states as warn, live states as good. */
 function toneForStatus(status: string): Tone {
   if (status === "active" || status === "approved") return "good";
-  if (status === "denied" || status === "suspended") return "bad";
+  if (status === "denied") return "bad";
   if (status.startsWith("pending")) return "warn";
   return "neutral";
 }

@@ -449,11 +449,13 @@ class TestHealth:
         assert signal["ok"] is False
 
     async def test_instagram_token_buckets(self, app_client: AsyncClient, db_session):
+        from app.security.token_crypto import encrypt_token
+
         expired = await persist(db_session, make_user(role=PortalRole.ORG))
-        expired.instagram_access_token = "enc"
+        expired.instagram_access_token = encrypt_token("tok")
         expired.instagram_token_expires_at = _now() - timedelta(days=1)
         healthy = await persist(db_session, make_user(role=PortalRole.ORG))
-        healthy.instagram_access_token = "enc"
+        healthy.instagram_access_token = encrypt_token("tok")
         healthy.instagram_token_expires_at = _now() + timedelta(days=60)
         await persist(db_session, make_user(role=PortalRole.ORG))  # no token at all
         await db_session.flush()
@@ -463,6 +465,9 @@ class TestHealth:
         assert _signal({"instagramTokens": tokens}, "instagramTokens", "expired")["count"] == 1
         assert _signal({"instagramTokens": tokens}, "instagramTokens", "healthy")["count"] == 1
         assert _signal({"instagramTokens": tokens}, "instagramTokens", "missing")["count"] == 1
+        assert (
+            _signal({"instagramTokens": tokens}, "instagramTokens", "undecryptable")["count"] == 0
+        )
         # Expiring-soon is the refresh job's normal workload, not a problem.
         assert (
             _signal({"instagramTokens": tokens}, "instagramTokens", "expiring_soon")["ok"] is True

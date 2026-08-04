@@ -111,7 +111,7 @@ async def test_deauthorize_clears_token_and_bumps_version(
     )
 
     assert resp.status_code == 200
-    assert resp.json()["data"] == {"ok": True}
+    assert resp.json()["data"] == {"ok": True, "revoked": True}
 
     await db_session.refresh(user)
     assert user.instagram_access_token is None
@@ -121,7 +121,9 @@ async def test_deauthorize_clears_token_and_bumps_version(
     assert user.token_version == 4  # bumped from 3
 
 
-async def test_deauthorize_unknown_user_is_idempotent(app_client: AsyncClient, db_session) -> None:
+async def test_deauthorize_unknown_user_is_acknowledged_noop(
+    app_client: AsyncClient, db_session
+) -> None:
     signed = _build_signed_request(
         {"algorithm": "HMAC-SHA256", "user_id": "ig_never_seen"},
         settings.INSTAGRAM_CLIENT_SECRET,
@@ -133,10 +135,37 @@ async def test_deauthorize_unknown_user_is_idempotent(app_client: AsyncClient, d
     )
 
     assert resp.status_code == 200
-    assert resp.json()["data"] == {"ok": True}
+    assert resp.json()["data"] == {
+        "ok": True,
+        "revoked": False,
+        "reason": "unknown_user",
+    }
     # And no phantom user was created.
     row = await db_session.scalar(select(User).where(User.instagram_user_id == "ig_never_seen"))
     assert row is None
+
+
+async def test_deauthorize_matches_token_user_id(app_client: AsyncClient, db_session) -> None:
+    """Meta deauth user_id may match the token-exchange id, not Graph /me.id."""
+
+    user = await _seed_org_user_with_token(db_session, instagram_user_id="ig_graph_me")
+    user.instagram_token_user_id = "ig_exchange_id"
+    await db_session.flush()
+    signed = _build_signed_request(
+        {"algorithm": "HMAC-SHA256", "user_id": "ig_exchange_id"},
+        settings.INSTAGRAM_CLIENT_SECRET,
+    )
+
+    resp = await app_client.post(
+        "/api/auth/instagram/deauthorize",
+        data={"signed_request": signed},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["data"] == {"ok": True, "revoked": True}
+    await db_session.refresh(user)
+    assert user.instagram_access_token is None
+    assert user.token_version == 4
 
 
 async def test_deauthorize_bad_signature_is_unauthorized(

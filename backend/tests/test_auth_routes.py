@@ -92,14 +92,6 @@ async def test_refresh_access_token_rejected(app_client: AsyncClient, db_session
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"
 
 
-async def test_refresh_suspended_user_rejected(app_client: AsyncClient, db_session) -> None:
-    user = await persist(db_session, make_user(status=OrgUserStatus.SUSPENDED))
-    refresh = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
-    resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: refresh})
-    assert resp.status_code == 401
-    assert resp.json()["error"]["code"] == "UNAUTHORIZED"
-
-
 async def test_refresh_denied_user_rejected(app_client: AsyncClient, db_session) -> None:
     user = await persist(db_session, make_user(status=OrgUserStatus.DENIED))
     refresh = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
