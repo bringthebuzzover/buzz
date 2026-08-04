@@ -3,7 +3,7 @@
 Covers the role gate on every new route, the status/stage/attention filters, and
 the signal definitions on the overview and health payloads. The signal tests are
 the important ones: each asserts that a *specific* broken state from
-``KNOWN_GAPS.md`` is counted, so a refactor that silently drops one fails here.
+``gaps/`` is counted, so a refactor that silently drops one fails here.
 """
 
 from __future__ import annotations

@@ -3,7 +3,7 @@
 Reads are all ``GET`` and back the admin panel's sidebar sections. Mutations cover
 account approve/deny/recovery, drop tracker/reopen/tracking repair, and
 impersonation. Remaining stuck states without a product path stay in
-``KNOWN_GAPS.md``.
+``gaps/``.
 """
 
 from __future__ import annotations
@@ -84,7 +84,7 @@ async def get_health_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Inferred pipeline freshness, Instagram token buckets, and standing
-    integrity / silent-loss counts. See ``KNOWN_GAPS.md`` for why the pipeline
+    integrity / silent-loss counts. See ``gaps/`` for why the pipeline
     block is inferred rather than measured."""
     return api_response(data=AdminHealthResponse(**await get_health(db)))
 

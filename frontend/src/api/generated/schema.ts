@@ -239,7 +239,7 @@ export interface paths {
         /**
          * Get Health Endpoint
          * @description Inferred pipeline freshness, Instagram token buckets, and standing
-         *     integrity / silent-loss counts. See ``KNOWN_GAPS.md`` for why the pipeline
+         *     integrity / silent-loss counts. See ``gaps/`` for why the pipeline
          *     block is inferred rather than measured.
          */
         get: operations["get_health_endpoint_api_admin_health_get"];
