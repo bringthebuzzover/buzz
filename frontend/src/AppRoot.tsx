@@ -15,6 +15,7 @@ import HomePage from "./pages/home/HomePage";
 import OrgDropFeedPage from "./pages/org/OrgDropFeedPage";
 import OrgMyCampaignsPage from "./pages/org/OrgMyCampaignsPage";
 import OrgCampaignDetailPage from "./pages/org/OrgCampaignDetailPage";
+import OrgPortalProfilePage from "./pages/org/OrgPortalProfilePage";
 import BrandAggregateDashboardPage from "./pages/brand/BrandAggregateDashboardPage";
 import BrandDropDetailPage from "./pages/brand/BrandDropDetailPage";
 import BrandRequestDropPage from "./pages/brand/BrandRequestDropPage";
@@ -150,6 +151,14 @@ export default function AppRoot(): ReactElement {
           element={
             <PortalGuard role="org">
               <OrgDropFeedPage />
+            </PortalGuard>
+          }
+        />
+        <Route
+          path="org/profile"
+          element={
+            <PortalGuard role="org">
+              <OrgPortalProfilePage />
             </PortalGuard>
           }
         />

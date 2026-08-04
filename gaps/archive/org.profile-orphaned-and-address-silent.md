@@ -3,7 +3,7 @@ id: org.profile-orphaned-and-address-silent
 title: Org profile API is orphaned; shipping address never reaches brands
 kind: ux_hole
 severity: P1
-status: open
+status: fixed
 surface: org
 evidence:
   - path: frontend/src/api/hooks
@@ -21,3 +21,6 @@ page — orgs cannot view/edit profile after onboarding. `delivery_address` is
 collected at onboarding and shown on admin org detail, but
 `BrandDropDetailApplicant` / brand drop detail omit it, so brands never see where
 to ship.
+
+Fixed by adding `/org/profile` (PATCH via `useUpdateOrgProfile`) and exposing
+`deliveryAddress` on brand drop applicant rows (selection + accepted roster).

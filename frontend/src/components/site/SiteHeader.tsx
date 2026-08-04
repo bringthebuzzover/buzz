@@ -21,6 +21,7 @@ import { goToHomeJoin } from "../../utils/scrollHomeJoin";
 const ORG_NAV_LINKS = [
   { to: "/org/browse", label: "Browse Campaigns" },
   { to: "/org/campaigns", label: "My Campaigns" },
+  { to: "/org/profile", label: "Profile" },
 ] as const;
 
 const BRAND_NAV_LINKS = [

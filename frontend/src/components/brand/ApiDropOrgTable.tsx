@@ -86,6 +86,15 @@ export default function ApiDropOrgTable({
                     </span>
                   ) : null}
                 </p>
+                {a.deliveryAddress ? (
+                  <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
+                    Ship to: {a.deliveryAddress}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs font-medium text-amber-700">
+                    Ship to: Not set — nowhere to ship product
+                  </p>
+                )}
               </div>
               <div className="text-right text-xs font-semibold text-buzz-inkMuted">
                 <span className="text-buzz-ink">{a.attributedPostCount}</span> posts ·{" "}

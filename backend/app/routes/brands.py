@@ -195,6 +195,7 @@ async def get_brand_drop_detail(
                 follower_count=org.follower_count,
                 member_count=org.member_count,
                 category=org.category,
+                delivery_address=org.delivery_address,
                 attributed_post_count=attr["attributed_post_count"],
                 attributed_likes=attr["attributed_likes"],
                 attributed_comments=attr["attributed_comments"],

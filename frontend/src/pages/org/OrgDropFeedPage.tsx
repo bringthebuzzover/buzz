@@ -11,10 +11,7 @@ import { getDropFeedStatus } from "../../utils/dropStatus";
 import type { DropFeedRow, DropFeedStatus } from "../../types/drop";
 import { useWallClockNow } from "../../utils/wallClock";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
-import {
-  useApplyToDrop,
-  type DropFeedItem,
-} from "../../api/hooks/useDropHooks";
+import { useApplyToDrop } from "../../api/hooks/useDropHooks";
 
 type FilterId = "all" | "upcoming" | "open" | "closed";
 
@@ -141,7 +138,13 @@ function FeedContent({
   );
 }
 
-/** Live feed from `GET /api/drops` with working apply. */
+/**
+ * Live feed from `GET /api/drops` with working apply.
+ *
+ * Post-apply "Already applied" is owned by `useApplyToDrop` (optimistic cache
+ * flip + re-assert after invalidate). Do not keep a page-level sticky Set —
+ * that blocked re-apply after denial when the API correctly returned false.
+ */
 function ApiDropFeed() {
   const {
     items,
@@ -152,17 +155,6 @@ function ApiDropFeed() {
     fetchNextPage,
   } = useOrgDropFeed();
   const [applyingId, setApplyingId] = useState<string | null>(null);
-  // Survive a refetch that briefly (or incorrectly) returns alreadyApplied=false
-  // after a successful POST — otherwise the card flips back to "Apply".
-  const [justAppliedIds, setJustAppliedIds] = useState(() => new Set<string>());
-
-  const rows = useMemo(
-    () =>
-      items.map((row: DropFeedItem) =>
-        justAppliedIds.has(row.id) ? { ...row, alreadyApplied: true } : row,
-      ),
-    [items, justAppliedIds],
-  );
 
   const handleApply = (dropId: string) => {
     setApplyingId(dropId);
@@ -175,11 +167,6 @@ function ApiDropFeed() {
         dropId={applyingId}
         onCancel={() => setApplyingId(null)}
         onSuccess={() => {
-          setJustAppliedIds((prev) => {
-            const next = new Set(prev);
-            next.add(applyingId);
-            return next;
-          });
           setApplyingId(null);
         }}
       />
@@ -210,7 +197,7 @@ function ApiDropFeed() {
 
   return (
     <FeedContent
-      rows={rows}
+      rows={items}
       onApply={handleApply}
       disableApply={false}
       hasMore={hasNextPage}

@@ -3,7 +3,7 @@ id: spa.just-applied-ids-sticky-after-deny
 title: Feed Already applied sticks after denial
 kind: ux_hole
 severity: P1
-status: open
+status: fixed
 surface: spa
 evidence:
   - path: frontend/src/pages/org/OrgDropFeedPage.tsx
@@ -17,3 +17,6 @@ fix_when: |
 `OrgDropFeedPage` keeps `justAppliedIds` in component state and forces
 `alreadyApplied: true` for those drop ids forever. After a denial the API returns
 `alreadyApplied: false` (re-apply allowed), but the card stays disabled until remount.
+
+Fixed by removing the page-level sticky Set and relying on `useApplyToDrop`'s
+optimistic cache flip + post-invalidate re-assert.

@@ -133,6 +133,8 @@ class TestGetBrandDropDetail:
         drop = await make_drop(db_session, brand)
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, org_user)
+        org.delivery_address = "2301 Bancroft Way, Berkeley, CA 94720"
+        await db_session.flush()
         await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
 
         res = await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=headers)
@@ -142,6 +144,7 @@ class TestGetBrandDropDetail:
         assert len(data["applications"]) == 1
         app = data["applications"][0]
         assert app["orgName"] == org.org_name
+        assert app["deliveryAddress"] == "2301 Bancroft Way, Berkeley, CA 94720"
         assert "attributedPostCount" in app
         assert "attributedLikes" in app
         assert "attributedEngagement" in app
