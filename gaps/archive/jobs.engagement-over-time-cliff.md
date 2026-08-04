@@ -3,7 +3,7 @@ id: jobs.engagement-over-time-cliff
 title: Engagement over time is a post-sync cliff
 kind: silent_loss
 severity: P2
-status: open
+status: fixed
 surface: jobs
 evidence:
   - path: backend/app/services
@@ -20,3 +20,5 @@ lands in the last bucket and earlier buckets stay ~0. Posts with likes but
 `metrics_updated_at IS NULL` (discovery succeeded, insights failed) are excluded
 from the series while `_drop_aggregate` still counts them — dashboard totals and
 the chart disagree.
+
+Fixed by bucketing engagement series on posted_at.

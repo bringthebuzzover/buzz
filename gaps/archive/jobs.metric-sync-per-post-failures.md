@@ -3,7 +3,7 @@ id: jobs.metric-sync-per-post-failures
 title: Per-post metric sync failures are not persisted
 kind: silent_loss
 severity: P2
-status: open
+status: fixed
 surface: jobs
 evidence:
   - path: backend/app/jobs
@@ -39,3 +39,5 @@ Correction on freeze timing: `_LIVE_STAGES` includes `drop_finished` (so finishe
 drops keep syncing forever) but **excludes** `finalizing_agreements`, so the gap
 between brand finalize and admin advancing to `awaiting_products` is a silent
 sync/autolink blackout even though accepted orgs already exist.
+
+Fixed by counting skipped-token and media-list failures in the job summary.

@@ -79,7 +79,23 @@ async def test_fetch_media_parses_fields() -> None:
     assert f.caption == "hello @nike"
 
 
-async def test_fetch_media_insights_flattens_values() -> None:
+async def test_fetch_media_insights_feed_includes_profile_metrics() -> None:
+    captured: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["metric"] = request.url.params["metric"]
+        return httpx.Response(
+            200,
+            json={"data": [{"name": "reach", "values": [{"value": 10}]}]},
+        )
+
+    await _client(handler).fetch_media_insights("tok", "m1", is_reel=False)
+    assert "profile_visits" in captured["metric"]
+    assert "follows" in captured["metric"]
+    assert "ig_reels_avg_watch_time" not in captured["metric"]
+
+
+async def test_fetch_media_insights_reels_excludes_feed_only_metrics() -> None:
     captured: dict[str, str] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -90,12 +106,64 @@ async def test_fetch_media_insights_flattens_values() -> None:
                 "data": [
                     {"name": "reach", "values": [{"value": 500}]},
                     {"name": "saved", "values": [{"value": 9}]},
+                    {"name": "reels_skip_rate", "values": [{"value": 0.37}]},
                     {"name": "empty", "values": []},
                 ]
             },
         )
 
     insights = await _client(handler).fetch_media_insights("tok", "m1", is_reel=True)
-    assert insights == {"reach": 500, "saved": 9}
-    # reel-only metrics requested when is_reel=True
+    assert insights == {"reach": 500, "saved": 9, "reels_skip_rate": 0.37}
     assert "ig_reels_avg_watch_time" in captured["metric"]
+    assert "reels_skip_rate" in captured["metric"]
+    assert "profile_visits" not in captured["metric"]
+    assert "profile_activity" not in captured["metric"]
+    assert "follows" not in captured["metric"]
+
+
+async def test_fetch_user_media_follows_paging_next() -> None:
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(
+                200,
+                json={
+                    "data": [{"id": "m1", "timestamp": "2030-01-02T00:00:00+00:00"}],
+                    "paging": {"next": "https://graph.instagram.com/v1/me/media?after=cursor"},
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "data": [{"id": "m2", "timestamp": "2030-01-01T00:00:00+00:00"}],
+            },
+        )
+
+    media = await _client(handler).fetch_user_media("tok")
+    assert [m.id for m in media] == ["m1", "m2"]
+    assert calls["n"] == 2
+
+
+async def test_fetch_user_media_stops_when_page_outside_window() -> None:
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(
+                200,
+                json={
+                    "data": [{"id": "old", "timestamp": "2000-01-01T00:00:00+00:00"}],
+                    "paging": {"next": "https://graph.instagram.com/v1/me/media?after=x"},
+                },
+            )
+        return httpx.Response(
+            200,
+            json={"data": [{"id": "should-not-fetch", "timestamp": "1999-01-01T00:00:00+00:00"}]},
+        )
+
+    media = await _client(handler).fetch_user_media("tok")
+    assert [m.id for m in media] == ["old"]
+    assert calls["n"] == 1
