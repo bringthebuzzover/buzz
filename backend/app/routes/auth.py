@@ -166,7 +166,7 @@ async def instagram_callback(
             message="This account is not permitted to sign in.",
             status_code=403,
         )
-    access, refresh = issue_token_pair(user)
+    access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
 
@@ -222,8 +222,10 @@ async def refresh(
 ) -> APIResponse | JSONResponse:
     """Issue a new access token from the refresh cookie; rotate the cookie.
 
-    Every failure path clears the refresh cookie so the SPA stops re-POSTing a
-    dead httpOnly cookie on bootstrap.
+    Successful refresh bumps ``token_version`` and mints a new pair, so the
+    previous refresh cookie (and any stolen copies) stop working. Every failure
+    path clears the refresh cookie so the SPA stops re-POSTing a dead httpOnly
+    cookie on bootstrap.
     """
 
     def _unauthorized(message: str) -> JSONResponse:
@@ -256,13 +258,13 @@ async def refresh(
         return _unauthorized("This account can no longer refresh its session.")
 
     # Revocation: a refresh token is only valid while its `ver` matches the
-    # user's current token_version. Logout / admin-deny bump the version,
-    # invalidating every outstanding refresh token (§11.1). Tokens minted before
-    # this field existed carry no `ver`; treat that as version 0.
+    # user's current token_version. Logout / admin-deny / prior login-or-refresh
+    # bump the version, invalidating every outstanding refresh token (§11.1).
+    # Tokens minted before this field existed carry no `ver`; treat that as 0.
     if (payload.ver or 0) != (user.token_version or 0):
         return _unauthorized("This session has been revoked. Please sign in again.")
 
-    access, new_refresh = issue_token_pair(user)
+    access, new_refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, new_refresh)
     return api_response(data=RefreshResponse(access_token=access))
 
@@ -273,24 +275,40 @@ async def logout(
     response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Log out: revoke outstanding refresh tokens and clear the cookie.
+    """Log out: revoke outstanding sessions when the caller is known, clear cookie.
 
-    Bumping ``token_version`` invalidates every refresh token the user holds
-    (not just the cookie being cleared), so a stolen/duplicated refresh token
-    can no longer be exchanged. Always succeeds and clears the cookie, even if
-    the presented token is missing/expired/garbage (nothing to revoke then).
+    Prefer a valid Bearer access token (signature + type + exp; ``ver`` need not
+    match so a just-revoked access can still identify the user). Else use a
+    decodable refresh cookie. Bumping ``token_version`` invalidates every access
+    and refresh token the user holds. Always succeeds and clears the cookie.
     """
 
-    cookie = request.cookies.get(settings.REFRESH_COOKIE_NAME)
-    if cookie:
+    bumped = False
+
+    authorization = request.headers.get("Authorization")
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[len("Bearer ") :].strip()
         try:
-            payload = jwt.decode_token(cookie, expected_type=jwt.REFRESH_TOKEN_TYPE)
+            payload = jwt.decode_token(token, expected_type=jwt.ACCESS_TOKEN_TYPE)
             user = await db.get(User, uuid.UUID(payload.sub))
             if user is not None:
                 user.token_version = (user.token_version or 0) + 1
                 await db.flush()
+                bumped = True
         except (jwt.TokenError, ValueError):
-            pass  # nothing valid to revoke; just clear the cookie
+            pass
+
+    if not bumped:
+        cookie = request.cookies.get(settings.REFRESH_COOKIE_NAME)
+        if cookie:
+            try:
+                payload = jwt.decode_token(cookie, expected_type=jwt.REFRESH_TOKEN_TYPE)
+                user = await db.get(User, uuid.UUID(payload.sub))
+                if user is not None:
+                    user.token_version = (user.token_version or 0) + 1
+                    await db.flush()
+            except (jwt.TokenError, ValueError):
+                pass  # nothing valid to revoke; just clear the cookie
 
     _clear_refresh_cookie(response)
     return api_response(data={"ok": True})
@@ -357,7 +375,7 @@ async def dev_login(
     if user is None:
         raise BuzzAPIException(code=errors.NOT_FOUND, message="No matching user.", status_code=404)
 
-    access, refresh = issue_token_pair(user)
+    access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
 
@@ -424,7 +442,7 @@ async def brand_set_password(
     their portal without a separate login step.
     """
     user, user_resp = await set_brand_password(db, payload.token, payload.password)
-    access, refresh = issue_token_pair(user)
+    access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=user_resp))
 
@@ -448,7 +466,7 @@ async def brand_login(
     """
     enforce_account_limit("brand_login", payload.email.strip().lower(), limit=20, window=300)
     user, user_resp = await login_brand(db, payload.email, payload.password)
-    access, refresh = issue_token_pair(user)
+    access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=user_resp))
 
@@ -505,7 +523,7 @@ async def admin_login(
     """
     enforce_account_limit("admin_login", payload.email.strip().lower(), limit=20, window=300)
     user, user_resp = await login_admin(db, payload.email, payload.password)
-    access, refresh = issue_token_pair(user)
+    access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=user_resp))
 

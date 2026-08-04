@@ -501,7 +501,12 @@ async def make_tracker_event(
 
 
 def mint_access_token(user: User) -> str:
-    return jwt.create_access_token(user.id, user.portal_role, user.status)
+    return jwt.create_access_token(
+        user.id,
+        user.portal_role,
+        user.status,
+        token_version=user.token_version or 0,
+    )
 
 
 def mint_expired_access_token(user: User) -> str:
@@ -518,5 +523,6 @@ def mint_expired_access_token(user: User) -> str:
         "iat": now - timedelta(hours=2),
         "exp": now - timedelta(hours=1),
         "jti": uuid.uuid4().hex,
+        "ver": user.token_version or 0,
     }
     return pyjwt.encode(claims, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)

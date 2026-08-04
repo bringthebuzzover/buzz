@@ -52,7 +52,7 @@ class TokenPayload(BaseModel):
     role: str | None = None
     status: str | None = None
     nonce: str | None = None
-    ver: int | None = None  # users.token_version at mint time (refresh tokens)
+    ver: int | None = None  # users.token_version at mint time (access + refresh)
     imp: str | None = None  # admin user id when this is an impersonation token
     imp_readonly: bool | None = None  # impersonation session may not mutate
 
@@ -70,6 +70,7 @@ def create_access_token(
     role: str,
     status: str,
     *,
+    token_version: int = 0,
     impersonated_by: uuid.UUID | str | None = None,
     readonly: bool = False,
 ) -> str:
@@ -79,6 +80,9 @@ def create_access_token(
     acts as ``user_id`` but records the admin behind it in ``imp`` and uses the
     shorter ``IMPERSONATION_TOKEN_TTL_MINUTES`` lifetime. ``readonly`` stamps
     ``imp_readonly``, which the auth dependency enforces on mutating requests.
+
+    ``token_version`` is stamped as ``ver`` so logout / deny / re-login can
+    revoke outstanding access tokens the same way refresh tokens already are.
     """
 
     issued = _now()
@@ -95,6 +99,7 @@ def create_access_token(
         "iat": issued,
         "exp": issued + timedelta(minutes=ttl_minutes),
         "jti": uuid.uuid4().hex,
+        "ver": token_version,
     }
     if impersonated_by is not None:
         claims["imp"] = str(impersonated_by)

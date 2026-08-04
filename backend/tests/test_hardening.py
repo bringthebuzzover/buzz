@@ -44,6 +44,11 @@ async def test_refresh_with_matching_version_succeeds(app_client: AsyncClient, d
     resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: token})
     assert resp.status_code == 200
     assert resp.json()["data"]["access_token"]
+    await db_session.refresh(user)
+    assert user.token_version == 1
+    # Old cookie no longer works after rotation bump.
+    resp2 = await app_client.post("/api/auth/refresh", cookies={REFRESH: token})
+    assert resp2.status_code == 401
 
 
 async def test_refresh_legacy_token_without_ver_claim_allowed(
@@ -68,6 +73,8 @@ async def test_refresh_legacy_token_without_ver_claim_allowed(
     )
     resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: legacy})
     assert resp.status_code == 200
+    await db_session.refresh(user)
+    assert user.token_version == 1
 
 
 async def test_logout_without_cookie_succeeds(app_client: AsyncClient) -> None:
@@ -78,6 +85,22 @@ async def test_logout_without_cookie_succeeds(app_client: AsyncClient) -> None:
 async def test_logout_with_garbage_cookie_succeeds(app_client: AsyncClient) -> None:
     resp = await app_client.post("/api/auth/logout", cookies={REFRESH: "not-a-jwt"})
     assert resp.status_code == 200
+
+
+async def test_logout_bearer_without_cookie_revokes_access(
+    app_client: AsyncClient, db_session
+) -> None:
+    user = await persist(db_session, make_user())
+    access = mint_access_token(user)
+    resp = await app_client.post(
+        "/api/auth/logout",
+        headers={"Authorization": f"Bearer {access}"},
+    )
+    assert resp.status_code == 200
+    await db_session.refresh(user)
+    assert user.token_version == 1
+    me = await app_client.get("/api/auth/me", headers={"Authorization": f"Bearer {access}"})
+    assert me.status_code == 401
 
 
 # --- Rate limiting -----------------------------------------------------------
@@ -226,16 +249,20 @@ def test_database_url_normalized_to_asyncpg(raw: str, expected: str) -> None:
 # --- Edge cases surfaced by review -------------------------------------------
 
 
-def test_issue_token_pair_tolerates_unrefreshed_user() -> None:
+async def test_issue_token_pair_bumps_unrefreshed_user(db_session) -> None:
     """A freshly-built user has token_version == None (server_default is DB-side);
-    minting must coerce it to 0, not crash."""
+    minting bumps to 1 and stamps that on both tokens."""
     from app.services.auth import issue_token_pair
 
-    user = make_user()
-    assert user.token_version is None
-    _access, refresh = issue_token_pair(user)
-    payload = jwt.decode_token(refresh, expected_type=jwt.REFRESH_TOKEN_TYPE)
-    assert payload.ver == 0
+    user = await persist(db_session, make_user())
+    # Simulate an in-memory object that has not seen the server default yet.
+    user.token_version = None  # type: ignore[assignment]
+    access, refresh = await issue_token_pair(db_session, user)
+    assert user.token_version == 1
+    refresh_payload = jwt.decode_token(refresh, expected_type=jwt.REFRESH_TOKEN_TYPE)
+    access_payload = jwt.decode_token(access, expected_type=jwt.ACCESS_TOKEN_TYPE)
+    assert refresh_payload.ver == 1
+    assert access_payload.ver == 1
 
 
 async def test_deny_org_revokes_sessions(app_client: AsyncClient, db_session) -> None:

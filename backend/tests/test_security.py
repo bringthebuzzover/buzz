@@ -19,12 +19,13 @@ from app.security.token_crypto import (
 
 def test_access_token_round_trip_carries_role_and_status() -> None:
     uid = uuid.uuid4()
-    token = buzz_jwt.create_access_token(uid, "org", "active")
+    token = buzz_jwt.create_access_token(uid, "org", "active", token_version=3)
     payload = buzz_jwt.decode_token(token, expected_type=buzz_jwt.ACCESS_TOKEN_TYPE)
     assert payload.sub == str(uid)
     assert payload.type == "access"
     assert payload.role == "org"
     assert payload.status == "active"
+    assert payload.ver == 3
 
 
 def test_refresh_token_round_trip() -> None:
