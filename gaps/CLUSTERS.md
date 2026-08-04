@@ -6,6 +6,8 @@ as a second bug SOT.
 
 Agents: follow [`.agents/skills/fix-gap-cluster/SKILL.md`](../.agents/skills/fix-gap-cluster/SKILL.md)
 when the user says `run next cluster`, `run cluster <id>`, or `swarm gaps`.
+Flow: explore → plan/todos → implement → full CI → archive → wait for
+explicit commit/push.
 
 Statuses: `pending` | `in_progress` | `done` | `parked` | `ops`
 

@@ -54,5 +54,6 @@ Body: notes, SQL probes, and links. Keep probes read-only-safe.
 5. **Defer / ops / wontfix** → keep the file in `gaps/`; change `status` only.
 6. PRODUCT “Later” is not a gap until it is a broken path today.
 
-To execute a whole cluster without re-planning: `run next cluster` (see
-`fix-gap-cluster` skill).
+To run a cluster: `run next cluster` / `run cluster <id>` (see
+`fix-gap-cluster` skill). That explores, plans todos, implements, gates CI,
+archives — then **waits** for you to ask for commit/push.
