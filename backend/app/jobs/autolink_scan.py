@@ -1,10 +1,11 @@
 """Post auto-link suggestion scan (architecture.md §10.4).
 
 For every accepted application whose drop is live (awaiting_products /
-drop_active / drop_finished) and whose brand has an Instagram handle, scan the
-org's recent posts for a mention of the brand handle (or the campaign hashtag)
-and write a ``post_campaign_suggestions`` row the org can one-tap confirm
-(§7.4.1). Never auto-confirms — the org must accept.
+drop_active) and whose brand has an Instagram handle, scan the org's recent
+posts for a mention of the brand handle (or the campaign hashtag) and write a
+``post_campaign_suggestions`` row the org can one-tap confirm (§7.4.1). Never
+auto-confirms — the org must accept. ``drop_finished`` is excluded: the org UI
+is read-only there, so new pending suggestions would sit forever.
 
 Idempotent via ``UNIQUE(post_id, application_id)`` (a re-insert is skipped), so
 this is safe to run on a cron. (An on-demand re-scan endpoint — e.g. when an org
@@ -37,16 +38,22 @@ from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
 
-# Drops whose campaign is "live enough" that posts matter.
+# Drops whose campaign is live enough that new suggestions are actionable.
+# drop_finished is intentionally omitted — org finished detail is read-only.
 _LIVE_STAGES = (
     BrandTrackerStage.AWAITING_PRODUCTS.value,
     BrandTrackerStage.DROP_ACTIVE.value,
-    BrandTrackerStage.DROP_FINISHED.value,
 )
 # We only auto-suggest FEED + REELS (not STORY/AD).
 _SUGGESTABLE = (SocialMediaProductType.FEED.value, SocialMediaProductType.REELS.value)
 _PRE_WINDOW = timedelta(days=7)  # teaser posts just before the drop opens
 _EVIDENCE_CONTEXT = 20
+# Trailing chars that mean the match is a longer handle / URL path, not a
+# bare @handle mention. ``\b`` is wrong here because ``.`` / ``/`` are
+# non-word chars, so ``@nike`` would otherwise hit inside ``@nike.official``
+# and ``instagram.com/@nike/...``. Underscore is included so ``@nike`` stays
+# distinct from ``@nike_official`` (same as the old ``\b`` behavior).
+_HANDLE_TRAIL = r"A-Za-z0-9._/"
 
 
 def _evidence(caption: str, start: int, end: int) -> str:
@@ -58,9 +65,13 @@ def _evidence(caption: str, start: int, end: int) -> str:
 
 def _match(caption: str, handle: str, hashtag: str | None) -> tuple[str, str] | None:
     """Return (match_reason, evidence) if the caption mentions the handle/hashtag."""
-    # `(?<!\w)@handle\b` — handle not preceded by a word char (so emails like
-    # "x@nike" don't match) and ending on a boundary (so "@nike" != "@nikeshoes").
-    handle_re = re.compile(rf"(?<!\w)@{re.escape(handle)}\b", re.IGNORECASE)
+    # `(?<!\w)@handle(?![A-Za-z0-9._/])` — handle not preceded by a word char
+    # (so emails like "x@nike" don't match) and not continued by handle/path
+    # chars (so "@nike" != "@nike.official" / URL ``/@nike/...``).
+    handle_re = re.compile(
+        rf"(?<!\w)@{re.escape(handle)}(?![{_HANDLE_TRAIL}])",
+        re.IGNORECASE,
+    )
     handle_m = handle_re.search(caption)
     hashtag_m = None
     if hashtag:
