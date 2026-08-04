@@ -107,6 +107,11 @@ function TrackerControls({
   const blockedBySkipAwaiting =
     currentIndex < awaitingIdx && stageIdx > awaitingIdx;
   const canRepairTracking = currentIndex >= awaitingIdx;
+  const liveOrFinished =
+    currentStage === "drop_active" || currentStage === "drop_finished";
+  // Live/finished + finalized: apply stays closed even with manual_reopen, so
+  // do not offer a no-op "Reopen apply window" control.
+  const canReopenApply = !(liveOrFinished && finalized);
   const advanceDisabled =
     advance.isPending ||
     blockedByFinalize ||
@@ -166,7 +171,7 @@ function TrackerControls({
   return (
     <Panel
       title="Tracker"
-      description="Stages only move forward. Tracking is required on the move into awaiting products. Live/finished drops can reopen the apply window without regressing the stage."
+      description="Stages only move forward. Tracking is required on the move into awaiting products. Pre-live reopen clears finalize for a new selection round; once a live or finished drop is finalized, apply stays closed."
     >
       <div className="space-y-4 px-4 py-4">
         {error && <ErrorNote>{error}</ErrorNote>}
@@ -269,6 +274,13 @@ function TrackerControls({
           </div>
         )}
 
+        {!canReopenApply && (
+          <p className="text-xs font-bold text-buzz-inkMuted">
+            Apply cannot reopen while selection is finalized on a live or
+            finished drop.
+          </p>
+        )}
+
         <div className="flex flex-wrap gap-2">
           {forwardStages.length > 0 && (
             <ActionButton
@@ -280,13 +292,15 @@ function TrackerControls({
               {advance.isPending ? "Advancing…" : "Advance stage"}
             </ActionButton>
           )}
-          <ActionButton
-            testId="drop-reopen"
-            disabled={reopen.isPending}
-            onClick={() => void doReopen()}
-          >
-            {reopen.isPending ? "Reopening…" : "Reopen apply window"}
-          </ActionButton>
+          {canReopenApply && (
+            <ActionButton
+              testId="drop-reopen"
+              disabled={reopen.isPending}
+              onClick={() => void doReopen()}
+            >
+              {reopen.isPending ? "Reopening…" : "Reopen apply window"}
+            </ActionButton>
+          )}
           {manualReopen && (
             <ActionButton
               testId="drop-clear-reopen"

@@ -490,30 +490,40 @@ async def advance_tracker(
 async def reopen_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     """Reopen a drop's apply window (§4.1, §8.5).
 
-    Always sets ``manual_reopen=true``. For drops still in selection
-    (``request_received`` / ``finalizing_agreements``), also clears
+    Sets ``manual_reopen=true``. For drops still in selection
+    (``request_received`` / ``finalizing_agreements`` / pre-live), also clears
     ``applicant_selection_finalized_at`` and rewinds to ``finalizing_agreements``
     when past it so a new selection round can run.
 
-    Live / finished drops (``drop_active`` / ``drop_finished``) only get the
-    apply-window flag — stage and finalized_at stay put so org campaigns do not
-    regress to "Awaiting product" and lose the post selector. Admin can still
-    PATCH the tracker explicitly if a new selection round is needed.
+    Live / finished drops (``drop_active`` / ``drop_finished``) with selection
+    already finalized cannot reopen apply — ``apply_to_drop`` / feed treat
+    ``applicant_selection_finalized_at`` as closed before ``manual_reopen``, and
+    clearing finalize here would risk implying a new selection round while org
+    campaigns stay live. Those requests get 409; stage and finalize stay put.
+    Unfinalized live / finished drops still get the apply-window flag only.
     """
     drop = await db.get(Drop, drop_id)
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-
-    drop.manual_reopen = True
 
     live_or_finished = {
         BrandTrackerStage.DROP_ACTIVE.value,
         BrandTrackerStage.DROP_FINISHED.value,
     }
     if (
-        drop.applicant_selection_finalized_at is not None
-        and drop.brand_tracker_stage not in live_or_finished
+        drop.brand_tracker_stage in live_or_finished
+        and drop.applicant_selection_finalized_at is not None
     ):
+        raise BuzzAPIException(
+            errors.ALREADY_FINALIZED,
+            "Apply cannot be reopened while applicant selection is finalized "
+            "on a live or finished drop.",
+            status_code=409,
+        )
+
+    drop.manual_reopen = True
+
+    if drop.applicant_selection_finalized_at is not None:
         drop.applicant_selection_finalized_at = None
         finalizing = BrandTrackerStage.FINALIZING_AGREEMENTS.value
         if _STAGE_ORDER.index(drop.brand_tracker_stage) > _STAGE_ORDER.index(finalizing):
