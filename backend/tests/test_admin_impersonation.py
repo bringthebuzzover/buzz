@@ -78,8 +78,8 @@ class TestAdminLogin:
         )
         assert res.status_code == 401
 
-    async def test_suspended_admin_rejected(self, app_client: AsyncClient, db_session):
-        admin = make_user(role=PortalRole.ADMIN, status=OrgUserStatus.SUSPENDED)
+    async def test_inactive_admin_rejected(self, app_client: AsyncClient, db_session):
+        admin = make_user(role=PortalRole.ADMIN, status=OrgUserStatus.DENIED)
         admin.edu_email = "gone@buzz.test"
         admin.password_hash = hash_password("supersecret1")
         await persist(db_session, admin)

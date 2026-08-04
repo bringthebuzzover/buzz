@@ -165,6 +165,10 @@ export const TOKEN_BUCKET_META: Record<string, SignalMeta> = {
     label: "Missing",
     note: "Revoked via Meta or never connected; no post data will arrive",
   },
+  undecryptable: {
+    label: "Undecryptable",
+    note: "Ciphertext cannot be read (e.g. encryption key rotated); org must reconnect",
+  },
 };
 
 export const STAGE_LABELS: Record<string, string> = {
@@ -191,7 +195,6 @@ export const STATUS_LABELS: Record<string, string> = {
   active: "Active",
   approved: "Approved",
   denied: "Denied",
-  suspended: "Suspended",
 };
 
 export function humanizeKey(key: string): string {

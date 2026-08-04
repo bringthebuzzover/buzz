@@ -141,7 +141,7 @@ async def get_current_user(
     # Impersonation must not rotate or reject on the target's IG token — View as
     # is for diagnosis, including orgs whose token already expired.
     if impersonated_by(user) is None:
-        maybe_refresh_on_login(user, background_tasks, ig)
+        await maybe_refresh_on_login(user, background_tasks, ig)
     return user
 
 

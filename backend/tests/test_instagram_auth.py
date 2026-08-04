@@ -81,7 +81,7 @@ async def test_callback_business_account_creates_org_user(
 async def test_callback_denied_user_forbidden(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
 ) -> None:
-    """A returning denied/suspended account must not receive fresh tokens (B14)."""
+    """A returning denied account must not receive fresh tokens (B14)."""
     from app.models.enums import OrgUserStatus
     from tests.conftest import make_user, persist
 
@@ -97,7 +97,7 @@ async def test_callback_denied_user_forbidden(
         json={"code": "c", "state": state},
     )
     assert resp.status_code == 403
-    assert resp.json()["error"]["code"] == "FORBIDDEN"
+    assert resp.json()["error"]["code"] == "ACCOUNT_DENIED"
 
 
 async def test_callback_creator_account_ok(

@@ -6,8 +6,11 @@ matching profile sits in ``organizations`` or ``brands``.
 
 Notable columns:
 
-* ``instagram_user_id`` / ``instagram_*_token*`` — populated only for the
-  org-side IG OAuth path (PRODUCT.md §6.1). Nullable on brand/admin rows.
+* ``instagram_user_id`` / ``instagram_token_user_id`` / ``instagram_*_token*``
+  — populated only for the org-side IG OAuth path (PRODUCT.md §6.1).
+  ``instagram_user_id`` is Graph ``/me.id``; ``instagram_token_user_id`` is
+  the token-exchange ``user_id`` Meta may send on deauthorize (usually the
+  same). Nullable on brand/admin rows.
 * ``password_hash`` — set by Stage 3 brand-side password auth; nullable to
   cover org/admin rows that authenticate via IG OAuth. Kept on this table
   (rather than a sidecar ``brand_passwords``) so future role-switching needs
@@ -32,6 +35,11 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
 
     instagram_user_id: Mapped[str | None] = mapped_column(
+        sa.String(255), unique=True, nullable=True
+    )
+    # Token-exchange / deauthorize ``user_id`` from Meta (may differ from Graph
+    # ``/me.id`` in edge cases). Unique when set so deauth can match either id.
+    instagram_token_user_id: Mapped[str | None] = mapped_column(
         sa.String(255), unique=True, nullable=True
     )
     instagram_username: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)

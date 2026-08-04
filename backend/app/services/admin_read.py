@@ -39,6 +39,7 @@ from app.models.social_post import SocialPost
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
+from app.security.token_crypto import TokenDecryptionError, decrypt_token
 
 # Mirrors the 30-day trigger in ``maybe_refresh_on_login``: inside this window a
 # token is due for rotation but still usable.
@@ -485,7 +486,7 @@ async def get_health(db: AsyncSession) -> dict[str, Any]:
         User.instagram_token_expires_at.is_not(None),
     )
     soon = now + timedelta(days=_IG_EXPIRING_SOON_DAYS)
-    missing, expired, expiring, healthy = (
+    missing, expired, _expiring_sql, _healthy_sql = (
         await db.execute(
             select(
                 func.count().filter(
@@ -509,16 +510,48 @@ async def get_health(db: AsyncSession) -> dict[str, Any]:
         )
     ).one()
 
+    # Probe ciphertext for not-yet-expired tokens — a rotated
+    # TOKEN_ENCRYPTION_KEY leaves future expires_at but dead blobs. Read-only:
+    # clearing happens on login / jobs.
+    undecryptable = 0
+    healthy_adj = 0
+    expiring_adj = 0
+    probe_users = list(
+        await db.scalars(
+            select(User).where(
+                org_only,
+                has_token,
+                User.instagram_token_expires_at > now,
+            )
+        )
+    )
+    for probe in probe_users:
+        assert probe.instagram_access_token is not None
+        exp = probe.instagram_token_expires_at
+        assert exp is not None
+        if exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        try:
+            decrypt_token(probe.instagram_access_token)
+        except TokenDecryptionError:
+            undecryptable += 1
+            continue
+        if exp <= soon:
+            expiring_adj += 1
+        else:
+            healthy_adj += 1
+
     return {
         "generated_at": now,
         "pipeline": pipeline,
         "instagram_tokens": [
             # Healthy and expiring-soon are informational: the refresh job is
             # meant to handle the latter, so neither is actionable.
-            _signal("healthy", int(healthy or 0), ok=True),
-            _signal("expiring_soon", int(expiring or 0), ok=True),
+            _signal("healthy", healthy_adj, ok=True),
+            _signal("expiring_soon", expiring_adj, ok=True),
             _signal("expired", int(expired or 0)),
             _signal("missing", int(missing or 0)),
+            _signal("undecryptable", undecryptable),
         ],
         "integrity": [_signal(key, counts[key]) for key in _INTEGRITY_KEYS],
         "silent": [_signal(key, counts[key]) for key in _SILENT_KEYS],

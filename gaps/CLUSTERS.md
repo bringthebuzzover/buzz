@@ -95,7 +95,7 @@ stop_if:
 
 ## auth-session
 
-status: pending
+status: done
 gaps:
   - auth.deauthorize-userid-mismatch-noop
   - auth.undecryptable-ig-ciphertext

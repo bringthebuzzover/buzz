@@ -16,8 +16,9 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
-from app.security.token_crypto import decrypt_token, encrypt_token
+from app.security.token_crypto import TokenDecryptionError, decrypt_token, encrypt_token
 from app.services.instagram import InstagramClient
+from app.services.instagram_token import clear_unusable_instagram_token
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,14 @@ async def refresh_due_tokens(db: AsyncSession, ig: InstagramClient) -> dict[str,
         try:
             assert user.instagram_access_token is not None
             new = await ig.refresh_long_lived(decrypt_token(user.instagram_access_token))
+        except TokenDecryptionError:
+            logger.warning(
+                "clearing undecryptable Instagram token for user %s",
+                user.id,
+            )
+            clear_unusable_instagram_token(user)
+            failed += 1
+            continue
         except Exception:  # noqa: BLE001 — keep the old token, count, continue
             logger.warning("Token refresh failed for user %s", user.id, exc_info=True)
             failed += 1

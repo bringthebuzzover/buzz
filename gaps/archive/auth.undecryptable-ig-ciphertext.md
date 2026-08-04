@@ -3,7 +3,8 @@ id: auth.undecryptable-ig-ciphertext
 title: Undecryptable IG ciphertext never forces re-auth
 kind: silent_loss
 severity: P2
-status: open
+status: fixed
+closed_in:
 surface: auth
 evidence:
   - path: backend/app/services/instagram_token.py

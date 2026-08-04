@@ -136,14 +136,7 @@ export default function AppRoot(): ReactElement {
             </RequireAuth>
           }
         />
-        <Route
-          path="onboarding/denied"
-          element={
-            <RequireAuth>
-              <DeniedPage />
-            </RequireAuth>
-          }
-        />
+        <Route path="onboarding/denied" element={<DeniedPage />} />
 
         {/* Org portal */}
         <Route

@@ -39,8 +39,9 @@ class OrgUserStatus(StrEnum):
 
     Mirrors the state machine in architecture §3.3. The same column also
     stores brand-side statuses (``pending_review`` / ``approved`` / ``denied``
-    via :class:`BrandStatus`) and the admin states ``active`` / ``suspended``;
-    members listed here are the org-flow set per stages-2-plan §2.2.1.
+    via :class:`BrandStatus`) and the admin state ``active``; members listed
+    here are the org-flow set per stages-2-plan §2.2.1. (``suspended`` was
+    never written by product code and has been removed.)
     """
 
     PENDING_ORG_PROFILE = "pending_org_profile"
@@ -48,7 +49,6 @@ class OrgUserStatus(StrEnum):
     PENDING_APPROVAL = "pending_approval"
     ACTIVE = "active"
     DENIED = "denied"
-    SUSPENDED = "suspended"
 
 
 class BrandStatus(StrEnum):

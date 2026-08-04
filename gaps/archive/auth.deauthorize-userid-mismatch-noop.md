@@ -3,7 +3,8 @@ id: auth.deauthorize-userid-mismatch-noop
 title: Deauthorize can return ok while leaving the token live
 kind: silent_loss
 severity: P2
-status: open
+status: fixed
+closed_in:
 surface: auth
 evidence:
   - path: backend/app/services/auth.py
