@@ -120,7 +120,9 @@ frontend/                  # CRA/CRACO SPA (own package.json)
   public/                  # index.html, CNAME, static assets
 backend/                   # FastAPI app, Alembic migrations, jobs, tests
 openapi.json               # API contract (regen TS types via cd frontend && npm run gen:api)
+scripts/ci-local.sh        # Full local CI gate (mirrors .github/workflows/ci.yml)
 DEPLOYMENT.md              # Launch & Railway runbook
 META.md                    # Meta / Instagram API setup
 PRODUCT.md                 # Product spec
+TESTING.md                 # Test layers + ./scripts/ci-local.sh
 ```

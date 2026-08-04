@@ -80,6 +80,20 @@ inputs and asserts the server never 5xxes and every 4xx carries an `error.code`.
 Re-seed for a clean slate; the harness creates uniquely-suffixed fixtures so
 repeat runs don't collide.
 
+## Full local CI (mirrors GitHub Actions)
+
+From the repo root, after Postgres is up and deps are installed:
+
+```bash
+./scripts/ci-local.sh
+```
+
+Runs the same gate as [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+backend format/lint/types/openapi/alembic/pytest → frontend tsc/gen:api/build →
+Playwright E2E with `CI=true`. Use this before merging or after a gap-cluster
+fix; backend-only `./backend/scripts/check.sh` is fine for a quick loop but
+does **not** replace full CI.
+
 ## E2E — Playwright (`frontend/e2e/`)
 
 Deliberately **thin** (6 critical cross-stack journeys) and on `data-testid`
@@ -87,7 +101,8 @@ selectors to bound maintenance. `frontend/playwright.config.ts` starts the
 backend (dev mode) + frontend (reusing them if already up) and
 `frontend/e2e/global-setup.ts` resets the DB to a deterministic fixture
 (`backend/scripts/seed_e2e.py` = dev seed + one guaranteed-open drop for the
-apply journey).
+apply journey). Prefer `./scripts/ci-local.sh` when you need the full gate;
+use the commands below for E2E-only iteration.
 
 ```bash
 # one-time — install both sides (Playwright boots the backend for you)
@@ -98,6 +113,7 @@ apply journey).
 cd frontend
 npm run e2e
 npm run e2e:ui        # interactive
+CI=true npm run e2e   # CI mode: fresh servers (same as ci-local.sh / GitHub)
 ```
 
 Covers: marketing home renders, brand login (good + bad creds) → dashboard, org

@@ -2,9 +2,9 @@
 name: fix-gap-cluster
 description: >-
   Run a gap cluster from gaps/CLUSTERS.md: explore first, plan and create todos,
-  implement, full CI gate, archive fixed gaps, then STOP and wait for the user
-  to ask for commit/push. Use when the user says run next cluster, run cluster
-  <id>, swarm gaps, or fix gap cluster.
+  implement, full CI gate including mandatory Playwright E2E, archive fixed
+  gaps, then STOP and wait for the user to ask for commit/push. Use when the
+  user says run next cluster, run cluster <id>, swarm gaps, or fix gap cluster.
 ---
 
 # Fix gap cluster
@@ -71,16 +71,18 @@ Follow these phases **in order**. Do not skip Explore/Plan and jump to code.
 
 ### Phase 5 — Full CI / E2E gate
 
-12. Run the full gate (must be green before archive):
-    - Backend: `poetry run black --check app/ tests/`, `ruff check app/ tests/`,
-      `mypy app/`, `pytest`
-    - If OpenAPI/schemas changed: `poetry run python scripts/dump_openapi.py`
-      clean vs committed `openapi.json`; frontend `npm run gen:api` clean vs
-      `schema.ts`
-    - Frontend (if touched): `npx tsc --noEmit`, `npm run build`
-    - If the repo’s CI includes Playwright E2E and this cluster touched
-      frontend user flows, run the same frontend E2E job locally when practical;
-      otherwise note it as remaining for CI on push.
+12. Run the **full** gate from repo root (must be green before archive):
+
+    ```bash
+    ./scripts/ci-local.sh
+    ```
+
+    That script mirrors `.github/workflows/ci.yml`: backend black/ruff/mypy/
+    openapi dump+diff / alembic / pytest → frontend tsc / gen:api diff / build →
+    **Playwright E2E with `CI=true`**. Do not skip E2E for “backend-only”
+    clusters. Do not substitute a partial checklist unless the script itself
+    fails for an environment reason you then fix and re-run.
+
 13. On green: **archive** each fixed gap → `gaps/archive/<id>.md`, `status: fixed`
     (leave `closed_in` empty until commit).
 14. Set cluster `status: done` in `CLUSTERS.md`.
@@ -93,6 +95,8 @@ Follow these phases **in order**. Do not skip Explore/Plan and jump to code.
 
 ## Non-negotiables
 
+- **Always run `./scripts/ci-local.sh`** (includes Playwright E2E) before
+  archiving. Skipping E2E or the script’s other stages is not allowed.
 - Do not edit plan files under `.cursor/plans/` unless the user asks.
 - Do not implement `parked` gaps unless the user names them.
 - Do not strip Batch 1 token_version / access JWT checks or Batch 2–4 fixes
@@ -102,5 +106,6 @@ Follow these phases **in order**. Do not skip Explore/Plan and jump to code.
 
 ## If CI fails
 
-Fix in the same cluster run; do not archive on red CI. If blocked >2 attempts on
+Fix in the same cluster run; do not archive on red CI (including flaky E2E —
+rerun once; if still red, diagnose, do not archive). If blocked >2 attempts on
 the same error class, stop and report (still no commit).
