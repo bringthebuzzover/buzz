@@ -7,7 +7,13 @@ from datetime import datetime, timedelta, timezone
 
 from httpx import AsyncClient
 
-from app.models.enums import ApplicationDecision, OrgUserStatus, PortalRole
+from app.models.enums import (
+    ApplicationDecision,
+    BrandStatus,
+    BrandTrackerStage,
+    OrgUserStatus,
+    PortalRole,
+)
 from tests.conftest import (
     make_application,
     make_brand,
@@ -59,6 +65,30 @@ async def test_apply_denied_does_not_block(app_client: AsyncClient, db_session) 
     resp = await app_client.post(f"/api/drops/{drop.id}/apply", headers=headers, json={})
     assert resp.status_code == 200
     assert resp.json()["data"]["decision"] == ApplicationDecision.APPLIED.value
+
+
+async def test_apply_rejected_for_non_approved_brand(app_client: AsyncClient, db_session) -> None:
+    """The feed hides these, but a deep link must not slip past (§6.3)."""
+
+    _, _, headers = await _org_ctx(db_session)
+    brand = await make_brand(db_session)
+    brand.status = BrandStatus.DENIED.value
+    drop = await make_drop(db_session, brand)
+    await db_session.flush()
+
+    resp = await app_client.post(f"/api/drops/{drop.id}/apply", headers=headers, json={})
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
+
+
+async def test_apply_rejected_for_finished_drop(app_client: AsyncClient, db_session) -> None:
+    _, _, headers = await _org_ctx(db_session)
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
+
+    resp = await app_client.post(f"/api/drops/{drop.id}/apply", headers=headers, json={})
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
 
 
 async def test_apply_upcoming_drop_not_open(app_client: AsyncClient, db_session) -> None:

@@ -41,7 +41,7 @@ export type PostCampaignLink = {
   postId: string;
   /** Application id (the org's specific participation in a drop). */
   applicationId: string;
-  /** Drop id (denormalized for fast lookup of "all posts in drop X"). */
+  /** Drop id projected from the linked application (not a separate DB column). */
   dropId: string;
   /** When the org linked this post to this campaign. */
   linkedAt: number;

@@ -469,8 +469,8 @@ class TestHealth:
         )
 
     async def test_notify_me_debt_counted(self, app_client: AsyncClient, db_session):
-        """No job reads ``notify_me``, so every enabled row on an opened drop is
-        a reminder that was never delivered."""
+        """An enabled row on an opened drop that the reminder job never stamped
+        is a reminder the subscriber never got."""
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand)
         user = await persist(db_session, make_user(role=PortalRole.ORG))
@@ -481,6 +481,20 @@ class TestHealth:
         signal = _signal(res.json()["data"], "silent", "notify_me_never_sent")
         assert signal["count"] == 1
         assert signal["ok"] is False
+
+    async def test_notify_me_debt_clears_once_sent(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, user)
+        notify = await make_notify(db_session, org, drop)
+        notify.sent_at = datetime.now(timezone.utc)
+        await db_session.flush()
+
+        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        signal = _signal(res.json()["data"], "silent", "notify_me_never_sent")
+        assert signal["count"] == 0
+        assert signal["ok"] is True
 
     async def test_over_capacity_detected(self, app_client: AsyncClient, db_session):
         """Capacity is only checked per finalize call, so a second round can

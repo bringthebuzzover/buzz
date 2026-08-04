@@ -9,9 +9,11 @@ from fastapi import BackgroundTasks
 from sqlalchemy import select
 
 from app.exceptions import BuzzAPIException
+from app.jobs import notify_reminders
 from app.jobs.autolink_scan import scan_autolink
 from app.jobs.drop_autoclose import auto_close_drops
 from app.jobs.metric_sync import sync_metrics
+from app.jobs.notify_reminders import send_due_reminders
 from app.jobs.token_cleanup import cleanup_tokens
 from app.jobs.token_refresh import refresh_due_tokens
 from app.models.brand_invite_token import BrandInviteToken
@@ -20,6 +22,7 @@ from app.models.enums import (
     BrandTrackerStage,
     SocialMediaProductType,
 )
+from app.models.organization import Organization
 from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
 from app.models.user import User
@@ -36,9 +39,11 @@ from tests.conftest import (
     make_application,
     make_brand,
     make_drop,
+    make_notify,
     make_org,
     make_post_link,
     make_social_post,
+    make_suggestion,
     make_user,
     persist,
 )
@@ -211,6 +216,170 @@ async def test_autolink_hashtag_only_match(db_session) -> None:
     assert result["suggestions_created"] == 1
     sug = await db_session.scalar(select(PostCampaignSuggestion))
     assert sug.match_reason == "campaign_hashtag"
+
+
+async def test_autolink_heals_suggestion_for_linked_post(db_session) -> None:
+    """A pending suggestion on an already-attributed post can only ever 409."""
+
+    org, _, drop, app = await _accepted_live_ctx(db_session)
+    other_drop = await make_drop(db_session, await make_brand(db_session), title="Other")
+    other_app = await make_application(
+        db_session, other_drop, org, decision=ApplicationDecision.ACCEPTED
+    )
+    post = await make_social_post(db_session, org, caption="love @nike")
+    stale = await make_suggestion(db_session, post, other_app)
+    await make_post_link(db_session, post, app)
+
+    result = await scan_autolink(db_session)
+    assert result["suggestions_healed"] == 1
+    await db_session.refresh(stale)
+    assert stale.dismissed_at is not None
+
+
+async def test_autolink_does_not_heal_same_campaign_pending(db_session) -> None:
+    """Same-campaign pending + link is accept's reconcile path, not a 409."""
+
+    org, _, drop, app = await _accepted_live_ctx(db_session)
+    post = await make_social_post(db_session, org, caption="love @nike")
+    pending = await make_suggestion(db_session, post, app)
+    await make_post_link(db_session, post, app)
+
+    result = await scan_autolink(db_session)
+    assert result["suggestions_healed"] == 0
+    await db_session.refresh(pending)
+    assert pending.dismissed_at is None
+    assert pending.confirmed_at is None
+
+
+async def test_autolink_leaves_live_suggestion_pending(db_session) -> None:
+    org, _, drop, app = await _accepted_live_ctx(db_session)
+    await make_social_post(db_session, org, caption="love @nike")
+
+    result = await scan_autolink(db_session)
+    assert result["suggestions_created"] == 1
+    assert result["suggestions_healed"] == 0
+
+
+# --- 10.6 Notify Me reminders ------------------------------------------------
+
+
+async def _never_called(to_email, **kwargs):
+    raise AssertionError(f"reminder should not have been sent to {to_email}")
+
+
+async def _notify_ctx(db_session, *, reminder_minutes=15, opens_in=timedelta(minutes=10)):
+    """An org subscribed to a drop that opens ``opens_in`` from now."""
+
+    now = _now()
+    user = await persist(db_session, make_user(instagram_user_id=f"ig_n_{uuid.uuid4().hex[:8]}"))
+    user.edu_email = f"{uuid.uuid4().hex[:10]}@school.edu"
+    org = await make_org(db_session, user)
+    brand = await make_brand(db_session)
+    drop = await make_drop(
+        db_session,
+        brand,
+        apply_open_at=now + opens_in,
+        apply_close_at=now + opens_in + timedelta(days=7),
+    )
+    notify = await make_notify(db_session, org, drop, reminder_minutes=reminder_minutes)
+    return user, org, drop, notify
+
+
+async def test_notify_reminder_sent_when_due(db_session, monkeypatch) -> None:
+    sent: list[tuple[str, str]] = []
+
+    async def _capture(to_email, *, org_name="", drop_title="", brand_name=""):
+        sent.append((to_email, drop_title))
+
+    monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _capture)
+
+    # Opens in 10 minutes with a 15-minute lead time → already due.
+    user, _, drop, notify = await _notify_ctx(db_session, reminder_minutes=15)
+
+    result = await send_due_reminders(db_session)
+    assert result == {"reminders_sent": 1, "reminders_skipped": 0}
+    assert sent == [(user.edu_email, drop.title)]
+    assert notify.sent_at is not None
+
+
+async def test_notify_reminder_not_yet_due(db_session, monkeypatch) -> None:
+    monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _never_called)
+
+    # Opens in 2 hours with a 15-minute lead time → not due yet.
+    _, _, _, notify = await _notify_ctx(
+        db_session, reminder_minutes=15, opens_in=timedelta(hours=2)
+    )
+
+    result = await send_due_reminders(db_session)
+    assert result["reminders_sent"] == 0
+    assert notify.sent_at is None
+
+
+async def test_notify_reminder_is_idempotent(db_session, monkeypatch) -> None:
+    calls = []
+
+    async def _count(to_email, **kwargs):
+        calls.append(to_email)
+
+    monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _count)
+    await _notify_ctx(db_session)
+
+    first = await send_due_reminders(db_session)
+    second = await send_due_reminders(db_session)
+    assert first["reminders_sent"] == 1
+    assert second["reminders_sent"] == 0
+    assert len(calls) == 1
+
+
+async def test_notify_reminder_skips_closed_window(db_session, monkeypatch) -> None:
+    monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _never_called)
+
+    # A drop whose window opened and closed before anyone got reminded: mailing
+    # "apply now" would be worse than staying quiet.
+    now = _now()
+    user = await persist(db_session, make_user(instagram_user_id="ig_n_closed"))
+    user.edu_email = "closed@school.edu"
+    org = await make_org(db_session, user)
+    drop = await make_drop(
+        db_session,
+        await make_brand(db_session),
+        apply_open_at=now - timedelta(days=9),
+        apply_close_at=now - timedelta(days=1),
+    )
+    notify = await make_notify(db_session, org, drop)
+
+    result = await send_due_reminders(db_session)
+    assert result["reminders_sent"] == 0
+    assert notify.sent_at is None  # stays visible on the admin health page
+
+
+async def test_notify_reminder_skips_org_without_edu_email(db_session, monkeypatch) -> None:
+    monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _never_called)
+
+    _, _, _, notify = await _notify_ctx(db_session)
+    (await db_session.get(Organization, notify.org_id))  # keep the row loaded
+    user = await db_session.scalar(
+        select(User)
+        .join(Organization, Organization.user_id == User.id)
+        .where(Organization.id == notify.org_id)
+    )
+    user.edu_email = None
+    await db_session.flush()
+
+    result = await send_due_reminders(db_session)
+    assert result == {"reminders_sent": 0, "reminders_skipped": 1}
+    assert notify.sent_at is None
+
+
+async def test_notify_reminder_ignores_disabled_rows(db_session, monkeypatch) -> None:
+    monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _never_called)
+
+    _, _, _, notify = await _notify_ctx(db_session)
+    notify.enabled = False
+    await db_session.flush()
+
+    result = await send_due_reminders(db_session)
+    assert result["reminders_sent"] == 0
 
 
 # --- 10.5 Token refresh ------------------------------------------------------

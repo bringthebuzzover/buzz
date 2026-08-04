@@ -107,7 +107,7 @@ DELETE /api/drops/{id}/notify                  remove reminder (idempotent)
 GET    /api/orgs/me                            org profile (eduEmail + instagramHandle projected from users)
 PATCH  /api/orgs/me                            update editable subset (extra=forbid; edu_email / instagram_handle not editable)
 GET    /api/orgs/me/posts                      post library (flattened metrics + linkedApplicationId)
-POST   /api/orgs/me/posts/refresh              IG re-sync (Stage 8 stub: returns current posts)
+POST   /api/orgs/me/posts/refresh              returns currently stored posts (IG sync is the metric_sync job)
 GET    /api/campaigns                          my campaigns (excludes denied; sorted active→accepted→applied→finished)
 GET    /api/campaigns/{id}                     campaign detail (404 for other-org / denied / unknown)
 GET    /api/campaigns/{id}/aggregate           per-campaign rollup (postCount/likes/comments/engagement/estimatedReach)
@@ -200,6 +200,7 @@ extra runtime/worker. Each job is idempotent and prints a JSON summary.
 
 ```bash
 poetry run python scripts/run_job.py drop_autoclose   # §10.2 — every ~5 min
+poetry run python scripts/run_job.py notify_reminders # §10.6 — every ~5 min
 poetry run python scripts/run_job.py metric_sync      # §10.1 — daily (Instagram)
 poetry run python scripts/run_job.py autolink_scan    # §10.4 — daily, after metric_sync
 poetry run python scripts/run_job.py token_refresh    # §10.5.2 — daily safety net (Instagram)
@@ -207,7 +208,8 @@ poetry run python scripts/run_job.py token_cleanup    # §10.3 — daily
 ```
 
 Suggested cron (UTC): `metric_sync` 03:00 → `autolink_scan` 03:30 →
-`token_refresh` 04:00; `token_cleanup` 03:00; `drop_autoclose` every 5 min. The
+`token_refresh` 04:00; `token_cleanup` 03:00; `drop_autoclose` and
+`notify_reminders` every 5 min. The
 primary Instagram token refresh is **on-login** (`get_current_user`, §10.5.1);
 `token_refresh` only catches inactive orgs and is optional for a tight MVP.
 

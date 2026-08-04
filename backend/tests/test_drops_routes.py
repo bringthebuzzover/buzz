@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from httpx import AsyncClient
 
-from app.models.enums import ApplicationDecision, OrgUserStatus, PortalRole
+from app.models.enums import (
+    ApplicationDecision,
+    BrandStatus,
+    BrandTrackerStage,
+    OrgUserStatus,
+    PortalRole,
+)
 from tests.conftest import (
     make_application,
     make_brand,
@@ -76,6 +84,69 @@ async def test_feed_denied_application_is_not_already_applied(
     )
     item = resp.json()["data"][0]
     assert item["alreadyApplied"] is False
+
+
+async def test_feed_hides_non_approved_brands(app_client: AsyncClient, db_session) -> None:
+    user = await persist(db_session, make_user())
+    await make_org(db_session, user)
+    approved = await make_brand(db_session, brand_name="Approved")
+    await make_drop(db_session, approved, title="Visible")
+    for status in (BrandStatus.DENIED, BrandStatus.PENDING_REVIEW):
+        brand = await make_brand(db_session, brand_name=status.value)
+        brand.status = status.value
+        await make_drop(db_session, brand, title=f"Hidden {status.value}")
+    await db_session.flush()
+
+    resp = await app_client.get(
+        "/api/drops", headers={"Authorization": f"Bearer {mint_access_token(user)}"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [d["title"] for d in body["data"]] == ["Visible"]
+    assert body["meta"]["total"] == 1  # total tracks the filter, not the table
+
+
+async def test_feed_hides_finished_drops(app_client: AsyncClient, db_session) -> None:
+    user = await persist(db_session, make_user())
+    await make_org(db_session, user)
+    brand = await make_brand(db_session)
+    await make_drop(db_session, brand, title="Live")
+    await make_drop(db_session, brand, title="Finished", stage=BrandTrackerStage.DROP_FINISHED)
+
+    resp = await app_client.get(
+        "/api/drops", headers={"Authorization": f"Bearer {mint_access_token(user)}"}
+    )
+    body = resp.json()
+    assert [d["title"] for d in body["data"]] == ["Live"]
+    assert body["meta"]["total"] == 1
+
+
+async def test_feed_keeps_upcoming_and_closed(app_client: AsyncClient, db_session) -> None:
+    """Upcoming and Closed are card states, not reasons to hide a drop (§6.3)."""
+
+    user = await persist(db_session, make_user())
+    await make_org(db_session, user)
+    brand = await make_brand(db_session)
+    now = datetime.now(timezone.utc)
+    await make_drop(
+        db_session,
+        brand,
+        title="Upcoming",
+        apply_open_at=now + timedelta(days=1),
+        apply_close_at=now + timedelta(days=8),
+    )
+    await make_drop(
+        db_session,
+        brand,
+        title="Closed",
+        apply_open_at=now - timedelta(days=8),
+        apply_close_at=now - timedelta(days=1),
+    )
+
+    resp = await app_client.get(
+        "/api/drops", headers={"Authorization": f"Bearer {mint_access_token(user)}"}
+    )
+    assert {d["title"] for d in resp.json()["data"]} == {"Upcoming", "Closed"}
 
 
 async def test_feed_pagination_is_stable(app_client: AsyncClient, db_session) -> None:

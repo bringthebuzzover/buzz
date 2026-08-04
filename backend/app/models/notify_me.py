@@ -38,3 +38,6 @@ class NotifyMe(Base):
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
     )
+    #: Stamped by ``notify_reminders`` (§10.6) once the reminder email has been
+    #: attempted, so the 5-minute cron never mails the same subscriber twice.
+    sent_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)

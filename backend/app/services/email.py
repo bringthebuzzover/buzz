@@ -163,6 +163,34 @@ async def send_application_denied_email(
     await _dispatch(to_email, subject, body)
 
 
+async def send_drop_opening_reminder_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+    drop_title: str = "",
+    brand_name: str = "",
+) -> None:
+    """Tell an org a drop they subscribed to is about to open (§6.3.1).
+
+    Sent by the ``notify_reminders`` job at the lead time the org picked.
+    """
+    feed_url = f"{settings.FRONTEND_URL}/org/browse"
+    subject = f"Applications opening: {drop_title}" if drop_title else "A Buzz drop is opening"
+    body = _drop_reminder_body(org_name, drop_title, brand_name, feed_url)
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Drop opening reminder:                         ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            f"║  Drop: {drop_title:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return
+
+    await _dispatch(to_email, subject, body)
+
+
 async def send_password_reset_email(
     to_email: str,
     token: str,
@@ -266,6 +294,25 @@ def _org_denied_body(org_name: str) -> str:
         f"Thanks for your interest in Buzz. After review, {name} was not "
         "approved at this time. If you think this was a mistake, reply to this "
         "email and our team will take another look."
+    )
+
+
+def _drop_reminder_body(
+    org_name: str,
+    drop_title: str,
+    brand_name: str,
+    feed_url: str,
+) -> str:
+    name = org_name or "your organization"
+    drop = f'"{drop_title}"' if drop_title else "a drop"
+    brand = f" from {brand_name}" if brand_name else ""
+    # Wording holds whether this lands just before the window opens or on the
+    # first catch-up run for a drop that already opened.
+    return (
+        f"You asked us to remind {name} about {drop}{brand} on Buzz — "
+        "applications are opening now.\n\n"
+        f"Apply from your Drop Feed:\n\n{feed_url}\n\n"
+        "Spots are limited and close when capacity fills."
     )
 
 

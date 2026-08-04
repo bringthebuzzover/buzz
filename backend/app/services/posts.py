@@ -38,6 +38,71 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+async def _dismiss_pending_for_post(
+    db: AsyncSession,
+    post_id: uuid.UUID,
+    *,
+    except_application_id: uuid.UUID | None = None,
+) -> None:
+    """Dismiss every still-pending suggestion for a post.
+
+    One post belongs to at most one campaign (``UNIQUE(post_id)`` on
+    ``post_campaign_links``), so once a post is attributed the scan's other
+    candidates can never be accepted — without this they'd sit pending forever
+    on the losing campaigns.
+    """
+
+    stmt = update(PostCampaignSuggestion).where(
+        PostCampaignSuggestion.post_id == post_id,
+        PostCampaignSuggestion.confirmed_at.is_(None),
+        PostCampaignSuggestion.dismissed_at.is_(None),
+    )
+    if except_application_id is not None:
+        stmt = stmt.where(PostCampaignSuggestion.application_id != except_application_id)
+    await db.execute(stmt.values(dismissed_at=_now()))
+
+
+async def _confirm_own_and_dismiss_siblings(
+    db: AsyncSession,
+    post_id: uuid.UUID,
+    application_id: uuid.UUID,
+) -> None:
+    """Confirm this campaign's pending suggestion (if any) and dismiss siblings.
+
+    Manual link and accept both attribute the post; the own-campaign row must
+    be ``confirmed_at`` (so unlink can re-arm it), not dismissed.
+    """
+
+    await db.execute(
+        update(PostCampaignSuggestion)
+        .where(
+            PostCampaignSuggestion.post_id == post_id,
+            PostCampaignSuggestion.application_id == application_id,
+            PostCampaignSuggestion.confirmed_at.is_(None),
+            PostCampaignSuggestion.dismissed_at.is_(None),
+        )
+        .values(confirmed_at=_now())
+    )
+    await _dismiss_pending_for_post(db, post_id, except_application_id=application_id)
+
+
+async def _dismiss_for_error(
+    db: AsyncSession,
+    suggestion: PostCampaignSuggestion,
+    exc: BuzzAPIException,
+) -> BuzzAPIException:
+    """Retire a suggestion that can never be accepted, then hand back the error.
+
+    ``get_db`` rolls the request back whenever the handler raises, so the
+    dismiss has to be committed here or it would be discarded along with the
+    failure it describes. Callers do ``raise await _dismiss_for_error(...)``.
+    """
+
+    suggestion.dismissed_at = _now()
+    await db.commit()
+    return exc
+
+
 async def _reject_if_drop_finished(db: AsyncSession, drop_id: uuid.UUID) -> None:
     """Finished campaigns are FE read-only; enforce the same on the API."""
     drop = await db.get(Drop, drop_id)
@@ -151,7 +216,9 @@ async def link_post(
     """Manually attribute one of the caller's posts to a campaign (§7.4.2).
 
     Idempotent when the post is already linked to *this* campaign; raises
-    ``POST_ALREADY_LINKED`` (409) when linked to a different campaign.
+    ``POST_ALREADY_LINKED`` (409) when linked to a different campaign. Once the
+    link stands, this campaign's pending suggestion is confirmed (so unlink can
+    re-arm it) and every other campaign's pending suggestion is dismissed.
     """
 
     # Only an accepted org links posts to a campaign; an applied-but-not-yet
@@ -168,6 +235,8 @@ async def link_post(
     existing = await db.scalar(select(PostCampaignLink).where(PostCampaignLink.post_id == post_id))
     if existing is not None:
         if existing.application_id == application.id:
+            await _confirm_own_and_dismiss_siblings(db, post_id, application.id)
+            await db.flush()
             return build_post_response(
                 post,
                 linked_application_id=application.id,
@@ -196,6 +265,8 @@ async def link_post(
             "This post is already linked to another campaign.",
             status_code=409,
         ) from exc
+    await _confirm_own_and_dismiss_siblings(db, post_id, application.id)
+    await db.flush()
     return build_post_response(
         post,
         linked_application_id=application.id,
@@ -313,7 +384,12 @@ async def accept_suggestion(
     application_id: uuid.UUID,
     post_id: uuid.UUID,
 ) -> PostResponse:
-    """Confirm a suggestion + insert the link in one transaction (§7.4.1)."""
+    """Confirm a suggestion + insert the link in one transaction (§7.4.1).
+
+    Every exit leaves the suggestion terminal: confirmed on success, dismissed
+    when the post is gone (410) or already spoken for (409). Sibling
+    suggestions for the same post are dismissed alongside a successful accept.
+    """
 
     # Same accepted-only rule as manual linking (see link_post).
     application = await resolve_owned_application(
@@ -338,7 +414,11 @@ async def accept_suggestion(
     post = await db.get(SocialPost, post_id)
     if post is None:
         # Post was deleted between the sync and this confirmation (§7.4.1).
-        raise BuzzAPIException(errors.POST_DELETED, "This post no longer exists.", status_code=410)
+        raise await _dismiss_for_error(
+            db,
+            suggestion,
+            BuzzAPIException(errors.POST_DELETED, "This post no longer exists.", status_code=410),
+        )
 
     existing = await db.scalar(select(PostCampaignLink).where(PostCampaignLink.post_id == post_id))
     if existing is not None:
@@ -347,36 +427,63 @@ async def accept_suggestion(
             # suggestion stayed pending). Reconcile the dangling suggestion and
             # succeed idempotently rather than 409 (mirrors link_post).
             suggestion.confirmed_at = _now()
+            await _dismiss_pending_for_post(db, post_id, except_application_id=application.id)
             await db.flush()
             return build_post_response(
                 post,
                 linked_application_id=application.id,
                 linked_drop_id=application.drop_id,
             )
-        raise BuzzAPIException(
-            errors.POST_ALREADY_LINKED,
-            "This post is already linked to another campaign.",
-            status_code=409,
+        raise await _dismiss_for_error(
+            db,
+            suggestion,
+            BuzzAPIException(
+                errors.POST_ALREADY_LINKED,
+                "This post is already linked to another campaign.",
+                status_code=409,
+            ),
         )
 
-    db.add(
-        PostCampaignLink(
-            id=uuid.uuid4(),
-            post_id=post_id,
-            application_id=application.id,
-            source=PostLinkSource.AUTO_SUGGESTED.value,
-        )
-    )
-    suggestion.confirmed_at = _now()
+    # Savepoint so losing the UNIQUE(post_id) race burns only the link insert —
+    # the session stays usable, which is what lets us dismiss the suggestion.
     try:
-        await db.flush()
-    except IntegrityError as exc:
-        # UNIQUE(post_id) — linked elsewhere meanwhile (§7.4.1 race).
-        raise BuzzAPIException(
-            errors.POST_ALREADY_LINKED,
-            "This post is already linked to another campaign.",
-            status_code=409,
-        ) from exc
+        async with db.begin_nested():
+            db.add(
+                PostCampaignLink(
+                    id=uuid.uuid4(),
+                    post_id=post_id,
+                    application_id=application.id,
+                    source=PostLinkSource.AUTO_SUGGESTED.value,
+                )
+            )
+    except IntegrityError:
+        # UNIQUE(post_id) — someone linked meanwhile. Same-campaign race →
+        # reconcile; other campaign → dismiss and 409.
+        winner = await db.scalar(
+            select(PostCampaignLink).where(PostCampaignLink.post_id == post_id)
+        )
+        if winner is not None and winner.application_id == application.id:
+            suggestion.confirmed_at = _now()
+            await _dismiss_pending_for_post(db, post_id, except_application_id=application.id)
+            await db.flush()
+            return build_post_response(
+                post,
+                linked_application_id=application.id,
+                linked_drop_id=application.drop_id,
+            )
+        raise await _dismiss_for_error(
+            db,
+            suggestion,
+            BuzzAPIException(
+                errors.POST_ALREADY_LINKED,
+                "This post is already linked to another campaign.",
+                status_code=409,
+            ),
+        ) from None
+
+    suggestion.confirmed_at = _now()
+    await _dismiss_pending_for_post(db, post_id, except_application_id=application.id)
+    await db.flush()
 
     return build_post_response(
         post,

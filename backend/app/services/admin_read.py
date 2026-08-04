@@ -245,7 +245,14 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
             db,
             select(func.count(NotifyMe.id))
             .join(Drop, Drop.id == NotifyMe.drop_id)
-            .where(NotifyMe.enabled.is_(True), Drop.apply_open_at <= now),
+            .where(
+                NotifyMe.enabled.is_(True),
+                NotifyMe.sent_at.is_(None),
+                Drop.apply_open_at <= now,
+                # Closed windows are historical misses the job will never mail;
+                # counting them forever makes the signal permanently red.
+                Drop.apply_close_at > now,
+            ),
         ),
         "posts_never_refreshed": await _scalar_int(
             db, select(func.count(SocialPost.id)).where(SocialPost.metrics_updated_at.is_(None))

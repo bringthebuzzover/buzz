@@ -19,13 +19,14 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, BrandTrackerStage
+from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
@@ -40,6 +41,15 @@ def _as_utc(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
 
 
+def _browsable_drop_filters() -> tuple[ColumnElement[bool], ...]:
+    """Predicate for drops an org may see in the feed (requires the Brand join)."""
+
+    return (
+        Brand.status == BrandStatus.APPROVED.value,
+        Drop.brand_tracker_stage != BrandTrackerStage.DROP_FINISHED.value,
+    )
+
+
 async def list_org_drop_feed(
     db: AsyncSession,
     org_user: User,
@@ -47,7 +57,13 @@ async def list_org_drop_feed(
     page: int,
     per_page: int,
 ) -> tuple[list[DropFeedItem], int]:
-    """Return one page of the org drop feed plus the total drop count.
+    """Return one page of the org drop feed plus the count of *visible* drops.
+
+    Only drops from approved brands that haven't finished are browsable
+    (§6.3): Upcoming, Open, and Closed are all legitimate card states, but a
+    finished campaign belongs in My Campaigns and a non-approved brand isn't in
+    the network yet. The same predicate drives the page and the total so
+    ``meta.total`` matches what the caller can actually see.
 
     An ``active`` org normally has an ``organizations`` row; a user without one
     (e.g. mid-onboarding) simply gets ``already_applied = False`` everywhere
@@ -56,7 +72,15 @@ async def list_org_drop_feed(
 
     org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
 
-    total = await db.scalar(select(func.count()).select_from(Drop)) or 0
+    total = (
+        await db.scalar(
+            select(func.count())
+            .select_from(Drop)
+            .join(Brand, Brand.id == Drop.brand_id)
+            .where(*_browsable_drop_filters())
+        )
+        or 0
+    )
 
     # ``id`` is the tiebreaker: ``created_at`` defaults to the transaction clock,
     # so rows seeded in one transaction share a timestamp — ordering on it alone
@@ -66,6 +90,7 @@ async def list_org_drop_feed(
             await db.execute(
                 select(Drop, Brand)
                 .join(Brand, Brand.id == Drop.brand_id)
+                .where(*_browsable_drop_filters())
                 .order_by(Drop.created_at.desc(), Drop.id.desc())
                 .limit(per_page)
                 .offset((page - 1) * per_page)
@@ -235,12 +260,22 @@ async def apply_to_drop(
 ) -> DropApplication:
     """Create an ``applied`` application, enforcing the §7.1/§11.3 rules.
 
-    Order: drop exists → apply window open (mirrors ``getDropFeedStatus``) →
-    not already applied (a prior ``denied`` does NOT block) → capacity remains.
+    Order: drop exists → drop is browsable (approved brand, not finished) →
+    apply window open (mirrors ``getDropFeedStatus``) → not already applied (a
+    prior ``denied`` does NOT block) → capacity remains.
     """
 
     org = await _require_org(db, org_user)
     drop = await get_drop_or_404(db, drop_id)
+
+    # Deep links outlive the feed filter, so re-check visibility here. Reuse
+    # DROP_NOT_OPEN rather than a brand-specific code: an org has no business
+    # learning that a brand was denied.
+    brand = await db.get(Brand, drop.brand_id)
+    if brand is None or brand.status != BrandStatus.APPROVED.value:
+        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not open for applications.")
+    if drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value:
+        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is closed for applications.")
 
     now = datetime.now(timezone.utc)
     if now < _as_utc(drop.apply_open_at):
