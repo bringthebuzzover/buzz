@@ -4,6 +4,7 @@ title: REELS insights always request FEED-only metrics
 kind: silent_loss
 severity: P1
 status: fixed
+closed_in: 431f6c9
 surface: jobs
 evidence:
   - path: backend/app/services/instagram.py
