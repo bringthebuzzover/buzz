@@ -479,6 +479,128 @@ class TestFinalizeApplicants:
         assert res.status_code == 400
         assert res.json()["error"]["code"] == "UNIT_BUDGET_EXCEEDED"
 
+    async def test_reopen_round_exceeds_remaining_capacity(
+        self, app_client: AsyncClient, db_session
+    ):
+        """Prior accepted seats consume capacity; second round cannot overfill."""
+        user = await persist(db_session, make_user(role=PortalRole.BRAND))
+        brand = await make_brand(db_session, brand_name="Reopen Cap Brand")
+        brand.user_id = user.id
+        await db_session.flush()
+        headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+        drop = await make_drop(
+            db_session,
+            brand,
+            capacity_total=2,
+            stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
+            apply_open_at=datetime.now(timezone.utc) - timedelta(days=30),
+            apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
+        )
+        # One seat already taken from a prior finalize round.
+        prior_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        prior_org = await make_org(db_session, prior_user, org_name="Prior Accept")
+        await make_application(db_session, drop, prior_org, decision=ApplicationDecision.ACCEPTED)
+        # Two new applied orgs — accepting both would exceed remaining capacity (1).
+        new_orgs = []
+        for name in ["New A", "New B"]:
+            ou = await persist(db_session, make_user(role=PortalRole.ORG))
+            org = await make_org(db_session, ou, org_name=name)
+            await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
+            new_orgs.append(org)
+
+        res = await app_client.post(
+            f"/api/brands/me/drops/{drop.id}/finalize-applicants",
+            json={
+                "allocations": [
+                    {"orgId": str(new_orgs[0].id), "units": 0},
+                    {"orgId": str(new_orgs[1].id), "units": 0},
+                ]
+            },
+            headers=headers,
+        )
+        assert res.status_code == 400
+        assert res.json()["error"]["code"] == "CAPACITY_EXCEEDED"
+
+    async def test_reopen_round_exceeds_remaining_units(self, app_client: AsyncClient, db_session):
+        user = await persist(db_session, make_user(role=PortalRole.BRAND))
+        brand = await make_brand(db_session, brand_name="Reopen Units Brand")
+        brand.user_id = user.id
+        await db_session.flush()
+        headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+        drop = await make_drop(
+            db_session,
+            brand,
+            capacity_total=5,
+            stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
+            total_product_units=100,
+            apply_open_at=datetime.now(timezone.utc) - timedelta(days=30),
+            apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
+        )
+        prior_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        prior_org = await make_org(db_session, prior_user, org_name="Prior Units")
+        prior_app = await make_application(
+            db_session, drop, prior_org, decision=ApplicationDecision.ACCEPTED
+        )
+        prior_app.allocated_units = 70
+        await db_session.flush()
+
+        ou = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, ou, org_name="New Units")
+        await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
+
+        res = await app_client.post(
+            f"/api/brands/me/drops/{drop.id}/finalize-applicants",
+            json={"allocations": [{"orgId": str(org.id), "units": 40}]},
+            headers=headers,
+        )
+        assert res.status_code == 400
+        assert res.json()["error"]["code"] == "UNIT_BUDGET_EXCEEDED"
+
+    async def test_reopen_round_fills_remaining_capacity(self, app_client: AsyncClient, db_session):
+        user = await persist(db_session, make_user(role=PortalRole.BRAND))
+        brand = await make_brand(db_session, brand_name="Reopen Fill Brand")
+        brand.user_id = user.id
+        await db_session.flush()
+        headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+        drop = await make_drop(
+            db_session,
+            brand,
+            capacity_total=2,
+            stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
+            apply_open_at=datetime.now(timezone.utc) - timedelta(days=30),
+            apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
+        )
+        prior_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        prior_org = await make_org(db_session, prior_user, org_name="Prior Seat")
+        await make_application(db_session, drop, prior_org, decision=ApplicationDecision.ACCEPTED)
+        ou = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, ou, org_name="Fill Seat")
+        await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
+        denied_ou = await persist(db_session, make_user(role=PortalRole.ORG))
+        denied_org = await make_org(db_session, denied_ou, org_name="Denied Seat")
+        await make_application(db_session, drop, denied_org, decision=ApplicationDecision.APPLIED)
+
+        res = await app_client.post(
+            f"/api/brands/me/drops/{drop.id}/finalize-applicants",
+            json={"allocations": [{"orgId": str(org.id), "units": 0}]},
+            headers=headers,
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert data["acceptedCount"] == 1
+        assert data["deniedCount"] == 1
+        await db_session.refresh(drop)
+        assert drop.applicant_selection_finalized_at is not None
+        accepted = list(
+            await db_session.scalars(
+                select(DropApplication).where(
+                    DropApplication.drop_id == drop.id,
+                    DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+                )
+            )
+        )
+        assert len(accepted) == 2
+
 
 class TestBrandAggregate:
     async def test_returns_zeros_for_no_drops(self, app_client: AsyncClient, db_session):

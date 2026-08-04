@@ -430,22 +430,42 @@ async def finalize_applicants(
             "Drop is not in the applicant selection stage.",
         )
 
-    # Rule 5: selected count ≤ capacity
+    # Prior accepted seats/units from earlier finalize rounds (e.g. after reopen)
+    # consume capacity — this round may only fill what remains.
+    prior_row = (
+        await db.execute(
+            select(
+                func.count(),
+                func.coalesce(func.sum(DropApplication.allocated_units), 0),
+            ).where(
+                DropApplication.drop_id == drop.id,
+                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+            )
+        )
+    ).one()
+    prior_accepted_count = int(prior_row[0] or 0)
+    prior_allocated_units = int(prior_row[1] or 0)
+    remaining_capacity = drop.capacity_total - prior_accepted_count
+
+    # Rule 5: selected count ≤ remaining capacity
     selected_count = len(allocations)
-    if selected_count > drop.capacity_total:
+    if selected_count > remaining_capacity:
         raise BuzzAPIException(
             errors.CAPACITY_EXCEEDED,
-            f"Selected {selected_count} orgs exceeds capacity of {drop.capacity_total}.",
+            f"Selected {selected_count} orgs exceeds remaining capacity of "
+            f"{remaining_capacity} ({prior_accepted_count} already accepted).",
         )
 
     # Rule 6: unit budget (only when total_product_units is set)
     if drop.total_product_units is not None:
         sum_units = sum(item["units"] for item in allocations)
-        if sum_units > drop.total_product_units:
+        remaining_units = drop.total_product_units - prior_allocated_units
+        if sum_units > remaining_units:
             raise BuzzAPIException(
                 errors.UNIT_BUDGET_EXCEEDED,
-                f"Allocated {sum_units} units exceeds budget of {drop.total_product_units}.",
-                details={"remaining": drop.total_product_units - sum_units},
+                f"Allocated {sum_units} units exceeds remaining budget of "
+                f"{remaining_units} ({prior_allocated_units} already allocated).",
+                details={"remaining": remaining_units - sum_units},
             )
 
     # Rule 7: every allocated org must have an applied application
