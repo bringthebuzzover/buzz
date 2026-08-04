@@ -62,6 +62,9 @@ export async function refreshAccessToken(): Promise<boolean> {
   if (refreshInFlight) {
     return refreshInFlight;
   }
+  // If login (or another caller) installs a token while this refresh is in
+  // flight, a 401/empty response must not wipe that newer session.
+  const tokenAtStart = accessToken;
   refreshInFlight = (async () => {
     try {
       const resp = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
@@ -69,18 +72,18 @@ export async function refreshAccessToken(): Promise<boolean> {
         credentials: "include",
       });
       if (!resp.ok) {
-        setAccessToken(null);
+        if (accessToken === tokenAtStart) setAccessToken(null);
         return false;
       }
       const body = (await resp.json()) as { data: { access_token: string } | null };
       if (!body.data?.access_token) {
-        setAccessToken(null);
+        if (accessToken === tokenAtStart) setAccessToken(null);
         return false;
       }
       setAccessToken(body.data.access_token);
       return true;
     } catch {
-      setAccessToken(null);
+      if (accessToken === tokenAtStart) setAccessToken(null);
       return false;
     } finally {
       refreshInFlight = null;
