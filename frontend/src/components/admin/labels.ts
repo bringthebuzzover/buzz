@@ -53,7 +53,7 @@ export type SignalMeta = {
 
 /**
  * Every warning and health signal. The notes explain *why* a state is reachable,
- * because a count with no explanation is not actionable — see `KNOWN_GAPS.md` for
+ * because a count with no explanation is not actionable — see `gaps/` for
  * the long form and the detection queries.
  */
 export const SIGNAL_META: Record<string, SignalMeta> = {

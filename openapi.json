@@ -1770,7 +1770,7 @@
     },
     "/api/admin/health": {
       "get": {
-        "description": "Inferred pipeline freshness, Instagram token buckets, and standing\nintegrity / silent-loss counts. See ``KNOWN_GAPS.md`` for why the pipeline\nblock is inferred rather than measured.",
+        "description": "Inferred pipeline freshness, Instagram token buckets, and standing\nintegrity / silent-loss counts. See ``gaps/`` for why the pipeline\nblock is inferred rather than measured.",
         "operationId": "get_health_endpoint_api_admin_health_get",
         "parameters": [
           {

@@ -98,7 +98,7 @@ export default function AdminOverviewPage() {
 
           <Panel
             title="Warnings"
-            description="Records stuck in a state with no path out, or invariants no database constraint enforces. Surfaced here only — see Health for the full list and KNOWN_GAPS.md for why each is reachable."
+            description="Records stuck in a state with no path out, or invariants no database constraint enforces. Surfaced here only — see Health for the full list and gaps/ for why each is reachable."
           >
             {overview.data.warnings.length === 0 ? (
               <p

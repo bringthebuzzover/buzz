@@ -179,7 +179,7 @@ export default function AdminHealthPage() {
 
           <p className="text-xs font-medium text-buzz-inkFaint">
             Counted {formatDateTime(health.data.generatedAt)}. Full detail and the
-            underlying queries live in KNOWN_GAPS.md.
+            underlying queries live in gaps/.
           </p>
         </>
       )}

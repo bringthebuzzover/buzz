@@ -4,7 +4,7 @@ Full-stack platform connecting brands with campus student organizations for camp
 
 **Stack:** React 18 + TypeScript + Tailwind (CRA/CRACO) frontend · FastAPI + PostgreSQL backend · JWT auth (Instagram OAuth for orgs, password login for brands) · Resend for transactional email.
 
-Product behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md) (including **§3.1.1** data ownership / single source of truth). Launch ops: [`DEPLOYMENT.md`](DEPLOYMENT.md). Meta/Instagram app setup: [`META.md`](META.md). Backend details: [`backend/README.md`](backend/README.md).
+Product behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md) (including **§3.1.1** data ownership / single source of truth). Living product holes and bugs: [`gaps/`](gaps/). Launch ops: [`DEPLOYMENT.md`](DEPLOYMENT.md). Meta/Instagram app setup: [`META.md`](META.md). Backend details: [`backend/README.md`](backend/README.md).
 
 ---
 

@@ -119,7 +119,7 @@ async def _count_and_oldest(db: AsyncSession, stmt: Select[Any]) -> dict[str, An
 async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
     """Every count-based signal, keyed by signal name.
 
-    Single source of truth for these definitions. See ``KNOWN_GAPS.md`` for why
+    Single source of truth for these definitions. See ``gaps/`` for why
     each one is reachable in the first place.
     """
 
