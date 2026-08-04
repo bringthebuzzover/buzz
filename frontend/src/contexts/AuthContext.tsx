@@ -103,11 +103,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (startedRef.current) return;
     startedRef.current = true;
 
+    // Capture generation at bootstrap start. Login paths call refreshUser(),
+    // which bumps genRef — a slow/failed refresh must not clobber that session
+    // with status "error" (CI flake: stay stuck on /admin/login after a good
+    // password submit).
+    const bootGen = genRef.current;
+    const bootstrapStillOwner = () => genRef.current === bootGen;
+
     const bootstrap = async () => {
       setStatus("authenticating");
       const refreshed = await refreshAccessToken();
+      if (!bootstrapStillOwner()) return;
       if (refreshed) {
         const me = await fetchMe();
+        if (!bootstrapStillOwner()) return;
         if (me.kind === "user") {
           setUser(me.user);
           setStatus("authenticated");
@@ -120,8 +129,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // already-authenticated org to /org/browse.
       if (!onAuthRoute() && !onPublicMarketingRoute()) {
         const dev = await devLogin();
+        if (!bootstrapStillOwner()) return;
         if (dev) {
           const me = await fetchMe();
+          if (!bootstrapStillOwner()) return;
           // Only "authenticated" when we actually resolved a user; a token with
           // no /me would otherwise let RequireRole 403 a valid session.
           if (me.kind === "user") {
@@ -131,9 +142,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       }
+      if (!bootstrapStillOwner()) return;
       setStatus("error");
     };
-    void bootstrap().catch(() => setStatus("error"));
+    void bootstrap().catch(() => {
+      if (bootstrapStillOwner()) setStatus("error");
+    });
   }, []);
 
   const login = useCallback(() => {
