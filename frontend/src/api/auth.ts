@@ -57,14 +57,26 @@ type LoginData = {
 
 /** Exchange the refresh cookie for a fresh access token. Returns success. */
 let refreshInFlight: Promise<boolean> | null = null;
+/** Access token observed when the current in-flight refresh began. */
+let refreshInFlightStartedWith: string | null = null;
 
 export async function refreshAccessToken(): Promise<boolean> {
   if (refreshInFlight) {
+    // Login may install a token+cookie while bootstrap's refresh (started with
+    // no cookie) is still in flight. Joining that stale promise would resolve
+    // false and look like logout. Waiting and then starting a *new* refresh
+    // would rotate token_version and invalidate the login access token mid
+    // fetchMe — so if a newer token is already present, keep it.
+    if (accessToken !== refreshInFlightStartedWith) {
+      await refreshInFlight;
+      return accessToken !== null;
+    }
     return refreshInFlight;
   }
   // If login (or another caller) installs a token while this refresh is in
   // flight, a 401/empty response must not wipe that newer session.
   const tokenAtStart = accessToken;
+  refreshInFlightStartedWith = tokenAtStart;
   refreshInFlight = (async () => {
     try {
       const resp = await fetch(`${API_BASE_URL}/api/auth/refresh`, {

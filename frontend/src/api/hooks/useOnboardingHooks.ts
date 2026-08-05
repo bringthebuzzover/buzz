@@ -8,7 +8,7 @@
  * contract the SPA already consumes.
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiFetch } from "../client";
+import { apiFetch, ApiError } from "../client";
 import { setAccessToken } from "../auth";
 import type { OrgCategory } from "../../types/orgCategory";
 
@@ -173,7 +173,13 @@ export function useBrandLogin() {
           body: JSON.stringify(input),
         },
       );
-      // Store the access token in memory so subsequent requests are authed.
+      if (!data.access_token) {
+        throw new ApiError(
+          "INTERNAL_ERROR",
+          "Login response missing access token.",
+          500,
+        );
+      }
       setAccessToken(data.access_token);
       return data;
     },

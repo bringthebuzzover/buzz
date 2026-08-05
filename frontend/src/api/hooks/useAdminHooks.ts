@@ -70,6 +70,13 @@ export function useAdminLogin(): AdminMutation<{
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
       });
+      if (!data.access_token) {
+        throw new ApiError(
+          "INTERNAL_ERROR",
+          "Login response missing access token.",
+          500,
+        );
+      }
       setAccessToken(data.access_token);
       return data;
     },

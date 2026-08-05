@@ -10,12 +10,22 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useAdminLogin } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
+import type { PortalRole } from "../../types/auth";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
 
+type LoginResult = {
+  user: {
+    id: string;
+    portal_role: string;
+    status: string;
+    instagram_username?: string | null;
+  };
+};
+
 export default function AdminLoginPage() {
-  const { status, user, refreshUser } = useAuth();
+  const { status, user, acceptSession } = useAuth();
   const navigate = useNavigate();
   const adminLogin = useAdminLogin();
 
@@ -31,8 +41,18 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError(null);
     try {
-      await adminLogin.mutateAsync({ email: email.trim(), password });
-      await refreshUser();
+      // Login returns the user + sets the access token; skip refreshUser/fetchMe
+      // (that path races AuthProvider bootstrap refresh in CI).
+      const data = (await adminLogin.mutateAsync({
+        email: email.trim(),
+        password,
+      })) as LoginResult;
+      acceptSession({
+        id: data.user.id,
+        portalRole: data.user.portal_role as PortalRole,
+        status: data.user.status,
+        instagramUsername: data.user.instagram_username ?? undefined,
+      });
       navigate("/admin", { replace: true });
     } catch (err) {
       setError(

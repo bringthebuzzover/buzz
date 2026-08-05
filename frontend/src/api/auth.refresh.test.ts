@@ -1,6 +1,7 @@
 /**
  * refreshAccessToken must not clear a token installed by login while the
- * refresh request was still in flight.
+ * refresh request was still in flight, and must not join a stale in-flight
+ * refresh (or start a rotating refresh) after that login token exists.
  */
 import {
   getAccessToken,
@@ -39,5 +40,36 @@ describe("refreshAccessToken concurrent login", () => {
 
     await expect(pending).resolves.toBe(false);
     expect(getAccessToken()).toBe("login-token");
+  });
+
+  it("keeps the login token instead of joining or rotating after a stale refresh", async () => {
+    let finishStale!: (value: Response) => void;
+    let refreshCalls = 0;
+    global.fetch = jest.fn(() => {
+      refreshCalls += 1;
+      if (refreshCalls === 1) {
+        return new Promise<Response>((resolve) => {
+          finishStale = resolve;
+        });
+      }
+      return Promise.resolve(
+        jsonResponse(200, { data: { access_token: "from-cookie" } }),
+      );
+    });
+
+    // Bootstrap starts with no access token / no cookie.
+    const stale = refreshAccessToken();
+    // Login installs the access token (cookie is already in the browser).
+    setAccessToken("login-token");
+
+    // A later caller must not reuse the stale false, and must not rotate
+    // token_version (which would invalidate login-token mid fetchMe).
+    const afterLogin = refreshAccessToken();
+    finishStale(jsonResponse(401, { data: null, error: { code: "X" } }));
+
+    await expect(stale).resolves.toBe(false);
+    await expect(afterLogin).resolves.toBe(true);
+    expect(getAccessToken()).toBe("login-token");
+    expect(refreshCalls).toBe(1);
   });
 });

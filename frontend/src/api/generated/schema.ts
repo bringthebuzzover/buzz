@@ -745,10 +745,10 @@ export interface paths {
          * Refresh
          * @description Issue a new access token from the refresh cookie; rotate the cookie.
          *
-         *     Successful refresh bumps ``token_version`` and mints a new pair, so the
-         *     previous refresh cookie (and any stolen copies) stop working. Every failure
-         *     path clears the refresh cookie so the SPA stops re-POSTing a dead httpOnly
-         *     cookie on bootstrap.
+         *     Successful refresh bumps ``token_version`` and mints a new pair. On failure,
+         *     clear the refresh cookie only when the request presented one — a missing-
+         *     cookie 401 must not emit ``Max-Age=0`` (that ``Set-Cookie`` can race a
+         *     concurrent login and wipe the new session).
          */
         post: operations["refresh_api_auth_refresh_post"];
         delete?: never;

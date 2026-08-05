@@ -1,8 +1,9 @@
 /**
  * /brand/login — brand email + password login (Stage 7).
  *
- * On success the access token is stored (in `useBrandLogin`) and we refresh the
- * user so the route guards forward to the brand dashboard.
+ * On success the access token is stored (in `useBrandLogin`) and we accept the
+ * session from the login payload so route guards forward to the dashboard
+ * without racing AuthProvider bootstrap's refresh/fetchMe.
  */
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
@@ -10,12 +11,22 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useBrandLogin, usePublicConfig } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
+import type { PortalRole } from "../../types/auth";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
 
+type LoginResult = {
+  user: {
+    id: string;
+    portal_role: string;
+    status: string;
+    instagram_username?: string | null;
+  };
+};
+
 export default function BrandLoginPage() {
-  const { status, user, refreshUser } = useAuth();
+  const { status, user, acceptSession } = useAuth();
   const navigate = useNavigate();
   const brandLogin = useBrandLogin();
   const config = usePublicConfig();
@@ -35,8 +46,16 @@ export default function BrandLoginPage() {
     e.preventDefault();
     setError(null);
     try {
-      await brandLogin.mutateAsync({ email: email.trim(), password });
-      await refreshUser();
+      const data = (await brandLogin.mutateAsync({
+        email: email.trim(),
+        password,
+      })) as LoginResult;
+      acceptSession({
+        id: data.user.id,
+        portalRole: data.user.portal_role as PortalRole,
+        status: data.user.status,
+        instagramUsername: data.user.instagram_username ?? undefined,
+      });
       navigate("/brand/dashboard", { replace: true });
     } catch (err) {
       setError(
