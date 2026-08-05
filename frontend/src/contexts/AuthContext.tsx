@@ -2,12 +2,14 @@
  * Real AuthProvider for Stage 6 — replaces the Stage 4 minimal bootstrap.
  *
  * Provides:
- *  - status: "idle" | "authenticating" | "authenticated" | "error"
+ *  - status: "idle" | "authenticating" | "authenticated" | "restore_failed" | "error"
  *  - user: { id, portalRole, status } when authenticated
  *  - login(): redirect to Instagram OAuth
  *  - logout(): clear session, redirect to /
  *
  * Bootstrap on mount: try refresh cookie → fall back to dev-login (dev only).
+ * Soft `/me` failures after a good refresh become `restore_failed` (Retry UI)
+ * instead of dumping the user to login.
  */
 import {
   createContext,
@@ -23,9 +25,11 @@ import {
   clearImpersonationSession,
   refreshAccessToken,
   setAccessToken,
+  getAccessToken,
   devLogin,
   fetchMe,
   logout as apiLogout,
+  type MeResult,
 } from "../api/auth";
 import { API_BASE_URL } from "../api/config";
 import type { PortalRole } from "../types/auth";
@@ -34,6 +38,7 @@ export type AuthStatus =
   | "idle"
   | "authenticating"
   | "authenticated"
+  | "restore_failed"
   | "error";
 
 export type AuthUser = {
@@ -66,6 +71,10 @@ type AuthContextValue = {
    * the admin user was restored.
    */
   restoreAdminFromCookie: () => Promise<boolean>;
+  /** Re-run refresh + `/me` after a soft restore failure. */
+  retryRestore: () => Promise<void>;
+  /** Give up on soft restore and send the user through the login path. */
+  abandonRestore: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -100,6 +109,15 @@ function onPublicMarketingRoute(): boolean {
   );
 }
 
+async function fetchMeWithRetry(
+  stillOwner: () => boolean,
+): Promise<MeResult> {
+  const first = await fetchMe();
+  if (!stillOwner()) return first;
+  if (first.kind !== "error") return first;
+  return fetchMe();
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("idle");
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -112,6 +130,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userRef.current = user;
   }, [user]);
 
+  const failHard = useCallback(() => {
+    setAccessToken(null);
+    userRef.current = null;
+    setUser(null);
+    setStatus("error");
+  }, []);
+
+  const failSoft = useCallback(() => {
+    // Keep access token — cookie/session may still be valid; Retry can recover.
+    userRef.current = null;
+    setUser(null);
+    setStatus("restore_failed");
+  }, []);
+
+  const applyMeResult = useCallback(
+    (me: MeResult, opts: { softOnTransient: boolean }): boolean => {
+      if (me.kind === "user") {
+        userRef.current = me.user;
+        setUser(me.user);
+        setStatus("authenticated");
+        return true;
+      }
+      if (me.kind === "error" && opts.softOnTransient && getAccessToken()) {
+        failSoft();
+        return false;
+      }
+      failHard();
+      return false;
+    },
+    [failHard, failSoft],
+  );
+
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
@@ -122,35 +172,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const bootGen = genRef.current;
     const bootstrapStillOwner = () => genRef.current === bootGen;
 
-    const failBootstrap = () => {
-      // Still the owner: cold load (or login never claimed the gen). Never leave
-      // status as "authenticating" — RequireAuth would spin on Loading forever
-      // (exit-impersonation flake: /admin with no Overview and no login form).
-      setAccessToken(null);
-      setUser(null);
-      setStatus("error");
-    };
-
-    /** One retry on transient `/me` failure (network/5xx). */
-    const fetchMeWithRetry = async () => {
-      const first = await fetchMe();
-      if (!bootstrapStillOwner()) return first;
-      if (first.kind !== "error") return first;
-      return fetchMe();
-    };
-
     const bootstrap = async () => {
       setStatus("authenticating");
       const refreshed = await refreshAccessToken();
       if (!bootstrapStillOwner()) return;
       if (refreshed) {
-        const me = await fetchMeWithRetry();
+        const me = await fetchMeWithRetry(bootstrapStillOwner);
         if (!bootstrapStillOwner()) return;
         if (me.kind === "user") {
+          userRef.current = me.user;
           setUser(me.user);
           setStatus("authenticated");
           return;
         }
+        // Refresh worked but /me did not yield a user — do not try dev-login
+        // (that would rotate away a real cookie session). Soft vs hard below.
+        if (!bootstrapStillOwner()) return;
+        if (me.kind === "error") {
+          failSoft();
+          return;
+        }
+        failHard();
+        return;
       }
       // Dev-only convenience: auto-login as the seeded org so local dev has a
       // session without the Instagram flow (dev-login 404s in prod). Skip it on
@@ -160,11 +203,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const dev = await devLogin();
         if (!bootstrapStillOwner()) return;
         if (dev) {
-          const me = await fetchMeWithRetry();
+          const me = await fetchMeWithRetry(bootstrapStillOwner);
           if (!bootstrapStillOwner()) return;
-          // Only "authenticated" when we actually resolved a user; a token with
-          // no /me would otherwise let RequireRole 403 a valid session.
           if (me.kind === "user") {
+            userRef.current = me.user;
             setUser(me.user);
             setStatus("authenticated");
             return;
@@ -172,12 +214,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       if (!bootstrapStillOwner()) return;
-      failBootstrap();
+      failHard();
     };
     void bootstrap().catch(() => {
-      if (bootstrapStillOwner()) failBootstrap();
+      if (bootstrapStillOwner()) failHard();
     });
-  }, []);
+  }, [failHard, failSoft]);
 
   const login = useCallback(() => {
     // Redirect to Instagram OAuth login endpoint.
@@ -236,29 +278,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const refreshed = await refreshAccessToken();
     if (gen !== genRef.current) return false;
     if (!refreshed) {
-      setStatus("error");
+      failHard();
       return false;
     }
 
-    let me = await fetchMe();
+    const me = await fetchMeWithRetry(() => gen === genRef.current);
     if (gen !== genRef.current) return false;
-    if (me.kind === "error") {
-      me = await fetchMe();
-      if (gen !== genRef.current) return false;
-    }
-    if (me.kind === "user") {
-      userRef.current = me.user;
-      setUser(me.user);
-      setStatus("authenticated");
-      return true;
-    }
+    return applyMeResult(me, { softOnTransient: true });
+  }, [applyMeResult, failHard]);
 
-    setAccessToken(null);
-    userRef.current = null;
-    setUser(null);
-    setStatus("error");
-    return false;
-  }, []);
+  const retryRestore = useCallback(async () => {
+    const gen = ++genRef.current;
+    setStatus("authenticating");
+    const refreshed = await refreshAccessToken();
+    if (gen !== genRef.current) return;
+    if (!refreshed) {
+      failHard();
+      return;
+    }
+    const me = await fetchMeWithRetry(() => gen === genRef.current);
+    if (gen !== genRef.current) return;
+    applyMeResult(me, { softOnTransient: true });
+  }, [applyMeResult, failHard]);
+
+  const abandonRestore = useCallback(() => {
+    genRef.current += 1;
+    failHard();
+  }, [failHard]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -269,6 +315,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshUser,
       acceptSession,
       restoreAdminFromCookie,
+      retryRestore,
+      abandonRestore,
     }),
     [
       status,
@@ -278,6 +326,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshUser,
       acceptSession,
       restoreAdminFromCookie,
+      retryRestore,
+      abandonRestore,
     ],
   );
 
@@ -295,8 +345,10 @@ export function useAuth(): AuthContextValue {
       login: () => {},
       logout: async () => {},
       refreshUser: async () => null,
-      acceptSession: () => {}, // no-op outside a provider
+      acceptSession: () => {},
       restoreAdminFromCookie: async () => false,
+      retryRestore: async () => {},
+      abandonRestore: () => {},
     };
   }
   return ctx;

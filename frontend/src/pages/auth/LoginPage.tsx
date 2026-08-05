@@ -3,6 +3,7 @@
  */
 import { useAuth } from "../../contexts/AuthContext";
 import { Link, Navigate } from "react-router-dom";
+import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
 import instagramIcon from "../../assets/insta-icon.png";
 import { pathForUser } from "../../utils/landing";
 
@@ -13,6 +14,10 @@ export default function LoginPage() {
     // Status-aware landing: an active org → feed, mid-onboarding org → their
     // onboarding step, brand → dashboard (matches the OAuth-callback target).
     return <Navigate to={pathForUser(user)} replace />;
+  }
+
+  if (status === "restore_failed") {
+    return <SessionRestorePanel />;
   }
 
   return (

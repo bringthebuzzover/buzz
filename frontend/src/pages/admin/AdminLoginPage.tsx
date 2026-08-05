@@ -9,6 +9,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAdminLogin } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
+import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
 import { pathForUser } from "../../utils/landing";
 import type { PortalRole } from "../../types/auth";
 
@@ -36,6 +37,10 @@ export default function AdminLoginPage() {
 
   if (status === "authenticated" && user) {
     return <Navigate to={pathForUser(user)} replace />;
+  }
+
+  if (status === "restore_failed") {
+    return <SessionRestorePanel />;
   }
 
   const onSubmit = async (e: React.FormEvent) => {
