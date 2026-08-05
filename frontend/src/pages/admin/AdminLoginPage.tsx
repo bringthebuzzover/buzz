@@ -16,6 +16,7 @@ const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
 
 type LoginResult = {
+  access_token: string;
   user: {
     id: string;
     portal_role: string;
@@ -41,18 +42,21 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError(null);
     try {
-      // Login returns the user + sets the access token; skip refreshUser/fetchMe
-      // (that path races AuthProvider bootstrap refresh in CI).
+      // Login returns user + access_token; acceptSession installs both atomically
+      // (gen bump first) so AuthProvider bootstrap cannot clobber the session.
       const data = (await adminLogin.mutateAsync({
         email: email.trim(),
         password,
       })) as LoginResult;
-      acceptSession({
-        id: data.user.id,
-        portalRole: data.user.portal_role as PortalRole,
-        status: data.user.status,
-        instagramUsername: data.user.instagram_username ?? undefined,
-      });
+      acceptSession(
+        {
+          id: data.user.id,
+          portalRole: data.user.portal_role as PortalRole,
+          status: data.user.status,
+          instagramUsername: data.user.instagram_username ?? undefined,
+        },
+        data.access_token,
+      );
       navigate("/admin", { replace: true });
     } catch (err) {
       setError(

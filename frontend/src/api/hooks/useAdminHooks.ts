@@ -19,7 +19,7 @@ import {
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../client";
-import { setAccessToken, setImpersonationToken } from "../auth";
+import { setImpersonationToken } from "../auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { pathForUser } from "../../utils/landing";
 import type { PortalRole } from "../../types/auth";
@@ -77,7 +77,8 @@ export function useAdminLogin(): AdminMutation<{
           500,
         );
       }
-      setAccessToken(data.access_token);
+      // Token is installed atomically in acceptSession (with gen bump) so
+      // AuthProvider bootstrap cannot race between setAccessToken and auth state.
       return data;
     },
   });
