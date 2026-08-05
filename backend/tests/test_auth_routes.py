@@ -75,9 +75,7 @@ async def test_refresh_garbage_cookie_unauthorized(app_client: AsyncClient) -> N
     assert "max-age=0" in set_cookie.lower() or "expires=thu, 01 jan 1970" in set_cookie.lower()
 
 
-async def test_refresh_revoked_does_not_clear_cookie(
-    app_client: AsyncClient, db_session
-) -> None:
+async def test_refresh_revoked_does_not_clear_cookie(app_client: AsyncClient, db_session) -> None:
     """Superseded refresh must 401 without Max-Age=0.
 
     Clearing on ver mismatch races a concurrent refresh that just won rotation:
