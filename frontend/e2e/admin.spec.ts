@@ -17,7 +17,28 @@ async function loginAsAdmin(page: Page) {
   await page.goto("/admin/login");
   await page.getByTestId("admin-email").fill(ADMIN_EMAIL);
   await page.getByTestId("admin-password").fill(ADMIN_PASSWORD);
+  // Controlled inputs can remount empty after a late React hydrate; assert
+  // values stuck before submit so HTML5 `required` doesn't silently block POST.
+  await expect(page.getByTestId("admin-email")).toHaveValue(ADMIN_EMAIL);
+  await expect(page.getByTestId("admin-password")).toHaveValue(ADMIN_PASSWORD);
+
+  const loginResp = page.waitForResponse(
+    (r) =>
+      r.url().includes("/api/auth/admin/login") &&
+      r.request().method() === "POST",
+  );
   await page.getByTestId("admin-login-submit").click();
+  const resp = await loginResp;
+  expect(resp.ok(), await resp.text()).toBeTruthy();
+  // Cookie path is /api/auth — query under that path, not the API origin root.
+  const cookies = await page.context().cookies(
+    "http://localhost:8000/api/auth/refresh",
+  );
+  expect(
+    cookies.some((c) => c.name === "buzz_refresh" && c.value.length > 0),
+    `expected buzz_refresh after login; got ${JSON.stringify(cookies.map((c) => c.name))}`,
+  ).toBeTruthy();
+
   await expect(page).toHaveURL(/\/admin$/);
 }
 
@@ -85,6 +106,8 @@ test("queue cards deep-link into a filtered list", async ({ page }) => {
 test("org detail opens from the list", async ({ page }) => {
   await loginAsAdmin(page);
   await page.goto("/admin/orgs");
+  await expect(page).toHaveURL(/\/admin\/orgs$/);
+  await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
   await page.getByRole("link", { name: TEST_ORG }).click();
 
   await expect(page).toHaveURL(/\/admin\/orgs\/[0-9a-f-]+$/);
@@ -94,6 +117,8 @@ test("org detail opens from the list", async ({ page }) => {
 test("admin views as an org from a row and can exit", async ({ page }) => {
   await loginAsAdmin(page);
   await page.goto("/admin/orgs");
+  await expect(page).toHaveURL(/\/admin\/orgs$/);
+  await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
 
   const orgRow = page.getByRole("row", { name: new RegExp(TEST_ORG) });
   await orgRow.getByRole("button", { name: /view as/i }).click();

@@ -20,6 +20,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  getAccessToken,
   refreshAccessToken,
   setAccessToken,
   devLogin,
@@ -53,6 +54,11 @@ type AuthContextValue = {
   logout: () => Promise<void>;
   /** Re-fetch the current user (e.g. after an onboarding status transition). */
   refreshUser: () => Promise<AuthUser | null>;
+  /**
+   * Apply a user from a successful password login without waiting on /me.
+   * Bumps the auth generation so a late bootstrap cannot clobber the session.
+   */
+  acceptSession: (user: AuthUser) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -143,10 +149,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       if (!bootstrapStillOwner()) return;
+      // Login may have installed a token while our failed refresh ran; do not
+      // clobber that session with status "error".
+      if (getAccessToken()) return;
       setStatus("error");
     };
     void bootstrap().catch(() => {
-      if (bootstrapStillOwner()) setStatus("error");
+      if (bootstrapStillOwner() && !getAccessToken()) setStatus("error");
     });
   }, []);
 
@@ -187,9 +196,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return userRef.current;
   }, []);
 
+  const acceptSession = useCallback((next: AuthUser) => {
+    // Invalidate in-flight bootstrap / refreshUser so they cannot overwrite.
+    genRef.current += 1;
+    userRef.current = next;
+    setUser(next);
+    setStatus("authenticated");
+  }, []);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, login, logout, refreshUser }),
-    [status, user, login, logout, refreshUser],
+    () => ({ status, user, login, logout, refreshUser, acceptSession }),
+    [status, user, login, logout, refreshUser, acceptSession],
   );
 
   return (
@@ -206,6 +223,7 @@ export function useAuth(): AuthContextValue {
       login: () => {},
       logout: async () => {},
       refreshUser: async () => null,
+      acceptSession: () => {},
     };
   }
   return ctx;

@@ -2901,7 +2901,7 @@
     },
     "/api/auth/refresh": {
       "post": {
-        "description": "Issue a new access token from the refresh cookie; rotate the cookie.\n\nSuccessful refresh bumps ``token_version`` and mints a new pair, so the\nprevious refresh cookie (and any stolen copies) stop working. Every failure\npath clears the refresh cookie so the SPA stops re-POSTing a dead httpOnly\ncookie on bootstrap.",
+        "description": "Issue a new access token from the refresh cookie; rotate the cookie.\n\nSuccessful refresh bumps ``token_version`` and mints a new pair. On failure,\nclear the refresh cookie only when the request presented one \u2014 a missing-\ncookie 401 must not emit ``Max-Age=0`` (that ``Set-Cookie`` can race a\nconcurrent login and wipe the new session).",
         "operationId": "refresh_api_auth_refresh_post",
         "responses": {
           "200": {

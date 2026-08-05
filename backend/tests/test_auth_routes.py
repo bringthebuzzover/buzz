@@ -61,6 +61,9 @@ async def test_refresh_missing_cookie_unauthorized(app_client: AsyncClient) -> N
     resp = await app_client.post("/api/auth/refresh")
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"
+    # Missing-cookie 401 must not emit Max-Age=0 (races concurrent login).
+    set_cookie = resp.headers.get("set-cookie", "")
+    assert REFRESH not in set_cookie
 
 
 async def test_refresh_garbage_cookie_unauthorized(app_client: AsyncClient) -> None:

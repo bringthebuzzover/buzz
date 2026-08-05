@@ -236,47 +236,54 @@ async def refresh(
 ) -> APIResponse | JSONResponse:
     """Issue a new access token from the refresh cookie; rotate the cookie.
 
-    Successful refresh bumps ``token_version`` and mints a new pair, so the
-    previous refresh cookie (and any stolen copies) stop working. Every failure
-    path clears the refresh cookie so the SPA stops re-POSTing a dead httpOnly
-    cookie on bootstrap.
+    Successful refresh bumps ``token_version`` and mints a new pair. On failure,
+    clear the refresh cookie only when the request presented one — a missing-
+    cookie 401 must not emit ``Max-Age=0`` (that ``Set-Cookie`` can race a
+    concurrent login and wipe the new session).
     """
 
-    def _unauthorized(message: str) -> JSONResponse:
+    def _unauthorized(message: str, *, clear_cookie: bool) -> JSONResponse:
         body = api_error_response(code=errors.UNAUTHORIZED, message=message)
         resp = JSONResponse(status_code=401, content=body.model_dump())
-        _clear_refresh_cookie(resp)
+        if clear_cookie:
+            _clear_refresh_cookie(resp)
         return resp
 
     cookie = request.cookies.get(settings.REFRESH_COOKIE_NAME)
     if not cookie:
-        return _unauthorized("Missing refresh token.")
+        return _unauthorized("Missing refresh token.", clear_cookie=False)
     try:
         payload = jwt.decode_token(cookie, expected_type=jwt.REFRESH_TOKEN_TYPE)
     except jwt.TokenError:
-        return _unauthorized("Invalid or expired refresh token.")
+        return _unauthorized("Invalid or expired refresh token.", clear_cookie=True)
 
     try:
         user_id = uuid.UUID(payload.sub)
     except ValueError:
-        return _unauthorized("Invalid refresh token.")
+        return _unauthorized("Invalid refresh token.", clear_cookie=True)
 
     user = await db.get(User, user_id)
     if user is None:
-        return _unauthorized("User no longer exists.")
+        return _unauthorized("User no longer exists.", clear_cookie=True)
 
     # Cut off terminal accounts at the refresh boundary (defense-in-depth).
     # Onboarding states (pending_*) are intentionally allowed — those users
     # are non-active but still need a live session to finish onboarding.
     if user.status == OrgUserStatus.DENIED.value:
-        return _unauthorized("This account can no longer refresh its session.")
+        return _unauthorized(
+            "This account can no longer refresh its session.",
+            clear_cookie=True,
+        )
 
     # Revocation: a refresh token is only valid while its `ver` matches the
     # user's current token_version. Logout / admin-deny / prior login-or-refresh
     # bump the version, invalidating every outstanding refresh token (§11.1).
     # Tokens minted before this field existed carry no `ver`; treat that as 0.
     if (payload.ver or 0) != (user.token_version or 0):
-        return _unauthorized("This session has been revoked. Please sign in again.")
+        return _unauthorized(
+            "This session has been revoked. Please sign in again.",
+            clear_cookie=True,
+        )
 
     access, new_refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, new_refresh)
