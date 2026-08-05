@@ -75,7 +75,15 @@ async def test_refresh_garbage_cookie_unauthorized(app_client: AsyncClient) -> N
     assert "max-age=0" in set_cookie.lower() or "expires=thu, 01 jan 1970" in set_cookie.lower()
 
 
-async def test_refresh_revoked_clears_cookie(app_client: AsyncClient, db_session) -> None:
+async def test_refresh_revoked_does_not_clear_cookie(
+    app_client: AsyncClient, db_session
+) -> None:
+    """Superseded refresh must 401 without Max-Age=0.
+
+    Clearing on ver mismatch races a concurrent refresh that just won rotation:
+    the loser's Set-Cookie wipe lands after the winner's new cookie and kills
+    the session (cold-nav / multi-tab flake class).
+    """
     user = await persist(db_session, make_user())
     refresh = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
     user.token_version = (user.token_version or 0) + 1
@@ -83,8 +91,28 @@ async def test_refresh_revoked_clears_cookie(app_client: AsyncClient, db_session
     resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: refresh})
     assert resp.status_code == 401
     set_cookie = resp.headers.get("set-cookie", "")
-    assert REFRESH in set_cookie
-    assert "max-age=0" in set_cookie.lower() or "expires=thu, 01 jan 1970" in set_cookie.lower()
+    assert REFRESH not in set_cookie
+
+
+async def test_refresh_concurrent_loser_preserves_winner_cookie(
+    app_client: AsyncClient, db_session
+) -> None:
+    """Winner rotates; loser with the old cookie must not wipe the jar."""
+    user = await persist(db_session, make_user())
+    old = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
+    won = await app_client.post("/api/auth/refresh", cookies={REFRESH: old})
+    assert won.status_code == 200
+    new_cookie = won.cookies.get(REFRESH)
+    assert new_cookie
+
+    lost = await app_client.post("/api/auth/refresh", cookies={REFRESH: old})
+    assert lost.status_code == 401
+    assert REFRESH not in lost.headers.get("set-cookie", "")
+
+    # Winner's cookie still refreshes (loser did not Max-Age=0 the jar).
+    again = await app_client.post("/api/auth/refresh", cookies={REFRESH: new_cookie})
+    assert again.status_code == 200
+    assert again.json()["data"]["access_token"]
 
 
 async def test_refresh_access_token_rejected(app_client: AsyncClient, db_session) -> None:
