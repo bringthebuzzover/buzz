@@ -2,14 +2,15 @@
  * Fixed red bar shown whenever an admin is viewing as another user.
  *
  * Deliberately loud and always on top: the whole risk of impersonation is
- * forgetting you are in it. Exiting drops the impersonation token and reloads
- * into the admin session (see `endImpersonation`).
+ * forgetting you are in it. Exit restores the admin session in-SPA (see
+ * `useEndImpersonation`).
  */
 import { useAuth } from "../../contexts/AuthContext";
-import { endImpersonation } from "../../api/auth";
+import { useEndImpersonation } from "../../api/hooks/useEndImpersonation";
 
 export default function ImpersonationBanner() {
   const { user } = useAuth();
+  const endImpersonation = useEndImpersonation();
 
   if (!user?.impersonatedBy) return null;
 
@@ -30,7 +31,9 @@ export default function ImpersonationBanner() {
       <button
         type="button"
         data-testid="exit-impersonation"
-        onClick={() => endImpersonation()}
+        onClick={() => {
+          void endImpersonation();
+        }}
         className="rounded border border-white/70 px-3 py-0.5 text-xs font-bold uppercase tracking-wide transition hover:bg-white hover:text-red-700"
       >
         Exit impersonation
