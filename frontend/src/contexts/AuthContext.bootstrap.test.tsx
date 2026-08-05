@@ -41,7 +41,7 @@ const fetchMeMock = fetchMe as jest.MockedFunction<typeof fetchMe>;
 const devLoginMock = jest.requireMock("../api/auth").devLogin as jest.Mock;
 
 function Probe() {
-  const { status, user, acceptSession } = useAuth();
+  const { status, user, acceptSession, retryRestore } = useAuth();
   return (
     <div>
       <span data-testid="status">{status}</span>
@@ -61,6 +61,15 @@ function Probe() {
         }
       >
         accept
+      </button>
+      <button
+        type="button"
+        data-testid="retry"
+        onClick={() => {
+          void retryRestore();
+        }}
+      >
+        retry
       </button>
     </div>
   );
@@ -89,8 +98,13 @@ describe("AuthProvider bootstrap resolution", () => {
     setAccessToken(null);
   });
 
-  it("ends in error (not hung authenticating) when refresh ok but /me never yields a user", async () => {
+  it("ends in restore_failed (not hung authenticating) when refresh ok but /me never yields a user", async () => {
     refreshMock.mockResolvedValue(true);
+    // Simulate a token from refresh so soft-fail paths that check getAccessToken work.
+    refreshMock.mockImplementation(async () => {
+      setAccessToken("refreshed-token");
+      return true;
+    });
     fetchMeMock.mockResolvedValue({ kind: "error" });
 
     await act(async () => {
@@ -101,9 +115,46 @@ describe("AuthProvider bootstrap resolution", () => {
       );
     });
 
-    await waitForStatus(container, "error");
-    expect(getAccessToken()).toBeNull();
+    await waitForStatus(container, "restore_failed");
+    expect(getAccessToken()).toBe("refreshed-token");
     expect(fetchMeMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retryRestore recovers to authenticated after a soft failure", async () => {
+    let meCalls = 0;
+    refreshMock.mockImplementation(async () => {
+      setAccessToken("refreshed-token");
+      return true;
+    });
+    fetchMeMock.mockImplementation(async () => {
+      meCalls += 1;
+      if (meCalls <= 2) return { kind: "error" as const };
+      return {
+        kind: "user" as const,
+        user: {
+          id: "recovered",
+          portalRole: "admin" as const,
+          status: "active",
+        },
+      };
+    });
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+    await waitForStatus(container, "restore_failed");
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>("[data-testid=retry]")!
+        .click();
+    });
+    await waitForStatus(container, "authenticated");
+    expect(userText(container)).toBe("recovered");
   });
 
   it("acceptSession wins over a late bootstrap failure", async () => {

@@ -9,6 +9,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useBrandLogin, usePublicConfig } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
+import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
 import { pathForUser } from "../../utils/landing";
 import type { PortalRole } from "../../types/auth";
 
@@ -40,6 +41,10 @@ export default function BrandLoginPage() {
   // must never see the brand form and clobber its session by submitting it.
   if (status === "authenticated" && user) {
     return <Navigate to={pathForUser(user)} replace />;
+  }
+
+  if (status === "restore_failed") {
+    return <SessionRestorePanel />;
   }
 
   const onSubmit = async (e: React.FormEvent) => {
