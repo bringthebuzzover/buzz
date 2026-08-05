@@ -9,7 +9,6 @@
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "../client";
-import { setAccessToken } from "../auth";
 import type { OrgCategory } from "../../types/orgCategory";
 
 // ── Org onboarding ─────────────────────────────────────────────────────────
@@ -116,9 +115,8 @@ export function useBrandSetPassword() {
           body: JSON.stringify(input),
         },
       );
-      // Set-password starts a session (same as login) — store the token so the
-      // SPA can go straight to the portal without a separate login step.
-      setAccessToken(data.access_token);
+      // Set-password starts a session (same as login). Caller installs the
+      // token via acceptSession so bootstrap cannot race a bare setAccessToken.
       return data;
     },
   });
@@ -180,7 +178,7 @@ export function useBrandLogin() {
           500,
         );
       }
-      setAccessToken(data.access_token);
+      // Token installed in acceptSession (atomic with gen bump + authenticated).
       return data;
     },
   });

@@ -20,7 +20,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  getAccessToken,
   refreshAccessToken,
   setAccessToken,
   devLogin,
@@ -55,10 +54,11 @@ type AuthContextValue = {
   /** Re-fetch the current user (e.g. after an onboarding status transition). */
   refreshUser: () => Promise<AuthUser | null>;
   /**
-   * Apply a user from a successful password login without waiting on /me.
-   * Bumps the auth generation so a late bootstrap cannot clobber the session.
+   * Apply a password-login (or set-password) session atomically: bump the auth
+   * generation first (so in-flight bootstrap cannot set `error`), install the
+   * access token, then mark authenticated from the login payload (no `/me`).
    */
-  acceptSession: (user: AuthUser) => void;
+  acceptSession: (user: AuthUser, accessToken: string) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -109,19 +109,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (startedRef.current) return;
     startedRef.current = true;
 
-    // Capture generation at bootstrap start. Login paths call refreshUser(),
-    // which bumps genRef — a slow/failed refresh must not clobber that session
-    // with status "error" (CI flake: stay stuck on /admin/login after a good
-    // password submit).
+    // Capture generation at bootstrap start. Password login calls
+    // acceptSession(), which bumps genRef first — a slow/failed bootstrap must
+    // not clobber that session with status "error".
     const bootGen = genRef.current;
     const bootstrapStillOwner = () => genRef.current === bootGen;
+
+    const failBootstrap = () => {
+      // Still the owner: cold load (or login never claimed the gen). Never leave
+      // status as "authenticating" — RequireAuth would spin on Loading forever
+      // (exit-impersonation flake: /admin with no Overview and no login form).
+      setAccessToken(null);
+      setUser(null);
+      setStatus("error");
+    };
+
+    /** One retry on transient `/me` failure (network/5xx). */
+    const fetchMeWithRetry = async () => {
+      const first = await fetchMe();
+      if (!bootstrapStillOwner()) return first;
+      if (first.kind !== "error") return first;
+      return fetchMe();
+    };
 
     const bootstrap = async () => {
       setStatus("authenticating");
       const refreshed = await refreshAccessToken();
       if (!bootstrapStillOwner()) return;
       if (refreshed) {
-        const me = await fetchMe();
+        const me = await fetchMeWithRetry();
         if (!bootstrapStillOwner()) return;
         if (me.kind === "user") {
           setUser(me.user);
@@ -137,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const dev = await devLogin();
         if (!bootstrapStillOwner()) return;
         if (dev) {
-          const me = await fetchMe();
+          const me = await fetchMeWithRetry();
           if (!bootstrapStillOwner()) return;
           // Only "authenticated" when we actually resolved a user; a token with
           // no /me would otherwise let RequireRole 403 a valid session.
@@ -149,13 +165,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       if (!bootstrapStillOwner()) return;
-      // Login may have installed a token while our failed refresh ran; do not
-      // clobber that session with status "error".
-      if (getAccessToken()) return;
-      setStatus("error");
+      failBootstrap();
     };
     void bootstrap().catch(() => {
-      if (bootstrapStillOwner() && !getAccessToken()) setStatus("error");
+      if (bootstrapStillOwner()) failBootstrap();
     });
   }, []);
 
@@ -196,9 +209,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return userRef.current;
   }, []);
 
-  const acceptSession = useCallback((next: AuthUser) => {
-    // Invalidate in-flight bootstrap / refreshUser so they cannot overwrite.
+  const acceptSession = useCallback((next: AuthUser, accessToken: string) => {
+    // Invalidate in-flight bootstrap / refreshUser BEFORE installing the token
+    // so a late bootstrap cannot see "token present, no user" and race us.
     genRef.current += 1;
+    setAccessToken(accessToken);
     userRef.current = next;
     setUser(next);
     setStatus("authenticated");
@@ -223,7 +238,7 @@ export function useAuth(): AuthContextValue {
       login: () => {},
       logout: async () => {},
       refreshUser: async () => null,
-      acceptSession: () => {},
+      acceptSession: () => {}, // no-op outside a provider
     };
   }
   return ctx;

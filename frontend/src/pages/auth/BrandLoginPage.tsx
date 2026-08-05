@@ -1,9 +1,8 @@
 /**
  * /brand/login — brand email + password login (Stage 7).
  *
- * On success the access token is stored (in `useBrandLogin`) and we accept the
- * session from the login payload so route guards forward to the dashboard
- * without racing AuthProvider bootstrap's refresh/fetchMe.
+ * On success the login payload is handed to `acceptSession` (token + user) so
+ * route guards forward to the dashboard without racing AuthProvider bootstrap.
  */
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
@@ -17,6 +16,7 @@ const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
 
 type LoginResult = {
+  access_token: string;
   user: {
     id: string;
     portal_role: string;
@@ -50,12 +50,15 @@ export default function BrandLoginPage() {
         email: email.trim(),
         password,
       })) as LoginResult;
-      acceptSession({
-        id: data.user.id,
-        portalRole: data.user.portal_role as PortalRole,
-        status: data.user.status,
-        instagramUsername: data.user.instagram_username ?? undefined,
-      });
+      acceptSession(
+        {
+          id: data.user.id,
+          portalRole: data.user.portal_role as PortalRole,
+          status: data.user.status,
+          instagramUsername: data.user.instagram_username ?? undefined,
+        },
+        data.access_token,
+      );
       navigate("/brand/dashboard", { replace: true });
     } catch (err) {
       setError(

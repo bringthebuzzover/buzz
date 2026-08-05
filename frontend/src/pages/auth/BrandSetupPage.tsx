@@ -3,13 +3,14 @@
  *
  * Reached from the invite email (`?token=…`) sent when an admin approves a
  * brand. Sets the password, activates the account, then forwards to the brand
- * login page.
+ * portal with a live session.
  */
 import { useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useBrandSetPassword } from "../../api/hooks/useOnboardingHooks";
 import { useAuth } from "../../contexts/AuthContext";
 import { ApiError } from "../../api/client";
+import type { PortalRole } from "../../types/auth";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
@@ -18,7 +19,7 @@ export default function BrandSetupPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+  const { acceptSession } = useAuth();
   const setPassword = useBrandSetPassword();
 
   const [password, setPasswordValue] = useState("");
@@ -41,9 +42,17 @@ export default function BrandSetupPage() {
       return;
     }
     try {
-      await setPassword.mutateAsync({ token, password });
-      // Set-password issued a session; sync auth state and land in the portal.
-      await refreshUser();
+      const data = await setPassword.mutateAsync({ token, password });
+      // Same atomic install as brand login — no setAccessToken→refreshUser gap.
+      acceptSession(
+        {
+          id: data.user.id,
+          portalRole: data.user.portal_role as PortalRole,
+          status: data.user.status,
+          instagramUsername: data.user.instagram_username ?? undefined,
+        },
+        data.access_token,
+      );
       navigate("/brand/dashboard", { replace: true });
     } catch (err) {
       setError(
