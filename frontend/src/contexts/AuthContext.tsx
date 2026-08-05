@@ -20,6 +20,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  clearImpersonationSession,
   refreshAccessToken,
   setAccessToken,
   devLogin,
@@ -59,6 +60,12 @@ type AuthContextValue = {
    * access token, then mark authenticated from the login payload (no `/me`).
    */
   acceptSession: (user: AuthUser, accessToken: string) => void;
+  /**
+   * Drop impersonation and re-mint the admin session from the refresh cookie
+   * (SPA path). Caller should clear React Query before invoking. Returns whether
+   * the admin user was restored.
+   */
+  restoreAdminFromCookie: () => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -219,9 +226,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus("authenticated");
   }, []);
 
+  const restoreAdminFromCookie = useCallback(async () => {
+    const gen = ++genRef.current;
+    clearImpersonationSession();
+    userRef.current = null;
+    setUser(null);
+    setStatus("authenticating");
+
+    const refreshed = await refreshAccessToken();
+    if (gen !== genRef.current) return false;
+    if (!refreshed) {
+      setStatus("error");
+      return false;
+    }
+
+    let me = await fetchMe();
+    if (gen !== genRef.current) return false;
+    if (me.kind === "error") {
+      me = await fetchMe();
+      if (gen !== genRef.current) return false;
+    }
+    if (me.kind === "user") {
+      userRef.current = me.user;
+      setUser(me.user);
+      setStatus("authenticated");
+      return true;
+    }
+
+    setAccessToken(null);
+    userRef.current = null;
+    setUser(null);
+    setStatus("error");
+    return false;
+  }, []);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, login, logout, refreshUser, acceptSession }),
-    [status, user, login, logout, refreshUser, acceptSession],
+    () => ({
+      status,
+      user,
+      login,
+      logout,
+      refreshUser,
+      acceptSession,
+      restoreAdminFromCookie,
+    }),
+    [
+      status,
+      user,
+      login,
+      logout,
+      refreshUser,
+      acceptSession,
+      restoreAdminFromCookie,
+    ],
   );
 
   return (
@@ -239,6 +296,7 @@ export function useAuth(): AuthContextValue {
       logout: async () => {},
       refreshUser: async () => null,
       acceptSession: () => {}, // no-op outside a provider
+      restoreAdminFromCookie: async () => false,
     };
   }
   return ctx;

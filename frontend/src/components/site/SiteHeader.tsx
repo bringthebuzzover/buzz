@@ -14,7 +14,7 @@ import {
 import { ChevronRight, LogOut, Menu } from "lucide-react";
 import { siteIdentity } from "../../data/siteIdentity";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
-import { endImpersonation } from "../../api/auth";
+import { useEndImpersonation } from "../../api/hooks/useEndImpersonation";
 import { useAuth } from "../../contexts/AuthContext";
 import { goToHomeJoin } from "../../utils/scrollHomeJoin";
 
@@ -33,6 +33,7 @@ export default function SiteHeader() {
   const { pathname } = useLocation();
   const { openContactModal } = useSiteChrome();
   const { user, status: authStatus, logout } = useAuth();
+  const endImpersonation = useEndImpersonation();
   const { images, social } = siteIdentity;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
@@ -42,7 +43,7 @@ export default function SiteHeader() {
   // would clear the admin session cookie underneath.
   const handleLogout = () => {
     if (user?.impersonatedBy) {
-      endImpersonation();
+      void endImpersonation();
       return;
     }
     logout();

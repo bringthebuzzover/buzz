@@ -134,7 +134,8 @@ test("admin views as an org from a row and can exit", async ({ page }) => {
 
   await page.getByTestId("exit-impersonation").click();
 
-  // Full reload to /admin (not /admin/login). Loose /\/admin/ matched login before.
+  // Full reload to /admin (not /admin/login). Soft SPA exit restores admin
+  // without a document navigation; still assert Overview landed.
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
   await expect(page.getByTestId("impersonation-banner")).toHaveCount(0);

@@ -37,15 +37,23 @@ export function isImpersonating(): boolean {
 }
 
 /**
- * Drop the impersonation token and return to the admin session.
- *
- * A full page load (rather than SPA navigation) is deliberate: it discards the
- * impersonated user's cached query data, and the bootstrap in `AuthProvider`
- * re-derives the admin session from the untouched refresh cookie.
+ * Drop the in-memory impersonation bearer. Does not navigate and does not touch
+ * the admin refresh cookie.
  */
-export function endImpersonation(reason?: "expired"): void {
+export function clearImpersonationSession(): void {
   accessToken = null;
   impersonating = false;
+}
+
+/**
+ * End impersonation via full document load to `/admin`.
+ *
+ * Prefer the React hook `useEndImpersonation` in UI (SPA restore + query cache
+ * clear). This hard path remains for non-React callers such as `apiFetch`, which
+ * must not import Router or QueryClient.
+ */
+export function endImpersonation(reason?: "expired"): void {
+  clearImpersonationSession();
   const suffix = reason === "expired" ? "?impersonation=expired" : "";
   window.location.href = `/admin${suffix}`;
 }

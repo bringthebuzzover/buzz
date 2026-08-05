@@ -69,7 +69,9 @@ export async function apiFetch<T>(
   } catch (err) {
     if (err instanceof ApiError && err.code === "TOKEN_EXPIRED") {
       // The refresh cookie belongs to the admin, not the impersonated user, so
-      // refreshing here would quietly escalate the session. End it instead.
+      // refreshing here would quietly escalate the session. End impersonation
+      // via full navigation — this module must not import Router/QueryClient;
+      // UI Exit uses useEndImpersonation (SPA) instead.
       if (isImpersonating()) {
         endImpersonation("expired");
         throw err;
