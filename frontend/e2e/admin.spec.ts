@@ -67,6 +67,7 @@ test("the session survives a reload", async ({ page }) => {
   // Regression guard: the refresh cookie has to re-mint an access token rather
   // than bouncing back to the login form.
   await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
 });
 
@@ -105,7 +106,8 @@ test("queue cards deep-link into a filtered list", async ({ page }) => {
 
 test("org detail opens from the list", async ({ page }) => {
   await loginAsAdmin(page);
-  await page.goto("/admin/orgs");
+  // SPA nav keeps the in-memory access token; cold goto is covered by reload.
+  await sidebar(page).getByRole("link", { name: /organizations/i }).click();
   await expect(page).toHaveURL(/\/admin\/orgs$/);
   await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
   await page.getByRole("link", { name: TEST_ORG }).click();
@@ -116,7 +118,7 @@ test("org detail opens from the list", async ({ page }) => {
 
 test("admin views as an org from a row and can exit", async ({ page }) => {
   await loginAsAdmin(page);
-  await page.goto("/admin/orgs");
+  await sidebar(page).getByRole("link", { name: /organizations/i }).click();
   await expect(page).toHaveURL(/\/admin\/orgs$/);
   await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
 
@@ -132,8 +134,9 @@ test("admin views as an org from a row and can exit", async ({ page }) => {
 
   await page.getByTestId("exit-impersonation").click();
 
-  // Back on the panel as the admin, banner gone.
-  await expect(page).toHaveURL(/\/admin/);
+  // Full reload to /admin (not /admin/login). Loose /\/admin/ matched login before.
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
   await expect(page.getByTestId("impersonation-banner")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
 });

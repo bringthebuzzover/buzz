@@ -2901,7 +2901,7 @@
     },
     "/api/auth/refresh": {
       "post": {
-        "description": "Issue a new access token from the refresh cookie; rotate the cookie.\n\nSuccessful refresh bumps ``token_version`` and mints a new pair. On failure,\nclear the refresh cookie only when the request presented one \u2014 a missing-\ncookie 401 must not emit ``Max-Age=0`` (that ``Set-Cookie`` can race a\nconcurrent login and wipe the new session).",
+        "description": "Issue a new access token from the refresh cookie; rotate the cookie.\n\nSuccessful refresh bumps ``token_version`` and mints a new pair.\n\nCookie-clear policy on 401 (load-bearing under concurrent refresh/login):\n\n- Missing cookie \u2192 do **not** clear. A ``Max-Age=0`` can race a concurrent\n  login ``Set-Cookie`` and wipe the new session.\n- ``ver`` mismatch (superseded rotation) \u2192 do **not** clear. Two in-flight\n  refreshes with the same cookie (common across a full page navigation:\n  the old document's HTTP may still complete after the new document's\n  bootstrap refresh) leave the winner's cookie intact only if the loser\n  does not emit ``Max-Age=0``. Logout / deny still revoke via version bump\n  and clear on their own endpoints.\n- Garbage / expired / unknown user / denied \u2192 clear (credential is dead).",
         "operationId": "refresh_api_auth_refresh_post",
         "responses": {
           "200": {

@@ -745,10 +745,19 @@ export interface paths {
          * Refresh
          * @description Issue a new access token from the refresh cookie; rotate the cookie.
          *
-         *     Successful refresh bumps ``token_version`` and mints a new pair. On failure,
-         *     clear the refresh cookie only when the request presented one — a missing-
-         *     cookie 401 must not emit ``Max-Age=0`` (that ``Set-Cookie`` can race a
-         *     concurrent login and wipe the new session).
+         *     Successful refresh bumps ``token_version`` and mints a new pair.
+         *
+         *     Cookie-clear policy on 401 (load-bearing under concurrent refresh/login):
+         *
+         *     - Missing cookie → do **not** clear. A ``Max-Age=0`` can race a concurrent
+         *       login ``Set-Cookie`` and wipe the new session.
+         *     - ``ver`` mismatch (superseded rotation) → do **not** clear. Two in-flight
+         *       refreshes with the same cookie (common across a full page navigation:
+         *       the old document's HTTP may still complete after the new document's
+         *       bootstrap refresh) leave the winner's cookie intact only if the loser
+         *       does not emit ``Max-Age=0``. Logout / deny still revoke via version bump
+         *       and clear on their own endpoints.
+         *     - Garbage / expired / unknown user / denied → clear (credential is dead).
          */
         post: operations["refresh_api_auth_refresh_post"];
         delete?: never;

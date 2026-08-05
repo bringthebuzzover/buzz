@@ -236,10 +236,19 @@ async def refresh(
 ) -> APIResponse | JSONResponse:
     """Issue a new access token from the refresh cookie; rotate the cookie.
 
-    Successful refresh bumps ``token_version`` and mints a new pair. On failure,
-    clear the refresh cookie only when the request presented one — a missing-
-    cookie 401 must not emit ``Max-Age=0`` (that ``Set-Cookie`` can race a
-    concurrent login and wipe the new session).
+    Successful refresh bumps ``token_version`` and mints a new pair.
+
+    Cookie-clear policy on 401 (load-bearing under concurrent refresh/login):
+
+    - Missing cookie → do **not** clear. A ``Max-Age=0`` can race a concurrent
+      login ``Set-Cookie`` and wipe the new session.
+    - ``ver`` mismatch (superseded rotation) → do **not** clear. Two in-flight
+      refreshes with the same cookie (common across a full page navigation:
+      the old document's HTTP may still complete after the new document's
+      bootstrap refresh) leave the winner's cookie intact only if the loser
+      does not emit ``Max-Age=0``. Logout / deny still revoke via version bump
+      and clear on their own endpoints.
+    - Garbage / expired / unknown user / denied → clear (credential is dead).
     """
 
     def _unauthorized(message: str, *, clear_cookie: bool) -> JSONResponse:
@@ -279,10 +288,11 @@ async def refresh(
     # user's current token_version. Logout / admin-deny / prior login-or-refresh
     # bump the version, invalidating every outstanding refresh token (§11.1).
     # Tokens minted before this field existed carry no `ver`; treat that as 0.
+    # Do not clear the cookie here — see docstring (concurrent rotation race).
     if (payload.ver or 0) != (user.token_version or 0):
         return _unauthorized(
             "This session has been revoked. Please sign in again.",
-            clear_cookie=True,
+            clear_cookie=False,
         )
 
     access, new_refresh = await issue_token_pair(db, user)
