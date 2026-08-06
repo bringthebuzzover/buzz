@@ -4,7 +4,7 @@ title: Email false-success and one-shot burns (best-effort, no ledger)
 kind: silent_loss
 severity: P2
 status: fixed
-closed_in: 7b3ae53
+closed_in: 450a077
 surface: ops
 evidence:
   - path: backend/app/services/email.py
