@@ -340,6 +340,11 @@ async def make_drop(
     """Persist a ``drops`` row owned by ``brand`` (apply window open by default)."""
 
     now = datetime.now(timezone.utc)
+    open_at = apply_open_at if apply_open_at is not None else (now - timedelta(days=1))
+    close_at = apply_close_at if apply_close_at is not None else (now + timedelta(days=7))
+    # Keep CHECK (apply_open_at < apply_close_at) when callers only pass a past close.
+    if open_at >= close_at:
+        open_at = close_at - timedelta(days=7)
     drop = Drop(
         id=uuid.uuid4(),
         brand_id=brand.id,
@@ -348,8 +353,8 @@ async def make_drop(
         image="https://example.test/img.png",
         location="Test City",
         capacity_total=capacity_total,
-        apply_open_at=apply_open_at or (now - timedelta(days=1)),
-        apply_close_at=apply_close_at or (now + timedelta(days=7)),
+        apply_open_at=open_at,
+        apply_close_at=close_at,
         manual_reopen=manual_reopen,
         brand_tracker_stage=stage.value,
         total_product_units=total_product_units,

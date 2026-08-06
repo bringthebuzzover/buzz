@@ -16,9 +16,11 @@ import {
   useAdminDrop,
   useAdvanceTracker,
   useClearReopen,
+  usePatchAdminDropConfig,
   useReopenDrop,
   useSetDropTracking,
   type AdminApplicant,
+  type AdminDropDetail,
 } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
 import {
@@ -64,6 +66,181 @@ function DecisionPill({ decision }: { decision: string }) {
   const tone =
     decision === "accepted" ? "good" : decision === "denied" ? "bad" : "warn";
   return <Pill tone={tone}>{decision}</Pill>;
+}
+
+const LOGISTICS_LOCKED = new Set(["drop_active", "drop_finished"]);
+
+function DropConfigEditors({ data }: { data: AdminDropDetail }) {
+  const patch = usePatchAdminDropConfig(data.id);
+  const logisticsLocked = LOGISTICS_LOCKED.has(data.stage);
+  const [capacity, setCapacity] = useState(String(data.capacityTotal));
+  const [units, setUnits] = useState(
+    data.totalProductUnits === null ? "" : String(data.totalProductUnits),
+  );
+  const [clearUnits, setClearUnits] = useState(false);
+  const [openAt, setOpenAt] = useState(
+    new Date(data.applyOpenAt).toISOString().slice(0, 16),
+  );
+  const [closeAt, setCloseAt] = useState(
+    new Date(data.applyCloseAt).toISOString().slice(0, 16),
+  );
+  const [hashtag, setHashtag] = useState(data.campaignHashtag ?? "");
+  const [clearHashtag, setClearHashtag] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const onSave = async () => {
+    setError(null);
+    setNotice(null);
+    const body: Record<string, number | string | null> = {};
+    if (!logisticsLocked) {
+      const cap = Number(capacity);
+      if (!Number.isInteger(cap) || cap < 1) {
+        setError("Capacity must be an integer ≥ 1.");
+        return;
+      }
+      if (cap !== data.capacityTotal) body.capacityTotal = cap;
+
+      const openMs = new Date(openAt).getTime();
+      const closeMs = new Date(closeAt).getTime();
+      if (!Number.isFinite(openMs) || !Number.isFinite(closeMs)) {
+        setError("Apply window times are invalid.");
+        return;
+      }
+      if (openMs !== data.applyOpenAt) body.applyOpenAt = openMs;
+      if (closeMs !== data.applyCloseAt) body.applyCloseAt = closeMs;
+
+      if (clearUnits) {
+        if (data.totalProductUnits !== null) body.totalProductUnits = null;
+      } else if (units.trim() !== "") {
+        const u = Number(units);
+        if (!Number.isInteger(u) || u < 1) {
+          setError("Unit budget must be an integer ≥ 1, or clear to spot-only.");
+          return;
+        }
+        if (u !== data.totalProductUnits) body.totalProductUnits = u;
+      }
+    }
+    if (clearHashtag) {
+      if (data.campaignHashtag !== null) body.campaignHashtag = null;
+    } else if (hashtag.trim() !== (data.campaignHashtag ?? "")) {
+      body.campaignHashtag = hashtag.trim() || null;
+    }
+
+    if (Object.keys(body).length === 0) {
+      setNotice("No changes to save.");
+      return;
+    }
+    try {
+      await patch.mutateAsync(body);
+      setNotice("Configuration saved.");
+      setClearUnits(false);
+      setClearHashtag(false);
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not save configuration.",
+      );
+    }
+  };
+
+  return (
+    <div className="mt-4 space-y-3 border-t border-buzz-lineMid pt-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
+        Edit logistics
+      </p>
+      {logisticsLocked && (
+        <p className="text-xs font-medium text-buzz-inkMuted">
+          Capacity, window, and unit budget are locked while the drop is live or
+          finished. Hashtag can still be updated.
+        </p>
+      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm font-medium text-buzz-ink">
+          Capacity
+          <input
+            type="number"
+            min={1}
+            className={inputClass}
+            value={capacity}
+            disabled={logisticsLocked || patch.isPending}
+            onChange={(e) => setCapacity(e.target.value)}
+          />
+        </label>
+        <label className="block text-sm font-medium text-buzz-ink">
+          Unit budget
+          <input
+            type="number"
+            min={1}
+            className={inputClass}
+            value={units}
+            disabled={logisticsLocked || clearUnits || patch.isPending}
+            placeholder="Spot-only when empty + clear"
+            onChange={(e) => setUnits(e.target.value)}
+          />
+          <label className="mt-1 flex items-center gap-2 text-xs font-medium text-buzz-inkMuted">
+            <input
+              type="checkbox"
+              checked={clearUnits}
+              disabled={logisticsLocked || patch.isPending}
+              onChange={(e) => setClearUnits(e.target.checked)}
+            />
+            Clear to spot-only (send null)
+          </label>
+        </label>
+        <label className="block text-sm font-medium text-buzz-ink">
+          Apply opens
+          <input
+            type="datetime-local"
+            className={inputClass}
+            value={openAt}
+            disabled={logisticsLocked || patch.isPending}
+            onChange={(e) => setOpenAt(e.target.value)}
+          />
+        </label>
+        <label className="block text-sm font-medium text-buzz-ink">
+          Apply closes
+          <input
+            type="datetime-local"
+            className={inputClass}
+            value={closeAt}
+            disabled={logisticsLocked || patch.isPending}
+            onChange={(e) => setCloseAt(e.target.value)}
+          />
+        </label>
+        <label className="block text-sm font-medium text-buzz-ink sm:col-span-2">
+          Campaign hashtag
+          <input
+            type="text"
+            className={inputClass}
+            value={hashtag}
+            disabled={clearHashtag || patch.isPending}
+            placeholder="e.g. springdrop (no # required)"
+            onChange={(e) => setHashtag(e.target.value)}
+          />
+          <label className="mt-1 flex items-center gap-2 text-xs font-medium text-buzz-inkMuted">
+            <input
+              type="checkbox"
+              checked={clearHashtag}
+              disabled={patch.isPending}
+              onChange={(e) => setClearHashtag(e.target.checked)}
+            />
+            Clear hashtag
+          </label>
+        </label>
+      </div>
+      <ActionButton
+        testId="save-drop-config"
+        disabled={patch.isPending}
+        onClick={() => void onSave()}
+      >
+        {patch.isPending ? "Saving…" : "Save configuration"}
+      </ActionButton>
+      {notice && (
+        <p className="text-sm font-medium text-green-700">{notice}</p>
+      )}
+      {error && <ErrorNote>{error}</ErrorNote>}
+    </div>
+  );
 }
 
 function TrackerControls({
@@ -425,6 +602,7 @@ export default function AdminDropDetailPage() {
                 )}
               </Field>
             </FieldGrid>
+            <DropConfigEditors data={data} />
           </Panel>
 
           <TrackerControls

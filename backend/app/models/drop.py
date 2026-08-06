@@ -25,6 +25,17 @@ from app.models.enums import BrandTrackerStageEnum
 
 class Drop(Base):
     __tablename__ = "drops"
+    __table_args__ = (
+        sa.CheckConstraint("capacity_total >= 1", name="ck_drops_capacity_positive"),
+        sa.CheckConstraint(
+            "total_product_units IS NULL OR total_product_units >= 1",
+            name="ck_drops_units_null_or_positive",
+        ),
+        sa.CheckConstraint(
+            "apply_open_at < apply_close_at",
+            name="ck_drops_apply_window_ordered",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
     brand_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("brands.id"), nullable=False)

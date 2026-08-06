@@ -399,3 +399,50 @@ async def test_pg_enum_rejects_invalid_value(db_session: AsyncSession) -> None:
             {"id": bogus_id},
         )
         await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_drop_capacity_check_rejects_zero(db_session: AsyncSession) -> None:
+    _, brand, drop, _, _ = await _seed_org_brand_drop_post(db_session, "ckcap")
+    with pytest.raises(IntegrityError):
+        await db_session.execute(
+            text("UPDATE drops SET capacity_total = 0 WHERE id = :id"),
+            {"id": drop.id},
+        )
+        await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_drop_units_check_rejects_zero(db_session: AsyncSession) -> None:
+    _, brand, drop, _, _ = await _seed_org_brand_drop_post(db_session, "ckunits")
+    with pytest.raises(IntegrityError):
+        await db_session.execute(
+            text("UPDATE drops SET total_product_units = 0 WHERE id = :id"),
+            {"id": drop.id},
+        )
+        await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_drop_window_check_rejects_inverted(db_session: AsyncSession) -> None:
+    _, brand, drop, _, _ = await _seed_org_brand_drop_post(db_session, "ckwin")
+    with pytest.raises(IntegrityError):
+        await db_session.execute(
+            text(
+                "UPDATE drops SET apply_open_at = apply_close_at + interval '1 day' "
+                "WHERE id = :id"
+            ),
+            {"id": drop.id},
+        )
+        await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_allocated_units_check_rejects_negative(db_session: AsyncSession) -> None:
+    _org, _brand, _drop, _post, app = await _seed_org_brand_drop_post(db_session, "ckalloc")
+    with pytest.raises(IntegrityError):
+        await db_session.execute(
+            text("UPDATE drop_applications SET allocated_units = -1 WHERE id = :id"),
+            {"id": app.id},
+        )
+        await db_session.flush()

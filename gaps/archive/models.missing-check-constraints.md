@@ -3,7 +3,8 @@ id: models.missing-check-constraints
 title: No DB CheckConstraints for capacity, units, or apply window
 kind: invariant_break
 severity: P3
-status: deferred
+status: fixed
+closed_in:
 surface: models
 evidence:
   - path: backend/app/models/drop.py

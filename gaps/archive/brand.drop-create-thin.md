@@ -3,7 +3,8 @@ id: brand.drop-create-thin
 title: Drop logistics (capacity, window, units, hashtag) have no product write path
 kind: ops_completeness
 severity: P2
-status: deferred
+status: fixed
+closed_in:
 surface: brand
 evidence:
   - path: backend/app/schemas/drops.py

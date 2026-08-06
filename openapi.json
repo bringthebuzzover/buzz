@@ -79,6 +79,73 @@
         "title": "AdminCreateBrandRequest",
         "type": "object"
       },
+      "AdminDropConfigPatch": {
+        "additionalProperties": false,
+        "description": "Admin logistics patch for a drop (omit = leave alone; explicit null = clear).\n\nWindow fields accept epoch-ms integers on the wire (same as GET detail).",
+        "properties": {
+          "applyCloseAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applycloseat"
+          },
+          "applyOpenAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applyopenat"
+          },
+          "campaignHashtag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaignhashtag"
+          },
+          "capacityTotal": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacitytotal"
+          },
+          "totalProductUnits": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totalproductunits"
+          }
+        },
+        "title": "AdminDropConfigPatch",
+        "type": "object"
+      },
       "AdminLoginRequest": {
         "description": "Admin email + password login (admins have no Instagram identity).",
         "properties": {
@@ -1507,6 +1574,73 @@
           }
         },
         "summary": "Get Drop Detail Endpoint",
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_drop_config_endpoint_api_admin_drops__drop_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminDropConfigPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Drop Config Endpoint",
         "tags": [
           "admin"
         ]
