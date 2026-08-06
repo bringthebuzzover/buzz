@@ -4,7 +4,7 @@ title: PRODUCT capacity-Closed during Open is unreachable
 kind: doc_drift
 severity: P2
 status: fixed
-closed_in:
+closed_in: 310712e
 surface: product
 evidence:
   - path: PRODUCT.md
