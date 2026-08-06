@@ -3,7 +3,7 @@ id: ops.notify-cron-not-created
 title: Notify Me reminders depend on a cron nobody has created yet
 kind: ops
 severity: P1
-status: ops
+status: fixed
 surface: deploy
 evidence:
   - path: backend/app/jobs/notify_reminders.py
@@ -13,7 +13,7 @@ evidence:
   - path: backend/tests/test_jobs.py
     note: due/idempotent/closed-window/no-edu_email/finished/unapproved coverage green
   - path: DEPLOYMENT.md
-    note: checklist unchecked — sixth cron cron-notify-reminders */5 not created yet
+    note: sixth cron created on Railway production (cron-notify-reminders */5)
   - path: backend/README.md
     note: documents poetry run … notify_reminders every ~5 min (§10.6)
   - path: backend/app/services/admin_read.py
@@ -291,3 +291,14 @@ Locked v1 is the right ops playbook: clone live `cron-drop-autoclose`, swap job
 name, keep `*/5` + `NEVER` + `/backend` + full env parity, gate on email v1 or
 Resend domain verify, watch backlog on first fire. Nits are copy-paste precision
 only — **not** approach defects.
+
+
+## Closeout (2026-08-06)
+
+Railway production service `cron-notify-reminders` created via MCP:
+- service id `656c60f7-d257-4d8a-936c-dbfbfc5bd399`
+- schedule `*/5 * * * *`, root `/backend`, start `.venv/bin/python scripts/run_job.py notify_reminders`
+- restart `NEVER`; 15 env vars referenced from `cron-drop-autoclose`
+- deploy SUCCESS on branch `mvp`; region landed `us-west2` (autoclose is `sfo` — acceptable drift)
+- email-honesty v1 (`sent_at` only on dispatch true) already shipped before enable
+- DEPLOYMENT.md sixth-cron checkbox + Cron×6 table marked live

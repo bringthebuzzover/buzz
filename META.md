@@ -196,7 +196,7 @@ Deploy must set (Railway, for now):
 - `INSTAGRAM_REDIRECT_URI=https://frontend-production-3819.up.railway.app/auth/instagram/callback`
 - `FRONTEND_URL=https://frontend-production-3819.up.railway.app`
 - `SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, `DATABASE_URL` (+ migrations)
-- Cross-site SPA/API on `*.up.railway.app` usually needs `REFRESH_COOKIE_SAMESITE=none` + `REFRESH_COOKIE_SECURE=true` (see `DEPLOYMENT.md`)
+- Cross-site SPA/API on `*.up.railway.app` **requires** `REFRESH_COOKIE_SAMESITE=none` + `REFRESH_COOKIE_SECURE=true` until www+api custom DNS (see `DEPLOYMENT.md`)
 - Egress to `api.instagram.com`, `graph.instagram.com`, `www.instagram.com`
 
 Details: `DEPLOYMENT.md`.
