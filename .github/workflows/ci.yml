@@ -20,13 +20,14 @@ on:
           - "30"
 
 concurrency:
-  # Push/PR: cancel superseded runs. Manual stress: isolate by run_id and do not
-  # cancel (so a second dispatch does not kill an in-flight stress matrix).
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || 'ci' }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+  # Push/PR: cancel superseded runs. Stress (workflow_dispatch or [e2e-stress-N]
+  # commit marker): isolate by run_id and do not cancel.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message || '', '[e2e-stress-')) && github.run_id || 'ci' }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && !contains(github.event.head_commit.message || '', '[e2e-stress-') }}
 
 jobs:
-  # Build the E2E matrix (1 attempt on push/PR; N on workflow_dispatch).
+  # Build the E2E matrix (1 on normal push/PR; N on workflow_dispatch or
+  # commit message marker `[e2e-stress-N]`).
   e2e-matrix:
     name: Plan E2E matrix
     runs-on: ubuntu-latest
@@ -35,11 +36,20 @@ jobs:
     steps:
       - id: set
         env:
-          REPEAT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.e2e_repeat || '1' }}
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_REPEAT: ${{ github.event.inputs.e2e_repeat }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
-          import json, os
-          n = max(1, min(30, int(os.environ.get("REPEAT") or "1")))
+          import json, os, re
+          event = os.environ.get("EVENT_NAME") or ""
+          if event == "workflow_dispatch":
+              n = int(os.environ.get("DISPATCH_REPEAT") or "1")
+          else:
+              msg = os.environ.get("COMMIT_MSG") or ""
+              m = re.search(r"\[e2e-stress-(\d+)\]", msg)
+              n = int(m.group(1)) if m else 1
+          n = max(1, min(30, n))
           print(f"attempts={json.dumps(list(range(1, n + 1)))}")
           PY
 
