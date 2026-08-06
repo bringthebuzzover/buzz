@@ -304,7 +304,7 @@ stop_if: []
 
 ## ops-notify-cron
 
-status: ops
+status: done
 gaps:
   - ops.notify-cron-not-created
 approach: |
@@ -312,7 +312,7 @@ approach: |
   clone `cron-drop-autoclose` → `cron-notify-reminders`; exact 15-var env;
   RAILPACK required; `*/5`; prefer after `email-honesty` (sent_at on true) or
   hard-gate Resend domain verify. Agent may tick DEPLOYMENT.md checkbox after
-  human confirms; no agent Railway mutate without explicit OK.
+  human confirms; no agent Railway mutate without explicit user OK.
 
 stop_if:
   - Always pause before mutating Railway production without explicit user OK.
@@ -333,6 +333,9 @@ approach: |
   **Partial / not forever topology:** Phase 2 tracked in
   `deploy.custom-domain-samesite-lax` (deferred). Archiving v1 must leave
   that follow-up open until www+api + `lax`.
+  **2026-08-06 progress:** Railway cookie + FRONTEND_URL/INSTAGRAM_REDIRECT_URI
+  + docs scrub PASS; Meta dashboard not created yet → stay `ops` until Meta
+  URLs match META.md Hosts.
 
 stop_if:
   - Always pause before mutating Railway/Meta without explicit user OK.

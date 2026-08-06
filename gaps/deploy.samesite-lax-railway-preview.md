@@ -33,6 +33,17 @@ fix_when: |
   is documented and verified — NOT www+api cutover or SameSite=lax.
 ---
 
+## Progress (2026-08-06)
+
+| Check | Status |
+| ----- | ------ |
+| Cookie env / Set-Cookie `none`+`Secure` | **PASS** (live GET login) |
+| `FRONTEND_URL` / `INSTAGRAM_REDIRECT_URI` = META Railway SPA | **PASS** (Railway vars set; authorize `redirect_uri` matches) |
+| Docs invariant (`none` required on dual-host) | **PASS** (DEPLOYMENT + META scrubbed) |
+| Meta dashboard URLs = META Hosts | **FAIL / pending** — Meta app not created yet; leave gap `ops` |
+
+Do **not** archive until Meta row PASSes. Phase 2 custom-domain follow-up stays open.
+
 ## Locked v1 fix
 
 **Host SOT:** Exact SPA, API, OAuth redirect, privacy/terms/data-deletion, and
