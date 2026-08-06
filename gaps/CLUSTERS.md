@@ -289,7 +289,7 @@ stop_if:
 
 ## ops-cron-logging
 
-status: pending
+status: done
 gaps:
   - ops.cron-logging-thin
 approach: |

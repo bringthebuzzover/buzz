@@ -3,7 +3,8 @@ id: ops.cron-logging-thin
 title: Cron logging is thin despite job_runs
 kind: ops
 severity: P2
-status: open
+status: fixed
+closed_in:
 surface: jobs
 evidence:
   - path: backend/scripts/run_job.py
