@@ -46,7 +46,7 @@ export default function OrgProfilePage() {
     e.preventDefault();
     setError(null);
     try {
-      await submit.mutateAsync({
+      const result = await submit.mutateAsync({
         orgName: orgName.trim(),
         university: university.trim(),
         eduEmail: eduEmail.trim(),
@@ -56,7 +56,15 @@ export default function OrgProfilePage() {
         deliveryAddress: deliveryAddress.trim() || undefined,
       });
       await refreshUser();
-      navigate("/onboarding/verify-email", { replace: true });
+      // Durable across hard refresh of the verify-await screen.
+      sessionStorage.setItem(
+        "buzz.verifyEmailSent",
+        result.emailSent === false ? "0" : "1",
+      );
+      navigate("/onboarding/verify-email", {
+        replace: true,
+        state: { emailSent: result.emailSent !== false },
+      });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);

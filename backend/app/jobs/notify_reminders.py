@@ -5,7 +5,8 @@ lead time (5 / 15 / 60 minutes); this job emails them once ``apply_open_at``
 minus that lead time has passed, so the reminder lands while they can still be
 first in line.
 
-Idempotent via ``notify_me.sent_at``: a row is mailed at most once, and
+Idempotent via ``notify_me.sent_at``: stamped only when the provider accepts
+the send, so a failed attempt stays eligible for the next run.
 ``FOR UPDATE SKIP LOCKED`` keeps two overlapping runs from double-sending.
 Rows whose apply window has already closed are skipped rather than mailed —
 a reminder to apply to a closed drop is worse than no reminder.
@@ -64,15 +65,15 @@ async def send_due_reminders(db: AsyncSession) -> dict[str, Any]:
             # health signal keeps surfacing the row instead of hiding it.
             skipped += 1
             continue
-        await send_drop_opening_reminder_email(
+        ok = await send_drop_opening_reminder_email(
             user.edu_email,
             org_name=org.org_name,
             drop_title=drop.title,
             brand_name=brand.brand_name,
         )
-        # Stamped after the attempt, not after confirmed delivery: sends are
-        # best-effort (see services/email._dispatch), and retrying forever
-        # would spam a subscriber whose address simply bounces.
+        if not ok:
+            # Leave sent_at NULL so the next cron run retries.
+            continue
         notify.sent_at = now
         sent += 1
 

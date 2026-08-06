@@ -12,7 +12,7 @@
  * waiting screen still requires that status.
  */
 import { useEffect, useRef, useState } from "react";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   useChangeEduEmail,
@@ -21,6 +21,27 @@ import {
 } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
+
+const VERIFY_EMAIL_SENT_KEY = "buzz.verifyEmailSent";
+
+function readEmailSentFlag(
+  locationState: unknown,
+): boolean {
+  const fromState =
+    locationState &&
+    typeof locationState === "object" &&
+    "emailSent" in locationState
+      ? (locationState as { emailSent?: boolean }).emailSent
+      : undefined;
+  if (typeof fromState === "boolean") {
+    return fromState;
+  }
+  return sessionStorage.getItem(VERIFY_EMAIL_SENT_KEY) !== "0";
+}
+
+function markEmailSent(ok: boolean) {
+  sessionStorage.setItem(VERIFY_EMAIL_SENT_KEY, ok ? "1" : "0");
+}
 
 export default function VerifyEmailPage() {
   const { status, user } = useAuth();
@@ -154,10 +175,18 @@ const POLL_INTERVAL_MS = 15_000;
 
 function AwaitVerification() {
   const { refreshUser } = useAuth();
+  const location = useLocation();
   const resend = useResendVerification();
   const changeEmail = useChangeEduEmail();
+  const [emailSent, setEmailSent] = useState(() =>
+    readEmailSentFlag(location.state),
+  );
   const [notice, setNotice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    emailSent
+      ? null
+      : "We could not send the verification email. Use Resend below to try again.",
+  );
   const [showChange, setShowChange] = useState(false);
   const [newEmail, setNewEmail] = useState("");
 
@@ -176,8 +205,12 @@ function AwaitVerification() {
     setError(null);
     try {
       await resend.mutateAsync();
+      markEmailSent(true);
+      setEmailSent(true);
       setNotice("Verification email re-sent. Check your inbox.");
     } catch (err) {
+      markEmailSent(false);
+      setEmailSent(false);
       setError(
         err instanceof ApiError
           ? err.message
@@ -194,8 +227,12 @@ function AwaitVerification() {
       const result = await changeEmail.mutateAsync(newEmail.trim());
       await refreshUser();
       setShowChange(false);
+      markEmailSent(true);
+      setEmailSent(true);
       setNotice(`Verification email sent to ${result.emailSentTo}.`);
     } catch (err) {
+      markEmailSent(false);
+      setEmailSent(false);
       setError(
         err instanceof ApiError
           ? err.message
@@ -210,7 +247,9 @@ function AwaitVerification() {
         Verify Your <span className="text-buzz-coral">Email</span>
       </h1>
       <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
-        We sent a verification link to your school email. Click it to continue.
+        {emailSent
+          ? "We sent a verification link to your school email. Click it to continue."
+          : "Your profile is saved, but we could not send the verification email yet. Use Resend below when you are ready."}
       </p>
 
       {notice && (

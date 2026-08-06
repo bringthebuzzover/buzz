@@ -516,30 +516,29 @@ async def finalize_applicants(
     await db.flush()
 
     # PRODUCT §7.1: denied applicants get an email (their only channel — no row in
-    # My Campaigns). Sent inline (matching the admin deny pattern); a per-org send
-    # failure must not roll back the finalize, so swallow + log.
+    # My Campaigns). Sent inline (matching the admin deny pattern); finalize has
+    # already flushed — a false send is structured-logged only (no rollback).
     if denied_org_ids:
         contacts = await db.execute(
-            select(User.edu_email, Organization.org_name)
+            select(User.edu_email, Organization.org_name, Organization.id)
             .join(User, User.id == Organization.user_id)
             .where(Organization.id.in_(denied_org_ids))
         )
-        for edu_email, org_name in contacts.all():
+        for edu_email, org_name, org_id in contacts.all():
             if not edu_email:
                 continue
-            try:
-                await send_application_denied_email(
-                    edu_email,
-                    org_name=org_name,
-                    drop_title=drop.title,
-                    brand_name=brand.brand_name,
-                )
-            except Exception:  # noqa: BLE001 — email best-effort; don't fail finalize
+            ok = await send_application_denied_email(
+                edu_email,
+                org_name=org_name,
+                drop_title=drop.title,
+                brand_name=brand.brand_name,
+            )
+            if not ok:
                 logger.warning(
-                    "application-denied email failed for %s on drop %s",
+                    "application-denied email failed: recipient=%s drop_id=%s org_id=%s",
                     edu_email,
                     drop.id,
-                    exc_info=True,
+                    org_id,
                 )
 
     return {

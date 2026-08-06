@@ -185,7 +185,7 @@ Then human ops: notify Railway cron, SameSite App Review checklist.
 
 ## email-honesty
 
-status: pending
+status: done
 gaps:
   - ops.email-best-effort-no-ledger
 approach: |

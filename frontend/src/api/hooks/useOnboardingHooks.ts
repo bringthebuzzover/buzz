@@ -31,6 +31,7 @@ type OnboardingResult = {
   orgId: string;
   status: string;
   emailSentTo: string;
+  emailSent: boolean;
 };
 
 export function useSubmitOnboarding() {
