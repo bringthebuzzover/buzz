@@ -15,3 +15,9 @@ fix_when: |
 ---
 
 Audit triage: wontfix / product accept. Kept on disk so the decision remains visible.
+
+## Plan verification
+
+**Verdict: WONTFIX_OK**
+
+Code matches the claim: accept/link dismisses sibling pending suggestions (`_confirm_own_and_dismiss_siblings` / `_dismiss_pending_for_post`); unlink only clears `confirmed_at` for the owning (post, application) — never clears sibling `dismissed_at`. No rearm path for dismissed siblings. Intentional under one-post-one-campaign; no fix plan needed unless PRODUCT reverses.
