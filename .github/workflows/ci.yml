@@ -17,6 +17,7 @@ on:
           - "3"
           - "5"
           - "10"
+          - "30"
 
 concurrency:
   # Push/PR: cancel superseded runs. Manual stress: isolate by run_id and do not
@@ -38,7 +39,7 @@ jobs:
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, os
-          n = max(1, min(10, int(os.environ.get("REPEAT") or "1")))
+          n = max(1, min(30, int(os.environ.get("REPEAT") or "1")))
           print(f"attempts={json.dumps(list(range(1, n + 1)))}")
           PY
 
