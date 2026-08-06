@@ -153,7 +153,7 @@ approach: |
 
 ## models-unique
 
-status: pending
+status: done
 gaps:
   - models.social-posts-global-unique
 approach: |

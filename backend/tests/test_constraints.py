@@ -306,10 +306,10 @@ async def test_users_unique_edu_email_allows_multiple_nulls(
 
 
 @pytest.mark.asyncio
-async def test_social_posts_unique_platform_external_id(
+async def test_social_posts_unique_per_org_platform_external_id(
     db_session: AsyncSession,
 ) -> None:
-    """Repeated ``/me/media`` syncs must not create duplicate rows."""
+    """Repeated ``/me/media`` syncs must not create duplicate rows for one org."""
 
     org, _, _, _, _ = await _seed_org_brand_drop_post(db_session, "postuniq")
 
@@ -331,7 +331,7 @@ async def test_social_posts_unique_platform_external_id(
         SocialPost(
             org_id=org.id,
             platform=Platform.INSTAGRAM.value,
-            external_id="ig_dup_external",  # same (platform, external_id)
+            external_id="ig_dup_external",  # same (org, platform, external_id)
             url="https://instagram.com/p/dup2",
             caption="x",
             media_type=SocialMediaType.IMAGE.value,
@@ -341,6 +341,42 @@ async def test_social_posts_unique_platform_external_id(
     )
     with pytest.raises(IntegrityError):
         await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_social_posts_same_external_id_allowed_across_orgs(
+    db_session: AsyncSession,
+) -> None:
+    """Two orgs may store the same platform media id on their own rows."""
+
+    org_a, _, _, _, _ = await _seed_org_brand_drop_post(db_session, "posta")
+    org_b, _, _, _, _ = await _seed_org_brand_drop_post(db_session, "postb")
+
+    db_session.add(
+        SocialPost(
+            org_id=org_a.id,
+            platform=Platform.INSTAGRAM.value,
+            external_id="ig_shared_external",
+            url="https://instagram.com/p/a",
+            caption="a",
+            media_type=SocialMediaType.IMAGE.value,
+            media_product_type=SocialMediaProductType.FEED.value,
+            posted_at=_now(),
+        )
+    )
+    db_session.add(
+        SocialPost(
+            org_id=org_b.id,
+            platform=Platform.INSTAGRAM.value,
+            external_id="ig_shared_external",
+            url="https://instagram.com/p/b",
+            caption="b",
+            media_type=SocialMediaType.IMAGE.value,
+            media_product_type=SocialMediaProductType.FEED.value,
+            posted_at=_now(),
+        )
+    )
+    await db_session.flush()  # no IntegrityError
 
 
 @pytest.mark.asyncio
