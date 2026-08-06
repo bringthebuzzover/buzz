@@ -39,7 +39,7 @@ async def test_dispatch_posts_to_resend(monkeypatch, _resend_key) -> None:
         return httpx.Response(200, json={"id": "email_123"})
 
     _stub_transport(monkeypatch, handler)
-    await email._dispatch("to@campus.edu", "Subject", "Body text")
+    assert await email._dispatch("to@campus.edu", "Subject", "Body text") is True
 
     assert seen["url"] == email._RESEND_ENDPOINT
     assert seen["auth"] == "Bearer re_test_key"
@@ -61,7 +61,7 @@ async def test_dispatch_without_key_does_not_send(monkeypatch) -> None:
         return httpx.Response(200, json={})
 
     _stub_transport(monkeypatch, handler)
-    await email._dispatch("to@campus.edu", "S", "B")
+    assert await email._dispatch("to@campus.edu", "S", "B") is False
     assert called is False
 
 
@@ -72,5 +72,9 @@ async def test_dispatch_swallows_provider_failure(monkeypatch, _resend_key) -> N
         return httpx.Response(500, json={"message": "boom"})
 
     _stub_transport(monkeypatch, handler)
-    # Should not raise.
-    await email._dispatch("to@campus.edu", "S", "B")
+    assert await email._dispatch("to@campus.edu", "S", "B") is False
+
+
+async def test_verification_dev_path_returns_true(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "ENVIRONMENT", "development")
+    assert await email.send_verification_email("a@test.edu", "tok") is True

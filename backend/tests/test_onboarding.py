@@ -46,6 +46,7 @@ async def test_onboarding_submit_advances_status(app_client: AsyncClient, db_ses
     data = resp.json()["data"]
     assert data["status"] == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value
     assert data["emailSentTo"] == "club@test.edu"
+    assert data["emailSent"] is True
 
     # Org row + verification token created; identity lives on the user.
     org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
@@ -308,6 +309,76 @@ async def test_resend_rate_limited(app_client: AsyncClient, db_session) -> None:
     )
     assert resp.status_code == 429
     assert resp.json()["error"]["code"] == "MAX_VERIFICATION_ATTEMPTS"
+
+
+async def test_resend_email_send_failed_does_not_burn_token(
+    app_client: AsyncClient, db_session, monkeypatch
+) -> None:
+    user, _evt = await _seed_pending_verification(db_session, suffix="rs_fail")
+
+    async def _fail(*args, **kwargs):
+        return False
+
+    monkeypatch.setattr("app.services.onboarding.send_verification_email", _fail)
+    before = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
+        )
+    )
+    assert len(before) == 1
+
+    resp = await app_client.post(
+        "/api/auth/verify-email/resend",
+        json={},
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 502
+    assert resp.json()["error"]["code"] == "EMAIL_SEND_FAILED"
+
+    await db_session.refresh(user)
+    after = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
+        )
+    )
+    # Raise rolls back the mint; original token remains the only live one.
+    assert len(after) == 1
+    assert after[0].id == before[0].id
+
+
+async def test_onboarding_submit_email_sent_false_keeps_profile(
+    app_client: AsyncClient, db_session, monkeypatch
+) -> None:
+    user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_ob_esf"),
+    )
+
+    async def _fail(*args, **kwargs):
+        return False
+
+    monkeypatch.setattr("app.services.onboarding.send_verification_email", _fail)
+    resp = await app_client.post(
+        "/api/orgs/onboarding",
+        json={**_VALID_PROFILE, "eduEmail": "failmail@test.edu"},
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert data["emailSent"] is False
+    assert data["status"] == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value
+
+    await db_session.refresh(user)
+    assert user.edu_email == "failmail@test.edu"
+    assert user.status == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value
+    org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
+    assert org is not None
+    tokens = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
+        )
+    )
+    assert tokens == []
 
 
 # --- Brand self-registration (Phase 1) --------------------------------------

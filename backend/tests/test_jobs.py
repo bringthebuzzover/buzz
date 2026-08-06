@@ -302,6 +302,7 @@ async def test_notify_reminder_sent_when_due(db_session, monkeypatch) -> None:
 
     async def _capture(to_email, *, org_name="", drop_title="", brand_name=""):
         sent.append((to_email, drop_title))
+        return True
 
     monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _capture)
 
@@ -311,6 +312,27 @@ async def test_notify_reminder_sent_when_due(db_session, monkeypatch) -> None:
     result = await send_due_reminders(db_session)
     assert result == {"reminders_sent": 1, "reminders_skipped": 0}
     assert sent == [(user.edu_email, drop.title)]
+    assert notify.sent_at is not None
+
+
+async def test_notify_reminder_not_stamped_when_send_fails(db_session, monkeypatch) -> None:
+    async def _fail(to_email, **kwargs):
+        return False
+
+    monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _fail)
+    _, _, _, notify = await _notify_ctx(db_session, reminder_minutes=15)
+
+    result = await send_due_reminders(db_session)
+    assert result == {"reminders_sent": 0, "reminders_skipped": 0}
+    assert notify.sent_at is None
+
+    # Still eligible on the next run once the provider recovers.
+    async def _ok(to_email, **kwargs):
+        return True
+
+    monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _ok)
+    result2 = await send_due_reminders(db_session)
+    assert result2["reminders_sent"] == 1
     assert notify.sent_at is not None
 
 
@@ -332,6 +354,7 @@ async def test_notify_reminder_is_idempotent(db_session, monkeypatch) -> None:
 
     async def _count(to_email, **kwargs):
         calls.append(to_email)
+        return True
 
     monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _count)
     await _notify_ctx(db_session)

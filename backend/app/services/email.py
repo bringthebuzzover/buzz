@@ -6,6 +6,10 @@ with no key configured it logs (so a misconfigured deploy degrades to "no email"
 rather than crashing). Sends are **best-effort**: a provider failure is logged,
 never raised, so a failed email can't roll back the operation that triggered it
 (account verification, brand invite, applicant denial).
+
+Callers that need honesty (verification, Notify Me) use the returned ``bool``:
+``True`` only on provider accept (HTTP 2xx) or intentional development console
+success; ``False`` on unset key / HTTP error / exception.
 """
 
 from __future__ import annotations
@@ -31,7 +35,7 @@ async def send_verification_email(
     token: str,
     *,
     org_name: str = "",
-) -> None:
+) -> bool:
     """Send a .edu verification link to the org contact."""
     verify_url = f"{settings.FRONTEND_URL}/onboarding/verify-email?token={token}"
 
@@ -46,10 +50,9 @@ async def send_verification_email(
             f"║  URL: {verify_url:<50s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
-        return
+        return True
 
-    # Production path: dispatch through email provider.
-    await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body)
 
 
 async def send_brand_invite_email(
@@ -57,7 +60,7 @@ async def send_brand_invite_email(
     setup_token: str,
     *,
     brand_name: str = "",
-) -> None:
+) -> bool:
     """Send a brand account-setup invitation link."""
     setup_url = f"{settings.FRONTEND_URL}/brand/setup?token={setup_token}"
 
@@ -74,12 +77,12 @@ async def send_brand_invite_email(
             f"║  URL: {setup_url:<50s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
-        return
+        return True
 
-    await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body)
 
 
-async def send_org_approved_email(to_email: str, *, org_name: str = "") -> None:
+async def send_org_approved_email(to_email: str, *, org_name: str = "") -> bool:
     """Tell an org their account was approved and they can sign in."""
     login_url = f"{settings.FRONTEND_URL}/login"
     subject = "Your Buzz organization account is approved"
@@ -93,12 +96,12 @@ async def send_org_approved_email(to_email: str, *, org_name: str = "") -> None:
             f"║  URL: {login_url:<50s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
-        return
+        return True
 
-    await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body)
 
 
-async def send_org_denied_email(to_email: str, *, org_name: str = "") -> None:
+async def send_org_denied_email(to_email: str, *, org_name: str = "") -> bool:
     """Tell an org their application was not approved."""
     subject = "Update on your Buzz application"
     body = _org_denied_body(org_name)
@@ -110,12 +113,12 @@ async def send_org_denied_email(to_email: str, *, org_name: str = "") -> None:
             f"║  To: {to_email:<52s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
-        return
+        return True
 
-    await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body)
 
 
-async def send_brand_denied_email(to_email: str, *, brand_name: str = "") -> None:
+async def send_brand_denied_email(to_email: str, *, brand_name: str = "") -> bool:
     """Tell a brand their application was not approved."""
     subject = "Update on your Buzz application"
     name = brand_name or "your brand"
@@ -131,12 +134,12 @@ async def send_brand_denied_email(to_email: str, *, brand_name: str = "") -> Non
             f"║  To: {to_email:<52s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
-        return
+        return True
 
-    await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body)
 
 
-async def send_org_undenied_email(to_email: str, *, org_name: str = "") -> None:
+async def send_org_undenied_email(to_email: str, *, org_name: str = "") -> bool:
     """Tell an org their denial was lifted and they are back under review."""
     subject = "Your Buzz application is under review again"
     name = org_name or "your organization"
@@ -152,12 +155,12 @@ async def send_org_undenied_email(to_email: str, *, org_name: str = "") -> None:
             f"║  To: {to_email:<52s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
-        return
+        return True
 
-    await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body)
 
 
-async def send_brand_undenied_email(to_email: str, *, brand_name: str = "") -> None:
+async def send_brand_undenied_email(to_email: str, *, brand_name: str = "") -> bool:
     """Tell a brand their denial was lifted and they are back under review."""
     subject = "Your Buzz application is under review again"
     name = brand_name or "your brand"
@@ -173,9 +176,9 @@ async def send_brand_undenied_email(to_email: str, *, brand_name: str = "") -> N
             f"║  To: {to_email:<52s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
-        return
+        return True
 
-    await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body)
 
 
 async def send_application_denied_email(
@@ -184,7 +187,7 @@ async def send_application_denied_email(
     org_name: str = "",
     drop_title: str = "",
     brand_name: str = "",
-) -> None:
+) -> bool:
     """Tell an org their drop application was not selected (PRODUCT §7.1: email-only).
 
     Denied applicants get no My Campaigns row, so this email is the only channel
@@ -200,9 +203,9 @@ async def send_application_denied_email(
             f"║  To: {to_email:<52s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
-        return
+        return True
 
-    await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body)
 
 
 async def send_drop_opening_reminder_email(
@@ -211,7 +214,7 @@ async def send_drop_opening_reminder_email(
     org_name: str = "",
     drop_title: str = "",
     brand_name: str = "",
-) -> None:
+) -> bool:
     """Tell an org a drop they subscribed to is about to open (§6.3.1).
 
     Sent by the ``notify_reminders`` job at the lead time the org picked.
@@ -228,9 +231,9 @@ async def send_drop_opening_reminder_email(
             f"║  Drop: {drop_title:<50s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
-        return
+        return True
 
-    await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body)
 
 
 async def send_password_reset_email(
@@ -238,7 +241,7 @@ async def send_password_reset_email(
     token: str,
     *,
     portal: str,
-) -> None:
+) -> bool:
     """Send a brand or admin password-reset link."""
     path = "/brand/reset-password" if portal == "brand" else "/admin/reset-password"
     reset_url = f"{settings.FRONTEND_URL}{path}?token={token}"
@@ -258,21 +261,22 @@ async def send_password_reset_email(
             f"║  URL: {reset_url:<50s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
-        return
+        return True
 
-    await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body)
 
 
-async def _dispatch(to_email: str, subject: str, body: str) -> None:
+async def _dispatch(to_email: str, subject: str, body: str) -> bool:
     """Send one email through Resend. Best-effort: never raises.
 
-    With no ``RESEND_API_KEY`` configured this logs and returns, so a deploy that
-    hasn't wired email yet degrades gracefully instead of 500-ing the flows that
-    send mail.
+    Returns ``True`` on HTTP 2xx provider accept, ``False`` on unset key /
+    HTTP error / exception. With no ``RESEND_API_KEY`` configured this logs
+    and returns False, so a deploy that hasn't wired email yet degrades
+    gracefully instead of 500-ing the flows that send mail.
     """
     if not settings.RESEND_API_KEY:
         logger.warning("Email not sent (RESEND_API_KEY unset): to=%s subject=%s", to_email, subject)
-        return
+        return False
     try:
         async with _email_client() as client:
             resp = await client.post(
@@ -293,13 +297,14 @@ async def _dispatch(to_email: str, subject: str, body: str) -> None:
                 resend_id = None
     except Exception:  # noqa: BLE001 — email is best-effort; log, don't break the caller
         logger.exception("Email send failed: to=%s subject=%s", to_email, subject)
-        return
+        return False
     logger.info(
         "Email dispatched: to=%s subject=%s resend_id=%s",
         to_email,
         subject,
         resend_id,
     )
+    return True
 
 
 def _verification_body(verify_url: str, org_name: str) -> str:

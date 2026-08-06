@@ -3,7 +3,8 @@ id: ops.email-best-effort-no-ledger
 title: Email false-success and one-shot burns (best-effort, no ledger)
 kind: silent_loss
 severity: P2
-status: open
+status: fixed
+closed_in: 7b3ae53
 surface: ops
 evidence:
   - path: backend/app/services/email.py

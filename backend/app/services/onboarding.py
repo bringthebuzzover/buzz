@@ -101,7 +101,13 @@ async def _mint_and_send_verification(
     edu_email: str,
     *,
     org_name: str = "",
-) -> str:
+) -> bool:
+    """Mint a live verification token and attempt delivery.
+
+    Returns whether the provider accepted the send (or development console
+    success). On failure the just-minted token is deleted so it does not burn
+    a max-3 slot.
+    """
     token = secrets.token_urlsafe(48)
     evt = EmailVerificationToken(
         id=uuid.uuid4(),
@@ -112,8 +118,11 @@ async def _mint_and_send_verification(
     )
     db.add(evt)
     await db.flush()
-    await send_verification_email(edu_email, token, org_name=org_name)
-    return token
+    ok = await send_verification_email(edu_email, token, org_name=org_name)
+    if not ok:
+        await db.delete(evt)
+        await db.flush()
+    return ok
 
 
 async def submit_org_onboarding(
@@ -186,12 +195,15 @@ async def submit_org_onboarding(
             status_code=400,
         ) from exc
 
-    await _mint_and_send_verification(db, user, payload.edu_email, org_name=payload.org_name)
+    email_sent = await _mint_and_send_verification(
+        db, user, payload.edu_email, org_name=payload.org_name
+    )
 
     return {
         "org_id": str(org.id),
         "status": user.status,
         "email_sent_to": payload.edu_email,
+        "email_sent": email_sent,
     }
 
 
@@ -236,7 +248,13 @@ async def change_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict
             status_code=409,
         ) from exc
 
-    await _mint_and_send_verification(db, user, edu_email, org_name=org.org_name)
+    ok = await _mint_and_send_verification(db, user, edu_email, org_name=org.org_name)
+    if not ok:
+        raise BuzzAPIException(
+            errors.EMAIL_SEND_FAILED,
+            "We could not send the verification email. Please try again.",
+            status_code=502,
+        )
     return {"email_sent_to": edu_email, "status": user.status}
 
 
@@ -334,6 +352,12 @@ async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, A
             status_code=429,
         )
 
-    await _mint_and_send_verification(db, user, user.edu_email)
+    ok = await _mint_and_send_verification(db, user, user.edu_email)
+    if not ok:
+        raise BuzzAPIException(
+            errors.EMAIL_SEND_FAILED,
+            "We could not send the verification email. Please try again.",
+            status_code=502,
+        )
 
     return {"email_sent_to": user.edu_email}
