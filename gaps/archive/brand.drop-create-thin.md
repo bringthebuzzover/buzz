@@ -4,7 +4,7 @@ title: Drop logistics (capacity, window, units, hashtag) have no product write p
 kind: ops_completeness
 severity: P2
 status: fixed
-closed_in:
+closed_in: d630848
 surface: brand
 evidence:
   - path: backend/app/schemas/drops.py
