@@ -255,7 +255,7 @@ stop_if:
 
 ## product-capacity-docs
 
-status: pending
+status: done
 gaps:
   - product.capacity-closed-during-open-unreachable
 approach: |

@@ -111,7 +111,7 @@ export type DropCardData = Pick<
 
 /** A feed row: card data plus the two server-computed fields. */
 export type DropFeedRow = DropCardData & {
-  /** Number of accepted applications (drives "spots remaining"/full). */
+  /** Accepted apps — 0 on first Open; after finalize/reopen drives spots remaining / full. */
   acceptedCount: number;
   /** Whether the current org already has a non-denied application on this drop. */
   alreadyApplied: boolean;

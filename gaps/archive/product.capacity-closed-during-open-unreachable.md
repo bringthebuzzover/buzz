@@ -3,7 +3,8 @@ id: product.capacity-closed-during-open-unreachable
 title: PRODUCT capacity-Closed during Open is unreachable
 kind: doc_drift
 severity: P2
-status: deferred
+status: fixed
+closed_in:
 surface: product
 evidence:
   - path: PRODUCT.md

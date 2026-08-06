@@ -1,10 +1,11 @@
 /**
  * Org-side drop feed card. Renders status-aware copy and a primary CTA per
- * `DropFeedStatus` (Upcoming / Open / Closed). Per PRODUCT.md §6.3 and §7 there is
- * no waitlist; when capacity is full the drop is Closed on the feed for new applies.
+ * `DropFeedStatus` (Upcoming / Open / Closed). Per PRODUCT.md §6.3 and §7.2 there
+ * is no waitlist; capacity-Closed (after finalize, or reopen leftovers) shows
+ * Closed on the feed for new applies — not mid-window fill during first Open.
  *
  * - Upcoming: countdown to `applyOpenAt` + Notify Me toggle.
- * - Open: Apply when spots remain under spec rules.
+ * - Open: Apply; spots copy is "Up to N" when no prior accepts, else "M of N remaining".
  * - Closed: disabled action with reason chip.
  *
  * The card is presentational; data fetching + mutations are wired by the parent
@@ -121,7 +122,9 @@ export default function DropFeedCard({
             {feedStatus === "upcoming"
               ? "Opens soon"
               : feedStatus === "open"
-                ? `${remaining} of ${drop.capacityTotal} spots remaining`
+                ? acceptedCount === 0
+                  ? `Up to ${drop.capacityTotal} spots`
+                  : `${remaining} of ${drop.capacityTotal} spots remaining`
                 : closedReason
                   ? CLOSED_REASON_COPY[closedReason]
                   : "Closed"}
@@ -142,7 +145,8 @@ export default function DropFeedCard({
               {alreadyApplied ? "Already applied" : "Apply"}
             </button>
           ) : feedStatus === "open" && full ? (
-            // PRODUCT.md §7.2: a full drop is Closed for new applies (no waitlist).
+            // Dead under getDropFeedStatus (full ⇒ closed). Kept as a guard.
+            // PRODUCT.md §7.2: capacity-Closed after finalize / reopen leftovers.
             <button
               type="button"
               disabled

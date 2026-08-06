@@ -2,10 +2,12 @@
  * Pure helpers that derive a drop's org-facing feed status (Upcoming / Open / Closed)
  * from its timing fields, current capacity fill, and the manual-reopen override.
  *
- * Spec rules (PRODUCT.md §6.3):
+ * Spec rules (PRODUCT.md §6.3 / §7.1–§7.2):
  * - Before `applyOpenAt`: Upcoming.
  * - After `applyCloseAt`: Closed (unless `manualReopen === true`).
- * - When `acceptedCount >= capacityTotal`: Closed (full).
+ * - When `acceptedCount >= capacityTotal`: Closed (full) — post-selection or
+ *   reopen leftovers; in a normal first Open window `acceptedCount` stays 0
+ *   until batch finalize after close.
  * - Otherwise: Open.
  *
  * `getDropClosedReason` returns a tag for UI copy ("apply window ended" vs "all spots filled").
