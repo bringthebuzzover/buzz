@@ -71,13 +71,16 @@ class DropDetailResponse(CamelModel):
     apply_open_at: datetime
     apply_close_at: datetime
     manual_reopen: bool
+    applicant_selection_finalized_at: datetime | None
     total_product_units: int | None
     created_at: datetime
     accepted_count: int
     already_applied: bool
 
-    @field_serializer("apply_open_at", "apply_close_at", "created_at")
-    def _epoch(self, value: datetime) -> int | None:
+    @field_serializer(
+        "apply_open_at", "apply_close_at", "applicant_selection_finalized_at", "created_at"
+    )
+    def _epoch(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 

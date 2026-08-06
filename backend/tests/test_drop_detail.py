@@ -37,6 +37,7 @@ async def test_detail_happy_path(app_client: AsyncClient, db_session) -> None:
     assert data["totalProductUnits"] == 200
     assert data["acceptedCount"] == 0
     assert data["alreadyApplied"] is False
+    assert data["applicantSelectionFinalizedAt"] is None
     # epoch-ms datetimes are ints.
     assert isinstance(data["applyOpenAt"], int)
     assert isinstance(data["createdAt"], int)

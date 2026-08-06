@@ -235,6 +235,32 @@ async def _require_org(db: AsyncSession, org_user: User) -> Organization:
     return org
 
 
+def drop_apply_eligibility(
+    drop: Drop,
+    *,
+    now: datetime,
+    accepted_count: int,
+) -> None:
+    """Raise if an org may not apply right now (architecture §7.1 / §11.3).
+
+    Single Python SOT for open / full / finalized / close⊕reopen. Callers still
+    enforce browsability and already-applied separately. Finalize's "window must
+    be closed" rule is the inverse and stays in the finalize path.
+    """
+
+    if now < _as_utc(drop.apply_open_at):
+        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not open for applications yet.")
+    if drop.applicant_selection_finalized_at is not None:
+        raise BuzzAPIException(
+            errors.DROP_NOT_OPEN,
+            "Applicant selection for this drop is already finalized.",
+        )
+    if now > _as_utc(drop.apply_close_at) and not drop.manual_reopen:
+        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is closed for applications.")
+    if accepted_count >= drop.capacity_total:
+        raise BuzzAPIException(errors.CAPACITY_EXCEEDED, "This drop has no remaining spots.")
+
+
 async def build_drop_detail(
     db: AsyncSession,
     org_user: User,
@@ -258,6 +284,7 @@ async def build_drop_detail(
         apply_open_at=drop.apply_open_at,
         apply_close_at=drop.apply_close_at,
         manual_reopen=drop.manual_reopen,
+        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
         total_product_units=drop.total_product_units,
         created_at=drop.created_at,
         accepted_count=accepted,
@@ -274,8 +301,8 @@ async def apply_to_drop(
     """Create an ``applied`` application, enforcing the §7.1/§11.3 rules.
 
     Order: drop exists → drop is browsable (approved brand, not finished) →
-    apply window open (mirrors ``getDropFeedStatus``) → not already applied (a
-    prior ``denied`` does NOT block) → capacity remains.
+    apply window open (``drop_apply_eligibility``, mirrors feed UX) → not
+    already applied (a prior ``denied`` does NOT block) → capacity remains.
     """
 
     org = await _require_org(db, org_user)
@@ -283,17 +310,6 @@ async def apply_to_drop(
 
     # Deep links outlive the feed filter, so re-check visibility here.
     await _require_browsable_drop(db, drop)
-
-    now = datetime.now(timezone.utc)
-    if now < _as_utc(drop.apply_open_at):
-        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not open for applications yet.")
-    if drop.applicant_selection_finalized_at is not None:
-        raise BuzzAPIException(
-            errors.DROP_NOT_OPEN,
-            "Applicant selection for this drop is already finalized.",
-        )
-    if now > _as_utc(drop.apply_close_at) and not drop.manual_reopen:
-        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is closed for applications.")
 
     existing = await db.scalar(
         select(DropApplication.id).where(
@@ -306,8 +322,7 @@ async def apply_to_drop(
         raise BuzzAPIException(errors.ALREADY_APPLIED, "You have already applied to this drop.")
 
     accepted = (await _accepted_counts(db, [drop.id])).get(drop.id, 0)
-    if accepted >= drop.capacity_total:
-        raise BuzzAPIException(errors.CAPACITY_EXCEEDED, "This drop has no remaining spots.")
+    drop_apply_eligibility(drop, now=datetime.now(timezone.utc), accepted_count=accepted)
 
     pitch_clean = pitch.strip() if pitch and pitch.strip() else None
     application = DropApplication(

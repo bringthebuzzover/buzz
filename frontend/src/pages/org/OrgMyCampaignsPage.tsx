@@ -5,30 +5,13 @@
  */
 import { useMemo } from "react";
 import CampaignRow from "../../components/org/CampaignRow";
-import { ORG_CAMPAIGN_STATUS_ORDER } from "../../types/orgCampaign";
 import { useCampaigns } from "../../api/hooks/useOrgHooks";
 import type { CampaignItem } from "../../api/hooks/useOrgHooks";
-
-/** Derive org-campaign status from a backend CampaignItem. */
-function deriveApiStatus(item: CampaignItem) {
-  const stage = item.brandTrackerStage;
-  const decision = item.decision;
-
-  if (decision === "denied") return null;
-  if (decision === "applied") return "applied" as const;
-  if (decision === "accepted") {
-    // accepted but drop not yet active → "accepted"
-    if (stage === "request_received" || stage === "finalizing_agreements" || stage === "awaiting_products") {
-      return "accepted" as const;
-    }
-    // drop is active → "active"
-    if (stage === "drop_active") return "active" as const;
-    // drop finished → "finished"
-    if (stage === "drop_finished") return "finished" as const;
-    return "accepted" as const;
-  }
-  return null;
-}
+import {
+  deriveOrgCampaignStatus,
+  ORG_CAMPAIGN_STATUS_ORDER,
+  type OrgCampaignStatus,
+} from "../../utils/orgCampaignStatus";
 
 const PAGE_SHELL = "mx-auto max-w-4xl px-8 py-12";
 
@@ -50,9 +33,9 @@ function ApiCampaigns() {
 
   const rows = useMemo(() => {
     const campaigns = items ?? [];
-    const mapped: { item: CampaignItem; status: NonNullable<ReturnType<typeof deriveApiStatus>> }[] = [];
+    const mapped: { item: CampaignItem; status: OrgCampaignStatus }[] = [];
     for (const item of campaigns) {
-      const status = deriveApiStatus(item);
+      const status = deriveOrgCampaignStatus(item);
       if (status == null) continue;
       mapped.push({ item, status });
     }
@@ -64,36 +47,6 @@ function ApiCampaigns() {
     });
     return mapped;
   }, [items]);
-
-  const mappedRows = rows.map(({ item, status }: { item: CampaignItem; status: NonNullable<ReturnType<typeof deriveApiStatus>> }) => ({
-    application: {
-      id: item.id,
-      dropId: item.dropId,
-      orgId: "",
-      decision: item.decision as "applied" | "accepted" | "denied",
-      appliedAt: item.appliedAt,
-      decisionAt: item.decisionAt,
-      pitch: item.pitch ?? undefined,
-      trackingNumber: item.trackingNumber ?? undefined,
-      allocatedUnits: item.allocatedUnits ?? undefined,
-    },
-    drop: {
-      id: item.dropId,
-      brandId: "",
-      brandName: item.brandName,
-      title: item.title,
-      description: "",
-      image: item.image,
-      location: "",
-      capacityTotal: 0,
-      applyOpenAt: 0,
-      applyCloseAt: 0,
-      manualReopen: false,
-      brandTrackerStage: item.brandTrackerStage,
-      createdAt: 0,
-    },
-    status,
-  }));
 
   if (isLoading) {
     return (
@@ -120,18 +73,21 @@ function ApiCampaigns() {
   return (
     <div className={PAGE_SHELL}>
       <CampaignsHeader />
-      {mappedRows.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
           You have no campaigns yet. Browse Campaigns to apply to one.
         </div>
       ) : (
         <div className="space-y-4">
-          {mappedRows.map(({ application, drop, status }: { application: any; drop: any; status: any }) => (
+          {rows.map(({ item, status }) => (
             <CampaignRow
-              key={application.id}
-              application={application}
-              drop={drop}
+              key={item.id}
+              applicationId={item.id}
+              brandName={item.brandName}
+              title={item.title}
+              image={item.image}
               status={status}
+              trackingNumber={item.trackingNumber}
             />
           ))}
         </div>

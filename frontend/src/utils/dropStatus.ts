@@ -29,7 +29,11 @@ export function spotsRemaining(drop: DropCardData, acceptedCount: number): numbe
   return Math.max(0, drop.capacityTotal - acceptedCount);
 }
 
-/** Compute the org-facing status for a drop. */
+/**
+ * Live org-feed UX clock. Backend enforcement SOT is
+ * `drop_apply_eligibility` in `backend/app/services/drops.py` — keep this
+ * aligned for card chips, but never treat the FE as the gate.
+ */
 export function getDropFeedStatus(
   drop: DropCardData,
   acceptedCount: number,

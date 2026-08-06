@@ -18,11 +18,12 @@ from app.models.brand_invite_token import BrandInviteToken
 from app.models.password_reset_token import PasswordResetToken
 from app.models.verification_token import EmailVerificationToken
 
-_DEFAULT_GRACE_DAYS = 7
+# Exported for admin health (must stay aligned with the cleanup job).
+DEFAULT_GRACE_DAYS = 7
 
 
 async def cleanup_tokens(
-    db: AsyncSession, *, grace_days: int = _DEFAULT_GRACE_DAYS
+    db: AsyncSession, *, grace_days: int = DEFAULT_GRACE_DAYS
 ) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(days=grace_days)

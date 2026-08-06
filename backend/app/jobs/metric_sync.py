@@ -48,7 +48,9 @@ from app.services.instagram_token import clear_unusable_instagram_token
 
 logger = logging.getLogger(__name__)
 
-_WINDOW = timedelta(days=30)
+# Exported for admin health (must stay aligned with the sync lookback).
+METRIC_WINDOW_DAYS = 30
+_WINDOW = timedelta(days=METRIC_WINDOW_DAYS)
 _LIVE_STAGES = (
     BrandTrackerStage.AWAITING_PRODUCTS.value,
     BrandTrackerStage.DROP_ACTIVE.value,

@@ -5,11 +5,14 @@
  */
 import { Link, Navigate, useParams } from "react-router-dom";
 import { ChevronLeft, ClipboardList, Truck } from "lucide-react";
-import { ORG_CAMPAIGN_STATUS_LABELS } from "../../types/orgCampaign";
 import ApiPostSelector from "../../components/org/ApiPostSelector";
 import { useCampaignDetail, useCampaignAggregate } from "../../api/hooks/useOrgHooks";
 import { ApiError } from "../../api/errors";
 import { BRAND_DROP_TRACKER_ORDER } from "../../types/brandPortal";
+import {
+  deriveOrgCampaignStatus,
+  ORG_CAMPAIGN_STATUS_LABELS,
+} from "../../utils/orgCampaignStatus";
 
 function StatusPanel({ children }: { children: React.ReactNode }) {
   return (
@@ -17,22 +20,6 @@ function StatusPanel({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   );
-}
-
-/** Map backend tracker stage + decision → org-campaign status. */
-function apiDeriveStatus(detail: {
-  decision: string;
-  brandTrackerStage: string;
-}) {
-  if (detail.decision === "denied") return null;
-  if (detail.decision === "applied") return "applied" as const;
-  if (detail.decision === "accepted") {
-    const stage = detail.brandTrackerStage;
-    if (stage === "drop_active") return "active" as const;
-    if (stage === "drop_finished") return "finished" as const;
-    return "accepted" as const;
-  }
-  return null;
 }
 
 function shipmentOnTheWay(detail: {
@@ -83,7 +70,7 @@ function ApiCampaignDetail() {
     );
   }
 
-  const status = apiDeriveStatus(detail);
+  const status = deriveOrgCampaignStatus(detail);
   if (status == null) {
     return <Navigate to="/org/campaigns" replace />;
   }
