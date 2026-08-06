@@ -3,7 +3,8 @@ id: drops.detail-notify-skip-browsable-gates
 title: Drop detail / Notify Me skip browsable gates
 kind: authz
 severity: P2
-status: open
+status: fixed
+closed_in: 59c0ab0
 surface: drops
 evidence:
   - path: backend/app/services/drops.py

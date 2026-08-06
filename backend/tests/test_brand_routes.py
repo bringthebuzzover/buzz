@@ -19,6 +19,8 @@ from tests.conftest import (
     make_brand,
     make_drop,
     make_org,
+    make_post_link,
+    make_social_post,
     make_user,
     mint_access_token,
     persist,
@@ -151,6 +153,34 @@ class TestGetBrandDropDetail:
         assert "totalEngagement" in data
         assert "totalReach" in data
         assert "totalPosts" in data
+
+    async def test_attributed_totals_scoped_per_application(
+        self, app_client: AsyncClient, db_session
+    ):
+        """Deny+reapply leaves two rows; each must only count its own linked posts."""
+        _, brand, headers = await _brand_ctx(db_session)
+        drop = await make_drop(db_session, brand)
+        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, org_user)
+
+        denied = await make_application(db_session, drop, org, decision=ApplicationDecision.DENIED)
+        reapplied = await make_application(
+            db_session, drop, org, decision=ApplicationDecision.APPLIED
+        )
+        old_post = await make_social_post(db_session, org, likes=40, comments=4)
+        new_post = await make_social_post(db_session, org, likes=10, comments=1)
+        await make_post_link(db_session, old_post, denied)
+        await make_post_link(db_session, new_post, reapplied)
+
+        res = await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=headers)
+        assert res.status_code == 200
+        by_decision = {a["decision"]: a for a in res.json()["data"]["applications"]}
+        assert by_decision["denied"]["attributedPostCount"] == 1
+        assert by_decision["denied"]["attributedLikes"] == 40
+        assert by_decision["denied"]["attributedEngagement"] == 44
+        assert by_decision["applied"]["attributedPostCount"] == 1
+        assert by_decision["applied"]["attributedLikes"] == 10
+        assert by_decision["applied"]["attributedEngagement"] == 11
 
     async def test_404_for_other_brand_drop(self, app_client: AsyncClient, db_session):
         _, _, headers = await _brand_ctx(db_session)

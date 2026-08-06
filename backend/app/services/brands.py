@@ -134,28 +134,18 @@ async def _drop_aggregate(db: AsyncSession, drop_id: UUID) -> dict[str, int]:
 # --- Org attributed campaign totals (port of computeOrgAttributedCampaignTotals)
 
 
-async def _org_attributed_totals(db: AsyncSession, org_id: UUID, drop_id: UUID) -> dict[str, int]:
-    """Sum likes/comments across posts linked to *org_id*'s applications on *drop_id*."""
+async def _org_attributed_totals(db: AsyncSession, application_id: UUID) -> dict[str, int]:
+    """Sum likes/comments across posts linked to one application row.
 
-    app_ids = list(
-        await db.scalars(
-            select(DropApplication.id).where(
-                DropApplication.org_id == org_id,
-                DropApplication.drop_id == drop_id,
-            )
-        )
-    )
-    if not app_ids:
-        return {
-            "attributed_post_count": 0,
-            "attributed_likes": 0,
-            "attributed_comments": 0,
-            "attributed_engagement": 0,
-        }
+    Deny+reapply leaves two application rows for the same org+drop; totals must
+    stay scoped to the row being rendered (same rule as ``_application_linked_posts``).
+    """
 
     linked_post_ids = list(
         await db.scalars(
-            select(PostCampaignLink.post_id).where(PostCampaignLink.application_id.in_(app_ids))
+            select(PostCampaignLink.post_id).where(
+                PostCampaignLink.application_id == application_id
+            )
         )
     )
     post_count = len(linked_post_ids)

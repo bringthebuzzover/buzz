@@ -136,6 +136,48 @@ async def send_brand_denied_email(to_email: str, *, brand_name: str = "") -> Non
     await _dispatch(to_email, subject, body)
 
 
+async def send_org_undenied_email(to_email: str, *, org_name: str = "") -> None:
+    """Tell an org their denial was lifted and they are back under review."""
+    subject = "Your Buzz application is under review again"
+    name = org_name or "your organization"
+    body = (
+        f"Good news — access for {name} has been restored to the review queue. "
+        "We'll email you again when a decision is ready."
+    )
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Org undenied:                                  ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return
+
+    await _dispatch(to_email, subject, body)
+
+
+async def send_brand_undenied_email(to_email: str, *, brand_name: str = "") -> None:
+    """Tell a brand their denial was lifted and they are back under review."""
+    subject = "Your Buzz application is under review again"
+    name = brand_name or "your brand"
+    body = (
+        f"Good news — access for {name} has been restored to the review queue. "
+        "We'll email you again when a decision is ready."
+    )
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Brand undenied:                                ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return
+
+    await _dispatch(to_email, subject, body)
+
+
 async def send_application_denied_email(
     to_email: str,
     *,

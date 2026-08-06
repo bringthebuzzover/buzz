@@ -87,3 +87,48 @@ async def test_set_notify_unknown_drop_404(app_client: AsyncClient, db_session) 
     )
     assert resp.status_code == 404
     assert resp.json()["error"]["code"] == "NOT_FOUND"
+
+
+async def test_set_notify_rejects_finished_drop(app_client: AsyncClient, db_session) -> None:
+    from app.models.enums import BrandTrackerStage
+
+    user = await persist(db_session, make_user())
+    await make_org(db_session, user)
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    resp = await app_client.post(
+        f"/api/drops/{drop.id}/notify", headers=headers, json={"reminderMinutes": 15}
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
+
+
+async def test_set_notify_rejects_unapproved_brand(app_client: AsyncClient, db_session) -> None:
+    from app.models.enums import BrandStatus
+
+    user = await persist(db_session, make_user())
+    await make_org(db_session, user)
+    brand = await make_brand(db_session)
+    brand.status = BrandStatus.DENIED.value
+    await db_session.flush()
+    drop = await make_drop(db_session, brand)
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    resp = await app_client.post(
+        f"/api/drops/{drop.id}/notify", headers=headers, json={"reminderMinutes": 15}
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
+
+
+async def test_clear_notify_rejects_finished_drop(app_client: AsyncClient, db_session) -> None:
+    from app.models.enums import BrandTrackerStage
+
+    user = await persist(db_session, make_user())
+    await make_org(db_session, user)
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    resp = await app_client.delete(f"/api/drops/{drop.id}/notify", headers=headers)
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"

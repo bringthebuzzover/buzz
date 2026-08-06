@@ -339,7 +339,14 @@ class TestReopenDrop:
 
 
 class TestAdminRecovery:
-    async def test_undeny_org(self, app_client: AsyncClient, db_session):
+    async def test_undeny_org(self, app_client: AsyncClient, db_session, monkeypatch):
+        sent: list[tuple[str, str]] = []
+
+        async def _capture(to_email: str, *, org_name: str = "") -> None:
+            sent.append((to_email, org_name))
+
+        monkeypatch.setattr("app.services.admin.send_org_undenied_email", _capture)
+
         user = await persist(
             db_session,
             make_user(role=PortalRole.ORG, status=OrgUserStatus.DENIED),
@@ -351,12 +358,20 @@ class TestAdminRecovery:
         assert res.status_code == 200
         await db_session.refresh(user)
         assert user.status == OrgUserStatus.PENDING_APPROVAL.value
+        assert sent == [(user.edu_email or "", org.org_name)]
 
         # Wrong state rejected
         res = await app_client.post(f"/api/admin/orgs/{org.id}/undeny", headers=headers)
         assert res.status_code == 400
 
-    async def test_undeny_brand(self, app_client: AsyncClient, db_session):
+    async def test_undeny_brand(self, app_client: AsyncClient, db_session, monkeypatch):
+        sent: list[tuple[str, str]] = []
+
+        async def _capture(to_email: str, *, brand_name: str = "") -> None:
+            sent.append((to_email, brand_name))
+
+        monkeypatch.setattr("app.services.admin.send_brand_undenied_email", _capture)
+
         brand = await make_brand(db_session)
         brand.status = BrandStatus.DENIED.value
         user = await db_session.get(User, brand.user_id)
@@ -371,6 +386,7 @@ class TestAdminRecovery:
         await db_session.refresh(user)
         assert brand.status == BrandStatus.PENDING_REVIEW.value
         assert user.status == OrgUserStatus.PENDING_APPROVAL.value
+        assert sent == [(brand.company_email, brand.brand_name)]
 
     async def test_resend_invite(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)

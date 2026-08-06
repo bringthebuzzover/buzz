@@ -3,7 +3,8 @@ id: brand.org-attributed-totals-duplicate
 title: Org attributed totals can duplicate across denied + re-applied rows
 kind: invariant_break
 severity: P2
-status: open
+status: fixed
+closed_in: 59c0ab0
 surface: brand
 evidence:
   - path: backend/app/services/brands.py

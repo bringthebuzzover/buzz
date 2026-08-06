@@ -541,3 +541,39 @@ class TestHealth:
 
         res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
         assert _signal(res.json()["data"], "silent", "pending_suggestions")["count"] == 1
+
+    async def test_failed_job_run_does_not_count_as_heartbeat(
+        self, app_client: AsyncClient, db_session
+    ):
+        """A failed JobRun must not refresh last-run age — only ok=true runs do."""
+        from app.models.job_run import JobRun
+
+        failed = JobRun(
+            id=uuid.uuid4(),
+            job="drop_autoclose",
+            started_at=_now() - timedelta(minutes=30),
+            finished_at=_now() - timedelta(minutes=25),
+            ok=False,
+            summary={"error": "boom"},
+        )
+        db_session.add(failed)
+        await db_session.flush()
+
+        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        detail = _signal(res.json()["data"], "pipeline", "drop_autoclose")["detail"]
+        assert "last run" not in detail
+
+        ok_run = JobRun(
+            id=uuid.uuid4(),
+            job="drop_autoclose",
+            started_at=_now() - timedelta(minutes=10),
+            finished_at=_now() - timedelta(minutes=5),
+            ok=True,
+            summary={"closed": 0},
+        )
+        db_session.add(ok_run)
+        await db_session.flush()
+
+        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        detail = _signal(res.json()["data"], "pipeline", "drop_autoclose")["detail"]
+        assert "last run" in detail

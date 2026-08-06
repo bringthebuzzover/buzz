@@ -3,7 +3,8 @@ id: admin.job-runs-failed-count-as-heartbeat
 title: Failed job_runs still look like a healthy heartbeat
 kind: ops
 severity: P2
-status: open
+status: fixed
+closed_in: 59c0ab0
 surface: admin
 evidence:
   - path: backend/app/services/admin_read.py
