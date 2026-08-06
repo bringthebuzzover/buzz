@@ -4,7 +4,7 @@ title: awaiting_products stage has suggestions with no useful org UI
 kind: ux_hole
 severity: P3
 status: fixed
-closed_in:
+closed_in: c7c5715
 surface: org
 evidence:
   - path: backend/app/jobs/autolink_scan.py
