@@ -4,7 +4,7 @@ title: No DB CheckConstraints for capacity, units, or apply window
 kind: invariant_break
 severity: P3
 status: fixed
-closed_in:
+closed_in: d630848
 surface: models
 evidence:
   - path: backend/app/models/drop.py
