@@ -4,7 +4,7 @@ title: Failed job_runs still look like a healthy heartbeat
 kind: ops
 severity: P2
 status: fixed
-closed_in: 59c0ab0
+closed_in: f709a67
 surface: admin
 evidence:
   - path: backend/app/services/admin_read.py

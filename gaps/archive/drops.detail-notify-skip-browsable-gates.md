@@ -4,7 +4,7 @@ title: Drop detail / Notify Me skip browsable gates
 kind: authz
 severity: P2
 status: fixed
-closed_in: 59c0ab0
+closed_in: f709a67
 surface: drops
 evidence:
   - path: backend/app/services/drops.py

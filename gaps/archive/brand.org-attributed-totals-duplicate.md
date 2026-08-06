@@ -4,7 +4,7 @@ title: Org attributed totals can duplicate across denied + re-applied rows
 kind: invariant_break
 severity: P2
 status: fixed
-closed_in: 59c0ab0
+closed_in: f709a67
 surface: brand
 evidence:
   - path: backend/app/services/brands.py

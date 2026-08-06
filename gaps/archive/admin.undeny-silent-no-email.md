@@ -4,7 +4,7 @@ title: Admin un-deny does not notify the org by email
 kind: ux_hole
 severity: P2
 status: fixed
-closed_in: 59c0ab0
+closed_in: f709a67
 surface: admin
 evidence:
   - path: backend/app/services/admin.py
