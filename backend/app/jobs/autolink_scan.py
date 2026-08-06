@@ -1,11 +1,14 @@
 """Post auto-link suggestion scan (architecture.md §10.4).
 
-For every accepted application whose drop is live (awaiting_products /
-drop_active) and whose brand has an Instagram handle, scan the org's recent
-posts for a mention of the brand handle (or the campaign hashtag) and write a
-``post_campaign_suggestions`` row the org can one-tap confirm (§7.4.1). Never
-auto-confirms — the org must accept. ``drop_finished`` is excluded: the org UI
-is read-only there, so new pending suggestions would sit forever.
+For every accepted application whose drop is ``drop_active`` and whose brand has
+an Instagram handle, scan the org's recent posts for a mention of the brand
+handle (or the campaign hashtag) and write a ``post_campaign_suggestions`` row
+the org can one-tap confirm (§7.4.1). Never auto-confirms — the org must accept.
+
+Mint is deferred until Active so it matches org UI (ApiPostSelector mounts only
+for active/finished). ``awaiting_products`` is intentionally excluded — shipping
+has no useful confirm/dismiss surface. ``drop_finished`` is also excluded: the
+org UI is read-only there, so new pending suggestions would sit forever.
 
 Idempotent via ``UNIQUE(post_id, application_id)`` (a re-insert is skipped), so
 this is safe to run on a cron. (An on-demand re-scan endpoint — e.g. when an org
@@ -38,12 +41,9 @@ from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
 
-# Drops whose campaign is live enough that new suggestions are actionable.
-# drop_finished is intentionally omitted — org finished detail is read-only.
-_LIVE_STAGES = (
-    BrandTrackerStage.AWAITING_PRODUCTS.value,
-    BrandTrackerStage.DROP_ACTIVE.value,
-)
+# Stages where new suggestions are mintable and actionable in org UI.
+# Independent of metric_sync._LIVE_STAGES (which still includes shipping/finished).
+_MINT_STAGES = (BrandTrackerStage.DROP_ACTIVE.value,)
 # We only auto-suggest FEED + REELS (not STORY/AD).
 _SUGGESTABLE = (SocialMediaProductType.FEED.value, SocialMediaProductType.REELS.value)
 _PRE_WINDOW = timedelta(days=7)  # teaser posts just before the drop opens
@@ -132,7 +132,7 @@ async def scan_autolink(db: AsyncSession) -> dict[str, Any]:
             .join(Brand, Brand.id == Drop.brand_id)
             .where(
                 DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-                Drop.brand_tracker_stage.in_(_LIVE_STAGES),
+                Drop.brand_tracker_stage.in_(_MINT_STAGES),
                 Brand.instagram_handle.isnot(None),
             )
         )
