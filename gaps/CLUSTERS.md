@@ -363,9 +363,14 @@ note: |
 status: parked
 gaps:
   - openapi.422-wrong-shape
+  - openapi.untyped-success-responses
   - ops.observability-thin
   - posts.sibling-dismiss-never-rearms
+  - auth.token-version-ig-clear-duplication
 note: |
-  NO_PLAN (openapi, observability) or wontfix (sibling dismiss). Do not
-  auto-execute. Un-park only with an explicit user request naming the gap id
-  after a Locked v1 exists (or product reverses sibling-dismiss).
+  NO_PLAN (openapi 422, observability) or wontfix (sibling dismiss), plus
+  deferred DRY/contract chores from the SOT/DRY audit:
+  - `openapi.untyped-success-responses` — DataResponse[T] pilot; sibling of 422
+  - `auth.token-version-ig-clear-duplication` — bump + IG clear SOT helpers
+  Do not auto-execute. Un-park only with an explicit user request naming the
+  gap id after a Locked v1 exists (or product reverses sibling-dismiss).
