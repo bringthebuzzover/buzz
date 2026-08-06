@@ -3,7 +3,8 @@ id: org.awaiting-products-suggestions-no-ui
 title: awaiting_products stage has suggestions with no useful org UI
 kind: ux_hole
 severity: P3
-status: deferred
+status: fixed
+closed_in:
 surface: org
 evidence:
   - path: backend/app/jobs/autolink_scan.py

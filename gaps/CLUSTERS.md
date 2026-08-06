@@ -273,7 +273,7 @@ stop_if:
 
 ## autolink-mint-stages
 
-status: pending
+status: done
 gaps:
   - org.awaiting-products-suggestions-no-ui
 approach: |

@@ -733,6 +733,44 @@ async def test_autolink_ignores_drop_finished(db_session) -> None:
     assert result["suggestions_created"] == 0
 
 
+async def test_autolink_ignores_awaiting_products(db_session) -> None:
+    """Shipping stage defers mint until Active (no Suggested posts UI yet)."""
+
+    org_user = await persist(db_session, make_user(instagram_user_id="ig_shipping"))
+    org = await make_org(db_session, org_user)
+    brand = await make_brand(db_session)
+    brand.instagram_handle = "nike"
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+    await db_session.flush()
+    await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    await make_social_post(db_session, org, caption="love @nike while shipping")
+    result = await scan_autolink(db_session)
+    assert result["applications_scanned"] == 0
+    assert result["suggestions_created"] == 0
+
+
+async def test_autolink_mints_after_advance_to_drop_active(db_session) -> None:
+    """Posts seen during shipping remint once the drop reaches Active."""
+
+    org_user = await persist(db_session, make_user(instagram_user_id="ig_remint"))
+    org = await make_org(db_session, org_user)
+    brand = await make_brand(db_session)
+    brand.instagram_handle = "nike"
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+    await db_session.flush()
+    await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    await make_social_post(db_session, org, caption="teaser @nike before active")
+
+    shipping = await scan_autolink(db_session)
+    assert shipping["suggestions_created"] == 0
+
+    drop.brand_tracker_stage = BrandTrackerStage.DROP_ACTIVE.value
+    await db_session.flush()
+    active = await scan_autolink(db_session)
+    assert active["applications_scanned"] == 1
+    assert active["suggestions_created"] == 1
+
+
 async def test_autolink_skips_out_of_window_and_ad(db_session) -> None:
     org, _, drop, _ = await _accepted_live_ctx(db_session)
     # 40 days before the window opens → out of range
