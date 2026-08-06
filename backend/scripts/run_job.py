@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -80,6 +81,15 @@ def main() -> None:
     if len(sys.argv) != 2 or sys.argv[1] not in _JOBS:
         sys.stderr.write(f"usage: run_job.py <{' | '.join(_JOBS)}>\n")
         raise SystemExit(2)
+
+    # Cron entrypoint only — keep stdout JSON clean; do not configure at import.
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        stream=sys.stderr,
+    )
+    for _noisy in ("httpx", "httpcore", "sqlalchemy.engine", "asyncpg", "asyncio"):
+        logging.getLogger(_noisy).setLevel(logging.WARNING)
 
     name = sys.argv[1]
     result = asyncio.run(_run(name))
