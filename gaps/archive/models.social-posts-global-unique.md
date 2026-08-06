@@ -4,7 +4,7 @@ title: social_posts uniqueness is global not per-org
 kind: invariant_break
 severity: P2
 status: fixed
-closed_in:
+closed_in: 3b4e445
 surface: models
 evidence:
   - path: backend/app/models
