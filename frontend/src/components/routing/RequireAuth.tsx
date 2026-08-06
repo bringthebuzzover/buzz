@@ -25,6 +25,10 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
     return <SessionRestorePanel />;
   }
 
+  if (status === "needs_instagram_reconnect") {
+    return <Navigate to="/reconnect-instagram" replace />;
+  }
+
   if (status !== "authenticated") {
     // Admins can't sign in with Instagram, so /login would strand them.
     const target = pathname.startsWith("/admin") ? "/admin/login" : "/login";

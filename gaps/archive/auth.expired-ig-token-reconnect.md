@@ -3,7 +3,8 @@ id: auth.expired-ig-token-reconnect
 title: Expired Instagram token needs org reconnect UX
 kind: ux_hole
 severity: P1
-status: deferred
+status: fixed
+closed_in: b6ada42
 surface: auth
 evidence:
   - path: backend/app/services/instagram_token.py

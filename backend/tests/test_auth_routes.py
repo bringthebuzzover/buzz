@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
-from httpx import AsyncClient
+import uuid
+from datetime import datetime, timedelta, timezone
+
+from httpx import ASGITransport, AsyncClient
 
 from app.config import settings
+from app.deps.db import async_session_factory, engine
+from app.main import app
 from app.models.enums import OrgUserStatus
+from app.models.user import User
 from app.security import jwt
+from app.security.token_crypto import encrypt_token
 from tests.conftest import make_user, mint_access_token, mint_expired_access_token, persist
 
 REFRESH = settings.REFRESH_COOKIE_NAME
@@ -35,6 +42,64 @@ async def test_me_expired_token_expired(app_client: AsyncClient, db_session) -> 
     )
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "TOKEN_EXPIRED"
+
+
+async def test_me_instagram_token_expired(app_client: AsyncClient, db_session) -> None:
+    # maybe_refresh_on_login opens the module async_session_factory; dispose so
+    # its pool binds to this test's event loop (same pattern as job unit tests).
+    await engine.dispose()
+    user = await persist(db_session, make_user(instagram_user_id="ig_me_exp"))
+    user.instagram_access_token = encrypt_token("ll-expired")
+    user.instagram_token_expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
+    await db_session.flush()
+    resp = await app_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 401
+    assert resp.json()["error"]["code"] == "INSTAGRAM_TOKEN_EXPIRED"
+
+
+async def test_me_instagram_expired_bumps_version_and_revokes_access_jwt() -> None:
+    """Real get_db path: clock-expiry clear persists; same access JWT dies on ver."""
+    await engine.dispose()
+    uid = uuid.uuid4()
+    async with async_session_factory() as s:
+        user = User(
+            id=uid,
+            portal_role="org",
+            status=OrgUserStatus.ACTIVE.value,
+            instagram_user_id=f"ig_me_bump_{uid.hex[:8]}",
+            instagram_access_token=encrypt_token("ll-expired"),
+            instagram_token_expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+            token_version=2,
+        )
+        s.add(user)
+        await s.commit()
+        access = mint_access_token(user)
+
+    transport = ASGITransport(app=app)
+    try:
+        async with AsyncClient(transport=transport, base_url="https://test") as client:
+            first = await client.get(
+                "/api/auth/me",
+                headers={"Authorization": f"Bearer {access}"},
+            )
+            assert first.status_code == 401
+            assert first.json()["error"]["code"] == "INSTAGRAM_TOKEN_EXPIRED"
+
+            second = await client.get(
+                "/api/auth/me",
+                headers={"Authorization": f"Bearer {access}"},
+            )
+            assert second.status_code == 401
+            assert second.json()["error"]["code"] == "UNAUTHORIZED"
+    finally:
+        async with async_session_factory() as s:
+            row = await s.get(User, uid)
+            if row is not None:
+                await s.delete(row)
+                await s.commit()
 
 
 async def test_me_refresh_token_rejected(app_client: AsyncClient, db_session) -> None:

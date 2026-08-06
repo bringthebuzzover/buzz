@@ -487,14 +487,48 @@ async def test_on_login_enqueues_last_day_not_expired() -> None:
     assert len(bg.tasks) == 1
 
 
-async def test_on_login_raises_when_expired() -> None:
-    user = _org_with_token(days_to_expiry=-1)
+async def test_on_login_raises_when_expired_and_clears_token() -> None:
+    """Clock-expiry clears ciphertext + bumps token_version (undecryptable parity)."""
+    from app.deps.db import async_session_factory, engine
+
+    await engine.dispose()
+    uid = uuid.uuid4()
+    async with async_session_factory() as s:
+        user = User(
+            id=uid,
+            portal_role="org",
+            status="active",
+            instagram_user_id=f"ig_exp_{uid.hex[:8]}",
+            instagram_access_token=encrypt_token("expired-ll"),
+            instagram_token_expires_at=_now() - timedelta(hours=1),
+            token_version=3,
+        )
+        s.add(user)
+        await s.commit()
+
+    async with async_session_factory() as s:
+        user = await s.get(User, uid)
+        assert user is not None
+        try:
+            await maybe_refresh_on_login(user, BackgroundTasks(), FakeInstagramClient())
+            raise AssertionError("expected INSTAGRAM_TOKEN_EXPIRED")
+        except BuzzAPIException as exc:
+            assert exc.code == "INSTAGRAM_TOKEN_EXPIRED"
+        assert user.instagram_access_token is None
+        assert user.token_version == 4
+
     try:
-        await maybe_refresh_on_login(user, BackgroundTasks(), FakeInstagramClient())
-    except BuzzAPIException as exc:
-        assert exc.code == "INSTAGRAM_TOKEN_EXPIRED"
-    else:
-        raise AssertionError("expected INSTAGRAM_TOKEN_EXPIRED")
+        async with async_session_factory() as s:
+            row = await s.get(User, uid)
+            assert row is not None
+            assert row.instagram_access_token is None
+            assert row.token_version == 4
+    finally:
+        async with async_session_factory() as s:
+            row = await s.get(User, uid)
+            if row is not None:
+                await s.delete(row)
+                await s.commit()
 
 
 async def test_token_refresh_cron_includes_last_day(db_session) -> None:

@@ -155,7 +155,7 @@ export default function AdminHealthPage() {
 
           <Panel
             title="Instagram tokens"
-            description="Org accounts only. An expired token rejects every request that account makes, and the refresh job never retries one that has already lapsed."
+            description="Org accounts only. Authenticated requests with an expired Instagram token return INSTAGRAM_TOKEN_EXPIRED until the org reconnects via OAuth (/reconnect-instagram). The refresh job never retries a token that has already lapsed."
           >
             <SignalList
               signals={health.data.instagramTokens}

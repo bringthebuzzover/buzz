@@ -18,6 +18,21 @@ let accessToken: string | null = null;
 // target user. Callers must check this before refreshing.
 let impersonating = false;
 
+/** sessionStorage latch so reconnect framing survives token_version bump. */
+export const INSTAGRAM_RECONNECT_LATCH = "buzz.instagramReconnect";
+
+export function markInstagramReconnectLatch(): void {
+  sessionStorage.setItem(INSTAGRAM_RECONNECT_LATCH, "1");
+}
+
+export function clearInstagramReconnectLatch(): void {
+  sessionStorage.removeItem(INSTAGRAM_RECONNECT_LATCH);
+}
+
+export function hasInstagramReconnectLatch(): boolean {
+  return sessionStorage.getItem(INSTAGRAM_RECONNECT_LATCH) === "1";
+}
+
 export function getAccessToken(): string | null {
   return accessToken;
 }
@@ -139,25 +154,40 @@ async function _meRequest(token: string): Promise<Response> {
   });
 }
 
+async function _errorCode(resp: Response): Promise<string | undefined> {
+  try {
+    const body = (await resp.json()) as { error?: { code?: string } };
+    return body.error?.code;
+  } catch {
+    return undefined;
+  }
+}
+
+function _instagramReconnect(): MeResult {
+  markInstagramReconnectLatch();
+  return { kind: "instagram_reconnect" };
+}
+
 /**
  * Result of {@link fetchMe}, distinguishing a *definitively unauthenticated*
  * session (401 the refresh cookie can't rescue) from a *transient* failure
- * (network blip / 5xx). Callers must NOT log a user out on `"error"` — only on
- * `"unauthenticated"` — otherwise a single failed 15s poll bounces a valid
- * session to /login.
+ * (network blip / 5xx), and from Instagram reconnect (IG token expired).
+ * Callers must NOT log a user out on `"error"` — only on `"unauthenticated"` —
+ * otherwise a single failed 15s poll bounces a valid session to /login.
  */
 export type MeResult =
   | { kind: "user"; user: AuthUser }
   | { kind: "unauthenticated" }
+  | { kind: "instagram_reconnect" }
   | { kind: "error" };
 
 /**
  * Fetch the current user from GET /api/auth/me.
  *
- * On a 401 (expired access token) it refreshes once from the cookie and retries,
- * so long-lived sessions (e.g. the pending-approval poller) survive the access-
- * token TTL while the refresh cookie is still valid. A still-401 after refresh is
- * `"unauthenticated"`; a 5xx or network throw is `"error"` (transient).
+ * On a Buzz access-token 401 it refreshes once from the cookie and retries.
+ * ``INSTAGRAM_TOKEN_EXPIRED`` is distinct: Meta cannot refresh an already-
+ * expired IG token, so we never refresh-and-hope — return
+ * ``instagram_reconnect`` and set the sessionStorage latch.
  * Uses raw fetch (not `apiFetch`) to avoid an import cycle with `client.ts`.
  */
 export async function fetchMe(): Promise<MeResult> {
@@ -181,12 +211,22 @@ export async function fetchMe(): Promise<MeResult> {
         endImpersonation("expired");
         return { kind: "unauthenticated" };
       }
+      const code = await _errorCode(resp);
+      if (code === "INSTAGRAM_TOKEN_EXPIRED") {
+        return _instagramReconnect();
+      }
       if (!(await refreshAccessToken())) return { kind: "unauthenticated" };
       const refreshed = getAccessToken();
       if (!refreshed) return { kind: "unauthenticated" };
       resp = await _meRequest(refreshed);
     }
-    if (resp.status === 401) return { kind: "unauthenticated" };
+    if (resp.status === 401) {
+      const code = await _errorCode(resp);
+      if (code === "INSTAGRAM_TOKEN_EXPIRED") {
+        return _instagramReconnect();
+      }
+      return { kind: "unauthenticated" };
+    }
     if (!resp.ok) return { kind: "error" }; // 5xx / other → transient, keep session
     const body = await resp.json();
     const u = body.data;

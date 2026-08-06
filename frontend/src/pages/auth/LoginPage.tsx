@@ -16,6 +16,10 @@ export default function LoginPage() {
     return <Navigate to={pathForUser(user)} replace />;
   }
 
+  if (status === "needs_instagram_reconnect") {
+    return <Navigate to="/reconnect-instagram" replace />;
+  }
+
   if (status === "restore_failed") {
     return <SessionRestorePanel />;
   }
