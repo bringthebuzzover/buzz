@@ -1,7 +1,8 @@
 """``social_posts`` table — one org's IG/TikTok post + cached metrics.
 
-* ``UNIQUE(platform, external_id)`` keeps repeated ``/me/media`` syncs
-  idempotent (§3.2).
+* ``UNIQUE(org_id, platform, external_id)`` keeps repeated ``/me/media`` syncs
+  idempotent per org (§3.2) without blocking two orgs that somehow share a
+  platform media id.
 * ``metrics_updated_at`` nullable so the metric sync job (§10.1) can pick
   "never refreshed" rows on first run; the job only touches posts where
   ``posted_at >= now() - 30 days``.
@@ -28,7 +29,12 @@ from app.models.enums import PlatformEnum, SocialMediaProductTypeEnum, SocialMed
 class SocialPost(Base):
     __tablename__ = "social_posts"
     __table_args__ = (
-        sa.UniqueConstraint("platform", "external_id", name="uq_social_posts_platform_external_id"),
+        sa.UniqueConstraint(
+            "org_id",
+            "platform",
+            "external_id",
+            name="uq_social_posts_org_platform_external_id",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)

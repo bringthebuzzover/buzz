@@ -13,7 +13,7 @@ Daily. For each org with a live campaign and a valid long-lived token:
 
 Per-post / per-org failures don't block the batch (rate limits, deleted posts,
 expired tokens). Posts older than 30 days are frozen (skipped). Idempotent via
-``UNIQUE(platform, external_id)``.
+``UNIQUE(org_id, platform, external_id)``.
 
 Eligibility (``_LIVE_STAGES``) is intentional for this job: orgs need an accepted
 application on ``awaiting_products`` / ``drop_active`` / ``drop_finished``. The
@@ -182,6 +182,7 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
                 select(func.count())
                 .select_from(SocialPost)
                 .where(
+                    SocialPost.org_id == org.id,
                     SocialPost.platform == Platform.INSTAGRAM.value,
                     SocialPost.external_id == ref.id,
                 )
@@ -194,7 +195,7 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
                 failed += 1
                 continue
             # Insert in a savepoint so a concurrent run losing the
-            # UNIQUE(platform, external_id) race skips that post instead of
+            # UNIQUE(org_id, platform, external_id) race skips that post instead of
             # aborting the whole job's transaction.
             try:
                 async with db.begin_nested():
