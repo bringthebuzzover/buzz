@@ -15,7 +15,9 @@ import {
   useCreateBrand,
   useDenyBrand,
   useViewAs,
+  INVITE_EMAIL_FAILED_COPY,
   type AdminBrandRow,
+  type BrandInviteActionResult,
 } from "../../api/hooks/useAdminHooks";
 import {
   ActionButton,
@@ -66,15 +68,18 @@ function InviteBrandForm() {
   const submit = async () => {
     setError(null);
     try {
-      await create.mutateAsync({
+      const data = (await create.mutateAsync({
         brandName: brandName.trim(),
         companyEmail: companyEmail.trim(),
         instagramHandle: instagramHandle.trim() || undefined,
         approveNow,
-      });
+      })) as BrandInviteActionResult;
       setBrandName("");
       setCompanyEmail("");
       setInstagramHandle("");
+      if (approveNow && data.emailSent === false) {
+        setError(INVITE_EMAIL_FAILED_COPY);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create brand.");
     }
@@ -83,7 +88,7 @@ function InviteBrandForm() {
   return (
     <Panel
       title="Invite brand"
-      description="Works even when public self-registration is off. Approve now sends the setup invite immediately."
+      description="Works even when public self-registration is off. Choose whether to approve and email the setup invite immediately, or leave the brand pending for later."
     >
       <div className="space-y-3 px-4 py-4">
         {error && <ErrorNote>{error}</ErrorNote>}
@@ -122,14 +127,19 @@ function InviteBrandForm() {
               onChange={(e) => setInstagramHandle(e.target.value)}
             />
           </label>
-          <label className="flex items-end gap-2 pb-2 text-sm font-medium text-buzz-ink">
-            <input
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
+              After create
+            </span>
+            <select
               data-testid="invite-brand-approve-now"
-              type="checkbox"
-              checked={approveNow}
-              onChange={(e) => setApproveNow(e.target.checked)}
-            />
-            Approve and send invite now
+              className={inputClass}
+              value={approveNow ? "approve" : "pending"}
+              onChange={(e) => setApproveNow(e.target.value === "approve")}
+            >
+              <option value="approve">Approve and send invite now</option>
+              <option value="pending">Create pending — invite later</option>
+            </select>
           </label>
         </div>
         <ActionButton
@@ -154,9 +164,24 @@ export default function AdminBrandsPage() {
   const approve = useApproveBrand();
   const deny = useDenyBrand();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
+  const [inviteNotice, setInviteNotice] = useState<string | null>(null);
 
   const busy = approve.isPending || deny.isPending;
   const actionError = approve.isError || deny.isError;
+
+  const onApprove = async (brandId: string) => {
+    setInviteNotice(null);
+    try {
+      const data = (await approve.mutateAsync(
+        brandId,
+      )) as BrandInviteActionResult;
+      if (data.emailSent === false) {
+        setInviteNotice(INVITE_EMAIL_FAILED_COPY);
+      }
+    } catch {
+      // actionError banner covers hard failures
+    }
+  };
 
   return (
     <div>
@@ -166,6 +191,7 @@ export default function AdminBrandsPage() {
       />
 
       {viewAsError && <ErrorNote>{viewAsError}</ErrorNote>}
+      {inviteNotice && <ErrorNote>{inviteNotice}</ErrorNote>}
       {actionError && (
         <ErrorNote>
           That decision did not go through. Reload and try again.
@@ -229,7 +255,7 @@ export default function AdminBrandsPage() {
                           variant="primary"
                           testId={`approve-brand-${row.id}`}
                           disabled={busy}
-                          onClick={() => approve.mutate(row.id)}
+                          onClick={() => void onApprove(row.id)}
                         >
                           Approve
                         </ActionButton>

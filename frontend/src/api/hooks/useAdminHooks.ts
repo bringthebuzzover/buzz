@@ -387,26 +387,46 @@ export function useDenyOrg() {
   );
 }
 
+export type BrandInviteActionResult = {
+  brandId: string;
+  status: string;
+  /** Present when an invite email was attempted (approve / approve-now create). */
+  emailSent?: boolean;
+};
+
+/** Admin copy when approve/create succeeded but the invite mail did not. */
+export const INVITE_EMAIL_FAILED_COPY =
+  "Brand approved, but the invite email failed to send. Open the brand and use Resend invite.";
+
 export function useApproveBrand() {
-  return useAdminMutation((brandId: string) =>
-    apiFetch(`/api/admin/brands/${brandId}/approve`, { method: "POST" }),
-  );
+  return useAdminMutation(async (brandId: string) => {
+    const { data } = await apiFetch<BrandInviteActionResult>(
+      `/api/admin/brands/${brandId}/approve`,
+      { method: "POST" },
+    );
+    return data;
+  });
 }
 
 export function useCreateBrand() {
   return useAdminMutation(
-    (input: {
+    async (input: {
       brandName: string;
       companyEmail: string;
       instagramHandle?: string;
       intentMessage?: string;
       approveNow?: boolean;
-    }) =>
-      apiFetch("/api/admin/brands", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      }),
+    }) => {
+      const { data } = await apiFetch<BrandInviteActionResult>(
+        "/api/admin/brands",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        },
+      );
+      return data;
+    },
   );
 }
 
@@ -429,9 +449,13 @@ export function useUndenyBrand() {
 }
 
 export function useResendBrandInvite() {
-  return useAdminMutation((brandId: string) =>
-    apiFetch(`/api/admin/brands/${brandId}/resend-invite`, { method: "POST" }),
-  );
+  return useAdminMutation(async (brandId: string) => {
+    const { data } = await apiFetch<BrandInviteActionResult>(
+      `/api/admin/brands/${brandId}/resend-invite`,
+      { method: "POST" },
+    );
+    return data;
+  });
 }
 
 export function useClearOrgInstagramToken() {
