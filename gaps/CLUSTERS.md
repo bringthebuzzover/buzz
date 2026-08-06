@@ -167,27 +167,194 @@ stop_if:
 
 ---
 
-## ops-deploy
+# Open queue (priority order)
+
+Auto-pick (`run next cluster`) = first `status: pending` below.
+`ops` clusters require `run cluster <id>`. Do not auto-pick `parked`.
+
+Priority rationale (UX + prod correctness first; small batches; deps respected):
+1. Email false-success / one-shot burns (unblocks safe notify cron)
+2. IG reconnect SPA
+3. Admin drop logistics + DB CHECKs
+4. PRODUCT capacity Fork A (docs/copy)
+5. Autolink mint only at drop_active
+6. Cron INFO logging
+Then human ops: notify Railway cron, SameSite App Review checklist.
+
+---
+
+## email-honesty
+
+status: pending
+gaps:
+  - ops.email-best-effort-no-ledger
+approach: |
+  Implement Locked v1 in `gaps/ops.email-best-effort-no-ledger.md` only
+  (cheap wins — no ledger):
+  1. `_dispatch` + v1 wrappers return bool; never raise from dispatch.
+  2. Verification resend/change-email: on false, invalidate token; raise
+     `EMAIL_SEND_FAILED` (502/503); SPA must not claim re-sent.
+  3. First signup: keep user+org (`pending_email_verification`); delete
+     token; `email_sent: false` / wire `emailSent`; SPA durable failure UX.
+  4. Notify Me: stamp `sent_at` only when dispatch true.
+  5. Denial: structured log only (does not close org-visible silent loss).
+  Out: ledger, webhooks, invite/reset honesty, admin email UI.
+  **Partial / not timeless:** on archive, leave `ops.email-ledger`
+  deferred follow-up open (ledger + denial channel + invite/reset).
+
+stop_if:
+  - Product insists denial needs in-app channel in the same PR (expand scope).
+  - Scope expands into `ops.email-ledger` work.
+  - Archiving without `gaps/ops.email-ledger.md` still living.
+
+---
+
+## auth-ig-reconnect
+
+status: pending
+gaps:
+  - auth.expired-ig-token-reconnect
+approach: |
+  Implement Locked v1 in `gaps/auth.expired-ig-token-reconnect.md`:
+  1. FE: `fetchMe` / `apiFetch` / `AuthContext` distinguish
+     `INSTAGRAM_TOKEN_EXPIRED` → `needs_instagram_reconnect` + latch
+     `buzz.instagramReconnect`; mid-session hard-nav; cold Navigate.
+  2. Public `/reconnect-instagram` (no authenticated fetches / anti-loop).
+  3. Latch clear on `InstagramCallbackPage` success (`setAccessToken` +
+     `/org/browse`); pending_email → verify via RequireStatus.
+  4. BE: clock-expiry clear ciphertext + bump `token_version` in dedicated
+     session before raise (undecryptable parity).
+  5. Admin + DEPLOYMENT copy: cron cannot resurrect expired; Clear is ops
+     assist.
+
+stop_if:
+  - Meta OAuth reconnect path broken in staging; pause before shipping UX-only.
+
+---
+
+## admin-drop-config
+
+status: pending
+gaps:
+  - brand.drop-create-thin
+  - models.missing-check-constraints
+approach: |
+  1. Phase 1 from `gaps/brand.drop-create-thin.md`: `PATCH /api/admin/drops/{id}`
+     for capacity / window / units / hashtag (image/location OUT); omit vs null
+     via `exclude_unset`; epoch-ms windows; stage gate; AdminDropDetail editors;
+     `useAdminMutation` invalidate all `["admin"]`.
+  2. Then (same cluster, after PATCH): Locked v1 from
+     `gaps/models.missing-check-constraints.md` — named CHECKs on Drop +
+     allocated_units; NOT VALID → VALIDATE; do not block Phase 1 archive if
+     CHECKs slip — prefer same PR.
+
+stop_if:
+  - Prod drops already violate proposed CHECKs; pause for data repair.
+
+---
+
+## product-capacity-docs
+
+status: pending
+gaps:
+  - product.capacity-closed-during-open-unreachable
+approach: |
+  Fork A only (`gaps/product.capacity-closed-during-open-unreachable.md`):
+  rewrite PRODUCT §4.1 / §5.3.1 / §6.3 (incl. intro spots example) / §7.1–7.2
+  (+ §8–§10/glossary) to batch-finalize after `apply_close_at`; conditional
+  Open spots copy (`Up to N` vs reopen `M of N`); comment updates in
+  `dropStatus.ts` / `DropFeedCard`. No backend finalize/apply changes.
+  Fork B out of scope.
+
+stop_if:
+  - Product locks Fork B (mid-window accept) instead; stop and open a new gap.
+
+---
+
+## autolink-mint-stages
+
+status: pending
+gaps:
+  - org.awaiting-products-suggestions-no-ui
+approach: |
+  Locked A in `gaps/org.awaiting-products-suggestions-no-ui.md`: mint only at
+  `drop_active` (`_MINT_STAGES` / independent of metric_sync `_LIVE_STAGES`);
+  update docstring; test awaiting_products → 0 suggestions; keep Active happy
+  path. Do not change metric_sync stages or posts.py API gates.
+
+stop_if:
+  - Product requires suggestions UI during awaiting_products (Option B).
+
+---
+
+## ops-cron-logging
+
+status: pending
+gaps:
+  - ops.cron-logging-thin
+approach: |
+  Locked v1 in `gaps/ops.cron-logging-thin.md`: in `run_job.py` `main()`,
+  configure INFO for `app.*` on stderr (`basicConfig` + dampen httpx/
+  sqlalchemy/asyncpg, or app-scoped handler). No import-time config. Leave
+  `job_runs` + stdout JSON + schedule docs alone.
+
+stop_if: []
+
+---
+
+## ops-notify-cron
 
 status: ops
 gaps:
   - ops.notify-cron-not-created
-  - deploy.samesite-lax-railway-preview
-  - ops.cron-logging-thin
-  - ops.email-best-effort-no-ledger
-  - ops.observability-thin
 approach: |
-  Not a normal code swarm. Agent may:
-  - Add cron logging `basicConfig` for info in `run_job.py` (cron-logging-thin
-    code slice) when executing a dedicated ops-code pass.
-  - Update DEPLOYMENT.md checklists for notify cron + SameSite/custom domains.
-  - Prepare Railway steps; do NOT invent production secrets.
-  Human must create `cron-notify-reminders` on Railway and decide preview
-  cookie/domain strategy. Email ledger and full observability are larger;
-  split follow-ups rather than boiling the ocean in one run.
+  Human Railway create per Locked v1 in `gaps/ops.notify-cron-not-created.md`:
+  clone `cron-drop-autoclose` → `cron-notify-reminders`; exact 15-var env;
+  RAILPACK required; `*/5`; prefer after `email-honesty` (sent_at on true) or
+  hard-gate Resend domain verify. Agent may tick DEPLOYMENT.md checkbox after
+  human confirms; no agent Railway mutate without explicit OK.
 
 stop_if:
   - Always pause before mutating Railway production without explicit user OK.
+  - Prefer `email-honesty` done first (or Resend hard-gate).
+
+---
+
+## ops-samesite
+
+status: ops
+gaps:
+  - deploy.samesite-lax-railway-preview
+approach: |
+  Locked v1 in `gaps/deploy.samesite-lax-railway-preview.md`: docs scrub +
+  binary checklist PASS (Railway+none App Review invariant). Agents may edit
+  DEPLOYMENT/META/README; humans set env / Meta URLs to META.md hosts.
+  Verify Set-Cookie with GET curl (not HEAD).
+  **Partial / not forever topology:** Phase 2 tracked in
+  `deploy.custom-domain-samesite-lax` (deferred). Archiving v1 must leave
+  that follow-up open until www+api + `lax`.
+
+stop_if:
+  - Always pause before mutating Railway/Meta without explicit user OK.
+  - Flipping prod to `lax` while still on dual-host Railway (belongs in
+    Phase 2 follow-up, not this cluster).
+  - Archiving without `gaps/deploy.custom-domain-samesite-lax.md` still living.
+
+---
+
+## follow-ups
+
+status: parked
+gaps:
+  - ops.email-ledger
+  - deploy.custom-domain-samesite-lax
+note: |
+  Required follow-ups for partial v1 clusters (not timeless-complete).
+  Do not auto-execute. Create Locked v1 + un-park only when named explicitly.
+  - `ops.email-ledger` — after `email-honesty` archives; ledger + denial
+    org channel (or wontfix) + invite/reset honesty.
+  - `deploy.custom-domain-samesite-lax` — after `ops-samesite` v1; www+api
+    domains then `SameSite=lax`. Do not delete these when archiving parents.
 
 ---
 
@@ -195,13 +362,10 @@ stop_if:
 
 status: parked
 gaps:
-  - brand.drop-create-thin
-  - auth.expired-ig-token-reconnect
-  - models.missing-check-constraints
   - openapi.422-wrong-shape
-  - org.awaiting-products-suggestions-no-ui
-  - product.capacity-closed-during-open-unreachable
+  - ops.observability-thin
   - posts.sibling-dismiss-never-rearms
 note: |
-  deferred / ops-heavy / wontfix. Do not auto-execute. Un-park only with an
-  explicit user request naming the gap id.
+  NO_PLAN (openapi, observability) or wontfix (sibling dismiss). Do not
+  auto-execute. Un-park only with an explicit user request naming the gap id
+  after a Locked v1 exists (or product reverses sibling-dismiss).
