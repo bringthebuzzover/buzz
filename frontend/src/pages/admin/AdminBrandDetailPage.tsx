@@ -7,6 +7,7 @@
  * `passwordSet` is the only way to tell.
  */
 import { Link, useParams } from "react-router-dom";
+import { useState } from "react";
 import {
   useAdminBrand,
   useApproveBrand,
@@ -14,6 +15,8 @@ import {
   useResendBrandInvite,
   useUndenyBrand,
   useViewAs,
+  INVITE_EMAIL_FAILED_COPY,
+  type BrandInviteActionResult,
 } from "../../api/hooks/useAdminHooks";
 import {
   ActionButton,
@@ -34,6 +37,7 @@ import {
   formatDate,
   formatDateTime,
 } from "../../components/admin/labels";
+import { ApiError } from "../../api/errors";
 
 const DROP_HEADERS = ["Drop", "Stage", "Applied", "Accepted", "Closes"] as const;
 
@@ -45,6 +49,7 @@ export default function AdminBrandDetailPage() {
   const undeny = useUndenyBrand();
   const resend = useResendBrandInvite();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
+  const [inviteNotice, setInviteNotice] = useState<string | null>(null);
 
   const data = brand.data;
   const busy =
@@ -59,6 +64,37 @@ export default function AdminBrandDetailPage() {
     !data.passwordSet &&
     (data.invite.expiresAt === null || data.invite.expiresAt <= Date.now());
   const canResendInvite = data?.status === "approved" && !data.passwordSet;
+
+  const onApprove = async () => {
+    if (!data) return;
+    setInviteNotice(null);
+    try {
+      const result = (await approve.mutateAsync(
+        data.id,
+      )) as BrandInviteActionResult;
+      if (result.emailSent === false) {
+        setInviteNotice(INVITE_EMAIL_FAILED_COPY);
+      }
+    } catch {
+      // Hard failure banner below
+    }
+  };
+
+  const onResend = async () => {
+    if (!data) return;
+    setInviteNotice(null);
+    try {
+      await resend.mutateAsync(data.id);
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "EMAIL_SEND_FAILED") {
+        setInviteNotice(
+          "Could not send the invite email. The brand is still approved — try Resend invite again.",
+        );
+        return;
+      }
+      // Generic recovery banner
+    }
+  };
 
   return (
     <div>
@@ -75,7 +111,8 @@ export default function AdminBrandDetailPage() {
         label="this brand"
       />
       {viewAsError && <ErrorNote>{viewAsError}</ErrorNote>}
-      {(undeny.isError || resend.isError) && (
+      {inviteNotice && <ErrorNote>{inviteNotice}</ErrorNote>}
+      {(undeny.isError || (resend.isError && !inviteNotice)) && (
         <ErrorNote>
           That recovery action did not go through. Reload and try again.
         </ErrorNote>
@@ -95,7 +132,7 @@ export default function AdminBrandDetailPage() {
                       variant="primary"
                       testId="approve-brand"
                       disabled={busy}
-                      onClick={() => approve.mutate(data.id)}
+                      onClick={() => void onApprove()}
                     >
                       Approve
                     </ActionButton>
@@ -124,7 +161,7 @@ export default function AdminBrandDetailPage() {
                     variant="primary"
                     testId="resend-invite"
                     disabled={busy}
-                    onClick={() => resend.mutate(data.id)}
+                    onClick={() => void onResend()}
                   >
                     Resend invite
                   </ActionButton>

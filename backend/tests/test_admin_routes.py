@@ -526,10 +526,79 @@ class TestAdminCreateBrand:
         )
         assert res.status_code == 200, res.text
         assert res.json()["data"]["status"] == BrandStatus.APPROVED.value
+        assert res.json()["data"]["emailSent"] is True
         invite = await db_session.scalar(
             select(BrandInviteToken).where(BrandInviteToken.email == "approve-now@brand.test")
         )
         assert invite is not None
+
+    async def test_admin_create_approve_now_email_failed(
+        self, app_client: AsyncClient, db_session, monkeypatch
+    ):
+        async def _fail(*_a, **_k):
+            return False
+
+        monkeypatch.setattr("app.services.admin.send_brand_invite_email", _fail)
+        headers = await _admin_headers(db_session)
+        res = await app_client.post(
+            "/api/admin/brands",
+            json={
+                "brandName": "Mail Fail Co",
+                "companyEmail": "mail-fail@brand.test",
+                "approveNow": True,
+            },
+            headers=headers,
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert data["status"] == BrandStatus.APPROVED.value
+        assert data["emailSent"] is False
+        invite = await db_session.scalar(
+            select(BrandInviteToken).where(BrandInviteToken.email == "mail-fail@brand.test")
+        )
+        assert invite is not None
+
+    async def test_approve_brand_email_failed(
+        self, app_client: AsyncClient, db_session, monkeypatch
+    ):
+        async def _fail(*_a, **_k):
+            return False
+
+        monkeypatch.setattr("app.services.admin.send_brand_invite_email", _fail)
+        brand = await make_brand(db_session, company_email="approve-fail@brand.test")
+        brand.status = BrandStatus.PENDING_REVIEW.value
+        await db_session.flush()
+        headers = await _admin_headers(db_session)
+        res = await app_client.post(
+            f"/api/admin/brands/{brand.id}/approve",
+            headers=headers,
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert data["status"] == BrandStatus.APPROVED.value
+        assert data["emailSent"] is False
+
+    async def test_resend_invite_email_failed(
+        self, app_client: AsyncClient, db_session, monkeypatch
+    ):
+        async def _fail(*_a, **_k):
+            return False
+
+        monkeypatch.setattr("app.services.admin.send_brand_invite_email", _fail)
+        brand = await make_brand(db_session, company_email="resend-fail@brand.test")
+        brand.status = BrandStatus.APPROVED.value
+        user = await db_session.get(User, brand.user_id)
+        assert user is not None
+        user.password_hash = None
+        await db_session.flush()
+
+        headers = await _admin_headers(db_session)
+        res = await app_client.post(
+            f"/api/admin/brands/{brand.id}/resend-invite",
+            headers=headers,
+        )
+        assert res.status_code == 502, res.text
+        assert res.json()["error"]["code"] == "EMAIL_SEND_FAILED"
 
     async def test_admin_create_duplicate_email(self, app_client: AsyncClient, db_session):
         await make_brand(db_session, company_email="dup@brand.test")

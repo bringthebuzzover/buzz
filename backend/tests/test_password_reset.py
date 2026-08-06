@@ -50,6 +50,28 @@ async def test_brand_forgot_unknown_email_same_shape(app_client: AsyncClient) ->
     assert resp.json()["data"] == {"ok": True}
 
 
+async def test_brand_forgot_send_failed_invalidates_token(
+    app_client: AsyncClient, db_session, monkeypatch
+) -> None:
+    brand, user = await _active_brand(db_session, email="send-fail@brand.test")
+
+    async def _fail(*_a, **_k):
+        return False
+
+    monkeypatch.setattr("app.services.password_reset.send_password_reset_email", _fail)
+    resp = await app_client.post(
+        "/api/auth/brand/forgot-password",
+        json={"email": brand.company_email},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"] == {"ok": True}
+    row = await db_session.scalar(
+        select(PasswordResetToken).where(PasswordResetToken.user_id == user.id)
+    )
+    assert row is not None
+    assert row.used_at is not None
+
+
 async def test_brand_reset_happy_path(app_client: AsyncClient, db_session) -> None:
     brand, user = await _active_brand(db_session)
     forgot = await app_client.post(

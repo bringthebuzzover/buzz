@@ -244,9 +244,15 @@ async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     from app.services.brand_auth import create_brand_invite
 
     token = await create_brand_invite(db, brand, user)
-    await send_brand_invite_email(brand.company_email, token, brand_name=brand.brand_name)
+    email_sent = await send_brand_invite_email(
+        brand.company_email, token, brand_name=brand.brand_name
+    )
 
-    return {"brand_id": str(brand.id), "status": brand.status}
+    return {
+        "brand_id": str(brand.id),
+        "status": brand.status,
+        "email_sent": email_sent,
+    }
 
 
 async def deny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
@@ -346,8 +352,20 @@ async def resend_brand_invite(db: AsyncSession, brand_id: UUID) -> dict[str, Any
     from app.services.brand_auth import create_brand_invite
 
     token = await create_brand_invite(db, brand, user)
-    await send_brand_invite_email(brand.company_email, token, brand_name=brand.brand_name)
-    return {"brand_id": str(brand.id), "status": brand.status}
+    email_sent = await send_brand_invite_email(
+        brand.company_email, token, brand_name=brand.brand_name
+    )
+    if not email_sent:
+        raise BuzzAPIException(
+            errors.EMAIL_SEND_FAILED,
+            "We could not send the invite email. Please try again.",
+            status_code=502,
+        )
+    return {
+        "brand_id": str(brand.id),
+        "status": brand.status,
+        "email_sent": True,
+    }
 
 
 async def clear_manual_reopen(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -20,6 +21,8 @@ from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
 from app.security.password import hash_password
 from app.services.email import send_password_reset_email
+
+logger = logging.getLogger(__name__)
 
 Portal = Literal["brand", "admin"]
 
@@ -96,7 +99,17 @@ async def request_password_reset(
     db.add(row)
     await db.flush()
 
-    await send_password_reset_email(normalized, raw, portal=portal)
+    ok = await send_password_reset_email(normalized, raw, portal=portal)
+    if not ok:
+        # Keep the forgot-password response opaque; burn the unused token so a
+        # failed send cannot leave a live link that never reached the user.
+        row.used_at = now
+        await db.flush()
+        logger.warning(
+            "Password reset email failed; token invalidated: portal=%s to=%s",
+            portal,
+            normalized,
+        )
     return {"ok": True}
 
 

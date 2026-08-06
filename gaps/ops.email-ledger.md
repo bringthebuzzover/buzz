@@ -28,7 +28,17 @@ fix_when: |
 `email-honesty` deliberately ships cheap wins only. Archiving that gap does
 **not** close this follow-up.
 
-### In scope when un-parked
+### Lean slice (invite + safe reset) — DONE
+
+Shipped without archiving this gap:
+
+- [x] Brand `approve` / create `approve_now` return `email_sent`; brand stays
+      approved + invite token when send fails; admin SPA honesty copy.
+- [x] `resend_brand_invite` raises `EMAIL_SEND_FAILED` (502) when send fails.
+- [x] Password-reset: on send `False`, invalidate the mint token + log; client
+      still always `{ok: true}` (enumerate-safe).
+
+### Still deferred
 
 1. **Send ledger** — durable attempt rows (kind, to, status, `resend_id`/error,
    related entity ids) + ops/admin queryability (and/or health failed count).
@@ -36,10 +46,8 @@ fix_when: |
    no My Campaigns row; v1 only structured-logs. Pick: in-app signal, brand
    finalize `denial_emails_failed`, admin resend, or PRODUCT-accepted silence
    (wontfix with PRODUCT note).
-3. **Invite / password-reset honesty** — same bool/ledger treatment as
-   verification (out of email-honesty v1).
-4. **Optional later:** Resend webhooks, outbox/retry worker (not required to
-   start this gap).
+3. **Optional later:** Resend webhooks, outbox/retry worker (not required to
+   start this gap). Org approve/deny/undeny honesty still fire-and-forget.
 
 ### Dependency
 
