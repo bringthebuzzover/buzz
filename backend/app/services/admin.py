@@ -28,8 +28,10 @@ from app.models.user import User
 from app.services.email import (
     send_brand_denied_email,
     send_brand_invite_email,
+    send_brand_undenied_email,
     send_org_approved_email,
     send_org_denied_email,
+    send_org_undenied_email,
 )
 
 _STAGE_ORDER = [
@@ -288,6 +290,7 @@ async def undeny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
 
     user.status = OrgUserStatus.PENDING_APPROVAL.value
     await db.flush()
+    await send_org_undenied_email(user.edu_email or "", org_name=org.org_name)
     return {"org_id": str(org.id), "status": user.status}
 
 
@@ -309,6 +312,7 @@ async def undeny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     if user is not None:
         user.status = OrgUserStatus.PENDING_APPROVAL.value
     await db.flush()
+    await send_brand_undenied_email(brand.company_email, brand_name=brand.brand_name)
     return {"brand_id": str(brand.id), "status": brand.status}
 
 

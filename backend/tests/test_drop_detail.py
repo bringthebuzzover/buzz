@@ -6,7 +6,7 @@ import uuid
 
 from httpx import AsyncClient
 
-from app.models.enums import ApplicationDecision, OrgUserStatus, PortalRole
+from app.models.enums import ApplicationDecision, BrandTrackerStage, OrgUserStatus, PortalRole
 from tests.conftest import (
     make_application,
     make_brand,
@@ -84,3 +84,25 @@ async def test_detail_forbidden_for_brand(app_client: AsyncClient, db_session) -
         headers={"Authorization": f"Bearer {mint_access_token(brand_user)}"},
     )
     assert resp.status_code == 403
+
+
+async def test_detail_rejects_finished_drop(app_client: AsyncClient, db_session) -> None:
+    _, _, headers = await _org_ctx(db_session)
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
+    resp = await app_client.get(f"/api/drops/{drop.id}", headers=headers)
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
+
+
+async def test_detail_rejects_unapproved_brand(app_client: AsyncClient, db_session) -> None:
+    from app.models.enums import BrandStatus
+
+    _, _, headers = await _org_ctx(db_session)
+    brand = await make_brand(db_session)
+    brand.status = BrandStatus.PENDING_REVIEW.value
+    await db_session.flush()
+    drop = await make_drop(db_session, brand)
+    resp = await app_client.get(f"/api/drops/{drop.id}", headers=headers)
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"

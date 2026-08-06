@@ -427,7 +427,7 @@ async def get_health(db: AsyncSession) -> dict[str, Any]:
         for row in (
             await db.execute(
                 select(JobRun.job, func.max(JobRun.finished_at).label("last_finished"))
-                .where(JobRun.finished_at.is_not(None))
+                .where(JobRun.finished_at.is_not(None), JobRun.ok.is_(True))
                 .group_by(JobRun.job)
             )
         ).all()

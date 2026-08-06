@@ -147,7 +147,7 @@ export const PIPELINE_META: Record<
     label: "Instagram token refresh",
     schedule: "daily 04:00 UTC",
     inference:
-      "Counts tokens inside 1 day of expiry, which the 1-14 day refresh window should have caught.",
+      "Counts tokens already at or past expiry — refresh should have kept them healthy.",
   },
 };
 

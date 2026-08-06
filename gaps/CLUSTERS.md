@@ -128,7 +128,7 @@ stop_if:
 
 ## drops-brand-integrity
 
-status: pending
+status: done
 gaps:
   - drops.detail-notify-skip-browsable-gates
   - brand.org-attributed-totals-duplicate

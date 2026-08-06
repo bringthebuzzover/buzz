@@ -176,7 +176,7 @@ async def get_brand_drop_detail(
 
     applicants: list[BrandDropDetailApplicant] = []
     for app, org, org_user in rows:
-        attr = await _org_attributed_totals(db, org.id, drop.id)
+        attr = await _org_attributed_totals(db, app.id)
         posts = await _application_linked_posts(db, app.id)
         applicants.append(
             BrandDropDetailApplicant(

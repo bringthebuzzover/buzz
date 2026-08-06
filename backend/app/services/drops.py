@@ -50,6 +50,21 @@ def _browsable_drop_filters() -> tuple[ColumnElement[bool], ...]:
     )
 
 
+async def _require_browsable_drop(db: AsyncSession, drop: Drop) -> Brand:
+    """Re-check feed visibility for deep links (detail / notify / apply).
+
+    Reuses DROP_NOT_OPEN rather than a brand-specific code: an org has no
+    business learning that a brand was denied.
+    """
+
+    brand = await db.get(Brand, drop.brand_id)
+    if brand is None or brand.status != BrandStatus.APPROVED.value:
+        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
+    if drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value:
+        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
+    return brand
+
+
 async def list_org_drop_feed(
     db: AsyncSession,
     org_user: User,
@@ -227,12 +242,10 @@ async def build_drop_detail(
 ) -> DropDetailResponse:
     """Serialize a single drop for the org detail view (with derived fields)."""
 
+    brand = await _require_browsable_drop(db, drop)
     org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
     accepted = (await _accepted_counts(db, [drop.id])).get(drop.id, 0)
     applied_ids = await _applied_drop_ids(db, org_id, [drop.id])
-    brand = await db.get(Brand, drop.brand_id)
-    if brand is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
     return DropDetailResponse(
         id=drop.id,
         brand_id=drop.brand_id,
@@ -268,14 +281,8 @@ async def apply_to_drop(
     org = await _require_org(db, org_user)
     drop = await get_drop_or_404(db, drop_id)
 
-    # Deep links outlive the feed filter, so re-check visibility here. Reuse
-    # DROP_NOT_OPEN rather than a brand-specific code: an org has no business
-    # learning that a brand was denied.
-    brand = await db.get(Brand, drop.brand_id)
-    if brand is None or brand.status != BrandStatus.APPROVED.value:
-        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not open for applications.")
-    if drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value:
-        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is closed for applications.")
+    # Deep links outlive the feed filter, so re-check visibility here.
+    await _require_browsable_drop(db, drop)
 
     now = datetime.now(timezone.utc)
     if now < _as_utc(drop.apply_open_at):
@@ -351,7 +358,8 @@ async def set_notify(
     """Upsert the caller org's reminder for a drop (one row per org+drop)."""
 
     org = await _require_org(db, org_user)
-    await get_drop_or_404(db, drop_id)
+    drop = await get_drop_or_404(db, drop_id)
+    await _require_browsable_drop(db, drop)
     notify = await db.scalar(
         select(NotifyMe).where(NotifyMe.org_id == org.id, NotifyMe.drop_id == drop_id)
     )
@@ -375,7 +383,8 @@ async def clear_notify(db: AsyncSession, org_user: User, drop_id: uuid.UUID) -> 
     """Remove the caller org's reminder for a drop (idempotent)."""
 
     org = await _require_org(db, org_user)
-    await get_drop_or_404(db, drop_id)
+    drop = await get_drop_or_404(db, drop_id)
+    await _require_browsable_drop(db, drop)
     notify = await db.scalar(
         select(NotifyMe).where(NotifyMe.org_id == org.id, NotifyMe.drop_id == drop_id)
     )

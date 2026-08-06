@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.brand import Brand
 from app.models.drop import Drop
+from app.models.enums import BrandStatus, BrandTrackerStage
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.user import User
@@ -46,6 +47,9 @@ async def send_due_reminders(db: AsyncSession) -> dict[str, Any]:
                     NotifyMe.sent_at.is_(None),
                     Drop.apply_open_at - lead_time <= now,
                     Drop.apply_close_at > now,
+                    # Same browsable gate as the org feed / detail / notify APIs.
+                    Brand.status == BrandStatus.APPROVED.value,
+                    Drop.brand_tracker_stage != BrandTrackerStage.DROP_FINISHED.value,
                 )
                 .with_for_update(of=NotifyMe, skip_locked=True)
             )

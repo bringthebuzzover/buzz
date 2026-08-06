@@ -3,7 +3,8 @@ id: admin.undeny-silent-no-email
 title: Admin un-deny does not notify the org by email
 kind: ux_hole
 severity: P2
-status: deferred
+status: fixed
+closed_in: 59c0ab0
 surface: admin
 evidence:
   - path: backend/app/services/admin.py

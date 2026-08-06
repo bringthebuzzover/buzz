@@ -394,6 +394,33 @@ async def test_notify_reminder_ignores_disabled_rows(db_session, monkeypatch) ->
     assert result["reminders_sent"] == 0
 
 
+async def test_notify_reminder_skips_finished_drop(db_session, monkeypatch) -> None:
+    monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _never_called)
+    _, _, drop, notify = await _notify_ctx(db_session)
+    drop.brand_tracker_stage = BrandTrackerStage.DROP_FINISHED.value
+    await db_session.flush()
+
+    result = await send_due_reminders(db_session)
+    assert result["reminders_sent"] == 0
+    assert notify.sent_at is None
+
+
+async def test_notify_reminder_skips_unapproved_brand(db_session, monkeypatch) -> None:
+    from app.models.brand import Brand
+    from app.models.enums import BrandStatus
+
+    monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _never_called)
+    _, _, drop, notify = await _notify_ctx(db_session)
+    brand = await db_session.get(Brand, drop.brand_id)
+    assert brand is not None
+    brand.status = BrandStatus.PENDING_REVIEW.value
+    await db_session.flush()
+
+    result = await send_due_reminders(db_session)
+    assert result["reminders_sent"] == 0
+    assert notify.sent_at is None
+
+
 # --- 10.5 Token refresh ------------------------------------------------------
 
 
