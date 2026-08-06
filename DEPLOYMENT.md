@@ -2,20 +2,29 @@
 
 The go-live runbook for Buzz: what has to be true before we launch, how to provision and deploy, and the environment/operational invariants to respect. The application code is feature-complete and tested (backend `pytest`, frontend smoke + Playwright E2E, live API bug-bash). The remaining work to launch is **external configuration** (custom DNS, Meta go-live, Resend domain verify) — not application code, and not greenfield Railway provisioning.
 
-Deploy target: **Railway** from branch **`mvp`** (autodeploy on) — Frontend (`/frontend`) + Backend (`/backend`) + PostgreSQL + **five** cron services. Run `alembic upgrade head` as a pre-deploy step before the backend starts. Intended custom domains: `www.bringthebuzzover.com` (SPA) + `api.bringthebuzzover.com` (API) — **not attached yet**.
+Deploy target: **Railway** from branch **`mvp`** (autodeploy on) — Frontend (`/frontend`) + Backend (`/backend`) + PostgreSQL + **five** cron services. Run `alembic upgrade head` as a pre-deploy step before the backend starts.
+
+**Canonical public hosts:**
+
+| Role | URL |
+| ---- | --- |
+| SPA (site root) | `https://www.bringthebuzzover.com` |
+| API | `https://api.bringthebuzzover.com` |
+
+Meta OAuth redirect, privacy/terms, and data-deletion URLs must use the SPA host — see [`META.md`](META.md). Railway-generated `*.up.railway.app` hosts may still exist as fallbacks; prefer the custom hosts above for public / Meta config.
 
 ### Environment vocabulary
 
 | Name | Meaning today |
 | ---- | ------------- |
 | **Local / `development`** | Laptop bring-up (`ENVIRONMENT=development`). Dev secrets, insecure cookies OK, localhost CORS. |
-| **Railway env `production`** | The **only** Railway environment today (project **buzz**). Pre-launch: serves Railway-generated hosts, not public custom DNS. `ENVIRONMENT` for the API is whatever is set on that service (must be `staging` or `production` for the fail-fast path — not `development`). |
+| **Railway env `production`** | The **only** Railway environment today (project **buzz**). Serves custom DNS (`www` / `api`) and/or Railway-generated hosts. `ENVIRONMENT` for the API is whatever is set on that service (must be `staging` or `production` for the fail-fast path — not `development`). |
 | **Staging (optional / future)** | A second Railway environment is **not** provisioned. Optional later if you want a separate stack from public launch. |
 
-**Live hosts (Railway-generated, today):**
+**Live hosts:**
 
-- Frontend: `https://frontend-production-3819.up.railway.app`
-- API: `https://api-production-fbbc1.up.railway.app`
+- SPA: `https://www.bringthebuzzover.com` (also Railway: `https://frontend-production-3819.up.railway.app`)
+- API: `https://api.bringthebuzzover.com` (also Railway: `https://api-production-fbbc1.up.railway.app`)
 
 ---
 
@@ -27,9 +36,9 @@ Deploy target: **Railway** from branch **`mvp`** (autodeploy on) — Frontend (`
 | Instagram / Meta app review (org login scopes)       | Not started                         | **Yes** — gates all org signups     |
 | Legal review of Privacy Policy + Terms               | Draft in app (`/privacy`, `/terms`) | **Yes** — required for Meta + PII   |
 | Railway stack (Frontend + API + Postgres + 5 crons)  | **Done** (env `production`, autodeploy from `mvp`) | No — stack exists                   |
-| Custom DNS (`www` / `api.bringthebuzzover.com`)      | Not attached                        | **Yes** for public brand URLs       |
-| Secrets + env for current Railway hosts              | Set (API fail-fast requires them)   | No for Railway URLs                 |
-| Env parity for custom domains (SPA/API URLs, Meta)   | Not done                            | **Yes** when cutting over DNS       |
+| Custom DNS (`www` / `api.bringthebuzzover.com`)      | Public hosts in use                 | Re-check env/Meta parity if anything still points at `*.up.railway.app` |
+| Secrets + env for current hosts                      | Set (API fail-fast requires them)   | Confirm `FRONTEND_URL` / IG redirect use `www` |
+| Env parity for custom domains (SPA/API URLs, Meta)   | Verify against table above          | **Yes** if any var still uses Railway-only URLs |
 | Resend verified sender domain                        | Not started                         | **Yes** — verification/denial email |
 
 ---
@@ -66,7 +75,7 @@ Branch: **`mvp`** (autodeploy on). One Railway project (**buzz**). One Railway e
 - [x] Create the services in one Railway project (Frontend + API + Postgres + 5 crons) — **done** (sixth cron below).
 - [ ] Add the sixth cron service **`cron-notify-reminders`** (`*/5 * * * *`) — new with Notify Me delivery; not created yet.
 - [x] Set each service's **Root Directory** / Watch Paths and wire autodeploy from `mvp` — **done** (deploys follow `mvp` commits).
-- [ ] Custom domains: `www.bringthebuzzover.com` → Frontend; `api.bringthebuzzover.com` → Backend (CNAME + TXT). **Not attached** — traffic is on `*.up.railway.app` today.
+- [ ] Custom domains: `www.bringthebuzzover.com` → Frontend; `api.bringthebuzzover.com` → Backend (CNAME + TXT). Confirm DNS + TLS are healthy; keep Railway hosts as secondary if still needed.
 - [ ] Enable **Wait for CI** on Frontend + API (CI on `mvp` includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
 - [ ] Optional: `RAILPACK_PYTHON_VERSION=3.12` on API + cron services.
 - [ ] Optional later: a second Railway environment for true staging (not required for pilot on the current stack).

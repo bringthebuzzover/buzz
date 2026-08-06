@@ -1,191 +1,230 @@
 # Meta / Instagram API setup
 
-Step-by-step guide to set up the Instagram login that Buzz's student-org portal depends on. This is written so someone **other than the engineer** can complete it. Where a step needs a value from engineering (or produces a value to hand back), it's called out in a box.
+Guide for configuring Instagram login for Buzz’s org portal. Written so a non-engineer can complete the Meta dashboard work; hand credentials back to engineering when done.
 
-Buzz uses **"Instagram API with Instagram Login"** (a.k.a. Business Login) — the standalone Instagram path that does **not** require a Facebook Page. Org users log in with an Instagram **Business or Creator** account (Personal accounts are not supported by the API and are rejected by the app).
-
----
-
-## What you're producing
-
-By the end you will hand these three values back to engineering (they go into the backend environment):
-
-| Value                                   | Where it comes from              | Backend env var           |
-| --------------------------------------- | -------------------------------- | ------------------------- |
-| Instagram App ID                        | App Dashboard (Step B)           | `INSTAGRAM_CLIENT_ID`     |
-| Instagram App Secret                    | App Dashboard (Step B)           | `INSTAGRAM_CLIENT_SECRET` |
-| Redirect URI (confirm the exact string) | Agreed with engineering (Step 3) | `INSTAGRAM_REDIRECT_URI`  |
-
-### Values you need FROM engineering before you start
-
-- **Redirect URI** — the page Instagram sends users back to after they approve. Format: `https://<frontend-domain>/auth/instagram/callback` (local/dev example: `https://localhost:3000/auth/instagram/callback`). Ask engineering for the exact production domain and use that.
-- **Permissions (scopes) to request** — exactly these two, no more: `instagram_business_basic` and `instagram_business_manage_insights`.
-- **Privacy Policy URL** and **Terms URL** — Buzz serves these at `https://<frontend-domain>/privacy` and `/terms`. Needed in Steps E–F.
+Buzz uses **Instagram API with Instagram Login** (Business Login): no Facebook Page required. Orgs sign in with an Instagram **Business or Creator** account. Personal accounts are not supported.
 
 ---
 
-## Checklist (high level)
+## Decision summary
 
-- [ ] **A.** Create a Meta developer account + a Business-type app
-- [ ] **B.** Add the Instagram product and copy the App ID + App Secret
-- [ ] **C.** Configure Business Login: redirect URI + the two permissions
-- [ ] **D.** (Pilot, optional) Add pilot orgs as Instagram Testers — works with no review
-- [ ] **E.** Complete Business Verification
-- [ ] **F.** Submit App Review for Advanced Access on both permissions
-- [ ] **G.** Switch the app to Live mode after approval
+| | |
+| --- | --- |
+| Meta app type | **Business** |
+| Instagram product | **API setup with Instagram login** |
+| Permissions | `instagram_business_basic`, `instagram_business_manage_insights` only |
+| Pilot (testers only) | **Standard Access** + Instagram Tester roles |
+| Public orgs (no testers) | **Advanced Access** on both permissions + **Business Verification** |
 
-Steps A–D can be done immediately and are enough for a **small pilot**. Steps E–G are required before the **general public** can log in.
+**Standard Access** (default): only app roles (Admin / Developer / Instagram Tester) can log in.  
+**Advanced Access**: any Instagram Business/Creator account can log in. That is the public launch requirement.
+
+Docs: [platform overview](https://developers.facebook.com/docs/instagram-platform/overview), [access levels](https://developers.facebook.com/docs/graph-api/overview/access-levels/).
+
+---
+
+## Hosts (exact strings)
+
+**Use Railway for Meta setup, pilot, and App Review** until custom DNS serves the SPA correctly.
+
+| Role | URL |
+| ---- | --- |
+| Site | `https://frontend-production-3819.up.railway.app` |
+| OAuth redirect | `https://frontend-production-3819.up.railway.app/auth/instagram/callback` |
+| Privacy | `https://frontend-production-3819.up.railway.app/privacy` |
+| Terms | `https://frontend-production-3819.up.railway.app/terms` |
+| Data deletion | `https://frontend-production-3819.up.railway.app/data-deletion` |
+| API / deauthorize | `https://api-production-fbbc1.up.railway.app/api/auth/instagram/deauthorize` |
+
+Backend: `INSTAGRAM_REDIRECT_URI` and `FRONTEND_URL` must match the Railway site/redirect above. Trailing slashes matter.
+
+**Later (brand domains):** `https://www.bringthebuzzover.com` (SPA) and `https://api.bringthebuzzover.com` (API). Add those to Meta and flip env when that cutover is done. URLs can be updated after App Review.
+
+---
+
+## Timeline
+
+| Step | Review? | Typical wait |
+| ---- | ------- | ------------ |
+| Create app + save URLs | No | Immediate |
+| Pilot with Instagram Testers | No | Immediate after they accept |
+| Business Verification | Yes (documents) | Days to weeks — start early |
+| App Review → Advanced Access | Yes | Often up to ~20 days |
+| Public login without testers | After both permissions approved | — |
+
+Saving redirect URIs does **not** start App Review.
+
+**Configure now.** Create the Business app, set the **Railway** URLs above, start Business Verification, run a tester pilot.
+
+**Submit App Review only when** privacy, terms, and OAuth work on those Railway URLs. Meta crawls privacy/terms ([policy](https://developers.facebook.com/docs/development/terms-and-policies/privacy-policy/)).
+
+**URLs can change later.** After cutover, add `www` / `api` in Meta and update env. Keep `INSTAGRAM_REDIRECT_URI` in sync. Changing permissions or data use may need a new App Review.
+
+---
+
+## Hand back to engineering
+
+| Value | Env var |
+| ----- | ------- |
+| Instagram App ID | `INSTAGRAM_CLIENT_ID` |
+| Instagram App Secret | `INSTAGRAM_CLIENT_SECRET` |
+
+---
+
+## Checklist
+
+- [ ] **A.** Create a **Business** app
+- [ ] **B.** Add Instagram → **API setup with Instagram login**; copy App ID + Secret
+- [ ] **C.** Business Login: redirect, permissions, deauthorize, data deletion
+- [ ] **D.** Pilot: Instagram Testers (Standard Access)
+- [ ] **E.** Business Verification
+- [ ] **F.** App Review: Advanced Access for both permissions
+- [ ] **G.** Confirm public login works without testers
+
+A–D = pilot. E–F = public launch.
 
 ---
 
 ## A. Create the app
 
-1. Sign in / register at Meta for Developers: <https://developers.facebook.com/> (a Facebook account is required to register as a developer).
-2. Go to the App Dashboard: <https://developers.facebook.com/apps/> and click **Create App**.
-3. **Use case:** select **Other**, then **Next**. (Reference: <https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/create-a-meta-app-with-instagram/>)
-4. **App type:** select **Business**, then **Next**. (Business type is required to add the Instagram product.)
-5. Enter an app name (e.g. "Buzz") and contact email, then create the app.
+1. <https://developers.facebook.com/> → register / sign in.
+2. <https://developers.facebook.com/apps/> → **Create App**.
+3. Use case: **Other** → **Next**. ([walkthrough](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/create-a-meta-app-with-instagram/))
+4. App type: **Business** → **Next**.
+5. Name the app (e.g. Buzz), set contact email, create.
 
 ---
 
-## B. Add the Instagram product + get credentials
+## B. Instagram product + credentials
 
-1. In the app's left sidebar, find **Instagram** and click **Set up** (this adds **API setup with Instagram login**).
+1. Sidebar → **Instagram** → **Set up**.
 2. Open **Instagram → API setup with Instagram login**.
-3. In section **"2. Instagram app credentials"** you'll see the **Instagram App ID** and **Instagram App Secret**. Copy both.
+3. Under **Instagram app credentials**, copy **Instagram App ID** and **Instagram App Secret**.
 
-> **Hand back to engineering:** the Instagram App ID → `INSTAGRAM_CLIENT_ID`, and the Instagram App Secret → `INSTAGRAM_CLIENT_SECRET`. Treat the secret like a password — send it through a secure channel, never commit it.
+> Hand ID → `INSTAGRAM_CLIENT_ID`, secret → `INSTAGRAM_CLIENT_SECRET`. Treat the secret like a password.
 
 ---
 
-## C. Configure Business Login (redirect URI + permissions)
+## C. Business Login settings
 
-Reference: <https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login/>
+Reference: [Business Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login/).
 
-1. Still under **Instagram → API setup with Instagram login**, find section **"3. Set up Instagram business login"** and click **Business login settings**.
-2. **OAuth Redirect URI:** add the exact redirect URI from engineering, e.g. `https://app.bringthebuzzover.com/auth/instagram/callback`. Save.
-   - Must be **HTTPS**.
-   - It must match what the backend sends **character-for-character**. The dashboard sometimes appends a trailing slash — confirm the final saved value with engineering so `INSTAGRAM_REDIRECT_URI` matches it exactly.
-3. **Permissions:** ensure the login requests exactly:
+1. **Instagram → API setup with Instagram login → Set up Instagram business login → Business login settings**.
+2. **OAuth redirect URIs** — add:
+   - `https://frontend-production-3819.up.railway.app/auth/instagram/callback`
+   - Localhost only if engineering asks
+3. **Permissions** — only:
    - `instagram_business_basic`
-   - `instagram_business_manage_insights`
-
-   Do **not** add publishing, comments, or messaging scopes — requesting scopes the app doesn't use slows down App Review.
-
-4. **Deauthorize callback URL:** `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize` — the **API** host (not the SPA). Meta POSTs here when a user removes the app from Instagram; the backend verifies `signed_request` and revokes the stored token.
-5. **Data Deletion Instructions URL:** `https://www.bringthebuzzover.com/data-deletion` — the public **SPA** page that tells users how to request account deletion by email. (Meta accepts an instructions page in place of a callback endpoint.)
-6. Click **Save**.
+   - `instagram_business_manage_insights`  
+   Do not add publishing, comments, or messaging scopes.
+4. **Deauthorize callback URL:** `https://api-production-fbbc1.up.railway.app/api/auth/instagram/deauthorize`
+5. **Data deletion instructions URL:** `https://frontend-production-3819.up.railway.app/data-deletion`
+6. **Save.** Confirm the saved redirect string with engineering (dashboard may add a trailing slash).
 
 ---
 
-## D. Pilot path — add tester accounts (no App Review needed)
+## D. Pilot — Instagram Testers
 
-While the app is in **Development mode**, the real login flow works, but **only** for Instagram accounts you explicitly add as testers. This is enough for a demo or a small pilot. Reference: <https://developers.facebook.com/docs/development/build-and-test/app-roles/>
+Standard Access only allows role users. Enough for a small pilot; not public launch.  
+Roles: [App roles](https://developers.facebook.com/docs/development/build-and-test/app-roles/).
 
-For each pilot org:
+**First testers** (add these Instagram usernames):
 
-1. Confirm their Instagram account is a **Business or Creator** account (not Personal). They can switch in the Instagram app: Settings → Account type.
-2. In the App Dashboard, go to **App roles → Roles**, click **Add People**, choose **Instagram Tester**, and enter the org's **Instagram username**.
-3. Tell the org to **accept the invite**: log into that Instagram account, go to <https://www.instagram.com/accounts/manage_access/>, open the **Tester Invites** tab, and click **Accept**.
+- `lawrence_granda`
+- `melissaachowdhury`
 
-Until they accept, the account shows as **Pending** and login will fail for them. There is **no API** to send or accept these invites — it's manual on both sides, which is why it only suits a small pilot.
+For each:
 
----
+1. Their Instagram account must be **Business or Creator** (not Personal).
+2. App Dashboard → **App roles → Roles** → **Add People** → **Instagram Tester** → username.
+3. They must **Accept** at <https://www.instagram.com/accounts/manage_access/> → **Tester Invites**.
 
-## E. Business Verification (required for public launch)
-
-Advanced Access requires your business identity to be verified. Reference: <https://developers.facebook.com/docs/development/release/business-verification/>
-
-1. In the App Dashboard, go to **App settings → Basic**, find the **Business verification / Verification** section, and click **Start Verification** (connect the app to a Business, creating one if needed).
-2. Complete verification in **Business Manager** — you'll need documents proving the business exists (e.g. tax document, utility bill, business registration). Meta's help on required documents: <https://www.facebook.com/business/help/2058515294227817>
-3. This can take a few days and may involve back-and-forth. Start it early.
+Pending invites cannot log in. Invites are manual on both sides.
 
 ---
 
-## F. App Review — request Advanced Access
+## E. Business Verification
 
-This is what lets **any** org (not just testers) log in. Reference: <https://developers.facebook.com/docs/instagram-platform/app-review/>
+Required for Advanced Access.  
+Docs: [Business Verification](https://developers.facebook.com/docs/development/release/business-verification/), [documents](https://www.facebook.com/business/help/2058515294227817).
 
-**Before you submit, make sure you have:**
+1. App settings → Basic → start Business Verification (attach or create a Business).
+2. Complete verification in Business Manager (tax / registration / utility docs as requested).
+3. Start as soon as documents are ready.
 
-- [ ] Business Verification complete (Step E).
-- [ ] The app has made **at least one successful API call** with each of the two permissions — do a real login with a tester account (Step D) first. (Ask engineering to confirm a tester login + a metrics sync ran.)
-- [ ] A public **Privacy Policy URL** (`/privacy`) and **Terms URL** (`/terms`). Set these in **App settings → Basic**.
-- [ ] A **live, reviewer-accessible** test environment (the deployed app) plus test instructions and, if needed, a tester Instagram account's credentials.
-- [ ] **Screencast(s)** showing the full flow: the login button → the Instagram consent screen → the app using the data for **each** permission (`instagram_business_basic` = profile/media; `instagram_business_manage_insights` = the post metrics on the brand dashboard). Requirements: <https://developers.facebook.com/docs/app-review/submission-guide/screen-recordings/>
+---
+
+## F. App Review — Advanced Access
+
+Unlocks login for orgs that are not testers.  
+Docs: [Instagram App Review](https://developers.facebook.com/docs/instagram-platform/app-review/).
+
+**Before submit:**
+
+- [ ] Business Verification done (or not blocking Advanced Access)
+- [ ] Successful API use of both permissions via a tester login (confirm with engineering; metrics sync should have run)
+- [ ] Privacy + Terms live on the Railway URLs above; set in App settings → Basic
+- [ ] Reviewers can reach the Railway site; include tester credentials if needed
+- [ ] Screencast(s): login → Instagram consent → data use for **each** permission ([recording guide](https://developers.facebook.com/docs/app-review/submission-guide/screen-recordings/))
 
 **Submit:**
 
-1. In the App Dashboard, go to **Instagram → API setup with Instagram login**, find the **Complete app review** section, and click through to **App Review → Requests**.
-2. Request **Advanced Access** for `instagram_business_basic` **and** `instagram_business_manage_insights`.
-3. Fill in the use-case description (how each permission is used), attach the screencast(s), and submit.
+1. Instagram → API setup with Instagram login → Complete app review → App Review → Requests.
+2. Request **Advanced Access** for `instagram_business_basic` and `instagram_business_manage_insights`.
+3. Describe use cases, attach screencasts, submit.
 
-Note: `instagram_business_manage_insights` is reviewed **separately** from the basic permission — both must be approved.
-
----
-
-## G. Go Live
-
-1. Only after **both permissions are approved** and Business Verification is complete, switch the app from **Development** to **Live** mode (toggle at the top of the App Dashboard).
-2. Tell engineering it's live so they can confirm public logins work.
-
-Reference (publish checklist): <https://developers.facebook.com/docs/development/release/>
+Each permission is reviewed separately. Both must be approved.
 
 ---
 
-## Platform prerequisites (Buzz side)
+## G. After approval
 
-These are the technical things that must be true **on the Buzz platform** for Instagram login to work — separate from the Meta dashboard steps above. Checked boxes (`[x]`) are already built/handled in the codebase; unchecked boxes (`[ ]`) are either config you supply at deploy time or genuine gaps to close.
+1. Confirm Advanced Access on both permissions.
+2. Tell engineering to verify Railway env (`INSTAGRAM_*`, `FRONTEND_URL`) and a public login with a non-tester account. Cut over to `www` / `api` later when ready.
 
-### Already implemented (in code)
-
-- [x] **OAuth handshake** — code → short-lived → long-lived token exchange, then profile fetch (`backend/app/services/instagram.py`, `services/auth.py::handle_instagram_callback`).
-- [x] **CSRF-protected `state`** — signed, TTL'd state token stored in a short-lived httpOnly cookie and re-checked at the callback (`routes/auth.py`, double-submit; `OAUTH_STATE_*` settings).
-- [x] **Token encryption at rest** — the long-lived IG token is Fernet-encrypted before it hits the DB (`encrypt_token`, needs `TOKEN_ENCRYPTION_KEY`).
-- [x] **Business/Creator-only gating** — Personal accounts rejected with a specific error (`ALLOWED_ACCOUNT_TYPES` → `INSTAGRAM_PERSONAL_ACCOUNT`).
-- [x] **DB schema** — `instagram_*` columns + `token_version` exist via migrations (`0392d8ea3a28_initial_schema`, `00f8ab49f469_..._token_version`).
-- [x] **Long-lived token refresh job** — cron refreshes tokens before the ~60-day expiry (`app/jobs/token_refresh.py`; uses `refresh_long_lived`).
-- [x] **Frontend flow** — `login()` redirects to `/api/auth/instagram/login`, and the SPA callback route `/auth/instagram/callback` POSTs `{code, state}` with credentials (`frontend/src/contexts/AuthContext.tsx`, `frontend/src/pages/auth/InstagramCallbackPage.tsx`, `frontend/src/AppRoot.tsx`).
-- [x] **Config fail-fast** — off-`development`, startup crashes if the IG creds / secrets are missing (`backend/app/config.py` guard).
-- [x] **Session cookies configurable for cross-site** — `REFRESH_COOKIE_SAMESITE` / `_SECURE` / `_PATH` knobs exist for SPA-on-different-domain topologies.
-- [x] **Deauthorize webhook** — `POST /api/auth/instagram/deauthorize` verifies Meta's `signed_request` (HMAC-SHA256 with `INSTAGRAM_CLIENT_SECRET`), nulls the stored token, and bumps `token_version` to kill live sessions (`app/security/signed_request.py`, `services/auth.py::revoke_instagram_authorization`).
-- [x] **Data deletion via instructions page** — public `/data-deletion` page tells users how to request deletion by email; reuses `siteIdentity.contact` so the address stays single-sourced (`frontend/src/pages/legal/DataDeletionPage.tsx`).
-
-### Config you must supply at deploy (code is ready, values are not)
-
-- [ ] `INSTAGRAM_CLIENT_ID` / `INSTAGRAM_CLIENT_SECRET` — from Meta (Step B).
-- [ ] `INSTAGRAM_REDIRECT_URI` — must match the dashboard **exactly** (Step C).
-- [ ] `SECRET_KEY` — signs JWTs **and** the OAuth state token.
-- [ ] `TOKEN_ENCRYPTION_KEY` — Fernet key; without it the callback can't persist the token.
-- [ ] `DATABASE_URL` reachable + **migrations applied** (`alembic upgrade head`).
-- [ ] **HTTPS end-to-end** in prod — Meta requires an https redirect URI, and secure cookies are enforced off-dev (no TLS ⇒ cookies dropped ⇒ login fails).
-- [ ] **Same-site SPA/API** (recommended: API under the SPA domain at `/api`) so the `SameSite=lax` state cookie survives the redirect back. If cross-site, set `REFRESH_COOKIE_SAMESITE=none` + `_SECURE=true` + credentialed CORS.
-- [ ] **Backend egress** to `api.instagram.com`, `graph.instagram.com`, `www.instagram.com` allowed by any firewall.
+Publish checklist: <https://developers.facebook.com/docs/development/release/>
 
 ---
 
-## Quick reference — all links
+## Buzz platform (engineering)
 
-- Meta for Developers (home / register): <https://developers.facebook.com/>
-- App Dashboard: <https://developers.facebook.com/apps/>
-- Create a Meta app with Instagram (walkthrough): <https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/create-a-meta-app-with-instagram/>
-- Instagram API with Instagram Login (overview): <https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/>
-- Business Login setup: <https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login/>
-- Get started / first API call: <https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/get-started/>
-- App roles (tester invites): <https://developers.facebook.com/docs/development/build-and-test/app-roles/>
-- Accept a tester invite (send to orgs): <https://www.instagram.com/accounts/manage_access/>
-- App modes (Development vs Live): <https://developers.facebook.com/docs/development/build-and-test/app-modes/>
-- Access levels (Standard vs Advanced): <https://developers.facebook.com/docs/graph-api/overview/access-levels/>
-- App Review (Instagram): <https://developers.facebook.com/docs/instagram-platform/app-review/>
-- Screen-recording requirements: <https://developers.facebook.com/docs/app-review/submission-guide/screen-recordings/>
+Already in code: OAuth handshake, signed state cookie, encrypted tokens, Business/Creator gate, token refresh job, deauthorize webhook, data-deletion page, fail-fast missing IG config off-dev.
+
+Deploy must set (Railway, for now):
+
+- `INSTAGRAM_CLIENT_ID` / `INSTAGRAM_CLIENT_SECRET`
+- `INSTAGRAM_REDIRECT_URI=https://frontend-production-3819.up.railway.app/auth/instagram/callback`
+- `FRONTEND_URL=https://frontend-production-3819.up.railway.app`
+- `SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, `DATABASE_URL` (+ migrations)
+- Cross-site SPA/API on `*.up.railway.app` usually needs `REFRESH_COOKIE_SAMESITE=none` + `REFRESH_COOKIE_SECURE=true` (see `DEPLOYMENT.md`)
+- Egress to `api.instagram.com`, `graph.instagram.com`, `www.instagram.com`
+
+Details: `DEPLOYMENT.md`.
+
+---
+
+## Links
+
+- Developers: <https://developers.facebook.com/>
+- Apps: <https://developers.facebook.com/apps/>
+- Create app + Instagram: <https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/create-a-meta-app-with-instagram/>
+- Instagram Login overview: <https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/>
+- Standard vs Advanced: <https://developers.facebook.com/docs/instagram-platform/overview/>
+- Business Login: <https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login/>
+- Get started: <https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/get-started/>
+- App roles: <https://developers.facebook.com/docs/development/build-and-test/app-roles/>
+- Tester accept: <https://www.instagram.com/accounts/manage_access/>
+- Access levels: <https://developers.facebook.com/docs/graph-api/overview/access-levels/>
+- App Review: <https://developers.facebook.com/docs/instagram-platform/app-review/>
+- Screencasts: <https://developers.facebook.com/docs/app-review/submission-guide/screen-recordings/>
+- Privacy policy URLs: <https://developers.facebook.com/docs/development/terms-and-policies/privacy-policy/>
 - Business Verification: <https://developers.facebook.com/docs/development/release/business-verification/>
-- Publish / go-Live: <https://developers.facebook.com/docs/development/release/>
 
 ---
 
-## Notes & gotchas
+## Notes
 
-- **Business/Creator accounts only.** Personal Instagram accounts have no API access (since Dec 2024) and the app rejects them.
-- **Exact redirect URI match.** The single most common failure: the URI saved in the dashboard must equal `INSTAGRAM_REDIRECT_URI` in the backend exactly (including any trailing slash and `https://`).
-- **Least privilege.** Only the two listed permissions. Extra scopes = slower or rejected review.
-- **Timeline.** Business Verification + App Review can take from days to a few weeks. Start Steps A–E as early as possible; the pilot (Step D) can run in parallel with zero review.
+- Instagram accounts must be **Business or Creator**.
+- Redirect URI in Meta and `INSTAGRAM_REDIRECT_URI` must match character-for-character.
+- Only the two listed permissions.
+- Public launch = Advanced Access + Business Verification, not testers alone.
