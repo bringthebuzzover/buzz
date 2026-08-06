@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import errors
 from app.config import settings
 from app.exceptions import BuzzAPIException
-from app.models.enums import OrgUserStatus
+from app.models.enums import OrgUserStatus, PortalRole
 from app.models.organization import Organization
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
@@ -137,7 +137,7 @@ async def submit_org_onboarding(
     - edu_email must not already be verified by another user (unverified
       claims older than the TTL may be taken over).
     """
-    if user.portal_role != "org":
+    if user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
             "Only organization users can submit onboarding.",
@@ -209,7 +209,7 @@ async def submit_org_onboarding(
 
 async def change_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict[str, Any]:
     """Correct the .edu address while still awaiting verification."""
-    if user.portal_role != "org":
+    if user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
             "Only organization users verify a .edu email.",
@@ -316,7 +316,7 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
 
 async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, Any]:
     """Re-send the verification email (max 3 active tokens at a time)."""
-    if user.portal_role != "org":
+    if user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
             "Only organization users verify a .edu email.",

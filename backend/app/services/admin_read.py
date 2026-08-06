@@ -19,6 +19,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.exceptions import BuzzAPIException
+from app.jobs.metric_sync import METRIC_WINDOW_DAYS
+from app.jobs.names import (
+    JOB_DROP_AUTOCLOSE,
+    JOB_METRIC_SYNC,
+    JOB_TOKEN_CLEANUP,
+    JOB_TOKEN_REFRESH,
+)
+from app.jobs.token_cleanup import DEFAULT_GRACE_DAYS
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.brand_invite_token import BrandInviteToken
@@ -40,18 +48,11 @@ from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
+from app.services.instagram_token import REFRESH_WINDOW_DAYS
 
-# Mirrors the 30-day trigger in ``maybe_refresh_on_login``: inside this window a
-# token is due for rotation but still usable.
-_IG_EXPIRING_SOON_DAYS = 30
 # ``metric_sync`` runs daily at 03:00 UTC; 36h leaves room for one missed run
 # plus clock skew before we call it stale.
 _METRIC_SYNC_STALE_HOURS = 36
-# ``metric_sync`` only touches posts newer than this, so older rows are frozen
-# by design and must not count as stale.
-_METRIC_WINDOW_DAYS = 30
-# Matches the grace period in ``token_cleanup``.
-_TOKEN_CLEANUP_GRACE_DAYS = 7
 
 _ATTENTION_FILTERS = frozenset(
     {
@@ -153,8 +154,8 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
         .subquery()
     )
 
-    metric_cutoff = now - timedelta(days=_METRIC_WINDOW_DAYS)
-    cleanup_cutoff = now - timedelta(days=_TOKEN_CLEANUP_GRACE_DAYS)
+    metric_cutoff = now - timedelta(days=METRIC_WINDOW_DAYS)
+    cleanup_cutoff = now - timedelta(days=DEFAULT_GRACE_DAYS)
     stale_before = now - timedelta(hours=_METRIC_SYNC_STALE_HOURS)
 
     return {
@@ -443,18 +444,18 @@ async def get_health(db: AsyncSession) -> dict[str, Any]:
     metric_detail = _describe_age(last_metric_sync, now)
     pipeline = [
         _signal(
-            "drop_autoclose",
+            JOB_DROP_AUTOCLOSE,
             counts["autoclose_overdue"],
             detail=_with_run_age(
-                "drop_autoclose",
+                JOB_DROP_AUTOCLOSE,
                 "drops past their apply window still awaiting auto-close",
             ),
         ),
         _signal(
-            "metric_sync",
+            JOB_METRIC_SYNC,
             counts["metric_sync_stale"],
             detail=_with_run_age(
-                "metric_sync",
+                JOB_METRIC_SYNC,
                 (
                     f"last refresh {metric_detail}"
                     if metric_detail
@@ -463,18 +464,18 @@ async def get_health(db: AsyncSession) -> dict[str, Any]:
             ),
         ),
         _signal(
-            "token_cleanup",
+            JOB_TOKEN_CLEANUP,
             counts["token_cleanup_backlog"],
             detail=_with_run_age(
-                "token_cleanup",
-                "expired tokens past the 7-day sweep grace",
+                JOB_TOKEN_CLEANUP,
+                f"expired tokens past the {DEFAULT_GRACE_DAYS}-day sweep grace",
             ),
         ),
         _signal(
-            "token_refresh",
+            JOB_TOKEN_REFRESH,
             counts["token_refresh_overdue"],
             detail=_with_run_age(
-                "token_refresh",
+                JOB_TOKEN_REFRESH,
                 "Instagram tokens at or past expiry",
             ),
         ),
@@ -485,7 +486,7 @@ async def get_health(db: AsyncSession) -> dict[str, Any]:
         User.instagram_access_token.is_not(None),
         User.instagram_token_expires_at.is_not(None),
     )
-    soon = now + timedelta(days=_IG_EXPIRING_SOON_DAYS)
+    soon = now + timedelta(days=REFRESH_WINDOW_DAYS)
     missing, expired, _expiring_sql, _healthy_sql = (
         await db.execute(
             select(

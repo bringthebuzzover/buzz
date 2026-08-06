@@ -138,7 +138,9 @@ For v1, drops expose two timestamps:
 
 #### 5.2.1 Logistics integrations (e.g. EasyPost)
 
-Buzz integrates **shipping and tracking** with external providers (for example **EasyPost**) so brands can **enter or sync tracking numbers**, and eventually **generate labels** and receive **webhook-driven** carrier events (e.g. in transit, delivered) where the implementation supports it.
+**Today (MVP):** Buzz admins enter tracking numbers on the drop tracker; there is **no** EasyPost (or other carrier) integration in the shipped product.
+
+**Future:** Buzz may integrate shipping and tracking with external providers (for example **EasyPost**) so brands can enter or sync tracking numbers, and eventually generate labels and receive webhook-driven carrier events (e.g. in transit, delivered) where the implementation supports it.
 
 **NOTE:** Exact split of responsibilities (Buzz vs. brand vs. automation) for each milestone should follow the same tracker UX unless the product explicitly hands a step to the brand through the integration.
 

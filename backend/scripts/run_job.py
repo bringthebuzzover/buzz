@@ -32,6 +32,14 @@ from app.deps.db import async_session_factory  # noqa: E402
 from app.jobs.autolink_scan import scan_autolink  # noqa: E402
 from app.jobs.drop_autoclose import auto_close_drops  # noqa: E402
 from app.jobs.metric_sync import sync_metrics  # noqa: E402
+from app.jobs.names import (  # noqa: E402
+    JOB_AUTOLINK_SCAN,
+    JOB_DROP_AUTOCLOSE,
+    JOB_METRIC_SYNC,
+    JOB_NOTIFY_REMINDERS,
+    JOB_TOKEN_CLEANUP,
+    JOB_TOKEN_REFRESH,
+)
 from app.jobs.notify_reminders import send_due_reminders  # noqa: E402
 from app.jobs.token_cleanup import cleanup_tokens  # noqa: E402
 from app.jobs.token_refresh import refresh_due_tokens  # noqa: E402
@@ -40,12 +48,12 @@ from app.services.instagram import close_instagram_client, get_instagram_client 
 
 # job name -> (callable, needs_instagram_client)
 _JOBS = {
-    "drop_autoclose": (auto_close_drops, False),
-    "notify_reminders": (send_due_reminders, False),
-    "token_cleanup": (cleanup_tokens, False),
-    "autolink_scan": (scan_autolink, False),
-    "token_refresh": (refresh_due_tokens, True),
-    "metric_sync": (sync_metrics, True),
+    JOB_DROP_AUTOCLOSE: (auto_close_drops, False),
+    JOB_NOTIFY_REMINDERS: (send_due_reminders, False),
+    JOB_TOKEN_CLEANUP: (cleanup_tokens, False),
+    JOB_AUTOLINK_SCAN: (scan_autolink, False),
+    JOB_TOKEN_REFRESH: (refresh_due_tokens, True),
+    JOB_METRIC_SYNC: (sync_metrics, True),
 }
 
 

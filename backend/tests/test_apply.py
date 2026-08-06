@@ -139,6 +139,29 @@ async def test_apply_manual_reopen_past_close_allowed(app_client: AsyncClient, d
     assert resp.json()["data"]["decision"] == ApplicationDecision.APPLIED.value
 
 
+async def test_apply_finalized_rejected_while_window_open(
+    app_client: AsyncClient, db_session
+) -> None:
+    """Finalized selection blocks apply even if the window is otherwise open."""
+
+    _, _, headers = await _org_ctx(db_session)
+    brand = await make_brand(db_session)
+    now = datetime.now(timezone.utc)
+    drop = await make_drop(
+        db_session,
+        brand,
+        apply_open_at=now - timedelta(days=1),
+        apply_close_at=now + timedelta(days=7),
+        manual_reopen=False,
+    )
+    drop.applicant_selection_finalized_at = now
+    await db_session.flush()
+
+    resp = await app_client.post(f"/api/drops/{drop.id}/apply", headers=headers, json={})
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
+
+
 async def test_apply_blank_pitch_stored_as_null(app_client: AsyncClient, db_session) -> None:
     _, _, headers = await _org_ctx(db_session)
     brand = await make_brand(db_session)

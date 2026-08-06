@@ -19,18 +19,18 @@ import {
 } from "../../components/admin/AdminPrimitives";
 import {
   STAGE_LABELS,
+  STAGE_ORDER,
   formatDate,
   formatElapsed,
 } from "../../components/admin/labels";
 
 const STAGE_FILTERS = [
-  { value: null, label: "All stages" },
-  { value: "request_received", label: "Request received" },
-  { value: "finalizing_agreements", label: "Finalizing" },
-  { value: "awaiting_products", label: "Awaiting products" },
-  { value: "drop_active", label: "Active" },
-  { value: "drop_finished", label: "Finished" },
-] as const;
+  { value: null as string | null, label: "All stages" },
+  ...STAGE_ORDER.map((value) => ({
+    value,
+    label: STAGE_LABELS[value] ?? value,
+  })),
+];
 
 const ATTENTION_FILTERS = [
   { value: null, label: "Everything" },

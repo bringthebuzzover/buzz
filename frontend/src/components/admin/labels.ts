@@ -7,6 +7,8 @@
  * to know what admin routes exist.
  */
 
+import { BRAND_DROP_TRACKER_ORDER } from "../../types/brandPortal";
+
 export type QueueMeta = {
   label: string;
   /** What the admin is actually waiting on, in one line. */
@@ -179,13 +181,8 @@ export const STAGE_LABELS: Record<string, string> = {
   drop_finished: "Drop finished",
 };
 
-export const STAGE_ORDER = [
-  "request_received",
-  "finalizing_agreements",
-  "awaiting_products",
-  "drop_active",
-  "drop_finished",
-] as const;
+/** Same order as brand portal — single stage-order SOT. */
+export const STAGE_ORDER = BRAND_DROP_TRACKER_ORDER;
 
 export const STATUS_LABELS: Record<string, string> = {
   pending_org_profile: "No profile yet",

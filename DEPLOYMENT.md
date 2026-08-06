@@ -1,30 +1,39 @@
 # Launch & Deployment
 
-The go-live runbook for Buzz: what has to be true before we launch, how to provision and deploy, and the environment/operational invariants to respect. The application code is feature-complete and tested (backend `pytest`, frontend smoke + Playwright E2E, live API bug-bash). The remaining work to launch is **external configuration** (custom DNS, Meta go-live, Resend domain verify) — not application code, and not greenfield Railway provisioning.
+The go-live runbook for Buzz: what has to be true before we launch, how to provision and deploy, and the environment/operational invariants to respect. The application code is largely feature-complete and tested (backend `pytest`, frontend smoke + Playwright E2E, live API bug-bash). Remaining launch work is mostly **external configuration** (custom DNS, Meta go-live, Resend domain verify) plus a few ops items (e.g. the Notify Me cron is not provisioned yet) — not greenfield Railway provisioning.
 
 Deploy target: **Railway** from branch **`mvp`** (autodeploy on) — Frontend (`/frontend`) + Backend (`/backend`) + PostgreSQL + **five** cron services. Run `alembic upgrade head` as a pre-deploy step before the backend starts.
 
-**Canonical public hosts:**
+**Live hosts (Railway today — App Review / Meta SOT):**
+
+| Role | URL |
+| ---- | --- |
+| SPA | `https://frontend-production-3819.up.railway.app` |
+| API | `https://api-production-fbbc1.up.railway.app` |
+
+**Target hosts (custom DNS — not attached yet):**
 
 | Role | URL |
 | ---- | --- |
 | SPA (site root) | `https://www.bringthebuzzover.com` |
 | API | `https://api.bringthebuzzover.com` |
 
-Meta OAuth redirect, privacy/terms, and data-deletion URLs must use the SPA host — see [`META.md`](META.md). Railway-generated `*.up.railway.app` hosts may still exist as fallbacks; prefer the custom hosts above for public / Meta config.
+Meta OAuth redirect, privacy/terms, and data-deletion URLs must match the **Live** SPA host until cutover — see [`META.md`](META.md). After custom DNS, flip Meta + env to the Target hosts.
 
 ### Environment vocabulary
 
 | Name | Meaning today |
 | ---- | ------------- |
 | **Local / `development`** | Laptop bring-up (`ENVIRONMENT=development`). Dev secrets, insecure cookies OK, localhost CORS. |
-| **Railway env `production`** | The **only** Railway environment today (project **buzz**). Serves custom DNS (`www` / `api`) and/or Railway-generated hosts. `ENVIRONMENT` for the API is whatever is set on that service (must be `staging` or `production` for the fail-fast path — not `development`). |
+| **Railway env `production`** | The **only** Railway environment today (project **buzz**). Serves **Live** Railway-generated hosts; Target custom DNS is still unchecked. `ENVIRONMENT` for the API is whatever is set on that service (must be `staging` or `production` for the fail-fast path — not `development`). |
 | **Staging (optional / future)** | A second Railway environment is **not** provisioned. Optional later if you want a separate stack from public launch. |
 
-**Live hosts:**
+**Live hosts (repeat):**
 
-- SPA: `https://www.bringthebuzzover.com` (also Railway: `https://frontend-production-3819.up.railway.app`)
-- API: `https://api.bringthebuzzover.com` (also Railway: `https://api-production-fbbc1.up.railway.app`)
+- SPA: `https://frontend-production-3819.up.railway.app`
+- API: `https://api-production-fbbc1.up.railway.app`
+
+**Target (after DNS cutover):** `https://www.bringthebuzzover.com` / `https://api.bringthebuzzover.com`
 
 ---
 
@@ -36,10 +45,11 @@ Meta OAuth redirect, privacy/terms, and data-deletion URLs must use the SPA host
 | Instagram / Meta app review (org login scopes)       | Not started                         | **Yes** — gates all org signups     |
 | Legal review of Privacy Policy + Terms               | Draft in app (`/privacy`, `/terms`) | **Yes** — required for Meta + PII   |
 | Railway stack (Frontend + API + Postgres + 5 crons)  | **Done** (env `production`, autodeploy from `mvp`) | No — stack exists                   |
-| Custom DNS (`www` / `api.bringthebuzzover.com`)      | Public hosts in use                 | Re-check env/Meta parity if anything still points at `*.up.railway.app` |
-| Secrets + env for current hosts                      | Set (API fail-fast requires them)   | Confirm `FRONTEND_URL` / IG redirect use `www` |
-| Env parity for custom domains (SPA/API URLs, Meta)   | Verify against table above          | **Yes** if any var still uses Railway-only URLs |
+| Custom DNS (`www` / `api.bringthebuzzover.com`)      | **Not attached** (Target only)      | Needed for brand domains + `SameSite=lax` cutover |
+| Secrets + env for current hosts                      | Set (API fail-fast requires them)   | Confirm `FRONTEND_URL` / IG redirect use **Live** Railway SPA |
+| Env parity for custom domains (SPA/API URLs, Meta)   | N/A until DNS                       | **Yes** after cutover if any var still uses Railway-only URLs |
 | Resend verified sender domain                        | Not started                         | **Yes** — verification/denial email |
+| Notify Me cron (`cron-notify-reminders`)             | Code shipped; **service not created** | Soft — reminders never fire until provisioned |
 
 ---
 
@@ -70,10 +80,10 @@ Branch: **`mvp`** (autodeploy on). One Railway project (**buzz**). One Railway e
 | **Frontend**            | React SPA under `/frontend`                                                               | Root Directory `/frontend`; Watch Paths `/frontend/**`; Build `npm ci && npm run build:prod`; Start `npm run start:prod` (`serve -s`) |
 | **api**                 | FastAPI + Uvicorn (`poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT`)         | Root Directory `/backend`; Watch Paths `/backend/**`; Pre-deploy `poetry run alembic upgrade head`; **1 replica**; Health `/api/health` (DB ping — 503 if Postgres is down) |
 | **PostgreSQL**          | Railway-managed                                                                           | Injects `DATABASE_URL` (`postgres://…` / `postgresql://…`); backend rewrites to `postgresql+asyncpg://` at startup                    |
-| **Cron ×6** (named)     | One service per job: `poetry run python scripts/run_job.py <name>`                        | `cron-drop-autoclose`, `cron-notify-reminders`, `cron-metric-sync`, `cron-token-cleanup`, `cron-autolink-scan`, `cron-token-refresh`; Root `/backend`; no public domain; share API env |
+| **Cron ×5 live + 1 pending** | One service per job: `poetry run python scripts/run_job.py <name>` | **Live:** `cron-drop-autoclose`, `cron-metric-sync`, `cron-token-cleanup`, `cron-autolink-scan`, `cron-token-refresh`. **Not created:** `cron-notify-reminders` (job exists in `run_job.py`). Root `/backend`; no public domain; share API env |
 
-- [x] Create the services in one Railway project (Frontend + API + Postgres + 5 crons) — **done** (sixth cron below).
-- [ ] Add the sixth cron service **`cron-notify-reminders`** (`*/5 * * * *`) — new with Notify Me delivery; not created yet.
+- [x] Create the services in one Railway project (Frontend + API + Postgres + 5 crons) — **done**.
+- [ ] Add cron service **`cron-notify-reminders`** (`*/5 * * * *`) — Notify Me delivery; code shipped, Railway service **not created**.
 - [x] Set each service's **Root Directory** / Watch Paths and wire autodeploy from `mvp` — **done** (deploys follow `mvp` commits).
 - [ ] Custom domains: `www.bringthebuzzover.com` → Frontend; `api.bringthebuzzover.com` → Backend (CNAME + TXT). Confirm DNS + TLS are healthy; keep Railway hosts as secondary if still needed.
 - [ ] Enable **Wait for CI** on Frontend + API (CI on `mvp` includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
@@ -98,14 +108,14 @@ Start Command: `npm run start:prod` → `serve -s build -l $PORT` (History API f
 
 Background jobs are one-shot scripts the scheduler invokes — no worker. Each is idempotent (`backend/README.md`, architecture §10). **One Railway cron service per row:**
 
-| Service             | Start command                                         | Cron UTC      | Purpose                                              |
-| ------------------- | ----------------------------------------------------- | ------------- | ---------------------------------------------------- |
-| cron-drop-autoclose | `poetry run python scripts/run_job.py drop_autoclose` | `*/5 * * * *` | close drops past their apply window (§10.2)          |
-| cron-notify-reminders | `… notify_reminders`                                | `*/5 * * * *` | email Notify Me subscribers before a drop opens (§10.6) |
-| cron-metric-sync    | `… metric_sync`                                       | `0 3 * * *`   | Instagram metric sync (§10.1)                        |
-| cron-token-cleanup  | `… token_cleanup`                                     | `0 3 * * *`   | sweep used/expired tokens (§10.3)                    |
-| cron-autolink-scan  | `… autolink_scan`                                     | `30 3 * * *`  | auto-link suggestion scan, after metric_sync (§10.4) |
-| cron-token-refresh  | `… token_refresh`                                     | `0 4 * * *`   | IG long-lived token refresh safety net (§10.5.2)     |
+| Service             | Start command                                         | Cron UTC      | Status | Purpose                                              |
+| ------------------- | ----------------------------------------------------- | ------------- | ------ | ---------------------------------------------------- |
+| cron-drop-autoclose | `poetry run python scripts/run_job.py drop_autoclose` | `*/5 * * * *` | Live   | close drops past their apply window (§10.2)          |
+| cron-metric-sync    | `… metric_sync`                                       | `0 3 * * *`   | Live   | Instagram metric sync (§10.1)                        |
+| cron-token-cleanup  | `… token_cleanup`                                     | `0 3 * * *`   | Live   | sweep used/expired tokens (§10.3)                    |
+| cron-autolink-scan  | `… autolink_scan`                                     | `30 3 * * *`  | Live   | auto-link suggestion scan, after metric_sync (§10.4) |
+| cron-token-refresh  | `… token_refresh`                                     | `0 4 * * *`   | Live   | IG long-lived token refresh safety net (§10.5.2)     |
+| cron-notify-reminders | `… notify_reminders`                                | `*/5 * * * *` | **Not created** | email Notify Me subscribers before a drop opens (§10.6) |
 
 The primary IG token refresh is **on-login**; `token_refresh` only catches inactive orgs and is optional for a tight MVP. `refresh_due_tokens` only selects still-valid tokens with `now < expires_at < now+14d`; already-expired tokens are never selected and cannot be Meta-refreshed — the org must OAuth reconnect (`/reconnect-instagram`). A 5-minute cadence means the 5-minute reminder option can land up to ~5 minutes late, and the first `notify_reminders` run mails every already-due subscription that predates the job. Confirm each cron run **exits** (Completed, not stuck Active). Each invocation writes a `job_runs` row (`ok` + `summary`); `/api/admin/health` surfaces last-run age on pipeline signals.
 
@@ -138,10 +148,10 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 - [x] Backend env set for the current Railway hosts (table above); secrets generated fresh, never committed. Re-check when cutting over custom domains (`FRONTEND_URL`, Instagram redirect URI, cookie SameSite — see below).
 - [x] Frontend built via `npm run build:prod` with a non-localhost `REACT_APP_API_URL` (guard: `frontend/scripts/check-deploy-env.js`). Rebuild with `https://api.bringthebuzzover.com` at DNS cutover.
 - [ ] `BRAND_SELF_REGISTRATION_ENABLED` set intentionally (`true` = public `POST /api/brands/apply`; `false` = admin-provisioned brands only).
-- [ ] Meta dashboard URLs after **custom** domains are live (or temporarily point at Railway SPA/API hosts for the pilot/tester path):
-  - OAuth redirect: `https://www.bringthebuzzover.com/auth/instagram/callback` (or current Railway frontend origin + `/auth/instagram/callback`)
-  - Deauthorize: `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize` (API host)
-  - Data deletion: `https://www.bringthebuzzover.com/data-deletion`
+- [ ] Meta dashboard URLs for **Live** Railway hosts (see META.md); after custom DNS cutover, switch to Target www/api:
+  - OAuth redirect: `https://frontend-production-3819.up.railway.app/auth/instagram/callback` (Target: `https://www.bringthebuzzover.com/auth/instagram/callback`)
+  - Deauthorize: `https://api-production-fbbc1.up.railway.app/api/auth/instagram/deauthorize` (Target: `https://api.bringthebuzzover.com/...`)
+  - Data deletion: `https://frontend-production-3819.up.railway.app/data-deletion`
 
 **Operational gotcha:** Off-dev (`staging` / `production`) both take the hardened path (HSTS, Secure cookies, no localhost CORS), so you can't bring one up over plain `http://localhost` — use `ENVIRONMENT=development` for local bring-up. CORS always allowlists apex + www and also adds `FRONTEND_URL`'s origin so temporary Railway SPA hosts work before custom DNS (`backend/app/main.py`).
 
@@ -194,7 +204,7 @@ The backend sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Re
 
 ### Session revocation
 
-Logout and admin-deny bump `users.token_version`, invalidating outstanding **refresh** tokens immediately. **Access** tokens are stateless and remain valid until they expire — the 1-hour access TTL (`ACCESS_TOKEN_TTL_MINUTES`) is the load-bearing control, by design (no per-request DB check on the hot path).
+Logout, admin deny, password reset, and related paths bump `users.token_version`. **Access and refresh** JWTs both carry a `ver` claim; the API compares it to the current `token_version` on the hot path (`backend/app/deps/auth.py` for access; refresh validates the same way). A bump therefore invalidates outstanding access **and** refresh tokens immediately — not refresh-only, and not “wait until the 1-hour access TTL expires.”
 
 ### Admin auth + recovery (ops note)
 

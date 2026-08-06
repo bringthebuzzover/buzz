@@ -106,7 +106,7 @@ async def approve_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
     user = await db.get(User, org.user_id)
-    if user is None or user.portal_role != "org":
+    if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
     if user.status != OrgUserStatus.PENDING_APPROVAL.value:
@@ -133,7 +133,7 @@ async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
     user = await db.get(User, org.user_id)
-    if user is None or user.portal_role != "org":
+    if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
     if user.status != OrgUserStatus.PENDING_APPROVAL.value:

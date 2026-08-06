@@ -26,6 +26,7 @@ from sqlalchemy import func, select
 from app import errors
 from app.deps.db import async_session_factory
 from app.exceptions import BuzzAPIException
+from app.models.enums import PortalRole
 from app.models.user import User
 from app.security.token_crypto import TokenDecryptionError, decrypt_token, encrypt_token
 from app.services.instagram import InstagramClient, get_instagram_client
@@ -56,7 +57,7 @@ def clear_unusable_instagram_token(user: User, *, bump_session: bool = True) -> 
 
 def time_until_expiry(user: User, *, now: datetime | None = None) -> timedelta | None:
     """Remaining time until the user's IG token expires, or None if not applicable."""
-    if user.portal_role != "org" or not user.instagram_access_token:
+    if user.portal_role != PortalRole.ORG.value or not user.instagram_access_token:
         return None
     if user.instagram_token_expires_at is None:
         return None
@@ -91,7 +92,7 @@ async def maybe_refresh_on_login(
     dedicated session (request ``get_db`` would roll back on the 401) and
     surfaced as ``INSTAGRAM_TOKEN_EXPIRED`` so the org must reconnect.
     """
-    if user.portal_role != "org" or not user.instagram_access_token:
+    if user.portal_role != PortalRole.ORG.value or not user.instagram_access_token:
         return
     try:
         decrypt_token(user.instagram_access_token)

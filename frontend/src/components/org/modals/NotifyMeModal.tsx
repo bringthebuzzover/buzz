@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Bell, CalendarPlus, Check, X } from "lucide-react";
+import { REMINDER_CHOICES } from "../../../api/hooks/useDropHooks";
 
 type NotifyMeModalProps = {
   dropTitle: string;
@@ -9,11 +10,17 @@ type NotifyMeModalProps = {
   onConfirm: (selectedMinutes: number | null) => void;
 };
 
-const REMINDER_OPTIONS = [
-  { minutes: 60, label: "1 hour before" },
-  { minutes: 15, label: "15 minutes before" },
-  { minutes: 5, label: "5 minutes before" },
-] as const;
+/** Display labels keyed by the shared `REMINDER_CHOICES` minute values. */
+const REMINDER_LABELS: Record<(typeof REMINDER_CHOICES)[number], string> = {
+  60: "1 hour before",
+  15: "15 minutes before",
+  5: "5 minutes before",
+};
+
+/** UI order: longest lead time first. */
+const REMINDER_OPTIONS = ([...REMINDER_CHOICES] as Array<(typeof REMINDER_CHOICES)[number]>)
+  .sort((a, b) => b - a)
+  .map((minutes) => ({ minutes, label: REMINDER_LABELS[minutes] }));
 
 export default function NotifyMeModal({
   dropTitle,

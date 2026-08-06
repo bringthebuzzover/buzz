@@ -19,7 +19,7 @@ from app.config import settings
 from app.exceptions import BuzzAPIException
 from app.models.brand import Brand
 from app.models.brand_invite_token import BrandInviteToken
-from app.models.enums import BrandStatus, OrgUserStatus
+from app.models.enums import BrandStatus, OrgUserStatus, PortalRole
 from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.security.password import hash_password, verify_password
@@ -62,7 +62,7 @@ async def apply_brand(
 
     user = User(
         id=uuid.uuid4(),
-        portal_role="brand",
+        portal_role=PortalRole.BRAND.value,
         status=OrgUserStatus.PENDING_APPROVAL.value,
     )
     db.add(user)
