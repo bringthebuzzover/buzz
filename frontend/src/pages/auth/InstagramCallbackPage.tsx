@@ -7,7 +7,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { setAccessToken } from "../../api/auth";
+import { setAccessToken, clearInstagramReconnectLatch } from "../../api/auth";
 import { API_BASE_URL } from "../../api/config";
 
 type CallbackState =
@@ -62,6 +62,7 @@ export default function InstagramCallbackPage() {
         if (token) {
           setAccessToken(token);
         }
+        clearInstagramReconnectLatch();
         // Land on the org portal, not the public home: a full reload re-runs the
         // AuthProvider bootstrap, and the guard chain (RequireAuth → RequireStatus
         // → RequireRole) forwards a pending org to the right onboarding step and

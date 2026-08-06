@@ -80,7 +80,7 @@ export const SIGNAL_META: Record<string, SignalMeta> = {
   },
   verification_blocked_by_ig: {
     label: "Orgs locked out of email verification",
-    note: "An expired Instagram token rejects every request, including the one that would resend their verification email.",
+    note: "An expired Instagram token rejects every request, including the one that would resend their verification email. Org self-serve reconnect is /reconnect-instagram (Instagram OAuth); Clear IG token is optional ops assist.",
     to: "/admin/orgs?status=pending_email_verification",
   },
   stranded_applicants: {
@@ -147,7 +147,7 @@ export const PIPELINE_META: Record<
     label: "Instagram token refresh",
     schedule: "daily 04:00 UTC",
     inference:
-      "Counts tokens already at or past expiry — refresh should have kept them healthy.",
+      "Only still-valid tokens near expiry are selected. Already-expired rows belong in the expired bucket — org must OAuth reconnect (/reconnect-instagram); cron cannot resurrect them.",
   },
 };
 
@@ -159,7 +159,7 @@ export const TOKEN_BUCKET_META: Record<string, SignalMeta> = {
   },
   expired: {
     label: "Expired",
-    note: "These orgs cannot authenticate at all, and the refresh job will not retry them",
+    note: "Authenticated org requests return INSTAGRAM_TOKEN_EXPIRED until the org reconnects via Instagram OAuth; token_refresh will not retry already-expired tokens",
   },
   missing: {
     label: "Missing",

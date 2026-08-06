@@ -7,6 +7,7 @@ import {
   endImpersonation,
   getAccessToken,
   isImpersonating,
+  markInstagramReconnectLatch,
   refreshAccessToken,
   setAccessToken,
 } from "./auth";
@@ -56,9 +57,9 @@ async function doFetch<T>(
 }
 
 /**
- * Fetch `path` through the envelope. On a `TOKEN_EXPIRED` 401 it refreshes the
- * access token once and replays the request exactly once; a second failure (or
- * a failed refresh) propagates the `ApiError`.
+ * Fetch `path` through the envelope. On a Buzz `TOKEN_EXPIRED` 401 it refreshes
+ * the access token once and replays once. On `INSTAGRAM_TOKEN_EXPIRED` it
+ * latches reconnect framing and hard-navigates to `/reconnect-instagram`.
  */
 export async function apiFetch<T>(
   path: string,
@@ -67,6 +68,12 @@ export async function apiFetch<T>(
   try {
     return await doFetch<T>(path, init);
   } catch (err) {
+    if (err instanceof ApiError && err.code === "INSTAGRAM_TOKEN_EXPIRED") {
+      markInstagramReconnectLatch();
+      setAccessToken(null);
+      window.location.href = "/reconnect-instagram";
+      throw err;
+    }
     if (err instanceof ApiError && err.code === "TOKEN_EXPIRED") {
       // The refresh cookie belongs to the admin, not the impersonated user, so
       // refreshing here would quietly escalate the session. End impersonation

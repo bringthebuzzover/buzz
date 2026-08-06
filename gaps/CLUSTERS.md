@@ -211,7 +211,7 @@ stop_if:
 
 ## auth-ig-reconnect
 
-status: pending
+status: done
 gaps:
   - auth.expired-ig-token-reconnect
 approach: |

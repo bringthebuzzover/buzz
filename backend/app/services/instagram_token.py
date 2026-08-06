@@ -116,6 +116,16 @@ async def maybe_refresh_on_login(
     if remaining is None:
         return
     if remaining <= timedelta(0):
+        logger.warning(
+            "clearing clock-expired Instagram token for user %s",
+            user.id,
+        )
+        async with async_session_factory() as clear_db:
+            row = await clear_db.get(User, user.id)
+            if row is not None and row.instagram_access_token:
+                clear_unusable_instagram_token(row)
+                await clear_db.commit()
+        clear_unusable_instagram_token(user)
         raise BuzzAPIException(
             code=errors.INSTAGRAM_TOKEN_EXPIRED,
             message="Your Instagram connection has expired. Please reconnect.",

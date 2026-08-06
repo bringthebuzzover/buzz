@@ -2,14 +2,16 @@
  * Real AuthProvider for Stage 6 — replaces the Stage 4 minimal bootstrap.
  *
  * Provides:
- *  - status: "idle" | "authenticating" | "authenticated" | "restore_failed" | "error"
+ *  - status: "idle" | "authenticating" | "authenticated" | "restore_failed" | "error" | "needs_instagram_reconnect"
  *  - user: { id, portalRole, status } when authenticated
  *  - login(): redirect to Instagram OAuth
  *  - logout(): clear session, redirect to /
  *
  * Bootstrap on mount: try refresh cookie → fall back to dev-login (dev only).
  * Soft `/me` failures after a good refresh become `restore_failed` (Retry UI)
- * instead of dumping the user to login.
+ * instead of dumping the user to login. Instagram token expiry lands on
+ * `needs_instagram_reconnect` (dedicated reconnect page), including when the
+ * BE version-bump kills the refresh cookie but the sessionStorage latch is set.
  */
 import {
   createContext,
@@ -23,6 +25,8 @@ import {
 } from "react";
 import {
   clearImpersonationSession,
+  clearInstagramReconnectLatch,
+  hasInstagramReconnectLatch,
   refreshAccessToken,
   setAccessToken,
   getAccessToken,
@@ -39,7 +43,8 @@ export type AuthStatus =
   | "authenticating"
   | "authenticated"
   | "restore_failed"
-  | "error";
+  | "error"
+  | "needs_instagram_reconnect";
 
 export type AuthUser = {
   id: string;
@@ -84,6 +89,7 @@ function onAuthRoute(): boolean {
   const p = window.location.pathname;
   return (
     p === "/login" ||
+    p === "/reconnect-instagram" ||
     p.startsWith("/brand/login") ||
     p.startsWith("/brand/setup") ||
     p.startsWith("/brand/apply") ||
@@ -130,6 +136,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userRef.current = user;
   }, [user]);
 
+  const enterInstagramReconnect = useCallback(() => {
+    setAccessToken(null);
+    userRef.current = null;
+    setUser(null);
+    setStatus("needs_instagram_reconnect");
+  }, []);
+
   const failHard = useCallback(() => {
     setAccessToken(null);
     userRef.current = null;
@@ -152,14 +165,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStatus("authenticated");
         return true;
       }
+      if (me.kind === "instagram_reconnect") {
+        enterInstagramReconnect();
+        return false;
+      }
       if (me.kind === "error" && opts.softOnTransient && getAccessToken()) {
         failSoft();
+        return false;
+      }
+      if (me.kind === "unauthenticated" && hasInstagramReconnectLatch()) {
+        enterInstagramReconnect();
         return false;
       }
       failHard();
       return false;
     },
-    [failHard, failSoft],
+    [enterInstagramReconnect, failHard, failSoft],
   );
 
   useEffect(() => {
@@ -185,6 +206,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setStatus("authenticated");
           return;
         }
+        if (me.kind === "instagram_reconnect") {
+          enterInstagramReconnect();
+          return;
+        }
         // Refresh worked but /me did not yield a user — do not try dev-login
         // (that would rotate away a real cookie session). Soft vs hard below.
         if (!bootstrapStillOwner()) return;
@@ -192,7 +217,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           failSoft();
           return;
         }
+        if (hasInstagramReconnectLatch()) {
+          enterInstagramReconnect();
+          return;
+        }
         failHard();
+        return;
+      }
+      // Refresh cookie dead — latch from a prior IG expiry bump means reconnect.
+      if (hasInstagramReconnectLatch()) {
+        enterInstagramReconnect();
         return;
       }
       // Dev-only convenience: auto-login as the seeded org so local dev has a
@@ -211,15 +245,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setStatus("authenticated");
             return;
           }
+          if (me.kind === "instagram_reconnect") {
+            enterInstagramReconnect();
+            return;
+          }
         }
       }
       if (!bootstrapStillOwner()) return;
       failHard();
     };
     void bootstrap().catch(() => {
-      if (bootstrapStillOwner()) failHard();
+      if (bootstrapStillOwner()) {
+        if (hasInstagramReconnectLatch()) enterInstagramReconnect();
+        else failHard();
+      }
     });
-  }, [failHard, failSoft]);
+  }, [enterInstagramReconnect, failHard, failSoft]);
 
   const login = useCallback(() => {
     // Redirect to Instagram OAuth login endpoint.
@@ -230,6 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    clearInstagramReconnectLatch();
     setAccessToken(null);
     setUser(null);
     setStatus("idle");
@@ -248,20 +290,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus("authenticated");
       return result.user;
     }
+    if (result.kind === "instagram_reconnect") {
+      enterInstagramReconnect();
+      return null;
+    }
     if (result.kind === "unauthenticated") {
-      setUser(null);
-      setStatus("error");
+      if (hasInstagramReconnectLatch()) {
+        enterInstagramReconnect();
+      } else {
+        setUser(null);
+        setStatus("error");
+      }
       return null;
     }
     // Transient failure (network/5xx): keep the current session — a single
     // failed poll must not log a valid user out (F2).
     return userRef.current;
-  }, []);
+  }, [enterInstagramReconnect]);
 
   const acceptSession = useCallback((next: AuthUser, accessToken: string) => {
     // Invalidate in-flight bootstrap / refreshUser BEFORE installing the token
     // so a late bootstrap cannot see "token present, no user" and race us.
     genRef.current += 1;
+    clearInstagramReconnectLatch();
     setAccessToken(accessToken);
     userRef.current = next;
     setUser(next);
@@ -293,13 +344,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const refreshed = await refreshAccessToken();
     if (gen !== genRef.current) return;
     if (!refreshed) {
-      failHard();
+      if (hasInstagramReconnectLatch()) enterInstagramReconnect();
+      else failHard();
       return;
     }
     const me = await fetchMeWithRetry(() => gen === genRef.current);
     if (gen !== genRef.current) return;
     applyMeResult(me, { softOnTransient: true });
-  }, [applyMeResult, failHard]);
+  }, [applyMeResult, enterInstagramReconnect, failHard]);
 
   const abandonRestore = useCallback(() => {
     genRef.current += 1;
