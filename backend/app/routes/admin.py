@@ -22,6 +22,7 @@ from app.schemas.admin import (
     AdminBrandDetail,
     AdminBrandItem,
     AdminCreateBrandRequest,
+    AdminDropConfigPatch,
     AdminDropDetail,
     AdminDropItem,
     AdminHealthResponse,
@@ -52,6 +53,7 @@ from app.services.admin import (
     set_drop_tracking_number,
     undeny_brand,
     undeny_org,
+    update_drop_config,
 )
 from app.services.admin_auth import list_impersonatable_users, mint_impersonation_token
 from app.services.admin_read import (
@@ -272,6 +274,17 @@ async def get_drop_detail_endpoint(
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
+    return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
+
+
+@router.patch("/drops/{drop_id}", response_model=APIResponse)
+async def patch_drop_config_endpoint(
+    drop_id: uuid.UUID,
+    payload: AdminDropConfigPatch,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    await update_drop_config(db, drop_id, payload)
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 

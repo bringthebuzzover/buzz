@@ -8,12 +8,33 @@ remapping.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Annotated, Any
 
-from pydantic import field_serializer, field_validator
+from pydantic import (
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+)
+from pydantic.alias_generators import to_camel
 
 from app.schemas.auth import UserResponse
 from app.schemas.common import CamelModel, to_epoch_ms
+
+
+def _epoch_ms_to_aware(value: Any) -> Any:
+    """Convert wire epoch-ms int → aware UTC datetime; pass None through."""
+    if value is None:
+        return None
+    if isinstance(value, bool) or isinstance(value, float):
+        raise ValueError("must be an epoch-ms integer")
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, int):
+        raise ValueError("must be an epoch-ms integer")
+    return datetime.fromtimestamp(value / 1000.0, tz=timezone.utc)
 
 
 class AdminPendingOrgItem(CamelModel):
@@ -55,6 +76,35 @@ class TrackerAdvanceRequest(CamelModel):
 
 class TrackingRepairRequest(CamelModel):
     tracking_number: str
+
+
+class AdminDropConfigPatch(CamelModel):
+    """Admin logistics patch for a drop (omit = leave alone; explicit null = clear).
+
+    Window fields accept epoch-ms integers on the wire (same as GET detail).
+    """
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    capacity_total: int | None = Field(default=None, ge=1)
+    apply_open_at: Annotated[datetime | None, BeforeValidator(_epoch_ms_to_aware)] = None
+    apply_close_at: Annotated[datetime | None, BeforeValidator(_epoch_ms_to_aware)] = None
+    total_product_units: int | None = Field(default=None, ge=1)
+    campaign_hashtag: str | None = None
+
+    @field_validator("capacity_total", "apply_open_at", "apply_close_at")
+    @classmethod
+    def _required_not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("must not be null")
+        return value
+
+    @field_validator("apply_open_at", "apply_close_at")
+    @classmethod
+    def _reject_naive(cls, value: datetime | None) -> datetime | None:
+        if value is not None and value.tzinfo is None:
+            raise ValueError("must be timezone-aware")
+        return value
 
 
 class AdminCreateBrandRequest(CamelModel):

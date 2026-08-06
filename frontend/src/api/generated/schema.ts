@@ -158,7 +158,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Patch Drop Config Endpoint */
+        patch: operations["patch_drop_config_endpoint_api_admin_drops__drop_id__patch"];
         trace?: never;
     };
     "/api/admin/drops/{drop_id}/clear-reopen": {
@@ -1356,6 +1357,24 @@ export interface components {
             intentMessage?: string | null;
         };
         /**
+         * AdminDropConfigPatch
+         * @description Admin logistics patch for a drop (omit = leave alone; explicit null = clear).
+         *
+         *     Window fields accept epoch-ms integers on the wire (same as GET detail).
+         */
+        AdminDropConfigPatch: {
+            /** Applycloseat */
+            applyCloseAt?: string | null;
+            /** Applyopenat */
+            applyOpenAt?: string | null;
+            /** Campaignhashtag */
+            campaignHashtag?: string | null;
+            /** Capacitytotal */
+            capacityTotal?: number | null;
+            /** Totalproductunits */
+            totalProductUnits?: number | null;
+        };
+        /**
          * AdminLoginRequest
          * @description Admin email + password login (admins have no Instagram identity).
          */
@@ -1999,6 +2018,43 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_drop_config_endpoint_api_admin_drops__drop_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminDropConfigPatch"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

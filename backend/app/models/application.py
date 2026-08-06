@@ -32,6 +32,10 @@ class DropApplication(Base):
             unique=True,
             postgresql_where=sa.text("decision <> 'denied'"),
         ),
+        sa.CheckConstraint(
+            "allocated_units IS NULL OR allocated_units >= 0",
+            name="ck_drop_applications_allocated_units_nonneg",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)

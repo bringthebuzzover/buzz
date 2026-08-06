@@ -9,14 +9,16 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.exceptions import BuzzAPIException
+from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
 from app.models.enums import (
+    ApplicationDecision,
     BrandStatus,
     BrandTrackerStage,
     OrgUserStatus,
@@ -25,6 +27,7 @@ from app.models.enums import (
 from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
+from app.schemas.admin import AdminDropConfigPatch
 from app.services.email import (
     send_brand_denied_email,
     send_brand_invite_email,
@@ -541,3 +544,118 @@ async def reopen_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
             )
     await db.flush()
     return {"drop_id": str(drop.id), "manual_reopen": True}
+
+
+_LOGISTICS_FIELDS = frozenset(
+    {"capacity_total", "apply_open_at", "apply_close_at", "total_product_units"}
+)
+_PRE_LIVE_STAGES = frozenset(
+    {
+        BrandTrackerStage.REQUEST_RECEIVED.value,
+        BrandTrackerStage.FINALIZING_AGREEMENTS.value,
+        BrandTrackerStage.AWAITING_PRODUCTS.value,
+    }
+)
+
+
+def _normalize_campaign_hashtag(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    value = raw.strip().lstrip("#").strip().lower()
+    if not value:
+        return None
+    if len(value) > 255:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "campaign_hashtag must be at most 255 characters after normalization.",
+            status_code=422,
+        )
+    return value
+
+
+async def update_drop_config(
+    db: AsyncSession,
+    drop_id: UUID,
+    payload: AdminDropConfigPatch,
+) -> None:
+    """Apply admin logistics patch fields (omit = unchanged; explicit null = clear)."""
+
+    drop = await db.get(Drop, drop_id)
+    if drop is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+
+    updates = payload.model_dump(exclude_unset=True)
+    if not updates:
+        return
+
+    logistics_touched = bool(_LOGISTICS_FIELDS & updates.keys())
+    if logistics_touched and drop.brand_tracker_stage not in _PRE_LIVE_STAGES:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Capacity, apply window, and unit budget cannot be changed while "
+            "the drop is live or finished.",
+            status_code=409,
+        )
+
+    if "campaign_hashtag" in updates:
+        updates["campaign_hashtag"] = _normalize_campaign_hashtag(updates["campaign_hashtag"])
+
+    if "total_product_units" in updates and drop.applicant_selection_finalized_at is not None:
+        current = drop.total_product_units
+        new = updates["total_product_units"]
+        if (current is None) != (new is None):
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                "Cannot switch between spot-only and unit-allocated mode after "
+                "applicant selection is finalized.",
+                status_code=409,
+            )
+
+    merged_open = updates.get("apply_open_at", drop.apply_open_at)
+    merged_close = updates.get("apply_close_at", drop.apply_close_at)
+    if merged_open >= merged_close:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "apply_open_at must be before apply_close_at.",
+            status_code=400,
+        )
+
+    if "capacity_total" in updates:
+        accepted_count = int(
+            await db.scalar(
+                select(func.count())
+                .select_from(DropApplication)
+                .where(
+                    DropApplication.drop_id == drop.id,
+                    DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+                )
+            )
+            or 0
+        )
+        if updates["capacity_total"] < accepted_count:
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                f"capacity_total cannot be below accepted count ({accepted_count}).",
+                status_code=400,
+            )
+
+    if "total_product_units" in updates and updates["total_product_units"] is not None:
+        allocated = int(
+            await db.scalar(
+                select(func.coalesce(func.sum(DropApplication.allocated_units), 0)).where(
+                    DropApplication.drop_id == drop.id,
+                    DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+                )
+            )
+            or 0
+        )
+        if updates["total_product_units"] < allocated:
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                f"total_product_units cannot be below allocated units ({allocated}).",
+                status_code=400,
+            )
+
+    for field, value in updates.items():
+        setattr(drop, field, value)
+    await db.flush()

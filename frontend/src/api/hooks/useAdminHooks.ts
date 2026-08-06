@@ -458,6 +458,24 @@ export function useSetDropTracking(dropId: string) {
   );
 }
 
+export type AdminDropConfigPatch = {
+  capacityTotal?: number;
+  applyOpenAt?: number;
+  applyCloseAt?: number;
+  totalProductUnits?: number | null;
+  campaignHashtag?: string | null;
+};
+
+export function usePatchAdminDropConfig(dropId: string) {
+  return useAdminMutation((payload: AdminDropConfigPatch) =>
+    apiFetch(`/api/admin/drops/${dropId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
 export function useAdvanceTracker(dropId: string) {
   return useAdminMutation(
     (input: { stage: string; trackingNumber?: string; note?: string }) =>

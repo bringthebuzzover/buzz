@@ -234,7 +234,7 @@ stop_if:
 
 ## admin-drop-config
 
-status: pending
+status: done
 gaps:
   - brand.drop-create-thin
   - models.missing-check-constraints

@@ -560,3 +560,185 @@ class TestAdminCreateBrand:
             headers=await _admin_headers(db_session),
         )
         assert admin.status_code == 200, admin.text
+
+
+class TestDropConfigPatch:
+    async def test_happy_path_all_fields(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        open_ms = int((datetime.now(timezone.utc) + timedelta(days=2)).timestamp() * 1000)
+        close_ms = int((datetime.now(timezone.utc) + timedelta(days=9)).timestamp() * 1000)
+        headers = await _admin_headers(db_session)
+
+        res = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={
+                "capacityTotal": 12,
+                "applyOpenAt": open_ms,
+                "applyCloseAt": close_ms,
+                "totalProductUnits": 40,
+                "campaignHashtag": "  #FooBar  ",
+            },
+            headers=headers,
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert data["capacityTotal"] == 12
+        assert data["totalProductUnits"] == 40
+        assert data["campaignHashtag"] == "foobar"
+        assert data["applyOpenAt"] == open_ms
+        assert data["applyCloseAt"] == close_ms
+
+        await db_session.refresh(drop)
+        assert drop.campaign_hashtag == "foobar"
+
+    async def test_empty_body_noop(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, capacity_total=7)
+        res = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 200
+        assert res.json()["data"]["capacityTotal"] == 7
+
+    async def test_omit_vs_null(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, total_product_units=10)
+        drop.campaign_hashtag = "keepme"
+        await db_session.flush()
+        headers = await _admin_headers(db_session)
+
+        omit = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"capacityTotal": 8},
+            headers=headers,
+        )
+        assert omit.status_code == 200
+        assert omit.json()["data"]["totalProductUnits"] == 10
+        assert omit.json()["data"]["campaignHashtag"] == "keepme"
+
+        clear = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"totalProductUnits": None, "campaignHashtag": None},
+            headers=headers,
+        )
+        assert clear.status_code == 200
+        assert clear.json()["data"]["totalProductUnits"] is None
+        assert clear.json()["data"]["campaignHashtag"] is None
+
+        bad = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"capacityTotal": None},
+            headers=headers,
+        )
+        assert bad.status_code == 422
+
+    async def test_unknown_key_forbidden(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        res = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"title": "Nope"},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 422
+
+    async def test_missing_drop_404(self, app_client: AsyncClient, db_session):
+        res = await app_client.patch(
+            "/api/admin/drops/00000000-0000-0000-0000-000000000099",
+            json={"capacityTotal": 3},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 404
+
+    async def test_non_admin_forbidden(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        res = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"capacityTotal": 3},
+            headers={"Authorization": f"Bearer {mint_access_token(org_user)}"},
+        )
+        assert res.status_code == 403
+
+    async def test_window_order_rejected(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        open_ms = int((datetime.now(timezone.utc) + timedelta(days=5)).timestamp() * 1000)
+        close_ms = int((datetime.now(timezone.utc) + timedelta(days=1)).timestamp() * 1000)
+        res = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"applyOpenAt": open_ms, "applyCloseAt": close_ms},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 400
+
+    async def test_capacity_below_accepted(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, capacity_total=5)
+        user = await persist(db_session, make_user(instagram_user_id="ig_cap"))
+        org = await make_org(db_session, user)
+        await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+        await make_application(
+            db_session,
+            drop,
+            await make_org(
+                db_session,
+                await persist(db_session, make_user(instagram_user_id="ig_cap2")),
+            ),
+            decision=ApplicationDecision.ACCEPTED,
+        )
+        res = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"capacityTotal": 1},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 400
+
+    async def test_live_stage_blocks_logistics(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+        headers = await _admin_headers(db_session)
+
+        blocked = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"capacityTotal": 9, "campaignHashtag": "x"},
+            headers=headers,
+        )
+        assert blocked.status_code == 409
+
+        ok = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"campaignHashtag": "liveok"},
+            headers=headers,
+        )
+        assert ok.status_code == 200
+        assert ok.json()["data"]["campaignHashtag"] == "liveok"
+
+    async def test_mode_flip_after_finalize_409(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, total_product_units=10)
+        drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
+        await db_session.flush()
+        res = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"totalProductUnits": None},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 409
+
+    async def test_hashtag_empty_clears(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        drop.campaign_hashtag = "old"
+        await db_session.flush()
+        res = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"campaignHashtag": "#"},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 200
+        assert res.json()["data"]["campaignHashtag"] is None
