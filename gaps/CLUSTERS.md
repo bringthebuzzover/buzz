@@ -333,9 +333,9 @@ approach: |
   **Partial / not forever topology:** Phase 2 tracked in
   `deploy.custom-domain-samesite-lax` (deferred). Archiving v1 must leave
   that follow-up open until www+api + `lax`.
-  **2026-08-06 progress:** Railway cookie + FRONTEND_URL/INSTAGRAM_REDIRECT_URI
-  + docs scrub PASS; Meta dashboard not created yet → stay `ops` until Meta
-  URLs match META.md Hosts.
+  **2026-08-08 progress:** Railway cookie + FRONTEND_URL/INSTAGRAM_REDIRECT_URI
+  + docs scrub + real IG client id/secret on Railway PASS; Meta §A–B done;
+  stay `ops` until Meta §C dashboard URLs match META.md Hosts.
 
 stop_if:
   - Always pause before mutating Railway/Meta without explicit user OK.

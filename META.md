@@ -64,24 +64,26 @@ Saving redirect URIs does **not** start App Review.
 
 ## Hand back to engineering
 
-| Value | Env var |
-| ----- | ------- |
-| Instagram App ID | `INSTAGRAM_CLIENT_ID` |
-| Instagram App Secret | `INSTAGRAM_CLIENT_SECRET` |
+| Value | Env var | Status (2026-08-08) |
+| ----- | ------- | ------------------- |
+| Instagram App ID | `INSTAGRAM_CLIENT_ID` | **Set** on Railway `api` + crons; also local `backend/.env` (gitignored) |
+| Instagram App Secret | `INSTAGRAM_CLIENT_SECRET` | **Set** same places — treat like a password; rotate if exposed in chat/logs |
+
+Engineering does **not** need you to paste secrets into git. Railway Variables + local `.env` only.
 
 ---
 
 ## Checklist
 
-- [ ] **A.** Create a **Business** app
-- [ ] **B.** Add Instagram → **API setup with Instagram login**; copy App ID + Secret
-- [ ] **C.** Business Login: redirect, permissions, deauthorize, data deletion
+- [x] **A.** Create a **Business** app
+- [x] **B.** Add Instagram → **API setup with Instagram login**; copy App ID + Secret → engineering / Railway
+- [ ] **C.** Business Login: redirect, permissions, deauthorize, data deletion (+ privacy / terms URLs)
 - [ ] **D.** Pilot: Instagram Testers (Standard Access)
 - [ ] **E.** Business Verification
 - [ ] **F.** App Review: Advanced Access for both permissions
 - [ ] **G.** Confirm public login works without testers
 
-A–D = pilot. E–F = public launch.
+A–B done. **C next** (URLs must match Hosts table). A–D = pilot. E–F = public launch.
 
 ---
 
@@ -102,6 +104,8 @@ A–D = pilot. E–F = public launch.
 3. Under **Instagram app credentials**, copy **Instagram App ID** and **Instagram App Secret**.
 
 > Hand ID → `INSTAGRAM_CLIENT_ID`, secret → `INSTAGRAM_CLIENT_SECRET`. Treat the secret like a password.
+>
+> **Done (2026-08-08):** credentials are on Railway production and in local `backend/.env` (never commit). Continue with **§C**.
 
 ---
 
@@ -110,9 +114,9 @@ A–D = pilot. E–F = public launch.
 Reference: [Business Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login/).
 
 1. **Instagram → API setup with Instagram login → Set up Instagram business login → Business login settings**.
-2. **OAuth redirect URIs** — add:
-   - `https://frontend-production-3819.up.railway.app/auth/instagram/callback`
-   - Localhost only if engineering asks
+2. **OAuth redirect URIs** — add **all** of:
+   - `https://frontend-production-3819.up.railway.app/auth/instagram/callback` (**required** for prod / App Review)
+   - `http://localhost:3000/auth/instagram/callback` (**optional**, for local SPA ↔ local API OAuth)
 3. **Permissions** — only:
    - `instagram_business_basic`
    - `instagram_business_manage_insights`  
@@ -190,14 +194,18 @@ Publish checklist: <https://developers.facebook.com/docs/development/release/>
 
 Already in code: OAuth handshake, signed state cookie, encrypted tokens, Business/Creator gate, token refresh job, deauthorize webhook, data-deletion page, fail-fast missing IG config off-dev.
 
-Deploy must set (Railway, for now):
+**Railway production (set):**
 
-- `INSTAGRAM_CLIENT_ID` / `INSTAGRAM_CLIENT_SECRET`
-- `INSTAGRAM_REDIRECT_URI=https://frontend-production-3819.up.railway.app/auth/instagram/callback`
-- `FRONTEND_URL=https://frontend-production-3819.up.railway.app`
-- `SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, `DATABASE_URL` (+ migrations)
-- Cross-site SPA/API on `*.up.railway.app` **requires** `REFRESH_COOKIE_SAMESITE=none` + `REFRESH_COOKIE_SECURE=true` until www+api custom DNS (see `DEPLOYMENT.md`)
+- [x] `INSTAGRAM_CLIENT_ID` / `INSTAGRAM_CLIENT_SECRET` (real Meta app; live login no longer uses a placeholder client id)
+- [x] `INSTAGRAM_REDIRECT_URI=https://frontend-production-3819.up.railway.app/auth/instagram/callback`
+- [x] `FRONTEND_URL=https://frontend-production-3819.up.railway.app`
+- [x] `REFRESH_COOKIE_SAMESITE=none` + `REFRESH_COOKIE_SECURE=true` (dual-host Railway invariant)
+- [x] `SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, `DATABASE_URL` (+ migrations)
 - Egress to `api.instagram.com`, `graph.instagram.com`, `www.instagram.com`
+
+**Local laptop:** copy `backend/.env.example` → `backend/.env` (gitignored). Fill the same `INSTAGRAM_CLIENT_*` values; keep `INSTAGRAM_REDIRECT_URI=http://localhost:3000/auth/instagram/callback` and add that URI in Meta §C if you test OAuth locally. Frontend: `REACT_APP_API_URL=http://localhost:8000` in `frontend/.env`.
+
+**Still human (Meta dashboard §C):** redirect / deauthorize / data-deletion / privacy / terms must match the Hosts table before pilot E2E. Then archive `gaps/deploy.samesite-lax-railway-preview.md` once that Meta row PASSes.
 
 Details: `DEPLOYMENT.md`.
 

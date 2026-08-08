@@ -1,6 +1,6 @@
 # Launch & Deployment
 
-The go-live runbook for Buzz: what has to be true before we launch, how to provision and deploy, and the environment/operational invariants to respect. The application code is largely feature-complete and tested (backend `pytest`, frontend smoke + Playwright E2E, live API bug-bash). Remaining launch work is mostly **external configuration** (custom DNS, Meta go-live, Resend domain verify) plus a few ops items (e.g. the Notify Me cron is not provisioned yet) — not greenfield Railway provisioning.
+The go-live runbook for Buzz: what has to be true before we launch, how to provision and deploy, and the environment/operational invariants to respect. The application code is largely feature-complete and tested (backend `pytest`, frontend smoke + Playwright E2E, live API bug-bash). Remaining launch work is mostly **external configuration** (custom DNS, Meta go-live, Resend domain verify) — not greenfield Railway provisioning (Frontend + API + Postgres + six crons are live).
 
 Deploy target: **Railway** from branch **`mvp`** (autodeploy on) — Frontend (`/frontend`) + Backend (`/backend`) + PostgreSQL + **six** cron services. Run `alembic upgrade head` as a pre-deploy step before the backend starts.
 
@@ -42,20 +42,24 @@ Meta OAuth redirect, privacy/terms, and data-deletion URLs must match the **Live
 | Area                                                 | State                               | Blocker to launch?                  |
 | ---------------------------------------------------- | ----------------------------------- | ----------------------------------- |
 | Application code (both portals, jobs, auth)          | Done + tested                       | No                                  |
-| Instagram / Meta app review (org login scopes)       | Not started                         | **Yes** — gates all org signups     |
+| Instagram / Meta app (create + credentials)          | **Done** — ID/secret on Railway + local `.env` | No for pilot wiring                     |
+| Instagram / Meta App Review + Business Verification  | Not started                         | **Yes** — gates public (non-tester) org signups |
 | Legal review of Privacy Policy + Terms               | Draft in app (`/privacy`, `/terms`) | **Yes** — required for Meta + PII   |
 | Railway stack (Frontend + API + Postgres + 6 crons)  | **Done** (env `production`, autodeploy from `mvp`) | No — stack exists                   |
 | Custom DNS (`www` / `api.bringthebuzzover.com`)      | **Not attached** (Target only)      | Needed for brand domains + `SameSite=lax` cutover |
-| Secrets + env for current hosts                      | Set (API fail-fast requires them)   | Confirm `FRONTEND_URL` / IG redirect use **Live** Railway SPA |
+| Secrets + env for current hosts                      | **Done** — Railway hosts + real IG creds | Re-check at custom DNS cutover          |
 | Env parity for custom domains (SPA/API URLs, Meta)   | N/A until DNS                       | **Yes** after cutover if any var still uses Railway-only URLs |
 | Resend verified sender domain                        | Not started                         | **Yes** — verification/denial email |
 | Notify Me cron (`cron-notify-reminders`)             | **Done** (`*/5`, clones autoclose env) | Soft — watch first backlog flush / Resend |
+| Meta dashboard URLs (redirect / deauth / legal)      | **In progress** — finish META.md §C | **Yes** before pilot OAuth E2E         |
 
 ---
 
 ## Phase 1 — Pre-launch blockers (start first, longest lead time)
 
-- [ ] **Meta / Instagram app review.** Org login is the only production sign-in path and needs **Advanced Access** on the `instagram_business_basic` + `instagram_business_manage_insights` scopes so _any_ org (not just accounts with a role on our Meta app) can log in. Advanced Access requires App Review **and** Business Verification. Submit early — this is the critical-path item (can take weeks). Provides the real `INSTAGRAM_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI`.
+- [x] **Meta / Instagram app created + credentials on Railway** (`INSTAGRAM_CLIENT_ID` / `_SECRET`). Live authorize URL uses the real App ID (no longer a placeholder).
+- [ ] **Meta dashboard Business Login URLs** (META.md §C) — OAuth redirect, deauthorize, data deletion, privacy, terms must match **Live** Railway hosts in META.md Hosts table.
+- [ ] **Meta / Instagram App Review + Business Verification.** Org login for *any* org (not just app roles) needs **Advanced Access** on `instagram_business_basic` + `instagram_business_manage_insights`. Advanced Access requires App Review **and** Business Verification. Submit early — critical path (can take weeks).
 
   **App Review requires (Meta docs):** Business Verification (proof the business exists); a screencast of the full login flow _including the OAuth consent screen_ and each scope's data being used; a public Privacy Policy URL + Terms URL (→ Phase 1 legal item); a live, reviewer-accessible test environment; and at least one successful API call per scope before you can submit (so run the flow with a tester first). `instagram_business_manage_insights` is reviewed _separately_ from basic — request only scopes we actually use (least privilege) or review slows down.
 
@@ -87,7 +91,7 @@ Branch: **`mvp`** (autodeploy on). One Railway project (**buzz**). One Railway e
 - [x] Set each service's **Root Directory** / Watch Paths and wire autodeploy from `mvp` — **done** (deploys follow `mvp` commits).
 - [ ] Custom domains: `www.bringthebuzzover.com` → Frontend; `api.bringthebuzzover.com` → Backend (CNAME + TXT). Confirm DNS + TLS are healthy; keep Railway hosts as secondary if still needed.
 - [ ] Enable **Wait for CI** on Frontend + API (CI on `mvp` includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
-- [ ] Optional: `RAILPACK_PYTHON_VERSION=3.12` on API + cron services.
+- [ ] Optional: `RAILPACK_PYTHON_VERSION=3.12` on API + cron services (cron siblings already set; confirm API).
 - [ ] Optional later: a second Railway environment for true staging (not required for pilot on the current stack).
 
 ### Frontend build / start
@@ -146,12 +150,14 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 ```
 
 - [x] Backend env set for the current Railway hosts (table above); secrets generated fresh, never committed. Re-check when cutting over custom domains (`FRONTEND_URL`, Instagram redirect URI, cookie SameSite — see below).
+- [x] `INSTAGRAM_CLIENT_ID` / `INSTAGRAM_CLIENT_SECRET` set on Railway **api** + cron services (and local `backend/.env` for laptop). **Do not** commit real secrets.
 - [x] Frontend built via `npm run build:prod` with a non-localhost `REACT_APP_API_URL` (guard: `frontend/scripts/check-deploy-env.js`). Rebuild with `https://api.bringthebuzzover.com` at DNS cutover.
 - [ ] `BRAND_SELF_REGISTRATION_ENABLED` set intentionally (`true` = public `POST /api/brands/apply`; `false` = admin-provisioned brands only).
-- [ ] Meta dashboard URLs for **Live** Railway hosts (see META.md); after custom DNS cutover, switch to Target www/api:
+- [ ] Meta dashboard URLs for **Live** Railway hosts (see META.md §C); after custom DNS cutover, switch to Target www/api:
   - OAuth redirect: `https://frontend-production-3819.up.railway.app/auth/instagram/callback` (Target: `https://www.bringthebuzzover.com/auth/instagram/callback`)
   - Deauthorize: `https://api-production-fbbc1.up.railway.app/api/auth/instagram/deauthorize` (Target: `https://api.bringthebuzzover.com/...`)
   - Data deletion: `https://frontend-production-3819.up.railway.app/data-deletion`
+  - Privacy / Terms: META.md Hosts table (SPA paths)
 
 **Operational gotcha:** Off-dev (`staging` / `production`) both take the hardened path (HSTS, Secure cookies, no localhost CORS), so you can't bring one up over plain `http://localhost` — use `ENVIRONMENT=development` for local bring-up. CORS always allowlists apex + www and also adds `FRONTEND_URL`'s origin so temporary Railway SPA hosts work before custom DNS (`backend/app/main.py`).
 
@@ -245,7 +251,7 @@ The app uses **Instagram API with Instagram Login** (Business Login), scopes `in
 - Business Verification (required for Advanced Access): <https://developers.facebook.com/docs/development/release/business-verification/>
 - Publish / go-Live checklist: <https://developers.facebook.com/docs/development/release/>
 
-Set the resulting credentials in the backend env: `INSTAGRAM_CLIENT_ID`, `INSTAGRAM_CLIENT_SECRET`, `INSTAGRAM_REDIRECT_URI` (must exactly match an OAuth redirect URI configured in the dashboard).
+Set the resulting credentials in the backend env: `INSTAGRAM_CLIENT_ID`, `INSTAGRAM_CLIENT_SECRET`, `INSTAGRAM_REDIRECT_URI` (must exactly match an OAuth redirect URI configured in the dashboard). **As of 2026-08-08:** ID/secret are on Railway + local `.env`; finish Meta §C so dashboard redirect/deauth/legal URLs match the Live hosts table in [`META.md`](META.md).
 
 ### Resend (transactional email)
 

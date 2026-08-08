@@ -33,16 +33,17 @@ fix_when: |
   is documented and verified — NOT www+api cutover or SameSite=lax.
 ---
 
-## Progress (2026-08-06)
+## Progress (2026-08-08)
 
 | Check | Status |
 | ----- | ------ |
 | Cookie env / Set-Cookie `none`+`Secure` | **PASS** (live GET login) |
-| `FRONTEND_URL` / `INSTAGRAM_REDIRECT_URI` = META Railway SPA | **PASS** (Railway vars set; authorize `redirect_uri` matches) |
+| `FRONTEND_URL` / `INSTAGRAM_REDIRECT_URI` = META Railway SPA | **PASS** (Railway vars; authorize `redirect_uri` matches) |
 | Docs invariant (`none` required on dual-host) | **PASS** (DEPLOYMENT + META scrubbed) |
-| Meta dashboard URLs = META Hosts | **FAIL / pending** — Meta app not created yet; leave gap `ops` |
+| Real `INSTAGRAM_CLIENT_ID` / `_SECRET` on Railway | **PASS** (live authorize uses real App ID; local `.env` also set) |
+| Meta dashboard URLs = META Hosts | **PENDING** — Meta app exists (META §A–B done); finish §C (redirect / deauth / legal URLs), then re-verify |
 
-Do **not** archive until Meta row PASSes. Phase 2 custom-domain follow-up stays open.
+Do **not** archive until Meta dashboard row PASSes. Phase 2 custom-domain follow-up stays open.
 
 ## Locked v1 fix
 
@@ -210,10 +211,9 @@ use”, soft “none may be required”) — exactly the Docs invariant scrub ta
 
 Locked v1 correctly requires **all** checklist rows, including human Railway
 env + Meta alignment to META hosts. Agent-only docs edits cannot archive.
-Live authorize `redirect_uri` is still
-`https://www.bringthebuzzover.com/auth/instagram/callback` (not META Railway
-SPA) → `FRONTEND_URL` / `INSTAGRAM_REDIRECT_URI` / Meta rows would **FAIL**
-today until humans flip; split-brain section is accurate.
+Live authorize `redirect_uri` is the META Railway SPA callback (and live
+`client_id` is the real Meta App ID as of 2026-08-08). Meta **dashboard** §C
+URLs still need human confirmation before this gap can archive.
 
 ### Checklist correctness — one blocking nit
 
