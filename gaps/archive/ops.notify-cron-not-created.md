@@ -4,10 +4,11 @@ title: Notify Me reminders depend on a cron nobody has created yet
 kind: ops
 severity: P1
 status: fixed
+closed_in: 95d1d97
 surface: deploy
 evidence:
   - path: backend/app/jobs/notify_reminders.py
-    note: send_due_reminders exists; stamps notify_me.sent_at after email attempt; SKIP LOCKED
+    note: send_due_reminders; stamps notify_me.sent_at only when dispatch returns true
   - path: backend/scripts/run_job.py
     note: job name notify_reminders registered; no Instagram client; writes job_runs
   - path: backend/tests/test_jobs.py
@@ -17,13 +18,14 @@ evidence:
   - path: backend/README.md
     note: documents poetry run … notify_reminders every ~5 min (§10.6)
   - path: backend/app/services/admin_read.py
-    note: notify_me_never_sent health count; pipeline has no notify_reminders last-run row until cron exists
+    note: notify_me_never_sent health count; pipeline still has no notify_reminders last-run row
   - path: backend/app/services/email.py
     note: send_drop_opening_reminder_email → _dispatch never raises; Resend best-effort
   - path: Railway production (list-services 2026-08-06)
-    note: crons present = drop-autoclose, metric-sync, token-cleanup, autolink-scan, token-refresh — no cron-notify-reminders
+    note: pre-fix snapshot — five crons only; post-fix service cron-notify-reminders exists (see Closeout)
 repro: |
-  Railway: list services — cron-notify-reminders absent (sibling cron-drop-autoclose exists).
+  Historical (pre-fix): Railway list services — cron-notify-reminders absent.
+  Post-fix verify: service present; job_runs for job=notify_reminders with ok=true.
   SQL (admin-health shaped — already-open, unsent):
     SELECT count(*) FROM notify_me n JOIN drops d ON d.id = n.drop_id
     WHERE n.enabled IS TRUE AND n.sent_at IS NULL
@@ -34,7 +36,6 @@ repro: |
       AND d.apply_close_at > now()
       AND d.apply_open_at - make_interval(0,0,0,0,0,n.reminder_minutes) <= now();
   job_runs: SELECT * FROM job_runs WHERE job = 'notify_reminders' ORDER BY started_at DESC LIMIT 5;
-  → empty until the Railway service exists and runs.
 fix_when: |
   Railway production has service cron-notify-reminders with schedule */5 * * * *,
   root /backend, start command invoking run_job.py notify_reminders (parity with
@@ -47,6 +48,11 @@ fix_when: |
   already shipped, OR Resend sending domain hard-verified before first fire).
   Do NOT require a full email ledger to close this gap.
 ---
+
+> **Archived / fixed.** Problem + Locked v1 below describe the **pre-create**
+> state. Authoritative post-fix facts are in **Closeout**. Email stamp is
+> dispatch-true only (email-honesty v1); residual watch: Resend domain verify
+> + `job_runs` cadence (not recreating the service).
 
 ## Problem
 
@@ -97,18 +103,17 @@ Resend rate limits / inbox volume if many subscriptions sat due for days.
 
 **In scope for this gap:** create the cron so the delivery path actually runs.
 
-**Sibling dependency (cross-link):** today `notify_reminders` stamps
+**Sibling dependency (cross-link):** At gap open, `notify_reminders` stamped
 `notify_me.sent_at` **after the send attempt**; `_dispatch` never raises. If
-Resend fails, the row is one-shot consumed → permanent miss. Sibling
-[`ops.email-best-effort-no-ledger`](ops.email-best-effort-no-ledger.md) owns the
-code fix — its Locked v1 (not the deferred ledger) returns bool from
-`_dispatch` and stamps Notify Me `sent_at` **only when dispatch is true**.
+Resend failed, the row was one-shot consumed → permanent miss. Sibling
+[`ops.email-best-effort-no-ledger`](ops.email-best-effort-no-ledger.md)
+(v1, now archived) returns bool from `_dispatch` and stamps Notify Me `sent_at`
+**only when dispatch is true** — that fix shipped before cron enable.
 
-**Recommended order:** Prefer enabling `cron-notify-reminders` **after**
-`ops.email-best-effort-no-ledger` v1 (“`sent_at` only when dispatch true”)
-has shipped, **or** hard-gate Resend sending-domain verify (+ known-good
+**Recommended order (satisfied):** Enable `cron-notify-reminders` **after**
+email-honesty v1, **or** hard-gate Resend sending-domain verify (+ known-good
 `EMAIL_FROM`) before the first fire / backlog flush. Do **not** wait on a
-full email ledger.
+full email ledger (`ops.email-ledger` remains deferred).
 
 Empty `RESEND_API_KEY` fails boot off-dev, so a running cron with email unset
 should not happen; misconfig is domain/key/`EMAIL_FROM` quality, not missing key.
