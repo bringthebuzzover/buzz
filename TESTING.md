@@ -96,13 +96,14 @@ does **not** replace full CI.
 
 ## E2E — Playwright (`frontend/e2e/`)
 
-Deliberately **thin** (6 critical cross-stack journeys) and on `data-testid`
+Deliberately **thin** (critical cross-stack journeys) and on `data-testid`
 selectors to bound maintenance. `frontend/playwright.config.ts` starts the
-backend (dev mode) + frontend (reusing them if already up) and
-`frontend/e2e/global-setup.ts` resets the DB to a deterministic fixture
-(`backend/scripts/seed_e2e.py` = dev seed + one guaranteed-open drop for the
-apply journey). Prefer `./scripts/ci-local.sh` when you need the full gate;
-use the commands below for E2E-only iteration.
+backend (dev mode, `RATE_LIMIT_ENABLED=false` so the suite does not self-DoS)
++ frontend (reusing them if already up) and `frontend/e2e/global-setup.ts`
+resets the DB to a deterministic fixture (`backend/scripts/seed_e2e.py` = dev
+seed + one guaranteed-open drop for the apply journey). Prefer
+`./scripts/ci-local.sh` when you need the full gate; use the commands below
+for E2E-only iteration.
 
 ```bash
 # one-time — install both sides (Playwright boots the backend for you)
@@ -116,10 +117,20 @@ npm run e2e:ui        # interactive
 CI=true npm run e2e   # CI mode: fresh servers (same as ci-local.sh / GitHub)
 ```
 
-Covers: marketing home renders, brand login (good + bad creds) → dashboard, org
-feed renders, org apply flow, and the role guard (org blocked from the brand
-dashboard with a 403). Adding a journey: prefer `getByTestId` / `getByRole`,
-keep the suite small, and rely on the API harness + unit tests for breadth.
+Covers: marketing home, admin/brand login journeys, org feed + apply, role
+guard (org blocked from brand dashboard with 403), reconnect public surface.
+Adding a journey: prefer `getByTestId` / `getByRole`, keep the suite small, and
+rely on the API harness + unit tests for breadth.
+
+**Diagnostics:** `retries: 0` (stress is the flake detector). On failure
+Playwright keeps a trace, screenshot, and video under `frontend/test-results/`
+and an HTML report under `frontend/playwright-report/`. CI uploads those as
+`playwright-report-<matrix.attempt>` when an E2E job fails.
+
+**Stress (flake detector, not a merge gate):** push a commit whose message
+contains `[e2e-stress-N]` (N ≤ 30), or run Actions → CI → `workflow_dispatch`
+with `e2e_repeat`. That expands N isolated Playwright jobs (each with its own
+Postgres). Local equivalent: `CI=true npx playwright test --repeat-each=10 --retries=0`.
 
 **Maintenance notes:** E2E is the highest-cost layer — UI markup changes can
 break selectors and the full stack must be up. Keep it to journeys that genuinely

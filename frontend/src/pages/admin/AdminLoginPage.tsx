@@ -43,6 +43,19 @@ export default function AdminLoginPage() {
     return <SessionRestorePanel />;
   }
 
+  // Wait for AuthProvider bootstrap before mounting controlled inputs — a
+  // status flip mid-fill remounts empty fields and can block HTML5 submit
+  // (E2E fill→click race; same window is rare but real for humans).
+  if (status === "idle" || status === "authenticating") {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <p className="text-sm font-medium text-buzz-inkMuted">
+          Restoring your session…
+        </p>
+      </div>
+    );
+  }
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);

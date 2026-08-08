@@ -41,7 +41,14 @@ const fetchMeMock = fetchMe as jest.MockedFunction<typeof fetchMe>;
 const devLoginMock = jest.requireMock("../api/auth").devLogin as jest.Mock;
 
 function Probe() {
-  const { status, user, acceptSession, retryRestore } = useAuth();
+  const {
+    status,
+    user,
+    acceptSession,
+    retryRestore,
+    restoreAdminFromCookie,
+    refreshUser,
+  } = useAuth();
   return (
     <div>
       <span data-testid="status">{status}</span>
@@ -70,6 +77,24 @@ function Probe() {
         }}
       >
         retry
+      </button>
+      <button
+        type="button"
+        data-testid="restore-admin"
+        onClick={() => {
+          void restoreAdminFromCookie();
+        }}
+      >
+        restore-admin
+      </button>
+      <button
+        type="button"
+        data-testid="refresh-user"
+        onClick={() => {
+          void refreshUser();
+        }}
+      >
+        refresh-user
       </button>
     </div>
   );
@@ -213,6 +238,85 @@ describe("AuthProvider bootstrap resolution", () => {
 
     await waitForStatus(container, "authenticated");
     expect(userText(container)).toBe("cookie-user");
+  });
+
+  it("restoreAdminFromCookie superseded by acceptSession does not hang or clobber", async () => {
+    refreshMock.mockResolvedValue(false);
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+    await waitForStatus(container, "error");
+
+    let finishRestore!: (ok: boolean) => void;
+    refreshMock.mockImplementation(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finishRestore = resolve;
+        }),
+    );
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>("[data-testid=restore-admin]")!
+        .click();
+    });
+    expect(statusText(container)).toBe("authenticating");
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>("[data-testid=accept]")!.click();
+    });
+    expect(statusText(container)).toBe("authenticated");
+
+    await act(async () => {
+      finishRestore(true);
+    });
+    await waitForStatus(container, "authenticated");
+    expect(userText(container)).toBe("login-user");
+  });
+
+  it("restoreAdminFromCookie soft-fails when gen is stolen without a terminal status", async () => {
+    refreshMock.mockResolvedValue(false);
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+    await waitForStatus(container, "error");
+
+    let finishRestore!: (ok: boolean) => void;
+    refreshMock.mockImplementation(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finishRestore = resolve;
+        }),
+    );
+
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>("[data-testid=restore-admin]")!
+        .click();
+    });
+    expect(statusText(container)).toBe("authenticating");
+
+    // refreshUser bumps gen; on transient /me error it leaves status alone —
+    // the hole that used to leave RequireAuth spinning on authenticating.
+    fetchMeMock.mockResolvedValue({ kind: "error" });
+    await act(async () => {
+      container
+        .querySelector<HTMLButtonElement>("[data-testid=refresh-user]")!
+        .click();
+    });
+
+    await act(async () => {
+      finishRestore(true);
+    });
+    await waitForStatus(container, "restore_failed");
   });
 });
 
