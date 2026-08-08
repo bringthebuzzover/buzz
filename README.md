@@ -4,7 +4,7 @@ Full-stack platform connecting brands with campus student organizations for camp
 
 **Stack:** React 18 + TypeScript + Tailwind (CRA/CRACO) frontend · FastAPI + PostgreSQL backend · JWT auth (Instagram OAuth for orgs, password login for brands) · Resend for transactional email.
 
-Product behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md) (including **§3.1.1** data ownership / single source of truth). Living product holes and bugs: [`gaps/`](gaps/). Launch ops: [`DEPLOYMENT.md`](DEPLOYMENT.md). Meta/Instagram app setup: [`META.md`](META.md). Backend details: [`backend/README.md`](backend/README.md).
+Product behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md) (including **§3.1.1** data ownership / single source of truth). As-built system: [`ARCHITECTURE.md`](ARCHITECTURE.md). Agent operating guide: [`AGENTS.md`](AGENTS.md). Living product holes and bugs: [`gaps/`](gaps/). Launch ops: [`DEPLOYMENT.md`](DEPLOYMENT.md). Meta/Instagram app setup: [`META.md`](META.md). Backend details: [`backend/README.md`](backend/README.md).
 
 ---
 
@@ -121,8 +121,12 @@ frontend/                  # CRA/CRACO SPA (own package.json)
 backend/                   # FastAPI app, Alembic migrations, jobs, tests
 openapi.json               # API contract (regen TS types via cd frontend && npm run gen:api)
 scripts/ci-local.sh        # Full local CI gate (mirrors .github/workflows/ci.yml)
+AGENTS.md                  # Agent OS (norms, DoD, skills, MCP)
+ARCHITECTURE.md            # As-built system map
 DEPLOYMENT.md              # Launch & Railway runbook
 META.md                    # Meta / Instagram API setup
-PRODUCT.md                 # Product spec
+PRODUCT.md                 # Product behavior / UX SOT
 TESTING.md                 # Test layers + ./scripts/ci-local.sh
+.cursor/rules/             # Committed Cursor rules (mcp.json stays local)
+.agents/skills/            # Repo agent skills
 ```

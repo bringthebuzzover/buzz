@@ -2,9 +2,10 @@
 name: fix-gap-cluster
 description: >-
   Run a gap cluster from gaps/CLUSTERS.md: explore first, plan and create todos,
-  implement, full CI gate including mandatory Playwright E2E, archive fixed
-  gaps, then STOP and wait for the user to ask for commit/push. Use when the
-  user says run next cluster, run cluster <id>, swarm gaps, or fix gap cluster.
+  implement, simplify-pass, full CI gate including mandatory Playwright E2E,
+  archive fixed gaps, then STOP and wait for the user to ask for commit/push.
+  Use when the user says run next cluster, run cluster <id>, swarm gaps, or
+  fix gap cluster.
 ---
 
 # Fix gap cluster
@@ -37,7 +38,7 @@ Follow these phases **in order**. Do not skip Explore/Plan and jump to code.
 
 ### Phase 1 — Select
 
-1. **Read** [`gaps/CLUSTERS.md`](../../gaps/CLUSTERS.md).
+1. **Read** [`gaps/CLUSTERS.md`](../../../gaps/CLUSTERS.md).
 2. **Select cluster**
    - `run next cluster` → first cluster with `status: pending` (skip `parked` /
      `ops` / `done`). If the first actionable cluster is already `in_progress`
@@ -51,6 +52,9 @@ Follow these phases **in order**. Do not skip Explore/Plan and jump to code.
 4. Re-read each gap file in the cluster (`gaps/<id>.md`).
 5. Read the evidence paths and related tests/callers. Confirm the locked
    `approach` in `CLUSTERS.md` still matches the code. Note any drift.
+   Use **parallel subagents** when POVs fork (BE vs FE, tests vs call sites).
+   **Verify** each material claim (open cited paths; do not trust summaries alone)
+   before planning or coding.
 6. If exploration finds a product fork not covered by `approach` / `stop_if`,
    **stop and ask** — do not invent a new approach silently.
 
@@ -67,11 +71,13 @@ Follow these phases **in order**. Do not skip Explore/Plan and jump to code.
 ### Phase 4 — Execute
 
 11. **Implement** the cluster `approach` (locked). Do not expand to neighboring
-    clusters. Mark todos completed as you go.
+    clusters. Mark todos completed as you go. Prefer parallel subagents during
+    explore when POVs fork (see [`AGENTS.md`](../../../AGENTS.md)).
 
-### Phase 5 — Full CI / E2E gate
+### Phase 5 — Simplify + full CI / E2E gate
 
-12. Run the **full** gate from repo root (must be green before archive):
+12. Run [`.agents/skills/simplify-pass/SKILL.md`](../simplify-pass/SKILL.md).
+13. Run the **full** gate from repo root (must be green before archive):
 
     ```bash
     ./scripts/ci-local.sh
@@ -82,21 +88,24 @@ Follow these phases **in order**. Do not skip Explore/Plan and jump to code.
     **Playwright E2E with `CI=true`**. Do not skip E2E for “backend-only”
     clusters. Do not substitute a partial checklist unless the script itself
     fails for an environment reason you then fix and re-run.
+    Stress Playwright ×N **only if the user asks**.
 
-13. On green: **archive** each fixed gap → `gaps/archive/<id>.md`, `status: fixed`
+14. On green: **archive** each fixed gap → `gaps/archive/<id>.md`, `status: fixed`
     (leave `closed_in` empty until commit).
-14. Set cluster `status: done` in `CLUSTERS.md`.
+15. Set cluster `status: done` in `CLUSTERS.md`.
 
 ### Phase 6 — Stop for commit/push
 
-15. **Do not commit or push** unless the user explicitly asks.
-16. Reply with: cluster id, gaps archived, CI summary, remaining `pending`
-    clusters, and that the tree is ready for commit/push when they say so.
+16. **Do not commit or push** unless the user explicitly asks.
+17. Reply with: cluster id, gaps archived, CI summary, residual risk / related
+    open gaps, remaining `pending` clusters, and that the tree is ready for
+    commit/push when they say so.
 
 ## Non-negotiables
 
-- **Always run `./scripts/ci-local.sh`** (includes Playwright E2E) before
-  archiving. Skipping E2E or the script’s other stages is not allowed.
+- **simplify-pass** then **`./scripts/ci-local.sh`** (includes Playwright E2E)
+  before archiving. Skipping E2E or the script’s other stages is not allowed.
+- Never act on unverified subagent findings (spot-check cited paths).
 - Do not edit plan files under `.cursor/plans/` unless the user asks.
 - Do not implement `parked` gaps unless the user names them.
 - Do not strip Batch 1 token_version / access JWT checks or Batch 2–4 fixes

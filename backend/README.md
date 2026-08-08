@@ -1,6 +1,6 @@
 # Buzz backend (FastAPI)
 
-Python service that will replace the demo's `localStorage` mock layer with a real API, JWT auth, and PostgreSQL. See [`../private/reports/architecture.md`](../private/reports/architecture.md) for the target design and [`../private/reports/transition-plan.md`](../private/reports/transition-plan.md) for the rollout order. Stage 1 landed the foundation; Stage 2 added the full schema, Alembic migrations, and a dev seed; Stage 3 adds JWT auth, the auth dependencies, and the org Instagram OAuth login flow.
+Python service for Buzz: JWT auth, PostgreSQL, and the `/api` surface. As-built system map: [`../ARCHITECTURE.md`](../ARCHITECTURE.md). Agent guide: [`../AGENTS.md`](../AGENTS.md). Product behavior: [`../PRODUCT.md`](../PRODUCT.md).
 
 ## Prerequisites
 
@@ -150,7 +150,7 @@ print(jwt.create_access_token('00000000-0000-0000-0000-000000000002','org','acti
 curl http://localhost:8000/api/auth/me -H "Authorization: Bearer $TOK"
 ```
 
-The brand password/invite path landed in Stage 7 (bcrypt password hashing, invite tokens, `POST /api/auth/brand/set-password` + `/brand/login`, public self-registration behind `BRAND_SELF_REGISTRATION_ENABLED`); the JWT/deps/refresh core stayed identity-agnostic so it slotted in cleanly. See [`../private/guides/stage-03-auth-core.md`](../private/guides/stage-03-auth-core.md).
+The brand password/invite path landed in Stage 7 (bcrypt password hashing, invite tokens, `POST /api/auth/brand/set-password` + `/brand/login`, public self-registration behind `BRAND_SELF_REGISTRATION_ENABLED`); the JWT/deps/refresh core stayed identity-agnostic so it slotted in cleanly. See [`../ARCHITECTURE.md`](../ARCHITECTURE.md) (auth) and [`../PRODUCT.md`](../PRODUCT.md) §5.1 / §3.
 
 ## Run the dev server
 

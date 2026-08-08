@@ -2,8 +2,10 @@ node_modules/
 build/
 .env
 .DS_Store
-private/
-.cursor/
+# Ignore local Cursor state; track shared rules only (mcp.json / plans stay local).
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
 
 # Python
 __pycache__/

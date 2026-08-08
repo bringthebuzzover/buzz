@@ -17,8 +17,7 @@ Cluster execution: see [`.agents/skills/fix-gap-cluster/SKILL.md`](../.agents/sk
 (`run next cluster` / `run cluster <id>`).
 
 Do not recreate `KNOWN_GAPS.md`, triage tables, or parallel bug lists.
-Historical audits under `private/reports/` are evidence only — promote into a
-gap file or discard.
+Local scratch notes are not SOT — promote a finding into a gap file or discard it.
 
 ## Frontmatter schema
 
@@ -55,7 +54,8 @@ Body: notes, SQL probes, and links. Keep probes read-only-safe.
 6. PRODUCT “Later” is not a gap until it is a broken path today.
 
 To run a cluster: `run next cluster` / `run cluster <id>` (see
-`fix-gap-cluster` skill). That explores, plans todos, implements, runs
-`./scripts/ci-local.sh` (full GitHub CI mirror **including Playwright E2E**),
-archives — then **waits** for you to ask for commit/push.
+`fix-gap-cluster` skill). That explores, plans todos, implements,
+runs **simplify-pass**, then `./scripts/ci-local.sh` (full GitHub CI mirror
+**including Playwright E2E**), archives — then **waits** for you to ask for
+commit/push.
 

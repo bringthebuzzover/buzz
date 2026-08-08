@@ -1,0 +1,15 @@
+---
+description: Frontend SPA conventions — apiFetch, auth, Query, guards
+globs: frontend/src/**
+alwaysApply: false
+---
+
+# Frontend SPA
+
+- HTTP: `apiFetch` in `src/api/client.ts` (Bearer + `credentials: "include"`). Auth bootstrap uses raw fetch in `src/api/auth.ts` (no interceptor loop).
+- Access JWT in memory only; refresh via httpOnly cookie. OpenAPI types from `src/api/generated/schema.ts` — do not hand-edit; regen with `npm run gen:api`.
+- Server state: TanStack Query hooks under `src/api/hooks/`. Auth session: `AuthContext` (not Query cache).
+- Guards: `RequireAuth` → `RequireStatus` → `RequireRole` in `AppRoot` / routing components.
+- IG expiry → `INSTAGRAM_TOKEN_EXPIRED` / reconnect latch → `/reconnect-instagram` (public).
+- Styling: Tailwind + `src/theme/palette.ts`. No Firebase (legacy unused).
+- Behavior: [`PRODUCT.md`](PRODUCT.md). As-built: [`ARCHITECTURE.md`](ARCHITECTURE.md). Agent map: [`AGENTS.md`](AGENTS.md).
