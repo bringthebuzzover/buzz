@@ -19,20 +19,26 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
+  // No retries: stress matrix / --repeat-each is the flake detector. Keep
+  // retain-on-failure so a red run still uploads traces/screenshots/video.
   retries: 0,
   workers: 1,
-  reporter: [["list"]],
+  reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "http://localhost:3000",
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
   },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: [
     {
+      // RATE_LIMIT_ENABLED=false: E2E alone does many admin/brand/dev-login
+      // POSTs from one IP; prod keeps rate limits on.
       command:
-        "cd ../backend && ENVIRONMENT=development poetry run uvicorn app.main:app --port 8000 --log-level warning",
+        "cd ../backend && ENVIRONMENT=development RATE_LIMIT_ENABLED=false poetry run uvicorn app.main:app --port 8000 --log-level warning",
       url: "http://localhost:8000/api/health",
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,

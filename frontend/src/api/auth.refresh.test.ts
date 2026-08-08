@@ -72,4 +72,23 @@ describe("refreshAccessToken concurrent login", () => {
     expect(getAccessToken()).toBe("login-token");
     expect(refreshCalls).toBe(1);
   });
+
+  it("does not overwrite a login token when an in-flight refresh succeeds", async () => {
+    let finishRefresh!: (value: Response) => void;
+    global.fetch = jest.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          finishRefresh = resolve;
+        }),
+    );
+
+    const pending = refreshAccessToken();
+    setAccessToken("login-token");
+    finishRefresh(
+      jsonResponse(200, { data: { access_token: "stale-cookie-token" } }),
+    );
+
+    await expect(pending).resolves.toBe(true);
+    expect(getAccessToken()).toBe("login-token");
+  });
 });

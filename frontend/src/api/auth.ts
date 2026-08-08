@@ -115,6 +115,11 @@ export async function refreshAccessToken(): Promise<boolean> {
         if (accessToken === tokenAtStart) setAccessToken(null);
         return false;
       }
+      // Login may have installed a newer bearer while this refresh was in
+      // flight — keep it (same rule as the 401 / empty paths above).
+      if (accessToken !== tokenAtStart && accessToken !== null) {
+        return true;
+      }
       setAccessToken(body.data.access_token);
       return true;
     } catch {

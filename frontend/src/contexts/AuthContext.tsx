@@ -319,6 +319,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus("authenticated");
   }, []);
 
+  // If a newer gen owner already left authenticating, do nothing. Otherwise a
+  // superseded restore must not leave RequireAuth spinning forever.
+  const resolveSupersededAuthenticating = useCallback(() => {
+    setStatus((prev) => (prev === "authenticating" ? "restore_failed" : prev));
+  }, []);
+
   const restoreAdminFromCookie = useCallback(async () => {
     const gen = ++genRef.current;
     clearImpersonationSession();
@@ -327,31 +333,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus("authenticating");
 
     const refreshed = await refreshAccessToken();
-    if (gen !== genRef.current) return false;
+    if (gen !== genRef.current) {
+      resolveSupersededAuthenticating();
+      return false;
+    }
     if (!refreshed) {
       failHard();
       return false;
     }
 
     const me = await fetchMeWithRetry(() => gen === genRef.current);
-    if (gen !== genRef.current) return false;
+    if (gen !== genRef.current) {
+      resolveSupersededAuthenticating();
+      return false;
+    }
     return applyMeResult(me, { softOnTransient: true });
-  }, [applyMeResult, failHard]);
+  }, [applyMeResult, failHard, resolveSupersededAuthenticating]);
 
   const retryRestore = useCallback(async () => {
     const gen = ++genRef.current;
     setStatus("authenticating");
     const refreshed = await refreshAccessToken();
-    if (gen !== genRef.current) return;
+    if (gen !== genRef.current) {
+      resolveSupersededAuthenticating();
+      return;
+    }
     if (!refreshed) {
       if (hasInstagramReconnectLatch()) enterInstagramReconnect();
       else failHard();
       return;
     }
     const me = await fetchMeWithRetry(() => gen === genRef.current);
-    if (gen !== genRef.current) return;
+    if (gen !== genRef.current) {
+      resolveSupersededAuthenticating();
+      return;
+    }
     applyMeResult(me, { softOnTransient: true });
-  }, [applyMeResult, enterInstagramReconnect, failHard]);
+  }, [
+    applyMeResult,
+    enterInstagramReconnect,
+    failHard,
+    resolveSupersededAuthenticating,
+  ]);
 
   const abandonRestore = useCallback(() => {
     genRef.current += 1;
