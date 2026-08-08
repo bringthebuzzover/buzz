@@ -1,0 +1,20 @@
+---
+description: Alembic migrations and background job conventions
+globs: backend/migrations/**,backend/app/jobs/**,backend/scripts/run_job.py
+alwaysApply: false
+---
+
+# Migrations & jobs
+
+## Alembic
+
+- Run from `backend/`: `poetry run alembic …`
+- Autogenerate is a draft — verify enums, FK `ondelete`, symmetric `downgrade()`.
+- New PG enum values: hand-write `ALTER TYPE … ADD VALUE`; downgrade often no-op.
+
+## Jobs
+
+- One-shot via `poetry run python scripts/run_job.py <name>` (Railway Cron). Names in `app/jobs/names.py`.
+- Idempotent; JSON summary on stdout; persist `job_runs`.
+- Do not expand stage gating or product rules without PRODUCT ask + gap/cluster approach.
+- Cadence and ops: [`DEPLOYMENT.md`](DEPLOYMENT.md), [`ARCHITECTURE.md`](ARCHITECTURE.md) §7.
