@@ -1,7 +1,8 @@
 /**
- * refreshAccessToken must not clear a token installed by login while the
- * refresh request was still in flight, and must not join a stale in-flight
- * refresh (or start a rotating refresh) after that login token exists.
+ * refreshAccessToken: a failed refresh must not clear a token installed by
+ * login mid-flight; a successful refresh must always install the returned
+ * access JWT (server rotated token_version). Callers must not join a stale
+ * in-flight refresh after login, or start a second rotating refresh.
  */
 import {
   getAccessToken,
@@ -73,7 +74,7 @@ describe("refreshAccessToken concurrent login", () => {
     expect(refreshCalls).toBe(1);
   });
 
-  it("does not overwrite a login token when an in-flight refresh succeeds", async () => {
+  it("installs the refresh access token when an in-flight refresh succeeds", async () => {
     let finishRefresh!: (value: Response) => void;
     global.fetch = jest.fn(
       () =>
@@ -85,10 +86,10 @@ describe("refreshAccessToken concurrent login", () => {
     const pending = refreshAccessToken();
     setAccessToken("login-token");
     finishRefresh(
-      jsonResponse(200, { data: { access_token: "stale-cookie-token" } }),
+      jsonResponse(200, { data: { access_token: "from-refresh" } }),
     );
 
     await expect(pending).resolves.toBe(true);
-    expect(getAccessToken()).toBe("login-token");
+    expect(getAccessToken()).toBe("from-refresh");
   });
 });
