@@ -26,13 +26,18 @@ import {
 import {
   clearImpersonationSession,
   clearInstagramReconnectLatch,
+  clearViewAsLatch,
   hasInstagramReconnectLatch,
+  isAdminPath,
+  peekViewAsLatch,
   refreshAccessToken,
+  resumeImpersonation,
   setAccessToken,
   getAccessToken,
   devLogin,
   fetchMe,
   logout as apiLogout,
+  viewAsPortalRoleFromPath,
   type MeResult,
 } from "../api/auth";
 import { API_BASE_URL } from "../api/config";
@@ -201,8 +206,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const me = await fetchMeWithRetry(bootstrapStillOwner);
         if (!bootstrapStillOwner()) return;
         if (me.kind === "user") {
-          userRef.current = me.user;
-          setUser(me.user);
+          let sessionUser = me.user;
+          if (sessionUser.portalRole === "admin") {
+            const latch = peekViewAsLatch();
+            const path = window.location.pathname;
+            const pathRole = viewAsPortalRoleFromPath(path);
+            if (latch && pathRole === latch.portalRole) {
+              const resumed = await resumeImpersonation(latch.userId);
+              if (!bootstrapStillOwner()) return;
+              if (resumed) {
+                const targetMe = await fetchMeWithRetry(bootstrapStillOwner);
+                if (!bootstrapStillOwner()) return;
+                if (targetMe.kind === "user") {
+                  sessionUser = targetMe.user;
+                } else {
+                  // Imp token is installed but /me failed — drop View as and
+                  // remint admin access from the refresh cookie.
+                  clearImpersonationSession();
+                  const restored = await refreshAccessToken();
+                  if (!bootstrapStillOwner()) return;
+                  if (!restored) {
+                    failHard();
+                    return;
+                  }
+                }
+              } else {
+                clearViewAsLatch();
+              }
+            } else if (latch && isAdminPath(path)) {
+              clearViewAsLatch();
+            }
+          }
+          userRef.current = sessionUser;
+          setUser(sessionUser);
           setStatus("authenticated");
           return;
         }
@@ -272,6 +308,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     clearInstagramReconnectLatch();
+    clearViewAsLatch();
     setAccessToken(null);
     setUser(null);
     setStatus("idle");
