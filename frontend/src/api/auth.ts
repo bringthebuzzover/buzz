@@ -115,11 +115,10 @@ export async function refreshAccessToken(): Promise<boolean> {
         if (accessToken === tokenAtStart) setAccessToken(null);
         return false;
       }
-      // Login may have installed a newer bearer while this refresh was in
-      // flight — keep it (same rule as the 401 / empty paths above).
-      if (accessToken !== tokenAtStart && accessToken !== null) {
-        return true;
-      }
+      // Refresh 200 rotated token_version / cookie — always adopt the new
+      // access JWT, even if login installed a bearer mid-flight (that bearer
+      // is dead after this rotation). Failure paths above still respect
+      // tokenAtStart so a 401 does not wipe a concurrent login.
       setAccessToken(body.data.access_token);
       return true;
     } catch {
