@@ -4,6 +4,7 @@ title: Admin View as ends on full page reload (403 on portal URL)
 kind: ux_hole
 severity: P2
 status: fixed
+closed_in: 104b36d
 surface: admin
 evidence:
   - path: frontend/src/api/auth.ts
