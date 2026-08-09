@@ -24,20 +24,28 @@ jest.mock("../api/auth", () => {
     fetchMe: jest.fn(),
     devLogin: jest.fn(),
     logout: jest.fn(async () => {}),
+    resumeImpersonation: jest.fn(),
   };
 });
 
 import {
+  clearViewAsLatch,
   fetchMe,
   getAccessToken,
+  peekViewAsLatch,
   refreshAccessToken,
+  resumeImpersonation,
   setAccessToken,
+  setViewAsLatch,
 } from "../api/auth";
 
 const refreshMock = refreshAccessToken as jest.MockedFunction<
   typeof refreshAccessToken
 >;
 const fetchMeMock = fetchMe as jest.MockedFunction<typeof fetchMe>;
+const resumeMock = resumeImpersonation as jest.MockedFunction<
+  typeof resumeImpersonation
+>;
 const devLoginMock = jest.requireMock("../api/auth").devLogin as jest.Mock;
 
 function Probe() {
@@ -107,8 +115,10 @@ describe("AuthProvider bootstrap resolution", () => {
   beforeEach(() => {
     refreshMock.mockReset();
     fetchMeMock.mockReset();
+    resumeMock.mockReset();
     devLoginMock.mockReset();
     setAccessToken(null);
+    clearViewAsLatch();
     window.history.pushState({}, "", "/admin");
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -121,6 +131,7 @@ describe("AuthProvider bootstrap resolution", () => {
     });
     container.remove();
     setAccessToken(null);
+    clearViewAsLatch();
   });
 
   it("ends in restore_failed (not hung authenticating) when refresh ok but /me never yields a user", async () => {
@@ -317,6 +328,113 @@ describe("AuthProvider bootstrap resolution", () => {
       finishRestore(true);
     });
     await waitForStatus(container, "restore_failed");
+  });
+
+  it("remints View as from latch on portal path after admin cookie bootstrap", async () => {
+    window.history.pushState({}, "", "/org/browse");
+    setViewAsLatch("org-target", "org");
+    refreshMock.mockImplementation(async () => {
+      setAccessToken("admin-access");
+      return true;
+    });
+    let meCalls = 0;
+    fetchMeMock.mockImplementation(async () => {
+      meCalls += 1;
+      if (meCalls === 1) {
+        return {
+          kind: "user" as const,
+          user: {
+            id: "admin-1",
+            portalRole: "admin" as const,
+            status: "active",
+          },
+        };
+      }
+      return {
+        kind: "user" as const,
+        user: {
+          id: "org-target",
+          portalRole: "org" as const,
+          status: "active",
+          impersonatedBy: "admin-1",
+        },
+      };
+    });
+    resumeMock.mockResolvedValue(true);
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+
+    await waitForStatus(container, "authenticated");
+    expect(resumeMock).toHaveBeenCalledWith("org-target");
+    expect(userText(container)).toBe("org-target");
+    expect(peekViewAsLatch()?.userId).toBe("org-target");
+  });
+
+  it("clears latch on /admin without reminting", async () => {
+    window.history.pushState({}, "", "/admin");
+    setViewAsLatch("org-target", "org");
+    refreshMock.mockImplementation(async () => {
+      setAccessToken("admin-access");
+      return true;
+    });
+    fetchMeMock.mockResolvedValue({
+      kind: "user",
+      user: {
+        id: "admin-1",
+        portalRole: "admin",
+        status: "active",
+      },
+    });
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+
+    await waitForStatus(container, "authenticated");
+    expect(resumeMock).not.toHaveBeenCalled();
+    expect(userText(container)).toBe("admin-1");
+    expect(peekViewAsLatch()).toBeNull();
+  });
+
+  it("clears latch and stays admin when remint fails", async () => {
+    window.history.pushState({}, "", "/org/browse");
+    setViewAsLatch("org-target", "org");
+    refreshMock.mockImplementation(async () => {
+      setAccessToken("admin-access");
+      return true;
+    });
+    fetchMeMock.mockResolvedValue({
+      kind: "user",
+      user: {
+        id: "admin-1",
+        portalRole: "admin",
+        status: "active",
+      },
+    });
+    resumeMock.mockResolvedValue(false);
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+
+    await waitForStatus(container, "authenticated");
+    expect(resumeMock).toHaveBeenCalledWith("org-target");
+    expect(userText(container)).toBe("admin-1");
+    expect(peekViewAsLatch()).toBeNull();
   });
 });
 

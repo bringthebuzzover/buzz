@@ -19,7 +19,7 @@ import {
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../client";
-import { setImpersonationToken } from "../auth";
+import { setImpersonationToken, setViewAsLatch } from "../auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { pathForUser } from "../../utils/landing";
 import type { PortalRole } from "../../types/auth";
@@ -543,7 +543,12 @@ export function useImpersonate(): AdminMutation<string> {
         readonly: boolean;
       }>(`/api/admin/impersonate/${userId}`, { method: "POST" });
       // Swaps the in-memory bearer only; the admin's refresh cookie is left
-      // alone so "Exit impersonation" restores the admin session.
+      // alone so "Exit impersonation" restores the admin session. Latch lets
+      // same-tab reload remint View as.
+      const role = data.user.portal_role;
+      if (role === "org" || role === "brand") {
+        setViewAsLatch(data.user.id, role);
+      }
       setImpersonationToken(data.accessToken);
       return data;
     },

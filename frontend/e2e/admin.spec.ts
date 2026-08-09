@@ -132,12 +132,23 @@ test("admin views as an org from a row and can exit", async ({ page }) => {
   await expect(banner).toContainText(/viewing as/i);
   await expect(banner).toContainText(/read-only/i);
 
+  // Same-tab hard reload remints View as from the sessionStorage latch.
+  await page.reload();
+  await expect(page).toHaveURL(/\/org\/browse$/);
+  await expect(page.getByTestId("impersonation-banner")).toBeVisible();
+  await expect(page.getByTestId("impersonation-banner")).toContainText(/viewing as/i);
+
   await page.getByTestId("exit-impersonation").click();
 
-  // Full reload to /admin (not /admin/login). Soft SPA exit restores admin
-  // without a document navigation; still assert Overview landed.
+  // Soft SPA exit restores admin without a document navigation.
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
+  await expect(page.getByTestId("impersonation-banner")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+
+  // Latch cleared on Exit — portal URL must not remint View as.
+  await page.goto("/org/browse");
+  await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByTestId("impersonation-banner")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
 });

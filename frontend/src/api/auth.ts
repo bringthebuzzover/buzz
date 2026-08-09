@@ -33,6 +33,104 @@ export function hasInstagramReconnectLatch(): boolean {
   return sessionStorage.getItem(INSTAGRAM_RECONNECT_LATCH) === "1";
 }
 
+/**
+ * Same-tab View-as intent. Access JWT stays memory-only; after reload bootstrap
+ * remints via POST /impersonate when this latch is present on a portal URL.
+ */
+export const VIEW_AS_LATCH = "buzz.viewAsTarget";
+/** Independent of the ~15m impersonation access TTL. */
+export const VIEW_AS_LATCH_TTL_MS = 8 * 60 * 60 * 1000;
+
+export type ViewAsLatch = {
+  userId: string;
+  portalRole: "org" | "brand";
+  setAt: number;
+};
+
+export function setViewAsLatch(
+  userId: string,
+  portalRole: "org" | "brand",
+): void {
+  const payload: ViewAsLatch = { userId, portalRole, setAt: Date.now() };
+  sessionStorage.setItem(VIEW_AS_LATCH, JSON.stringify(payload));
+}
+
+export function clearViewAsLatch(): void {
+  sessionStorage.removeItem(VIEW_AS_LATCH);
+}
+
+/** Null when missing, corrupt, or past latch TTL (also removes bad/expired). */
+export function peekViewAsLatch(): ViewAsLatch | null {
+  const raw = sessionStorage.getItem(VIEW_AS_LATCH);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<ViewAsLatch>;
+    if (
+      typeof parsed.userId !== "string" ||
+      (parsed.portalRole !== "org" && parsed.portalRole !== "brand") ||
+      typeof parsed.setAt !== "number"
+    ) {
+      clearViewAsLatch();
+      return null;
+    }
+    if (Date.now() - parsed.setAt > VIEW_AS_LATCH_TTL_MS) {
+      clearViewAsLatch();
+      return null;
+    }
+    return {
+      userId: parsed.userId,
+      portalRole: parsed.portalRole,
+      setAt: parsed.setAt,
+    };
+  } catch {
+    clearViewAsLatch();
+    return null;
+  }
+}
+
+/** Portal role implied by a View-as resume URL, or null if not a portal path. */
+export function viewAsPortalRoleFromPath(
+  pathname: string,
+): "org" | "brand" | null {
+  if (pathname === "/org" || pathname.startsWith("/org/")) return "org";
+  if (pathname === "/brand" || pathname.startsWith("/brand/")) return "brand";
+  return null;
+}
+
+export function isAdminPath(pathname: string): boolean {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
+/**
+ * Re-mint View as using the current admin bearer. Does not touch the latch
+ * (caller clears on failure). Returns whether an impersonation token was
+ * installed.
+ */
+export async function resumeImpersonation(userId: string): Promise<boolean> {
+  const token = getAccessToken();
+  if (!token) return false;
+  try {
+    const resp = await fetch(
+      `${API_BASE_URL}/api/admin/impersonate/${userId}`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    if (!resp.ok) return false;
+    const body = (await resp.json()) as {
+      data: { accessToken?: string; access_token?: string } | null;
+    };
+    const access = body.data?.accessToken ?? body.data?.access_token;
+    if (!access) return false;
+    setImpersonationToken(access);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function getAccessToken(): string | null {
   return accessToken;
 }
@@ -52,12 +150,13 @@ export function isImpersonating(): boolean {
 }
 
 /**
- * Drop the in-memory impersonation bearer. Does not navigate and does not touch
- * the admin refresh cookie.
+ * Drop the in-memory impersonation bearer and View-as latch. Does not navigate
+ * and does not touch the admin refresh cookie.
  */
 export function clearImpersonationSession(): void {
   accessToken = null;
   impersonating = false;
+  clearViewAsLatch();
 }
 
 /**
