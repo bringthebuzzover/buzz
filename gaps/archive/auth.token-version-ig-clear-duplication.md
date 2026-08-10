@@ -4,7 +4,7 @@ title: token_version bump and IG token clear are copy-pasted across services
 kind: dead_code
 severity: P2
 status: fixed
-closed_in: pending
+closed_in: 56a6ab9
 surface: auth
 evidence:
   - path: backend/app/services/instagram_token.py
