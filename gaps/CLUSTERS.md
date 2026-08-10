@@ -330,18 +330,20 @@ approach: |
   binary checklist PASS (Railway+none App Review invariant). Agents may edit
   DEPLOYMENT/META/README; humans set env / Meta URLs to META.md hosts.
   Verify Set-Cookie with GET curl (not HEAD).
-  **Partial / not forever topology:** Phase 2 tracked in
-  `deploy.custom-domain-samesite-lax` (deferred). Archiving v1 must leave
-  that follow-up open until www+api + `lax`.
-  **2026-08-08 progress:** Railway cookie + FRONTEND_URL/INSTAGRAM_REDIRECT_URI
-  + docs scrub + real IG client id/secret on Railway PASS; Meta §A–B done;
-  stay `ops` until Meta §C dashboard URLs match META.md Hosts.
+  **Phase 2 infra done (2026-08-09 Plan A):** www+api on Railway, SPA rebuilt,
+  `SameSite=lax` verified — archived
+  `gaps/archive/deploy.custom-domain-samesite-lax.md`.
+  **Temporary Meta↔env misalignment OK** until
+  `gaps/deploy.meta-brand-url-cutover.md` (status ops) — Meta §C still needs
+  www/api paste; Railway dual-host is no longer a working auth backup after lax.
+  Stay `ops` until Meta Hosts table is pasted + optional IG smoke.
 
 stop_if:
   - Always pause before mutating Railway/Meta without explicit user OK.
-  - Flipping prod to `lax` while still on dual-host Railway (belongs in
-    Phase 2 follow-up, not this cluster).
-  - Archiving without `gaps/deploy.custom-domain-samesite-lax.md` still living.
+  - Claiming IG login E2E PASS before Meta brand URL paste.
+  - Removing GH Pages before Cloudflare apex redirect without accepting a
+    broken-apex window (`deploy.gh-pages-brand-domain-retire` ↔
+    `deploy.apex-hostinger-forward-blocked`).
 
 ---
 
@@ -350,14 +352,16 @@ stop_if:
 status: parked
 gaps:
   - ops.email-ledger
-  - deploy.custom-domain-samesite-lax
 note: |
   Required follow-ups for partial v1 clusters (not timeless-complete).
   Do not auto-execute. Create Locked v1 + un-park only when named explicitly.
   - `ops.email-ledger` — after `email-honesty` archives; ledger + denial
     org channel (or wontfix) + invite/reset honesty.
-  - `deploy.custom-domain-samesite-lax` — after `ops-samesite` v1; www+api
-    domains then `SameSite=lax`. Do not delete these when archiving parents.
+  - `deploy.custom-domain-samesite-lax` — **archived** 2026-08-09 (Plan A).
+    Residual: `deploy.meta-brand-url-cutover`, `deploy.apex-hostinger-forward-blocked`,
+    `deploy.gh-pages-brand-domain-retire` (waiting on Shannon admin),
+    `deploy.github-repo-owner-shannon` (Git mirrored to bringthebuzzover/buzz @ main;
+    Railway Source still ShannonLin284/`mvp` until GitHub App + UI reconnect).
 
 ---
 

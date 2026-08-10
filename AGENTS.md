@@ -87,6 +87,7 @@ Use project/user MCP when it helps. **Read** is fine; **mutate** needs explicit 
 | ------ | ------- | ------ |
 | **Railway** | Status, logs, vars (read), docs | Redeploy, set vars, accept-deploy, create services without explicit OK |
 | **GitHub** | PRs, checks, issues, file reads for this repo | Force-push, surprise merges; prefer `gh` when user rules say so |
+| **Hostinger** | DNS/forwarding for `bringthebuzzover.com` (Melissa’s account — API/MCP only; see [`DEPLOYMENT.md`](DEPLOYMENT.md) Domain / DNS ownership) | Assume Lawrence hPanel; mutate without explicit OK; commit API tokens |
 
 Personal MCPs (e.g. Hevy, Obsidian) are **out of scope** for Buzz work — ignore them here.
 

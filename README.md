@@ -40,7 +40,7 @@ The repo is a monorepo: SPA under [`frontend/`](frontend/), FastAPI service unde
 ### Frontend
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/bringthebuzzover/buzz.git
 cd buzz/frontend
 npm install
 cp .env.example .env
@@ -100,7 +100,7 @@ Backend (inside `backend/`): `poetry run pytest`, `poetry run alembic upgrade he
 
 Production target is **Railway** (SPA + FastAPI + Postgres + cron jobs). See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the launch checklist, env parity, and Meta/Resend prerequisites.
 
-A legacy `npm run deploy` (GitHub Pages) still exists in `package.json` but is **not** the launch path.
+Production SPA/API are on **Railway** with brand hosts `www` / `api.bringthebuzzover.com` (see [`DEPLOYMENT.md`](DEPLOYMENT.md)). Do not run GitHub Pages deploys for the app.
 
 ---
 
@@ -117,7 +117,7 @@ frontend/                  # CRA/CRACO SPA (own package.json)
     data/siteIdentity.ts   # Brand, contact, social (single source)
     types/                 # Domain types
   e2e/                     # Playwright specs + global-setup
-  public/                  # index.html, CNAME, static assets
+  public/                  # index.html, static assets
 backend/                   # FastAPI app, Alembic migrations, jobs, tests
 openapi.json               # API contract (regen TS types via cd frontend && npm run gen:api)
 scripts/ci-local.sh        # Full local CI gate (mirrors .github/workflows/ci.yml)

@@ -119,27 +119,20 @@ but it blocks v1 close.
    cutover/`lax` not done.**
 3. Incomplete checklist → do **not** archive; keep living with `ops`/`open`, or
    `wontfix` if abandoned.
-4. **Required follow-up gap:** `gaps/deploy.custom-domain-samesite-lax.md`
-   (`status: deferred`). Archiving this file does **not** close Phase 2;
-   keep that gap until www+api/`lax` cutover (or explicit wontfix).
+4. **Required follow-up:** Phase 2 infra archived as
+   `gaps/archive/deploy.custom-domain-samesite-lax.md`. Remaining:
+   `gaps/deploy.meta-brand-url-cutover.md` (Meta paste) and
+   `gaps/deploy.apex-hostinger-forward-blocked.md` (apex).
 
 ---
 
-## Phase 2 — custom DNS + SameSite=lax (NOT this gap’s fix_when)
+## Phase 2 — custom DNS + SameSite=lax (DONE infra 2026-08-09)
 
-Tracked in `gaps/deploy.custom-domain-samesite-lax.md` (`status: deferred`).
-Separate from archiving this file. Do not treat as v1 close.
+Archived: `gaps/archive/deploy.custom-domain-samesite-lax.md`.
 
-**Phase 2 fix_when (see follow-up gap):**
-
-1. `www` and `api.bringthebuzzover.com` both serve Railway (custom domains attached;
-   `api` no longer NXDOMAIN; www not left on GH Pages as the App Review SPA).
-2. SPA rebuilt with `REACT_APP_API_URL=https://api.bringthebuzzover.com`.
-3. `FRONTEND_URL`, `INSTAGRAM_REDIRECT_URI`, Meta redirect/deauthorize/privacy/terms
-   all agree on www+api.
-4. `REFRESH_COOKIE_SAMESITE=lax` (+ Secure); Set-Cookie shows `SameSite=lax`.
-5. Instagram login E2E works; `none` retired from prod env.
-6. Docs updated: dual-host `none` called historical; same-site `lax` is current.
+Done: www+api Railway TLS, SPA rebuild, env → www, `SameSite=lax` Set-Cookie.
+Still open: Meta dashboard URL paste (`deploy.meta-brand-url-cutover`); IG login
+E2E; apex Hostinger forward (`deploy.apex-hostinger-forward-blocked`).
 
 ---
 

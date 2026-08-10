@@ -3,7 +3,8 @@ id: deploy.custom-domain-samesite-lax
 title: Cut over www+api custom domains and retire SameSite=none
 kind: ops
 severity: P2
-status: deferred
+status: fixed
+closed_in: pending-commit  # set on commit
 surface: deploy
 evidence:
   - path: gaps/deploy.samesite-lax-railway-preview.md
@@ -43,3 +44,18 @@ claim prod is same-site/`lax` until this gap closes.
 
 Only after `ops-samesite` v1 checklist PASS (or abandoned). Do not flip to
 `lax` while still on cross-site Railway dual-host.
+
+
+## Archived (Plan A infra)
+
+Infra cutover complete 2026-08-09:
+
+- `www` + `api.bringthebuzzover.com` on Railway (CNAME+TXT, brand TLS)
+- SPA `REACT_APP_API_URL=https://api.bringthebuzzover.com` rebuilt
+- `FRONTEND_URL` / `INSTAGRAM_REDIRECT_URI` → www (api + crons)
+- `REFRESH_COOKIE_SAMESITE=lax` verified on `GET /api/auth/instagram/login`
+
+Meta dashboard URLs still Railway hosts — tracked by sibling
+`gaps/deploy.meta-brand-url-cutover.md` (do not claim full IG E2E until that archives).
+Apex Hostinger forward blocked — `gaps/deploy.apex-hostinger-forward-blocked.md`
+(GH Pages still 301s apex → www interim).

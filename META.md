@@ -25,20 +25,26 @@ Docs: [platform overview](https://developers.facebook.com/docs/instagram-platfor
 
 ## Hosts (exact strings)
 
-**Use Railway for Meta setup, pilot, and App Review** until custom DNS serves the SPA correctly.
+**Brand DNS is live on Railway.** Paste these into Meta (Phase 8) — until then Instagram OAuth from www can fail. Checklist: [`gaps/deploy.meta-brand-url-cutover.md`](gaps/deploy.meta-brand-url-cutover.md).
+
+| Role | URL |
+| ---- | --- |
+| Site | `https://www.bringthebuzzover.com` |
+| OAuth redirect | `https://www.bringthebuzzover.com/auth/instagram/callback` |
+| Privacy | `https://www.bringthebuzzover.com/privacy` |
+| Terms | `https://www.bringthebuzzover.com/terms` |
+| Data deletion | `https://www.bringthebuzzover.com/data-deletion` |
+| API / deauthorize | `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize` |
+
+Backend env already matches: `INSTAGRAM_REDIRECT_URI` and `FRONTEND_URL` use www. Trailing slashes matter.
+
+**Secondary Railway hosts** (optional keep-listed in Meta until IG smoke passes, then remove):
 
 | Role | URL |
 | ---- | --- |
 | Site | `https://frontend-production-3819.up.railway.app` |
 | OAuth redirect | `https://frontend-production-3819.up.railway.app/auth/instagram/callback` |
-| Privacy | `https://frontend-production-3819.up.railway.app/privacy` |
-| Terms | `https://frontend-production-3819.up.railway.app/terms` |
-| Data deletion | `https://frontend-production-3819.up.railway.app/data-deletion` |
 | API / deauthorize | `https://api-production-fbbc1.up.railway.app/api/auth/instagram/deauthorize` |
-
-Backend: `INSTAGRAM_REDIRECT_URI` and `FRONTEND_URL` must match the Railway site/redirect above. Trailing slashes matter.
-
-**Later (brand domains):** `https://www.bringthebuzzover.com` (SPA) and `https://api.bringthebuzzover.com` (API). Add those to Meta and flip env when that cutover is done. URLs can be updated after App Review.
 
 ---
 
@@ -115,15 +121,17 @@ Reference: [Business Login](https://developers.facebook.com/docs/instagram-platf
 
 1. **Instagram → API setup with Instagram login → Set up Instagram business login → Business login settings**.
 2. **OAuth redirect URIs** — add **all** of:
-   - `https://frontend-production-3819.up.railway.app/auth/instagram/callback` (**required** for prod / App Review)
+   - `https://www.bringthebuzzover.com/auth/instagram/callback` (**required** — matches Railway env)
    - `http://localhost:3000/auth/instagram/callback` (**optional**, for local SPA ↔ local API OAuth)
+   - Optional until IG smoke: `https://frontend-production-3819.up.railway.app/auth/instagram/callback`
 3. **Permissions** — only:
    - `instagram_business_basic`
    - `instagram_business_manage_insights`  
    Do not add publishing, comments, or messaging scopes.
-4. **Deauthorize callback URL:** `https://api-production-fbbc1.up.railway.app/api/auth/instagram/deauthorize`
-5. **Data deletion instructions URL:** `https://frontend-production-3819.up.railway.app/data-deletion`
+4. **Deauthorize callback URL:** `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize`
+5. **Data deletion instructions URL:** `https://www.bringthebuzzover.com/data-deletion`
 6. **Save.** Confirm the saved redirect string with engineering (dashboard may add a trailing slash).
+7. **App settings → Basic:** Privacy + Terms → `https://www.bringthebuzzover.com/privacy` and `…/terms`.
 
 ---
 
@@ -167,8 +175,8 @@ Docs: [Instagram App Review](https://developers.facebook.com/docs/instagram-plat
 
 - [ ] Business Verification done (or not blocking Advanced Access)
 - [ ] Successful API use of both permissions via a tester login (confirm with engineering; metrics sync should have run)
-- [ ] Privacy + Terms live on the Railway URLs above; set in App settings → Basic
-- [ ] Reviewers can reach the Railway site; include tester credentials if needed
+- [ ] Privacy + Terms live on the www URLs above; set in App settings → Basic
+- [ ] Reviewers can reach `https://www.bringthebuzzover.com`; include tester credentials if needed
 - [ ] Screencast(s): login → Instagram consent → data use for **each** permission ([recording guide](https://developers.facebook.com/docs/app-review/submission-guide/screen-recordings/))
 
 **Submit:**
@@ -184,7 +192,7 @@ Each permission is reviewed separately. Both must be approved.
 ## G. After approval
 
 1. Confirm Advanced Access on both permissions.
-2. Tell engineering to verify Railway env (`INSTAGRAM_*`, `FRONTEND_URL`) and a public login with a non-tester account. Cut over to `www` / `api` later when ready.
+2. Tell engineering to verify Railway env (`INSTAGRAM_*`, `FRONTEND_URL`) and a public login with a non-tester account on www.
 
 Publish checklist: <https://developers.facebook.com/docs/development/release/>
 
@@ -197,15 +205,15 @@ Already in code: OAuth handshake, signed state cookie, encrypted tokens, Busines
 **Railway production (set):**
 
 - [x] `INSTAGRAM_CLIENT_ID` / `INSTAGRAM_CLIENT_SECRET` (real Meta app; live login no longer uses a placeholder client id)
-- [x] `INSTAGRAM_REDIRECT_URI=https://frontend-production-3819.up.railway.app/auth/instagram/callback`
-- [x] `FRONTEND_URL=https://frontend-production-3819.up.railway.app`
-- [x] `REFRESH_COOKIE_SAMESITE=none` + `REFRESH_COOKIE_SECURE=true` (dual-host Railway invariant)
+- [x] `INSTAGRAM_REDIRECT_URI=https://www.bringthebuzzover.com/auth/instagram/callback`
+- [x] `FRONTEND_URL=https://www.bringthebuzzover.com`
+- [x] `REFRESH_COOKIE_SAMESITE=lax` + `REFRESH_COOKIE_SECURE=true` (brand www+api same eTLD+1)
 - [x] `SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, `DATABASE_URL` (+ migrations)
 - Egress to `api.instagram.com`, `graph.instagram.com`, `www.instagram.com`
 
 **Local laptop:** copy `backend/.env.example` → `backend/.env` (gitignored). Fill the same `INSTAGRAM_CLIENT_*` values; keep `INSTAGRAM_REDIRECT_URI=http://localhost:3000/auth/instagram/callback` and add that URI in Meta §C if you test OAuth locally. Frontend: `REACT_APP_API_URL=http://localhost:8000` in `frontend/.env`.
 
-**Still human (Meta dashboard §C):** redirect / deauthorize / data-deletion / privacy / terms must match the Hosts table before pilot E2E. Then archive `gaps/deploy.samesite-lax-railway-preview.md` once that Meta row PASSes.
+**Still human (Meta dashboard §C):** paste Hosts table URLs (see `gaps/deploy.meta-brand-url-cutover.md`). Env already points at www — dashboard catch-up is the remaining OAuth gate.
 
 Details: `DEPLOYMENT.md`.
 
