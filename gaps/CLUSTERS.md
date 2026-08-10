@@ -369,16 +369,19 @@ note: |
 
 status: parked
 gaps:
-  - openapi.untyped-success-responses
   - ops.observability-thin
   - posts.sibling-dismiss-never-rearms
   - auth.token-version-ig-clear-duplication
+  - test.jwt-secret-key-length-warning
+  - test.httpx-per-request-cookies-deprecated
 note: |
   NO_PLAN (observability) or wontfix (sibling dismiss), plus deferred
   DRY/contract chores from the SOT/DRY audit:
   - `openapi.422-wrong-shape` — **archived** 2026-08-10 (app-level 422 → APIResponse)
-  - `openapi.untyped-success-responses` — BrandProfile + drops feed/detail pilot
-    done; remaining APIResponse routes still deferred
+  - `openapi.untyped-success-responses` — **archived** 2026-08-10 (all success
+    routes → DataResponse[T]; FE aliases generated schemas; auth snake_case kept)
   - `auth.token-version-ig-clear-duplication` — bump + IG clear SOT helpers
+  - `test.jwt-secret-key-length-warning` / `test.httpx-per-request-cookies-deprecated`
+    — pytest noise; Locked v1 drafted in each gap file; P3 hygiene only
   Do not auto-execute. Un-park only with an explicit user request naming the
   gap id after a Locked v1 exists (or product reverses sibling-dismiss).

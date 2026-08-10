@@ -21,7 +21,7 @@ from pydantic import (
 from pydantic.alias_generators import to_camel
 
 from app.schemas.auth import UserResponse
-from app.schemas.common import CamelModel, to_epoch_ms
+from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 
 
 def _epoch_ms_to_aware(value: Any) -> Any:
@@ -364,8 +364,12 @@ class AdminDropItem(CamelModel):
     finalized_at: datetime | None
     created_at: datetime
 
-    @field_serializer("apply_open_at", "apply_close_at", "finalized_at", "created_at")
-    def _epoch(self, value: datetime | None) -> int | None:
+    @field_serializer("apply_open_at", "apply_close_at", "created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("finalized_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 
@@ -386,8 +390,12 @@ class AdminBrandDetail(CamelModel):
     invite: AdminInviteState
     drops: list[AdminDropItem]
 
-    @field_serializer("approved_at", "created_at", "last_login_at")
-    def _epoch(self, value: datetime | None) -> int | None:
+    @field_serializer("created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("approved_at", "last_login_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 
@@ -411,8 +419,12 @@ class AdminApplicantItem(CamelModel):
     applied_at: datetime
     decision_at: datetime | None
 
-    @field_serializer("applied_at", "decision_at")
-    def _epoch(self, value: datetime | None) -> int | None:
+    @field_serializer("applied_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("decision_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 
@@ -423,8 +435,8 @@ class AdminTrackerEventItem(CamelModel):
     occurred_at: datetime
 
     @field_serializer("occurred_at")
-    def _epoch(self, value: datetime) -> int | None:
-        return to_epoch_ms(value)
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
 
 
 class AdminDropDetail(CamelModel):
@@ -453,6 +465,10 @@ class AdminDropDetail(CamelModel):
     applicants: list[AdminApplicantItem]
     tracker_events: list[AdminTrackerEventItem]
 
-    @field_serializer("apply_open_at", "apply_close_at", "finalized_at", "created_at")
-    def _epoch(self, value: datetime | None) -> int | None:
+    @field_serializer("apply_open_at", "apply_close_at", "created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("finalized_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)

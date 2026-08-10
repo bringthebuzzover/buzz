@@ -22,15 +22,11 @@ import { apiFetch, ApiError } from "../client";
 import { setImpersonationToken, setViewAsLatch } from "../auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { pathForUser } from "../../utils/landing";
-import type { PortalRole } from "../../types/auth";
+import type { components } from "../generated/schema";
 
-type UserPayload = {
-  id: string;
-  portal_role: string;
-  status: string;
-  instagram_username: string | null;
-  email: string | null;
-};
+export type TokenResponse = components["schemas"]["TokenResponse"];
+export type UserResponse = components["schemas"]["UserResponse"];
+export type ImpersonateResponse = components["schemas"]["ImpersonateResponse"];
 
 /**
  * The slice of a TanStack query result the panel reads.
@@ -62,10 +58,7 @@ export function useAdminLogin(): AdminMutation<{
 }> {
   return useMutation({
     mutationFn: async (input: { email: string; password: string }) => {
-      const { data } = await apiFetch<{
-        access_token: string;
-        user: UserPayload;
-      }>("/api/auth/admin/login", {
+      const { data } = await apiFetch<TokenResponse>("/api/auth/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
@@ -86,19 +79,9 @@ export function useAdminLogin(): AdminMutation<{
 
 // ── Overview + health ───────────────────────────────────────────────────────
 
-export type AdminQueue = {
-  key: string;
-  count: number;
-  oldestAt: number | null;
-};
-
-export type AdminWarning = { key: string; count: number };
-
-export type AdminOverview = {
-  generatedAt: number;
-  queues: AdminQueue[];
-  warnings: AdminWarning[];
-};
+export type AdminQueue = components["schemas"]["AdminQueueItem"];
+export type AdminWarning = components["schemas"]["AdminWarningItem"];
+export type AdminOverview = components["schemas"]["AdminOverviewResponse"];
 
 export function useAdminOverview(): AdminQuery<AdminOverview> {
   return useQuery({
@@ -110,22 +93,8 @@ export function useAdminOverview(): AdminQuery<AdminOverview> {
   });
 }
 
-export type AdminSignal = {
-  key: string;
-  count: number;
-  /** "Nothing to act on" — a zero count for most signals, but the informational
-   * token buckets are always ok regardless of size. */
-  ok: boolean;
-  detail: string | null;
-};
-
-export type AdminHealth = {
-  generatedAt: number;
-  pipeline: AdminSignal[];
-  instagramTokens: AdminSignal[];
-  integrity: AdminSignal[];
-  silent: AdminSignal[];
-};
+export type AdminSignal = components["schemas"]["AdminSignal"];
+export type AdminHealth = components["schemas"]["AdminHealthResponse"];
 
 export function useAdminHealth(): AdminQuery<AdminHealth> {
   return useQuery({
@@ -139,44 +108,9 @@ export function useAdminHealth(): AdminQuery<AdminHealth> {
 
 // ── Organizations ───────────────────────────────────────────────────────────
 
-export type AdminOrgRow = {
-  /** The `organizations` row. Null until the user submits their profile. */
-  id: string | null;
-  userId: string;
-  orgName: string | null;
-  university: string | null;
-  instagramHandle: string | null;
-  followerCount: number | null;
-  memberCount: number | null;
-  category: string | null;
-  status: string;
-  eduEmail: string | null;
-  emailVerifiedAt: number | null;
-  approvedAt: number | null;
-  lastLoginAt: number | null;
-  instagramTokenExpiresAt: number | null;
-  impersonatable: boolean;
-  createdAt: number;
-};
-
-export type AdminOrgDetail = AdminOrgRow & {
-  orgId: string | null;
-  instagramUsername: string | null;
-  tiktokHandle: string | null;
-  city: string | null;
-  state: string | null;
-  contactName: string | null;
-  deliveryAddress: string | null;
-  instagramTokenRefreshedAt: number | null;
-  applications: { applied: number; accepted: number; denied: number };
-  postCount: number;
-  linkedPostCount: number;
-  verification: {
-    liveTokenCount: number;
-    latestExpiresAt: number | null;
-    latestUsedAt: number | null;
-  };
-};
+/** The `organizations` row. Null until the user submits their profile. */
+export type AdminOrgRow = components["schemas"]["AdminOrgItem"];
+export type AdminOrgDetail = components["schemas"]["AdminOrgDetail"];
 
 export function useAdminOrgs(status?: string): AdminQuery<AdminOrgRow[]> {
   return useQuery({
@@ -207,55 +141,13 @@ export function useAdminOrg(
 
 // ── Brands ──────────────────────────────────────────────────────────────────
 
-export type AdminBrandRow = {
-  id: string;
-  userId: string;
-  brandName: string;
-  companyEmail: string;
-  intentMessage: string | null;
-  instagramHandle: string | null;
-  /** `brands.status`, which disagrees with `userStatus` by design. */
-  status: string;
-  userStatus: string;
-  passwordSet: boolean;
-  approvedAt: number | null;
-  lastLoginAt: number | null;
-  impersonatable: boolean;
-  createdAt: number;
-};
+/** `brands.status` disagrees with `userStatus` by design. */
+export type AdminBrandRow = components["schemas"]["AdminBrandItem"];
+export type AdminBrandDetail = components["schemas"]["AdminBrandDetail"];
 
 // ── Drops ───────────────────────────────────────────────────────────────────
 
-export type AdminDropRow = {
-  id: string;
-  brandId: string;
-  brandName: string;
-  brandStatus: string;
-  title: string;
-  stage: string;
-  capacityTotal: number;
-  totalProductUnits: number | null;
-  appliedCount: number;
-  acceptedCount: number;
-  applyOpenAt: number;
-  applyCloseAt: number;
-  manualReopen: boolean;
-  trackingNumber: string | null;
-  campaignHashtag: string | null;
-  finalizedAt: number | null;
-  createdAt: number;
-};
-
-export type AdminBrandDetail = AdminBrandRow & {
-  invite: {
-    issuedAt: number | null;
-    expiresAt: number | null;
-    /** Stamped on redemption *and* when a re-issue supersedes the token, so read
-     * it alongside `passwordSet`. */
-    usedAt: number | null;
-  };
-  drops: AdminDropRow[];
-};
+export type AdminDropRow = components["schemas"]["AdminDropItem"];
 
 export function useAdminBrands(status?: string): AdminQuery<AdminBrandRow[]> {
   return useQuery({
@@ -305,42 +197,9 @@ export function useAdminDrops(params: {
   });
 }
 
-export type AdminApplicant = {
-  id: string;
-  orgId: string;
-  userId: string;
-  orgName: string;
-  university: string;
-  instagramHandle: string | null;
-  followerCount: number | null;
-  deliveryAddress: string | null;
-  decision: string;
-  allocatedUnits: number | null;
-  pitch: string | null;
-  trackingNumber: string | null;
-  linkedPostCount: number;
-  appliedAt: number;
-  decisionAt: number | null;
-};
-
-export type AdminTrackerEvent = {
-  id: string;
-  stage: string;
-  note: string | null;
-  occurredAt: number;
-};
-
-export type AdminDropDetail = AdminDropRow & {
-  brandInstagramHandle: string | null;
-  description: string;
-  image: string;
-  location: string;
-  allocatedUnits: number;
-  linkedPostCount: number;
-  pendingSuggestionCount: number;
-  applicants: AdminApplicant[];
-  trackerEvents: AdminTrackerEvent[];
-};
+export type AdminApplicant = components["schemas"]["AdminApplicantItem"];
+export type AdminTrackerEvent = components["schemas"]["AdminTrackerEventItem"];
+export type AdminDropDetail = components["schemas"]["AdminDropDetail"];
 
 export function useAdminDrop(
   dropId: string | undefined,
@@ -387,12 +246,8 @@ export function useDenyOrg() {
   );
 }
 
-export type BrandInviteActionResult = {
-  brandId: string;
-  status: string;
-  /** Present when an invite email was attempted (approve / approve-now create). */
-  emailSent?: boolean;
-};
+export type BrandInviteActionResult =
+  components["schemas"]["AdminBrandInviteResponse"];
 
 /** Admin copy when approve/create succeeded but the invite mail did not. */
 export const INVITE_EMAIL_FAILED_COPY =
@@ -523,25 +378,15 @@ export function useReopenDrop(dropId: string) {
 
 // ── Impersonation ───────────────────────────────────────────────────────────
 
-export type AdminUserRow = {
-  id: string;
-  portalRole: PortalRole;
-  status: string;
-  displayName: string | null;
-  email: string | null;
-  instagramHandle: string | null;
-  impersonatable: boolean;
-  createdAt: number;
-};
+export type AdminUserRow = components["schemas"]["AdminUserItem"];
 
 export function useImpersonate(): AdminMutation<string> {
   return useMutation({
     mutationFn: async (userId: string) => {
-      const { data } = await apiFetch<{
-        accessToken: string;
-        user: UserPayload;
-        readonly: boolean;
-      }>(`/api/admin/impersonate/${userId}`, { method: "POST" });
+      const { data } = await apiFetch<ImpersonateResponse>(
+        `/api/admin/impersonate/${userId}`,
+        { method: "POST" },
+      );
       // Swaps the in-memory bearer only; the admin's refresh cookie is left
       // alone so "Exit impersonation" restores the admin session. Latch lets
       // same-tab reload remint View as.

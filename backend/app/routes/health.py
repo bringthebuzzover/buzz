@@ -15,12 +15,13 @@ from app import errors
 from app.config import settings
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
-from app.response import APIResponse, api_response
+from app.response import APIResponse, DataResponse, api_response
+from app.schemas.acks import HealthStatusResponse, PublicConfigResponse
 
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health", response_model=APIResponse)
+@router.get("/health", response_model=DataResponse[HealthStatusResponse])
 async def get_health(db: AsyncSession = Depends(get_db)) -> APIResponse:
     """Liveness probe used by smoke tests and the CI envelope check.
 
@@ -37,10 +38,10 @@ async def get_health(db: AsyncSession = Depends(get_db)) -> APIResponse:
             status_code=503,
         ) from exc
 
-    return api_response(data={"status": "ok", "version": "0.1.0"})
+    return api_response(data=HealthStatusResponse(status="ok", version="0.1.0"))
 
 
-@router.get("/config", response_model=APIResponse)
+@router.get("/config", response_model=DataResponse[PublicConfigResponse])
 async def get_public_config() -> APIResponse:
     """Public, unauthenticated feature flags the SPA needs before login.
 
@@ -48,5 +49,7 @@ async def get_public_config() -> APIResponse:
     """
 
     return api_response(
-        data={"brandSelfRegistrationEnabled": settings.BRAND_SELF_REGISTRATION_ENABLED}
+        data=PublicConfigResponse(
+            brand_self_registration_enabled=settings.BRAND_SELF_REGISTRATION_ENABLED
+        )
     )

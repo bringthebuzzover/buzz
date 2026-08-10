@@ -16,18 +16,7 @@ import type { components } from "../generated/schema";
 // DataResponse[T] — same BrandProfile pattern as useBrandHooks.
 export type DropFeedItem = components["schemas"]["DropFeedItem"];
 export type DropDetail = components["schemas"]["DropDetailResponse"];
-
-export type DropApplication = {
-  id: string;
-  dropId: string;
-  orgId: string;
-  decision: string;
-  pitch: string | null;
-  trackingNumber: string | null;
-  allocatedUnits: number | null;
-  appliedAt: number;
-  decisionAt: number | null;
-};
+export type DropApplication = components["schemas"]["ApplicationResponse"];
 
 /** One `GET /api/drops` page: the rows plus the envelope's pagination meta. */
 type DropFeedPage = ApiResult<DropFeedItem[]>;

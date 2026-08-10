@@ -23,6 +23,7 @@ from app.models.drop import Drop
 from app.models.organization import Organization
 from app.models.user import User
 from app.response import APIResponse, DataResponse, api_response
+from app.schemas.acks import BrandApplyResponse, FinalizeApplicantsResponse
 from app.schemas.brands import (
     BrandAggregateResponse,
     BrandApplyRequest,
@@ -34,8 +35,7 @@ from app.schemas.brands import (
     EngagementSeriesPoint,
     FinalizeApplicantsRequest,
 )
-from app.schemas.common import camelize
-from app.schemas.drops import BrandDropCreateRequest
+from app.schemas.drops import BrandDropCreateRequest, BrandDropResponse
 from app.security.rate_limit import rate_limited
 from app.services.brand_auth import apply_brand
 from app.services.brands import (
@@ -55,7 +55,7 @@ router = APIRouter(prefix="/brands", tags=["brands"])
 
 @router.post(
     "/apply",
-    response_model=APIResponse,
+    response_model=DataResponse[BrandApplyResponse],
     dependencies=[Depends(rate_limited("brand_apply", limit=5, window=60))],
 )
 async def brand_apply(
@@ -80,7 +80,7 @@ async def brand_apply(
         instagram_handle=payload.instagram_handle,
         intent_message=payload.intent_message,
     )
-    return api_response(data=camelize(result))
+    return api_response(data=BrandApplyResponse.model_validate(result))
 
 
 # Pattern to copy: declare the typed envelope (response_model=DataResponse[T]) so
@@ -96,7 +96,7 @@ async def get_brand_profile(
     return api_response(data=BrandProfileResponse.model_validate(brand, from_attributes=True))
 
 
-@router.post("/me/drops", response_model=APIResponse)
+@router.post("/me/drops", response_model=DataResponse[BrandDropResponse])
 async def create_drop(
     payload: BrandDropCreateRequest,
     user: CurrentBrand,
@@ -107,7 +107,7 @@ async def create_drop(
     return api_response(data=build_brand_drop_response(drop, brand))
 
 
-@router.get("/me/drops", response_model=APIResponse)
+@router.get("/me/drops", response_model=DataResponse[list[BrandDropListItem]])
 async def list_brand_drops(
     user: CurrentBrand,
     db: AsyncSession = Depends(get_db),
@@ -153,7 +153,7 @@ async def list_brand_drops(
     return api_response(data=items)
 
 
-@router.get("/me/drops/{drop_id}", response_model=APIResponse)
+@router.get("/me/drops/{drop_id}", response_model=DataResponse[BrandDropDetailResponse])
 async def get_brand_drop_detail(
     drop_id: uuid.UUID,
     user: CurrentBrand,
@@ -234,7 +234,10 @@ async def get_brand_drop_detail(
     return api_response(data=detail)
 
 
-@router.post("/me/drops/{drop_id}/finalize-applicants", response_model=APIResponse)
+@router.post(
+    "/me/drops/{drop_id}/finalize-applicants",
+    response_model=DataResponse[FinalizeApplicantsResponse],
+)
 async def finalize_drop_applicants(
     drop_id: uuid.UUID,
     payload: FinalizeApplicantsRequest,
@@ -244,10 +247,10 @@ async def finalize_drop_applicants(
     brand = await _require_brand(db, user)
     allocations = [{"org_id": a.org_id, "units": a.units} for a in payload.allocations]
     result = await finalize_applicants(db, brand, drop_id, allocations)
-    return api_response(data=camelize(result))
+    return api_response(data=FinalizeApplicantsResponse.model_validate(result))
 
 
-@router.get("/me/aggregate", response_model=APIResponse)
+@router.get("/me/aggregate", response_model=DataResponse[BrandAggregateResponse])
 async def get_brand_aggregate(
     user: CurrentBrand,
     db: AsyncSession = Depends(get_db),
@@ -257,7 +260,7 @@ async def get_brand_aggregate(
     return api_response(data=BrandAggregateResponse(**agg))
 
 
-@router.get("/me/engagement-series", response_model=APIResponse)
+@router.get("/me/engagement-series", response_model=DataResponse[list[EngagementSeriesPoint]])
 async def get_engagement_series(
     user: CurrentBrand,
     bucket_count: int = Query(12, ge=1, le=100),

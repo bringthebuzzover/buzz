@@ -11,7 +11,7 @@ from datetime import datetime
 
 from pydantic import field_serializer, field_validator
 
-from app.schemas.common import CamelModel, to_epoch_ms
+from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 
 
 class BrandApplyRequest(CamelModel):
@@ -50,8 +50,12 @@ class BrandProfileResponse(CamelModel):
     approved_at: datetime | None
     created_at: datetime
 
-    @field_serializer("approved_at", "created_at")
-    def _epoch(self, value: datetime | None) -> int | None:
+    @field_serializer("created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("approved_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 
@@ -81,13 +85,12 @@ class BrandDropListItem(CamelModel):
     total_engagement: int
     total_reach: int
 
-    @field_serializer(
-        "apply_open_at",
-        "apply_close_at",
-        "applicant_selection_finalized_at",
-        "created_at",
-    )
-    def _epoch(self, value: datetime | None) -> int | None:
+    @field_serializer("apply_open_at", "apply_close_at", "created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("applicant_selection_finalized_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 
@@ -110,8 +113,8 @@ class BrandDropPostItem(CamelModel):
     comments: int
 
     @field_serializer("posted_at")
-    def _epoch(self, value: datetime) -> int | None:
-        return to_epoch_ms(value)
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
 
 
 class BrandDropDetailApplicant(CamelModel):
@@ -142,8 +145,12 @@ class BrandDropDetailApplicant(CamelModel):
     # Individual linked posts, grouped under this org (§5.3.1)
     posts: list[BrandDropPostItem]
 
-    @field_serializer("applied_at", "decision_at")
-    def _epoch(self, value: datetime | None) -> int | None:
+    @field_serializer("applied_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("decision_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 
@@ -175,13 +182,12 @@ class BrandDropDetailResponse(CamelModel):
     total_engagement: int
     total_reach: int
 
-    @field_serializer(
-        "apply_open_at",
-        "apply_close_at",
-        "applicant_selection_finalized_at",
-        "created_at",
-    )
-    def _epoch(self, value: datetime | None) -> int | None:
+    @field_serializer("apply_open_at", "apply_close_at", "created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("applicant_selection_finalized_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 

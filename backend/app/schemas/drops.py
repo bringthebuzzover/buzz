@@ -15,7 +15,7 @@ from datetime import datetime
 
 from pydantic import field_serializer, field_validator
 
-from app.schemas.common import CamelModel, to_epoch_ms
+from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 
 _REMINDER_CHOICES = (5, 15, 60)
 
@@ -50,9 +50,7 @@ class DropFeedItem(CamelModel):
     @field_serializer("apply_open_at", "apply_close_at")
     def _epoch_required(self, value: datetime) -> int:
         # Required datetimes must stay non-null in OpenAPI/TS (not int | null).
-        out = to_epoch_ms(value)
-        assert out is not None
-        return out
+        return to_epoch_ms_required(value)
 
     @field_serializer("applicant_selection_finalized_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
@@ -89,9 +87,7 @@ class DropDetailResponse(CamelModel):
 
     @field_serializer("apply_open_at", "apply_close_at", "created_at")
     def _epoch_required(self, value: datetime) -> int:
-        out = to_epoch_ms(value)
-        assert out is not None
-        return out
+        return to_epoch_ms_required(value)
 
     @field_serializer("applicant_selection_finalized_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:

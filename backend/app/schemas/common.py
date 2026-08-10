@@ -56,3 +56,11 @@ def to_epoch_ms(value: datetime | None) -> int | None:
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return int(value.timestamp() * 1000)
+
+
+def to_epoch_ms_required(value: datetime) -> int:
+    """Serialize a required datetime so OpenAPI/TS stay ``number``, not ``number | null``."""
+
+    out = to_epoch_ms(value)
+    assert out is not None
+    return out

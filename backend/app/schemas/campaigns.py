@@ -13,7 +13,7 @@ from datetime import datetime
 
 from pydantic import field_serializer
 
-from app.schemas.common import CamelModel, to_epoch_ms
+from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 
 
 class CampaignListItem(CamelModel):
@@ -32,8 +32,12 @@ class CampaignListItem(CamelModel):
     brand_tracker_stage: str
     image: str
 
-    @field_serializer("applied_at", "decision_at")
-    def _epoch(self, value: datetime | None) -> int | None:
+    @field_serializer("applied_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("decision_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 
@@ -59,6 +63,10 @@ class CampaignDetailResponse(CamelModel):
     capacity_total: int
     total_product_units: int | None
 
-    @field_serializer("applied_at", "decision_at", "apply_open_at", "apply_close_at")
-    def _epoch(self, value: datetime | None) -> int | None:
+    @field_serializer("applied_at", "apply_open_at", "apply_close_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("decision_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)

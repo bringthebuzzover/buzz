@@ -16,10 +16,11 @@ from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
 from app.models.organization import Organization
 from app.models.user import User
-from app.response import APIResponse, api_response
-from app.schemas.common import camelize
+from app.response import APIResponse, DataResponse, api_response
+from app.schemas.acks import OrgOnboardingResponse
 from app.schemas.onboarding import OrgOnboardingRequest
-from app.schemas.orgs import OrgProfileUpdate
+from app.schemas.orgs import OrgProfileResponse, OrgProfileUpdate
+from app.schemas.posts import PostResponse
 from app.services.onboarding import submit_org_onboarding
 from app.services.orgs import build_org_profile, get_org_for_user, update_org_profile
 from app.services.posts import list_org_posts
@@ -27,7 +28,7 @@ from app.services.posts import list_org_posts
 router = APIRouter(prefix="/orgs", tags=["orgs"])
 
 
-@router.post("/onboarding", response_model=APIResponse)
+@router.post("/onboarding", response_model=DataResponse[OrgOnboardingResponse])
 async def org_onboarding(
     payload: OrgOnboardingRequest,
     user: User = Depends(get_current_user),
@@ -39,7 +40,7 @@ async def org_onboarding(
     ``pending_org_profile``, not yet active — the active-status gate would 403.
     """
     result = await submit_org_onboarding(db, user, payload)
-    return api_response(data=camelize(result))
+    return api_response(data=OrgOnboardingResponse.model_validate(result))
 
 
 async def _require_org_profile(db: AsyncSession, user: User) -> Organization:
@@ -49,7 +50,7 @@ async def _require_org_profile(db: AsyncSession, user: User) -> Organization:
     return org
 
 
-@router.get("/me", response_model=APIResponse)
+@router.get("/me", response_model=DataResponse[OrgProfileResponse])
 async def get_my_org(
     user: CurrentOrg,
     db: AsyncSession = Depends(get_db),
@@ -60,7 +61,7 @@ async def get_my_org(
     return api_response(data=build_org_profile(org, user))
 
 
-@router.patch("/me", response_model=APIResponse)
+@router.patch("/me", response_model=DataResponse[OrgProfileResponse])
 async def update_my_org(
     payload: OrgProfileUpdate,
     user: CurrentOrg,
@@ -73,7 +74,7 @@ async def update_my_org(
     return api_response(data=build_org_profile(org, user))
 
 
-@router.get("/me/posts", response_model=APIResponse)
+@router.get("/me/posts", response_model=DataResponse[list[PostResponse]])
 async def list_my_posts(
     user: CurrentOrg,
     db: AsyncSession = Depends(get_db),
@@ -83,7 +84,7 @@ async def list_my_posts(
     return api_response(data=await list_org_posts(db, user))
 
 
-@router.post("/me/posts/refresh", response_model=APIResponse)
+@router.post("/me/posts/refresh", response_model=DataResponse[list[PostResponse]])
 async def refresh_my_posts(
     user: CurrentOrg,
     db: AsyncSession = Depends(get_db),

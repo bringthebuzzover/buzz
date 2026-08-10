@@ -3,6 +3,10 @@
 Response models are nested inside the standard ``{ data, meta, error }``
 envelope by the route layer (``api_response(data=...)``). The refresh token is
 never serialized here — it rides the httpOnly cookie.
+
+``TokenResponse`` / ``UserResponse`` / ``RefreshResponse`` stay plain
+``BaseModel`` (snake_case wire: ``access_token``, ``portal_role``). Do **not**
+convert them to ``CamelModel`` — that would break login/refresh clients.
 """
 
 from __future__ import annotations

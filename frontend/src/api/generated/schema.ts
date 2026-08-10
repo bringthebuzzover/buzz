@@ -1337,6 +1337,161 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** AdminApplicantItem */
+        AdminApplicantItem: {
+            /** Allocatedunits */
+            allocatedUnits: number | null;
+            /** Appliedat */
+            appliedAt: number;
+            /** Decision */
+            decision: string;
+            /** Decisionat */
+            decisionAt: number | null;
+            /** Deliveryaddress */
+            deliveryAddress: string | null;
+            /** Followercount */
+            followerCount: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Instagramhandle */
+            instagramHandle: string | null;
+            /** Linkedpostcount */
+            linkedPostCount: number;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Orgname */
+            orgName: string;
+            /** Pitch */
+            pitch: string | null;
+            /** Trackingnumber */
+            trackingNumber: string | null;
+            /** University */
+            university: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+        };
+        /** AdminApplicationTally */
+        AdminApplicationTally: {
+            /** Accepted */
+            accepted: number;
+            /** Applied */
+            applied: number;
+            /** Denied */
+            denied: number;
+        };
+        /** AdminBrandDetail */
+        AdminBrandDetail: {
+            /** Approvedat */
+            approvedAt: number | null;
+            /** Brandname */
+            brandName: string;
+            /** Companyemail */
+            companyEmail: string;
+            /** Createdat */
+            createdAt: number;
+            /** Drops */
+            drops: components["schemas"]["AdminDropItem"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Impersonatable */
+            impersonatable: boolean;
+            /** Instagramhandle */
+            instagramHandle: string | null;
+            /** Intentmessage */
+            intentMessage: string | null;
+            invite: components["schemas"]["AdminInviteState"];
+            /** Lastloginat */
+            lastLoginAt: number | null;
+            /** Passwordset */
+            passwordSet: boolean;
+            /** Status */
+            status: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+            /** Userstatus */
+            userStatus: string;
+        };
+        /**
+         * AdminBrandInviteResponse
+         * @description Approve / create-with-approve / resend-invite (may include email_sent).
+         */
+        AdminBrandInviteResponse: {
+            /**
+             * Brandid
+             * Format: uuid
+             */
+            brandId: string;
+            /** Emailsent */
+            emailSent?: boolean | null;
+            /** Status */
+            status: string;
+        };
+        /**
+         * AdminBrandItem
+         * @description A row in ``GET /api/admin/brands``.
+         *
+         *     ``status`` (brand) and ``user_status`` disagree on purpose — see
+         *     :func:`app.services.admin.list_brands`.
+         */
+        AdminBrandItem: {
+            /** Approvedat */
+            approvedAt: number | null;
+            /** Brandname */
+            brandName: string;
+            /** Companyemail */
+            companyEmail: string;
+            /** Createdat */
+            createdAt: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Impersonatable */
+            impersonatable: boolean;
+            /** Instagramhandle */
+            instagramHandle: string | null;
+            /** Intentmessage */
+            intentMessage: string | null;
+            /** Lastloginat */
+            lastLoginAt: number | null;
+            /** Passwordset */
+            passwordSet: boolean;
+            /** Status */
+            status: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+            /** Userstatus */
+            userStatus: string;
+        };
+        /** AdminBrandStatusResponse */
+        AdminBrandStatusResponse: {
+            /**
+             * Brandid
+             * Format: uuid
+             */
+            brandId: string;
+            /** Status */
+            status: string;
+        };
         /**
          * AdminCreateBrandRequest
          * @description Admin-provisioned brand (works when public self-reg is off).
@@ -1374,6 +1529,132 @@ export interface components {
             /** Totalproductunits */
             totalProductUnits?: number | null;
         };
+        /** AdminDropDetail */
+        AdminDropDetail: {
+            /** Allocatedunits */
+            allocatedUnits: number;
+            /** Applicants */
+            applicants: components["schemas"]["AdminApplicantItem"][];
+            /** Applycloseat */
+            applyCloseAt: number;
+            /** Applyopenat */
+            applyOpenAt: number;
+            /**
+             * Brandid
+             * Format: uuid
+             */
+            brandId: string;
+            /** Brandinstagramhandle */
+            brandInstagramHandle: string | null;
+            /** Brandname */
+            brandName: string;
+            /** Brandstatus */
+            brandStatus: string;
+            /** Campaignhashtag */
+            campaignHashtag: string | null;
+            /** Capacitytotal */
+            capacityTotal: number;
+            /** Createdat */
+            createdAt: number;
+            /** Description */
+            description: string;
+            /** Finalizedat */
+            finalizedAt: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image */
+            image: string;
+            /** Linkedpostcount */
+            linkedPostCount: number;
+            /** Location */
+            location: string;
+            /** Manualreopen */
+            manualReopen: boolean;
+            /** Pendingsuggestioncount */
+            pendingSuggestionCount: number;
+            /** Stage */
+            stage: string;
+            /** Title */
+            title: string;
+            /** Totalproductunits */
+            totalProductUnits: number | null;
+            /** Trackerevents */
+            trackerEvents: components["schemas"]["AdminTrackerEventItem"][];
+            /** Trackingnumber */
+            trackingNumber: string | null;
+        };
+        /** AdminDropItem */
+        AdminDropItem: {
+            /** Acceptedcount */
+            acceptedCount: number;
+            /** Appliedcount */
+            appliedCount: number;
+            /** Applycloseat */
+            applyCloseAt: number;
+            /** Applyopenat */
+            applyOpenAt: number;
+            /**
+             * Brandid
+             * Format: uuid
+             */
+            brandId: string;
+            /** Brandname */
+            brandName: string;
+            /** Brandstatus */
+            brandStatus: string;
+            /** Campaignhashtag */
+            campaignHashtag: string | null;
+            /** Capacitytotal */
+            capacityTotal: number;
+            /** Createdat */
+            createdAt: number;
+            /** Finalizedat */
+            finalizedAt: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Manualreopen */
+            manualReopen: boolean;
+            /** Stage */
+            stage: string;
+            /** Title */
+            title: string;
+            /** Totalproductunits */
+            totalProductUnits: number | null;
+            /** Trackingnumber */
+            trackingNumber: string | null;
+        };
+        /** AdminHealthResponse */
+        AdminHealthResponse: {
+            /** Generatedat */
+            generatedAt: number | null;
+            /** Instagramtokens */
+            instagramTokens: components["schemas"]["AdminSignal"][];
+            /** Integrity */
+            integrity: components["schemas"]["AdminSignal"][];
+            /** Pipeline */
+            pipeline: components["schemas"]["AdminSignal"][];
+            /** Silent */
+            silent: components["schemas"]["AdminSignal"][];
+        };
+        /**
+         * AdminInviteState
+         * @description Latest brand invite token. ``used_at`` is ambiguous between redeemed and
+         *     superseded, so read it alongside ``password_set``.
+         */
+        AdminInviteState: {
+            /** Expiresat */
+            expiresAt: number | null;
+            /** Issuedat */
+            issuedAt: number | null;
+            /** Usedat */
+            usedAt: number | null;
+        };
         /**
          * AdminLoginRequest
          * @description Admin email + password login (admins have no Instagram identity).
@@ -1384,6 +1665,295 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** AdminOrgDetail */
+        AdminOrgDetail: {
+            applications: components["schemas"]["AdminApplicationTally"];
+            /** Approvedat */
+            approvedAt: number | null;
+            /** Category */
+            category: string | null;
+            /** City */
+            city: string | null;
+            /** Contactname */
+            contactName: string | null;
+            /** Createdat */
+            createdAt: number | null;
+            /** Deliveryaddress */
+            deliveryAddress: string | null;
+            /** Eduemail */
+            eduEmail: string | null;
+            /** Emailverifiedat */
+            emailVerifiedAt: number | null;
+            /** Followercount */
+            followerCount: number | null;
+            /** Impersonatable */
+            impersonatable: boolean;
+            /** Instagramhandle */
+            instagramHandle: string | null;
+            /** Instagramtokenexpiresat */
+            instagramTokenExpiresAt: number | null;
+            /** Instagramtokenrefreshedat */
+            instagramTokenRefreshedAt: number | null;
+            /** Instagramusername */
+            instagramUsername: string | null;
+            /** Lastloginat */
+            lastLoginAt: number | null;
+            /** Linkedpostcount */
+            linkedPostCount: number;
+            /** Membercount */
+            memberCount: number | null;
+            /** Orgid */
+            orgId: string | null;
+            /** Orgname */
+            orgName: string | null;
+            /** Postcount */
+            postCount: number;
+            /** State */
+            state: string | null;
+            /** Status */
+            status: string;
+            /** Tiktokhandle */
+            tiktokHandle: string | null;
+            /** University */
+            university: string | null;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+            verification: components["schemas"]["AdminVerificationState"];
+        };
+        /**
+         * AdminOrgItem
+         * @description A row in ``GET /api/admin/orgs``.
+         *
+         *     ``id`` (the ``organizations`` row) is nullable: ``pending_org_profile``
+         *     users have not created a profile yet.
+         */
+        AdminOrgItem: {
+            /** Approvedat */
+            approvedAt: number | null;
+            /** Category */
+            category: string | null;
+            /** Createdat */
+            createdAt: number | null;
+            /** Eduemail */
+            eduEmail: string | null;
+            /** Emailverifiedat */
+            emailVerifiedAt: number | null;
+            /** Followercount */
+            followerCount: number | null;
+            /** Id */
+            id: string | null;
+            /** Impersonatable */
+            impersonatable: boolean;
+            /** Instagramhandle */
+            instagramHandle: string | null;
+            /** Instagramtokenexpiresat */
+            instagramTokenExpiresAt: number | null;
+            /** Lastloginat */
+            lastLoginAt: number | null;
+            /** Membercount */
+            memberCount: number | null;
+            /** Orgname */
+            orgName: string | null;
+            /** Status */
+            status: string;
+            /** University */
+            university: string | null;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+        };
+        /** AdminOrgStatusResponse */
+        AdminOrgStatusResponse: {
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Status */
+            status: string;
+        };
+        /** AdminOverviewResponse */
+        AdminOverviewResponse: {
+            /** Generatedat */
+            generatedAt: number | null;
+            /** Queues */
+            queues: components["schemas"]["AdminQueueItem"][];
+            /** Warnings */
+            warnings: components["schemas"]["AdminWarningItem"][];
+        };
+        /** AdminPendingBrandItem */
+        AdminPendingBrandItem: {
+            /** Brandname */
+            brandName: string;
+            /** Companyemail */
+            companyEmail: string;
+            /** Createdat */
+            createdAt: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Instagramhandle */
+            instagramHandle: string | null;
+            /** Intentmessage */
+            intentMessage: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+        };
+        /** AdminPendingOrgItem */
+        AdminPendingOrgItem: {
+            /** Createdat */
+            createdAt: number;
+            /** Followercount */
+            followerCount: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Instagramhandle */
+            instagramHandle: string | null;
+            /** Membercount */
+            memberCount: number | null;
+            /** Orgname */
+            orgName: string;
+            /** Status */
+            status: string;
+            /** University */
+            university: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+        };
+        /**
+         * AdminQueueItem
+         * @description One action-required queue. ``oldest_at`` is what makes a count
+         *     actionable — three items sitting nine days is not three from this morning.
+         */
+        AdminQueueItem: {
+            /** Count */
+            count: number;
+            /** Key */
+            key: string;
+            /** Oldestat */
+            oldestAt: number | null;
+        };
+        /**
+         * AdminSignal
+         * @description One health signal. ``ok`` means "nothing to act on", which for most
+         *     signals is a zero count but not for the informational token buckets.
+         */
+        AdminSignal: {
+            /** Count */
+            count: number;
+            /** Detail */
+            detail?: string | null;
+            /** Key */
+            key: string;
+            /** Ok */
+            ok: boolean;
+        };
+        /** AdminTrackerEventItem */
+        AdminTrackerEventItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** Occurredat */
+            occurredAt: number;
+            /** Stage */
+            stage: string;
+        };
+        /**
+         * AdminUserItem
+         * @description A row in the ``/api/admin/users`` impersonation picker.
+         */
+        AdminUserItem: {
+            /** Createdat */
+            createdAt: number;
+            /** Displayname */
+            displayName: string | null;
+            /** Email */
+            email: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Impersonatable */
+            impersonatable: boolean;
+            /** Instagramhandle */
+            instagramHandle: string | null;
+            /** Portalrole */
+            portalRole: string;
+            /** Status */
+            status: string;
+        };
+        /** AdminVerificationState */
+        AdminVerificationState: {
+            /** Latestexpiresat */
+            latestExpiresAt: number | null;
+            /** Latestusedat */
+            latestUsedAt: number | null;
+            /** Livetokencount */
+            liveTokenCount: number;
+        };
+        /** AdminWarningItem */
+        AdminWarningItem: {
+            /** Count */
+            count: number;
+            /** Key */
+            key: string;
+        };
+        /**
+         * ApplicationResponse
+         * @description A ``drop_applications`` row (architecture §3.1) returned on apply.
+         */
+        ApplicationResponse: {
+            /** Allocatedunits */
+            allocatedUnits: number | null;
+            /** Appliedat */
+            appliedAt: number | null;
+            /** Decision */
+            decision: string;
+            /** Decisionat */
+            decisionAt: number | null;
+            /**
+             * Dropid
+             * Format: uuid
+             */
+            dropId: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Pitch */
+            pitch: string | null;
+            /** Trackingnumber */
+            trackingNumber: string | null;
+        };
         /** Body_instagram_deauthorize_api_auth_instagram_deauthorize_post */
         Body_instagram_deauthorize_api_auth_instagram_deauthorize_post: {
             /**
@@ -1391,6 +1961,28 @@ export interface components {
              * @default
              */
             signed_request: string;
+        };
+        /**
+         * BrandAggregateResponse
+         * @description Aggregate metrics for a brand (§8.1).
+         */
+        BrandAggregateResponse: {
+            /** Totalcampuses */
+            totalCampuses: number;
+            /** Totalcomments */
+            totalComments: number;
+            /** Totaldrops */
+            totalDrops: number;
+            /** Totalengagement */
+            totalEngagement: number;
+            /** Totallikes */
+            totalLikes: number;
+            /** Totalorgs */
+            totalOrgs: number;
+            /** Totalposts */
+            totalPosts: number;
+            /** Totalreach */
+            totalReach: number;
         };
         /**
          * BrandApplyRequest
@@ -1406,6 +1998,16 @@ export interface components {
             /** Intentmessage */
             intentMessage?: string | null;
         };
+        /** BrandApplyResponse */
+        BrandApplyResponse: {
+            /**
+             * Brandid
+             * Format: uuid
+             */
+            brandId: string;
+            /** Status */
+            status: string;
+        };
         /**
          * BrandDropCreateRequest
          * @description Body for ``POST /api/brands/me/drops`` (architecture §8.4).
@@ -1415,6 +2017,251 @@ export interface components {
             description: string;
             /** Title */
             title: string;
+        };
+        /**
+         * BrandDropDetailApplicant
+         * @description One applicant row in the brand drop detail view (§8.2).
+         */
+        BrandDropDetailApplicant: {
+            /** Allocatedunits */
+            allocatedUnits: number | null;
+            /** Appliedat */
+            appliedAt: number;
+            /** Attributedcomments */
+            attributedComments: number;
+            /** Attributedengagement */
+            attributedEngagement: number;
+            /** Attributedlikes */
+            attributedLikes: number;
+            /** Attributedpostcount */
+            attributedPostCount: number;
+            /** Category */
+            category: string | null;
+            /** Decision */
+            decision: string;
+            /** Decisionat */
+            decisionAt: number | null;
+            /** Deliveryaddress */
+            deliveryAddress: string | null;
+            /**
+             * Dropid
+             * Format: uuid
+             */
+            dropId: string;
+            /** Followercount */
+            followerCount: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Instagramhandle */
+            instagramHandle: string;
+            /** Membercount */
+            memberCount: number | null;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Orgname */
+            orgName: string;
+            /** Pitch */
+            pitch: string | null;
+            /** Posts */
+            posts: components["schemas"]["BrandDropPostItem"][];
+            /** Trackingnumber */
+            trackingNumber: string | null;
+            /** University */
+            university: string;
+        };
+        /**
+         * BrandDropDetailResponse
+         * @description Full drop detail for the brand portal (§8.2).
+         */
+        BrandDropDetailResponse: {
+            /** Applicantselectionfinalizedat */
+            applicantSelectionFinalizedAt: number | null;
+            /** Applications */
+            applications: components["schemas"]["BrandDropDetailApplicant"][];
+            /** Applycloseat */
+            applyCloseAt: number;
+            /** Applyopenat */
+            applyOpenAt: number;
+            /**
+             * Brandid
+             * Format: uuid
+             */
+            brandId: string;
+            /** Brandname */
+            brandName: string;
+            /** Brandtrackerstage */
+            brandTrackerStage: string;
+            /** Campaignhashtag */
+            campaignHashtag: string | null;
+            /** Capacitytotal */
+            capacityTotal: number;
+            /** Createdat */
+            createdAt: number;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image */
+            image: string;
+            /** Location */
+            location: string;
+            /** Manualreopen */
+            manualReopen: boolean;
+            /** Title */
+            title: string;
+            /** Totalcomments */
+            totalComments: number;
+            /** Totalengagement */
+            totalEngagement: number;
+            /** Totallikes */
+            totalLikes: number;
+            /** Totalposts */
+            totalPosts: number;
+            /** Totalproductunits */
+            totalProductUnits: number | null;
+            /** Totalreach */
+            totalReach: number;
+            /** Trackingnumber */
+            trackingNumber: string | null;
+        };
+        /**
+         * BrandDropListItem
+         * @description One drop in ``GET /api/brands/me/drops`` with per-drop aggregate fields.
+         */
+        BrandDropListItem: {
+            /** Applicantselectionfinalizedat */
+            applicantSelectionFinalizedAt: number | null;
+            /** Applycloseat */
+            applyCloseAt: number;
+            /** Applyopenat */
+            applyOpenAt: number;
+            /**
+             * Brandid
+             * Format: uuid
+             */
+            brandId: string;
+            /** Brandname */
+            brandName: string;
+            /** Brandtrackerstage */
+            brandTrackerStage: string;
+            /** Campaignhashtag */
+            campaignHashtag: string | null;
+            /** Capacitytotal */
+            capacityTotal: number;
+            /** Createdat */
+            createdAt: number;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image */
+            image: string;
+            /** Location */
+            location: string;
+            /** Manualreopen */
+            manualReopen: boolean;
+            /** Title */
+            title: string;
+            /** Totalcomments */
+            totalComments: number;
+            /** Totalengagement */
+            totalEngagement: number;
+            /** Totallikes */
+            totalLikes: number;
+            /** Totalposts */
+            totalPosts: number;
+            /** Totalproductunits */
+            totalProductUnits: number | null;
+            /** Totalreach */
+            totalReach: number;
+        };
+        /**
+         * BrandDropPostItem
+         * @description One linked social post under an applicant (brand per-drop view, §5.3.1).
+         *
+         *     The brand sees individual posts grouped by org (not just the per-org
+         *     roll-up) so it can preview/attribute each contribution.
+         */
+        BrandDropPostItem: {
+            /** Caption */
+            caption: string;
+            /** Comments */
+            comments: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Likes */
+            likes: number;
+            /** Mediaproducttype */
+            mediaProductType: string;
+            /** Mediatype */
+            mediaType: string;
+            /** Mediaurl */
+            mediaUrl: string | null;
+            /** Postedat */
+            postedAt: number;
+            /** Thumbnailurl */
+            thumbnailUrl: string | null;
+            /** Url */
+            url: string;
+        };
+        /**
+         * BrandDropResponse
+         * @description A drop as returned to the brand portal (architecture §8.4).
+         */
+        BrandDropResponse: {
+            /** Applicantselectionfinalizedat */
+            applicantSelectionFinalizedAt: number | null;
+            /** Applycloseat */
+            applyCloseAt: number | null;
+            /** Applyopenat */
+            applyOpenAt: number | null;
+            /**
+             * Brandid
+             * Format: uuid
+             */
+            brandId: string;
+            /** Brandname */
+            brandName: string;
+            /** Brandtrackerstage */
+            brandTrackerStage: string;
+            /** Campaignhashtag */
+            campaignHashtag: string | null;
+            /** Capacitytotal */
+            capacityTotal: number;
+            /** Createdat */
+            createdAt: number | null;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image */
+            image: string;
+            /** Location */
+            location: string;
+            /** Manualreopen */
+            manualReopen: boolean;
+            /** Title */
+            title: string;
+            /** Totalproductunits */
+            totalProductUnits: number | null;
         };
         /**
          * BrandLoginRequest
@@ -1438,7 +2285,7 @@ export interface components {
             /** Companyemail */
             companyEmail: string;
             /** Createdat */
-            createdAt: number | null;
+            createdAt: number;
             /**
              * Id
              * Format: uuid
@@ -1462,6 +2309,112 @@ export interface components {
             token: string;
         };
         /**
+         * CampaignAggregateResponse
+         * @description Per-campaign rollup (ports ``computeCampaignAggregate``, architecture §7.3).
+         *
+         *     ``engagement = likes + comments``; ``estimated_reach`` is the org's follower
+         *     count (v1 reach approximation).
+         */
+        CampaignAggregateResponse: {
+            /** Comments */
+            comments: number;
+            /** Engagement */
+            engagement: number;
+            /** Estimatedreach */
+            estimatedReach: number;
+            /** Likes */
+            likes: number;
+            /** Postcount */
+            postCount: number;
+        };
+        /**
+         * CampaignDetailResponse
+         * @description ``GET /api/campaigns/{id}`` — full application joined with the drop.
+         */
+        CampaignDetailResponse: {
+            /** Allocatedunits */
+            allocatedUnits: number | null;
+            /** Appliedat */
+            appliedAt: number;
+            /** Applycloseat */
+            applyCloseAt: number;
+            /** Applyopenat */
+            applyOpenAt: number;
+            /** Brandname */
+            brandName: string;
+            /** Brandtrackerstage */
+            brandTrackerStage: string;
+            /** Capacitytotal */
+            capacityTotal: number;
+            /** Decision */
+            decision: string;
+            /** Decisionat */
+            decisionAt: number | null;
+            /** Description */
+            description: string | null;
+            /**
+             * Dropid
+             * Format: uuid
+             */
+            dropId: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image */
+            image: string;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Pitch */
+            pitch: string | null;
+            /** Title */
+            title: string;
+            /** Totalproductunits */
+            totalProductUnits: number | null;
+            /** Trackingnumber */
+            trackingNumber: string | null;
+        };
+        /**
+         * CampaignListItem
+         * @description One row of ``GET /api/campaigns`` (application + joined drop fields).
+         */
+        CampaignListItem: {
+            /** Allocatedunits */
+            allocatedUnits: number | null;
+            /** Appliedat */
+            appliedAt: number;
+            /** Brandname */
+            brandName: string;
+            /** Brandtrackerstage */
+            brandTrackerStage: string;
+            /** Decision */
+            decision: string;
+            /** Decisionat */
+            decisionAt: number | null;
+            /**
+             * Dropid
+             * Format: uuid
+             */
+            dropId: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image */
+            image: string;
+            /** Pitch */
+            pitch: string | null;
+            /** Title */
+            title: string;
+            /** Trackingnumber */
+            trackingNumber: string | null;
+        };
+        /**
          * ChangeEduEmailRequest
          * @description Correct a typo'd .edu while still awaiting verification.
          */
@@ -1469,9 +2422,179 @@ export interface components {
             /** Eduemail */
             eduEmail: string;
         };
+        /** ChangeEduEmailResponse */
+        ChangeEduEmailResponse: {
+            /** Emailsentto */
+            emailSentTo: string;
+            /** Status */
+            status: string;
+        };
+        /** ClearInstagramTokenResponse */
+        ClearInstagramTokenResponse: {
+            /** Instagramtokencleared */
+            instagramTokenCleared: boolean;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+        };
+        /** DataResponse[AdminBrandDetail] */
+        DataResponse_AdminBrandDetail_: {
+            data?: components["schemas"]["AdminBrandDetail"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminBrandInviteResponse] */
+        DataResponse_AdminBrandInviteResponse_: {
+            data?: components["schemas"]["AdminBrandInviteResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminBrandStatusResponse] */
+        DataResponse_AdminBrandStatusResponse_: {
+            data?: components["schemas"]["AdminBrandStatusResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminDropDetail] */
+        DataResponse_AdminDropDetail_: {
+            data?: components["schemas"]["AdminDropDetail"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminHealthResponse] */
+        DataResponse_AdminHealthResponse_: {
+            data?: components["schemas"]["AdminHealthResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminOrgDetail] */
+        DataResponse_AdminOrgDetail_: {
+            data?: components["schemas"]["AdminOrgDetail"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminOrgStatusResponse] */
+        DataResponse_AdminOrgStatusResponse_: {
+            data?: components["schemas"]["AdminOrgStatusResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminOverviewResponse] */
+        DataResponse_AdminOverviewResponse_: {
+            data?: components["schemas"]["AdminOverviewResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[ApplicationResponse] */
+        DataResponse_ApplicationResponse_: {
+            data?: components["schemas"]["ApplicationResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[BrandAggregateResponse] */
+        DataResponse_BrandAggregateResponse_: {
+            data?: components["schemas"]["BrandAggregateResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[BrandApplyResponse] */
+        DataResponse_BrandApplyResponse_: {
+            data?: components["schemas"]["BrandApplyResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[BrandDropDetailResponse] */
+        DataResponse_BrandDropDetailResponse_: {
+            data?: components["schemas"]["BrandDropDetailResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[BrandDropResponse] */
+        DataResponse_BrandDropResponse_: {
+            data?: components["schemas"]["BrandDropResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[BrandProfileResponse] */
         DataResponse_BrandProfileResponse_: {
             data?: components["schemas"]["BrandProfileResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[CampaignAggregateResponse] */
+        DataResponse_CampaignAggregateResponse_: {
+            data?: components["schemas"]["CampaignAggregateResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[CampaignDetailResponse] */
+        DataResponse_CampaignDetailResponse_: {
+            data?: components["schemas"]["CampaignDetailResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[ChangeEduEmailResponse] */
+        DataResponse_ChangeEduEmailResponse_: {
+            data?: components["schemas"]["ChangeEduEmailResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[ClearInstagramTokenResponse] */
+        DataResponse_ClearInstagramTokenResponse_: {
+            data?: components["schemas"]["ClearInstagramTokenResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -1487,10 +2610,273 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[DropReopenResponse] */
+        DataResponse_DropReopenResponse_: {
+            data?: components["schemas"]["DropReopenResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[DropTrackingResponse] */
+        DataResponse_DropTrackingResponse_: {
+            data?: components["schemas"]["DropTrackingResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[FinalizeApplicantsResponse] */
+        DataResponse_FinalizeApplicantsResponse_: {
+            data?: components["schemas"]["FinalizeApplicantsResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[HealthStatusResponse] */
+        DataResponse_HealthStatusResponse_: {
+            data?: components["schemas"]["HealthStatusResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[ImpersonateResponse] */
+        DataResponse_ImpersonateResponse_: {
+            data?: components["schemas"]["ImpersonateResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[InstagramDeauthorizeResponse] */
+        DataResponse_InstagramDeauthorizeResponse_: {
+            data?: components["schemas"]["InstagramDeauthorizeResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[OkResponse] */
+        DataResponse_OkResponse_: {
+            data?: components["schemas"]["OkResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[OrgOnboardingResponse] */
+        DataResponse_OrgOnboardingResponse_: {
+            data?: components["schemas"]["OrgOnboardingResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[OrgProfileResponse] */
+        DataResponse_OrgProfileResponse_: {
+            data?: components["schemas"]["OrgProfileResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[PostResponse] */
+        DataResponse_PostResponse_: {
+            data?: components["schemas"]["PostResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[PublicConfigResponse] */
+        DataResponse_PublicConfigResponse_: {
+            data?: components["schemas"]["PublicConfigResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[RefreshResponse] */
+        DataResponse_RefreshResponse_: {
+            data?: components["schemas"]["RefreshResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[ResendVerificationResponse] */
+        DataResponse_ResendVerificationResponse_: {
+            data?: components["schemas"]["ResendVerificationResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[TokenResponse] */
+        DataResponse_TokenResponse_: {
+            data?: components["schemas"]["TokenResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[TrackerAdvanceResponse] */
+        DataResponse_TrackerAdvanceResponse_: {
+            data?: components["schemas"]["TrackerAdvanceResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[UserResponse] */
+        DataResponse_UserResponse_: {
+            data?: components["schemas"]["UserResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[VerifyEmailResponse] */
+        DataResponse_VerifyEmailResponse_: {
+            data?: components["schemas"]["VerifyEmailResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[AdminBrandItem]] */
+        DataResponse_list_AdminBrandItem__: {
+            /** Data */
+            data?: components["schemas"]["AdminBrandItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[AdminDropItem]] */
+        DataResponse_list_AdminDropItem__: {
+            /** Data */
+            data?: components["schemas"]["AdminDropItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[AdminOrgItem]] */
+        DataResponse_list_AdminOrgItem__: {
+            /** Data */
+            data?: components["schemas"]["AdminOrgItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[AdminPendingBrandItem]] */
+        DataResponse_list_AdminPendingBrandItem__: {
+            /** Data */
+            data?: components["schemas"]["AdminPendingBrandItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[AdminPendingOrgItem]] */
+        DataResponse_list_AdminPendingOrgItem__: {
+            /** Data */
+            data?: components["schemas"]["AdminPendingOrgItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[AdminUserItem]] */
+        DataResponse_list_AdminUserItem__: {
+            /** Data */
+            data?: components["schemas"]["AdminUserItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[BrandDropListItem]] */
+        DataResponse_list_BrandDropListItem__: {
+            /** Data */
+            data?: components["schemas"]["BrandDropListItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[CampaignListItem]] */
+        DataResponse_list_CampaignListItem__: {
+            /** Data */
+            data?: components["schemas"]["CampaignListItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[list[DropFeedItem]] */
         DataResponse_list_DropFeedItem__: {
             /** Data */
             data?: components["schemas"]["DropFeedItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[EngagementSeriesPoint]] */
+        DataResponse_list_EngagementSeriesPoint__: {
+            /** Data */
+            data?: components["schemas"]["EngagementSeriesPoint"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[PostResponse]] */
+        DataResponse_list_PostResponse__: {
+            /** Data */
+            data?: components["schemas"]["PostResponse"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[SuggestionResponse]] */
+        DataResponse_list_SuggestionResponse__: {
+            /** Data */
+            data?: components["schemas"]["SuggestionResponse"][] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -1614,6 +3000,36 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** DropReopenResponse */
+        DropReopenResponse: {
+            /**
+             * Dropid
+             * Format: uuid
+             */
+            dropId: string;
+            /** Manualreopen */
+            manualReopen: boolean;
+        };
+        /** DropTrackingResponse */
+        DropTrackingResponse: {
+            /**
+             * Dropid
+             * Format: uuid
+             */
+            dropId: string;
+            /** Trackingnumber */
+            trackingNumber: string | null;
+        };
+        /**
+         * EngagementSeriesPoint
+         * @description One bucket in the engagement time series (§8.1).
+         */
+        EngagementSeriesPoint: {
+            /** Engagement */
+            engagement: number;
+            /** Timestamp */
+            timestamp: number;
+        };
         /**
          * ErrorDetail
          * @description Machine-readable error payload returned in `APIResponse.error`.
@@ -1652,6 +3068,15 @@ export interface components {
             /** Allocations */
             allocations: components["schemas"]["FinalizeAllocation"][];
         };
+        /** FinalizeApplicantsResponse */
+        FinalizeApplicantsResponse: {
+            /** Acceptedcount */
+            acceptedCount: number;
+            /** Deniedcount */
+            deniedCount: number;
+            /** Finalizedcount */
+            finalizedCount: number;
+        };
         /**
          * ForgotPasswordRequest
          * @description Enumerate-safe password-reset request (brand or admin).
@@ -1659,6 +3084,32 @@ export interface components {
         ForgotPasswordRequest: {
             /** Email */
             email: string;
+        };
+        /** HealthStatusResponse */
+        HealthStatusResponse: {
+            /** Status */
+            status: string;
+            /** Version */
+            version: string;
+        };
+        /**
+         * ImpersonateResponse
+         * @description Result of ``POST /api/admin/impersonate/{user_id}``.
+         *
+         *     Access token only — no refresh cookie is set, so the admin's own session
+         *     survives and "Exit impersonation" is a pure client-side drop.
+         */
+        ImpersonateResponse: {
+            /** Accesstoken */
+            accessToken: string;
+            /** Readonly */
+            readonly: boolean;
+            /**
+             * Tokentype
+             * @default bearer
+             */
+            tokenType: string;
+            user: components["schemas"]["UserResponse"];
         };
         /**
          * InstagramCallbackRequest
@@ -1669,6 +3120,21 @@ export interface components {
             code: string;
             /** State */
             state: string;
+        };
+        /**
+         * InstagramDeauthorizeResponse
+         * @description Meta deauthorize webhook ack. ``reason`` set on acknowledged no-ops.
+         */
+        InstagramDeauthorizeResponse: {
+            /**
+             * Ok
+             * @default true
+             */
+            ok: boolean;
+            /** Reason */
+            reason?: string | null;
+            /** Revoked */
+            revoked: boolean;
         };
         /**
          * LinkPostRequest
@@ -1688,6 +3154,17 @@ export interface components {
         NotifyRequest: {
             /** Reminderminutes */
             reminderMinutes: number;
+        };
+        /**
+         * OkResponse
+         * @description Generic success ack (logout, notify, unlink, dismiss, password flows).
+         */
+        OkResponse: {
+            /**
+             * Ok
+             * @default true
+             */
+            ok: boolean;
         };
         /**
          * OrgCategory
@@ -1726,6 +3203,59 @@ export interface components {
             /** University */
             university: string;
         };
+        /** OrgOnboardingResponse */
+        OrgOnboardingResponse: {
+            /** Emailsent */
+            emailSent: boolean;
+            /** Emailsentto */
+            emailSentTo: string;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Status */
+            status: string;
+        };
+        /**
+         * OrgProfileResponse
+         * @description Org profile wire shape. ``edu_email`` / ``instagram_handle`` come from ``users``.
+         */
+        OrgProfileResponse: {
+            /** Approvedat */
+            approvedAt: number | null;
+            /** Category */
+            category: string | null;
+            /** City */
+            city: string | null;
+            /** Contactname */
+            contactName: string | null;
+            /** Createdat */
+            createdAt: number | null;
+            /** Deliveryaddress */
+            deliveryAddress: string | null;
+            /** Eduemail */
+            eduEmail: string;
+            /** Followercount */
+            followerCount: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Instagramhandle */
+            instagramHandle: string;
+            /** Membercount */
+            memberCount: number | null;
+            /** Orgname */
+            orgName: string;
+            /** State */
+            state: string | null;
+            /** Tiktokhandle */
+            tiktokHandle: string | null;
+            /** University */
+            university: string;
+        };
         /**
          * OrgProfileUpdate
          * @description Editable subset of the org profile (all optional; PATCH semantics).
@@ -1760,10 +3290,108 @@ export interface components {
             university?: string | null;
         };
         /**
+         * PostResponse
+         * @description One of the caller org's social posts (architecture §7.4.2).
+         *
+         *     ``linked_application_id`` / ``linked_drop_id`` are the one-post-one-campaign
+         *     indicator: non-null when the post is already attributed to a campaign (the
+         *     frontend disables the checkbox / shows "Linked to another campaign").
+         */
+        PostResponse: {
+            /** Caption */
+            caption: string;
+            /** Comments */
+            comments: number;
+            /** Createdat */
+            createdAt: number | null;
+            /** Externalid */
+            externalId: string;
+            /** Follows */
+            follows: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Igreelsavgwatchtime */
+            igReelsAvgWatchTime: number | null;
+            /** Igreelsvideoviewtotaltime */
+            igReelsVideoViewTotalTime: number | null;
+            /** Likes */
+            likes: number;
+            /** Linkedapplicationid */
+            linkedApplicationId?: string | null;
+            /** Linkeddropid */
+            linkedDropId?: string | null;
+            /** Mediaproducttype */
+            mediaProductType: string;
+            /** Mediatype */
+            mediaType: string;
+            /** Mediaurl */
+            mediaUrl: string | null;
+            /** Metricsupdatedat */
+            metricsUpdatedAt: number | null;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Platform */
+            platform: string;
+            /** Postedat */
+            postedAt: number | null;
+            /** Profileactivity */
+            profileActivity: number | null;
+            /** Profilevisits */
+            profileVisits: number | null;
+            /** Reach */
+            reach: number | null;
+            /** Reelsskiprate */
+            reelsSkipRate: number | null;
+            /** Reposts */
+            reposts: number | null;
+            /** Saved */
+            saved: number | null;
+            /** Shares */
+            shares: number | null;
+            /** Thumbnailurl */
+            thumbnailUrl: string | null;
+            /** Totalinteractions */
+            totalInteractions: number | null;
+            /** Url */
+            url: string;
+            /** Views */
+            views: number | null;
+        };
+        /** PublicConfigResponse */
+        PublicConfigResponse: {
+            /** Brandselfregistrationenabled */
+            brandSelfRegistrationEnabled: boolean;
+        };
+        /**
+         * RefreshResponse
+         * @description Result of a successful ``POST /api/auth/refresh``.
+         */
+        RefreshResponse: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             * @constant
+             */
+            token_type: "bearer";
+        };
+        /**
          * ResendVerificationRequest
          * @description Re-send the verification email (rate-limited).
          */
         ResendVerificationRequest: Record<string, never>;
+        /** ResendVerificationResponse */
+        ResendVerificationResponse: {
+            /** Emailsentto */
+            emailSentTo: string;
+        };
         /**
          * ResetPasswordRequest
          * @description Consume a password-reset token and set a new password.
@@ -1774,6 +3402,48 @@ export interface components {
             /** Token */
             token: string;
         };
+        /**
+         * SuggestionResponse
+         * @description A pending auto-link suggestion joined with its post (architecture §7.4.1).
+         */
+        SuggestionResponse: {
+            /** Caption */
+            caption: string;
+            /** Comments */
+            comments: number;
+            /** Likes */
+            likes: number;
+            /** Matchevidence */
+            matchEvidence: string;
+            /** Matchreason */
+            matchReason: string;
+            /**
+             * Postid
+             * Format: uuid
+             */
+            postId: string;
+            /** Postedat */
+            postedAt: number | null;
+            /** Thumbnailurl */
+            thumbnailUrl: string | null;
+            /** Url */
+            url: string;
+        };
+        /**
+         * TokenResponse
+         * @description Login result. Refresh token rides the cookie, not this body.
+         */
+        TokenResponse: {
+            /** Access Token */
+            access_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             * @constant
+             */
+            token_type: "bearer";
+            user: components["schemas"]["UserResponse"];
+        };
         /** TrackerAdvanceRequest */
         TrackerAdvanceRequest: {
             /** Note */
@@ -1783,10 +3453,46 @@ export interface components {
             /** Trackingnumber */
             trackingNumber?: string | null;
         };
+        /** TrackerAdvanceResponse */
+        TrackerAdvanceResponse: {
+            /**
+             * Dropid
+             * Format: uuid
+             */
+            dropId: string;
+            /** Stage */
+            stage: string;
+        };
         /** TrackingRepairRequest */
         TrackingRepairRequest: {
             /** Trackingnumber */
             trackingNumber: string;
+        };
+        /**
+         * UserResponse
+         * @description Current-user payload returned by login + ``GET /api/auth/me`` (§6.2).
+         *
+         *     ``impersonated_by`` is set only while an admin is viewing as this user; the
+         *     SPA keys its exit banner off it.
+         */
+        UserResponse: {
+            /** Email */
+            email?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Impersonated By */
+            impersonated_by?: string | null;
+            /** Impersonation Readonly */
+            impersonation_readonly?: boolean | null;
+            /** Instagram Username */
+            instagram_username?: string | null;
+            /** Portal Role */
+            portal_role: string;
+            /** Status */
+            status: string;
         };
         /**
          * VerifyEmailRequest
@@ -1795,6 +3501,11 @@ export interface components {
         VerifyEmailRequest: {
             /** Token */
             token: string;
+        };
+        /** VerifyEmailResponse */
+        VerifyEmailResponse: {
+            /** Status */
+            status: string;
         };
     };
     responses: never;
@@ -1824,7 +3535,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_list_AdminBrandItem__"];
                 };
             };
             /** @description Unprocessable Content */
@@ -1859,7 +3570,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminBrandInviteResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -1890,7 +3601,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_list_AdminPendingBrandItem__"];
                 };
             };
             /** @description Unprocessable Content */
@@ -1923,7 +3634,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminBrandDetail_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -1956,7 +3667,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminBrandInviteResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -1989,7 +3700,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminBrandStatusResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2022,7 +3733,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminBrandInviteResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2055,7 +3766,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminBrandStatusResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2089,7 +3800,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_list_AdminDropItem__"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2122,7 +3833,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminDropDetail_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2159,7 +3870,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminDropDetail_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2192,7 +3903,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_DropReopenResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2225,7 +3936,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_DropReopenResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2262,7 +3973,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_TrackerAdvanceResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2299,7 +4010,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_DropTrackingResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2330,7 +4041,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminHealthResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2363,7 +4074,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_ImpersonateResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2396,7 +4107,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_list_AdminOrgItem__"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2427,7 +4138,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_list_AdminPendingOrgItem__"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2460,7 +4171,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminOrgStatusResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2493,7 +4204,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminOrgStatusResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2526,7 +4237,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminOrgStatusResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2559,7 +4270,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminOrgDetail_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2592,7 +4303,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_ClearInstagramTokenResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2623,7 +4334,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_AdminOverviewResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2654,7 +4365,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_list_AdminUserItem__"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2687,7 +4398,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2720,7 +4431,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_TokenResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2753,7 +4464,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2786,7 +4497,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2819,7 +4530,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_TokenResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2852,7 +4563,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2885,7 +4596,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_TokenResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2918,7 +4629,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_TokenResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2951,7 +4662,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_TokenResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -2984,7 +4695,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_InstagramDeauthorizeResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3042,7 +4753,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3073,7 +4784,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_UserResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3102,7 +4813,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_RefreshResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3135,7 +4846,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_VerifyEmailResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3170,7 +4881,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_ChangeEduEmailResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3205,7 +4916,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_ResendVerificationResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3238,7 +4949,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_BrandApplyResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3300,7 +5011,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_BrandAggregateResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3331,7 +5042,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_list_BrandDropListItem__"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3366,7 +5077,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_BrandDropResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3399,7 +5110,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_BrandDropDetailResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3436,7 +5147,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_FinalizeApplicantsResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3470,7 +5181,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_list_EngagementSeriesPoint__"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3501,7 +5212,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_list_CampaignListItem__"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3534,7 +5245,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_CampaignDetailResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3567,7 +5278,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_CampaignAggregateResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3604,7 +5315,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_PostResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3641,7 +5352,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3674,7 +5385,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_list_SuggestionResponse__"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3708,7 +5419,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_PostResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3742,7 +5453,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3771,7 +5482,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_PublicConfigResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3875,7 +5586,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_ApplicationResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3912,7 +5623,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3945,7 +5656,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -3974,7 +5685,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_HealthStatusResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -4005,7 +5716,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_OrgProfileResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -4040,7 +5751,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_OrgProfileResponse_"];
                 };
             };
             /** @description Unprocessable Content */
@@ -4071,7 +5782,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_list_PostResponse__"];
                 };
             };
             /** @description Unprocessable Content */
@@ -4102,7 +5813,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_list_PostResponse__"];
                 };
             };
             /** @description Unprocessable Content */
@@ -4137,7 +5848,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIResponse"];
+                    "application/json": components["schemas"]["DataResponse_OrgOnboardingResponse_"];
                 };
             };
             /** @description Unprocessable Content */

@@ -12,19 +12,10 @@ import { ApiError } from "../../api/client";
 import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
 import { pathForUser } from "../../utils/landing";
 import type { PortalRole } from "../../types/auth";
+import type { TokenResponse } from "../../api/hooks/useAdminHooks";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
-
-type LoginResult = {
-  access_token: string;
-  user: {
-    id: string;
-    portal_role: string;
-    status: string;
-    instagram_username?: string | null;
-  };
-};
 
 export default function AdminLoginPage() {
   const { status, user, acceptSession } = useAuth();
@@ -65,7 +56,7 @@ export default function AdminLoginPage() {
       const data = (await adminLogin.mutateAsync({
         email: email.trim(),
         password,
-      })) as LoginResult;
+      })) as TokenResponse;
       acceptSession(
         {
           id: data.user.id,
