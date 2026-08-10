@@ -4,7 +4,7 @@ title: Auth tests use deprecated httpx per-request cookies=
 kind: test_gap
 severity: P3
 status: fixed
-closed_in: a8e8c67
+closed_in: d5666e3
 surface: auth
 evidence:
   - path: backend/tests/test_auth_routes.py
