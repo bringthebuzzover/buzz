@@ -28,6 +28,7 @@ from app.deps.db import async_session_factory
 from app.exceptions import BuzzAPIException
 from app.models.enums import PortalRole
 from app.models.user import User
+from app.security.session import bump_token_version
 from app.security.token_crypto import TokenDecryptionError, decrypt_token, encrypt_token
 from app.services.instagram import InstagramClient, get_instagram_client
 
@@ -52,7 +53,7 @@ def clear_unusable_instagram_token(user: User, *, bump_session: bool = True) -> 
     user.instagram_token_expires_at = None
     user.instagram_token_refreshed_at = None
     if bump_session:
-        user.token_version = (user.token_version or 0) + 1
+        bump_token_version(user)
 
 
 def time_until_expiry(user: User, *, now: datetime | None = None) -> timedelta | None:

@@ -28,6 +28,7 @@ from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.schemas.admin import AdminDropConfigPatch
+from app.security.session import bump_token_version
 from app.services.email import (
     send_brand_denied_email,
     send_brand_invite_email,
@@ -36,6 +37,7 @@ from app.services.email import (
     send_org_denied_email,
     send_org_undenied_email,
 )
+from app.services.instagram_token import clear_unusable_instagram_token
 
 _STAGE_ORDER = [
     BrandTrackerStage.REQUEST_RECEIVED.value,
@@ -144,7 +146,7 @@ async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
         )
 
     user.status = OrgUserStatus.DENIED.value
-    user.token_version = (user.token_version or 0) + 1  # revoke outstanding sessions
+    bump_token_version(user)  # revoke outstanding sessions
     await db.flush()
 
     await send_org_denied_email(user.edu_email or "", org_name=org.org_name)
@@ -272,7 +274,7 @@ async def deny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     user = await db.get(User, brand.user_id)
     if user is not None:
         user.status = OrgUserStatus.DENIED.value
-        user.token_version = (user.token_version or 0) + 1  # revoke outstanding sessions
+        bump_token_version(user)  # revoke outstanding sessions
     await db.flush()
 
     await send_brand_denied_email(brand.company_email, brand_name=brand.brand_name)
@@ -390,11 +392,7 @@ async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization user not found.", status_code=404)
 
-    user.instagram_access_token = None
-    user.instagram_token_issued_at = None
-    user.instagram_token_expires_at = None
-    user.instagram_token_refreshed_at = None
-    user.token_version = (user.token_version or 0) + 1
+    clear_unusable_instagram_token(user)
     await db.flush()
     return {"user_id": str(user.id), "instagram_token_cleared": True}
 

@@ -320,6 +320,46 @@ stop_if:
 
 ---
 
+## test-jwt-secret-length
+
+status: pending
+gaps:
+  - test.jwt-secret-key-length-warning
+approach: |
+  Locked v1 in `gaps/test.jwt-secret-key-length-warning.md`:
+  1. Lengthen `_DEV_SECRET_KEY` in `config.py` to ≥32 bytes (keep
+     `dev-secret-change-me-…` prefix).
+  2. Forbidden-dev-secret set includes historical `"dev-secret-change-me"`
+     **and** current `_DEV_SECRET_KEY`; off-dev guard rejects any of them.
+  3. Sync `.env.example`; update `test_hardening.py` to assert old literal
+     (and preferably shared forbidden constant).
+  4. No filterwarnings. Verify zero `InsecureKeyLengthWarning` in pytest.
+  Non-goals: Railway/prod rotation, arbitrary min-length validator, HS256 change.
+
+stop_if: []
+
+---
+
+## test-httpx-cookies
+
+status: pending
+gaps:
+  - test.httpx-per-request-cookies-deprecated
+approach: |
+  Locked v1 in `gaps/test.httpx-per-request-cookies-deprecated.md`
+  (run after `test-jwt-secret-length`):
+  1. Replace all 17 per-request `cookies=` in `test_auth_routes.py`,
+     `test_hardening.py`, `test_instagram_auth.py`.
+  2. Pattern: jar replace (`Cookies({…})`) or `clear()`+`set` before each
+     explicit-cookie call — never bare `cookies=` on the request.
+  3. Race test: jar=old → won → jar=old for lost → jar=winner for again.
+  4. Verify with `-W error::DeprecationWarning`. No warning filters.
+  Non-goals: product cookie behavior, httpx `<1` pin as DoD, Playwright.
+
+stop_if: []
+
+---
+
 ## ops-samesite
 
 status: ops
@@ -371,17 +411,15 @@ status: parked
 gaps:
   - ops.observability-thin
   - posts.sibling-dismiss-never-rearms
-  - auth.token-version-ig-clear-duplication
-  - test.jwt-secret-key-length-warning
-  - test.httpx-per-request-cookies-deprecated
 note: |
   NO_PLAN (observability) or wontfix (sibling dismiss), plus deferred
   DRY/contract chores from the SOT/DRY audit:
   - `openapi.422-wrong-shape` — **archived** 2026-08-10 (app-level 422 → APIResponse)
   - `openapi.untyped-success-responses` — **archived** 2026-08-10 (all success
     routes → DataResponse[T]; FE aliases generated schemas; auth snake_case kept)
-  - `auth.token-version-ig-clear-duplication` — bump + IG clear SOT helpers
+  - `auth.token-version-ig-clear-duplication` — **archived** 2026-08-10
+    (`bump_token_version` + IG clears via `clear_unusable_instagram_token`)
   - `test.jwt-secret-key-length-warning` / `test.httpx-per-request-cookies-deprecated`
-    — pytest noise; Locked v1 drafted in each gap file; P3 hygiene only
+    — queued as pending clusters `test-jwt-secret-length` then `test-httpx-cookies`
   Do not auto-execute. Un-park only with an explicit user request naming the
   gap id after a Locked v1 exists (or product reverses sibling-dismiss).
