@@ -2,38 +2,35 @@
 
 The go-live runbook for Buzz: what has to be true before we launch, how to provision and deploy, and the environment/operational invariants to respect. The application code is largely feature-complete and tested (backend `pytest`, frontend smoke + Playwright E2E, live API bug-bash). Remaining launch work is mostly **external configuration** (custom DNS, Meta go-live, Resend domain verify) — not greenfield Railway provisioning (Frontend + API + Postgres + six crons are live).
 
-Deploy target: **Railway** from branch **`mvp`** (autodeploy on) — Frontend (`/frontend`) + Backend (`/backend`) + PostgreSQL + **six** cron services. Run `alembic upgrade head` as a pre-deploy step before the backend starts.
+Deploy target: **Railway** from branch **`main`** (autodeploy on) — repo **`bringthebuzzover/buzz`** — Frontend (`/frontend`) + Backend (`/backend`) + PostgreSQL + **six** cron services. Run `alembic upgrade head` as a pre-deploy step before the backend starts.
 
-**Live hosts (Railway today — App Review / Meta SOT):**
+**GitHub:** org [`bringthebuzzover/buzz`](https://github.com/bringthebuzzover/buzz) (mirrored from legacy `ShannonLin284/buzz`; do not push there). Default branch **`main`** (`mvp` merged via PR #1). **Railway Source reconnect to the org repo is still required** if services still show ShannonLin284 — see [`gaps/deploy.github-repo-owner-shannon.md`](gaps/deploy.github-repo-owner-shannon.md).
 
-| Role | URL |
-| ---- | --- |
-| SPA | `https://frontend-production-3819.up.railway.app` |
-| API | `https://api-production-fbbc1.up.railway.app` |
-
-**Target hosts (custom DNS — not attached yet):**
+**Live hosts (brand DNS on Railway — app SOT):**
 
 | Role | URL |
 | ---- | --- |
 | SPA (site root) | `https://www.bringthebuzzover.com` |
 | API | `https://api.bringthebuzzover.com` |
 
-Meta OAuth redirect, privacy/terms, and data-deletion URLs must match the **Live** SPA host until cutover — see [`META.md`](META.md). After custom DNS, flip Meta + env to the Target hosts.
+**Secondary Railway-generated hosts** (still deployed; not the cookie/`FRONTEND_URL` SOT):
+
+| Role | URL |
+| ---- | --- |
+| SPA | `https://frontend-production-3819.up.railway.app` |
+| API | `https://api-production-fbbc1.up.railway.app` |
+
+Env + cookies use **www/api**. Meta dashboard URLs must be pasted to match www/api — see [`gaps/deploy.meta-brand-url-cutover.md`](gaps/deploy.meta-brand-url-cutover.md) and [`META.md`](META.md). Until that paste, Instagram OAuth from www can fail even though infra is live.
 
 ### Environment vocabulary
 
 | Name | Meaning today |
 | ---- | ------------- |
 | **Local / `development`** | Laptop bring-up (`ENVIRONMENT=development`). Dev secrets, insecure cookies OK, localhost CORS. |
-| **Railway env `production`** | The **only** Railway environment today (project **buzz**). Serves **Live** Railway-generated hosts; Target custom DNS is still unchecked. `ENVIRONMENT` for the API is whatever is set on that service (must be `staging` or `production` for the fail-fast path — not `development`). |
+| **Railway env `production`** | The **only** Railway environment today (project **buzz**). Serves brand hosts `www` / `api.bringthebuzzover.com` plus secondary `*.up.railway.app`. `ENVIRONMENT` for the API is whatever is set on that service (must be `staging` or `production` for the fail-fast path — not `development`). |
 | **Staging (optional / future)** | A second Railway environment is **not** provisioned. Optional later if you want a separate stack from public launch. |
 
-**Live hosts (repeat):**
-
-- SPA: `https://frontend-production-3819.up.railway.app`
-- API: `https://api-production-fbbc1.up.railway.app`
-
-**Target (after DNS cutover):** `https://www.bringthebuzzover.com` / `https://api.bringthebuzzover.com`
+**Live hosts (repeat):** `https://www.bringthebuzzover.com` / `https://api.bringthebuzzover.com`
 
 ---
 
@@ -45,8 +42,8 @@ Meta OAuth redirect, privacy/terms, and data-deletion URLs must match the **Live
 | Instagram / Meta app (create + credentials)          | **Done** — ID/secret on Railway + local `.env` | No for pilot wiring                     |
 | Instagram / Meta App Review + Business Verification  | Not started                         | **Yes** — gates public (non-tester) org signups |
 | Legal review of Privacy Policy + Terms               | Draft in app (`/privacy`, `/terms`) | **Yes** — required for Meta + PII   |
-| Railway stack (Frontend + API + Postgres + 6 crons)  | **Done** (env `production`, autodeploy from `mvp`) | No — stack exists                   |
-| Custom DNS (`www` / `api.bringthebuzzover.com`)      | **Not attached** (Target only)      | Needed for brand domains + `SameSite=lax` cutover |
+| Railway stack (Frontend + API + Postgres + 6 crons)  | **Done** (env `production`; target autodeploy from `bringthebuzzover/buzz` @ `main`) | Reconfirm Railway Source if still on ShannonLin284 |
+| Custom DNS (`www` / `api.bringthebuzzover.com`)      | **Done** (TLS green; `SameSite=lax`) | Meta URL paste still open (`deploy.meta-brand-url-cutover`); apex → www Hostinger forward blocked (`deploy.apex-hostinger-forward-blocked`) |
 | Secrets + env for current hosts                      | **Done** — Railway hosts + real IG creds | Re-check at custom DNS cutover          |
 | Env parity for custom domains (SPA/API URLs, Meta)   | N/A until DNS                       | **Yes** after cutover if any var still uses Railway-only URLs |
 | Resend verified sender domain                        | Not started                         | **Yes** — verification/denial email |
@@ -77,7 +74,7 @@ You do **not** need App Review to run a small, hand-picked pilot. In **Developme
 
 ## Phase 2 — Provision infrastructure (Railway)
 
-Branch: **`mvp`** (autodeploy on). One Railway project (**buzz**). One Railway environment (**`production`**) — there is no separate staging environment.
+Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway project (**buzz**). One Railway environment (**`production`**) — there is no separate staging environment.
 
 | Service                 | What                                                                                      | Notes                                                                                                                                 |
 | ----------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -88,24 +85,29 @@ Branch: **`mvp`** (autodeploy on). One Railway project (**buzz**). One Railway e
 
 - [x] Create the services in one Railway project (Frontend + API + Postgres + 6 crons) — **done**.
 - [x] Add cron service **`cron-notify-reminders`** (`*/5 * * * *`) — Notify Me delivery; env refs autoclose.
-- [x] Set each service's **Root Directory** / Watch Paths and wire autodeploy from `mvp` — **done** (deploys follow `mvp` commits).
-- [ ] Custom domains: `www.bringthebuzzover.com` → Frontend; `api.bringthebuzzover.com` → Backend (CNAME + TXT). Confirm DNS + TLS are healthy; keep Railway hosts as secondary if still needed.
-- [ ] Enable **Wait for CI** on Frontend + API (CI on `mvp` includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
+- [x] Set each service's **Root Directory** / Watch Paths and wire autodeploy from **`main`** on `bringthebuzzover/buzz` — confirm in Railway if any service still lists ShannonLin284/`mvp`.
+- [x] Custom domains: `www.bringthebuzzover.com` → Frontend; `api.bringthebuzzover.com` → Backend (CNAME + TXT + brand TLS). Railway `*.up.railway.app` hosts remain as secondary.
+
+### Domain / DNS ownership (Hostinger)
+
+`bringthebuzzover.com` is registered on **Melissa’s Hostinger account**, not Lawrence’s. Agents
+and Lawrence manage DNS/forwarding via her **API token through the Hostinger MCP only** (no
+Lawrence hPanel). Mutate DNS or forwarding only with explicit user OK; escalate UI / token
+rotate / registrar actions to Melissa. Never commit the API token. Meta URL paste after brand
+cutover: `gaps/deploy.meta-brand-url-cutover.md`.
+- [ ] Enable **Wait for CI** on Frontend + API (CI on `main`/`mvp` includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
 - [ ] Optional: `RAILPACK_PYTHON_VERSION=3.12` on API + cron services (cron siblings already set; confirm API).
 - [ ] Optional later: a second Railway environment for true staging (not required for pilot on the current stack).
 
 ### Frontend build / start
 
-CRA inlines `REACT_APP_API_URL` at **build** time. Railway Build Command should be `npm run build:prod` (runs `frontend/scripts/check-deploy-env.js`, then `craco build`) with the **current** API origin until custom DNS is live:
+CRA inlines `REACT_APP_API_URL` at **build** time. Railway Build Command should be `npm run build:prod` (runs `frontend/scripts/check-deploy-env.js`, then `craco build`) with the brand API origin:
 
 ```text
-# Today (Railway-generated):
-REACT_APP_API_URL=https://api-production-fbbc1.up.railway.app
-
-# After custom DNS cutover:
 REACT_APP_API_URL=https://api.bringthebuzzover.com
 ```
 
+(Secondary / historical Railway API host: `https://api-production-fbbc1.up.railway.app`.)
 Start Command: `npm run start:prod` → `serve -s build -l $PORT` (History API fallback for deep links / OAuth callback; `serve` binds `0.0.0.0` by default). Plain `npm run build` stays for CI (no API URL required).
 
 ### Cron schedule (UTC)
@@ -139,7 +141,7 @@ The backend **fails fast at startup** (`backend/app/config.py`) when `ENVIRONMEN
 | `INSTAGRAM_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | real Meta creds (enforced)                   |
 | `RESEND_API_KEY`                                    | real key (enforced; empty would no-op email) |
 | `DATABASE_URL`                                      | Railway Postgres URL (rewritten to `postgresql+asyncpg://` at startup) |
-| `REFRESH_COOKIE_SAMESITE`                           | **`none` required** on today's dual-host `*.up.railway.app` (cross-site); `lax` only after www+api custom DNS (Phase 2) |
+| `REFRESH_COOKIE_SAMESITE`                           | **`lax`** on brand www+api (same eTLD+1); historical dual-host Railway used `none` |
 | `RATE_LIMIT_ENABLED`                                | `true`                                                                 |
 
 Generate secrets:
@@ -149,23 +151,24 @@ python -c "import secrets; print(secrets.token_urlsafe(64))"          # SECRET_K
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"  # TOKEN_ENCRYPTION_KEY
 ```
 
-- [x] Backend env set for the current Railway hosts (table above); secrets generated fresh, never committed. Re-check when cutting over custom domains (`FRONTEND_URL`, Instagram redirect URI, cookie SameSite — see below).
+- [x] Backend env on brand hosts: `FRONTEND_URL=https://www.bringthebuzzover.com`, `INSTAGRAM_REDIRECT_URI=https://www.bringthebuzzover.com/auth/instagram/callback`, `REFRESH_COOKIE_SAMESITE=lax` (+ Secure). Secrets never committed.
 - [x] `INSTAGRAM_CLIENT_ID` / `INSTAGRAM_CLIENT_SECRET` set on Railway **api** + cron services (and local `backend/.env` for laptop). **Do not** commit real secrets.
-- [x] Frontend built via `npm run build:prod` with a non-localhost `REACT_APP_API_URL` (guard: `frontend/scripts/check-deploy-env.js`). Rebuild with `https://api.bringthebuzzover.com` at DNS cutover.
+- [x] Frontend built via `npm run build:prod` with `REACT_APP_API_URL=https://api.bringthebuzzover.com` (guard: `frontend/scripts/check-deploy-env.js`).
 - [ ] `BRAND_SELF_REGISTRATION_ENABLED` set intentionally (`true` = public `POST /api/brands/apply`; `false` = admin-provisioned brands only).
-- [ ] Meta dashboard URLs for **Live** Railway hosts (see META.md §C); after custom DNS cutover, switch to Target www/api:
-  - OAuth redirect: `https://frontend-production-3819.up.railway.app/auth/instagram/callback` (Target: `https://www.bringthebuzzover.com/auth/instagram/callback`)
-  - Deauthorize: `https://api-production-fbbc1.up.railway.app/api/auth/instagram/deauthorize` (Target: `https://api.bringthebuzzover.com/...`)
-  - Data deletion: `https://frontend-production-3819.up.railway.app/data-deletion`
-  - Privacy / Terms: META.md Hosts table (SPA paths)
+- [ ] Meta dashboard URLs → brand www/api (paste list in [`gaps/deploy.meta-brand-url-cutover.md`](gaps/deploy.meta-brand-url-cutover.md); until then OAuth from www can fail):
+  - OAuth redirect: `https://www.bringthebuzzover.com/auth/instagram/callback`
+  - Deauthorize: `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize`
+  - Data deletion / Privacy / Terms: www paths per META.md Hosts table
 
-**Operational gotcha:** Off-dev (`staging` / `production`) both take the hardened path (HSTS, Secure cookies, no localhost CORS), so you can't bring one up over plain `http://localhost` — use `ENVIRONMENT=development` for local bring-up. CORS always allowlists apex + www and also adds `FRONTEND_URL`'s origin so temporary Railway SPA hosts work before custom DNS (`backend/app/main.py`).
+**Operational gotcha:** Off-dev (`staging` / `production`) both take the hardened path (HSTS, Secure cookies, no localhost CORS), so you can't bring one up over plain `http://localhost` — use `ENVIRONMENT=development` for local bring-up. CORS always allowlists apex + www and also adds `FRONTEND_URL`'s origin (`backend/app/main.py`).
 
 ### Same-site SPA + API (auth cookies)
 
-**Target topology (custom DNS):** SPA on `www.bringthebuzzover.com`, API on `api.bringthebuzzover.com` (same eTLD+1). Use `REFRESH_COOKIE_SAMESITE=lax` + `REFRESH_COOKIE_SECURE=true`.
+**Live topology:** SPA on `www.bringthebuzzover.com`, API on `api.bringthebuzzover.com` (same eTLD+1). `REFRESH_COOKIE_SAMESITE=lax` + `REFRESH_COOKIE_SECURE=true` (verified Set-Cookie on IG login GET).
 
-**Today (Railway-generated hosts):** Frontend and API are different `*.up.railway.app` hosts. Those are **cross-site** for cookies (`up.railway.app` is on the public suffix list), so `SameSite=lax` refresh/OAuth cookies set by the API **will not** accompany credentialed XHR from the SPA. **Invariant for App Review on Railway:** `REFRESH_COOKIE_SAMESITE=none` + `REFRESH_COOKIE_SECURE=true`. Custom DNS (`www` + `api` same eTLD+1) then `lax` is Phase 2 — see `gaps/deploy.custom-domain-samesite-lax.md`. CORS already includes `FRONTEND_URL` so the origin allowlist is not the blocker — cookie SameSite is.
+**Historical:** Distinct `*.up.railway.app` SPA/API hosts were cross-site (`up.railway.app` on the public suffix list), so App Review used `SameSite=none`. Dual-host Railway SPA↔API login is **not** a working auth backup after `lax`. Meta dashboard may still list Railway URLs until [`gaps/deploy.meta-brand-url-cutover.md`](gaps/deploy.meta-brand-url-cutover.md) closes — temporary Meta↔env misalignment is accepted.
+
+Apex `bringthebuzzover.com` still relies on GitHub Pages 301 → www until [`gaps/deploy.apex-hostinger-forward-blocked.md`](gaps/deploy.apex-hostinger-forward-blocked.md) (Hostinger API error 2047). Do not remove the GH Pages custom domain before that forward exists.
 
 Alternative long-term: same-origin reverse proxy (`/api` under the SPA domain) — cookies "just work"; not the first deploy path.
 
@@ -177,17 +180,17 @@ Order: Postgres → API (migrate + health) → Frontend (baked API URL) → Cron
 
 - [x] Pre-deploy migrations: `poetry run alembic upgrade head` (before backend boot) — wired on the API service.
 - [x] Deploy backend; confirm it boots (a bad env crashes it here by design).
-- [x] Build + deploy the frontend with `build:prod` + real `REACT_APP_API_URL` (Railway API host today).
+- [x] Build + deploy the frontend with `build:prod` + `REACT_APP_API_URL=https://api.bringthebuzzover.com`.
 - [ ] Confirm cron services exit after each run (Completed, not stuck Active) — spot-check after schedule changes.
-- [ ] Attach custom domains + rebuild SPA with `REACT_APP_API_URL=https://api.bringthebuzzover.com`; set `FRONTEND_URL` to `https://www.bringthebuzzover.com`.
-- [ ] Update Meta dashboard URLs to the custom hosts (see Phase 3).
+- [x] Custom domains attached; SPA rebuilt; `FRONTEND_URL` / `INSTAGRAM_REDIRECT_URI` → www; `SameSite=lax`.
+- [ ] Update Meta dashboard URLs to www/api ([`gaps/deploy.meta-brand-url-cutover.md`](gaps/deploy.meta-brand-url-cutover.md)).
 
 ---
 
 ## Phase 5 — Post-deploy verification
 
-- [ ] `GET /api/health` returns `{"data":{"status":"ok","version":"0.1.0"},"meta":null,"error":null}` when Postgres is up (and **503** with an error envelope when it is not).
-- [ ] Instagram login completes end-to-end (real Meta creds, redirect URI matches). On Railway hosts, confirm refresh cookies actually stick (SameSite caveat above).
+- [x] `GET https://api.bringthebuzzover.com/api/health` returns ok envelope when Postgres is up (and **503** with an error envelope when it is not).
+- [ ] Instagram login completes end-to-end on www (blocked on Meta URL paste — `deploy.meta-brand-url-cutover`). Set-Cookie `SameSite=lax` already verified on login GET.
 - [ ] A verification email actually arrives (Resend live path + verified sending domain).
 - [ ] Home Join Us section routes: "Join as Student Organization" → `/login` (Instagram OAuth), "Apply as Brand" → `/brand/apply` (POST /api/brands/apply).
 - [ ] Brand login → dashboard; org role is blocked from the brand dashboard (403).
