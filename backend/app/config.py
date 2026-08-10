@@ -17,7 +17,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # Dev defaults that MUST NOT reach staging/production. Declared as module
 # constants so both the ``Field`` defaults and the startup guard reference one
 # source of truth.
-_DEV_SECRET_KEY = "dev-secret-change-me"
+#
+# PyJWT HS256 wants ≥32-byte HMAC keys (RFC 7518 §3.2). Keep the recognizable
+# prefix; always forbid the historical short literal even after lengthening.
+_HISTORICAL_DEV_SECRET_KEY = "dev-secret-change-me"
+_DEV_SECRET_KEY = "dev-secret-change-me-not-for-production!!"
+_FORBIDDEN_DEV_SECRET_KEYS = frozenset({_HISTORICAL_DEV_SECRET_KEY, _DEV_SECRET_KEY})
 _DEV_TOKEN_ENCRYPTION_KEY = "Ja8bRSsk6Jv4KsqqOXS-1x6Ht6jj5WIztmsXkzXTnS4="
 
 
@@ -217,7 +222,7 @@ class Settings(BaseSettings):
         if self.ENVIRONMENT == "development":
             return self
         offenders = []
-        if self.SECRET_KEY == _DEV_SECRET_KEY:
+        if self.SECRET_KEY in _FORBIDDEN_DEV_SECRET_KEYS:
             offenders.append("SECRET_KEY")
         if self.TOKEN_ENCRYPTION_KEY == _DEV_TOKEN_ENCRYPTION_KEY:
             offenders.append("TOKEN_ENCRYPTION_KEY")

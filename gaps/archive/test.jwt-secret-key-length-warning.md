@@ -3,7 +3,8 @@ id: test.jwt-secret-key-length-warning
 title: Pytest floods InsecureKeyLengthWarning from short SECRET_KEY
 kind: test_gap
 severity: P3
-status: open
+status: fixed
+closed_in:
 surface: auth
 evidence:
   - path: backend/app/config.py

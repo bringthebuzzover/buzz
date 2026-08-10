@@ -74,7 +74,11 @@ def test_access_and_refresh_rejected_as_oauth_state() -> None:
 
 def test_tampered_signature_rejected() -> None:
     token = buzz_jwt.create_access_token(uuid.uuid4(), "org", "active")
-    forged = pyjwt.encode({"sub": "x", "type": "access"}, "a-different-secret", algorithm="HS256")
+    forged = pyjwt.encode(
+        {"sub": "x", "type": "access"},
+        "a-different-secret-not-settings-key!!",
+        algorithm="HS256",
+    )
     assert forged != token
     with pytest.raises(buzz_jwt.TokenInvalidError):
         buzz_jwt.decode_token(forged, expected_type=buzz_jwt.ACCESS_TOKEN_TYPE)
