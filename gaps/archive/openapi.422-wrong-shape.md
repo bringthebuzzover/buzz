@@ -1,9 +1,10 @@
 ---
+closed_in: pending-commit
 id: openapi.422-wrong-shape
 title: OpenAPI 422 response shape does not match runtime envelope
 kind: doc_drift
 severity: P2
-status: deferred
+status: fixed
 surface: openapi
 evidence:
   - path: openapi.json
@@ -68,3 +69,9 @@ Optional enrichment (not required by `fix_when`): a dedicated response model tha
 ### Deferred / parked coherence
 
 Parking is reasonable: SPA never consumes generated 422 types; live client already matches runtime. Closing later is a small, safe OpenAPI/codegen chore once a Locked v1 is written — until then, **NO_PLAN**.
+
+## Closed
+
+2026-08-10: `FastAPI(..., responses={422: {"model": APIResponse}})` in
+`backend/app/main.py`. Dump + `gen:api` — zero `HTTPValidationError` in
+components; all path 422s ref `APIResponse`. Runtime handler unchanged.

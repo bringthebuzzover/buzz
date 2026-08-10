@@ -89,6 +89,22 @@ async def test_feed_surfaces_notify_state(app_client: AsyncClient, db_session) -
     assert non["reminderMinutes"] is None
 
 
+async def test_drop_detail_surfaces_notify_state(app_client: AsyncClient, db_session) -> None:
+    """Detail must expose the same notify fields as the feed (typed OpenAPI pilot)."""
+    _, org, headers = await _org_ctx(db_session, instagram_user_id="ig_detail_notify")
+    brand = await make_brand(db_session)
+    drop = await make_drop(
+        db_session, brand, apply_open_at=datetime.now(timezone.utc) + timedelta(days=2)
+    )
+    await make_notify(db_session, org, drop, reminder_minutes=15)
+
+    resp = await app_client.get(f"/api/drops/{drop.id}", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["notifyRequested"] is True
+    assert body["reminderMinutes"] == 15
+
+
 async def test_feed_notify_state_is_per_org(app_client: AsyncClient, db_session) -> None:
     """One org's notify subscription must not leak into another org's feed."""
     _, org_a, _ = await _org_ctx(db_session, instagram_user_id="ig_a")

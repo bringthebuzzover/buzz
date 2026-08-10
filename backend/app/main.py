@@ -25,7 +25,7 @@ from app import errors
 from app.config import settings
 from app.deps.db import engine
 from app.exceptions import BuzzAPIException
-from app.response import api_error_response
+from app.response import APIResponse, api_error_response
 from app.routes.admin import router as admin_router
 from app.routes.auth import router as auth_router
 from app.routes.brands import router as brands_router
@@ -83,6 +83,9 @@ app = FastAPI(
     redoc_url=None,
     openapi_url="/api/openapi.json",
     lifespan=lifespan,
+    # Override FastAPI's default {detail} 422 schema so OpenAPI matches the
+    # runtime {data, meta, error} envelope (validation_exception_handler).
+    responses={422: {"model": APIResponse}},
 )
 
 app.add_middleware(

@@ -13,8 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps.auth import CurrentOrg
 from app.deps.db import get_db
-from app.response import APIResponse, api_response
-from app.schemas.drops import DropApplyRequest, NotifyRequest
+from app.response import APIResponse, DataResponse, api_response
+from app.schemas.drops import DropApplyRequest, DropDetailResponse, DropFeedItem, NotifyRequest
 from app.services.drops import (
     apply_to_drop,
     build_application_response,
@@ -28,7 +28,7 @@ from app.services.drops import (
 router = APIRouter(prefix="/drops", tags=["drops"])
 
 
-@router.get("", response_model=APIResponse)
+@router.get("", response_model=DataResponse[list[DropFeedItem]])
 async def list_drops(
     user: CurrentOrg,
     db: AsyncSession = Depends(get_db),
@@ -44,7 +44,7 @@ async def list_drops(
     )
 
 
-@router.get("/{drop_id}", response_model=APIResponse)
+@router.get("/{drop_id}", response_model=DataResponse[DropDetailResponse])
 async def get_drop(
     drop_id: uuid.UUID,
     user: CurrentOrg,

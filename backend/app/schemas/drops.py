@@ -47,8 +47,15 @@ class DropFeedItem(CamelModel):
     notify_requested: bool
     reminder_minutes: int | None
 
-    @field_serializer("apply_open_at", "apply_close_at", "applicant_selection_finalized_at")
-    def _epoch(self, value: datetime | None) -> int | None:
+    @field_serializer("apply_open_at", "apply_close_at")
+    def _epoch_required(self, value: datetime) -> int:
+        # Required datetimes must stay non-null in OpenAPI/TS (not int | null).
+        out = to_epoch_ms(value)
+        assert out is not None
+        return out
+
+    @field_serializer("applicant_selection_finalized_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 
@@ -56,8 +63,9 @@ class DropDetailResponse(CamelModel):
     """A single drop for the org-facing detail view (architecture §7.1).
 
     Superset of the feed item: adds ``brand_id``, ``total_product_units`` and
-    ``created_at``. Still omits ``brand_tracker_stage`` (org status is derived
-    on the campaigns surface, not the drop detail).
+    ``created_at``, plus the same notify-me fields as the feed so the detail
+    surface can show subscribed state without a second lookup. Still omits
+    ``brand_tracker_stage`` (org status is derived on the campaigns surface).
     """
 
     id: uuid.UUID
@@ -76,11 +84,17 @@ class DropDetailResponse(CamelModel):
     created_at: datetime
     accepted_count: int
     already_applied: bool
+    notify_requested: bool
+    reminder_minutes: int | None
 
-    @field_serializer(
-        "apply_open_at", "apply_close_at", "applicant_selection_finalized_at", "created_at"
-    )
-    def _epoch(self, value: datetime | None) -> int | None:
+    @field_serializer("apply_open_at", "apply_close_at", "created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        out = to_epoch_ms(value)
+        assert out is not None
+        return out
+
+    @field_serializer("applicant_selection_finalized_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
 

@@ -4,7 +4,7 @@ The go-live runbook for Buzz: what has to be true before we launch, how to provi
 
 Deploy target: **Railway** from branch **`main`** (autodeploy on) — repo **`bringthebuzzover/buzz`** — Frontend (`/frontend`) + Backend (`/backend`) + PostgreSQL + **six** cron services. Run `alembic upgrade head` as a pre-deploy step before the backend starts.
 
-**GitHub:** org [`bringthebuzzover/buzz`](https://github.com/bringthebuzzover/buzz) (mirrored from legacy `ShannonLin284/buzz`; do not push there). Default branch **`main`** (`mvp` merged via PR #1). **Railway Source reconnect to the org repo is still required** if services still show ShannonLin284 — see [`gaps/deploy.github-repo-owner-shannon.md`](gaps/deploy.github-repo-owner-shannon.md).
+**GitHub:** org [`bringthebuzzover/buzz`](https://github.com/bringthebuzzover/buzz) (mirrored from legacy `ShannonLin284/buzz`; do not push there). Default branch **`main`** (`mvp` merged via PR #1). All 8 Railway code services Source = **`bringthebuzzover/buzz` @ `main`** (verified 2026-08-10; see [`gaps/archive/deploy.github-repo-owner-shannon.md`](gaps/archive/deploy.github-repo-owner-shannon.md)).
 
 **Live hosts (brand DNS on Railway — app SOT):**
 
@@ -43,7 +43,7 @@ Env + cookies use **www/api**. Meta dashboard URLs must be pasted to match www/a
 | Instagram / Meta App Review + Business Verification  | Not started                         | **Yes** — gates public (non-tester) org signups |
 | Legal review of Privacy Policy + Terms               | Draft in app (`/privacy`, `/terms`) | **Yes** — required for Meta + PII   |
 | Railway stack (Frontend + API + Postgres + 6 crons)  | **Done** (env `production`; target autodeploy from `bringthebuzzover/buzz` @ `main`) | Reconfirm Railway Source if still on ShannonLin284 |
-| Custom DNS (`www` / `api.bringthebuzzover.com`)      | **Done** (TLS green; `SameSite=lax`) | Meta URL paste still open (`deploy.meta-brand-url-cutover`); apex → www Hostinger forward blocked (`deploy.apex-hostinger-forward-blocked`) |
+| Custom DNS (`www` / `api.bringthebuzzover.com`)      | **Done** (Cloudflare DNS; TLS green; `SameSite=lax`) | Meta URL paste still open (`deploy.meta-brand-url-cutover`); GH Pages custom domain leftover (`deploy.gh-pages-brand-domain-retire`) |
 | Secrets + env for current hosts                      | **Done** — Railway hosts + real IG creds | Re-check at custom DNS cutover          |
 | Env parity for custom domains (SPA/API URLs, Meta)   | N/A until DNS                       | **Yes** after cutover if any var still uses Railway-only URLs |
 | Resend verified sender domain                        | Not started                         | **Yes** — verification/denial email |
@@ -88,13 +88,19 @@ Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway
 - [x] Set each service's **Root Directory** / Watch Paths and wire autodeploy from **`main`** on `bringthebuzzover/buzz` — confirm in Railway if any service still lists ShannonLin284/`mvp`.
 - [x] Custom domains: `www.bringthebuzzover.com` → Frontend; `api.bringthebuzzover.com` → Backend (CNAME + TXT + brand TLS). Railway `*.up.railway.app` hosts remain as secondary.
 
-### Domain / DNS ownership (Hostinger)
+### Domain / DNS ownership
 
-`bringthebuzzover.com` is registered on **Melissa’s Hostinger account**, not Lawrence’s. Agents
-and Lawrence manage DNS/forwarding via her **API token through the Hostinger MCP only** (no
-Lawrence hPanel). Mutate DNS or forwarding only with explicit user OK; escalate UI / token
-rotate / registrar actions to Melissa. Never commit the API token. Meta URL paste after brand
-cutover: `gaps/deploy.meta-brand-url-cutover.md`.
+| Layer | Owner |
+| ----- | ----- |
+| **Registrar** | Melissa’s **Hostinger** account (`bringthebuzzover.com`) |
+| **Authoritative DNS** | Lawrence’s **Cloudflare** zone (`felipe` / `melody` NS) — Free plan |
+| **App origins** | Railway: `www` + `api` custom domains (TLS on Railway) |
+
+**Cloudflare DNS (SOT):** DNS-only CNAMEs `www` → `p29bzdj1.up.railway.app`, `api` → `74widk71.up.railway.app`, plus Railway verify TXTs. Apex is a **proxied** originless `A` (`192.0.2.1`) with a Single Redirect **301** → `https://www.bringthebuzzover.com` (preserve path/query). Do **not** orange-cloud `www`/`api` (Railway terminates TLS).
+
+**Hostinger:** registrar + nameserver updates only (MCP). Hostinger’s parking DNS zone was **cleared** after the CF NS flip — do not recreate www/api/apex there. Mutate Hostinger NS/registrar only with explicit user OK; never commit the API token.
+
+Meta URL paste after brand cutover: `gaps/deploy.meta-brand-url-cutover.md`.
 - [ ] Enable **Wait for CI** on Frontend + API (CI on `main`/`mvp` includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
 - [ ] Optional: `RAILPACK_PYTHON_VERSION=3.12` on API + cron services (cron siblings already set; confirm API).
 - [ ] Optional later: a second Railway environment for true staging (not required for pilot on the current stack).
@@ -168,7 +174,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 **Historical:** Distinct `*.up.railway.app` SPA/API hosts were cross-site (`up.railway.app` on the public suffix list), so App Review used `SameSite=none`. Dual-host Railway SPA↔API login is **not** a working auth backup after `lax`. Meta dashboard may still list Railway URLs until [`gaps/deploy.meta-brand-url-cutover.md`](gaps/deploy.meta-brand-url-cutover.md) closes — temporary Meta↔env misalignment is accepted.
 
-Apex `bringthebuzzover.com` still relies on GitHub Pages 301 → www until [`gaps/deploy.apex-hostinger-forward-blocked.md`](gaps/deploy.apex-hostinger-forward-blocked.md) (Hostinger API error 2047). Do not remove the GH Pages custom domain before that forward exists.
+Apex `bringthebuzzover.com` → www is a **Cloudflare** Single Redirect (`Server: cloudflare`; see [`gaps/archive/deploy.apex-hostinger-forward-blocked.md`](gaps/archive/deploy.apex-hostinger-forward-blocked.md)). GitHub Pages may still list the brand custom domain as a leftover — clear when Shannon admin is available ([`gaps/deploy.gh-pages-brand-domain-retire.md`](gaps/deploy.gh-pages-brand-domain-retire.md)); apex no longer depends on Pages.
 
 Alternative long-term: same-origin reverse proxy (`/api` under the SPA domain) — cookies "just work"; not the first deploy path.
 

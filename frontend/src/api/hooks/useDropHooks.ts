@@ -10,31 +10,12 @@ import {
 } from "@tanstack/react-query";
 import { apiFetch, type ApiResult } from "../client";
 import { useAuth } from "../../contexts/AuthContext";
+import type { components } from "../generated/schema";
 
-export type DropFeedItem = {
-  id: string;
-  brandName: string;
-  title: string;
-  description: string;
-  image: string;
-  location: string;
-  capacityTotal: number;
-  applyOpenAt: number;
-  applyCloseAt: number;
-  manualReopen: boolean;
-  acceptedCount: number;
-  alreadyApplied: boolean;
-  notifyRequested: boolean;
-  reminderMinutes: number | null;
-  /** Set when brand finalized picks — feed treats as closed for new applies. */
-  applicantSelectionFinalizedAt: number | null;
-};
-
-export type DropDetail = DropFeedItem & {
-  brandId: string;
-  totalProductUnits: number | null;
-  createdAt: number;
-};
+// Sourced from OpenAPI (`npm run gen:api`) once drops feed/detail use
+// DataResponse[T] — same BrandProfile pattern as useBrandHooks.
+export type DropFeedItem = components["schemas"]["DropFeedItem"];
+export type DropDetail = components["schemas"]["DropDetailResponse"];
 
 export type DropApplication = {
   id: string;

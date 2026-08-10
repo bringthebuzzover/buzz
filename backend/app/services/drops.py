@@ -272,6 +272,7 @@ async def build_drop_detail(
     org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
     accepted = (await _accepted_counts(db, [drop.id])).get(drop.id, 0)
     applied_ids = await _applied_drop_ids(db, org_id, [drop.id])
+    notify_state = await _notify_state(db, org_id, [drop.id])
     return DropDetailResponse(
         id=drop.id,
         brand_id=drop.brand_id,
@@ -289,6 +290,8 @@ async def build_drop_detail(
         created_at=drop.created_at,
         accepted_count=accepted,
         already_applied=drop.id in applied_ids,
+        notify_requested=drop.id in notify_state,
+        reminder_minutes=notify_state.get(drop.id),
     )
 
 
