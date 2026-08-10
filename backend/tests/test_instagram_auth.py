@@ -19,7 +19,7 @@ from app.exceptions import BuzzAPIException
 from app.models.user import User
 from app.security import jwt
 from app.security.token_crypto import decrypt_token
-from tests.conftest import FakeInstagramClient
+from tests.conftest import FakeInstagramClient, set_request_cookies
 
 
 async def test_login_redirects_with_state(
@@ -239,10 +239,10 @@ async def test_callback_expired_state_unauthorized(
         settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
     )
+    set_request_cookies(app_client, {settings.OAUTH_STATE_COOKIE_NAME: expired})
     resp = await app_client.post(
         "/api/auth/instagram/callback",
         json={"code": "c", "state": expired},
-        cookies={settings.OAUTH_STATE_COOKIE_NAME: expired},
     )
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"

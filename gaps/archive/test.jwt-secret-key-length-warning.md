@@ -4,7 +4,7 @@ title: Pytest floods InsecureKeyLengthWarning from short SECRET_KEY
 kind: test_gap
 severity: P3
 status: fixed
-closed_in:
+closed_in: 772305a
 surface: auth
 evidence:
   - path: backend/app/config.py

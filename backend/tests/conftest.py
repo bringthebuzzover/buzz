@@ -25,7 +25,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient, Cookies
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -211,6 +211,15 @@ class FakeInstagramClient:
         self, long_token: str, media_id: str, *, is_reel: bool = False
     ) -> dict[str, int | float]:
         return dict(getattr(self, "insights", {"reach": 100, "saved": 5}))
+
+
+def set_request_cookies(client: AsyncClient, cookies: dict[str, str]) -> None:
+    """Replace the ASGI test client's cookie jar.
+
+    Prefer this over per-request ``cookies=`` (deprecated in httpx) so each
+    explicit-cookie step sends exactly one Cookie header.
+    """
+    client.cookies = Cookies(cookies)
 
 
 @pytest_asyncio.fixture
