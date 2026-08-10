@@ -1,9 +1,10 @@
 ---
+closed_in: e27a7f6
 id: deploy.github-repo-owner-shannon
 title: Railway still Sources ShannonLin284/buzz; canonical Git is bringthebuzzover/buzz @ main
 kind: ops
 severity: P1
-status: ops
+status: fixed
 surface: deploy
 evidence:
   - path: gaps/deploy.gh-pages-brand-domain-retire.md
@@ -71,3 +72,9 @@ We re-run `get-service-config` and archive this gap when Source matches.
 ## Legacy
 
 `ShannonLin284/buzz` remains public/abandoned (no admin to archive). Stop pushing there. Pages custom domain still on Shannon — sibling [`deploy.gh-pages-brand-domain-retire`](deploy.gh-pages-brand-domain-retire.md).
+
+## Closed
+
+2026-08-10: Cursor Railway MCP `get-service-config` on all 8 code services →
+`bringthebuzzover/buzz` @ `main` (frontend `/frontend`, api+crons `/backend`).
+Push `e27a7f6` triggered deploys from org `main` (not Shannon/`mvp`).

@@ -6,8 +6,8 @@ severity: P2
 status: ops
 surface: deploy
 evidence:
-  - path: gaps/deploy.apex-hostinger-forward-blocked.md
-    note: apex interim 301 depends on Pages until Cloudflare (or equivalent)
+  - path: gaps/archive/deploy.apex-hostinger-forward-blocked.md
+    note: Cloudflare apex→www live; Pages remove no longer required for apex health
   - path: frontend/package.json
     note: gh-pages deploy script removed; frontend/public/CNAME deleted in tree
 repro: |
@@ -30,6 +30,10 @@ Plan A Phase 4: remove brand custom domain from GitHub Pages after www moved
 to Railway. Repo-side retire is done (`CNAME` file gone, `gh-pages` npm deploy
 removed). **Settings → Pages** still has `cname: www.bringthebuzzover.com`.
 
+**2026-08-10:** Apex → www is now Cloudflare (see archived
+`deploy.apex-hostinger-forward-blocked`). Clearing Pages is **hygiene only** —
+safe for apex; no longer blocks brand DNS.
+
 ## Current blocker
 
 - Actor `lawrencegranda` has **push**, not **admin**, on `ShannonLin284/buzz`.
@@ -39,20 +43,15 @@ removed). **Settings → Pages** still has `cname: www.bringthebuzzover.com`.
 
 ## Coupling / order
 
-| Order | Effect |
-| ----- | ------ |
-| Pages Remove **before** apex Cloudflare (B) | **www OK**; **apex** likely stops 301→www until B |
-| Cloudflare apex redirect **then** Pages Remove | Apex stays healthy |
-
-Chosen for now: attempt Pages Remove while waiting; accept possible apex
-breakage until [`deploy.apex-hostinger-forward-blocked`](deploy.apex-hostinger-forward-blocked.md) option B.
+Cloudflare apex redirect is **already live**. Pages Remove can proceed whenever
+Shannon clears the custom domain; apex stays healthy.
 
 ## Shannon UI checklist
 
 1. https://github.com/ShannonLin284/buzz → **Settings → Pages**
 2. Clear / remove custom domain `www.bringthebuzzover.com` and save
 3. Optional: unpublish Pages / stop `gh-pages` branch deploy
-4. Do **not** change Hostinger DNS or Railway
+4. Do **not** change Cloudflare DNS or Railway
 
 ## Verify probes
 

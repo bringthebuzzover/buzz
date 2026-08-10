@@ -1,9 +1,10 @@
 ---
+closed_in: pending-commit
 id: deploy.apex-hostinger-forward-blocked
 title: Hostinger cannot apex→www (API 2047 + UI); apex still needs non-GH redirect
 kind: ops
 severity: P2
-status: open
+status: fixed
 surface: deploy
 evidence:
   - path: gaps/archive/deploy.custom-domain-samesite-lax.md
@@ -80,3 +81,13 @@ dig @1.1.1.1 +short A bringthebuzzover.com
 ```
 
 Pass when Location still → www and `Server` is not `GitHub.com`.
+
+## Closed
+
+2026-08-10: Cloudflare full zone `bringthebuzzover.com` (id `9103e4c774707bf5b2f17fbb9d9144cf`)
+on Lawrence account. Hostinger NS → `felipe.ns.cloudflare.com` /
+`melody.ns.cloudflare.com`. DNS-only `www`/`api` CNAMEs + Railway verify TXTs;
+proxied apex `A 192.0.2.1` + Single Redirect 301 → `https://www.bringthebuzzover.com`
+(`Server: cloudflare`, `cf-ray` present — verified forced to CF anycast).
+Hostinger parking DNS zone cleared (empty). Personal CF zones unchanged.
+GH Pages custom domain leftover tracked in `deploy.gh-pages-brand-domain-retire`.

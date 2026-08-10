@@ -46,3 +46,15 @@ without an explicit Locked v1 that does both.
 
 Large surface area; easy to thrash OpenAPI without user benefit until a pilot
 is locked. Un-park only when named explicitly with a scoped Locked v1.
+
+## Pilot progress (2026-08-10)
+
+Done (BrandProfile pattern):
+
+- [x] `GET /api/drops` → `DataResponse[list[DropFeedItem]]`
+- [x] `GET /api/drops/{drop_id}` → `DataResponse[DropDetailResponse]`
+- [x] `DropDetailResponse` includes `notify_requested` / `reminder_minutes`
+- [x] FE `useDropHooks` imports `DropFeedItem` / `DropDetail` from `schema.ts`
+
+Still deferred: remaining ~67 `APIResponse` routes; `DropApplication` still
+handwritten until apply is typed. Sibling `openapi.422-wrong-shape` archived.

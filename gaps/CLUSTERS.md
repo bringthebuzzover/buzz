@@ -341,9 +341,7 @@ approach: |
 stop_if:
   - Always pause before mutating Railway/Meta without explicit user OK.
   - Claiming IG login E2E PASS before Meta brand URL paste.
-  - Removing GH Pages before Cloudflare apex redirect without accepting a
-    broken-apex window (`deploy.gh-pages-brand-domain-retire` ↔
-    `deploy.apex-hostinger-forward-blocked`).
+  - Orange-clouding `www`/`api` on Cloudflare (Railway must terminate TLS).
 
 ---
 
@@ -358,10 +356,12 @@ note: |
   - `ops.email-ledger` — after `email-honesty` archives; ledger + denial
     org channel (or wontfix) + invite/reset honesty.
   - `deploy.custom-domain-samesite-lax` — **archived** 2026-08-09 (Plan A).
-    Residual: `deploy.meta-brand-url-cutover`, `deploy.apex-hostinger-forward-blocked`,
-    `deploy.gh-pages-brand-domain-retire` (waiting on Shannon admin),
-    `deploy.github-repo-owner-shannon` (Git mirrored to bringthebuzzover/buzz @ main;
-    Railway Source still ShannonLin284/`mvp` until GitHub App + UI reconnect).
+    Residual: `deploy.meta-brand-url-cutover`,
+    `deploy.gh-pages-brand-domain-retire` (waiting on Shannon admin).
+    `deploy.github-repo-owner-shannon` — **archived** 2026-08-10 (all 8 Sources
+    `bringthebuzzover/buzz` @ `main`; push `e27a7f6` deployed from org).
+    `deploy.apex-hostinger-forward-blocked` — **archived** 2026-08-10
+    (Cloudflare DNS + apex→www Single Redirect; Hostinger NS flipped).
 
 ---
 
@@ -369,15 +369,16 @@ note: |
 
 status: parked
 gaps:
-  - openapi.422-wrong-shape
   - openapi.untyped-success-responses
   - ops.observability-thin
   - posts.sibling-dismiss-never-rearms
   - auth.token-version-ig-clear-duplication
 note: |
-  NO_PLAN (openapi 422, observability) or wontfix (sibling dismiss), plus
-  deferred DRY/contract chores from the SOT/DRY audit:
-  - `openapi.untyped-success-responses` — DataResponse[T] pilot; sibling of 422
+  NO_PLAN (observability) or wontfix (sibling dismiss), plus deferred
+  DRY/contract chores from the SOT/DRY audit:
+  - `openapi.422-wrong-shape` — **archived** 2026-08-10 (app-level 422 → APIResponse)
+  - `openapi.untyped-success-responses` — BrandProfile + drops feed/detail pilot
+    done; remaining APIResponse routes still deferred
   - `auth.token-version-ig-clear-duplication` — bump + IG clear SOT helpers
   Do not auto-execute. Un-park only with an explicit user request naming the
   gap id after a Locked v1 exists (or product reverses sibling-dismiss).
