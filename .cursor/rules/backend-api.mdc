@@ -1,0 +1,15 @@
+---
+description: Backend API conventions — envelope, services, auth deps
+globs: backend/app/**
+alwaysApply: false
+---
+
+# Backend API
+
+- Envelope: `{ data, meta, error }` via `app/response.py`. Stable codes in `app/errors.py`.
+- Responses: camelCase + epoch-ms (`CamelModel` / schemas). Prefer `DataResponse[T]` for new typed success paths.
+- Thin routes in `app/routes/`; business logic in `app/services/`.
+- Auth: `get_current_user` / `require_role` / `require_status`; aliases `CurrentOrg`, `CurrentBrand`, `CurrentAdmin`.
+- Ownership gates: 404 (not 403) when existence must not leak (`resolve_owned_application`, `resolve_brand_drop`).
+- After route/schema changes: `poetry run python scripts/dump_openapi.py` then `cd ../frontend && npm run gen:api`; commit both artifacts.
+- Behavior rules: [`PRODUCT.md`](PRODUCT.md). As-built map: [`ARCHITECTURE.md`](ARCHITECTURE.md). Do not restate PRODUCT §§ here.

@@ -1,106 +1,132 @@
 # Buzz
 
-Marketing site for BUZZ: connecting brands with campus communities.
+Full-stack platform connecting brands with campus student organizations for campaign drops, applications, and Instagram engagement tracking.
 
-Built with **React 18**, **TypeScript**, **Tailwind CSS**, **lucide-react** (icons), and **Firebase** (Firestore for the brand waitlist). Bundling uses **Create React App** with **CRACO** so PostCSS can run Tailwind.
+**Stack:** React 18 + TypeScript + Tailwind (CRA/CRACO) frontend · FastAPI + PostgreSQL backend · JWT auth (Instagram OAuth for orgs, password login for brands) · Resend for transactional email.
 
-**Routes:** `/` (home, public landing), `/waitlist` (brand waitlist form, full-page), and the demo-gated portals:
+Product behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md) (including **§3.1.1** data ownership / single source of truth). As-built system: [`ARCHITECTURE.md`](ARCHITECTURE.md). Agent operating guide: [`AGENTS.md`](AGENTS.md). Living product holes and bugs: [`gaps/`](gaps/). Launch ops: [`DEPLOYMENT.md`](DEPLOYMENT.md). Meta/Instagram app setup: [`META.md`](META.md). Backend details: [`backend/README.md`](backend/README.md).
 
-- **Org portal** (`requiredDemoView="org"`): `/org/drops` (Drop Feed), `/org/campaigns` (My Campaigns), `/org/campaigns/:campaignId` (per-status detail).
-- **Brand portal** (`requiredDemoView="brand"`): `/brand/dashboard` (aggregate dashboard), `/brand/drops/:dropId` (per-drop tracker + KPIs), `/brand/requests/new` (Request a Drop).
-- **Legacy redirects** for old bookmarks: `/register` → `/org/drops`, `/campaigns[/:id]` → `/org/drops`, `/brand` → `/brand/dashboard`, `/brand/campaigns/new` → `/brand/requests/new`.
+---
 
-The full product spec lives in [`PRODUCT.md`](PRODUCT.md) — that is the source of truth for behavior and UX rules. A reference single-file prototype lives at [`new.ts`](new.ts) in the repo root; the app is split into modules under `src/` and does not import that file.
+## What’s in the app
+
+| Surface        | Routes (high level)                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| Marketing      | `/` (Join Us → `/login` or `/brand/apply`)                                                              |
+| Legal          | `/privacy`, `/terms`, `/data-deletion`                                                                  |
+| Auth           | `/login` (org Instagram), `/auth/instagram/callback`, `/brand/login`, `/brand/forgot-password`, `/brand/reset-password`, `/brand/setup`, `/brand/apply`, `/admin/login`, `/admin/forgot-password`, `/admin/reset-password` |
+| Org onboarding | `/onboarding/profile`, `/onboarding/verify-email`, `/onboarding/pending-approval`, `/onboarding/denied` |
+| Org portal     | `/org/browse`, `/org/campaigns`, `/org/campaigns/:campaignId`                                           |
+| Brand portal   | `/brand/dashboard`, `/brand/drops/:dropId`, `/brand/requests/new`                                       |
+| Admin          | `/admin` (overview, queues, drops, health, Invite brand, View as)                                       |
+
+Portals are gated by real auth (`RequireAuth` → `RequireStatus` → `RequireRole`), not a demo passcode. Public join intent goes through real account paths: student orgs via Instagram (`/login`), brands via `/brand/apply`.
+
+Admins sign in with email + password (`/admin/login`) and can "View as" any active org or brand from `/admin`. Impersonation rides a short-lived access token — the admin's own refresh cookie is untouched — and is read-only unless `IMPERSONATION_READONLY=false`. See [`TESTING.md`](TESTING.md) for the permanent test accounts.
+
+---
 
 ## Prerequisites
 
-- **Node.js** 18 or newer (LTS recommended)
-- **npm** (comes with Node)
+- **Node.js** 18+ and **npm**
+- For the API: **Python** 3.12+, **Poetry**, **PostgreSQL** 14+
 
-## Setup
+---
 
-1. Clone the repository and install dependencies:
+## Local setup
 
-   ```bash
-   git clone <repository-url>
-   cd buzz
-   npm install
-   ```
+The repo is a monorepo: SPA under [`frontend/`](frontend/), FastAPI service under [`backend/`](backend/), shared [`openapi.json`](openapi.json) at the root.
 
-2. **Firebase (waitlist)** — Copy `.env.example` to `.env` and fill in values from Firebase Console → Project settings → Web app. **Do not commit `.env`** (it is gitignored and may contain your API key). Create React App only exposes variables whose names start with `REACT_APP_`:
+### Frontend
 
-   ```bash
-   cp .env.example .env
-   # then edit .env
-   ```
+```bash
+git clone <repository-url>
+cd buzz/frontend
+npm install
+cp .env.example .env
+```
 
-   Restart the dev server after changing `.env`. Other Firebase fields are committed in `src/firebase.ts`; adjust there if your project differs. Publish `firestore.rules` in the console (Firestore → Rules) so waitlist writes are allowed.
-
-3. **Optional** — Place the hero video at `public/hero.mp4` (the home hero loads it via `PUBLIC_URL`).
-
-## Run locally
+Set `REACT_APP_API_URL` (default `http://localhost:8000`). Ignore leftover `REACT_APP_FIREBASE_*` entries — they are unused.
 
 ```bash
 npm start
 ```
 
-Opens the app at [http://localhost:3000](http://localhost:3000) with hot reload.
+App: [http://localhost:3000](http://localhost:3000).
 
-## Build
+### Backend
+
+From the repo root (or `cd ../backend` if you're still in `frontend/`):
 
 ```bash
-npm run build
+cd backend
+poetry install
+cp .env.example .env
+# start Postgres, createdb buzz, then:
+poetry run alembic upgrade head
+poetry run uvicorn app.main:app --reload --port 8000
 ```
 
-Outputs an optimized production bundle in the `build/` folder.
+Smoke check:
 
-## Deploy (GitHub Pages)
+```bash
+curl http://localhost:8000/api/health
+# => {"data":{"status":"ok","version":"0.1.0"},"meta":null,"error":null}
+```
 
-This repo deploys with **gh-pages**. `homepage` in `package.json` is set to `https://www.bringthebuzzover.com` so asset URLs match the live site. For GitHub Pages **Settings → Pages**, point the site at the **`gh-pages`** branch and set your custom domain there. To ship a `CNAME` with every build, add `public/CNAME` (Create React App copies `public/` into `build/`).
+Full backend setup, jobs, and tests: [`backend/README.md`](backend/README.md).
 
-1. Ensure you are on the branch you want to publish (often `main`).
+---
 
-2. Deploy (this runs `npm run build` first because of the `predeploy` script):
+## Scripts
 
-   ```bash
-   npm run deploy
-   ```
+Run inside [`frontend/`](frontend/):
 
-   That runs `gh-pages -d build` and pushes the contents of `build/` to the `gh-pages` branch.
+| Command           | Description                                                              |
+| ----------------- | ------------------------------------------------------------------------ |
+| `npm start`       | Frontend dev server                                                      |
+| `npm run build`      | Production SPA bundle → `frontend/build/` (CI; no API URL required)           |
+| `npm run build:prod` | Guard `REACT_APP_API_URL` then build (Railway / real deploys)                 |
+| `npm run start:prod` | Serve `build/` with History API fallback (`serve -s`, binds `$PORT`)          |
+| `npm test`        | Frontend Jest/CRACO smoke tests                                          |
+| `npm run e2e`     | Playwright end-to-end tests                                              |
+| `npm run gen:api` | Regenerate `src/api/generated/schema.ts` from the root `../openapi.json` |
 
-3. In the GitHub repository **Settings → Pages**, set the source to the **`gh-pages`** branch (usually `/ (root)`).
+Backend (inside `backend/`): `poetry run pytest`, `poetry run alembic upgrade head`, `poetry run python scripts/run_job.py <job>` (see backend README).
 
-If you use a **project URL** (for example `https://<user>.github.io/buzz/`) instead of a custom domain, set `homepage` in `package.json` to that URL so asset paths resolve correctly, then run `npm run deploy` again.
+---
 
-## Scripts summary
+## Deploy
 
-| Command          | Description                                |
-| ---------------- | ------------------------------------------ |
-| `npm start`      | Dev server (CRACO + React)                 |
-| `npm run build`  | Production build into `build/`             |
-| `npm run deploy` | Build, then publish `build/` to `gh-pages` |
+Production target is **Railway** (SPA + FastAPI + Postgres + cron jobs). See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the launch checklist, env parity, and Meta/Resend prerequisites.
 
-There is no `npm test` script configured; add one with `craco test` if you introduce tests.
+A legacy `npm run deploy` (GitHub Pages) still exists in `package.json` but is **not** the launch path.
+
+---
 
 ## Project layout (high level)
 
-- `src/AppRoot.tsx` — React Router routes (public + persona-gated org/brand portals)
-- `src/layouts/SiteLayout.tsx` — Shared chrome (header, footer, contact modal via `SiteChromeProvider`)
-- `src/pages/home/` — Public landing
-- `src/pages/org/` — Org portal pages (`OrgDropFeedPage`, `OrgMyCampaignsPage`, `OrgCampaignDetailPage`)
-- `src/pages/brand/` — Brand portal pages (`BrandAggregateDashboardPage`, `BrandDropDetailPage`, `BrandRequestDropPage`)
-- `src/pages/waitlist/` — Standalone brand waitlist
-- `src/components/org/`, `src/components/brand/` — Persona-specific components (cards, stepper, tables, charts)
-- `src/components/site/` — Header, footer, marquee, modals (passcode, contact, change-view)
-- `src/components/routing/DemoOnly.tsx` — Persona-aware route guard (`requiredDemoView`)
-- `src/contexts/AccessGateContext.tsx` — Demo session + persona state
-- `src/contexts/MockDataContext.tsx` — `useSyncExternalStore` hooks over the localStorage mock layer
-- `src/contexts/DemoClockContext.tsx` — 1s tick + scheduled tracker transitions + periodic metrics jitter
-- `src/data/store/` — Entity stores backed by `localStorage` (namespace `buzz.v1.*`)
-- `src/data/seed/` — Seed data covering every drop / application status
-- `src/utils/` — Pure helpers (`dropStatus`, `orgCampaignStatus`, `postAttribution`, `notifyMe`, `metrics`, `useCountdown`)
-- `src/types/` — Domain types (`drop`, `orgCampaign`, `brandPortal`, `socialPost`, `metrics`, `access`, `campaign`)
-- `src/firebase.ts` — Firestore client; `brand_waitlist` (brands) and `org_waitlist` (student orgs from home)
-- `public/` — Static assets (e.g. `index.html`, `hero.mp4`, favicon)
-- `craco.config.js` — CRA overrides (PostCSS + Tailwind)
-- `tailwind.config.js` — Tailwind theme (includes BUZZ palette `buzz.coral`, `buzz.cream`, `buzz.butter`, marquee animations)
+```
+frontend/                  # CRA/CRACO SPA (own package.json)
+  src/
+    AppRoot.tsx            # Routes + auth guards
+    api/                   # API client, hooks, generated OpenAPI types
+    contexts/              # AuthContext, SiteChromeContext
+    pages/                 # home, auth, onboarding, org, brand, legal
+    components/            # site chrome, org/brand UI, routing guards
+    data/siteIdentity.ts   # Brand, contact, social (single source)
+    types/                 # Domain types
+  e2e/                     # Playwright specs + global-setup
+  public/                  # index.html, CNAME, static assets
+backend/                   # FastAPI app, Alembic migrations, jobs, tests
+openapi.json               # API contract (regen TS types via cd frontend && npm run gen:api)
+scripts/ci-local.sh        # Full local CI gate (mirrors .github/workflows/ci.yml)
+AGENTS.md                  # Agent OS (norms, DoD, skills, MCP)
+ARCHITECTURE.md            # As-built system map
+DEPLOYMENT.md              # Launch & Railway runbook
+META.md                    # Meta / Instagram API setup
+PRODUCT.md                 # Product behavior / UX SOT
+TESTING.md                 # Test layers + ./scripts/ci-local.sh
+.cursor/rules/             # Committed Cursor rules (mcp.json stays local)
+.agents/skills/            # Repo agent skills
+```

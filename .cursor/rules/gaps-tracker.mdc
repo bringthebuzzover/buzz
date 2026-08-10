@@ -1,0 +1,33 @@
+---
+description: AI-native gaps tracker — single SOT for bugs and product holes
+alwaysApply: true
+---
+
+# Gaps tracker
+
+Living bugs and product holes live **only** in [`gaps/`](gaps/) as
+`gaps/<id>.md` files with YAML frontmatter. See [`gaps/README.md`](gaps/README.md)
+for the schema. Agent map: [`AGENTS.md`](AGENTS.md).
+
+Execution order and locked fix approaches live in
+[`gaps/CLUSTERS.md`](gaps/CLUSTERS.md) (queue only — not a second bug list).
+
+When the user says **run next cluster**, **run cluster \<id\>**, or **swarm gaps**,
+follow [`.agents/skills/fix-gap-cluster/SKILL.md`](.agents/skills/fix-gap-cluster/SKILL.md):
+explore → plan/todos → implement → simplify-pass → `./scripts/ci-local.sh` (full CI including
+Playwright E2E) → archive → **stop and wait for explicit commit/push**.
+
+## Rules
+
+- **New finding** → create `gaps/<id>.md` (skill: [`.agents/skills/file-gap/SKILL.md`](.agents/skills/file-gap/SKILL.md)). Never recreate `KNOWN_GAPS.md`, never
+  append to triage/candidates mega-lists as the living tracker.
+- **Filename** must equal frontmatter `id` (e.g. `auth.refresh-survives-relogin.md`).
+- **While fixing** → set `status: in_progress`; cite the gap `id` in commits/PRs.
+- **When fixed** → **move** to `gaps/archive/<id>.md`, set `status: fixed`, and
+  set `closed_in` to the fixing commit when known. Do not delete gap files.
+- **Defer / ops / wontfix** → keep the file in `gaps/`; change `status` only.
+- Audits or scratch notes are not SOT; promoting a finding requires a gap
+  file or an explicit discard note.
+- PRODUCT.md “Later” items are not gaps until they are broken paths **today**.
+- Discover open work with `gaps/*.md` (exclude `README.md`, `CLUSTERS.md`, and
+  `gaps/archive/`). Do not invent another hand-maintained bug index.

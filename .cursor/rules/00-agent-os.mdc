@@ -1,0 +1,30 @@
+---
+description: Buzz agent OS — SOTs, working norms, DoD, PRODUCT lock, commit stop
+alwaysApply: true
+---
+
+# Agent OS
+
+Read [`AGENTS.md`](AGENTS.md) for the full map. Follow it on every task.
+
+## Sources of truth (do not duplicate)
+
+- Behavior/UX → [`PRODUCT.md`](PRODUCT.md) (read relevant §§; do not copy into rules)
+- As-built system → [`ARCHITECTURE.md`](ARCHITECTURE.md)
+- Shortcomings → [`gaps/`](gaps/) + [`gaps/CLUSTERS.md`](gaps/CLUSTERS.md)
+- HTTP contract → [`openapi.json`](openapi.json)
+
+## Working norms (summary)
+
+Deep investigate before coding (proportional to risk). Evidence-driven; say when guessing. Clean UX + full correctness. File gaps for holes. Prefer **parallel subagents** for forked POVs — then **always verify** their findings against the codebase/PRODUCT before acting. Product/UX forks → stop and ask.
+
+## Definition of done (behavior changes)
+
+1. [`.agents/skills/simplify-pass/SKILL.md`](.agents/skills/simplify-pass/SKILL.md)
+2. `./scripts/ci-local.sh` green (includes Playwright E2E)
+3. **Stop** — no commit/push unless the user explicitly asks
+4. Stress E2E ×N only if asked
+
+## Hard stops (ask first)
+
+PRODUCT/UX/behavior changes · Railway/Meta/Resend mutations · un-parking parked gaps · secrets / `.cursor/mcp.json`
