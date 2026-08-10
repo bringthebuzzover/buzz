@@ -14,7 +14,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.deps.auth import CurrentOrg
 from app.deps.db import get_db
 from app.response import APIResponse, DataResponse, api_response
-from app.schemas.drops import DropApplyRequest, DropDetailResponse, DropFeedItem, NotifyRequest
+from app.schemas.acks import OkResponse
+from app.schemas.drops import (
+    ApplicationResponse,
+    DropApplyRequest,
+    DropDetailResponse,
+    DropFeedItem,
+    NotifyRequest,
+)
 from app.services.drops import (
     apply_to_drop,
     build_application_response,
@@ -56,7 +63,7 @@ async def get_drop(
     return api_response(data=await build_drop_detail(db, user, drop))
 
 
-@router.post("/{drop_id}/apply", response_model=APIResponse)
+@router.post("/{drop_id}/apply", response_model=DataResponse[ApplicationResponse])
 async def apply_drop(
     drop_id: uuid.UUID,
     payload: DropApplyRequest,
@@ -69,7 +76,7 @@ async def apply_drop(
     return api_response(data=await build_application_response(db, application))
 
 
-@router.post("/{drop_id}/notify", response_model=APIResponse)
+@router.post("/{drop_id}/notify", response_model=DataResponse[OkResponse])
 async def set_drop_notify(
     drop_id: uuid.UUID,
     payload: NotifyRequest,
@@ -79,10 +86,10 @@ async def set_drop_notify(
     """Set/replace the caller org's reminder for a drop."""
 
     await set_notify(db, user, drop_id, payload.reminder_minutes)
-    return api_response(data={"ok": True})
+    return api_response(data=OkResponse())
 
 
-@router.delete("/{drop_id}/notify", response_model=APIResponse)
+@router.delete("/{drop_id}/notify", response_model=DataResponse[OkResponse])
 async def clear_drop_notify(
     drop_id: uuid.UUID,
     user: CurrentOrg,
@@ -91,4 +98,4 @@ async def clear_drop_notify(
     """Remove the caller org's reminder for a drop (idempotent)."""
 
     await clear_notify(db, user, drop_id)
-    return api_response(data={"ok": True})
+    return api_response(data=OkResponse())

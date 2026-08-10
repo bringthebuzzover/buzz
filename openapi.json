@@ -33,6 +33,440 @@
         "title": "APIResponse",
         "type": "object"
       },
+      "AdminApplicantItem": {
+        "properties": {
+          "allocatedUnits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocatedunits"
+          },
+          "appliedAt": {
+            "title": "Appliedat",
+            "type": "integer"
+          },
+          "decision": {
+            "title": "Decision",
+            "type": "string"
+          },
+          "decisionAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionat"
+          },
+          "deliveryAddress": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveryaddress"
+          },
+          "followerCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followercount"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "instagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramhandle"
+          },
+          "linkedPostCount": {
+            "title": "Linkedpostcount",
+            "type": "integer"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "orgName": {
+            "title": "Orgname",
+            "type": "string"
+          },
+          "pitch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch"
+          },
+          "trackingNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trackingnumber"
+          },
+          "university": {
+            "title": "University",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "orgId",
+          "userId",
+          "orgName",
+          "university",
+          "instagramHandle",
+          "followerCount",
+          "deliveryAddress",
+          "decision",
+          "allocatedUnits",
+          "pitch",
+          "trackingNumber",
+          "linkedPostCount",
+          "appliedAt",
+          "decisionAt"
+        ],
+        "title": "AdminApplicantItem",
+        "type": "object"
+      },
+      "AdminApplicationTally": {
+        "properties": {
+          "accepted": {
+            "title": "Accepted",
+            "type": "integer"
+          },
+          "applied": {
+            "title": "Applied",
+            "type": "integer"
+          },
+          "denied": {
+            "title": "Denied",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "applied",
+          "accepted",
+          "denied"
+        ],
+        "title": "AdminApplicationTally",
+        "type": "object"
+      },
+      "AdminBrandDetail": {
+        "properties": {
+          "approvedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approvedat"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "companyEmail": {
+            "title": "Companyemail",
+            "type": "string"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "drops": {
+            "items": {
+              "$ref": "#/components/schemas/AdminDropItem"
+            },
+            "title": "Drops",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "impersonatable": {
+            "title": "Impersonatable",
+            "type": "boolean"
+          },
+          "instagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramhandle"
+          },
+          "intentMessage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intentmessage"
+          },
+          "invite": {
+            "$ref": "#/components/schemas/AdminInviteState"
+          },
+          "lastLoginAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastloginat"
+          },
+          "passwordSet": {
+            "title": "Passwordset",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          },
+          "userStatus": {
+            "title": "Userstatus",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "brandName",
+          "companyEmail",
+          "intentMessage",
+          "instagramHandle",
+          "status",
+          "userStatus",
+          "passwordSet",
+          "approvedAt",
+          "createdAt",
+          "lastLoginAt",
+          "impersonatable",
+          "invite",
+          "drops"
+        ],
+        "title": "AdminBrandDetail",
+        "type": "object"
+      },
+      "AdminBrandInviteResponse": {
+        "description": "Approve / create-with-approve / resend-invite (may include email_sent).",
+        "properties": {
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "emailSent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emailsent"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "brandId",
+          "status"
+        ],
+        "title": "AdminBrandInviteResponse",
+        "type": "object"
+      },
+      "AdminBrandItem": {
+        "description": "A row in ``GET /api/admin/brands``.\n\n``status`` (brand) and ``user_status`` disagree on purpose \u2014 see\n:func:`app.services.admin.list_brands`.",
+        "properties": {
+          "approvedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approvedat"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "companyEmail": {
+            "title": "Companyemail",
+            "type": "string"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "impersonatable": {
+            "title": "Impersonatable",
+            "type": "boolean"
+          },
+          "instagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramhandle"
+          },
+          "intentMessage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intentmessage"
+          },
+          "lastLoginAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastloginat"
+          },
+          "passwordSet": {
+            "title": "Passwordset",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          },
+          "userStatus": {
+            "title": "Userstatus",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "brandName",
+          "companyEmail",
+          "intentMessage",
+          "instagramHandle",
+          "status",
+          "userStatus",
+          "passwordSet",
+          "approvedAt",
+          "lastLoginAt",
+          "impersonatable",
+          "createdAt"
+        ],
+        "title": "AdminBrandItem",
+        "type": "object"
+      },
+      "AdminBrandStatusResponse": {
+        "properties": {
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "brandId",
+          "status"
+        ],
+        "title": "AdminBrandStatusResponse",
+        "type": "object"
+      },
       "AdminCreateBrandRequest": {
         "description": "Admin-provisioned brand (works when public self-reg is off).",
         "properties": {
@@ -146,6 +580,397 @@
         "title": "AdminDropConfigPatch",
         "type": "object"
       },
+      "AdminDropDetail": {
+        "properties": {
+          "allocatedUnits": {
+            "title": "Allocatedunits",
+            "type": "integer"
+          },
+          "applicants": {
+            "items": {
+              "$ref": "#/components/schemas/AdminApplicantItem"
+            },
+            "title": "Applicants",
+            "type": "array"
+          },
+          "applyCloseAt": {
+            "title": "Applycloseat",
+            "type": "integer"
+          },
+          "applyOpenAt": {
+            "title": "Applyopenat",
+            "type": "integer"
+          },
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "brandInstagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brandinstagramhandle"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "brandStatus": {
+            "title": "Brandstatus",
+            "type": "string"
+          },
+          "campaignHashtag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaignhashtag"
+          },
+          "capacityTotal": {
+            "title": "Capacitytotal",
+            "type": "integer"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "finalizedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizedat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "title": "Image",
+            "type": "string"
+          },
+          "linkedPostCount": {
+            "title": "Linkedpostcount",
+            "type": "integer"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "manualReopen": {
+            "title": "Manualreopen",
+            "type": "boolean"
+          },
+          "pendingSuggestionCount": {
+            "title": "Pendingsuggestioncount",
+            "type": "integer"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "totalProductUnits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totalproductunits"
+          },
+          "trackerEvents": {
+            "items": {
+              "$ref": "#/components/schemas/AdminTrackerEventItem"
+            },
+            "title": "Trackerevents",
+            "type": "array"
+          },
+          "trackingNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trackingnumber"
+          }
+        },
+        "required": [
+          "id",
+          "brandId",
+          "brandName",
+          "brandStatus",
+          "brandInstagramHandle",
+          "title",
+          "description",
+          "image",
+          "location",
+          "stage",
+          "capacityTotal",
+          "totalProductUnits",
+          "allocatedUnits",
+          "campaignHashtag",
+          "trackingNumber",
+          "manualReopen",
+          "applyOpenAt",
+          "applyCloseAt",
+          "finalizedAt",
+          "createdAt",
+          "linkedPostCount",
+          "pendingSuggestionCount",
+          "applicants",
+          "trackerEvents"
+        ],
+        "title": "AdminDropDetail",
+        "type": "object"
+      },
+      "AdminDropItem": {
+        "properties": {
+          "acceptedCount": {
+            "title": "Acceptedcount",
+            "type": "integer"
+          },
+          "appliedCount": {
+            "title": "Appliedcount",
+            "type": "integer"
+          },
+          "applyCloseAt": {
+            "title": "Applycloseat",
+            "type": "integer"
+          },
+          "applyOpenAt": {
+            "title": "Applyopenat",
+            "type": "integer"
+          },
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "brandStatus": {
+            "title": "Brandstatus",
+            "type": "string"
+          },
+          "campaignHashtag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaignhashtag"
+          },
+          "capacityTotal": {
+            "title": "Capacitytotal",
+            "type": "integer"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "finalizedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalizedat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "manualReopen": {
+            "title": "Manualreopen",
+            "type": "boolean"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "totalProductUnits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totalproductunits"
+          },
+          "trackingNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trackingnumber"
+          }
+        },
+        "required": [
+          "id",
+          "brandId",
+          "brandName",
+          "brandStatus",
+          "title",
+          "stage",
+          "capacityTotal",
+          "totalProductUnits",
+          "appliedCount",
+          "acceptedCount",
+          "applyOpenAt",
+          "applyCloseAt",
+          "manualReopen",
+          "trackingNumber",
+          "campaignHashtag",
+          "finalizedAt",
+          "createdAt"
+        ],
+        "title": "AdminDropItem",
+        "type": "object"
+      },
+      "AdminHealthResponse": {
+        "properties": {
+          "generatedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generatedat"
+          },
+          "instagramTokens": {
+            "items": {
+              "$ref": "#/components/schemas/AdminSignal"
+            },
+            "title": "Instagramtokens",
+            "type": "array"
+          },
+          "integrity": {
+            "items": {
+              "$ref": "#/components/schemas/AdminSignal"
+            },
+            "title": "Integrity",
+            "type": "array"
+          },
+          "pipeline": {
+            "items": {
+              "$ref": "#/components/schemas/AdminSignal"
+            },
+            "title": "Pipeline",
+            "type": "array"
+          },
+          "silent": {
+            "items": {
+              "$ref": "#/components/schemas/AdminSignal"
+            },
+            "title": "Silent",
+            "type": "array"
+          }
+        },
+        "required": [
+          "generatedAt",
+          "pipeline",
+          "instagramTokens",
+          "integrity",
+          "silent"
+        ],
+        "title": "AdminHealthResponse",
+        "type": "object"
+      },
+      "AdminInviteState": {
+        "description": "Latest brand invite token. ``used_at`` is ambiguous between redeemed and\nsuperseded, so read it alongside ``password_set``.",
+        "properties": {
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiresat"
+          },
+          "issuedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuedat"
+          },
+          "usedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usedat"
+          }
+        },
+        "required": [
+          "issuedAt",
+          "expiresAt",
+          "usedAt"
+        ],
+        "title": "AdminInviteState",
+        "type": "object"
+      },
       "AdminLoginRequest": {
         "description": "Admin email + password login (admins have no Instagram identity).",
         "properties": {
@@ -165,6 +990,986 @@
         "title": "AdminLoginRequest",
         "type": "object"
       },
+      "AdminOrgDetail": {
+        "properties": {
+          "applications": {
+            "$ref": "#/components/schemas/AdminApplicationTally"
+          },
+          "approvedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approvedat"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "contactName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactname"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "deliveryAddress": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveryaddress"
+          },
+          "eduEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eduemail"
+          },
+          "emailVerifiedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emailverifiedat"
+          },
+          "followerCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followercount"
+          },
+          "impersonatable": {
+            "title": "Impersonatable",
+            "type": "boolean"
+          },
+          "instagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramhandle"
+          },
+          "instagramTokenExpiresAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramtokenexpiresat"
+          },
+          "instagramTokenRefreshedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramtokenrefreshedat"
+          },
+          "instagramUsername": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramusername"
+          },
+          "lastLoginAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastloginat"
+          },
+          "linkedPostCount": {
+            "title": "Linkedpostcount",
+            "type": "integer"
+          },
+          "memberCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membercount"
+          },
+          "orgId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgid"
+          },
+          "orgName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgname"
+          },
+          "postCount": {
+            "title": "Postcount",
+            "type": "integer"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tiktokHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tiktokhandle"
+          },
+          "university": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "University"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/AdminVerificationState"
+          }
+        },
+        "required": [
+          "userId",
+          "orgId",
+          "status",
+          "orgName",
+          "university",
+          "category",
+          "instagramHandle",
+          "instagramUsername",
+          "tiktokHandle",
+          "followerCount",
+          "memberCount",
+          "city",
+          "state",
+          "contactName",
+          "deliveryAddress",
+          "eduEmail",
+          "emailVerifiedAt",
+          "approvedAt",
+          "createdAt",
+          "lastLoginAt",
+          "instagramTokenExpiresAt",
+          "instagramTokenRefreshedAt",
+          "impersonatable",
+          "applications",
+          "postCount",
+          "linkedPostCount",
+          "verification"
+        ],
+        "title": "AdminOrgDetail",
+        "type": "object"
+      },
+      "AdminOrgItem": {
+        "description": "A row in ``GET /api/admin/orgs``.\n\n``id`` (the ``organizations`` row) is nullable: ``pending_org_profile``\nusers have not created a profile yet.",
+        "properties": {
+          "approvedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approvedat"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "eduEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eduemail"
+          },
+          "emailVerifiedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emailverifiedat"
+          },
+          "followerCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followercount"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "impersonatable": {
+            "title": "Impersonatable",
+            "type": "boolean"
+          },
+          "instagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramhandle"
+          },
+          "instagramTokenExpiresAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramtokenexpiresat"
+          },
+          "lastLoginAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastloginat"
+          },
+          "memberCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membercount"
+          },
+          "orgName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgname"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "university": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "University"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "orgName",
+          "university",
+          "instagramHandle",
+          "followerCount",
+          "memberCount",
+          "category",
+          "status",
+          "eduEmail",
+          "emailVerifiedAt",
+          "approvedAt",
+          "lastLoginAt",
+          "instagramTokenExpiresAt",
+          "impersonatable",
+          "createdAt"
+        ],
+        "title": "AdminOrgItem",
+        "type": "object"
+      },
+      "AdminOrgStatusResponse": {
+        "properties": {
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "orgId",
+          "status"
+        ],
+        "title": "AdminOrgStatusResponse",
+        "type": "object"
+      },
+      "AdminOverviewResponse": {
+        "properties": {
+          "generatedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generatedat"
+          },
+          "queues": {
+            "items": {
+              "$ref": "#/components/schemas/AdminQueueItem"
+            },
+            "title": "Queues",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/AdminWarningItem"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "generatedAt",
+          "queues",
+          "warnings"
+        ],
+        "title": "AdminOverviewResponse",
+        "type": "object"
+      },
+      "AdminPendingBrandItem": {
+        "properties": {
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "companyEmail": {
+            "title": "Companyemail",
+            "type": "string"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "instagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramhandle"
+          },
+          "intentMessage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intentmessage"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "brandName",
+          "companyEmail",
+          "intentMessage",
+          "instagramHandle",
+          "status",
+          "createdAt"
+        ],
+        "title": "AdminPendingBrandItem",
+        "type": "object"
+      },
+      "AdminPendingOrgItem": {
+        "properties": {
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "followerCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followercount"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "instagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramhandle"
+          },
+          "memberCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membercount"
+          },
+          "orgName": {
+            "title": "Orgname",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "university": {
+            "title": "University",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "orgName",
+          "university",
+          "instagramHandle",
+          "followerCount",
+          "memberCount",
+          "status",
+          "createdAt"
+        ],
+        "title": "AdminPendingOrgItem",
+        "type": "object"
+      },
+      "AdminQueueItem": {
+        "description": "One action-required queue. ``oldest_at`` is what makes a count\nactionable \u2014 three items sitting nine days is not three from this morning.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "oldestAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldestat"
+          }
+        },
+        "required": [
+          "key",
+          "count",
+          "oldestAt"
+        ],
+        "title": "AdminQueueItem",
+        "type": "object"
+      },
+      "AdminSignal": {
+        "description": "One health signal. ``ok`` means \"nothing to act on\", which for most\nsignals is a zero count but not for the informational token buckets.",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "count",
+          "ok"
+        ],
+        "title": "AdminSignal",
+        "type": "object"
+      },
+      "AdminTrackerEventItem": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "occurredAt": {
+            "title": "Occurredat",
+            "type": "integer"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "stage",
+          "note",
+          "occurredAt"
+        ],
+        "title": "AdminTrackerEventItem",
+        "type": "object"
+      },
+      "AdminUserItem": {
+        "description": "A row in the ``/api/admin/users`` impersonation picker.",
+        "properties": {
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "displayName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Displayname"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "impersonatable": {
+            "title": "Impersonatable",
+            "type": "boolean"
+          },
+          "instagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramhandle"
+          },
+          "portalRole": {
+            "title": "Portalrole",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "portalRole",
+          "status",
+          "displayName",
+          "email",
+          "instagramHandle",
+          "impersonatable",
+          "createdAt"
+        ],
+        "title": "AdminUserItem",
+        "type": "object"
+      },
+      "AdminVerificationState": {
+        "properties": {
+          "latestExpiresAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latestexpiresat"
+          },
+          "latestUsedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latestusedat"
+          },
+          "liveTokenCount": {
+            "title": "Livetokencount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "liveTokenCount",
+          "latestExpiresAt",
+          "latestUsedAt"
+        ],
+        "title": "AdminVerificationState",
+        "type": "object"
+      },
+      "AdminWarningItem": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "count"
+        ],
+        "title": "AdminWarningItem",
+        "type": "object"
+      },
+      "ApplicationResponse": {
+        "description": "A ``drop_applications`` row (architecture \u00a73.1) returned on apply.",
+        "properties": {
+          "allocatedUnits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocatedunits"
+          },
+          "appliedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appliedat"
+          },
+          "decision": {
+            "title": "Decision",
+            "type": "string"
+          },
+          "decisionAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionat"
+          },
+          "dropId": {
+            "format": "uuid",
+            "title": "Dropid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "pitch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch"
+          },
+          "trackingNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trackingnumber"
+          }
+        },
+        "required": [
+          "id",
+          "dropId",
+          "orgId",
+          "decision",
+          "pitch",
+          "trackingNumber",
+          "allocatedUnits",
+          "appliedAt",
+          "decisionAt"
+        ],
+        "title": "ApplicationResponse",
+        "type": "object"
+      },
       "Body_instagram_deauthorize_api_auth_instagram_deauthorize_post": {
         "properties": {
           "signed_request": {
@@ -174,6 +1979,55 @@
           }
         },
         "title": "Body_instagram_deauthorize_api_auth_instagram_deauthorize_post",
+        "type": "object"
+      },
+      "BrandAggregateResponse": {
+        "description": "Aggregate metrics for a brand (\u00a78.1).",
+        "properties": {
+          "totalCampuses": {
+            "title": "Totalcampuses",
+            "type": "integer"
+          },
+          "totalComments": {
+            "title": "Totalcomments",
+            "type": "integer"
+          },
+          "totalDrops": {
+            "title": "Totaldrops",
+            "type": "integer"
+          },
+          "totalEngagement": {
+            "title": "Totalengagement",
+            "type": "integer"
+          },
+          "totalLikes": {
+            "title": "Totallikes",
+            "type": "integer"
+          },
+          "totalOrgs": {
+            "title": "Totalorgs",
+            "type": "integer"
+          },
+          "totalPosts": {
+            "title": "Totalposts",
+            "type": "integer"
+          },
+          "totalReach": {
+            "title": "Totalreach",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "totalDrops",
+          "totalPosts",
+          "totalLikes",
+          "totalComments",
+          "totalEngagement",
+          "totalReach",
+          "totalOrgs",
+          "totalCampuses"
+        ],
+        "title": "BrandAggregateResponse",
         "type": "object"
       },
       "BrandApplyRequest": {
@@ -217,6 +2071,25 @@
         "title": "BrandApplyRequest",
         "type": "object"
       },
+      "BrandApplyResponse": {
+        "properties": {
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "brandId",
+          "status"
+        ],
+        "title": "BrandApplyResponse",
+        "type": "object"
+      },
       "BrandDropCreateRequest": {
         "description": "Body for ``POST /api/brands/me/drops`` (architecture \u00a78.4).",
         "properties": {
@@ -234,6 +2107,683 @@
           "description"
         ],
         "title": "BrandDropCreateRequest",
+        "type": "object"
+      },
+      "BrandDropDetailApplicant": {
+        "description": "One applicant row in the brand drop detail view (\u00a78.2).",
+        "properties": {
+          "allocatedUnits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocatedunits"
+          },
+          "appliedAt": {
+            "title": "Appliedat",
+            "type": "integer"
+          },
+          "attributedComments": {
+            "title": "Attributedcomments",
+            "type": "integer"
+          },
+          "attributedEngagement": {
+            "title": "Attributedengagement",
+            "type": "integer"
+          },
+          "attributedLikes": {
+            "title": "Attributedlikes",
+            "type": "integer"
+          },
+          "attributedPostCount": {
+            "title": "Attributedpostcount",
+            "type": "integer"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "decision": {
+            "title": "Decision",
+            "type": "string"
+          },
+          "decisionAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionat"
+          },
+          "deliveryAddress": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveryaddress"
+          },
+          "dropId": {
+            "format": "uuid",
+            "title": "Dropid",
+            "type": "string"
+          },
+          "followerCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followercount"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "instagramHandle": {
+            "title": "Instagramhandle",
+            "type": "string"
+          },
+          "memberCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membercount"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "orgName": {
+            "title": "Orgname",
+            "type": "string"
+          },
+          "pitch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch"
+          },
+          "posts": {
+            "items": {
+              "$ref": "#/components/schemas/BrandDropPostItem"
+            },
+            "title": "Posts",
+            "type": "array"
+          },
+          "trackingNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trackingnumber"
+          },
+          "university": {
+            "title": "University",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "dropId",
+          "orgId",
+          "decision",
+          "pitch",
+          "trackingNumber",
+          "allocatedUnits",
+          "appliedAt",
+          "decisionAt",
+          "orgName",
+          "university",
+          "instagramHandle",
+          "followerCount",
+          "memberCount",
+          "category",
+          "deliveryAddress",
+          "attributedPostCount",
+          "attributedLikes",
+          "attributedComments",
+          "attributedEngagement",
+          "posts"
+        ],
+        "title": "BrandDropDetailApplicant",
+        "type": "object"
+      },
+      "BrandDropDetailResponse": {
+        "description": "Full drop detail for the brand portal (\u00a78.2).",
+        "properties": {
+          "applicantSelectionFinalizedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applicantselectionfinalizedat"
+          },
+          "applications": {
+            "items": {
+              "$ref": "#/components/schemas/BrandDropDetailApplicant"
+            },
+            "title": "Applications",
+            "type": "array"
+          },
+          "applyCloseAt": {
+            "title": "Applycloseat",
+            "type": "integer"
+          },
+          "applyOpenAt": {
+            "title": "Applyopenat",
+            "type": "integer"
+          },
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "brandTrackerStage": {
+            "title": "Brandtrackerstage",
+            "type": "string"
+          },
+          "campaignHashtag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaignhashtag"
+          },
+          "capacityTotal": {
+            "title": "Capacitytotal",
+            "type": "integer"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "title": "Image",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "manualReopen": {
+            "title": "Manualreopen",
+            "type": "boolean"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "totalComments": {
+            "title": "Totalcomments",
+            "type": "integer"
+          },
+          "totalEngagement": {
+            "title": "Totalengagement",
+            "type": "integer"
+          },
+          "totalLikes": {
+            "title": "Totallikes",
+            "type": "integer"
+          },
+          "totalPosts": {
+            "title": "Totalposts",
+            "type": "integer"
+          },
+          "totalProductUnits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totalproductunits"
+          },
+          "totalReach": {
+            "title": "Totalreach",
+            "type": "integer"
+          },
+          "trackingNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trackingnumber"
+          }
+        },
+        "required": [
+          "id",
+          "brandId",
+          "brandName",
+          "title",
+          "description",
+          "image",
+          "location",
+          "capacityTotal",
+          "applyOpenAt",
+          "applyCloseAt",
+          "manualReopen",
+          "brandTrackerStage",
+          "totalProductUnits",
+          "campaignHashtag",
+          "applicantSelectionFinalizedAt",
+          "createdAt",
+          "trackingNumber",
+          "applications",
+          "totalPosts",
+          "totalLikes",
+          "totalComments",
+          "totalEngagement",
+          "totalReach"
+        ],
+        "title": "BrandDropDetailResponse",
+        "type": "object"
+      },
+      "BrandDropListItem": {
+        "description": "One drop in ``GET /api/brands/me/drops`` with per-drop aggregate fields.",
+        "properties": {
+          "applicantSelectionFinalizedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applicantselectionfinalizedat"
+          },
+          "applyCloseAt": {
+            "title": "Applycloseat",
+            "type": "integer"
+          },
+          "applyOpenAt": {
+            "title": "Applyopenat",
+            "type": "integer"
+          },
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "brandTrackerStage": {
+            "title": "Brandtrackerstage",
+            "type": "string"
+          },
+          "campaignHashtag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaignhashtag"
+          },
+          "capacityTotal": {
+            "title": "Capacitytotal",
+            "type": "integer"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "title": "Image",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "manualReopen": {
+            "title": "Manualreopen",
+            "type": "boolean"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "totalComments": {
+            "title": "Totalcomments",
+            "type": "integer"
+          },
+          "totalEngagement": {
+            "title": "Totalengagement",
+            "type": "integer"
+          },
+          "totalLikes": {
+            "title": "Totallikes",
+            "type": "integer"
+          },
+          "totalPosts": {
+            "title": "Totalposts",
+            "type": "integer"
+          },
+          "totalProductUnits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totalproductunits"
+          },
+          "totalReach": {
+            "title": "Totalreach",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "brandId",
+          "brandName",
+          "title",
+          "description",
+          "image",
+          "location",
+          "capacityTotal",
+          "applyOpenAt",
+          "applyCloseAt",
+          "manualReopen",
+          "brandTrackerStage",
+          "totalProductUnits",
+          "campaignHashtag",
+          "applicantSelectionFinalizedAt",
+          "createdAt",
+          "totalPosts",
+          "totalLikes",
+          "totalComments",
+          "totalEngagement",
+          "totalReach"
+        ],
+        "title": "BrandDropListItem",
+        "type": "object"
+      },
+      "BrandDropPostItem": {
+        "description": "One linked social post under an applicant (brand per-drop view, \u00a75.3.1).\n\nThe brand sees individual posts grouped by org (not just the per-org\nroll-up) so it can preview/attribute each contribution.",
+        "properties": {
+          "caption": {
+            "title": "Caption",
+            "type": "string"
+          },
+          "comments": {
+            "title": "Comments",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "likes": {
+            "title": "Likes",
+            "type": "integer"
+          },
+          "mediaProductType": {
+            "title": "Mediaproducttype",
+            "type": "string"
+          },
+          "mediaType": {
+            "title": "Mediatype",
+            "type": "string"
+          },
+          "mediaUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mediaurl"
+          },
+          "postedAt": {
+            "title": "Postedat",
+            "type": "integer"
+          },
+          "thumbnailUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnailurl"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "mediaUrl",
+          "thumbnailUrl",
+          "caption",
+          "mediaType",
+          "mediaProductType",
+          "postedAt",
+          "likes",
+          "comments"
+        ],
+        "title": "BrandDropPostItem",
+        "type": "object"
+      },
+      "BrandDropResponse": {
+        "description": "A drop as returned to the brand portal (architecture \u00a78.4).",
+        "properties": {
+          "applicantSelectionFinalizedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applicantselectionfinalizedat"
+          },
+          "applyCloseAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applycloseat"
+          },
+          "applyOpenAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applyopenat"
+          },
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "brandTrackerStage": {
+            "title": "Brandtrackerstage",
+            "type": "string"
+          },
+          "campaignHashtag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaignhashtag"
+          },
+          "capacityTotal": {
+            "title": "Capacitytotal",
+            "type": "integer"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "title": "Image",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "manualReopen": {
+            "title": "Manualreopen",
+            "type": "boolean"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "totalProductUnits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totalproductunits"
+          }
+        },
+        "required": [
+          "id",
+          "brandId",
+          "brandName",
+          "title",
+          "description",
+          "image",
+          "location",
+          "capacityTotal",
+          "applyOpenAt",
+          "applyCloseAt",
+          "manualReopen",
+          "brandTrackerStage",
+          "totalProductUnits",
+          "campaignHashtag",
+          "applicantSelectionFinalizedAt",
+          "createdAt"
+        ],
+        "title": "BrandDropResponse",
         "type": "object"
       },
       "BrandLoginRequest": {
@@ -278,15 +2828,8 @@
             "type": "string"
           },
           "createdAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Createdat"
+            "title": "Createdat",
+            "type": "integer"
           },
           "id": {
             "format": "uuid",
@@ -352,6 +2895,283 @@
         "title": "BrandSetPasswordRequest",
         "type": "object"
       },
+      "CampaignAggregateResponse": {
+        "description": "Per-campaign rollup (ports ``computeCampaignAggregate``, architecture \u00a77.3).\n\n``engagement = likes + comments``; ``estimated_reach`` is the org's follower\ncount (v1 reach approximation).",
+        "properties": {
+          "comments": {
+            "title": "Comments",
+            "type": "integer"
+          },
+          "engagement": {
+            "title": "Engagement",
+            "type": "integer"
+          },
+          "estimatedReach": {
+            "title": "Estimatedreach",
+            "type": "integer"
+          },
+          "likes": {
+            "title": "Likes",
+            "type": "integer"
+          },
+          "postCount": {
+            "title": "Postcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "postCount",
+          "likes",
+          "comments",
+          "engagement",
+          "estimatedReach"
+        ],
+        "title": "CampaignAggregateResponse",
+        "type": "object"
+      },
+      "CampaignDetailResponse": {
+        "description": "``GET /api/campaigns/{id}`` \u2014 full application joined with the drop.",
+        "properties": {
+          "allocatedUnits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocatedunits"
+          },
+          "appliedAt": {
+            "title": "Appliedat",
+            "type": "integer"
+          },
+          "applyCloseAt": {
+            "title": "Applycloseat",
+            "type": "integer"
+          },
+          "applyOpenAt": {
+            "title": "Applyopenat",
+            "type": "integer"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "brandTrackerStage": {
+            "title": "Brandtrackerstage",
+            "type": "string"
+          },
+          "capacityTotal": {
+            "title": "Capacitytotal",
+            "type": "integer"
+          },
+          "decision": {
+            "title": "Decision",
+            "type": "string"
+          },
+          "decisionAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionat"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "dropId": {
+            "format": "uuid",
+            "title": "Dropid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "title": "Image",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "pitch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "totalProductUnits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totalproductunits"
+          },
+          "trackingNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trackingnumber"
+          }
+        },
+        "required": [
+          "id",
+          "dropId",
+          "orgId",
+          "decision",
+          "pitch",
+          "trackingNumber",
+          "allocatedUnits",
+          "appliedAt",
+          "decisionAt",
+          "title",
+          "description",
+          "brandName",
+          "image",
+          "brandTrackerStage",
+          "applyOpenAt",
+          "applyCloseAt",
+          "capacityTotal",
+          "totalProductUnits"
+        ],
+        "title": "CampaignDetailResponse",
+        "type": "object"
+      },
+      "CampaignListItem": {
+        "description": "One row of ``GET /api/campaigns`` (application + joined drop fields).",
+        "properties": {
+          "allocatedUnits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocatedunits"
+          },
+          "appliedAt": {
+            "title": "Appliedat",
+            "type": "integer"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "brandTrackerStage": {
+            "title": "Brandtrackerstage",
+            "type": "string"
+          },
+          "decision": {
+            "title": "Decision",
+            "type": "string"
+          },
+          "decisionAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionat"
+          },
+          "dropId": {
+            "format": "uuid",
+            "title": "Dropid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "title": "Image",
+            "type": "string"
+          },
+          "pitch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "trackingNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trackingnumber"
+          }
+        },
+        "required": [
+          "id",
+          "dropId",
+          "decision",
+          "pitch",
+          "trackingNumber",
+          "allocatedUnits",
+          "appliedAt",
+          "decisionAt",
+          "title",
+          "brandName",
+          "brandTrackerStage",
+          "image"
+        ],
+        "title": "CampaignListItem",
+        "type": "object"
+      },
       "ChangeEduEmailRequest": {
         "description": "Correct a typo'd .edu while still awaiting verification.",
         "properties": {
@@ -364,6 +3184,537 @@
           "eduEmail"
         ],
         "title": "ChangeEduEmailRequest",
+        "type": "object"
+      },
+      "ChangeEduEmailResponse": {
+        "properties": {
+          "emailSentTo": {
+            "title": "Emailsentto",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "emailSentTo",
+          "status"
+        ],
+        "title": "ChangeEduEmailResponse",
+        "type": "object"
+      },
+      "ClearInstagramTokenResponse": {
+        "properties": {
+          "instagramTokenCleared": {
+            "title": "Instagramtokencleared",
+            "type": "boolean"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "instagramTokenCleared"
+        ],
+        "title": "ClearInstagramTokenResponse",
+        "type": "object"
+      },
+      "DataResponse_AdminBrandDetail_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminBrandDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminBrandDetail]",
+        "type": "object"
+      },
+      "DataResponse_AdminBrandInviteResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminBrandInviteResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminBrandInviteResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminBrandStatusResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminBrandStatusResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminBrandStatusResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminDropDetail_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminDropDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminDropDetail]",
+        "type": "object"
+      },
+      "DataResponse_AdminHealthResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminHealthResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminHealthResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminOrgDetail_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminOrgDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminOrgDetail]",
+        "type": "object"
+      },
+      "DataResponse_AdminOrgStatusResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminOrgStatusResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminOrgStatusResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminOverviewResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminOverviewResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminOverviewResponse]",
+        "type": "object"
+      },
+      "DataResponse_ApplicationResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApplicationResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[ApplicationResponse]",
+        "type": "object"
+      },
+      "DataResponse_BrandAggregateResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandAggregateResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[BrandAggregateResponse]",
+        "type": "object"
+      },
+      "DataResponse_BrandApplyResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandApplyResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[BrandApplyResponse]",
+        "type": "object"
+      },
+      "DataResponse_BrandDropDetailResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandDropDetailResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[BrandDropDetailResponse]",
+        "type": "object"
+      },
+      "DataResponse_BrandDropResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandDropResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[BrandDropResponse]",
         "type": "object"
       },
       "DataResponse_BrandProfileResponse_": {
@@ -404,6 +3755,158 @@
         "title": "DataResponse[BrandProfileResponse]",
         "type": "object"
       },
+      "DataResponse_CampaignAggregateResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CampaignAggregateResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[CampaignAggregateResponse]",
+        "type": "object"
+      },
+      "DataResponse_CampaignDetailResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CampaignDetailResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[CampaignDetailResponse]",
+        "type": "object"
+      },
+      "DataResponse_ChangeEduEmailResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChangeEduEmailResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[ChangeEduEmailResponse]",
+        "type": "object"
+      },
+      "DataResponse_ClearInstagramTokenResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClearInstagramTokenResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[ClearInstagramTokenResponse]",
+        "type": "object"
+      },
       "DataResponse_DropDetailResponse_": {
         "properties": {
           "data": {
@@ -440,6 +3943,988 @@
           }
         },
         "title": "DataResponse[DropDetailResponse]",
+        "type": "object"
+      },
+      "DataResponse_DropReopenResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DropReopenResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[DropReopenResponse]",
+        "type": "object"
+      },
+      "DataResponse_DropTrackingResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DropTrackingResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[DropTrackingResponse]",
+        "type": "object"
+      },
+      "DataResponse_FinalizeApplicantsResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FinalizeApplicantsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[FinalizeApplicantsResponse]",
+        "type": "object"
+      },
+      "DataResponse_HealthStatusResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HealthStatusResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[HealthStatusResponse]",
+        "type": "object"
+      },
+      "DataResponse_ImpersonateResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImpersonateResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[ImpersonateResponse]",
+        "type": "object"
+      },
+      "DataResponse_InstagramDeauthorizeResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstagramDeauthorizeResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[InstagramDeauthorizeResponse]",
+        "type": "object"
+      },
+      "DataResponse_OkResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OkResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[OkResponse]",
+        "type": "object"
+      },
+      "DataResponse_OrgOnboardingResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgOnboardingResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[OrgOnboardingResponse]",
+        "type": "object"
+      },
+      "DataResponse_OrgProfileResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgProfileResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[OrgProfileResponse]",
+        "type": "object"
+      },
+      "DataResponse_PostResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PostResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[PostResponse]",
+        "type": "object"
+      },
+      "DataResponse_PublicConfigResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicConfigResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[PublicConfigResponse]",
+        "type": "object"
+      },
+      "DataResponse_RefreshResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RefreshResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[RefreshResponse]",
+        "type": "object"
+      },
+      "DataResponse_ResendVerificationResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResendVerificationResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[ResendVerificationResponse]",
+        "type": "object"
+      },
+      "DataResponse_TokenResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TokenResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[TokenResponse]",
+        "type": "object"
+      },
+      "DataResponse_TrackerAdvanceResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrackerAdvanceResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[TrackerAdvanceResponse]",
+        "type": "object"
+      },
+      "DataResponse_UserResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[UserResponse]",
+        "type": "object"
+      },
+      "DataResponse_VerifyEmailResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VerifyEmailResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[VerifyEmailResponse]",
+        "type": "object"
+      },
+      "DataResponse_list_AdminBrandItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminBrandItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[AdminBrandItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_AdminDropItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminDropItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[AdminDropItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_AdminOrgItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminOrgItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[AdminOrgItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_AdminPendingBrandItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminPendingBrandItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[AdminPendingBrandItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_AdminPendingOrgItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminPendingOrgItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[AdminPendingOrgItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_AdminUserItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminUserItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[AdminUserItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_BrandDropListItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/BrandDropListItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[BrandDropListItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_CampaignListItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/CampaignListItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[CampaignListItem]]",
         "type": "object"
       },
       "DataResponse_list_DropFeedItem__": {
@@ -482,6 +4967,132 @@
           }
         },
         "title": "DataResponse[list[DropFeedItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_EngagementSeriesPoint__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EngagementSeriesPoint"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[EngagementSeriesPoint]]",
+        "type": "object"
+      },
+      "DataResponse_list_PostResponse__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PostResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[PostResponse]]",
+        "type": "object"
+      },
+      "DataResponse_list_SuggestionResponse__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SuggestionResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[SuggestionResponse]]",
         "type": "object"
       },
       "DevLoginRequest": {
@@ -753,6 +5364,70 @@
         "title": "DropFeedItem",
         "type": "object"
       },
+      "DropReopenResponse": {
+        "properties": {
+          "dropId": {
+            "format": "uuid",
+            "title": "Dropid",
+            "type": "string"
+          },
+          "manualReopen": {
+            "title": "Manualreopen",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "dropId",
+          "manualReopen"
+        ],
+        "title": "DropReopenResponse",
+        "type": "object"
+      },
+      "DropTrackingResponse": {
+        "properties": {
+          "dropId": {
+            "format": "uuid",
+            "title": "Dropid",
+            "type": "string"
+          },
+          "trackingNumber": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trackingnumber"
+          }
+        },
+        "required": [
+          "dropId",
+          "trackingNumber"
+        ],
+        "title": "DropTrackingResponse",
+        "type": "object"
+      },
+      "EngagementSeriesPoint": {
+        "description": "One bucket in the engagement time series (\u00a78.1).",
+        "properties": {
+          "engagement": {
+            "title": "Engagement",
+            "type": "integer"
+          },
+          "timestamp": {
+            "title": "Timestamp",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "timestamp",
+          "engagement"
+        ],
+        "title": "EngagementSeriesPoint",
+        "type": "object"
+      },
       "ErrorDetail": {
         "description": "Machine-readable error payload returned in `APIResponse.error`.",
         "properties": {
@@ -821,6 +5496,29 @@
         "title": "FinalizeApplicantsRequest",
         "type": "object"
       },
+      "FinalizeApplicantsResponse": {
+        "properties": {
+          "acceptedCount": {
+            "title": "Acceptedcount",
+            "type": "integer"
+          },
+          "deniedCount": {
+            "title": "Deniedcount",
+            "type": "integer"
+          },
+          "finalizedCount": {
+            "title": "Finalizedcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "finalizedCount",
+          "acceptedCount",
+          "deniedCount"
+        ],
+        "title": "FinalizeApplicantsResponse",
+        "type": "object"
+      },
       "ForgotPasswordRequest": {
         "description": "Enumerate-safe password-reset request (brand or admin).",
         "properties": {
@@ -833,6 +5531,52 @@
           "email"
         ],
         "title": "ForgotPasswordRequest",
+        "type": "object"
+      },
+      "HealthStatusResponse": {
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version"
+        ],
+        "title": "HealthStatusResponse",
+        "type": "object"
+      },
+      "ImpersonateResponse": {
+        "description": "Result of ``POST /api/admin/impersonate/{user_id}``.\n\nAccess token only \u2014 no refresh cookie is set, so the admin's own session\nsurvives and \"Exit impersonation\" is a pure client-side drop.",
+        "properties": {
+          "accessToken": {
+            "title": "Accesstoken",
+            "type": "string"
+          },
+          "readonly": {
+            "title": "Readonly",
+            "type": "boolean"
+          },
+          "tokenType": {
+            "default": "bearer",
+            "title": "Tokentype",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        },
+        "required": [
+          "accessToken",
+          "user",
+          "readonly"
+        ],
+        "title": "ImpersonateResponse",
         "type": "object"
       },
       "InstagramCallbackRequest": {
@@ -852,6 +5596,36 @@
           "state"
         ],
         "title": "InstagramCallbackRequest",
+        "type": "object"
+      },
+      "InstagramDeauthorizeResponse": {
+        "description": "Meta deauthorize webhook ack. ``reason`` set on acknowledged no-ops.",
+        "properties": {
+          "ok": {
+            "default": true,
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "revoked": {
+            "title": "Revoked",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "revoked"
+        ],
+        "title": "InstagramDeauthorizeResponse",
         "type": "object"
       },
       "LinkPostRequest": {
@@ -881,6 +5655,18 @@
           "reminderMinutes"
         ],
         "title": "NotifyRequest",
+        "type": "object"
+      },
+      "OkResponse": {
+        "description": "Generic success ack (logout, notify, unlink, dismiss, password flows).",
+        "properties": {
+          "ok": {
+            "default": true,
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "title": "OkResponse",
         "type": "object"
       },
       "OrgCategory": {
@@ -1008,6 +5794,190 @@
         "title": "OrgOnboardingRequest",
         "type": "object"
       },
+      "OrgOnboardingResponse": {
+        "properties": {
+          "emailSent": {
+            "title": "Emailsent",
+            "type": "boolean"
+          },
+          "emailSentTo": {
+            "title": "Emailsentto",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "orgId",
+          "status",
+          "emailSentTo",
+          "emailSent"
+        ],
+        "title": "OrgOnboardingResponse",
+        "type": "object"
+      },
+      "OrgProfileResponse": {
+        "description": "Org profile wire shape. ``edu_email`` / ``instagram_handle`` come from ``users``.",
+        "properties": {
+          "approvedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approvedat"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "contactName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactname"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "deliveryAddress": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveryaddress"
+          },
+          "eduEmail": {
+            "title": "Eduemail",
+            "type": "string"
+          },
+          "followerCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followercount"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "instagramHandle": {
+            "title": "Instagramhandle",
+            "type": "string"
+          },
+          "memberCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membercount"
+          },
+          "orgName": {
+            "title": "Orgname",
+            "type": "string"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "tiktokHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tiktokhandle"
+          },
+          "university": {
+            "title": "University",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "orgName",
+          "university",
+          "eduEmail",
+          "instagramHandle",
+          "tiktokHandle",
+          "followerCount",
+          "memberCount",
+          "category",
+          "city",
+          "state",
+          "contactName",
+          "deliveryAddress",
+          "approvedAt",
+          "createdAt"
+        ],
+        "title": "OrgProfileResponse",
+        "type": "object"
+      },
       "OrgProfileUpdate": {
         "additionalProperties": false,
         "description": "Editable subset of the org profile (all optional; PATCH semantics).\n\nOnly provided fields are applied (``model_dump(exclude_unset=True)``).\n``edu_email`` and ``instagram_handle`` are intentionally absent \u2014 edu is\nthe verified login identity; the IG handle mirrors the OAuth username and\nis not separately choosable.\n``extra=\"forbid\"`` so an unknown/typo'd key (or an attempt to send\n``eduEmail`` / ``instagramHandle``) is a 422 rather than a silently-ignored\nno-op write.",
@@ -1125,10 +6095,345 @@
         "title": "OrgProfileUpdate",
         "type": "object"
       },
+      "PostResponse": {
+        "description": "One of the caller org's social posts (architecture \u00a77.4.2).\n\n``linked_application_id`` / ``linked_drop_id`` are the one-post-one-campaign\nindicator: non-null when the post is already attributed to a campaign (the\nfrontend disables the checkbox / shows \"Linked to another campaign\").",
+        "properties": {
+          "caption": {
+            "title": "Caption",
+            "type": "string"
+          },
+          "comments": {
+            "title": "Comments",
+            "type": "integer"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "externalId": {
+            "title": "Externalid",
+            "type": "string"
+          },
+          "follows": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follows"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "igReelsAvgWatchTime": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Igreelsavgwatchtime"
+          },
+          "igReelsVideoViewTotalTime": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Igreelsvideoviewtotaltime"
+          },
+          "likes": {
+            "title": "Likes",
+            "type": "integer"
+          },
+          "linkedApplicationId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linkedapplicationid"
+          },
+          "linkedDropId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linkeddropid"
+          },
+          "mediaProductType": {
+            "title": "Mediaproducttype",
+            "type": "string"
+          },
+          "mediaType": {
+            "title": "Mediatype",
+            "type": "string"
+          },
+          "mediaUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mediaurl"
+          },
+          "metricsUpdatedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metricsupdatedat"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
+          "postedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postedat"
+          },
+          "profileActivity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profileactivity"
+          },
+          "profileVisits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profilevisits"
+          },
+          "reach": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reach"
+          },
+          "reelsSkipRate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reelsskiprate"
+          },
+          "reposts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reposts"
+          },
+          "saved": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saved"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
+          },
+          "thumbnailUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnailurl"
+          },
+          "totalInteractions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totalinteractions"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "views": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Views"
+          }
+        },
+        "required": [
+          "id",
+          "orgId",
+          "platform",
+          "externalId",
+          "url",
+          "mediaUrl",
+          "thumbnailUrl",
+          "caption",
+          "mediaType",
+          "mediaProductType",
+          "postedAt",
+          "likes",
+          "comments",
+          "reach",
+          "views",
+          "saved",
+          "shares",
+          "reposts",
+          "totalInteractions",
+          "profileVisits",
+          "profileActivity",
+          "follows",
+          "igReelsAvgWatchTime",
+          "igReelsVideoViewTotalTime",
+          "reelsSkipRate",
+          "metricsUpdatedAt",
+          "createdAt"
+        ],
+        "title": "PostResponse",
+        "type": "object"
+      },
+      "PublicConfigResponse": {
+        "properties": {
+          "brandSelfRegistrationEnabled": {
+            "title": "Brandselfregistrationenabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "brandSelfRegistrationEnabled"
+        ],
+        "title": "PublicConfigResponse",
+        "type": "object"
+      },
+      "RefreshResponse": {
+        "description": "Result of a successful ``POST /api/auth/refresh``.",
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "token_type": {
+            "const": "bearer",
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token"
+        ],
+        "title": "RefreshResponse",
+        "type": "object"
+      },
       "ResendVerificationRequest": {
         "description": "Re-send the verification email (rate-limited).",
         "properties": {},
         "title": "ResendVerificationRequest",
+        "type": "object"
+      },
+      "ResendVerificationResponse": {
+        "properties": {
+          "emailSentTo": {
+            "title": "Emailsentto",
+            "type": "string"
+          }
+        },
+        "required": [
+          "emailSentTo"
+        ],
+        "title": "ResendVerificationResponse",
         "type": "object"
       },
       "ResetPasswordRequest": {
@@ -1148,6 +6453,99 @@
           "password"
         ],
         "title": "ResetPasswordRequest",
+        "type": "object"
+      },
+      "SuggestionResponse": {
+        "description": "A pending auto-link suggestion joined with its post (architecture \u00a77.4.1).",
+        "properties": {
+          "caption": {
+            "title": "Caption",
+            "type": "string"
+          },
+          "comments": {
+            "title": "Comments",
+            "type": "integer"
+          },
+          "likes": {
+            "title": "Likes",
+            "type": "integer"
+          },
+          "matchEvidence": {
+            "title": "Matchevidence",
+            "type": "string"
+          },
+          "matchReason": {
+            "title": "Matchreason",
+            "type": "string"
+          },
+          "postId": {
+            "format": "uuid",
+            "title": "Postid",
+            "type": "string"
+          },
+          "postedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postedat"
+          },
+          "thumbnailUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnailurl"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "postId",
+          "url",
+          "thumbnailUrl",
+          "caption",
+          "postedAt",
+          "likes",
+          "comments",
+          "matchReason",
+          "matchEvidence"
+        ],
+        "title": "SuggestionResponse",
+        "type": "object"
+      },
+      "TokenResponse": {
+        "description": "Login result. Refresh token rides the cookie, not this body.",
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "token_type": {
+            "const": "bearer",
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
+          }
+        },
+        "required": [
+          "access_token",
+          "user"
+        ],
+        "title": "TokenResponse",
         "type": "object"
       },
       "TrackerAdvanceRequest": {
@@ -1185,6 +6583,25 @@
         "title": "TrackerAdvanceRequest",
         "type": "object"
       },
+      "TrackerAdvanceResponse": {
+        "properties": {
+          "dropId": {
+            "format": "uuid",
+            "title": "Dropid",
+            "type": "string"
+          },
+          "stage": {
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dropId",
+          "stage"
+        ],
+        "title": "TrackerAdvanceResponse",
+        "type": "object"
+      },
       "TrackingRepairRequest": {
         "properties": {
           "trackingNumber": {
@@ -1196,6 +6613,76 @@
           "trackingNumber"
         ],
         "title": "TrackingRepairRequest",
+        "type": "object"
+      },
+      "UserResponse": {
+        "description": "Current-user payload returned by login + ``GET /api/auth/me`` (\u00a76.2).\n\n``impersonated_by`` is set only while an admin is viewing as this user; the\nSPA keys its exit banner off it.",
+        "properties": {
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "impersonated_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impersonated By"
+          },
+          "impersonation_readonly": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impersonation Readonly"
+          },
+          "instagram_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagram Username"
+          },
+          "portal_role": {
+            "title": "Portal Role",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "portal_role",
+          "status"
+        ],
+        "title": "UserResponse",
         "type": "object"
       },
       "VerifyEmailRequest": {
@@ -1210,6 +6697,19 @@
           "token"
         ],
         "title": "VerifyEmailRequest",
+        "type": "object"
+      },
+      "VerifyEmailResponse": {
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "VerifyEmailResponse",
         "type": "object"
       }
     }
@@ -1262,7 +6762,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_list_AdminBrandItem__"
                 }
               }
             },
@@ -1320,7 +6820,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminBrandInviteResponse_"
                 }
               }
             },
@@ -1369,7 +6869,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_list_AdminPendingBrandItem__"
                 }
               }
             },
@@ -1428,7 +6928,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminBrandDetail_"
                 }
               }
             },
@@ -1487,7 +6987,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminBrandInviteResponse_"
                 }
               }
             },
@@ -1546,7 +7046,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminBrandStatusResponse_"
                 }
               }
             },
@@ -1605,7 +7105,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminBrandInviteResponse_"
                 }
               }
             },
@@ -1664,7 +7164,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminBrandStatusResponse_"
                 }
               }
             },
@@ -1745,7 +7245,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_list_AdminDropItem__"
                 }
               }
             },
@@ -1804,7 +7304,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminDropDetail_"
                 }
               }
             },
@@ -1871,7 +7371,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminDropDetail_"
                 }
               }
             },
@@ -1930,7 +7430,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_DropReopenResponse_"
                 }
               }
             },
@@ -1989,7 +7489,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_DropReopenResponse_"
                 }
               }
             },
@@ -2058,7 +7558,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_TrackerAdvanceResponse_"
                 }
               }
             },
@@ -2127,7 +7627,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_DropTrackingResponse_"
                 }
               }
             },
@@ -2177,7 +7677,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminHealthResponse_"
                 }
               }
             },
@@ -2237,7 +7737,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_ImpersonateResponse_"
                 }
               }
             },
@@ -2302,7 +7802,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_list_AdminOrgItem__"
                 }
               }
             },
@@ -2351,7 +7851,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_list_AdminPendingOrgItem__"
                 }
               }
             },
@@ -2410,7 +7910,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminOrgStatusResponse_"
                 }
               }
             },
@@ -2469,7 +7969,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminOrgStatusResponse_"
                 }
               }
             },
@@ -2528,7 +8028,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminOrgStatusResponse_"
                 }
               }
             },
@@ -2587,7 +8087,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminOrgDetail_"
                 }
               }
             },
@@ -2647,7 +8147,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_ClearInstagramTokenResponse_"
                 }
               }
             },
@@ -2697,7 +8197,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_AdminOverviewResponse_"
                 }
               }
             },
@@ -2747,7 +8247,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_list_AdminUserItem__"
                 }
               }
             },
@@ -2789,7 +8289,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
                 }
               }
             },
@@ -2831,7 +8331,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_TokenResponse_"
                 }
               }
             },
@@ -2873,7 +8373,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
                 }
               }
             },
@@ -2915,7 +8415,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
                 }
               }
             },
@@ -2957,7 +8457,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_TokenResponse_"
                 }
               }
             },
@@ -2999,7 +8499,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
                 }
               }
             },
@@ -3041,7 +8541,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_TokenResponse_"
                 }
               }
             },
@@ -3083,7 +8583,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_TokenResponse_"
                 }
               }
             },
@@ -3125,7 +8625,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_TokenResponse_"
                 }
               }
             },
@@ -3166,7 +8666,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_InstagramDeauthorizeResponse_"
                 }
               }
             },
@@ -3228,7 +8728,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
                 }
               }
             },
@@ -3278,7 +8778,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_UserResponse_"
                 }
               }
             },
@@ -3310,7 +8810,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_RefreshResponse_"
                 }
               }
             },
@@ -3352,7 +8852,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_VerifyEmailResponse_"
                 }
               }
             },
@@ -3412,7 +8912,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_ChangeEduEmailResponse_"
                 }
               }
             },
@@ -3472,7 +8972,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_ResendVerificationResponse_"
                 }
               }
             },
@@ -3514,7 +9014,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_BrandApplyResponse_"
                 }
               }
             },
@@ -3612,7 +9112,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_BrandAggregateResponse_"
                 }
               }
             },
@@ -3661,7 +9161,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_list_BrandDropListItem__"
                 }
               }
             },
@@ -3718,7 +9218,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_BrandDropResponse_"
                 }
               }
             },
@@ -3777,7 +9277,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_BrandDropDetailResponse_"
                 }
               }
             },
@@ -3846,7 +9346,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_FinalizeApplicantsResponse_"
                 }
               }
             },
@@ -3919,7 +9419,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_list_EngagementSeriesPoint__"
                 }
               }
             },
@@ -3969,7 +9469,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_list_CampaignListItem__"
                 }
               }
             },
@@ -4029,7 +9529,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_CampaignDetailResponse_"
                 }
               }
             },
@@ -4089,7 +9589,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_CampaignAggregateResponse_"
                 }
               }
             },
@@ -4159,7 +9659,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
                 }
               }
             },
@@ -4227,7 +9727,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_PostResponse_"
                 }
               }
             },
@@ -4287,7 +9787,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_list_SuggestionResponse__"
                 }
               }
             },
@@ -4357,7 +9857,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_PostResponse_"
                 }
               }
             },
@@ -4427,7 +9927,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
                 }
               }
             },
@@ -4459,7 +9959,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_PublicConfigResponse_"
                 }
               }
             },
@@ -4662,7 +10162,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_ApplicationResponse_"
                 }
               }
             },
@@ -4722,7 +10222,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
                 }
               }
             },
@@ -4790,7 +10290,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
                 }
               }
             },
@@ -4822,7 +10322,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_HealthStatusResponse_"
                 }
               }
             },
@@ -4872,7 +10372,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_OrgProfileResponse_"
                 }
               }
             },
@@ -4930,7 +10430,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_OrgProfileResponse_"
                 }
               }
             },
@@ -4980,7 +10480,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_list_PostResponse__"
                 }
               }
             },
@@ -5030,7 +10530,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_list_PostResponse__"
                 }
               }
             },
@@ -5090,7 +10590,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
+                  "$ref": "#/components/schemas/DataResponse_OrgOnboardingResponse_"
                 }
               }
             },

@@ -111,7 +111,7 @@ async def test_deauthorize_clears_token_and_bumps_version(
     )
 
     assert resp.status_code == 200
-    assert resp.json()["data"] == {"ok": True, "revoked": True}
+    assert resp.json()["data"] == {"ok": True, "revoked": True, "reason": None}
 
     await db_session.refresh(user)
     assert user.instagram_access_token is None
@@ -162,7 +162,7 @@ async def test_deauthorize_matches_token_user_id(app_client: AsyncClient, db_ses
     )
 
     assert resp.status_code == 200
-    assert resp.json()["data"] == {"ok": True, "revoked": True}
+    assert resp.json()["data"] == {"ok": True, "revoked": True, "reason": None}
     await db_session.refresh(user)
     assert user.instagram_access_token is None
     assert user.token_version == 4

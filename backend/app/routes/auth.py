@@ -22,14 +22,21 @@ from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.user import User
-from app.response import APIResponse, api_error_response, api_response
+from app.response import APIResponse, DataResponse, api_error_response, api_response
+from app.schemas.acks import (
+    ChangeEduEmailResponse,
+    InstagramDeauthorizeResponse,
+    OkResponse,
+    ResendVerificationResponse,
+    VerifyEmailResponse,
+)
 from app.schemas.auth import (
     DevLoginRequest,
     InstagramCallbackRequest,
     RefreshResponse,
     TokenResponse,
+    UserResponse,
 )
-from app.schemas.common import camelize
 from app.schemas.onboarding import (
     AdminLoginRequest,
     BrandLoginRequest,
@@ -128,7 +135,7 @@ async def instagram_login(
 
 @router.post(
     "/instagram/callback",
-    response_model=APIResponse,
+    response_model=DataResponse[TokenResponse],
     dependencies=[Depends(rate_limited("ig_callback", limit=20, window=60))],
 )
 async def instagram_callback(
@@ -176,7 +183,7 @@ async def instagram_callback(
 
 @router.post(
     "/instagram/deauthorize",
-    response_model=APIResponse,
+    response_model=DataResponse[InstagramDeauthorizeResponse],
     dependencies=[Depends(rate_limited("ig_deauth", limit=60, window=60))],
 )
 async def instagram_deauthorize(
@@ -212,7 +219,9 @@ async def instagram_deauthorize(
 
     user_id = payload.get("user_id")
     if not user_id:
-        return api_response(data={"ok": True, "revoked": False, "reason": "missing_user_id"})
+        return api_response(
+            data=InstagramDeauthorizeResponse(revoked=False, reason="missing_user_id")
+        )
 
     revoked = await revoke_instagram_authorization(db, str(user_id))
     if not revoked:
@@ -220,13 +229,13 @@ async def instagram_deauthorize(
             "instagram deauthorize: no user matched Meta user_id=%s",
             user_id,
         )
-        return api_response(data={"ok": True, "revoked": False, "reason": "unknown_user"})
-    return api_response(data={"ok": True, "revoked": True})
+        return api_response(data=InstagramDeauthorizeResponse(revoked=False, reason="unknown_user"))
+    return api_response(data=InstagramDeauthorizeResponse(revoked=True))
 
 
 @router.post(
     "/refresh",
-    response_model=APIResponse,
+    response_model=DataResponse[RefreshResponse],
     dependencies=[Depends(rate_limited("refresh", limit=60, window=60))],
 )
 async def refresh(
@@ -300,7 +309,7 @@ async def refresh(
     return api_response(data=RefreshResponse(access_token=access))
 
 
-@router.post("/logout", response_model=APIResponse)
+@router.post("/logout", response_model=DataResponse[OkResponse])
 async def logout(
     request: Request,
     response: Response,
@@ -342,10 +351,10 @@ async def logout(
                 pass  # nothing valid to revoke; just clear the cookie
 
     _clear_refresh_cookie(response)
-    return api_response(data={"ok": True})
+    return api_response(data=OkResponse())
 
 
-@router.get("/me", response_model=APIResponse)
+@router.get("/me", response_model=DataResponse[UserResponse])
 async def me(user: User = Depends(get_current_user)) -> APIResponse:
     """Return the current user (no status gate; onboarding pages call this)."""
 
@@ -354,7 +363,7 @@ async def me(user: User = Depends(get_current_user)) -> APIResponse:
 
 @router.post(
     "/dev-login",
-    response_model=APIResponse,
+    response_model=DataResponse[TokenResponse],
     dependencies=[Depends(rate_limited("dev_login", limit=20, window=60))],
 )
 async def dev_login(
@@ -416,7 +425,7 @@ async def dev_login(
 
 @router.post(
     "/verify-email",
-    response_model=APIResponse,
+    response_model=DataResponse[VerifyEmailResponse],
     dependencies=[Depends(rate_limited("verify_email", limit=20, window=60))],
 )
 async def verify_email_endpoint(
@@ -425,12 +434,12 @@ async def verify_email_endpoint(
 ) -> APIResponse:
     """Phase 3: consume a one-time .edu verification token (rate-limited: token guessing)."""
     result = await verify_email(db, payload.token)
-    return api_response(data=camelize(result))
+    return api_response(data=VerifyEmailResponse.model_validate(result))
 
 
 @router.post(
     "/verify-email/resend",
-    response_model=APIResponse,
+    response_model=DataResponse[ResendVerificationResponse],
     dependencies=[Depends(rate_limited("verify_resend", limit=3, window=60))],
 )
 async def resend_verification_endpoint(
@@ -440,12 +449,12 @@ async def resend_verification_endpoint(
 ) -> APIResponse:
     """Re-send the .edu verification email (rate-limited, auth required)."""
     result = await resend_verification_email(db, user)
-    return api_response(data=camelize(result))
+    return api_response(data=ResendVerificationResponse.model_validate(result))
 
 
 @router.post(
     "/verify-email/change",
-    response_model=APIResponse,
+    response_model=DataResponse[ChangeEduEmailResponse],
     dependencies=[Depends(rate_limited("verify_change", limit=5, window=60))],
 )
 async def change_edu_email_endpoint(
@@ -455,13 +464,13 @@ async def change_edu_email_endpoint(
 ) -> APIResponse:
     """Correct a typo'd .edu while still awaiting verification."""
     result = await change_edu_email(db, user, payload.edu_email)
-    return api_response(data=camelize(result))
+    return api_response(data=ChangeEduEmailResponse.model_validate(result))
 
 
 # ── Brand auth (Stage 7) ────────────────────────────────────────────────────
 
 
-@router.post("/brand/set-password", response_model=APIResponse)
+@router.post("/brand/set-password", response_model=DataResponse[TokenResponse])
 async def brand_set_password(
     payload: BrandSetPasswordRequest,
     response: Response,
@@ -480,7 +489,7 @@ async def brand_set_password(
 
 @router.post(
     "/brand/login",
-    response_model=APIResponse,
+    response_model=DataResponse[TokenResponse],
     dependencies=[Depends(rate_limited("brand_login", limit=10, window=60))],
 )
 async def brand_login(
@@ -504,7 +513,7 @@ async def brand_login(
 
 @router.post(
     "/brand/forgot-password",
-    response_model=APIResponse,
+    response_model=DataResponse[OkResponse],
     dependencies=[Depends(rate_limited("brand_forgot", limit=5, window=60))],
 )
 async def brand_forgot_password(
@@ -514,12 +523,12 @@ async def brand_forgot_password(
     """Enumerate-safe brand password-reset request."""
     enforce_account_limit("brand_forgot", payload.email.strip().lower(), limit=5, window=300)
     result = await request_password_reset(db, portal="brand", email=payload.email)
-    return api_response(data=result)
+    return api_response(data=OkResponse.model_validate(result))
 
 
 @router.post(
     "/brand/reset-password",
-    response_model=APIResponse,
+    response_model=DataResponse[OkResponse],
     dependencies=[Depends(rate_limited("brand_reset", limit=10, window=60))],
 )
 async def brand_reset_password(
@@ -530,7 +539,7 @@ async def brand_reset_password(
     result = await reset_password(
         db, portal="brand", token=payload.token, password=payload.password
     )
-    return api_response(data=result)
+    return api_response(data=OkResponse.model_validate(result))
 
 
 # ── Admin auth ──────────────────────────────────────────────────────────────
@@ -538,7 +547,7 @@ async def brand_reset_password(
 
 @router.post(
     "/admin/login",
-    response_model=APIResponse,
+    response_model=DataResponse[TokenResponse],
     dependencies=[Depends(rate_limited("admin_login", limit=10, window=60))],
 )
 async def admin_login(
@@ -561,7 +570,7 @@ async def admin_login(
 
 @router.post(
     "/admin/forgot-password",
-    response_model=APIResponse,
+    response_model=DataResponse[OkResponse],
     dependencies=[Depends(rate_limited("admin_forgot", limit=5, window=60))],
 )
 async def admin_forgot_password(
@@ -571,12 +580,12 @@ async def admin_forgot_password(
     """Enumerate-safe admin password-reset request."""
     enforce_account_limit("admin_forgot", payload.email.strip().lower(), limit=5, window=300)
     result = await request_password_reset(db, portal="admin", email=payload.email)
-    return api_response(data=result)
+    return api_response(data=OkResponse.model_validate(result))
 
 
 @router.post(
     "/admin/reset-password",
-    response_model=APIResponse,
+    response_model=DataResponse[OkResponse],
     dependencies=[Depends(rate_limited("admin_reset", limit=10, window=60))],
 )
 async def admin_reset_password(
@@ -587,4 +596,4 @@ async def admin_reset_password(
     result = await reset_password(
         db, portal="admin", token=payload.token, password=payload.password
     )
-    return api_response(data=result)
+    return api_response(data=OkResponse.model_validate(result))

@@ -17,7 +17,16 @@ from app.config import settings
 from app.deps.auth import CurrentAdmin
 from app.deps.db import get_db
 from app.models.enums import BrandStatus, OrgUserStatus
-from app.response import APIResponse, api_response
+from app.response import APIResponse, DataResponse, api_response
+from app.schemas.acks import (
+    AdminBrandInviteResponse,
+    AdminBrandStatusResponse,
+    AdminOrgStatusResponse,
+    ClearInstagramTokenResponse,
+    DropReopenResponse,
+    DropTrackingResponse,
+    TrackerAdvanceResponse,
+)
 from app.schemas.admin import (
     AdminBrandDetail,
     AdminBrandItem,
@@ -36,7 +45,6 @@ from app.schemas.admin import (
     TrackerAdvanceRequest,
     TrackingRepairRequest,
 )
-from app.schemas.common import camelize
 from app.services.admin import (
     advance_tracker,
     approve_brand,
@@ -71,7 +79,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 # ── Overview + health ───────────────────────────────────────────────────────
 
 
-@router.get("/overview", response_model=APIResponse)
+@router.get("/overview", response_model=DataResponse[AdminOverviewResponse])
 async def get_overview_endpoint(
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
@@ -80,7 +88,7 @@ async def get_overview_endpoint(
     return api_response(data=AdminOverviewResponse(**await get_overview(db)))
 
 
-@router.get("/health", response_model=APIResponse)
+@router.get("/health", response_model=DataResponse[AdminHealthResponse])
 async def get_health_endpoint(
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
@@ -94,7 +102,7 @@ async def get_health_endpoint(
 # ── Organizations ───────────────────────────────────────────────────────────
 
 
-@router.get("/orgs", response_model=APIResponse)
+@router.get("/orgs", response_model=DataResponse[list[AdminOrgItem]])
 async def list_orgs_endpoint(
     _user: CurrentAdmin,
     status: str | None = Query(default=None),
@@ -104,7 +112,7 @@ async def list_orgs_endpoint(
     return api_response(data=[AdminOrgItem(**r) for r in rows])
 
 
-@router.get("/orgs/pending", response_model=APIResponse)
+@router.get("/orgs/pending", response_model=DataResponse[list[AdminPendingOrgItem]])
 async def get_pending_orgs(
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
@@ -115,7 +123,7 @@ async def get_pending_orgs(
     return api_response(data=[AdminPendingOrgItem(**r) for r in rows if r["id"] is not None])
 
 
-@router.get("/orgs/{user_id}", response_model=APIResponse)
+@router.get("/orgs/{user_id}", response_model=DataResponse[AdminOrgDetail])
 async def get_org_detail_endpoint(
     user_id: uuid.UUID,
     _user: CurrentAdmin,
@@ -124,7 +132,10 @@ async def get_org_detail_endpoint(
     return api_response(data=AdminOrgDetail(**await get_org_detail(db, user_id)))
 
 
-@router.post("/orgs/{user_id}/clear-instagram-token", response_model=APIResponse)
+@router.post(
+    "/orgs/{user_id}/clear-instagram-token",
+    response_model=DataResponse[ClearInstagramTokenResponse],
+)
 async def clear_org_instagram_token_endpoint(
     user_id: uuid.UUID,
     _user: CurrentAdmin,
@@ -132,43 +143,43 @@ async def clear_org_instagram_token_endpoint(
 ) -> APIResponse:
     """Clear an expired/stuck IG token so the org can authenticate again."""
     result = await clear_org_instagram_token(db, user_id)
-    return api_response(data=camelize(result))
+    return api_response(data=ClearInstagramTokenResponse.model_validate(result))
 
 
-@router.post("/orgs/{org_id}/approve", response_model=APIResponse)
+@router.post("/orgs/{org_id}/approve", response_model=DataResponse[AdminOrgStatusResponse])
 async def approve_org_endpoint(
     org_id: uuid.UUID,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await approve_org(db, org_id)
-    return api_response(data=camelize(result))
+    return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 
-@router.post("/orgs/{org_id}/deny", response_model=APIResponse)
+@router.post("/orgs/{org_id}/deny", response_model=DataResponse[AdminOrgStatusResponse])
 async def deny_org_endpoint(
     org_id: uuid.UUID,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await deny_org(db, org_id)
-    return api_response(data=camelize(result))
+    return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 
-@router.post("/orgs/{org_id}/undeny", response_model=APIResponse)
+@router.post("/orgs/{org_id}/undeny", response_model=DataResponse[AdminOrgStatusResponse])
 async def undeny_org_endpoint(
     org_id: uuid.UUID,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await undeny_org(db, org_id)
-    return api_response(data=camelize(result))
+    return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 
 # ── Brands ──────────────────────────────────────────────────────────────────
 
 
-@router.get("/brands", response_model=APIResponse)
+@router.get("/brands", response_model=DataResponse[list[AdminBrandItem]])
 async def list_brands_endpoint(
     _user: CurrentAdmin,
     status: str | None = Query(default=None),
@@ -178,7 +189,7 @@ async def list_brands_endpoint(
     return api_response(data=[AdminBrandItem(**r) for r in rows])
 
 
-@router.get("/brands/pending", response_model=APIResponse)
+@router.get("/brands/pending", response_model=DataResponse[list[AdminPendingBrandItem]])
 async def get_pending_brands(
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
@@ -187,7 +198,7 @@ async def get_pending_brands(
     return api_response(data=[AdminPendingBrandItem(**r) for r in rows])
 
 
-@router.get("/brands/{brand_id}", response_model=APIResponse)
+@router.get("/brands/{brand_id}", response_model=DataResponse[AdminBrandDetail])
 async def get_brand_detail_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
@@ -196,7 +207,7 @@ async def get_brand_detail_endpoint(
     return api_response(data=AdminBrandDetail(**await get_brand_detail(db, brand_id)))
 
 
-@router.post("/brands", response_model=APIResponse)
+@router.post("/brands", response_model=DataResponse[AdminBrandInviteResponse])
 async def create_brand_endpoint(
     payload: AdminCreateBrandRequest,
     _user: CurrentAdmin,
@@ -211,53 +222,55 @@ async def create_brand_endpoint(
         intent_message=payload.intent_message,
         approve_now=payload.approve_now,
     )
-    return api_response(data=camelize(result))
+    return api_response(data=AdminBrandInviteResponse.model_validate(result))
 
 
-@router.post("/brands/{brand_id}/approve", response_model=APIResponse)
+@router.post("/brands/{brand_id}/approve", response_model=DataResponse[AdminBrandInviteResponse])
 async def approve_brand_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await approve_brand(db, brand_id)
-    return api_response(data=camelize(result))
+    return api_response(data=AdminBrandInviteResponse.model_validate(result))
 
 
-@router.post("/brands/{brand_id}/deny", response_model=APIResponse)
+@router.post("/brands/{brand_id}/deny", response_model=DataResponse[AdminBrandStatusResponse])
 async def deny_brand_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await deny_brand(db, brand_id)
-    return api_response(data=camelize(result))
+    return api_response(data=AdminBrandStatusResponse.model_validate(result))
 
 
-@router.post("/brands/{brand_id}/undeny", response_model=APIResponse)
+@router.post("/brands/{brand_id}/undeny", response_model=DataResponse[AdminBrandStatusResponse])
 async def undeny_brand_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await undeny_brand(db, brand_id)
-    return api_response(data=camelize(result))
+    return api_response(data=AdminBrandStatusResponse.model_validate(result))
 
 
-@router.post("/brands/{brand_id}/resend-invite", response_model=APIResponse)
+@router.post(
+    "/brands/{brand_id}/resend-invite", response_model=DataResponse[AdminBrandInviteResponse]
+)
 async def resend_brand_invite_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await resend_brand_invite(db, brand_id)
-    return api_response(data=camelize(result))
+    return api_response(data=AdminBrandInviteResponse.model_validate(result))
 
 
 # ── Drops ───────────────────────────────────────────────────────────────────
 
 
-@router.get("/drops", response_model=APIResponse)
+@router.get("/drops", response_model=DataResponse[list[AdminDropItem]])
 async def list_drops_endpoint(
     _user: CurrentAdmin,
     stage: str | None = Query(default=None),
@@ -268,7 +281,7 @@ async def list_drops_endpoint(
     return api_response(data=[AdminDropItem(**r) for r in rows])
 
 
-@router.get("/drops/{drop_id}", response_model=APIResponse)
+@router.get("/drops/{drop_id}", response_model=DataResponse[AdminDropDetail])
 async def get_drop_detail_endpoint(
     drop_id: uuid.UUID,
     _user: CurrentAdmin,
@@ -277,7 +290,7 @@ async def get_drop_detail_endpoint(
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 
-@router.patch("/drops/{drop_id}", response_model=APIResponse)
+@router.patch("/drops/{drop_id}", response_model=DataResponse[AdminDropDetail])
 async def patch_drop_config_endpoint(
     drop_id: uuid.UUID,
     payload: AdminDropConfigPatch,
@@ -288,7 +301,7 @@ async def patch_drop_config_endpoint(
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 
-@router.patch("/drops/{drop_id}/tracker", response_model=APIResponse)
+@router.patch("/drops/{drop_id}/tracker", response_model=DataResponse[TrackerAdvanceResponse])
 async def advance_tracker_endpoint(
     drop_id: uuid.UUID,
     payload: TrackerAdvanceRequest,
@@ -298,10 +311,10 @@ async def advance_tracker_endpoint(
     result = await advance_tracker(
         db, drop_id, payload.stage, tracking_number=payload.tracking_number, note=payload.note
     )
-    return api_response(data=camelize(result))
+    return api_response(data=TrackerAdvanceResponse.model_validate(result))
 
 
-@router.patch("/drops/{drop_id}/tracking", response_model=APIResponse)
+@router.patch("/drops/{drop_id}/tracking", response_model=DataResponse[DropTrackingResponse])
 async def set_drop_tracking_endpoint(
     drop_id: uuid.UUID,
     payload: TrackingRepairRequest,
@@ -309,33 +322,33 @@ async def set_drop_tracking_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await set_drop_tracking_number(db, drop_id, payload.tracking_number)
-    return api_response(data=camelize(result))
+    return api_response(data=DropTrackingResponse.model_validate(result))
 
 
-@router.post("/drops/{drop_id}/reopen", response_model=APIResponse)
+@router.post("/drops/{drop_id}/reopen", response_model=DataResponse[DropReopenResponse])
 async def reopen_drop_endpoint(
     drop_id: uuid.UUID,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await reopen_drop(db, drop_id)
-    return api_response(data=camelize(result))
+    return api_response(data=DropReopenResponse.model_validate(result))
 
 
-@router.post("/drops/{drop_id}/clear-reopen", response_model=APIResponse)
+@router.post("/drops/{drop_id}/clear-reopen", response_model=DataResponse[DropReopenResponse])
 async def clear_reopen_endpoint(
     drop_id: uuid.UUID,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await clear_manual_reopen(db, drop_id)
-    return api_response(data=camelize(result))
+    return api_response(data=DropReopenResponse.model_validate(result))
 
 
 # ── Impersonation ───────────────────────────────────────────────────────────
 
 
-@router.get("/users", response_model=APIResponse)
+@router.get("/users", response_model=DataResponse[list[AdminUserItem]])
 async def list_users_endpoint(
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
@@ -345,7 +358,7 @@ async def list_users_endpoint(
     return api_response(data=[AdminUserItem(**r) for r in rows])
 
 
-@router.post("/impersonate/{user_id}", response_model=APIResponse)
+@router.post("/impersonate/{user_id}", response_model=DataResponse[ImpersonateResponse])
 async def impersonate_endpoint(
     user_id: uuid.UUID,
     user: CurrentAdmin,

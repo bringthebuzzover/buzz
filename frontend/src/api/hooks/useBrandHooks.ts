@@ -6,96 +6,15 @@ import { apiFetch } from "../client";
 import { useAuth } from "../../contexts/AuthContext";
 import type { components } from "../generated/schema";
 
-// ── Types matching backend camelCase responses ──────────────────────────
-
-// Sourced from the backend OpenAPI spec (run `npm run gen:api`), so a backend
-// change to GET /api/brands/me's response shape becomes a TypeScript error here
-// instead of a silent runtime drift. This is the pattern to copy as more
-// endpoints adopt the typed `DataResponse[T]` envelope.
-export type BrandProfile =
-  components["schemas"]["BrandProfileResponse"];
-
-export type BrandDropItem = {
-  id: string;
-  brandId: string;
-  brandName: string;
-  title: string;
-  description: string;
-  image: string;
-  location: string;
-  capacityTotal: number;
-  applyOpenAt: number;
-  applyCloseAt: number;
-  manualReopen: boolean;
-  brandTrackerStage: string;
-  totalProductUnits: number | null;
-  campaignHashtag: string | null;
-  applicantSelectionFinalizedAt: number | null;
-  createdAt: number;
-  totalPosts: number;
-  totalLikes: number;
-  totalComments: number;
-  totalEngagement: number;
-  totalReach: number;
-};
-
-export type BrandDropDetail = BrandDropItem & {
-  trackingNumber: string | null;
-  applications: BrandDropApplicant[];
-};
-
-export type BrandDropPost = {
-  id: string;
-  url: string;
-  mediaUrl: string | null;
-  thumbnailUrl: string | null;
-  caption: string;
-  mediaType: string;
-  mediaProductType: string;
-  postedAt: number;
-  likes: number;
-  comments: number;
-};
-
-export type BrandDropApplicant = {
-  id: string;
-  dropId: string;
-  orgId: string;
-  decision: string;
-  pitch: string | null;
-  trackingNumber: string | null;
-  allocatedUnits: number | null;
-  appliedAt: number;
-  decisionAt: number | null;
-  orgName: string;
-  university: string;
-  instagramHandle: string;
-  followerCount: number | null;
-  memberCount: number | null;
-  category: string | null;
-  deliveryAddress: string | null;
-  attributedPostCount: number;
-  attributedLikes: number;
-  attributedComments: number;
-  attributedEngagement: number;
-  posts: BrandDropPost[];
-};
-
-export type BrandAggregate = {
-  totalDrops: number;
-  totalPosts: number;
-  totalLikes: number;
-  totalComments: number;
-  totalEngagement: number;
-  totalReach: number;
-  totalOrgs: number;
-  totalCampuses: number;
-};
-
-export type EngagementPoint = {
-  timestamp: number;
-  engagement: number;
-};
+// Sourced from OpenAPI (`npm run gen:api`) via DataResponse[T] payloads.
+export type BrandProfile = components["schemas"]["BrandProfileResponse"];
+export type BrandDropItem = components["schemas"]["BrandDropListItem"];
+export type BrandDropCreated = components["schemas"]["BrandDropResponse"];
+export type BrandDropDetail = components["schemas"]["BrandDropDetailResponse"];
+export type BrandDropPost = components["schemas"]["BrandDropPostItem"];
+export type BrandDropApplicant = components["schemas"]["BrandDropDetailApplicant"];
+export type BrandAggregate = components["schemas"]["BrandAggregateResponse"];
+export type EngagementPoint = components["schemas"]["EngagementSeriesPoint"];
 
 // ── Hooks ────────────────────────────────────────────────────────────────
 
@@ -169,7 +88,7 @@ export function useCreateBrandDrop() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: { title: string; description: string }) => {
-      const { data } = await apiFetch<BrandDropItem>("/api/brands/me/drops", {
+      const { data } = await apiFetch<BrandDropCreated>("/api/brands/me/drops", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

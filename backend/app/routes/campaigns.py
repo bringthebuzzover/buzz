@@ -14,8 +14,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps.auth import CurrentOrg
 from app.deps.db import get_db
-from app.response import APIResponse, api_response
-from app.schemas.posts import LinkPostRequest
+from app.response import APIResponse, DataResponse, api_response
+from app.schemas.acks import OkResponse
+from app.schemas.campaigns import CampaignDetailResponse, CampaignListItem
+from app.schemas.posts import (
+    CampaignAggregateResponse,
+    LinkPostRequest,
+    PostResponse,
+    SuggestionResponse,
+)
 from app.services.campaigns import get_my_campaign, list_my_campaigns
 from app.services.posts import (
     accept_suggestion,
@@ -29,7 +36,7 @@ from app.services.posts import (
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
 
-@router.get("", response_model=APIResponse)
+@router.get("", response_model=DataResponse[list[CampaignListItem]])
 async def list_campaigns(
     user: CurrentOrg,
     db: AsyncSession = Depends(get_db),
@@ -39,7 +46,7 @@ async def list_campaigns(
     return api_response(data=await list_my_campaigns(db, user))
 
 
-@router.get("/{application_id}", response_model=APIResponse)
+@router.get("/{application_id}", response_model=DataResponse[CampaignDetailResponse])
 async def campaign_detail(
     application_id: uuid.UUID,
     user: CurrentOrg,
@@ -50,7 +57,10 @@ async def campaign_detail(
     return api_response(data=await get_my_campaign(db, user, application_id))
 
 
-@router.get("/{application_id}/aggregate", response_model=APIResponse)
+@router.get(
+    "/{application_id}/aggregate",
+    response_model=DataResponse[CampaignAggregateResponse],
+)
 async def campaign_aggregate(
     application_id: uuid.UUID,
     user: CurrentOrg,
@@ -61,7 +71,7 @@ async def campaign_aggregate(
     return api_response(data=await get_campaign_aggregate(db, user, application_id))
 
 
-@router.post("/{application_id}/link-post", response_model=APIResponse)
+@router.post("/{application_id}/link-post", response_model=DataResponse[PostResponse])
 async def link_campaign_post(
     application_id: uuid.UUID,
     payload: LinkPostRequest,
@@ -74,7 +84,7 @@ async def link_campaign_post(
     return api_response(data=post)
 
 
-@router.delete("/{application_id}/link-post", response_model=APIResponse)
+@router.delete("/{application_id}/link-post", response_model=DataResponse[OkResponse])
 async def unlink_campaign_post(
     application_id: uuid.UUID,
     payload: LinkPostRequest,
@@ -84,10 +94,13 @@ async def unlink_campaign_post(
     """Unlink a post from this campaign (idempotent)."""
 
     await unlink_post(db, user, application_id, payload.post_id)
-    return api_response(data={"ok": True})
+    return api_response(data=OkResponse())
 
 
-@router.get("/{application_id}/suggestions", response_model=APIResponse)
+@router.get(
+    "/{application_id}/suggestions",
+    response_model=DataResponse[list[SuggestionResponse]],
+)
 async def campaign_suggestions(
     application_id: uuid.UUID,
     user: CurrentOrg,
@@ -98,7 +111,10 @@ async def campaign_suggestions(
     return api_response(data=await list_suggestions(db, user, application_id))
 
 
-@router.post("/{application_id}/suggestions/{post_id}/accept", response_model=APIResponse)
+@router.post(
+    "/{application_id}/suggestions/{post_id}/accept",
+    response_model=DataResponse[PostResponse],
+)
 async def accept_campaign_suggestion(
     application_id: uuid.UUID,
     post_id: uuid.UUID,
@@ -111,7 +127,10 @@ async def accept_campaign_suggestion(
     return api_response(data=post)
 
 
-@router.post("/{application_id}/suggestions/{post_id}/dismiss", response_model=APIResponse)
+@router.post(
+    "/{application_id}/suggestions/{post_id}/dismiss",
+    response_model=DataResponse[OkResponse],
+)
 async def dismiss_campaign_suggestion(
     application_id: uuid.UUID,
     post_id: uuid.UUID,
@@ -121,4 +140,4 @@ async def dismiss_campaign_suggestion(
     """Reject a pending suggestion (404 ``SUGGESTION_NOT_FOUND``)."""
 
     await dismiss_suggestion(db, user, application_id, post_id)
-    return api_response(data={"ok": True})
+    return api_response(data=OkResponse())

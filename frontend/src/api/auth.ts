@@ -10,6 +10,11 @@
  */
 import { API_BASE_URL } from "./config";
 import type { AuthUser } from "../contexts/AuthContext";
+import type { components } from "./generated/schema";
+
+type LoginData = components["schemas"]["TokenResponse"];
+type RefreshData = components["schemas"]["RefreshResponse"];
+type UserWire = components["schemas"]["UserResponse"];
 
 let accessToken: string | null = null;
 // True while the in-memory token is an admin impersonation token. The refresh
@@ -172,11 +177,6 @@ export function endImpersonation(reason?: "expired"): void {
   window.location.href = `/admin${suffix}`;
 }
 
-type LoginData = {
-  access_token: string;
-  user?: { id: string; portal_role: string; status: string };
-};
-
 /** Exchange the refresh cookie for a fresh access token. Returns success. */
 let refreshInFlight: Promise<boolean> | null = null;
 /** Access token observed when the current in-flight refresh began. */
@@ -209,7 +209,7 @@ export async function refreshAccessToken(): Promise<boolean> {
         if (accessToken === tokenAtStart) setAccessToken(null);
         return false;
       }
-      const body = (await resp.json()) as { data: { access_token: string } | null };
+      const body = (await resp.json()) as { data: RefreshData | null };
       if (!body.data?.access_token) {
         if (accessToken === tokenAtStart) setAccessToken(null);
         return false;
@@ -331,19 +331,18 @@ export async function fetchMe(): Promise<MeResult> {
       return { kind: "unauthenticated" };
     }
     if (!resp.ok) return { kind: "error" }; // 5xx / other → transient, keep session
-    const body = await resp.json();
+    const body = (await resp.json()) as { data: UserWire | null };
     const u = body.data;
     if (!u) return { kind: "error" };
     return {
       kind: "user",
       user: {
         id: u.id,
-        portalRole: u.portalRole ?? u.portal_role,
+        portalRole: u.portal_role as AuthUser["portalRole"],
         status: u.status,
-        instagramUsername: u.instagramUsername ?? u.instagram_username,
-        impersonatedBy: u.impersonatedBy ?? u.impersonated_by ?? undefined,
-        impersonationReadonly:
-          u.impersonationReadonly ?? u.impersonation_readonly ?? undefined,
+        instagramUsername: u.instagram_username ?? undefined,
+        impersonatedBy: u.impersonated_by ?? undefined,
+        impersonationReadonly: u.impersonation_readonly ?? undefined,
       },
     };
   } catch {

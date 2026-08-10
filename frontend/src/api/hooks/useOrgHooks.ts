@@ -4,116 +4,16 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../client";
 import { useAuth } from "../../contexts/AuthContext";
+import type { components } from "../generated/schema";
 
-// ── Types matching backend camelCase responses ──────────────────────────
-
-export type OrgProfile = {
-  id: string;
-  orgName: string;
-  university: string;
-  eduEmail: string;
-  instagramHandle: string;
-  tiktokHandle: string | null;
-  followerCount: number | null;
-  memberCount: number | null;
-  category: string | null;
-  city: string | null;
-  state: string | null;
-  contactName: string | null;
-  deliveryAddress: string | null;
-  approvedAt: number | null;
-  createdAt: number;
-};
-
+export type OrgProfile = components["schemas"]["OrgProfileResponse"];
 /** Editable PATCH body for `PATCH /api/orgs/me` (omit unchanged fields). */
-export type OrgProfileUpdate = {
-  orgName?: string;
-  university?: string;
-  tiktokHandle?: string | null;
-  followerCount?: number | null;
-  memberCount?: number | null;
-  category?: string | null;
-  city?: string | null;
-  state?: string | null;
-  contactName?: string | null;
-  deliveryAddress?: string | null;
-};
-
-export type PostItem = {
-  id: string;
-  orgId: string;
-  platform: string;
-  externalId: string;
-  url: string;
-  mediaUrl: string | null;
-  thumbnailUrl: string | null;
-  caption: string;
-  mediaType: string;
-  mediaProductType: string;
-  postedAt: number;
-  likes: number;
-  comments: number;
-  reach: number | null;
-  views: number | null;
-  saved: number | null;
-  shares: number | null;
-  reposts: number | null;
-  totalInteractions: number | null;
-  profileVisits: number | null;
-  profileActivity: number | null;
-  follows: number | null;
-  igReelsAvgWatchTime: number | null;
-  igReelsVideoViewTotalTime: number | null;
-  reelsSkipRate: number | null;
-  metricsUpdatedAt: number | null;
-  createdAt: number;
-  linkedApplicationId: string | null;
-  linkedDropId: string | null;
-};
-
-export type CampaignItem = {
-  id: string;
-  dropId: string;
-  decision: string;
-  pitch: string | null;
-  trackingNumber: string | null;
-  allocatedUnits: number | null;
-  appliedAt: number;
-  decisionAt: number | null;
-  title: string;
-  brandName: string;
-  brandTrackerStage: string;
-  image: string;
-};
-
-export type CampaignDetail = CampaignItem & {
-  orgId: string;
-  description: string | null;
-  applyOpenAt: number;
-  applyCloseAt: number;
-  capacityTotal: number;
-  totalProductUnits: number | null;
-};
-
-export type CampaignAggregate = {
-  postCount: number;
-  likes: number;
-  comments: number;
-  engagement: number;
-  estimatedReach: number;
-};
-
-export type Suggestion = {
-  postId: string;
-  url: string;
-  thumbnailUrl: string | null;
-  caption: string;
-  postedAt: number;
-  likes: number;
-  comments: number;
-  matchReason: string;
-  matchEvidence: string;
-};
+export type OrgProfileUpdate = components["schemas"]["OrgProfileUpdate"];
+export type PostItem = components["schemas"]["PostResponse"];
+export type CampaignItem = components["schemas"]["CampaignListItem"];
+export type CampaignDetail = components["schemas"]["CampaignDetailResponse"];
+export type CampaignAggregate = components["schemas"]["CampaignAggregateResponse"];
+export type Suggestion = components["schemas"]["SuggestionResponse"];
 
 // ── Hooks ────────────────────────────────────────────────────────────────
 

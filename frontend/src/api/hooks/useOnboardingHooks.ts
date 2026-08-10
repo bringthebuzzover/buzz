@@ -1,15 +1,24 @@
 /**
  * TanStack Query mutations for the Stage 7 onboarding + brand-auth surface.
  *
- * Wire format: dict mutation responses (onboarding/verify/resend/brand-apply)
- * are camelCase (camelized at the route layer). The auth token endpoints
- * (`set-password`, `brand/login`) return `TokenResponse`/`UserResponse`, which
- * stay snake_case (`access_token`, `portal_role`) — the established auth
- * contract the SPA already consumes.
+ * Auth token endpoints (`set-password`, `brand/login`) return snake_case
+ * `TokenResponse` / `UserResponse` (`access_token`, `portal_role`) — do not
+ * CamelModel those on the backend.
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiFetch, ApiError } from "../client";
+import type { components } from "../generated/schema";
 import type { OrgCategory } from "../../types/orgCategory";
+
+export type TokenResponse = components["schemas"]["TokenResponse"];
+export type OrgOnboardingResponse = components["schemas"]["OrgOnboardingResponse"];
+export type VerifyEmailResponse = components["schemas"]["VerifyEmailResponse"];
+export type ResendVerificationResponse =
+  components["schemas"]["ResendVerificationResponse"];
+export type ChangeEduEmailResponse =
+  components["schemas"]["ChangeEduEmailResponse"];
+export type BrandApplyResponse = components["schemas"]["BrandApplyResponse"];
+export type PublicConfigResponse = components["schemas"]["PublicConfigResponse"];
 
 // ── Org onboarding ─────────────────────────────────────────────────────────
 
@@ -27,21 +36,17 @@ export type OrgOnboardingInput = {
   deliveryAddress?: string;
 };
 
-type OnboardingResult = {
-  orgId: string;
-  status: string;
-  emailSentTo: string;
-  emailSent: boolean;
-};
-
 export function useSubmitOnboarding() {
   return useMutation({
     mutationFn: async (input: OrgOnboardingInput) => {
-      const { data } = await apiFetch<OnboardingResult>("/api/orgs/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
+      const { data } = await apiFetch<OrgOnboardingResponse>(
+        "/api/orgs/onboarding",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        },
+      );
       return data;
     },
   });
@@ -50,7 +55,7 @@ export function useSubmitOnboarding() {
 export function useVerifyEmail() {
   return useMutation({
     mutationFn: async (token: string) => {
-      const { data } = await apiFetch<{ status: string }>(
+      const { data } = await apiFetch<VerifyEmailResponse>(
         "/api/auth/verify-email",
         {
           method: "POST",
@@ -66,7 +71,7 @@ export function useVerifyEmail() {
 export function useResendVerification() {
   return useMutation({
     mutationFn: async () => {
-      const { data } = await apiFetch<{ emailSentTo: string }>(
+      const { data } = await apiFetch<ResendVerificationResponse>(
         "/api/auth/verify-email/resend",
         {
           method: "POST",
@@ -82,7 +87,7 @@ export function useResendVerification() {
 export function useChangeEduEmail() {
   return useMutation({
     mutationFn: async (eduEmail: string) => {
-      const { data } = await apiFetch<{ emailSentTo: string; status?: string }>(
+      const { data } = await apiFetch<ChangeEduEmailResponse>(
         "/api/auth/verify-email/change",
         {
           method: "POST",
@@ -97,18 +102,10 @@ export function useChangeEduEmail() {
 
 // ── Brand auth ─────────────────────────────────────────────────────────────
 
-type UserPayload = {
-  id: string;
-  portal_role: string;
-  status: string;
-  instagram_username: string | null;
-  email: string | null;
-};
-
 export function useBrandSetPassword() {
   return useMutation({
     mutationFn: async (input: { token: string; password: string }) => {
-      const { data } = await apiFetch<{ access_token: string; user: UserPayload }>(
+      const { data } = await apiFetch<TokenResponse>(
         "/api/auth/brand/set-password",
         {
           method: "POST",
@@ -134,14 +131,11 @@ export type BrandApplyInput = {
 export function useBrandApply() {
   return useMutation({
     mutationFn: async (input: BrandApplyInput) => {
-      const { data } = await apiFetch<{ brandId: string; status: string }>(
-        "/api/brands/apply",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(input),
-        },
-      );
+      const { data } = await apiFetch<BrandApplyResponse>("/api/brands/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
       return data;
     },
   });
@@ -152,9 +146,7 @@ export function usePublicConfig() {
   return useQuery({
     queryKey: ["public-config"],
     queryFn: async () => {
-      const { data } = await apiFetch<{ brandSelfRegistrationEnabled: boolean }>(
-        "/api/config",
-      );
+      const { data } = await apiFetch<PublicConfigResponse>("/api/config");
       return data;
     },
     staleTime: 5 * 60_000,
@@ -164,14 +156,11 @@ export function usePublicConfig() {
 export function useBrandLogin() {
   return useMutation({
     mutationFn: async (input: { email: string; password: string }) => {
-      const { data } = await apiFetch<{ access_token: string; user: UserPayload }>(
-        "/api/auth/brand/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(input),
-        },
-      );
+      const { data } = await apiFetch<TokenResponse>("/api/auth/brand/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
       if (!data.access_token) {
         throw new ApiError(
           "INTERNAL_ERROR",
