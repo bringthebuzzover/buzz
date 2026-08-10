@@ -322,7 +322,7 @@ stop_if:
 
 ## test-jwt-secret-length
 
-status: pending
+status: done
 gaps:
   - test.jwt-secret-key-length-warning
 approach: |
@@ -419,7 +419,8 @@ note: |
     routes → DataResponse[T]; FE aliases generated schemas; auth snake_case kept)
   - `auth.token-version-ig-clear-duplication` — **archived** 2026-08-10
     (`bump_token_version` + IG clears via `clear_unusable_instagram_token`)
-  - `test.jwt-secret-key-length-warning` / `test.httpx-per-request-cookies-deprecated`
-    — queued as pending clusters `test-jwt-secret-length` then `test-httpx-cookies`
+  - `test.jwt-secret-key-length-warning` — **archived** (cluster `test-jwt-secret-length`)
+  - `test.httpx-per-request-cookies-deprecated` — queued as pending
+    `test-httpx-cookies`
   Do not auto-execute. Un-park only with an explicit user request naming the
   gap id after a Locked v1 exists (or product reverses sibling-dismiss).

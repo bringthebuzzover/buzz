@@ -8,7 +8,13 @@ import pytest
 from cryptography.fernet import Fernet
 from httpx import AsyncClient
 
-from app.config import Settings, settings
+from app.config import (
+    _DEV_SECRET_KEY,
+    _FORBIDDEN_DEV_SECRET_KEYS,
+    _HISTORICAL_DEV_SECRET_KEY,
+    Settings,
+    settings,
+)
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
 from app.security import jwt, rate_limit
@@ -208,8 +214,12 @@ def test_prod_config_rejects_localhost_frontend() -> None:
 
 
 def test_prod_config_rejects_dev_secret() -> None:
-    with pytest.raises(ValueError, match="SECRET_KEY"):
-        Settings(**_prod_kwargs(SECRET_KEY="dev-secret-change-me"))
+    assert _HISTORICAL_DEV_SECRET_KEY in _FORBIDDEN_DEV_SECRET_KEYS
+    assert _DEV_SECRET_KEY in _FORBIDDEN_DEV_SECRET_KEYS
+    assert len(_DEV_SECRET_KEY.encode("utf-8")) >= 32
+    for secret in _FORBIDDEN_DEV_SECRET_KEYS:
+        with pytest.raises(ValueError, match="SECRET_KEY"):
+            Settings(**_prod_kwargs(SECRET_KEY=secret))
 
 
 def test_prod_config_rejects_missing_instagram_creds() -> None:
