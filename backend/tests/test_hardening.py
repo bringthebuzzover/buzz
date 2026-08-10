@@ -19,7 +19,7 @@ from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
 from app.security import jwt, rate_limit
 from app.security.rate_limit import enforce_account_limit
-from tests.conftest import make_user, mint_access_token, persist
+from tests.conftest import make_user, mint_access_token, persist, set_request_cookies
 
 REFRESH = settings.REFRESH_COOKIE_NAME
 
@@ -34,12 +34,14 @@ async def test_logout_revokes_outstanding_refresh_tokens(
     token = jwt.create_refresh_token(user.id, token_version=0)
 
     # logout bumps token_version -> the cookie's ver (0) no longer matches.
-    resp = await app_client.post("/api/auth/logout", cookies={REFRESH: token})
+    set_request_cookies(app_client, {REFRESH: token})
+    resp = await app_client.post("/api/auth/logout")
     assert resp.status_code == 200
     await db_session.refresh(user)
     assert user.token_version == 1
 
-    resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: token})
+    set_request_cookies(app_client, {REFRESH: token})
+    resp = await app_client.post("/api/auth/refresh")
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"
 
@@ -47,13 +49,15 @@ async def test_logout_revokes_outstanding_refresh_tokens(
 async def test_refresh_with_matching_version_succeeds(app_client: AsyncClient, db_session) -> None:
     user = await persist(db_session, make_user())
     token = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
-    resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: token})
+    set_request_cookies(app_client, {REFRESH: token})
+    resp = await app_client.post("/api/auth/refresh")
     assert resp.status_code == 200
     assert resp.json()["data"]["access_token"]
     await db_session.refresh(user)
     assert user.token_version == 1
     # Old cookie no longer works after rotation bump.
-    resp2 = await app_client.post("/api/auth/refresh", cookies={REFRESH: token})
+    set_request_cookies(app_client, {REFRESH: token})
+    resp2 = await app_client.post("/api/auth/refresh")
     assert resp2.status_code == 401
 
 
@@ -77,7 +81,8 @@ async def test_refresh_legacy_token_without_ver_claim_allowed(
         settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
     )
-    resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: legacy})
+    set_request_cookies(app_client, {REFRESH: legacy})
+    resp = await app_client.post("/api/auth/refresh")
     assert resp.status_code == 200
     await db_session.refresh(user)
     assert user.token_version == 1
@@ -89,7 +94,8 @@ async def test_logout_without_cookie_succeeds(app_client: AsyncClient) -> None:
 
 
 async def test_logout_with_garbage_cookie_succeeds(app_client: AsyncClient) -> None:
-    resp = await app_client.post("/api/auth/logout", cookies={REFRESH: "not-a-jwt"})
+    set_request_cookies(app_client, {REFRESH: "not-a-jwt"})
+    resp = await app_client.post("/api/auth/logout")
     assert resp.status_code == 200
 
 

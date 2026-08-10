@@ -14,7 +14,13 @@ from app.models.enums import OrgUserStatus
 from app.models.user import User
 from app.security import jwt
 from app.security.token_crypto import encrypt_token
-from tests.conftest import make_user, mint_access_token, mint_expired_access_token, persist
+from tests.conftest import (
+    make_user,
+    mint_access_token,
+    mint_expired_access_token,
+    persist,
+    set_request_cookies,
+)
 
 REFRESH = settings.REFRESH_COOKIE_NAME
 
@@ -113,12 +119,14 @@ async def test_me_refresh_token_rejected(app_client: AsyncClient, db_session) ->
 async def test_refresh_valid_cookie_rotates(app_client: AsyncClient, db_session) -> None:
     user = await persist(db_session, make_user())
     refresh = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
-    resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: refresh})
+    set_request_cookies(app_client, {REFRESH: refresh})
+    resp = await app_client.post("/api/auth/refresh")
     assert resp.status_code == 200
     assert resp.json()["data"]["access_token"]
     assert REFRESH in resp.headers.get("set-cookie", "")
     # Prior refresh cookie is dead after rotation (token_version bumped).
-    resp2 = await app_client.post("/api/auth/refresh", cookies={REFRESH: refresh})
+    set_request_cookies(app_client, {REFRESH: refresh})
+    resp2 = await app_client.post("/api/auth/refresh")
     assert resp2.status_code == 401
 
 
@@ -132,7 +140,8 @@ async def test_refresh_missing_cookie_unauthorized(app_client: AsyncClient) -> N
 
 
 async def test_refresh_garbage_cookie_unauthorized(app_client: AsyncClient) -> None:
-    resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: "garbage"})
+    set_request_cookies(app_client, {REFRESH: "garbage"})
+    resp = await app_client.post("/api/auth/refresh")
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"
     set_cookie = resp.headers.get("set-cookie", "")
@@ -151,7 +160,8 @@ async def test_refresh_revoked_does_not_clear_cookie(app_client: AsyncClient, db
     refresh = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
     user.token_version = (user.token_version or 0) + 1
     await db_session.flush()
-    resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: refresh})
+    set_request_cookies(app_client, {REFRESH: refresh})
+    resp = await app_client.post("/api/auth/refresh")
     assert resp.status_code == 401
     set_cookie = resp.headers.get("set-cookie", "")
     assert REFRESH not in set_cookie
@@ -163,17 +173,20 @@ async def test_refresh_concurrent_loser_preserves_winner_cookie(
     """Winner rotates; loser with the old cookie must not wipe the jar."""
     user = await persist(db_session, make_user())
     old = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
-    won = await app_client.post("/api/auth/refresh", cookies={REFRESH: old})
+    set_request_cookies(app_client, {REFRESH: old})
+    won = await app_client.post("/api/auth/refresh")
     assert won.status_code == 200
     new_cookie = won.cookies.get(REFRESH)
     assert new_cookie
 
-    lost = await app_client.post("/api/auth/refresh", cookies={REFRESH: old})
+    set_request_cookies(app_client, {REFRESH: old})
+    lost = await app_client.post("/api/auth/refresh")
     assert lost.status_code == 401
     assert REFRESH not in lost.headers.get("set-cookie", "")
 
     # Winner's cookie still refreshes (loser did not Max-Age=0 the jar).
-    again = await app_client.post("/api/auth/refresh", cookies={REFRESH: new_cookie})
+    set_request_cookies(app_client, {REFRESH: new_cookie})
+    again = await app_client.post("/api/auth/refresh")
     assert again.status_code == 200
     assert again.json()["data"]["access_token"]
 
@@ -181,7 +194,8 @@ async def test_refresh_concurrent_loser_preserves_winner_cookie(
 async def test_refresh_access_token_rejected(app_client: AsyncClient, db_session) -> None:
     user = await persist(db_session, make_user())
     access = mint_access_token(user)
-    resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: access})
+    set_request_cookies(app_client, {REFRESH: access})
+    resp = await app_client.post("/api/auth/refresh")
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"
 
@@ -189,7 +203,8 @@ async def test_refresh_access_token_rejected(app_client: AsyncClient, db_session
 async def test_refresh_denied_user_rejected(app_client: AsyncClient, db_session) -> None:
     user = await persist(db_session, make_user(status=OrgUserStatus.DENIED))
     refresh = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
-    resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: refresh})
+    set_request_cookies(app_client, {REFRESH: refresh})
+    resp = await app_client.post("/api/auth/refresh")
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"
 
@@ -198,7 +213,8 @@ async def test_refresh_onboarding_user_allowed(app_client: AsyncClient, db_sessi
     # Non-active onboarding users MUST still be able to refresh.
     user = await persist(db_session, make_user(status=OrgUserStatus.PENDING_ORG_PROFILE))
     refresh = jwt.create_refresh_token(user.id, token_version=user.token_version or 0)
-    resp = await app_client.post("/api/auth/refresh", cookies={REFRESH: refresh})
+    set_request_cookies(app_client, {REFRESH: refresh})
+    resp = await app_client.post("/api/auth/refresh")
     assert resp.status_code == 200
     assert resp.json()["data"]["access_token"]
 
