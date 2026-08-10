@@ -156,6 +156,28 @@ describe("AuthProvider bootstrap resolution", () => {
     expect(fetchMeMock).toHaveBeenCalledTimes(2);
   });
 
+  it("soft-fails after successful devLogin when /me errors (keeps token)", async () => {
+    refreshMock.mockResolvedValue(false);
+    devLoginMock.mockImplementation(async () => {
+      setAccessToken("dev-token");
+      return { access_token: "dev-token" };
+    });
+    fetchMeMock.mockResolvedValue({ kind: "error" });
+    window.history.pushState({}, "", "/org/browse");
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+
+    await waitForStatus(container, "restore_failed");
+    expect(getAccessToken()).toBe("dev-token");
+    expect(fetchMeMock).toHaveBeenCalledTimes(2);
+  });
+
   it("retryRestore recovers to authenticated after a soft failure", async () => {
     let meCalls = 0;
     refreshMock.mockImplementation(async () => {

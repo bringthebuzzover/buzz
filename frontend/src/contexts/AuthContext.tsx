@@ -273,18 +273,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const dev = await devLogin();
         if (!bootstrapStillOwner()) return;
         if (dev) {
+          // Token is installed — soft-fail /me blips like the cookie-refresh path
+          // (failHard would send RequireAuth to /login and flake E2E).
           const me = await fetchMeWithRetry(bootstrapStillOwner);
           if (!bootstrapStillOwner()) return;
-          if (me.kind === "user") {
-            userRef.current = me.user;
-            setUser(me.user);
-            setStatus("authenticated");
-            return;
-          }
-          if (me.kind === "instagram_reconnect") {
-            enterInstagramReconnect();
-            return;
-          }
+          applyMeResult(me, { softOnTransient: true });
+          return;
         }
       }
       if (!bootstrapStillOwner()) return;
@@ -296,7 +290,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         else failHard();
       }
     });
-  }, [enterInstagramReconnect, failHard, failSoft]);
+  }, [applyMeResult, enterInstagramReconnect, failHard, failSoft]);
 
   const login = useCallback(() => {
     // Redirect to Instagram OAuth login endpoint.
