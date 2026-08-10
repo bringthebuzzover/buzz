@@ -422,6 +422,6 @@ note: |
   - `test.jwt-secret-key-length-warning` — **archived** 2026-08-10
     (`closed_in: 772305a`, cluster `test-jwt-secret-length`)
   - `test.httpx-per-request-cookies-deprecated` — **archived**
-    (cluster `test-httpx-cookies`)
+    (`closed_in: d5666e3`, cluster `test-httpx-cookies`)
   Do not auto-execute. Un-park only with an explicit user request naming the
   gap id after a Locked v1 exists (or product reverses sibling-dismiss).
