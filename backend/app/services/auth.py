@@ -19,8 +19,10 @@ from app.models.enums import OrgUserStatus, PortalRole
 from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.security import jwt
+from app.security.session import bump_token_version
 from app.security.token_crypto import encrypt_token
 from app.services.instagram import ALLOWED_ACCOUNT_TYPES, InstagramClient
+from app.services.instagram_token import clear_unusable_instagram_token
 
 
 def _now() -> datetime:
@@ -129,11 +131,7 @@ async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: st
     )
     if user is None:
         return False
-    user.instagram_access_token = None
-    user.instagram_token_issued_at = None
-    user.instagram_token_expires_at = None
-    user.instagram_token_refreshed_at = None
-    user.token_version = (user.token_version or 0) + 1
+    clear_unusable_instagram_token(user)
     await db.flush()
     return True
 
@@ -164,7 +162,7 @@ async def issue_token_pair(db: AsyncSession, user: User) -> tuple[str, str]:
     for this user (stolen cookies die on re-login / rotation).
     """
 
-    user.token_version = (user.token_version or 0) + 1
+    bump_token_version(user)
     await db.flush()
     ver = user.token_version or 0
     access = jwt.create_access_token(user.id, user.portal_role, user.status, token_version=ver)

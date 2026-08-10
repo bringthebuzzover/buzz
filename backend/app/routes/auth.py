@@ -49,6 +49,7 @@ from app.schemas.onboarding import (
 )
 from app.security import jwt
 from app.security.rate_limit import enforce_account_limit, rate_limited
+from app.security.session import bump_token_version
 from app.security.signed_request import SignedRequestError, parse_signed_request
 from app.services.admin_auth import login_admin
 from app.services.auth import (
@@ -332,7 +333,7 @@ async def logout(
             payload = jwt.decode_token(token, expected_type=jwt.ACCESS_TOKEN_TYPE)
             user = await db.get(User, uuid.UUID(payload.sub))
             if user is not None:
-                user.token_version = (user.token_version or 0) + 1
+                bump_token_version(user)
                 await db.flush()
                 bumped = True
         except (jwt.TokenError, ValueError):
@@ -345,7 +346,7 @@ async def logout(
                 payload = jwt.decode_token(cookie, expected_type=jwt.REFRESH_TOKEN_TYPE)
                 user = await db.get(User, uuid.UUID(payload.sub))
                 if user is not None:
-                    user.token_version = (user.token_version or 0) + 1
+                    bump_token_version(user)
                     await db.flush()
             except (jwt.TokenError, ValueError):
                 pass  # nothing valid to revoke; just clear the cookie

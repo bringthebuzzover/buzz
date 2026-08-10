@@ -20,6 +20,7 @@ from app.models.enums import OrgUserStatus, PortalRole
 from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
 from app.security.password import hash_password
+from app.security.session import bump_token_version
 from app.services.email import send_password_reset_email
 
 logger = logging.getLogger(__name__)
@@ -158,6 +159,6 @@ async def reset_password(
 
     row.used_at = now
     user.password_hash = hash_password(password)
-    user.token_version = (user.token_version or 0) + 1
+    bump_token_version(user)
     await db.flush()
     return {"ok": True}
