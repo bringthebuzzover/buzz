@@ -1,0 +1,240 @@
+name: CI
+
+on:
+  push:
+    branches: [main, mvp]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      e2e_repeat:
+        description: "How many parallel Playwright E2E jobs to run (stress)"
+        required: false
+        default: "1"
+        type: choice
+        options:
+          - "1"
+          - "3"
+          - "5"
+          - "10"
+          - "30"
+
+concurrency:
+  # Push/PR: cancel superseded runs. Stress (workflow_dispatch or [e2e-stress-N]
+  # commit marker): isolate by run_id and do not cancel.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message || '', '[e2e-stress-')) && github.run_id || 'ci' }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && !contains(github.event.head_commit.message || '', '[e2e-stress-') }}
+
+jobs:
+  # Build the E2E matrix (1 on normal push/PR; N on workflow_dispatch or
+  # commit message marker `[e2e-stress-N]`).
+  e2e-matrix:
+    name: Plan E2E matrix
+    runs-on: ubuntu-latest
+    outputs:
+      attempts: ${{ steps.set.outputs.attempts }}
+    steps:
+      - id: set
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_REPEAT: ${{ github.event.inputs.e2e_repeat }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, re
+          event = os.environ.get("EVENT_NAME") or ""
+          if event == "workflow_dispatch":
+              n = int(os.environ.get("DISPATCH_REPEAT") or "1")
+          else:
+              msg = os.environ.get("COMMIT_MSG") or ""
+              m = re.search(r"\[e2e-stress-(\d+)\]", msg)
+              n = int(m.group(1)) if m else 1
+          n = max(1, min(30, n))
+          print(f"attempts={json.dumps(list(range(1, n + 1)))}")
+          PY
+
+  frontend:
+    name: Frontend (typecheck + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: API types in sync with spec
+        # Regenerate TS types from the committed openapi.json; fail if they're
+        # stale (spec changed but `npm run gen:api` wasn't run). The backend job
+        # separately verifies the spec itself matches the route code.
+        run: |
+          npm run gen:api
+          git -C .. diff --exit-code -- frontend/src/api/generated/schema.ts
+
+      - name: Build
+        run: npm run build
+        env:
+          CI: "true"
+
+  backend:
+    name: Backend (ruff + mypy + pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: buzz
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/buzz
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Configure Poetry cache
+        run: poetry config virtualenvs.in-project true
+
+      - name: Cache virtualenv
+        uses: actions/cache@v4
+        with:
+          path: backend/.venv
+          key: poetry-${{ runner.os }}-py3.12-${{ hashFiles('backend/poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Format check (black)
+        run: poetry run black --check --diff app/ tests/
+
+      - name: Lint (ruff)
+        run: poetry run ruff check app/ tests/
+
+      - name: Type-check (mypy)
+        run: poetry run mypy app/
+
+      - name: OpenAPI spec in sync with routes
+        # Re-dump the spec from the app and fail if the committed openapi.json is
+        # stale (a request/response schema changed but `dump_openapi.py` wasn't
+        # run). Keeps the backend the single source of truth for the contract.
+        run: |
+          poetry run python scripts/dump_openapi.py
+          git -C .. diff --exit-code -- openapi.json
+
+      - name: Apply migrations (alembic)
+        run: poetry run alembic upgrade head
+
+      - name: Tests (pytest)
+        run: poetry run pytest
+
+  frontend-e2e:
+    name: Frontend E2E (Playwright) #${{ matrix.attempt }}
+    needs: [e2e-matrix]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        attempt: ${{ fromJSON(needs.e2e-matrix.outputs.attempts) }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: buzz
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Playwright's global-setup + the backend webServer both read these:
+      # global-setup runs alembic + seed_e2e against the runner Postgres, and
+      # the webServer boots uvicorn in development so dev-login works in tests.
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/buzz
+      ENVIRONMENT: development
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Configure Poetry cache
+        run: poetry config virtualenvs.in-project true
+
+      - name: Cache virtualenv
+        uses: actions/cache@v4
+        with:
+          path: backend/.venv
+          key: poetry-${{ runner.os }}-py3.12-${{ hashFiles('backend/poetry.lock') }}
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: poetry install --no-interaction --no-root
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        # --with-deps pulls the runner's system libs alongside chromium; skipping
+        # it is the most common cause of CI-only Playwright launch failures.
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E
+        # `webServer` in playwright.config.ts boots the backend (cd ../backend,
+        # ENVIRONMENT=development, poetry run uvicorn) + frontend (npm start),
+        # and global-setup.ts applies migrations + seed_e2e first.
+        working-directory: frontend
+        run: npm run e2e
+        env:
+          CI: "true"
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.attempt }}
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7
+          if-no-files-found: ignore

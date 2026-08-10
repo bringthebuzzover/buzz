@@ -1,0 +1,60 @@
+{
+  "name": "buzz",
+  "version": "0.1.0",
+  "private": true,
+  "homepage": "https://www.bringthebuzzover.com",
+  "dependencies": {
+    "@tanstack/react-query": "^5.100.14",
+    "firebase": "^12.7.0",
+    "gh-pages": "^6.3.0",
+    "lucide-react": "^1.14.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.12.0",
+    "react-scripts": "5.0.1",
+    "serve": "^14.2.6"
+  },
+  "scripts": {
+    "start": "craco start",
+    "build": "craco build",
+    "build:prod": "node scripts/check-deploy-env.js && npm run build",
+    "start:prod": "serve -s build -l $PORT",
+    "test": "craco test",
+    "predeploy": "npm run build:prod",
+    "deploy": "gh-pages -d build",
+    "gen:api": "npx -y openapi-typescript@7.13.0 ../openapi.json -o src/api/generated/schema.ts",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "@playwright/test": "^1.50.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.15.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.21",
+    "jiti": "^2.6.1",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~4.9.5"
+  }
+}

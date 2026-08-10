@@ -1,12 +1,12 @@
 # Buzz
 
-**Bring the Buzz Over** is a specialized marketing platform built to connect corporate brands with the unique, often hard-to-reach communities found on college campuses.
+**Bring the Buzz Over** is a specialized marketing platform built to connect brands with the unique, often hard-to-reach communities found on college campuses.
 
 Buzz moves beyond traditional "cold ads" by leveraging the existing social fabric of universities. Rather than generic marketing, Buzz partners brands with established student organizations—such as Greek life chapters, athletic teams, and academic or social clubs—to enable more authentic campus engagement.
 
-For brands, Buzz offers a centralized system to manage student-led campaigns across multiple colleges. Brands can issue creative briefs, handle approvals, and measure real-world engagement and on-the-ground impact—all within a single workflow.
+For brands, Buzz offers a centralized system to manage student-led campaigns across multiple colleges. Brands can handle approvals, and measure real-world engagement and on-the-ground impact—all within a single workflow.
 
-For student organizations, Buzz acts as a marketplace where groups can find paid opportunities to collaborate with brands. They can access exclusive products, brand perks, and sponsored campaigns, allowing them to monetize their influence and share offerings that resonate with their mission.
+For student organizations, Buzz acts as a marketplace where groups can find opportunities to collaborate with brands. They can access exclusive products, brand perks, and sponsored campaigns, allowing them to monetize their influence and share offerings that resonate with their mission.
 
 At the core is the **BUZZ platform**: a technology suite that connects brands and student groups. It acts as a project management and discovery tool that allows marketing campaigns to scale across a network of top-tier institutions, including Cornell, Stanford, Harvard, Princeton, and MIT. The platform is designed to ensure that marketing feels organic and student-led rather than corporate-driven.
 
@@ -14,7 +14,7 @@ At the core is the **BUZZ platform**: a technology suite that connects brands an
 
 # Product Specification
 
-This document describes Buzz’s product architecture, user experiences, lifecycle rules, data flow, and interactions. It reflects the intended behavior for the current product direction (including demo-specific affordances).
+This document describes Buzz’s product architecture, user experiences, lifecycle rules, data flow, and interactions. It reflects the intended behavior for the current product direction.
 
 ---
 
@@ -24,14 +24,14 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 
 | Dimension                  | Brands                                                          | Student organizations                                                                                     |
 | -------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Go-to-market               | Sales-led (PLS)                                                 | Product-led (PLG)                                                                                         |
-| Onboarding                 | Sales-assisted; Buzz reviews and onboards                       | **Login with Instagram**; profile + verified university **.edu** email grants access (**§3.1**, **§6.1**) |
-| Scheduling / participation | Buzz coordinates ops; brands approve applicants per drop (§7.1) | Orgs discover drops and apply (§6.3, §7)                                                                  |
-| Primary portal             | Status tracker + KPI dashboards                                 | Drop feed + campaign history                                                                              |
+| Go-to-market               | Sales-led (PLS)                                                 | Product-led (PLG) / sales-led (greek-life partnerships)                                                   |
+| Onboarding                 | Sales-led ; Buzz reviews and onboards                           | **Login with Instagram**; profile + verified university **.edu** email, then **Buzz admin approval**, grants portal access (**§3.1**, **§6.1**) |
+| Scheduling / participation | Buzz coordinates ops; brands **batch-finalize** applicants after `apply_close_at` (§7.1) | Orgs discover campaigns, can enable notifications to be reminded when they drop, and apply (§6.3, §7)     |
+| Primary portal             | Status tracker + KPI dashboards + content library               | Drop feed + campaign history                                                                              |
 | Analytics lens             | Per-drop, aggregate across drops, engagement over time          | Own posts + aggregate engagement per active campaign                                                      |
 | Motion                     | Representative-driven                                           | Self-serve signup (Instagram + **.edu** verification)                                                     |
 
-**Key product rule:** A real user belongs to **exactly one** portal (Brand **or** Organization). **Demo users** with demo access may switch views for presentation purposes.
+**Key product rule:** A real user belongs to **exactly one** portal (Brand **or** Organization). Internal operators may use admin **View as** (impersonation) to open an org or brand session — that is not a production multi-portal capability.
 
 ---
 
@@ -43,7 +43,7 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 - **Campaign (org context):** An org’s participation in a specific drop (application through completion).
 - **Spot:** One org slot in a drop’s fixed capacity.
 - **Buzz / Admin:** Internal operators who onboard brands and orgs to the platform, move brand **drop-request** tracker stages, manage agreements and exception handling, and operate behind the scenes where the product does not give the brand a direct control.
-- **Drop applicant decisions:** The **brand** approves or denies each applicant up to capacity. Rules: **§7.1**.
+- **Drop applicant decisions:** After the application window closes, the **brand** **batch-finalizes** applicants (approve or deny up to capacity). Rules: **§7.1**. No accept writes while the chronological Open window is still running.
 
 ---
 
@@ -53,22 +53,26 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 
 - No end user may belong to **both** the Brand portal and the Organization portal.
 - Routing and permissions enforce a **single portal** per authenticated user.
-- **Organization users** sign in with **Login with Instagram** (Instagram is the account identity for the org portal).
-- On first signup, the org completes a short profile—**university**, **org name**, and a **university .edu email** address—and must **verify** that email before the Organization portal **grants access**. Until verification succeeds, the user remains in a pending state (no full portal access).
+- **Organization users** sign in with **Login with Instagram** (Instagram is the account identity for the org portal). The Instagram account used at login **is** the organization account (Business/Creator); the org handle is not separately choosable.
+- On first signup, the org completes a short profile—**university**, **org name**, \# of members, address, and a **university .edu email**—and must **verify** that email, then await **Buzz admin approval**, before the Organization portal grants access. Until approval, the user remains in a pending state (no full portal access).
 
-### 3.2 Demo behavior
+### 3.1.1 Data ownership (single source of truth)
 
-Users who have **demo access** can choose how they experience the web app:
+Each fact is stored once; APIs may still expose familiar field names by joining the owner table.
 
-- On first entry (or when appropriate), the app prompts whether to view as **Brand** or **Student Org**.
-- The top bar replaces a simple “Exit demo” pattern with **Change view**, which opens options:
-  - **Exit Demo View**
-  - **See as Brand**
-  - **See as Student Org**
+| Fact | Owner column | Notes |
+| --- | --- | --- |
+| Org Instagram identity | `users.instagram_username` | Exposed as `instagramHandle` on org profile / applicant rows |
+| Org `.edu` email | `users.edu_email` | Unique login/verification identity; not editable via `PATCH /orgs/me` |
+| Brand display name | `brands.brand_name` | Drop/campaign responses join brand for `brandName` |
+| Campaign tracking number | `drops.tracking_number` | One TN per drop; org/brand/admin surfaces read the drop |
+| Post↔campaign membership | `drop_applications.drop_id` | Links/suggestions reference `application_id` only |
 
-This allows internal stakeholders to switch personas quickly without implying that production users can do the same.
+`organizations` holds club profile metadata (name, campus, address, etc.). `brands.instagram_handle` remains a separate brand-side field used for autolink caption matching.
 
-**Implementation note:** Demo access is gated (e.g. passcode / feature flag). See application config for the current demo access mechanism.
+### 3.2 Demo / internal preview
+
+Production users cannot switch portals. Internal operators use admin **View as** (impersonation) to open an org or brand session; see [`TESTING.md`](TESTING.md) / [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ---
 
@@ -76,16 +80,16 @@ This allows internal stakeholders to switch personas quickly without implying th
 
 ### 4.1 Capacity & application window (timing)
 
-Each drop has a **fixed maximum number of organization spots** (e.g. 10). Drops may also carry an **optional total product unit budget** (`total_product_units` — **nullable** when units are unknown or not applicable at request time) that brands distribute across approved orgs during applicant selection (**§7.1**). Multiple orgs may **apply**. Applicant review and outcomes: **§7.1**. When brand-approved orgs **fill** all spots, the drop shows as **Closed** on the org **Drop Feed** for new Open applications (**§7.2**).
+Each drop has a **fixed maximum number of organization spots** (e.g. 10). Drops may also carry an **optional total product unit budget** (`total_product_units` — **nullable** when units are unknown or not applicable at request time) that brands distribute across approved orgs during **batch finalize** after the window closes (**§7.1**). Multiple orgs may **apply** while the drop is **Open**. During Open, applications stay **pending review** — brands do **not** accept or deny while `now <= apply_close_at`.
 
 For v1, drops expose two timestamps:
 
 | Field            | Purpose                                                                                                 |
 | ---------------- | ------------------------------------------------------------------------------------------------------- |
 | `apply_open_at`  | When applications open; drives **Upcoming** → **Open** transition for org UX and countdown before open. |
-| `apply_close_at` | When the application window ends.                                                                       |
+| `apply_close_at` | When the application window ends; after this, brands **batch-finalize** applicants (**§7.1**).          |
 
-**Timing outcomes:** If `apply_close_at` passes before all spots are filled, the drop **auto-closes** (no new applications under the open window). After auto-close or any other closure, **Buzz** may **manually reopen** (admin UX TBD). These timestamps also drive org feed states (**§6.3**).
+**Timing outcomes:** When `apply_close_at` passes, the window **auto-closes** (no new applications under the open window). After auto-close or any other closure, **Buzz** may **manually reopen** (admin UX TBD). Capacity-**Closed** on the org feed (approved orgs fill all spots) is a **post-selection** outcome — or a **reopened** window with prior accepts already counting toward capacity — not a first-window Open path (**§7.2**). These timestamps also drive org feed states (**§6.3**).
 
 ### 4.2 Post attribution (hard constraint)
 
@@ -106,7 +110,7 @@ For v1, drops expose two timestamps:
 ### 5.1 Onboarding
 
 1. Brand submits **company information** and a **short message** (intent / context for Buzz).
-2. A Buzz representative **manually reviews** the submission.
+2. A Buzz representative **manually reviews** the submission, then we schedule a call
 3. Upon approval, the brand is **onboarded** into the Brand portal.
 
 **Interaction notes:**
@@ -134,7 +138,9 @@ For v1, drops expose two timestamps:
 
 #### 5.2.1 Logistics integrations (e.g. EasyPost)
 
-Buzz integrates **shipping and tracking** with external providers (for example **EasyPost**) so brands can **enter or sync tracking numbers**, and eventually **generate labels** and receive **webhook-driven** carrier events (e.g. in transit, delivered) where the implementation supports it.
+**Today (MVP):** Buzz admins enter tracking numbers on the drop tracker; there is **no** EasyPost (or other carrier) integration in the shipped product.
+
+**Future:** Buzz may integrate shipping and tracking with external providers (for example **EasyPost**) so brands can enter or sync tracking numbers, and eventually generate labels and receive webhook-driven carrier events (e.g. in transit, delivered) where the implementation supports it.
 
 **NOTE:** Exact split of responsibilities (Buzz vs. brand vs. automation) for each milestone should follow the same tracker UX unless the product explicitly hands a step to the brand through the integration.
 
@@ -144,9 +150,9 @@ Buzz integrates **shipping and tracking** with external providers (for example *
 
 #### 5.3.1 Per-drop view
 
-When a drop is **active** or **finished**, the brand can open it and sees:
+When a drop is past the application window (selection / post-window stages such as **finalizing agreements**, or later **active** / **finished**), the brand can open it and sees:
 
-- **Applicants and participants by organization:** Each applying org appears as its own row (or card) so the brand can **approve** or **deny** applicants up to the drop’s capacity. Approved orgs remain visible for the lifecycle of the drop.
+- **Applicants and participants by organization:** Each applying org appears as its own row (or card). Brands **finalize** applicants **after `apply_close_at`**, approving or denying up to capacity (and allocating units when budgeted) — not as rolling mid-window decisions during Open (**§7.1**). Approved orgs remain visible for the lifecycle of the drop.
 - **All social posts** linked or submitted for the drop, **grouped by org** where useful, plus roll-up summaries across the drop.
 - **Per-post metrics:** likes, comments, estimated reach (per implementation), aligned with platform analytics where applicable.
 - **Drop-level KPIs:** total engagement, total reach, **cost per engagement** (if cost inputs exist in the product; otherwise hide or N/A per implementation).
@@ -158,7 +164,8 @@ When a drop is **active** or **finished**, the brand can open it and sees:
 **Interactions:**
 
 - Read-only analytics exploration (filters, date ranges, etc. are optional v2+ unless specified).
-- **Applicant decisions** are brand actions (approve / deny); analytics and library browsing remain read-only except where downloads are explicitly offered.
+- **Applicant finalize** (approve / deny) is available in the post-window selection stage; analytics and library browsing remain read-only except where downloads are explicitly offered. Brands can filter through applicants (sorority, fraternity, sports, academic club, region, etc)
+- In the future: there would be a matching algorithm.
 
 #### 5.3.2 Aggregate dashboard
 
@@ -180,7 +187,7 @@ A separate **high-level** view across **all** the brand’s drops:
 
 ### 6.1 Onboarding
 
-1. Org user chooses **Login with Instagram** (creates or signs into a Buzz account tied to that Instagram identity).
+1. Org user chooses **Login with Instagram** using the **organization’s** Instagram Business/Creator account (creates or signs into a Buzz account tied to that Instagram identity; this login account is the org identity — not a personal member account).
 2. The app collects **university**, **org name**, and a **university .edu email** address (must match the org’s campus).
 3. Buzz sends a **verification** to that **.edu** address; the user completes verification.
 4. After **verified .edu** email, the org enters **pending Buzz review** — a Buzz admin manually reviews the org and **approves** or **denies** it.
@@ -206,7 +213,7 @@ Orgs have **two separate** surfaces:
 Each **drop card** shows:
 
 - Drop details and **brand** identity (as permitted by product).
-- **Spots:** e.g. _“4 of 10 spots remaining”_ (or equivalent copy).
+- **Spots:** first Open window (_“Up to 10 spots”_); after finalize + reopen with prior accepts, depleting leftovers (_“4 of 10 spots remaining”_). Capacity full → **Closed** chip (**§7.2**).
 - **Status** for org UX: **Upcoming**, **Open**, **Closed**.
 
 #### 6.3.1 Status: Upcoming
@@ -214,22 +221,23 @@ Each **drop card** shows:
 - Before `apply_open_at`, the drop is **Upcoming**.
 - Show a **live countdown** to `apply_open_at`.
 - **Notify Me** button:
-  - **v1:** Persisted **server-side** as a per-org, per-drop subscription; shows confirmation: _“You’re on the list — we’ll let you know when this opens.”_
-  - **Later:** Active notification delivery (email / push) driven from the same subscription records.
+  - Persisted **server-side** as a per-org, per-drop subscription; shows confirmation: _“You’re on the list — we’ll let you know when this opens.”_
+  - The org picks a lead time (5 / 15 / 60 minutes before `apply_open_at`).
 
 **Interactions:**
 
 - Tapping **Notify Me** records the subscription on the backend; revisits show the already-subscribed state from the server.
 - Org may opt out (remove the subscription) before `apply_open_at`.
+- **Delivery:** a reminder email goes to the org's `.edu` address once the chosen lead time is reached, sent at most once per subscription. The scheduler runs every ~5 minutes, so the shortest lead time can land a few minutes late. Push is still out of scope (**§11**).
 
 #### 6.3.2 Status: Open
 
-- After `apply_open_at` and before closure conditions, the drop is **Open** (subject to `apply_close_at` and not closed for other reasons — **§4.1**).
-- **Apply:** If the drop is open under those rules and spots remain, org can submit an application (**§7.1**). At capacity on the feed: **§7.2**.
+- After `apply_open_at` and before closure conditions, the drop is **Open** (subject to `apply_close_at` and not closed for other reasons — **§4.1**). Orgs may **Apply** while Open; applications stay pending until batch finalize (**§7.1**).
+- **Spots line:** first Open (`acceptedCount === 0`) shows capacity as _“Up to N spots”_ (accepts do not deplete during the first window). A **reopened** window with prior accepts may show _“M of N spots remaining”_. At capacity on the feed: **§7.2** (post-selection / reopen leftovers — not mid-window accepts).
 
 #### 6.3.3 Status: Closed
 
-- **Closed** when: `apply_close_at` has passed, capacity is filled per **§7.2**, Buzz manually closed the drop, or other admin actions. **Reopen:** **§4.1**.
+- **Closed** when: `apply_close_at` has passed (unless manually reopened), capacity is filled per **§7.2** (after selection, or reopen with prior accepts), Buzz manually closed the drop, or other admin actions. **Reopen:** **§4.1**. Capacity fill alone does **not** close a first-window Open drop before finalize.
 
 **Interactions:**
 
@@ -278,18 +286,19 @@ Each drop has **fixed org capacity** and an **application window** (**§4.1**). 
 
 ### 7.1 Application flow (org → brand)
 
-**No waitlist** — each applicant is either pending review, approved, or denied.
+**No waitlist** — each applicant is either pending review, approved, or denied. **Collect-all-then-pick:** there are **no accept writes while `now <= apply_close_at`** in v1.
 
-1. Org submits **Apply** on an **Open** drop (if allowed by time + state; **§4.1**, **§6.3**).
-2. The **brand** reviews applications for that drop.
-3. The brand **approves** or **denies** each applicant:
+1. Org submits **Apply** on an **Open** drop (if allowed by time + state; **§4.1**, **§6.3**). Applications stay pending through the window.
+2. After `apply_close_at`, the **brand** **batch-finalizes** applicants for that drop (typically in the post-window selection stage).
+3. For each applicant the brand **approves** or **denies**:
    - **Approved** — counts toward capacity; if the drop has a `total_product_units` budget (**§4.1**), the brand also **allocates units per approved org**, with the sum of allocations capped by the budget. Org moves to **Accepted** in **My Campaigns** when product rules expose that state (subject to fulfillment and activation).
    - **Denied** — **no** row in **My Campaigns** for that application; **email** only.
 
 ### 7.2 Capacity exhaustion
 
-- When brand-**approved** orgs **fill** all spots:
-  - Drop shows as **Closed** on the **Drop Feed** (org cannot apply as Open).
+- When brand-**approved** orgs (via finalize) **fill** all spots:
+  - Drop shows as **Closed** on the **Drop Feed** (org cannot apply as Open; no waitlist).
+- That Closed state is **post-selection**, or on a **reopened** window with prior accepts already counting toward capacity — **not** a first-window Open path (accepts do not accumulate while the chronological window is still open).
 
 ### 7.3 Concurrent participation
 
@@ -301,9 +310,9 @@ Each drop has **fixed org capacity** and an **application window** (**§4.1**). 
 ## 8. Data flow and aggregation
 
 ```
-Multiple orgs submit post links for the same drop
+Orgs apply while Open; after apply_close_at, brand batch-finalizes (§7.1)
               ↓
-Brand approves or denies each applicant (§7.1)
+Accepted orgs submit / link posts for the drop
               ↓
 Buzz pulls / refreshes metrics per post (likes, comments, reach estimates)
               ↓
@@ -321,9 +330,9 @@ Aggregated all drops →  Brand aggregate dashboard
 
 ## 9. Status authority
 
-- **Brand:** Approve/deny drop applicants (**§7.1**). Org moves **Applied → Accepted** after brand approval (labels may differ by surface).
+- **Brand:** Batch-finalize (approve/deny) drop applicants **after `apply_close_at`** (**§7.1**). Org moves **Applied → Accepted** after brand approval (labels may differ by surface).
 - **Buzz:** Brand **platform** onboarding; **drop-request** tracker stages (**§5.2**); agreements and ops coordination; **§4.1** reopen; **org** lifecycle beyond applicant choice (e.g. **Active** / **Finished** when fulfillment and campaign rules are met — triggers TBD with brands). Org **portal access** is gated by **.edu** verification **followed by Buzz admin approval** (**§6.1**).
-- **Automation / rules:** Feed **Open/Closed** follows **§4.1**, **§6.3**, **§7.2**.
+- **Automation / rules:** Feed **Open/Closed** follows **§4.1**, **§6.3**, **§7.2** (capacity-Closed is post-selection / reopen leftovers, not mid-window accept).
 
 ---
 
@@ -333,10 +342,10 @@ Aggregated all drops →  Brand aggregate dashboard
 | ----- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | Brand | Onboarding          | Submit info + message; wait for rep                                                                                              |
 | Brand | Drop request        | Submit request; view read-only tracker                                                                                           |
-| Brand | Per-drop dashboard  | Approve/deny applicants by org; per-org posts + metrics; drop KPIs; UGC preview/download                                         |
+| Brand | Per-drop dashboard  | Batch-finalize applicants after close; per-org posts + metrics; drop KPIs; UGC preview/download                                |
 | Brand | Aggregate dashboard | Totals, time series, compare drops, running totals                                                                               |
-| Org   | Onboarding          | Login with Instagram; university + org name + **.edu**; verify email → access                                                    |
-| Org   | Drop Feed           | Browse; countdown + Notify Me (local); Apply                                                                                     |
+| Org   | Onboarding          | Login with org Instagram account; university + org name + **.edu**; verify email → Buzz approval → access                                                    |
+| Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts when Active                                                                                           |
 | Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; timing/reopen/fulfillment coordination; integrations (see §5.2.1 TODO) |
 
@@ -344,7 +353,7 @@ Aggregated all drops →  Brand aggregate dashboard
 
 ## 11. Non-goals and v1 scope boundaries
 
-- **Notify Me delivery (email / push):** Out of scope for v1 — only the subscription record is persisted; active delivery is deferred.
+- **Notify Me push notifications:** Out of scope — reminder delivery is **email only** (**§6.3.1**).
 - **In-app denial UI for orgs:** Out of scope — channel is **email**; rules **§7.1** (drop applicant denials).
 - **Rich drop scheduling beyond apply window:** Only `apply_open_at` and `apply_close_at` specified for v1; other timestamps may be implicit inside Buzz ops.
 
