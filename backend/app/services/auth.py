@@ -7,6 +7,7 @@ profile collection, email verification, and admin approval are Stage 7.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -24,6 +25,8 @@ from app.security.token_crypto import encrypt_token
 from app.services.instagram import ALLOWED_ACCOUNT_TYPES, InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
 
+logger = logging.getLogger(__name__)
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -36,17 +39,24 @@ async def handle_instagram_callback(
 ) -> User:
     """Run the full OAuth handshake and upsert the org user (§3.4 Phase 1).
 
-    Exchanges ``code`` → short-lived → long-lived token, verifies the account
-    is Business/Creator, then persists the encrypted long-lived token. A new
-    user is created ``org`` / ``pending_org_profile``; a returning user keeps
-    their existing role + status (no downgrade of an active org).
+    Exchanges ``code`` → short-lived → long-lived token, verifies Graph
+    ``account_type`` is ``BUSINESS`` or ``MEDIA_CREATOR``, then persists the
+    encrypted long-lived token. A new user is created ``org`` /
+    ``pending_org_profile``; a returning user keeps their existing role +
+    status (no downgrade of an active org).
     """
 
     short = await ig.exchange_code(code)
     long = await ig.exchange_for_long_lived(short.access_token)
     profile = await ig.fetch_profile(long.access_token)
 
-    if profile.account_type.upper() not in ALLOWED_ACCOUNT_TYPES:
+    account_type = profile.account_type.upper()
+    if account_type not in ALLOWED_ACCOUNT_TYPES:
+        logger.warning(
+            "instagram callback rejected account_type=%s ig_user_id=%s",
+            account_type,
+            profile.id,
+        )
         raise BuzzAPIException(
             code=errors.INSTAGRAM_PERSONAL_ACCOUNT,
             message=(

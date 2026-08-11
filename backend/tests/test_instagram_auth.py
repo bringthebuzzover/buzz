@@ -100,10 +100,10 @@ async def test_callback_denied_user_forbidden(
     assert resp.json()["error"]["code"] == "ACCOUNT_DENIED"
 
 
-async def test_callback_creator_account_ok(
+async def test_callback_media_creator_account_ok(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient
 ) -> None:
-    fake_instagram.account_type = "CREATOR"
+    fake_instagram.account_type = "Media_Creator"
     state = await _begin_login(app_client)
     resp = await app_client.post(
         "/api/auth/instagram/callback",
