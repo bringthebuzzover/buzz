@@ -424,12 +424,13 @@ note: |
   - `ops.email-ledger` — after `email-honesty` archives; ledger + denial
     org channel (or wontfix) + invite/reset honesty.
   - `deploy.custom-domain-samesite-lax` — **archived** 2026-08-09 (Plan A).
-    Residual: `deploy.meta-brand-url-cutover`,
-    `deploy.gh-pages-brand-domain-retire` (waiting on Shannon admin).
+    Residual: `deploy.meta-brand-url-cutover`.
     `deploy.github-repo-owner-shannon` — **archived** 2026-08-10 (all 8 Sources
     `bringthebuzzover/buzz` @ `main`; push `e27a7f6` deployed from org).
     `deploy.apex-hostinger-forward-blocked` — **archived** 2026-08-10
     (Cloudflare DNS + apex→www Single Redirect; Hostinger NS flipped).
+    `deploy.gh-pages-brand-domain-retire` — **archived** 2026-08-11
+    (Shannon cleared Pages `cname`; www still Railway).
 
 ---
 
@@ -440,8 +441,8 @@ gaps:
   - ops.observability-thin
   - posts.sibling-dismiss-never-rearms
 note: |
-  Platform observability only remains NO_PLAN in `ops.observability-thin`
-  (STORY counter / skip split → pending cluster `posts-stories-unsupported`).
+  `ops.observability-thin` — **deferred** (platform readyz/livez/metrics still
+  NO_PLAN; STORY slice → pending `posts-stories-unsupported`).
   Sibling dismiss is wontfix. Plus deferred DRY/contract chores from the
   SOT/DRY audit:
   - `openapi.422-wrong-shape` — **archived** 2026-08-10 (app-level 422 → APIResponse)

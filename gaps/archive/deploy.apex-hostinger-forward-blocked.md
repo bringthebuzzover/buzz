@@ -11,8 +11,8 @@ evidence:
     note: Plan A Phase 3b intended Hostinger 302→301 apex→www
   - path: DEPLOYMENT.md
     note: Brand DNS cutover; apex redirect ownership
-  - path: gaps/deploy.gh-pages-brand-domain-retire.md
-    note: sibling Phase 4 — Pages custom domain still set; Lawrence lacks admin
+  - path: gaps/archive/deploy.gh-pages-brand-domain-retire.md
+    note: sibling Phase 4 — Pages custom domain cleared 2026-08-11
 repro: |
   Hostinger MCP domains_createDomainForwardingV1 (and Hostinger UI):
   domain=bringthebuzzover.com → https://www.bringthebuzzover.com
@@ -66,7 +66,7 @@ registration.
 
 ## Sibling
 
-Pages Remove / admin gate: [`deploy.gh-pages-brand-domain-retire.md`](deploy.gh-pages-brand-domain-retire.md).
+Pages Remove (later archived): [`deploy.gh-pages-brand-domain-retire.md`](deploy.gh-pages-brand-domain-retire.md).
 Removing Pages **before** option 1 lands will break apex until Cloudflare (or
 equivalent) is live — acceptable only if we knowingly accept a broken apex
 window.
@@ -90,4 +90,4 @@ on Lawrence account. Hostinger NS → `felipe.ns.cloudflare.com` /
 proxied apex `A 192.0.2.1` + Single Redirect 301 → `https://www.bringthebuzzover.com`
 (`Server: cloudflare`, `cf-ray` present — verified forced to CF anycast).
 Hostinger parking DNS zone cleared (empty). Personal CF zones unchanged.
-GH Pages custom domain leftover tracked in `deploy.gh-pages-brand-domain-retire`.
+GH Pages custom domain leftover later cleared — see archived `deploy.gh-pages-brand-domain-retire`.
