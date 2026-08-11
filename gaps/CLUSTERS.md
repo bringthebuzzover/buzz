@@ -418,11 +418,17 @@ stop_if:
 status: parked
 gaps:
   - ops.email-ledger
+  - ops.resend-domain-unverified
+  - ops.brand-mailbox
 note: |
   Required follow-ups for partial v1 clusters (not timeless-complete).
   Do not auto-execute. Create Locked v1 + un-park only when named explicitly.
   - `ops.email-ledger` — after `email-honesty` archives; ledger + denial
     org channel (or wontfix) + invite/reset honesty.
+  - `ops.resend-domain-unverified` — Resend sender domain Verified + one prod
+    transactional send (split from archived `ops.brand-domain-email-unset`).
+  - `ops.brand-mailbox` — full company mailbox send+receive + replace Cornell
+    `contactEmail` (same split; not forward-only).
   - `deploy.custom-domain-samesite-lax` — **archived** 2026-08-09 (Plan A).
     Residual: `deploy.meta-brand-url-cutover`.
     `deploy.github-repo-owner-shannon` — **archived** 2026-08-10 (all 8 Sources

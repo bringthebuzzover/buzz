@@ -85,11 +85,13 @@ Use project/user MCP when it helps. **Read** is fine; **mutate** needs explicit 
 
 | Server | Use for | Do not |
 | ------ | ------- | ------ |
-| **Railway** | Status, logs, vars (read), docs | Redeploy, set vars, accept-deploy, create services without explicit OK |
+| **Railway** | Status, logs, vars (read), docs; mutations via **direct** tools only (`update-service`, `set-variables`, `list-variables`, `redeploy`, …) | Redeploy / set vars / accept-deploy / create services without explicit OK. **Minimize `railway-agent`** — do ops fully with direct tools (or human dashboard/CLI); do not ask the agent to delete/stage vars. See Railway notes below. |
 | **GitHub** | PRs, checks, issues, file reads for this repo | Force-push, surprise merges; prefer `gh` when user rules say so |
 | **Hostinger** | Registrar / nameservers for `bringthebuzzover.com` (Melissa’s account — API/MCP only; see [`DEPLOYMENT.md`](DEPLOYMENT.md) Domain / DNS ownership) | Assume Lawrence hPanel; mutate NS without explicit OK; commit API tokens; treat Hostinger DNS zone as SOT (Cloudflare is) |
 | **Cloudflare** | Authoritative DNS + apex→www redirect for `bringthebuzzover.com` (Lawrence account) | Orange-cloud `www`/`api` (breaks Railway TLS); delete personal zones; mutate without OK |
 | **Meta Developer Tools** | Read Buzz Meta app vs [`META.md`](META.md): `devtools_app_list` → `devtools_app` (settings/hosts), `devtools_app_review` / `devtools_compliance` (Advanced Access + standing), `devtools_api_usage` (limits/deprecations), `devtools_discovery` / changelog (docs; no app grant needed). Ops gaps: `deploy.meta-brand-url-cutover`, `ops-samesite` — **verify** after human paste | Paste Hosts / submit App Review / Business Verification; webhook `manage`/`test` without explicit OK; put OAuth config in repo `.cursor/mcp.json` (user MCP only). Grant Buzz on consent (**Read** default; **Manage** only for webhook work) |
+
+**Railway notes (hard-won):** Prefer full manual via direct MCP tools. Skip `railway-agent` unless the user explicitly asks for it. `set-variables` can only set/overwrite — it **cannot delete** keys; remove vars in the Railway dashboard or `railway variable delete` (CLI must be logged in). If anything claims a var was deleted, parent must re-check with `list-variables` (staged/`null` is not gone).
 
 Personal MCPs (e.g. Hevy, Obsidian) are **out of scope** for Buzz work — ignore them here.
 

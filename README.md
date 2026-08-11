@@ -28,7 +28,7 @@ Admins sign in with email + password (`/admin/login`) and can "View as" any acti
 
 ## Prerequisites
 
-- **Node.js** 18+ and **npm**
+- **Node.js** 18+ and **npm** (Railway frontend uses root [`package.json`](package.json) `engines.node` 22)
 - For the API: **Python** 3.12+, **Poetry**, **PostgreSQL** 14+
 
 ---
