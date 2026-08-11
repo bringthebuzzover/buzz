@@ -4,7 +4,7 @@ title: Resend sender domain not verified — transactional mail fails off-dev
 kind: ops
 severity: P1
 status: fixed
-closed_in: c23347d
+closed_in: 32acba4
 surface: deploy
 evidence:
   - path: backend/brand_emails.json
