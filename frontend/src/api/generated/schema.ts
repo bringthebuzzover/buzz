@@ -3247,23 +3247,21 @@ export interface components {
          * @description Phase 2: submit org profile after Instagram OAuth.
          */
         OrgOnboardingRequest: {
-            category?: components["schemas"]["OrgCategory"] | null;
+            category: components["schemas"]["OrgCategory"];
             /** City */
-            city?: string | null;
+            city: string;
             /** Contactname */
-            contactName?: string | null;
+            contactName: string;
             /** Deliveryaddress */
-            deliveryAddress?: string | null;
+            deliveryAddress: string;
             /** Eduemail */
             eduEmail: string;
-            /** Followercount */
-            followerCount?: number | null;
             /** Membercount */
-            memberCount?: number | null;
+            memberCount: number;
             /** Orgname */
             orgName: string;
             /** State */
-            state?: string | null;
+            state: string;
             /** Tiktokhandle */
             tiktokHandle?: string | null;
             /** University */
@@ -3330,9 +3328,12 @@ export interface components {
          *     ``edu_email`` and ``instagram_handle`` are intentionally absent — edu is
          *     the verified login identity; the IG handle mirrors the OAuth username and
          *     is not separately choosable.
+         *     ``follower_count`` is Graph-owned (omit from PATCH; ``extra=forbid``).
+         *     Profile fields that are required on create cannot be cleared to null/blank
+         *     when sent; omit leaves the prior value (legacy nulls persist until filled).
          *     ``extra="forbid"`` so an unknown/typo'd key (or an attempt to send
-         *     ``eduEmail`` / ``instagramHandle``) is a 422 rather than a silently-ignored
-         *     no-op write.
+         *     ``eduEmail`` / ``instagramHandle`` / ``followerCount``) is a 422 rather than
+         *     a silently-ignored no-op write.
          */
         OrgProfileUpdate: {
             category?: components["schemas"]["OrgCategory"] | null;
@@ -3342,8 +3343,6 @@ export interface components {
             contactName?: string | null;
             /** Deliveryaddress */
             deliveryAddress?: string | null;
-            /** Followercount */
-            followerCount?: number | null;
             /** Membercount */
             memberCount?: number | null;
             /** Orgname */

@@ -54,7 +54,7 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 - No end user may belong to **both** the Brand portal and the Organization portal.
 - Routing and permissions enforce a **single portal** per authenticated user.
 - **Organization users** sign in with **Login with Instagram** (Instagram is the account identity for the org portal). The Instagram account used at login **is** the organization account (Business/Creator); the org handle is not separately choosable.
-- On first signup, the org completes a short profile—**university**, **org name**, \# of members, address, and a **university .edu email**—and must **verify** that email, then await **Buzz admin approval**, before the Organization portal grants access. Until approval, the user remains in a pending state (no full portal access).
+- On first signup, the org completes a short profile—**university**, **org name**, \# of members, **organization type**, **city**, **state**, **contact name**, **shipping address**, and a **university .edu email**—and must **verify** that email, then await **Buzz admin approval**, before the Organization portal grants access. Until approval, the user remains in a pending state (no full portal access). Those profile fields remain required on later org profile edits (cannot be cleared). Instagram **follower count** is not manually entered — it is seeded from Instagram at profile creation when possible and refreshed daily (**§4.3**).
 
 ### 3.1.1 Data ownership (single source of truth)
 
@@ -108,7 +108,7 @@ For v1, drops expose two timestamps:
 ### 4.3 Metrics
 
 - Likes, comments, and related engagement metrics are **refreshed periodically** (not a one-time snapshot at submission).
-- **Estimated reach (v1 definition):** Derived from **follower counts** of the participating student org(s) (and/or connected accounts as implemented), combined with product rules for display. Connected org follower counts are **refreshed daily from Instagram** when a usable token is on file (same cadence as post metric sync); manual onboarding/profile edits remain allowed.
+- **Estimated reach (v1 definition):** Derived from **follower counts** of the participating student org(s) (and/or connected accounts as implemented), combined with product rules for display. Connected org follower counts are **Graph-owned**: best-effort seed from Instagram at org profile creation, then **refreshed daily** when a usable token is on file (same cadence as post metric sync). Manual follower edits on onboarding/profile are not allowed.
 - **Aggregate likes:** Show **aggregate likes** across the campaign’s linked posts (in addition to or alongside estimated reach, per product copy).
 - Brand-facing layout (per-org, UGC, roll-ups): **§5.3**.
 - **KPI preservation (hard rule):** Attributed campaign contribution — linked post counts, likes, comments, engagement series, estimated reach from retained follower counts, and campus counts from retained university — **must not disappear** when an org account is erased or identity is removed (**§3.1.2**). Identity, contact PII, IG credentials, and identifiable post content (permalinks, captions, media) may be scrubbed or anonymized; **numeric campaign stats stay**. Brand dashboards may show a tombstone participant label with prior metrics intact.
@@ -198,8 +198,8 @@ A separate **high-level** view across **all** the brand’s drops:
 ### 6.1 Onboarding
 
 1. Org user chooses **Login with Instagram** using the **organization’s** Instagram Business/Creator account (creates or signs into a Buzz account tied to that Instagram identity; this login account is the org identity — not a personal member account).
-2. The app collects **university**, **org name**, and a **university .edu email** address (must match the org’s campus).
-3. Buzz sends a **verification** to that **.edu** address; the user completes verification.
+2. The app collects **university**, **org name**, \# of members, **organization type**, **city**, **state**, **contact name**, **shipping address**, and a **university .edu email** address (must match the org’s campus).
+3. Buzz sends a **verification** to that **.edu** address; the user completes verification (confirm on the verify page).
 4. After **verified .edu** email, the org enters **pending Buzz review** — a Buzz admin manually reviews the org and **approves** or **denies** it.
 5. After **Buzz approval**, the user is **granted access** to the Organization portal (Drop Feed, My Campaigns). Denied applicants are notified by **email** and do not gain portal access.
 

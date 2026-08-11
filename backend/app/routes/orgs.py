@@ -21,6 +21,7 @@ from app.schemas.acks import OrgOnboardingResponse
 from app.schemas.onboarding import OrgOnboardingRequest
 from app.schemas.orgs import OrgProfileResponse, OrgProfileUpdate
 from app.schemas.posts import PostResponse
+from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.onboarding import submit_org_onboarding
 from app.services.orgs import build_org_profile, get_org_for_user, update_org_profile
 from app.services.posts import list_org_posts
@@ -33,13 +34,14 @@ async def org_onboarding(
     payload: OrgOnboardingRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    ig: InstagramClient = Depends(get_instagram_client),
 ) -> APIResponse:
     """Phase 2: submit org profile, advance to email verification (Stage 7).
 
     Uses the bare authenticated user (not ``CurrentOrg``) because the caller is
     ``pending_org_profile``, not yet active — the active-status gate would 403.
     """
-    result = await submit_org_onboarding(db, user, payload)
+    result = await submit_org_onboarding(db, user, payload, ig=ig)
     return api_response(data=OrgOnboardingResponse.model_validate(result))
 
 

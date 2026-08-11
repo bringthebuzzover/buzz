@@ -27,13 +27,12 @@ export type OrgOnboardingInput = {
   university: string;
   eduEmail: string;
   tiktokHandle?: string;
-  followerCount?: number;
-  memberCount?: number;
-  category?: OrgCategory;
-  city?: string;
-  state?: string;
-  contactName?: string;
-  deliveryAddress?: string;
+  memberCount: number;
+  category: OrgCategory;
+  city: string;
+  state: string;
+  contactName: string;
+  deliveryAddress: string;
 };
 
 export function useSubmitOnboarding() {

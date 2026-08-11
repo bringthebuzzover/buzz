@@ -5784,88 +5784,35 @@
         "description": "Phase 2: submit org profile after Instagram OAuth.",
         "properties": {
           "category": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/OrgCategory"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/OrgCategory"
           },
           "city": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "City"
+            "title": "City",
+            "type": "string"
           },
           "contactName": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Contactname"
+            "title": "Contactname",
+            "type": "string"
           },
           "deliveryAddress": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Deliveryaddress"
+            "title": "Deliveryaddress",
+            "type": "string"
           },
           "eduEmail": {
             "title": "Eduemail",
             "type": "string"
           },
-          "followerCount": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Followercount"
-          },
           "memberCount": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Membercount"
+            "title": "Membercount",
+            "type": "integer"
           },
           "orgName": {
             "title": "Orgname",
             "type": "string"
           },
           "state": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "State"
+            "title": "State",
+            "type": "string"
           },
           "tiktokHandle": {
             "anyOf": [
@@ -5886,7 +5833,13 @@
         "required": [
           "orgName",
           "university",
-          "eduEmail"
+          "eduEmail",
+          "memberCount",
+          "category",
+          "city",
+          "state",
+          "contactName",
+          "deliveryAddress"
         ],
         "title": "OrgOnboardingRequest",
         "type": "object"
@@ -6077,7 +6030,7 @@
       },
       "OrgProfileUpdate": {
         "additionalProperties": false,
-        "description": "Editable subset of the org profile (all optional; PATCH semantics).\n\nOnly provided fields are applied (``model_dump(exclude_unset=True)``).\n``edu_email`` and ``instagram_handle`` are intentionally absent \u2014 edu is\nthe verified login identity; the IG handle mirrors the OAuth username and\nis not separately choosable.\n``extra=\"forbid\"`` so an unknown/typo'd key (or an attempt to send\n``eduEmail`` / ``instagramHandle``) is a 422 rather than a silently-ignored\nno-op write.",
+        "description": "Editable subset of the org profile (all optional; PATCH semantics).\n\nOnly provided fields are applied (``model_dump(exclude_unset=True)``).\n``edu_email`` and ``instagram_handle`` are intentionally absent \u2014 edu is\nthe verified login identity; the IG handle mirrors the OAuth username and\nis not separately choosable.\n``follower_count`` is Graph-owned (omit from PATCH; ``extra=forbid``).\nProfile fields that are required on create cannot be cleared to null/blank\nwhen sent; omit leaves the prior value (legacy nulls persist until filled).\n``extra=\"forbid\"`` so an unknown/typo'd key (or an attempt to send\n``eduEmail`` / ``instagramHandle`` / ``followerCount``) is a 422 rather than\na silently-ignored no-op write.",
         "properties": {
           "category": {
             "anyOf": [
@@ -6121,17 +6074,6 @@
               }
             ],
             "title": "Deliveryaddress"
-          },
-          "followerCount": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Followercount"
           },
           "memberCount": {
             "anyOf": [

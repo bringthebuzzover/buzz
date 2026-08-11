@@ -21,13 +21,13 @@ class OrgOnboardingRequest(CamelModel):
     edu_email: str
     # instagram_handle is derived from the OAuth login username — not client-supplied.
     tiktok_handle: str | None = None
-    follower_count: int | None = None
-    member_count: int | None = None
-    category: OrgCategory | None = None
-    city: str | None = None
-    state: str | None = None
-    contact_name: str | None = None
-    delivery_address: str | None = None
+    # follower_count is Graph-owned — omitted from create (extra=forbid rejects client write).
+    member_count: int
+    category: OrgCategory
+    city: str
+    state: str
+    contact_name: str
+    delivery_address: str
 
     @field_validator("edu_email")
     @classmethod
@@ -43,17 +43,17 @@ class OrgOnboardingRequest(CamelModel):
             raise ValueError("Must be a valid .edu email address")
         return v
 
-    @field_validator("org_name", "university")
+    @field_validator("org_name", "university", "city", "state", "contact_name", "delivery_address")
     @classmethod
     def _non_empty(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("Must not be empty")
         return v.strip()
 
-    @field_validator("follower_count", "member_count")
+    @field_validator("member_count")
     @classmethod
-    def _non_negative(cls, v: int | None) -> int | None:
-        if v is not None and v < 0:
+    def _non_negative(cls, v: int) -> int:
+        if v < 0:
             raise ValueError("Must be zero or greater")
         return v
 

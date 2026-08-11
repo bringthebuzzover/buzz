@@ -174,7 +174,7 @@ Auto-pick (`run next cluster`) = first `status: pending` below.
 
 Priority rationale (2026-08-11 delivery order — code first, then ops parallel):
 1. `org-verify-email-confirm` — **done** (confirm before .edu verify POST)
-2. `org-onboarding-required-fields` — required profile fields + Graph followers
+2. `org-onboarding-required-fields` — **done** (required profile fields + Graph followers)
 3. `brand-delivery-address` — null denied applicants' deliveryAddress
 4. `org-edu-email-change` — active org .edu rotate (PRODUCT ask on interim)
 5. `admin-drops-ops-ui` — drops list multiselect filters + drop-detail logistics polish
@@ -589,7 +589,7 @@ stop_if:
 
 ## org-onboarding-required-fields
 
-status: pending
+status: done
 gaps:
   - org.onboarding-members-category-required
 approach: |

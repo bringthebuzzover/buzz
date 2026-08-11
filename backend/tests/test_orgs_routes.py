@@ -44,12 +44,26 @@ async def test_patch_me_updates_field(app_client: AsyncClient, db_session) -> No
     resp = await app_client.patch(
         "/api/orgs/me",
         headers=headers,
-        json={"orgName": "New Name", "followerCount": 1200},
+        json={"orgName": "New Name", "memberCount": 55},
     )
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert data["orgName"] == "New Name"
-    assert data["followerCount"] == 1200
+    assert data["memberCount"] == 55
+
+
+async def test_patch_me_rejects_follower_count(app_client: AsyncClient, db_session) -> None:
+    headers, org, _user = await _org_headers(db_session)
+    prior = org.follower_count
+    resp = await app_client.patch(
+        "/api/orgs/me",
+        headers=headers,
+        json={"followerCount": 1200},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
+    await db_session.refresh(org)
+    assert org.follower_count == prior
 
 
 async def test_patch_me_rejects_unknown_field(app_client: AsyncClient, db_session) -> None:
@@ -72,12 +86,23 @@ async def test_patch_me_empty_body_noop(app_client: AsyncClient, db_session) -> 
 
 async def test_patch_me_validation_error(app_client: AsyncClient, db_session) -> None:
     headers, _org, _user = await _org_headers(db_session)
-    resp = await app_client.patch("/api/orgs/me", headers=headers, json={"followerCount": -5})
+    resp = await app_client.patch("/api/orgs/me", headers=headers, json={"memberCount": -5})
     assert resp.status_code == 422
     body = resp.json()
     assert body["error"]["code"] == "VALIDATION_ERROR"
     # The envelope carries the raw validation errors under details.errors.
     assert isinstance(body["error"]["details"]["errors"], list)
+
+
+async def test_patch_me_null_profile_fields_rejected(app_client: AsyncClient, db_session) -> None:
+    headers, org, _user = await _org_headers(db_session)
+    org.city = "Ithaca"
+    await db_session.flush()
+    resp = await app_client.patch("/api/orgs/me", headers=headers, json={"city": None})
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
+    await db_session.refresh(org)
+    assert org.city == "Ithaca"
 
 
 async def test_patch_me_rejects_instagram_handle(app_client: AsyncClient, db_session) -> None:

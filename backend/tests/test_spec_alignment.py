@@ -198,6 +198,15 @@ async def test_brand_drop_detail_org_with_no_posts(app_client: AsyncClient, db_s
 # --- Gap 6: org category persisted + surfaced (§5.3.1) -----------------------
 
 
+_ONBOARDING_REQUIRED = {
+    "memberCount": 40,
+    "city": "Ithaca",
+    "state": "NY",
+    "contactName": "Casey Officer",
+    "deliveryAddress": "123 Campus Rd",
+}
+
+
 async def test_onboarding_persists_category(app_client: AsyncClient, db_session) -> None:
     user = await persist(
         db_session,
@@ -210,6 +219,7 @@ async def test_onboarding_persists_category(app_client: AsyncClient, db_session)
             "university": "Test University",
             "eduEmail": "sigma@test.edu",
             "category": "sorority",
+            **_ONBOARDING_REQUIRED,
         },
         headers={"Authorization": f"Bearer {mint_access_token(user)}"},
     )
@@ -231,6 +241,7 @@ async def test_onboarding_rejects_invalid_category(app_client: AsyncClient, db_s
             "university": "Y",
             "eduEmail": "x@test.edu",
             "category": "not-a-real-category",
+            **_ONBOARDING_REQUIRED,
         },
         headers={"Authorization": f"Bearer {mint_access_token(user)}"},
     )
