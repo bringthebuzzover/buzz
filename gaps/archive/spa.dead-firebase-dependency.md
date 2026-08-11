@@ -4,7 +4,7 @@ title: Unused firebase package still a production dependency
 kind: dead_code
 severity: P3
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: spa
 evidence:
   - path: frontend/package.json

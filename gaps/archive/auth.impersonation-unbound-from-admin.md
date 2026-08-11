@@ -4,7 +4,7 @@ title: View-as JWT not bound to admin session; logout with imp Bearer revokes ta
 kind: authz
 severity: P2
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: admin
 evidence:
   - path: backend/app/services/admin_auth.py

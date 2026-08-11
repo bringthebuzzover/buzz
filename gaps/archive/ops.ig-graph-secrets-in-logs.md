@@ -4,7 +4,7 @@ title: Instagram access_token (and exchange secrets) can land in logs via httpx+
 kind: ops
 severity: P2
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: jobs
 evidence:
   - path: backend/app/services/instagram.py

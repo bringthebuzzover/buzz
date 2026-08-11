@@ -4,7 +4,7 @@ title: Invite/reset/verify secrets stay in SPA query string and history
 kind: authz
 severity: P1
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: spa
 evidence:
   - path: backend/app/services/email.py

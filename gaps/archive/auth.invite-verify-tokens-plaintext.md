@@ -4,7 +4,7 @@ title: Brand invite and .edu verification tokens stored plaintext (reset is hash
 kind: authz
 severity: P1
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: auth
 evidence:
   - path: backend/app/models/brand_invite_token.py

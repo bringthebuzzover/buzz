@@ -4,7 +4,7 @@ title: Per-IP rate limits key off first X-Forwarded-For hop (client-spoofable)
 kind: authz
 severity: P1
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: auth
 evidence:
   - path: backend/app/security/rate_limit.py

@@ -4,7 +4,7 @@ title: POST /logout always Set-Cookie Max-Age=0 even when token_version is not b
 kind: authz
 severity: P1
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: auth
 evidence:
   - path: backend/app/routes/auth.py

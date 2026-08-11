@@ -4,7 +4,7 @@ title: run_job exception path commits flushed job mutations with ok=false
 kind: invariant_break
 severity: P2
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: jobs
 evidence:
   - path: backend/scripts/run_job.py
