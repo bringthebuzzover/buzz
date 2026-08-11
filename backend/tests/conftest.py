@@ -177,6 +177,7 @@ class FakeInstagramClient:
             id=self.user_id,
             username=self.username,
             account_type=self.account_type,
+            followers_count=getattr(self, "followers_count", 1000),
         )
 
     # --- Stage 8 surface (configurable per test; sensible defaults) ---

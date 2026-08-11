@@ -18,6 +18,34 @@ def _client(handler) -> HttpInstagramClient:
     return HttpInstagramClient(http=httpx.AsyncClient(transport=transport))
 
 
+async def test_fetch_profile_includes_followers_count() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "followers_count" in request.url.params["fields"]
+        return httpx.Response(
+            200,
+            json={
+                "id": "ig1",
+                "username": "campus",
+                "account_type": "BUSINESS",
+                "followers_count": 4242,
+            },
+        )
+
+    profile = await _client(handler).fetch_profile("tok")
+    assert profile.followers_count == 4242
+
+
+async def test_fetch_profile_omitted_followers_is_none() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"id": "ig1", "username": "campus", "account_type": "CREATOR"},
+        )
+
+    profile = await _client(handler).fetch_profile("tok")
+    assert profile.followers_count is None
+
+
 async def test_refresh_long_lived_parses_token() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path.endswith("/refresh_access_token")

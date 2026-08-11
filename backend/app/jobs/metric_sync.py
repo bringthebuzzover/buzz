@@ -13,6 +13,11 @@ Daily. For each org with a live campaign and a valid long-lived token:
    ``metrics_updated_at`` is stamped when basics succeed (including after an
    insights failure) so charts can include the post; insight columns update
    only on insights success.
+3. **Follower counts** — after media sync, refresh ``organizations.follower_count``
+   from Graph ``followers_count`` for **every** non-erased org user with a usable
+   token (not only live-stage campaign orgs). Omit/null/fail keep prior values;
+   summary counters ``followers_refreshed`` / ``followers_omitted`` /
+   ``followers_failed``.
 
 Stories are unsupported (v1): discovery skips ``media_product_type == STORY``;
 there is no ``/stories`` poller. See ``gaps/posts.stories-unsupported`` / META.md.
@@ -21,10 +26,10 @@ Per-post / per-org failures don't block the batch (rate limits, deleted posts,
 expired tokens). Posts older than 30 days are frozen (skipped). Idempotent via
 ``UNIQUE(org_id, platform, external_id)``.
 
-Eligibility (``_LIVE_STAGES``) is intentional for this job: orgs need an accepted
-application on ``awaiting_products`` / ``drop_active`` / ``drop_finished``. The
-finalize → awaiting_products gap is a known sync blackout; do not expand stage
-gating here without a product change.
+Media eligibility (``_LIVE_STAGES``) is intentional for discovery/refresh: orgs
+need an accepted application on ``awaiting_products`` / ``drop_active`` /
+``drop_finished``. Follower refresh is broader (any tokened org). The finalize →
+awaiting_products gap remains a media-sync blackout only.
 """
 
 from __future__ import annotations
@@ -44,6 +49,7 @@ from app.models.enums import (
     BrandTrackerStage,
     OrgUserStatus,
     Platform,
+    PortalRole,
     SocialMediaProductType,
 )
 from app.models.organization import Organization
@@ -188,6 +194,66 @@ def _token_for(user: User | None, now: datetime) -> str | None:
         return None
 
 
+async def _refresh_follower_counts(
+    db: AsyncSession, ig: InstagramClient, now: datetime
+) -> dict[str, int]:
+    """Refresh ``organizations.follower_count`` from Graph for tokened orgs.
+
+    Walks all non-erased org users with a usable token (not only live-stage
+    campaign eligibility). Omit/null/fail keep the prior DB value.
+    """
+
+    refreshed = 0
+    omitted = 0
+    failed = 0
+
+    users = list(
+        await db.scalars(
+            select(User).where(
+                User.portal_role == PortalRole.ORG.value,
+                User.status != OrgUserStatus.ERASED.value,
+                User.instagram_access_token.isnot(None),
+            )
+        )
+    )
+    for user in users:
+        token = _token_for(user, now)
+        if token is None:
+            continue
+        org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+        if org is None:
+            continue
+        try:
+            profile = await ig.fetch_profile(token)
+        except Exception:  # noqa: BLE001
+            failed += 1
+            logger.warning(
+                "metric sync followers_failed org_id=%s user_id=%s previous=%s reason=fetch_error",
+                org.id,
+                user.id,
+                org.follower_count,
+            )
+            continue
+        if profile.followers_count is None:
+            omitted += 1
+            logger.warning(
+                "metric sync followers_omitted org_id=%s user_id=%s previous=%s reason=omitted",
+                org.id,
+                user.id,
+                org.follower_count,
+            )
+            continue
+        org.follower_count = profile.followers_count
+        refreshed += 1
+
+    await db.flush()
+    return {
+        "followers_refreshed": refreshed,
+        "followers_omitted": omitted,
+        "followers_failed": failed,
+    }
+
+
 async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     window_start = now - _WINDOW
@@ -320,6 +386,8 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
             refreshed += 1
         await db.flush()
 
+    follower_stats = await _refresh_follower_counts(db, ig, now)
+
     return {
         "orgs": len(orgs),
         "posts_discovered": discovered,
@@ -329,4 +397,5 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
         "skipped_story": skipped_story,
         "likes_omitted": likes_omitted,
         "comments_omitted": comments_omitted,
+        **follower_stats,
     }

@@ -126,7 +126,7 @@ Background jobs are one-shot scripts the scheduler invokes — no worker. Each i
 | Service             | Start command                                         | Cron UTC      | Status | Purpose                                              |
 | ------------------- | ----------------------------------------------------- | ------------- | ------ | ---------------------------------------------------- |
 | cron-drop-autoclose | `poetry run python scripts/run_job.py drop_autoclose` | `*/5 * * * *` | Live   | close drops past their apply window (§10.2)          |
-| cron-metric-sync    | `… metric_sync`                                       | `0 3 * * *`   | Live   | Instagram metric sync (§10.1)                        |
+| cron-metric-sync    | `… metric_sync`                                       | `0 3 * * *`   | Live   | IG media/insights + org follower_count refresh (§10.1) |
 | cron-token-cleanup  | `… token_cleanup`                                     | `0 3 * * *`   | Live   | sweep used/expired tokens (§10.3)                    |
 | cron-autolink-scan  | `… autolink_scan`                                     | `30 3 * * *`  | Live   | auto-link suggestion scan, after metric_sync (§10.4) |
 | cron-token-refresh  | `… token_refresh`                                     | `0 4 * * *`   | Live   | IG long-lived token refresh safety net (§10.5.2)     |
