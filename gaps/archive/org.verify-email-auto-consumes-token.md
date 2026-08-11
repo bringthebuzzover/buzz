@@ -3,7 +3,7 @@ id: org.verify-email-auto-consumes-token
 title: Edu verify link auto-POSTs on page load — prefetch can verify without a human click
 kind: authz
 severity: P2
-status: open
+status: fixed
 surface: org
 evidence:
   - path: frontend/src/pages/onboarding/VerifyEmailPage.tsx
@@ -110,8 +110,8 @@ Parent verified cites against `VerifyEmailPage`, `BrandSetupPage`,
 
 ## Implement checklist
 
-- [ ] `VerifyWithToken`: idle → Confirm click → pending → success/error (no mount POST)
-- [ ] Strip URL after successful confirm; keep token in state for the click
-- [ ] Preserve `EMAIL_ALREADY_VERIFIED` → success UX
-- [ ] Test: no verify call until click
+- [x] `VerifyWithToken`: idle → Confirm click → pending → success/error (no mount POST)
+- [x] Strip URL after successful confirm; keep token in state for the click
+- [x] Preserve `EMAIL_ALREADY_VERIFIED` → success UX
+- [x] Test: no verify call until click (`VerifyEmailPage.test.tsx`)
 - [ ] Manual: open `?token=` → confirm → pending-approval; second open → already-verified success
