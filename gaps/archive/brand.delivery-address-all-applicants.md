@@ -3,7 +3,8 @@ id: brand.delivery-address-all-applicants
 title: Brand drop detail returns deliveryAddress for every applicant including denied
 kind: authz
 severity: P2
-status: open
+status: fixed
+closed_in: bcdb6cc
 surface: brand
 evidence:
   - path: backend/app/routes/brands.py

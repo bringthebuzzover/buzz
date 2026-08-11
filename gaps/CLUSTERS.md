@@ -175,7 +175,7 @@ Auto-pick (`run next cluster`) = first `status: pending` below.
 Priority rationale (2026-08-11 delivery order — code first, then ops parallel):
 1. `org-verify-email-confirm` — **done** (confirm before .edu verify POST)
 2. `org-onboarding-required-fields` — **done** (required profile fields + Graph followers)
-3. `brand-delivery-address` — null denied applicants' deliveryAddress
+3. `brand-delivery-address` — **done** (null denied applicants' deliveryAddress)
 4. `org-edu-email-change` — active org .edu rotate (PRODUCT ask on interim)
 5. `admin-drops-ops-ui` — drops list multiselect filters + drop-detail logistics polish
 Ops (not auto-pick): `meta-business-verification`, `ops.brand-mailbox` (follow-ups).
@@ -484,7 +484,7 @@ note: |
   Shipped admin org hybrid erase (PRODUCT §3.1.2 / §4.3): IG-handle confirm;
   identity scrub; KPI retention; confirmation email; legal copy align.
   No brand erase / Meta deletion callback.
-  Sibling authz: `brand-delivery-address` (pending in open queue).
+  Sibling authz: `brand-delivery-address` (**done**).
 
 ---
 
@@ -610,7 +610,7 @@ stop_if:
 
 ## brand-delivery-address
 
-status: pending
+status: done
 gaps:
   - brand.delivery-address-all-applicants
 approach: |

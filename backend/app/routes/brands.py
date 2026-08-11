@@ -20,7 +20,7 @@ from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
-from app.models.enums import OrgUserStatus
+from app.models.enums import ApplicationDecision, OrgUserStatus
 from app.models.organization import Organization
 from app.models.user import User
 from app.response import APIResponse, DataResponse, api_response
@@ -196,7 +196,15 @@ async def get_brand_drop_detail(
                 follower_count=org.follower_count,
                 member_count=org.member_count,
                 category=org.category,
-                delivery_address=org.delivery_address,
+                delivery_address=(
+                    org.delivery_address
+                    if app.decision
+                    in (
+                        ApplicationDecision.APPLIED.value,
+                        ApplicationDecision.ACCEPTED.value,
+                    )
+                    else None
+                ),
                 account_erased=org_user.status == OrgUserStatus.ERASED.value,
                 attributed_post_count=attr["attributed_post_count"],
                 attributed_likes=attr["attributed_likes"],
