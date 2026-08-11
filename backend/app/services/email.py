@@ -18,6 +18,7 @@ import logging
 
 import httpx
 
+from app.brand_emails import EMAIL_FROM
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -283,7 +284,7 @@ async def _dispatch(to_email: str, subject: str, body: str) -> bool:
                 _RESEND_ENDPOINT,
                 headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
                 json={
-                    "from": settings.EMAIL_FROM,
+                    "from": EMAIL_FROM,
                     "to": [to_email],
                     "subject": subject,
                     "text": body,

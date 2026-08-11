@@ -114,7 +114,7 @@ frontend/                  # CRA/CRACO SPA (own package.json)
     contexts/              # AuthContext, SiteChromeContext
     pages/                 # home, auth, onboarding, org, brand, legal
     components/            # site chrome, org/brand UI, routing guards
-    data/siteIdentity.ts   # Brand, contact, social (single source)
+    data/siteIdentity.ts   # Brand, social, contact person (emails → backend/brand_emails.json)
     types/                 # Domain types
   e2e/                     # Playwright specs + global-setup
   public/                  # index.html, static assets

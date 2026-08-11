@@ -3,6 +3,14 @@
  */
 /// <reference types="react-scripts" />
 
+declare module "@brandEmails" {
+  const brandEmails: {
+    emailFrom: string;
+    contactEmail: string;
+  };
+  export default brandEmails;
+}
+
 declare module "*.css";
 
 declare namespace NodeJS {
