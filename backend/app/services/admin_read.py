@@ -37,6 +37,7 @@ from app.models.enums import (
     BrandTrackerStage,
     OrgUserStatus,
     PortalRole,
+    SocialMediaProductType,
 )
 from app.models.job_run import JobRun
 from app.models.notify_me import NotifyMe
@@ -257,7 +258,12 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
             ),
         ),
         "posts_never_refreshed": await _scalar_int(
-            db, select(func.count(SocialPost.id)).where(SocialPost.metrics_updated_at.is_(None))
+            db,
+            select(func.count(SocialPost.id)).where(
+                SocialPost.metrics_updated_at.is_(None),
+                # Stories are never refreshed (unsupported); do not count as sync debt.
+                SocialPost.media_product_type != SocialMediaProductType.STORY.value,
+            ),
         ),
         "posts_missing_insights": await _scalar_int(
             db,
@@ -288,6 +294,7 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
             db,
             select(func.count(SocialPost.id)).where(
                 SocialPost.posted_at >= metric_cutoff,
+                SocialPost.media_product_type != SocialMediaProductType.STORY.value,
                 or_(
                     SocialPost.metrics_updated_at.is_(None),
                     SocialPost.metrics_updated_at < stale_before,

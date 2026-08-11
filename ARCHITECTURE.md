@@ -79,7 +79,7 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | `brands` | Brand profile (1:1 `user_id`); `instagram_handle` for autolink |
 | `drops` | Campaign instance; capacity; apply window; tracker stage; units; tracking # |
 | `drop_applications` | Org ↔ drop; decision applied/accepted/denied |
-| `social_posts` | Cached IG media + metrics; unique `(org_id, platform, external_id)` |
+| `social_posts` | Cached IG media + metrics; unique `(org_id, platform, external_id)`. **Stories unsupported** — `metric_sync` does not catalog `STORY`; refresh/autolink/link skip them |
 | `post_campaign_links` | Confirmed post → application (one post → one campaign) |
 | `post_campaign_suggestions` | Autolink pending accept/dismiss |
 | `notify_me` | Org reminder subscription; `sent_at` when email dispatched |
@@ -129,7 +129,7 @@ One-shot scripts via `backend/scripts/run_job.py <name>` (Railway Cron). Idempot
 | --- | ------------------- | ---- |
 | `drop_autoclose` | `*/5` | Close apply window → `finalizing_agreements` |
 | `notify_reminders` | `*/5` | Notify Me emails |
-| `metric_sync` | daily ~03:00 | Instagram media + insights |
+| `metric_sync` | daily ~03:00 | Instagram FEED/REELS media + insights (`/me/media`). Stories out of scope (no `/stories` poller) |
 | `token_cleanup` | daily ~03:00 | Sweep spent tokens |
 | `autolink_scan` | daily ~03:30 | Caption suggestions (`drop_active`) |
 | `token_refresh` | daily ~04:00 | IG long-lived refresh safety net |

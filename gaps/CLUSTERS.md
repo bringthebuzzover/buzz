@@ -360,6 +360,34 @@ stop_if: []
 
 ---
 
+## posts-stories-unsupported
+
+status: done
+gaps:
+  - posts.stories-unsupported
+approach: |
+  Locked v1 in `gaps/posts.stories-unsupported.md`:
+  1. `metric_sync` discovery: skip insert when `media_product_type == STORY`
+     (optional `skipped_story` in job summary).
+  2. Keep refresh STORY exclusion; autolink already FEED+REELS only.
+  3. `link_post` + `accept_suggestion` reject STORY (stable error code).
+  4. Prefer hide STORY in `list_org_posts` (linker never shows dead rows).
+  5. Admin: exclude STORY from `posts_never_refreshed` + `metric_sync_stale`;
+     update admin label notes.
+  6. Docs: `META.md` + `ARCHITECTURE.md` (Stories out of scope). PRODUCT
+     one-liner only with explicit user OK.
+  7. Tests: discovery skip, link reject, admin counter exclusion.
+  8. Read-only SQL detect existing STORY rows; cleanup only if count > 0.
+  Non-goals: `/stories` poller, `story_insights` webhook, AD refresh skip,
+  PG enum drop, platform observability (`ops.observability-thin`).
+
+stop_if:
+  - Expanding into hourly Stories sync or Facebook Login / webhook work.
+  - Skipping AD discovery/refresh without a separate product ask.
+  - Editing PRODUCT.md without explicit user OK.
+
+---
+
 ## ops-samesite
 
 status: ops
@@ -412,8 +440,10 @@ gaps:
   - ops.observability-thin
   - posts.sibling-dismiss-never-rearms
 note: |
-  NO_PLAN (observability) or wontfix (sibling dismiss), plus deferred
-  DRY/contract chores from the SOT/DRY audit:
+  Platform observability only remains NO_PLAN in `ops.observability-thin`
+  (STORY counter / skip split → pending cluster `posts-stories-unsupported`).
+  Sibling dismiss is wontfix. Plus deferred DRY/contract chores from the
+  SOT/DRY audit:
   - `openapi.422-wrong-shape` — **archived** 2026-08-10 (app-level 422 → APIResponse)
   - `openapi.untyped-success-responses` — **archived** 2026-08-10 (all success
     routes → DataResponse[T]; FE aliases generated schemas; auth snake_case kept)

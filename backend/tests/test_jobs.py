@@ -939,6 +939,35 @@ async def test_metric_sync_does_not_refresh_story(db_session) -> None:
     assert story.metrics_updated_at is None
 
 
+async def test_metric_sync_skips_story_discovery(db_session) -> None:
+    """Stories must not be cataloged even if Graph returns them on /me/media."""
+
+    await _eligible_sync_org(db_session, suffix="storydisc")
+    fake = FakeInstagramClient()
+    fake.media = [MediaRef(id="story1", timestamp="2030-01-01T00:00:00+0000")]
+    fake.media_fields = {
+        "story1": MediaFields(
+            id="story1",
+            caption="ephemeral",
+            media_type="IMAGE",
+            media_product_type="STORY",
+            permalink="https://instagram.com/stories/story1",
+            thumbnail_url=None,
+            media_url=None,
+            timestamp="2030-01-01T00:00:00+0000",
+            like_count=1,
+            comments_count=0,
+        )
+    }
+    result = await sync_metrics(db_session, fake)
+    assert result["posts_discovered"] == 0
+    assert result["skipped_story"] == 1
+    assert (
+        await db_session.scalar(select(SocialPost).where(SocialPost.external_id == "story1"))
+        is None
+    )
+
+
 async def test_metric_sync_applies_reel_insights(db_session) -> None:
     user, org = await _eligible_sync_org(db_session, suffix="reel")
     reel = _raw_post(

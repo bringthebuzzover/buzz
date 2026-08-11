@@ -78,7 +78,7 @@ async def link_campaign_post(
     user: CurrentOrg,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Manually link one of the caller's posts (409 ``POST_ALREADY_LINKED``)."""
+    """Manually link a post (409 ``POST_ALREADY_LINKED``; 422 Stories)."""
 
     post = await link_post(db, user, application_id, payload.post_id)
     return api_response(data=post)

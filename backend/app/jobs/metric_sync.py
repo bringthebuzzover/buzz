@@ -11,6 +11,9 @@ Daily. For each org with a live campaign and a valid long-lived token:
    insights failure) so charts can include the post; insight columns update
    only on insights success.
 
+Stories are unsupported (v1): discovery skips ``media_product_type == STORY``;
+there is no ``/stories`` poller. See ``gaps/posts.stories-unsupported`` / META.md.
+
 Per-post / per-org failures don't block the batch (rate limits, deleted posts,
 expired tokens). Posts older than 30 days are frozen (skipped). Idempotent via
 ``UNIQUE(org_id, platform, external_id)``.
@@ -153,6 +156,7 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
     refreshed = 0
     failed = 0
     skipped_token = 0
+    skipped_story = 0
 
     for org in orgs:
         user = await db.get(User, org.user_id)
@@ -195,6 +199,11 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
                 fields = await ig.fetch_media(token, ref.id)
             except Exception:  # noqa: BLE001
                 failed += 1
+                continue
+            # Stories are out of scope for v1 (24h metrics; no durable refresh).
+            # Meta /me/media should not list them; skip if Graph returns STORY anyway.
+            if fields.media_product_type == SocialMediaProductType.STORY.value:
+                skipped_story += 1
                 continue
             # Insert in a savepoint so a concurrent run losing the
             # UNIQUE(org_id, platform, external_id) race skips that post instead of
@@ -263,4 +272,5 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
         "posts_refreshed": refreshed,
         "failures": failed,
         "skipped_token": skipped_token,
+        "skipped_story": skipped_story,
     }

@@ -210,6 +210,21 @@ async def test_accept_no_pending_404(app_client: AsyncClient, db_session) -> Non
     assert resp.json()["error"]["code"] == "SUGGESTION_NOT_FOUND"
 
 
+async def test_accept_rejects_story(app_client: AsyncClient, db_session) -> None:
+    """Defense in depth: hand-minted STORY suggestions cannot be accepted."""
+
+    from app.models.enums import SocialMediaProductType
+
+    _, org, _, application, headers = await _ctx(db_session)
+    post = await make_social_post(db_session, org, media_product_type=SocialMediaProductType.STORY)
+    await make_suggestion(db_session, post, application)
+    resp = await app_client.post(
+        f"/api/campaigns/{application.id}/suggestions/{post.id}/accept", headers=headers
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "UNSUPPORTED_MEDIA_TYPE"
+
+
 async def test_dismiss_then_gone(app_client: AsyncClient, db_session) -> None:
     _, org, _, application, headers = await _ctx(db_session)
     post = await make_social_post(db_session, org)

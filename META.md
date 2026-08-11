@@ -21,6 +21,21 @@ Buzz uses **Instagram API with Instagram Login** (Business Login): no Facebook P
 
 Docs: [platform overview](https://developers.facebook.com/docs/instagram-platform/overview), [access levels](https://developers.facebook.com/docs/graph-api/overview/access-levels/).
 
+### Stories (unsupported in Buzz v1)
+
+Instagram **Stories** are **out of product scope**. Buzz syncs durable FEED/REELS via
+`GET /me/media` only — not `GET /{ig-user-id}/stories`.
+
+| Why | Source |
+| --- | ------ |
+| Story media metrics available ~**24 hours** only | [Media Insights](https://developers.facebook.com/docs/instagram-platform/reference/instagram-media/insights/) |
+| Live stories listed on `/stories`, not `/media` | [IG User Stories](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/stories/), [IG User Media](https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media/) |
+| Post-expiry `story_insights` webhook is **Facebook Login only** | [Webhooks](https://developers.facebook.com/docs/graph-api/webhooks/getting-started/webhooks-for-instagram/), [Insights overview](https://developers.facebook.com/docs/instagram-platform/insights/) |
+
+Buzz uses **Instagram Login** (`graph.instagram.com`) — no `story_insights` path.
+Do not add a Stories poller or request Facebook Login solely for Stories without a
+PRODUCT change.
+
 ---
 
 ## Hosts (exact strings)

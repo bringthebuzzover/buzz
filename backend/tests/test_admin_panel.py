@@ -20,6 +20,7 @@ from app.models.enums import (
     BrandTrackerStage,
     OrgUserStatus,
     PortalRole,
+    SocialMediaProductType,
 )
 from tests.conftest import (
     make_application,
@@ -577,3 +578,23 @@ class TestHealth:
         res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
         detail = _signal(res.json()["data"], "pipeline", "drop_autoclose")["detail"]
         assert "last run" in detail
+
+    async def test_story_posts_excluded_from_refresh_counters(
+        self, app_client: AsyncClient, db_session
+    ):
+        """STORYs never refresh; they must not inflate sync-debt signals."""
+
+        user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, user)
+        feed = await make_social_post(db_session, org, caption="feed debt")
+        feed.metrics_updated_at = None
+        story = await make_social_post(
+            db_session, org, caption="story", media_product_type=SocialMediaProductType.STORY
+        )
+        story.metrics_updated_at = None
+        await db_session.flush()
+
+        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        data = res.json()["data"]
+        assert _signal(data, "silent", "posts_never_refreshed")["count"] == 1
+        assert _signal(data, "pipeline", "metric_sync")["count"] == 1

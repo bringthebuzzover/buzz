@@ -5,7 +5,7 @@ from __future__ import annotations
 from httpx import AsyncClient
 from sqlalchemy import func, select
 
-from app.models.enums import ApplicationDecision
+from app.models.enums import ApplicationDecision, SocialMediaProductType
 from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
 from tests.conftest import (
@@ -272,3 +272,16 @@ async def test_link_post_rejected_when_drop_finished(app_client: AsyncClient, db
         json={"postId": str(post.id)},
     )
     assert resp.status_code == 400
+
+
+async def test_link_post_rejects_story(app_client: AsyncClient, db_session) -> None:
+    _, org, _, application, headers = await _campaign_ctx(db_session)
+    post = await make_social_post(db_session, org, media_product_type=SocialMediaProductType.STORY)
+    resp = await app_client.post(
+        f"/api/campaigns/{application.id}/link-post",
+        headers=headers,
+        json={"postId": str(post.id)},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "UNSUPPORTED_MEDIA_TYPE"
+    assert await _link_count(db_session, post.id) == 0
