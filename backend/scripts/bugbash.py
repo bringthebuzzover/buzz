@@ -57,6 +57,7 @@ from app.models.enums import (  # noqa: E402
 from app.models.organization import Organization  # noqa: E402
 from app.models.user import User  # noqa: E402
 from app.models.verification_token import EmailVerificationToken  # noqa: E402
+from app.security.one_shot_tokens import hash_token  # noqa: E402
 from app.security.password import hash_password  # noqa: E402
 
 BRAND_PW = "buzzbash123"
@@ -283,12 +284,28 @@ async def db_make_finalize_ready_drop() -> dict[str, Any]:
 
 
 async def db_latest_verification_token(user_id: uuid.UUID) -> str | None:
+    """Return a redeemable raw token by re-hashing the latest unused row.
+
+    Tokens are stored hashed; this bash helper plants a known raw secret so
+    verify-email can be exercised without reading the outbound email.
+    """
+    import secrets
+
+    raw = secrets.token_urlsafe(48)
     async with async_session_factory() as db:
-        return await db.scalar(
-            select(EmailVerificationToken.token)
-            .where(EmailVerificationToken.user_id == user_id)
+        evt = await db.scalar(
+            select(EmailVerificationToken)
+            .where(
+                EmailVerificationToken.user_id == user_id,
+                EmailVerificationToken.used_at.is_(None),
+            )
             .order_by(EmailVerificationToken.created_at.desc())
         )
+        if evt is None:
+            return None
+        evt.token_hash = hash_token(raw)
+        await db.commit()
+        return raw
 
 
 async def db_make_onboarding_org() -> uuid.UUID:

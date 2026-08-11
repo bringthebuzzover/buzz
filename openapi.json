@@ -8721,7 +8721,7 @@
     },
     "/api/auth/logout": {
       "post": {
-        "description": "Log out: revoke outstanding sessions when the caller is known, clear cookie.\n\nPrefer a valid Bearer access token (signature + type + exp; ``ver`` need not\nmatch so a just-revoked access can still identify the user). Else use a\ndecodable refresh cookie. Bumping ``token_version`` invalidates every access\nand refresh token the user holds. Always succeeds and clears the cookie.",
+        "description": "Log out: revoke outstanding sessions when the caller is known, clear cookie.\n\nPrefer a valid Bearer access token (signature + type + exp; ``ver`` need not\nmatch so a just-revoked access can still identify the user). Else use a\ndecodable refresh cookie. Bumping ``token_version`` invalidates every access\nand refresh token the user holds.\n\nImpersonation access tokens (``imp`` claim) must not bump the *target*\n``sub`` \u2014 that would kick the real user. Cookie is cleared only when a bump\nsucceeded or the request actually carried the refresh cookie (avoids\ncookieless cross-site POSTs blanking an unrelated session cookie jar).",
         "operationId": "logout_api_auth_logout_post",
         "responses": {
           "200": {

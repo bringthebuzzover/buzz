@@ -48,7 +48,7 @@ class Settings(BaseSettings):
         default=_DEV_SECRET_KEY,
         description="Symmetric secret used for JWT signing (Stage 3+).",
     )
-    ENVIRONMENT: str = Field(
+    ENVIRONMENT: Literal["development", "staging", "production"] = Field(
         default="development",
         description="One of: development, staging, production.",
     )

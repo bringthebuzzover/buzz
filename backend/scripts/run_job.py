@@ -57,6 +57,21 @@ _JOBS = {
 }
 
 
+async def _persist_failure_run(name: str, started: datetime) -> None:
+    """Write JobRun(ok=False) in a fresh session after the job session rolled back."""
+    async with async_session_factory() as db:
+        db.add(
+            JobRun(
+                job=name,
+                started_at=started,
+                finished_at=datetime.now(timezone.utc),
+                ok=False,
+                summary={"error": "job failed"},
+            )
+        )
+        await db.commit()
+
+
 async def _run(name: str) -> dict:
     fn, needs_ig = _JOBS[name]
     started = datetime.now(timezone.utc)
@@ -72,13 +87,11 @@ async def _run(name: str) -> dict:
             await db.commit()
             return result
         except Exception:
-            run.ok = False
-            run.finished_at = datetime.now(timezone.utc)
-            run.summary = {"error": "job failed"}
+            await db.rollback()
             try:
-                await db.commit()
+                await _persist_failure_run(name, started)
             except Exception:  # noqa: BLE001 — best-effort persist of failure row
-                await db.rollback()
+                pass
             raise
         finally:
             if needs_ig:

@@ -19,6 +19,7 @@ from app.models.enums import BrandStatus, OrgUserStatus, PortalRole
 from app.models.organization import Organization
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
+from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password
 from tests.conftest import make_brand, make_user, mint_access_token, persist
 
@@ -168,7 +169,9 @@ async def test_onboarding_takeover_stale_unverified_edu(
 
 
 async def test_change_edu_email_while_pending(app_client: AsyncClient, db_session) -> None:
-    user, evt = await _seed_pending_verification(db_session, email="old@test.edu", suffix="chg1")
+    user, evt, _raw = await _seed_pending_verification(
+        db_session, email="old@test.edu", suffix="chg1"
+    )
     org = Organization(
         id=uuid.uuid4(),
         user_id=user.id,
@@ -209,7 +212,7 @@ async def test_onboarding_rejects_unknown_field(app_client: AsyncClient, db_sess
 
 async def _seed_pending_verification(
     db_session, *, email: str = "verify@test.edu", suffix: str = "v1"
-) -> tuple[User, EmailVerificationToken]:
+) -> tuple[User, EmailVerificationToken, str]:
     user = await persist(
         db_session,
         make_user(
@@ -218,22 +221,22 @@ async def _seed_pending_verification(
         ),
     )
     user.edu_email = email
-    token = uuid.uuid4().hex
+    raw = uuid.uuid4().hex
     evt = EmailVerificationToken(
         id=uuid.uuid4(),
         user_id=user.id,
-        token=token,
+        token_hash=hash_token(raw),
         email=email,
         expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
     )
     db_session.add(evt)
     await db_session.flush()
-    return user, evt
+    return user, evt, raw
 
 
 async def test_verify_email_success(app_client: AsyncClient, db_session) -> None:
-    user, evt = await _seed_pending_verification(db_session, suffix="ve1")
-    resp = await app_client.post("/api/auth/verify-email", json={"token": evt.token})
+    user, evt, raw = await _seed_pending_verification(db_session, suffix="ve1")
+    resp = await app_client.post("/api/auth/verify-email", json={"token": raw})
     assert resp.status_code == 200, resp.text
     assert resp.json()["data"]["status"] == OrgUserStatus.PENDING_APPROVAL.value
 
@@ -251,19 +254,19 @@ async def test_verify_email_invalid_token(app_client: AsyncClient) -> None:
 
 
 async def test_verify_email_already_used(app_client: AsyncClient, db_session) -> None:
-    user, evt = await _seed_pending_verification(db_session, suffix="ve2")
+    user, evt, raw = await _seed_pending_verification(db_session, suffix="ve2")
     evt.used_at = datetime.now(timezone.utc)
     await db_session.flush()
-    resp = await app_client.post("/api/auth/verify-email", json={"token": evt.token})
+    resp = await app_client.post("/api/auth/verify-email", json={"token": raw})
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "EMAIL_ALREADY_VERIFIED"
 
 
 async def test_verify_email_expired(app_client: AsyncClient, db_session) -> None:
-    user, evt = await _seed_pending_verification(db_session, suffix="ve3")
+    user, evt, raw = await _seed_pending_verification(db_session, suffix="ve3")
     evt.expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
     await db_session.flush()
-    resp = await app_client.post("/api/auth/verify-email", json={"token": evt.token})
+    resp = await app_client.post("/api/auth/verify-email", json={"token": raw})
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "VERIFICATION_TOKEN_EXPIRED"
 
@@ -272,7 +275,7 @@ async def test_verify_email_expired(app_client: AsyncClient, db_session) -> None
 
 
 async def test_resend_verification_success(app_client: AsyncClient, db_session) -> None:
-    user, _evt = await _seed_pending_verification(db_session, suffix="rs1")
+    user, _evt, _raw = await _seed_pending_verification(db_session, suffix="rs1")
     resp = await app_client.post(
         "/api/auth/verify-email/resend",
         json={},
@@ -288,7 +291,7 @@ async def test_resend_verification_success(app_client: AsyncClient, db_session) 
 
 
 async def test_resend_rate_limited(app_client: AsyncClient, db_session) -> None:
-    user, _evt = await _seed_pending_verification(db_session, suffix="rs2")
+    user, _evt, _raw = await _seed_pending_verification(db_session, suffix="rs2")
     # Already have 1 active token; add 2 more to reach the cap of 3.
     now = datetime.now(timezone.utc)
     for _ in range(2):
@@ -296,7 +299,7 @@ async def test_resend_rate_limited(app_client: AsyncClient, db_session) -> None:
             EmailVerificationToken(
                 id=uuid.uuid4(),
                 user_id=user.id,
-                token=uuid.uuid4().hex,
+                token_hash=hash_token(uuid.uuid4().hex),
                 email=user.edu_email,
                 expires_at=now + timedelta(hours=24),
             )
@@ -314,7 +317,7 @@ async def test_resend_rate_limited(app_client: AsyncClient, db_session) -> None:
 async def test_resend_email_send_failed_does_not_burn_token(
     app_client: AsyncClient, db_session, monkeypatch
 ) -> None:
-    user, _evt = await _seed_pending_verification(db_session, suffix="rs_fail")
+    user, _evt, _raw = await _seed_pending_verification(db_session, suffix="rs_fail")
 
     async def _fail(*args, **kwargs):
         return False
@@ -485,30 +488,31 @@ async def test_deny_brand_sets_denied(app_client: AsyncClient, db_session) -> No
 
 async def _seed_brand_invite(
     db_session, *, used: bool = False, expired: bool = False
-) -> tuple[Brand, BrandInviteToken]:
+) -> tuple[Brand, BrandInviteToken, str]:
     brand = await make_brand(db_session, brand_name="Acme")
     user = await db_session.get(User, brand.user_id)
     user.status = OrgUserStatus.PENDING_EMAIL_VERIFICATION.value  # not yet active
     now = datetime.now(timezone.utc)
+    raw = uuid.uuid4().hex
     invite = BrandInviteToken(
         id=uuid.uuid4(),
         user_id=brand.user_id,
         brand_id=brand.id,
-        token=uuid.uuid4().hex,
+        token_hash=hash_token(raw),
         email=brand.company_email,
         expires_at=now - timedelta(days=1) if expired else now + timedelta(days=7),
         used_at=now if used else None,
     )
     db_session.add(invite)
     await db_session.flush()
-    return brand, invite
+    return brand, invite, raw
 
 
 async def test_brand_set_password_success(app_client: AsyncClient, db_session) -> None:
-    brand, invite = await _seed_brand_invite(db_session)
+    brand, invite, raw = await _seed_brand_invite(db_session)
     resp = await app_client.post(
         "/api/auth/brand/set-password",
-        json={"token": invite.token, "password": "hunter2pass"},
+        json={"token": raw, "password": "hunter2pass"},
     )
     assert resp.status_code == 200, resp.text
     data = resp.json()["data"]
@@ -525,20 +529,20 @@ async def test_brand_set_password_success(app_client: AsyncClient, db_session) -
 
 
 async def test_brand_set_password_short_rejected(app_client: AsyncClient, db_session) -> None:
-    _brand, invite = await _seed_brand_invite(db_session)
+    _brand, invite, raw = await _seed_brand_invite(db_session)
     resp = await app_client.post(
         "/api/auth/brand/set-password",
-        json={"token": invite.token, "password": "short"},
+        json={"token": raw, "password": "short"},
     )
     assert resp.status_code == 422
 
 
 async def test_brand_set_password_long_ok(app_client: AsyncClient, db_session) -> None:
     """A >72-byte password must not 500 (bcrypt truncates at 72 bytes)."""
-    brand, invite = await _seed_brand_invite(db_session)
+    brand, invite, raw = await _seed_brand_invite(db_session)
     resp = await app_client.post(
         "/api/auth/brand/set-password",
-        json={"token": invite.token, "password": "a" * 200},
+        json={"token": raw, "password": "a" * 200},
     )
     assert resp.status_code == 200, resp.text
     user = await db_session.get(User, brand.user_id)
@@ -546,32 +550,32 @@ async def test_brand_set_password_long_ok(app_client: AsyncClient, db_session) -
 
 
 async def test_brand_set_password_unapproved_brand(app_client: AsyncClient, db_session) -> None:
-    brand, invite = await _seed_brand_invite(db_session)
+    brand, invite, raw = await _seed_brand_invite(db_session)
     brand.status = BrandStatus.PENDING_REVIEW.value
     await db_session.flush()
     resp = await app_client.post(
         "/api/auth/brand/set-password",
-        json={"token": invite.token, "password": "hunter2pass"},
+        json={"token": raw, "password": "hunter2pass"},
     )
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "INVALID_ONBOARDING_STATE"
 
 
 async def test_brand_set_password_used_token(app_client: AsyncClient, db_session) -> None:
-    _brand, invite = await _seed_brand_invite(db_session, used=True)
+    _brand, invite, raw = await _seed_brand_invite(db_session, used=True)
     resp = await app_client.post(
         "/api/auth/brand/set-password",
-        json={"token": invite.token, "password": "hunter2pass"},
+        json={"token": raw, "password": "hunter2pass"},
     )
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "VERIFICATION_TOKEN_USED"
 
 
 async def test_brand_set_password_expired_token(app_client: AsyncClient, db_session) -> None:
-    _brand, invite = await _seed_brand_invite(db_session, expired=True)
+    _brand, invite, raw = await _seed_brand_invite(db_session, expired=True)
     resp = await app_client.post(
         "/api/auth/brand/set-password",
-        json={"token": invite.token, "password": "hunter2pass"},
+        json={"token": raw, "password": "hunter2pass"},
     )
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "VERIFICATION_TOKEN_EXPIRED"

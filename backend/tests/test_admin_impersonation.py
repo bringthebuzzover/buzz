@@ -9,7 +9,9 @@ from httpx import AsyncClient
 
 from app.config import settings
 from app.models.enums import OrgUserStatus, PortalRole
+from app.security import jwt
 from app.security.password import hash_password
+from app.security.session import bump_token_version
 from tests.conftest import make_brand, make_org, make_user, mint_access_token, persist
 
 
@@ -253,3 +255,64 @@ class TestImpersonationReadonly:
             json={},
         )
         assert res.json().get("error", {}).get("code") != "IMPERSONATION_READONLY"
+
+
+class TestImpersonationBoundToAdmin:
+    async def test_admin_token_bump_kills_view_as(self, app_client: AsyncClient, db_session):
+        admin = await _admin(db_session)
+        target = await persist(db_session, make_user(role=PortalRole.ORG))
+        await make_org(db_session, target)
+
+        res = await app_client.post(
+            f"/api/admin/impersonate/{target.id}",
+            headers={"Authorization": f"Bearer {mint_access_token(admin)}"},
+        )
+        assert res.status_code == 200
+        imp_token = res.json()["data"]["accessToken"]
+
+        me_ok = await app_client.get(
+            "/api/auth/me",
+            headers={"Authorization": f"Bearer {imp_token}"},
+        )
+        assert me_ok.status_code == 200
+
+        bump_token_version(admin)
+        await db_session.flush()
+
+        me_dead = await app_client.get(
+            "/api/auth/me",
+            headers={"Authorization": f"Bearer {imp_token}"},
+        )
+        assert me_dead.status_code == 401
+
+    async def test_imp_bearer_logout_does_not_bump_target(
+        self, app_client: AsyncClient, db_session
+    ):
+        admin = await _admin(db_session)
+        target = await persist(db_session, make_user(role=PortalRole.ORG))
+        await make_org(db_session, target)
+        target_ver = target.token_version or 0
+
+        imp_token = jwt.create_access_token(
+            target.id,
+            target.portal_role,
+            target.status,
+            token_version=target_ver,
+            impersonated_by=admin.id,
+            impersonator_token_version=admin.token_version or 0,
+            readonly=True,
+        )
+
+        res = await app_client.post(
+            "/api/auth/logout",
+            headers={"Authorization": f"Bearer {imp_token}"},
+        )
+        assert res.status_code == 200
+        await db_session.refresh(target)
+        assert (target.token_version or 0) == target_ver
+
+        me = await app_client.get(
+            "/api/auth/me",
+            headers={"Authorization": f"Bearer {mint_access_token(target)}"},
+        )
+        assert me.status_code == 200

@@ -3,7 +3,8 @@ id: auth.rate-limit-trusts-client-xff
 title: Per-IP rate limits key off first X-Forwarded-For hop (client-spoofable)
 kind: authz
 severity: P1
-status: open
+status: fixed
+closed_in: fc254e4
 surface: auth
 evidence:
   - path: backend/app/security/rate_limit.py

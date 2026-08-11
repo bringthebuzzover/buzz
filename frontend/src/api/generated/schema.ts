@@ -704,7 +704,12 @@ export interface paths {
          *     Prefer a valid Bearer access token (signature + type + exp; ``ver`` need not
          *     match so a just-revoked access can still identify the user). Else use a
          *     decodable refresh cookie. Bumping ``token_version`` invalidates every access
-         *     and refresh token the user holds. Always succeeds and clears the cookie.
+         *     and refresh token the user holds.
+         *
+         *     Impersonation access tokens (``imp`` claim) must not bump the *target*
+         *     ``sub`` — that would kick the real user. Cookie is cleared only when a bump
+         *     succeeded or the request actually carried the refresh cookie (avoids
+         *     cookieless cross-site POSTs blanking an unrelated session cookie jar).
          */
         post: operations["logout_api_auth_logout_post"];
         delete?: never;

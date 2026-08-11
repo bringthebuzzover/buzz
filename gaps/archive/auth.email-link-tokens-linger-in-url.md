@@ -3,7 +3,8 @@ id: auth.email-link-tokens-linger-in-url
 title: Invite/reset/verify secrets stay in SPA query string and history
 kind: authz
 severity: P1
-status: open
+status: fixed
+closed_in: fc254e4
 surface: spa
 evidence:
   - path: backend/app/services/email.py

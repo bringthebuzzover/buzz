@@ -22,6 +22,7 @@ from app.models.enums import (
     PortalRole,
     SocialMediaProductType,
 )
+from app.security.one_shot_tokens import hash_token
 from tests.conftest import (
     make_application,
     make_brand,
@@ -220,7 +221,7 @@ class TestBrandDetail:
                 id=uuid.uuid4(),
                 user_id=brand.user_id,
                 brand_id=brand.id,
-                token=f"tok-{uuid.uuid4().hex}",
+                token_hash=hash_token(f"tok-{uuid.uuid4().hex}"),
                 email=brand.company_email,
                 expires_at=expires,
             )

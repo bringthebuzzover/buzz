@@ -21,6 +21,7 @@ import {
 } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
+import { stripTokenFromUrl } from "../../utils/stripTokenFromUrl";
 
 const VERIFY_EMAIL_SENT_KEY = "buzz.verifyEmailSent";
 
@@ -46,7 +47,13 @@ function markEmailSent(ok: boolean) {
 export default function VerifyEmailPage() {
   const { status, user } = useAuth();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
+  const [token] = useState(() => searchParams.get("token"));
+
+  useEffect(() => {
+    if (token) {
+      stripTokenFromUrl();
+    }
+  }, [token]);
 
   if (token) {
     return <VerifyWithToken token={token} />;

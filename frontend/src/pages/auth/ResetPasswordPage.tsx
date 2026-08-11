@@ -1,10 +1,11 @@
 /**
  * Shared reset-password form (token from query string).
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError } from "../../api/client";
 import { useResetPassword } from "../../api/hooks/usePasswordResetHooks";
+import { stripTokenFromUrl } from "../../utils/stripTokenFromUrl";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
@@ -17,13 +18,19 @@ type Props = {
 
 export default function ResetPasswordPage({ portal, loginPath, title }: Props) {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token") ?? "";
+  const [token] = useState(() => searchParams.get("token") ?? "");
   const navigate = useNavigate();
   const reset = useResetPassword(portal);
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (token) {
+      stripTokenFromUrl();
+    }
+  }, [token]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

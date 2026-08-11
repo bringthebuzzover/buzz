@@ -7,9 +7,11 @@ import jwt as pyjwt
 import pytest
 from cryptography.fernet import Fernet
 from httpx import AsyncClient
+from pydantic import ValidationError
 
 from app.config import (
     _DEV_SECRET_KEY,
+    _DEV_TOKEN_ENCRYPTION_KEY,
     _FORBIDDEN_DEV_SECRET_KEYS,
     _HISTORICAL_DEV_SECRET_KEY,
     Settings,
@@ -91,12 +93,19 @@ async def test_refresh_legacy_token_without_ver_claim_allowed(
 async def test_logout_without_cookie_succeeds(app_client: AsyncClient) -> None:
     resp = await app_client.post("/api/auth/logout")
     assert resp.status_code == 200
+    # Cookieless POST must not emit a Set-Cookie clear (cross-site CSRF jar).
+    assert REFRESH not in resp.headers.get("set-cookie", "")
 
 
-async def test_logout_with_garbage_cookie_succeeds(app_client: AsyncClient) -> None:
+async def test_logout_with_garbage_cookie_clears_without_bump(
+    app_client: AsyncClient,
+) -> None:
     set_request_cookies(app_client, {REFRESH: "not-a-jwt"})
     resp = await app_client.post("/api/auth/logout")
     assert resp.status_code == 200
+    set_cookie = resp.headers.get("set-cookie", "")
+    assert REFRESH in set_cookie
+    assert "max-age=0" in set_cookie.lower() or "expires=thu, 01 jan 1970" in set_cookie.lower()
 
 
 async def test_logout_bearer_without_cookie_revokes_access(
@@ -113,6 +122,8 @@ async def test_logout_bearer_without_cookie_revokes_access(
     assert user.token_version == 1
     me = await app_client.get("/api/auth/me", headers={"Authorization": f"Bearer {access}"})
     assert me.status_code == 401
+    # Bump succeeded → clear cookie header even when none was sent.
+    assert REFRESH in resp.headers.get("set-cookie", "")
 
 
 # --- Rate limiting -----------------------------------------------------------
@@ -184,6 +195,38 @@ async def test_security_headers_present(app_client: AsyncClient) -> None:
     assert resp.headers["x-frame-options"] == "DENY"
 
 
+async def test_openapi_available_in_development(app_client: AsyncClient) -> None:
+    """Test suite runs with ENVIRONMENT=development; docs must stay on."""
+    from app.main import _DOCS_ENABLED
+
+    assert settings.ENVIRONMENT == "development"
+    assert _DOCS_ENABLED is True
+    resp = await app_client.get("/api/openapi.json")
+    assert resp.status_code == 200
+    assert "openapi" in resp.json()
+
+
+def test_openapi_gated_off_development() -> None:
+    """Off-dev FastAPI must not mount docs or openapi.json (404)."""
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    def _app(environment: str) -> FastAPI:
+        enabled = environment == "development"
+        return FastAPI(
+            docs_url="/api/docs" if enabled else None,
+            openapi_url="/api/openapi.json" if enabled else None,
+        )
+
+    with TestClient(_app("development")) as client:
+        assert client.get("/api/openapi.json").status_code == 200
+        assert client.get("/api/docs").status_code == 200
+
+    with TestClient(_app("production")) as client:
+        assert client.get("/api/openapi.json").status_code == 404
+        assert client.get("/api/docs").status_code == 404
+
+
 # --- Production config assertions --------------------------------------------
 
 
@@ -226,6 +269,16 @@ def test_prod_config_rejects_dev_secret() -> None:
     for secret in _FORBIDDEN_DEV_SECRET_KEYS:
         with pytest.raises(ValueError, match="SECRET_KEY"):
             Settings(**_prod_kwargs(SECRET_KEY=secret))
+
+
+def test_prod_config_rejects_dev_fernet_default() -> None:
+    with pytest.raises(ValueError, match="TOKEN_ENCRYPTION_KEY"):
+        Settings(**_prod_kwargs(TOKEN_ENCRYPTION_KEY=_DEV_TOKEN_ENCRYPTION_KEY))
+
+
+def test_environment_rejects_unknown() -> None:
+    with pytest.raises(ValidationError):
+        Settings(**_prod_kwargs(ENVIRONMENT="prod"))  # type: ignore[arg-type]
 
 
 def test_prod_config_rejects_missing_instagram_creds() -> None:
@@ -324,12 +377,18 @@ def test_client_ip_parsing() -> None:
 
     from app.security.rate_limit import _client_ip
 
-    def req(xff=None, host="9.9.9.9"):
-        headers = {"x-forwarded-for": xff} if xff is not None else {}
+    def req(*, real_ip=None, xff=None, host="9.9.9.9"):
+        headers: dict[str, str] = {}
+        if real_ip is not None:
+            headers["x-real-ip"] = real_ip
+        if xff is not None:
+            headers["x-forwarded-for"] = xff
         client = SimpleNamespace(host=host) if host is not None else None
         return SimpleNamespace(headers=headers, client=client)
 
-    assert _client_ip(req(xff="1.2.3.4, 5.6.7.8")) == "1.2.3.4"  # first hop
-    assert _client_ip(req(xff="  , 5.6.7.8")) == "9.9.9.9"  # empty first -> client
-    assert _client_ip(req(xff=None)) == "9.9.9.9"  # no header -> client
-    assert _client_ip(req(xff=None, host=None)) == "unknown"  # no client
+    # Spoofed XFF must not change the bucket key.
+    assert _client_ip(req(xff="1.2.3.4, 5.6.7.8")) == "9.9.9.9"
+    # Railway X-Real-IP is trusted when present.
+    assert _client_ip(req(real_ip="10.0.0.1", xff="1.2.3.4")) == "10.0.0.1"
+    assert _client_ip(req()) == "9.9.9.9"
+    assert _client_ip(req(host=None)) == "unknown"

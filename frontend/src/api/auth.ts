@@ -351,10 +351,11 @@ export async function fetchMe(): Promise<MeResult> {
 }
 
 /** Clear the server-side refresh cookie (and revoke when Bearer is known). */
-export async function logout(): Promise<void> {
+export async function logout(accessTokenOverride?: string | null): Promise<void> {
   try {
     const headers: HeadersInit = {};
-    const token = getAccessToken();
+    const token =
+      accessTokenOverride !== undefined ? accessTokenOverride : getAccessToken();
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
@@ -364,6 +365,6 @@ export async function logout(): Promise<void> {
       headers,
     });
   } catch {
-    // Best-effort — token is already cleared client-side.
+    // Best-effort — client clears local state regardless.
   }
 }

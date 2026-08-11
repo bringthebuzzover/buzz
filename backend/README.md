@@ -168,7 +168,7 @@ curl http://localhost:8000/api/health
 # => {"data":{"status":"ok","version":"0.1.0"},"meta":null,"error":null}
 ```
 
-Auto-generated OpenAPI docs: <http://localhost:8000/api/docs>.
+Auto-generated OpenAPI docs (development only): <http://localhost:8000/api/docs>.
 
 ## Lint, type-check, tests
 

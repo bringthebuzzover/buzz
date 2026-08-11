@@ -3,7 +3,8 @@ id: deploy.spa-missing-csp
 title: www SPA served with no Content-Security-Policy (or page hardening headers)
 kind: ops
 severity: P1
-status: open
+status: fixed
+closed_in: fc254e4
 surface: deploy
 evidence:
   - path: frontend/package.json

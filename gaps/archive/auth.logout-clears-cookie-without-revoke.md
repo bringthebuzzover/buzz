@@ -3,7 +3,8 @@ id: auth.logout-clears-cookie-without-revoke
 title: POST /logout always Set-Cookie Max-Age=0 even when token_version is not bumped
 kind: authz
 severity: P1
-status: open
+status: fixed
+closed_in: fc254e4
 surface: auth
 evidence:
   - path: backend/app/routes/auth.py

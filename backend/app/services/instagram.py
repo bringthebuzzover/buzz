@@ -222,8 +222,8 @@ class HttpInstagramClient:
             )
             resp.raise_for_status()
             body = resp.json()
-        except httpx.HTTPError as exc:
-            raise _ig_error("Instagram code exchange failed.") from exc
+        except httpx.HTTPError:
+            raise _ig_error("Instagram code exchange failed.") from None
 
         access_token = body.get("access_token")
         user_id = body.get("user_id")
@@ -244,8 +244,8 @@ class HttpInstagramClient:
             )
             resp.raise_for_status()
             body = resp.json()
-        except httpx.HTTPError as exc:
-            raise _ig_error("Instagram long-lived token exchange failed.") from exc
+        except httpx.HTTPError:
+            raise _ig_error("Instagram long-lived token exchange failed.") from None
 
         access_token = body.get("access_token")
         expires_in = body.get("expires_in")
@@ -262,8 +262,8 @@ class HttpInstagramClient:
             )
             resp.raise_for_status()
             body = resp.json()
-        except httpx.HTTPError as exc:
-            raise _ig_error("Instagram profile lookup failed.") from exc
+        except httpx.HTTPError:
+            raise _ig_error("Instagram profile lookup failed.") from None
 
         if not body.get("id") or not body.get("account_type"):
             raise _ig_error("Instagram profile lookup returned no account.")
@@ -284,8 +284,8 @@ class HttpInstagramClient:
             )
             resp.raise_for_status()
             body = resp.json()
-        except httpx.HTTPError as exc:
-            raise _ig_error("Instagram token refresh failed.") from exc
+        except httpx.HTTPError:
+            raise _ig_error("Instagram token refresh failed.") from None
 
         access_token = body.get("access_token")
         expires_in = body.get("expires_in")
@@ -320,8 +320,8 @@ class HttpInstagramClient:
                 resp = await client.get(url, params=params)
                 resp.raise_for_status()
                 body = resp.json()
-            except httpx.HTTPError as exc:
-                raise _ig_error("Instagram media list failed.") from exc
+            except httpx.HTTPError:
+                raise _ig_error("Instagram media list failed.") from None
 
             page_refs: list[MediaRef] = []
             page_has_in_window = False
@@ -362,8 +362,8 @@ class HttpInstagramClient:
             )
             resp.raise_for_status()
             b = resp.json()
-        except httpx.HTTPError as exc:
-            raise _ig_error("Instagram media fetch failed.") from exc
+        except httpx.HTTPError:
+            raise _ig_error("Instagram media fetch failed.") from None
 
         return MediaFields(
             id=str(b.get("id", media_id)),
@@ -390,8 +390,8 @@ class HttpInstagramClient:
             )
             resp.raise_for_status()
             body = resp.json()
-        except httpx.HTTPError as exc:
-            raise _ig_error("Instagram insights fetch failed.") from exc
+        except httpx.HTTPError:
+            raise _ig_error("Instagram insights fetch failed.") from None
 
         # Insights come back as [{name, values:[{value}]}]; flatten to {name: value}.
         out: dict[str, int | float] = {}

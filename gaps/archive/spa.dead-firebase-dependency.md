@@ -3,7 +3,8 @@ id: spa.dead-firebase-dependency
 title: Unused firebase package still a production dependency
 kind: dead_code
 severity: P3
-status: open
+status: fixed
+closed_in: fc254e4
 surface: spa
 evidence:
   - path: frontend/package.json

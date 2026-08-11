@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import secrets
 import uuid
@@ -19,6 +18,7 @@ from app.models.brand import Brand
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
+from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password
 from app.security.session import bump_token_version
 from app.services.email import send_password_reset_email
@@ -30,10 +30,6 @@ Portal = Literal["brand", "admin"]
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def _hash_token(raw: str) -> str:
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 async def _find_user_for_reset(db: AsyncSession, portal: Portal, email: str) -> User | None:
@@ -93,7 +89,7 @@ async def request_password_reset(
     row = PasswordResetToken(
         id=uuid.uuid4(),
         user_id=user.id,
-        token_hash=_hash_token(raw),
+        token_hash=hash_token(raw),
         email=normalized,
         expires_at=now + timedelta(hours=settings.PASSWORD_RESET_TOKEN_TTL_HOURS),
     )
@@ -123,7 +119,7 @@ async def reset_password(
 ) -> dict[str, Any]:
     """Consume a reset token, set the new password, and bump token_version."""
     now = _now()
-    token_hash = _hash_token(token)
+    token_hash = hash_token(token)
     row = await db.scalar(
         select(PasswordResetToken)
         .where(PasswordResetToken.token_hash == token_hash)

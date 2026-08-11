@@ -69,7 +69,11 @@ async def refresh_due_tokens(db: AsyncSession, ig: InstagramClient) -> dict[str,
             failed += 1
             continue
         except Exception:  # noqa: BLE001 — keep the old token, count, continue
-            logger.warning("Token refresh failed for user %s", user.id, exc_info=True)
+            logger.warning(
+                "Token refresh failed for user %s",
+                user.id,
+                exc_info=False,
+            )
             failed += 1
             continue
         user.instagram_access_token = encrypt_token(new.access_token)
