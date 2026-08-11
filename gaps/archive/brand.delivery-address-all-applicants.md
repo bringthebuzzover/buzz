@@ -4,7 +4,7 @@ title: Brand drop detail returns deliveryAddress for every applicant including d
 kind: authz
 severity: P2
 status: fixed
-closed_in: bcdb6cc
+closed_in: 8043ac4
 surface: brand
 evidence:
   - path: backend/app/routes/brands.py
