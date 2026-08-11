@@ -154,6 +154,31 @@ class TestGetBrandDropDetail:
         assert "totalReach" in data
         assert "totalPosts" in data
 
+    async def test_delivery_address_null_unless_applied_or_accepted(
+        self, app_client: AsyncClient, db_session
+    ):
+        """Brand drop detail exposes ship-to only for applied/accepted rows."""
+        _, brand, headers = await _brand_ctx(db_session)
+        drop = await make_drop(db_session, brand)
+        address = "2301 Bancroft Way, Berkeley, CA 94720"
+        for decision in (
+            ApplicationDecision.APPLIED,
+            ApplicationDecision.ACCEPTED,
+            ApplicationDecision.DENIED,
+        ):
+            org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+            org = await make_org(db_session, org_user)
+            org.delivery_address = address
+            await db_session.flush()
+            await make_application(db_session, drop, org, decision=decision)
+
+        res = await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=headers)
+        assert res.status_code == 200
+        by_decision = {a["decision"]: a for a in res.json()["data"]["applications"]}
+        assert by_decision["applied"]["deliveryAddress"] == address
+        assert by_decision["accepted"]["deliveryAddress"] == address
+        assert by_decision["denied"]["deliveryAddress"] is None
+
     async def test_attributed_totals_scoped_per_application(
         self, app_client: AsyncClient, db_session
     ):
