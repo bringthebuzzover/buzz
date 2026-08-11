@@ -502,7 +502,7 @@ note: |
 
 ## jobs-metric-omitted-engagement
 
-status: pending
+status: done
 gaps:
   - jobs.metric-sync-omitted-engagement
 approach: |
