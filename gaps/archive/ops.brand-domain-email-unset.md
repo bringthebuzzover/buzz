@@ -37,7 +37,7 @@ mailbox work were **not** completed by this archive. See:
 
 | Child | Scope |
 | ------ | ----- |
-| [`ops.resend-domain-unverified`](../ops.resend-domain-unverified.md) | App transactional From via Resend (`send.` + DKIM) |
+| [`ops.resend-domain-unverified`](ops.resend-domain-unverified.md) | App transactional From via Resend (`send.` + DKIM) |
 | [`ops.brand-mailbox`](../ops.brand-mailbox.md) | Human mailbox send+receive + replace Cornell `contactEmail` |
 
 Historical body retained below for context.

@@ -89,13 +89,14 @@ Use project/user MCP when it helps. **Read** is fine; **mutate** needs explicit 
 | **GitHub** | PRs, checks, issues, file reads for this repo | Force-push, surprise merges; prefer `gh` when user rules say so |
 | **Hostinger** | Registrar / nameservers for `bringthebuzzover.com` (Melissa’s account — API/MCP only; see [`DEPLOYMENT.md`](DEPLOYMENT.md) Domain / DNS ownership) | Assume Lawrence hPanel; mutate NS without explicit OK; commit API tokens; treat Hostinger DNS zone as SOT (Cloudflare is) |
 | **Cloudflare** | Authoritative DNS + apex→www redirect for `bringthebuzzover.com` (Lawrence account) | Orange-cloud `www`/`api` (breaks Railway TLS); delete personal zones; mutate without OK |
+| **Resend** | Domains (`create`/`list`/`get`/`verify`), transactional send debug (`list-emails` / logs). Cursor plugin / user MCP (`plugin-resend-resend`, `https://mcp.resend.com/mcp`) | Enable Receiving on apex (fights future human MX); create/delete API keys without OK; commit keys to repo `.cursor/mcp.json`; treat as human inbox. Domain mutate only with explicit OK (see hard stops) |
 | **Meta Developer Tools** | Read Buzz Meta app vs [`META.md`](META.md): `devtools_app_list` → `devtools_app` (settings/hosts), `devtools_app_review` / `devtools_compliance` (Advanced Access + standing), `devtools_api_usage` (limits/deprecations), `devtools_discovery` / changelog (docs; no app grant needed). Ops gaps: `deploy.meta-brand-url-cutover`, `ops-samesite` — **verify** after human paste | Paste Hosts / submit App Review / Business Verification; webhook `manage`/`test` without explicit OK; put OAuth config in repo `.cursor/mcp.json` (user MCP only). Grant Buzz on consent (**Read** default; **Manage** only for webhook work) |
 
 **Railway notes (hard-won):** Prefer full manual via direct MCP tools. Skip `railway-agent` unless the user explicitly asks for it. `set-variables` can only set/overwrite — it **cannot delete** keys; remove vars in the Railway dashboard or `railway variable delete` (CLI must be logged in). If anything claims a var was deleted, parent must re-check with `list-variables` (staged/`null` is not gone).
 
 Personal MCPs (e.g. Hevy, Obsidian) are **out of scope** for Buzz work — ignore them here.
 
-Never commit `.cursor/mcp.json` (local secrets). Meta DevTools MCP lives in **user** Cursor MCP config (`https://mcp.facebook.com/devtools`); hard stop on Meta dashboard mutations still applies.
+Never commit `.cursor/mcp.json` (local secrets). Meta DevTools MCP and Resend MCP live in **user** Cursor MCP config; hard stop on Meta dashboard / Resend domain mutations still applies.
 
 ---
 

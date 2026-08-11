@@ -46,7 +46,8 @@ Env + cookies use **www/api**. Meta dashboard URLs must be pasted to match www/a
 | Custom DNS (`www` / `api.bringthebuzzover.com`)      | **Done** (Cloudflare DNS; TLS green; `SameSite=lax`) | Meta URL paste still open (`deploy.meta-brand-url-cutover`) |
 | Secrets + env for current hosts                      | **Done** — Railway hosts + real IG creds | Re-check at custom DNS cutover          |
 | Env parity for custom domains (SPA/API URLs, Meta)   | N/A until DNS                       | **Yes** after cutover if any var still uses Railway-only URLs |
-| Resend verified sender domain                        | Not started                         | **Yes** — verification/denial email |
+| Resend verified sender domain                        | **Done** (DKIM + `send.` SPF/MX; inbox proof 2026-08-11) | Soft — watch deliverability / DMARC later |
+
 | Notify Me cron (`cron-notify-reminders`)             | **Done** (`*/5`, clones autoclose env) | Soft — watch first backlog flush / Resend |
 | Meta dashboard URLs (redirect / deauth / legal)      | **In progress** — finish META.md §C | **Yes** before pilot OAuth E2E         |
 
@@ -68,7 +69,7 @@ You do **not** need App Review to run a small, hand-picked pilot. In **Developme
 - It doesn't scale — you can't hand-add every org, so this is a bridge, not the launch state. Public signups still require the Advanced Access review above.
 - Keep the app in **Development mode** (or Live without the scope approved) until review passes; flip to **Live mode** only after Advanced Access is granted.
 - [ ] **Legal review.** `/privacy` and `/terms` ship as good-faith engineering drafts (`frontend/src/pages/legal/`). Have counsel review before public launch — a published Privacy Policy URL is also required for Meta app review, and we collect PII (`.edu` addresses, org profiles, brand application details).
-- [ ] **Resend sender domain.** Verify the `bringthebuzzover.com` sending domain in Resend (DKIM/SPF). Off-dev the API already requires a non-empty `RESEND_API_KEY` to boot; without a **verified** sending domain, verification/denial emails still fail in practice even if the key is set.
+- [x] **Resend sender domain.** `bringthebuzzover.com` Verified in Resend (DKIM TXT + SPF on `send.` + MX on `send.`, Cloudflare DNS-only). `RESEND_API_KEY` on Railway **api** + **cron-notify-reminders**. Controlled brand invite delivered to inbox 2026-08-11.
 
 ---
 
@@ -199,7 +200,7 @@ Order: Postgres → API (migrate + health) → Frontend (baked API URL) → Cron
 
 - [x] `GET https://api.bringthebuzzover.com/api/health` returns ok envelope when Postgres is up (and **503** with an error envelope when it is not).
 - [ ] Instagram login completes end-to-end on www (blocked on Meta URL paste — `deploy.meta-brand-url-cutover`). Set-Cookie `SameSite=lax` already verified on login GET.
-- [ ] A verification email actually arrives (Resend live path + verified sending domain).
+- [x] A transactional email arrives (Resend live path + verified sending domain; brand invite proof 2026-08-11).
 - [ ] Home Join Us section routes: "Join as Student Organization" → `/login` (Instagram OAuth), "Apply as Brand" → `/brand/apply` (POST /api/brands/apply).
 - [ ] Brand login → dashboard; org role is blocked from the brand dashboard (403).
 - [ ] Test accounts created: `TEST_ADMIN_PASSWORD=... TEST_BRAND_PASSWORD=... railway run python scripts/upsert_test_accounts.py` (one-off, non-destructive — see `TESTING.md`). Auth paths: admin email/password (`/admin/login`), brand email/password (`/brand/login`), org Instagram OAuth (`/login`).
@@ -282,8 +283,9 @@ Set the resulting credentials in the backend env: `INSTAGRAM_CLIENT_ID`, `INSTAG
 - Managing domains / DKIM + SPF records: <https://resend.com/docs/dashboard/domains>
 - Troubleshooting verification: <https://resend.com/docs/knowledge-base/what-if-my-domain-is-not-verifying>
 - API keys dashboard: <https://resend.com/api-keys>
+- Agent ops: Resend MCP row in [`AGENTS.md`](AGENTS.md) (Domains + send debug; no keys in repo)
 
-Verify the `bringthebuzzover.com` sending domain, then set `RESEND_API_KEY` in the backend env. Transactional From and public contact email are committed in [`backend/brand_emails.json`](backend/brand_emails.json) (not env). Delete any leftover `EMAIL_FROM` service variable — it is ignored.
+**Done (2026-08-11):** `bringthebuzzover.com` Verified — DKIM TXT `resend._domainkey` + SPF TXT + MX on `send.` (not apex), Cloudflare DNS-only / grey-cloud. Receiving disabled on Resend (apex human MX → [`ops.brand-mailbox`](gaps/ops.brand-mailbox.md)). `RESEND_API_KEY` on Railway **api** + **cron-notify-reminders** (send-scoped key for the verified domain). Transactional From and public contact email are committed in [`backend/brand_emails.json`](backend/brand_emails.json) (not env). Delete any leftover `EMAIL_FROM` service variable — it is ignored.
 
 ### Railway (hosting: Frontend + API + Postgres + Cron)
 

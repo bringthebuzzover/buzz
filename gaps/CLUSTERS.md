@@ -483,9 +483,14 @@ gaps:
   - brand.delivery-address-all-applicants
   - product.data-deletion-overpromise
 note: |
-  PRODUCT-gated remnants from security audit 2026-08-11. Code waves A–E are
-  done (archived). Ask before PRODUCT forks on delivery-address visibility or
-  deletion copy.
+  Approaches locked 2026-08-11 (easy/clean design):
+  1. delivery-address — API nulls deliveryAddress unless decision is
+     applied or accepted; one backend test; no FE privacy branching.
+  2. data-deletion — copy-only honesty on /data-deletion (soften 30-day
+     wipe inventory); keep mailto + Meta instructions URL; no purge
+     product / admin delete / Meta deletion callback.
+  Was PRODUCT-ask parked; decisions above are approved — ready when
+  user says run this cluster.
 
 ---
 
@@ -494,7 +499,6 @@ note: |
 status: parked
 gaps:
   - ops.email-ledger
-  - ops.resend-domain-unverified
   - ops.brand-mailbox
   - deploy.npm-workspaces-wontfix
 note: |
@@ -502,8 +506,8 @@ note: |
   Do not auto-execute. Create Locked v1 + un-park only when named explicitly.
   - `ops.email-ledger` — after `email-honesty` archives; ledger + denial
     org channel (or wontfix) + invite/reset honesty.
-  - `ops.resend-domain-unverified` — Resend sender domain Verified + one prod
-    transactional send (split from archived `ops.brand-domain-email-unset`).
+  - `ops.resend-domain-unverified` — **archived** 2026-08-11 (domain Verified +
+    brand invite inbox proof; key rotated onto Railway).
   - `ops.brand-mailbox` — full company mailbox send+receive + replace Cornell
     `contactEmail` (same split; not forward-only).
   - `deploy.npm-workspaces-wontfix` — Railpack ignores workspaces; keep root
