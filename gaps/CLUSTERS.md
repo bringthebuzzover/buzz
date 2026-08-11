@@ -390,25 +390,25 @@ stop_if:
 
 ## ops-samesite
 
-status: ops
+status: done
 gaps:
   - deploy.samesite-lax-railway-preview
+  - deploy.meta-brand-url-cutover
 approach: |
-  Locked v1 in `gaps/deploy.samesite-lax-railway-preview.md`: docs scrub +
-  binary checklist PASS (Railway+none App Review invariant). Agents may edit
-  DEPLOYMENT/META/README; humans set env / Meta URLs to META.md hosts.
-  Verify Set-Cookie with GET curl (not HEAD).
-  **Phase 2 infra done (2026-08-09 Plan A):** www+api on Railway, SPA rebuilt,
-  `SameSite=lax` verified — archived
-  `gaps/archive/deploy.custom-domain-samesite-lax.md`.
-  **Temporary Meta↔env misalignment OK** until
-  `gaps/deploy.meta-brand-url-cutover.md` (status ops) — Meta §C still needs
-  www/api paste; Railway dual-host is no longer a working auth backup after lax.
-  Stay `ops` until Meta Hosts table is pasted + optional IG smoke.
-
+  **Done 2026-08-11.** Phase 2 www+api + `SameSite=lax` already archived as
+  `gaps/archive/deploy.custom-domain-samesite-lax.md`. Meta §C Hosts paste +
+  www IG login smoke closed `deploy.meta-brand-url-cutover` and the samesite
+  residual (original Railway dual-host+`none` App Review path retired).
+  Archives: `gaps/archive/deploy.samesite-lax-railway-preview.md`,
+  `gaps/archive/deploy.meta-brand-url-cutover.md`.
+  Live verify: `GET https://api.bringthebuzzover.com/api/auth/instagram/login`
+  → `SameSite=lax; Secure` + www `redirect_uri`. Meta MCP: Basic privacy/terms/
+  data-deletion on www; app live. Business login OAuth/deauth are not MCP-
+  readable — human confirm + production login smoke.
+  Residual Meta launch: living `deploy.meta-business-verification` (§E);
+  §F App Review / §G public login still META.md-only until filed.
 stop_if:
   - Always pause before mutating Railway/Meta without explicit user OK.
-  - Claiming IG login E2E PASS before Meta brand URL paste.
   - Orange-clouding `www`/`api` on Cloudflare (Railway must terminate TLS).
 
 ---
@@ -558,13 +558,83 @@ note: |
   - `deploy.npm-workspaces-wontfix` — Railpack ignores workspaces; keep root
     package.json scripts + engines (do not retry workspaces without OK).
   - `deploy.custom-domain-samesite-lax` — **archived** 2026-08-09 (Plan A).
-    Residual: `deploy.meta-brand-url-cutover`.
-    `deploy.github-repo-owner-shannon` — **archived** 2026-08-10 (all 8 Sources
+  - `deploy.meta-brand-url-cutover` + `deploy.samesite-lax-railway-preview` —
+    **archived** 2026-08-11 (Meta §C Hosts + www IG smoke; cluster `ops-samesite`
+    done). Meta §E tracked as living `deploy.meta-business-verification`.
+  - `deploy.github-repo-owner-shannon` — **archived** 2026-08-10 (all 8 Sources
     `bringthebuzzover/buzz` @ `main`; push `e27a7f6` deployed from org).
-    `deploy.apex-hostinger-forward-blocked` — **archived** 2026-08-10
+  - `deploy.apex-hostinger-forward-blocked` — **archived** 2026-08-10
     (Cloudflare DNS + apex→www Single Redirect; Hostinger NS flipped).
-    `deploy.gh-pages-brand-domain-retire` — **archived** 2026-08-11
+  - `deploy.gh-pages-brand-domain-retire` — **archived** 2026-08-11
     (Shannon cleared Pages `cname`; www still Railway).
+
+---
+
+## meta-business-verification
+
+status: parked
+gaps:
+  - deploy.meta-business-verification
+approach: |
+  Human Meta only. Link BUZZ to a business portfolio (App settings → Basic →
+  Verification → Start Verification), complete Business Verification in
+  Business Manager, confirm MCP `business_verification_passes: true`.
+  Out of scope: App Review Advanced Access (§F) and public login (§G).
+stop_if:
+  - Always pause before mutating Meta / Business Manager without explicit OK.
+
+---
+
+## org-onboarding-required-fields
+
+status: parked
+gaps:
+  - org.onboarding-members-category-required
+approach: |
+  Locked 2026-08-11 (see gap Intent).
+  Required create+edit: member_count, category, city, state, contact_name,
+  delivery_address. Add city/state/contact to create form.
+  Followers Graph-only: omit from create+PATCH schemas and SPA forms.
+  Create-time Graph seed in submit_org_onboarding (best-effort; log warning
+  on failure; leave null; do not fail onboarding). Daily metric_sync SOT.
+  Legacy nulls: no backfill / no DB NOT NULL; PATCH reject clear-to-null;
+  omit leaves prior value.
+  At implement: update PRODUCT §3.1/§6.1 required set + §4.3 drop manual
+  follower edits.
+stop_if:
+  - (cleared — field set, legacy policy, and Graph-only followers decided)
+
+---
+
+## org-edu-email-change
+
+status: parked
+gaps:
+  - org.edu-email-change-after-verify
+approach: |
+  Locked in gap file. Post-verify / active orgs can rotate `.edu` to a new
+  unique campus address; new address must verify before becoming identity.
+  Prefer pending-swap (keep old edu until verify) unless PRODUCT asks for a
+  hard re-verify gate. Update PRODUCT §3.1 (today forbids PATCH edu).
+stop_if:
+  - PRODUCT disagrees on interim access while new edu is unverified — ask.
+
+---
+
+## org-verify-email-confirm
+
+status: parked
+gaps:
+  - org.verify-email-auto-consumes-token
+approach: |
+  Locked in gap file (research 2026-08-11). FE-only: remove mount auto-POST;
+  Confirm/Verify button; stripTokenFromUrl **after success** (not on mount —
+  unlike brand/reset, so refresh-before-click keeps ?token=). Mirror
+  BrandSetup/ResetPassword submit UX. Backend unchanged (POST one-shot already
+  correct). Test: no verify until click. OTP/intent-token out of v1.
+stop_if:
+  - PRODUCT wants keep auto-verify — ask (unlikely).
+  - Field reports scanners clicking Confirm — pause and ask before OTP.
 
 ---
 

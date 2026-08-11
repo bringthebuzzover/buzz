@@ -3,7 +3,7 @@ id: deploy.samesite-lax-railway-preview
 title: SameSite cookie invariant for Railway dual-host (App Review path)
 kind: ops
 severity: P1
-status: ops
+status: fixed
 surface: deploy
 evidence:
   - path: backend/app/config.py
@@ -11,11 +11,13 @@ evidence:
   - path: backend/app/routes/auth.py
     note: buzz_oauth_state + buzz_refresh both use REFRESH_COOKIE_SAMESITE; missing state → 401
   - path: frontend/src/pages/auth/InstagramCallbackPage.tsx
-    note: credentialed POST to API callback — cross-site XHR needs SameSite=none on *.up.railway.app
+    note: credentialed POST to API callback — same-site on www↔api (lax)
   - path: META.md
-    note: App Review strategy = Railway SPA + Railway API (PSL → cross-site); host SOT
-  - path: DEPLOYMENT.md
-    note: only Railway env is production; no separate preview/staging; target www+api same eTLD+1
+    note: Hosts SOT is www+api; App Review path is brand domains (not dual-host Railway)
+  - path: gaps/archive/deploy.custom-domain-samesite-lax.md
+    note: Phase 2 infra archived 2026-08-09
+  - path: gaps/archive/deploy.meta-brand-url-cutover.md
+    note: Meta §C Hosts paste archived 2026-08-11
 repro: |
   Cross-site + lax (broken): SPA frontend-….up.railway.app → API api-….up.railway.app
   with REFRESH_COOKIE_SAMESITE=lax → Instagram callback POST omits buzz_oauth_state → 401.
@@ -33,17 +35,22 @@ fix_when: |
   is documented and verified — NOT www+api cutover or SameSite=lax.
 ---
 
-## Progress (2026-08-08)
+## Closed (ops 2026-08-11)
 
-| Check | Status |
-| ----- | ------ |
-| Cookie env / Set-Cookie `none`+`Secure` | **PASS** (live GET login) |
-| `FRONTEND_URL` / `INSTAGRAM_REDIRECT_URI` = META Railway SPA | **PASS** (Railway vars; authorize `redirect_uri` matches) |
-| Docs invariant (`none` required on dual-host) | **PASS** (DEPLOYMENT + META scrubbed) |
-| Real `INSTAGRAM_CLIENT_ID` / `_SECRET` on Railway | **PASS** (live authorize uses real App ID; local `.env` also set) |
-| Meta dashboard URLs = META Hosts | **PENDING** — Meta app exists (META §A–B done); finish §C (redirect / deauth / legal URLs), then re-verify |
+Original v1 locked **Railway dual-host + `SameSite=none`** for App Review. That path was
+**superseded** by Plan A Phase 2 (`gaps/archive/deploy.custom-domain-samesite-lax.md`) and
+Meta Hosts paste (`gaps/archive/deploy.meta-brand-url-cutover.md`).
 
-Do **not** archive until Meta dashboard row PASSes. Phase 2 custom-domain follow-up stays open.
+| Check | Status (2026-08-11) |
+| ----- | ------------------- |
+| www + api on Railway, same eTLD+1 | **PASS** (Phase 2 archived) |
+| Live Set-Cookie `SameSite=lax; Secure` on `api.bringthebuzzover.com` | **PASS** (`GET …/instagram/login`) |
+| Authorize `redirect_uri` = www Hosts callback | **PASS** (live Location) |
+| Meta Basic privacy/terms/data-deletion | **PASS** (MCP) |
+| Meta Business login OAuth / deauth | **PASS** (human + successful www IG login smoke) |
+| Dual-host Railway+`none` App Review path | **Retired** — not required |
+
+Do not reopen for dual-host `none` unless prod falls back to distinct `*.up.railway.app` SPA/API.
 
 ## Locked v1 fix
 
