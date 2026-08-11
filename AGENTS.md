@@ -16,6 +16,7 @@ This repo is **agent-first**: humans review and commit; agents implement. Follow
 | As-built system | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | Living bugs / holes | [`gaps/`](gaps/) (`gaps/<id>.md`) |
 | Fix queue / locked approaches | [`gaps/CLUSTERS.md`](gaps/CLUSTERS.md) |
+| Future bets / brainstorm | [`ideas/`](ideas/) (not committed behavior; see [`ideas/README.md`](ideas/README.md)) |
 | HTTP contract | [`openapi.json`](openapi.json) → `frontend` `npm run gen:api` |
 | Deploy / cookies / Railway | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
 | Meta / Instagram app | [`META.md`](META.md) |
@@ -25,6 +26,8 @@ This repo is **agent-first**: humans review and commit; agents implement. Follow
 Rules and skills **point** here; they must not copy PRODUCT §§.
 
 **Shortcomings:** discover with `gaps/*.md` (exclude `README.md`, `CLUSTERS.md`, `gaps/archive/`). Do not invent a second mega-list.
+
+**Ideas:** brainstorm lives in `ideas/*.md`. Ideas are not gaps and are not PRODUCT — promoting one into shipped behavior needs an explicit PRODUCT/UX decision (hard stop below).
 
 ---
 

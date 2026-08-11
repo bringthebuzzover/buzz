@@ -12,6 +12,7 @@ Read [`AGENTS.md`](AGENTS.md) for the full map. Follow it on every task.
 - Behavior/UX → [`PRODUCT.md`](PRODUCT.md) (read relevant §§; do not copy into rules)
 - As-built system → [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - Shortcomings → [`gaps/`](gaps/) + [`gaps/CLUSTERS.md`](gaps/CLUSTERS.md)
+- Future bets / brainstorm → [`ideas/`](ideas/) (not committed behavior; not gaps)
 - HTTP contract → [`openapi.json`](openapi.json)
 
 ## Working norms (summary)

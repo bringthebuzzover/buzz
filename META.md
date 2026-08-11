@@ -40,7 +40,9 @@ PRODUCT change.
 
 ## Hosts (exact strings)
 
-**Brand DNS is live on Railway.** Paste these into Meta (Phase 8) — until then Instagram OAuth from www can fail. Checklist: [`gaps/deploy.meta-brand-url-cutover.md`](gaps/deploy.meta-brand-url-cutover.md).
+**Brand DNS is live on Railway.** Meta Hosts paste (Phase 8) **done 2026-08-11** —
+archived [`gaps/archive/deploy.meta-brand-url-cutover.md`](gaps/archive/deploy.meta-brand-url-cutover.md)
+(+ [`gaps/archive/deploy.samesite-lax-railway-preview.md`](gaps/archive/deploy.samesite-lax-railway-preview.md)).
 
 | Role | URL |
 | ---- | --- |
@@ -51,9 +53,9 @@ PRODUCT change.
 | Data deletion | `https://www.bringthebuzzover.com/data-deletion` |
 | API / deauthorize | `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize` |
 
-Backend env already matches: `INSTAGRAM_REDIRECT_URI` and `FRONTEND_URL` use www. Trailing slashes matter.
+Backend env matches: `INSTAGRAM_REDIRECT_URI` and `FRONTEND_URL` use www. Trailing slashes matter.
 
-**Secondary Railway hosts** (optional keep-listed in Meta until IG smoke passes, then remove):
+**Secondary Railway hosts** (optional; remove from Meta allowlist when unused):
 
 | Role | URL |
 | ---- | --- |
@@ -75,11 +77,11 @@ Backend env already matches: `INSTAGRAM_REDIRECT_URI` and `FRONTEND_URL` use www
 
 Saving redirect URIs does **not** start App Review.
 
-**Configure now.** Create the Business app, set the **Railway** URLs above, start Business Verification, run a tester pilot.
+**Configure now.** App + Hosts + tester pilot are done. **Start Business Verification** (§E), then App Review (§F).
 
-**Submit App Review only when** privacy, terms, and OAuth work on those Railway URLs. Meta crawls privacy/terms ([policy](https://developers.facebook.com/docs/development/terms-and-policies/privacy-policy/)).
+**Submit App Review only when** privacy, terms, and OAuth work on the www/api Hosts above. Meta crawls privacy/terms ([policy](https://developers.facebook.com/docs/development/terms-and-policies/privacy-policy/)).
 
-**URLs can change later.** After cutover, add `www` / `api` in Meta and update env. Keep `INSTAGRAM_REDIRECT_URI` in sync. Changing permissions or data use may need a new App Review.
+Keep `INSTAGRAM_REDIRECT_URI` in sync with Meta if Hosts change. Changing permissions or data use may need a new App Review.
 
 ---
 
@@ -98,13 +100,13 @@ Engineering does **not** need you to paste secrets into git. Railway Variables +
 
 - [x] **A.** Create a **Business** app
 - [x] **B.** Add Instagram → **API setup with Instagram login**; copy App ID + Secret → engineering / Railway
-- [ ] **C.** Business Login: redirect, permissions, deauthorize, data deletion (+ privacy / terms URLs)
-- [ ] **D.** Pilot: Instagram Testers (Standard Access)
-- [ ] **E.** Business Verification
+- [x] **C.** Business Login: redirect, permissions, deauthorize, data deletion (+ privacy / terms URLs) — done 2026-08-11
+- [x] **D.** Pilot: Instagram Testers (Standard Access) — confirmed 2026-08-11
+- [ ] **E.** Business Verification — living gap [`gaps/deploy.meta-business-verification.md`](gaps/deploy.meta-business-verification.md)
 - [ ] **F.** App Review: Advanced Access for both permissions
 - [ ] **G.** Confirm public login works without testers
 
-A–B done. **C next** (URLs must match Hosts table). A–D = pilot. E–F = public launch.
+A–D done (pilot path). **E next** (Business Verification). E–F = public launch.
 
 ---
 
@@ -126,7 +128,7 @@ A–B done. **C next** (URLs must match Hosts table). A–D = pilot. E–F = pub
 
 > Hand ID → `INSTAGRAM_CLIENT_ID`, secret → `INSTAGRAM_CLIENT_SECRET`. Treat the secret like a password.
 >
-> **Done (2026-08-08):** credentials are on Railway production and in local `backend/.env` (never commit). Continue with **§C**.
+> **Done (2026-08-08):** credentials are on Railway production and in local `backend/.env` (never commit). **§C–D done 2026-08-11.** Continue with **§E**.
 
 ---
 
@@ -238,7 +240,7 @@ Already in code: OAuth handshake, signed state cookie, encrypted tokens, Busines
 
 **Local laptop:** copy `backend/.env.example` → `backend/.env` (gitignored). Fill the same `INSTAGRAM_CLIENT_*` values; keep `INSTAGRAM_REDIRECT_URI=http://localhost:3000/auth/instagram/callback` and add that URI in Meta §C if you test OAuth locally. Frontend: `REACT_APP_API_URL=http://localhost:8000` in `frontend/.env`.
 
-**Still human (Meta dashboard §C):** paste Hosts table URLs (see `gaps/deploy.meta-brand-url-cutover.md`). Env already points at www — dashboard catch-up is the remaining OAuth gate.
+**Still human (Meta launch):** §E Business Verification → §F App Review Advanced Access → §G public login (Hosts §C archived 2026-08-11 — see `gaps/archive/deploy.meta-brand-url-cutover.md`).
 
 Details: `DEPLOYMENT.md`.
 

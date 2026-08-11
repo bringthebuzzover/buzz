@@ -20,7 +20,7 @@ Deploy target: **Railway** from branch **`main`** (autodeploy on) — repo **`br
 | SPA | `https://frontend-production-3819.up.railway.app` |
 | API | `https://api-production-fbbc1.up.railway.app` |
 
-Env + cookies use **www/api**. Meta dashboard URLs must be pasted to match www/api — see [`gaps/deploy.meta-brand-url-cutover.md`](gaps/deploy.meta-brand-url-cutover.md) and [`META.md`](META.md). Until that paste, Instagram OAuth from www can fail even though infra is live.
+Env + cookies use **www/api**. Meta Hosts paste done 2026-08-11 — see [`gaps/archive/deploy.meta-brand-url-cutover.md`](gaps/archive/deploy.meta-brand-url-cutover.md) and [`META.md`](META.md). Remaining Meta launch gate: Business Verification + App Review (META §E–F).
 
 ### Environment vocabulary
 
@@ -43,7 +43,7 @@ Env + cookies use **www/api**. Meta dashboard URLs must be pasted to match www/a
 | Instagram / Meta App Review + Business Verification  | Not started                         | **Yes** — gates public (non-tester) org signups |
 | Legal review of Privacy Policy + Terms               | Draft in app (`/privacy`, `/terms`) | **Yes** — required for Meta + PII   |
 | Railway stack (Frontend + API + Postgres + 6 crons)  | **Done** (env `production`; target autodeploy from `bringthebuzzover/buzz` @ `main`) | Reconfirm Railway Source if still on ShannonLin284 |
-| Custom DNS (`www` / `api.bringthebuzzover.com`)      | **Done** (Cloudflare DNS; TLS green; `SameSite=lax`) | Meta URL paste still open (`deploy.meta-brand-url-cutover`) |
+| Custom DNS (`www` / `api.bringthebuzzover.com`)      | **Done** (Cloudflare DNS; TLS green; `SameSite=lax`) | No — Meta Hosts paste archived 2026-08-11 |
 | Secrets + env for current hosts                      | **Done** — Railway hosts + real IG creds | Re-check at custom DNS cutover          |
 | Env parity for custom domains (SPA/API URLs, Meta)   | N/A until DNS                       | **Yes** after cutover if any var still uses Railway-only URLs |
 | Resend verified sender domain                        | **Done** (DKIM + `send.` SPF/MX; inbox proof 2026-08-11) | Soft — watch deliverability / DMARC later |
@@ -101,7 +101,7 @@ Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway
 
 **Hostinger:** registrar + nameserver updates only (MCP). Hostinger’s parking DNS zone was **cleared** after the CF NS flip — do not recreate www/api/apex there. Mutate Hostinger NS/registrar only with explicit user OK; never commit the API token.
 
-Meta URL paste after brand cutover: `gaps/deploy.meta-brand-url-cutover.md`.
+Meta URL paste after brand cutover: **done** — `gaps/archive/deploy.meta-brand-url-cutover.md`.
 - [ ] Enable **Wait for CI** on Frontend + API (CI on `main`/`mvp` includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
 - [ ] Optional: `RAILPACK_PYTHON_VERSION=3.12` on API + cron services (cron siblings already set; confirm API).
 - [ ] Optional later: a second Railway environment for true staging (not required for pilot on the current stack).
@@ -164,7 +164,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 - [x] `INSTAGRAM_CLIENT_ID` / `INSTAGRAM_CLIENT_SECRET` set on Railway **api** + cron services (and local `backend/.env` for laptop). **Do not** commit real secrets.
 - [x] Frontend built via `npm run build:prod` with `REACT_APP_API_URL=https://api.bringthebuzzover.com` (guard: `frontend/scripts/check-deploy-env.js`).
 - [ ] `BRAND_SELF_REGISTRATION_ENABLED` set intentionally (`true` = public `POST /api/brands/apply`; `false` = admin-provisioned brands only).
-- [ ] Meta dashboard URLs → brand www/api (paste list in [`gaps/deploy.meta-brand-url-cutover.md`](gaps/deploy.meta-brand-url-cutover.md); until then OAuth from www can fail):
+- [x] Meta dashboard URLs → brand www/api (archived [`gaps/archive/deploy.meta-brand-url-cutover.md`](gaps/archive/deploy.meta-brand-url-cutover.md)):
   - OAuth redirect: `https://www.bringthebuzzover.com/auth/instagram/callback`
   - Deauthorize: `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize`
   - Data deletion / Privacy / Terms: www paths per META.md Hosts table
@@ -175,7 +175,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 **Live topology:** SPA on `www.bringthebuzzover.com`, API on `api.bringthebuzzover.com` (same eTLD+1). `REFRESH_COOKIE_SAMESITE=lax` + `REFRESH_COOKIE_SECURE=true` (verified Set-Cookie on IG login GET).
 
-**Historical:** Distinct `*.up.railway.app` SPA/API hosts were cross-site (`up.railway.app` on the public suffix list), so App Review used `SameSite=none`. Dual-host Railway SPA↔API login is **not** a working auth backup after `lax`. Meta dashboard may still list Railway URLs until [`gaps/deploy.meta-brand-url-cutover.md`](gaps/deploy.meta-brand-url-cutover.md) closes — temporary Meta↔env misalignment is accepted.
+**Historical:** Distinct `*.up.railway.app` SPA/API hosts were cross-site (`up.railway.app` on the public suffix list), so App Review used `SameSite=none`. Dual-host Railway SPA↔API login is **not** a working auth backup after `lax`. Meta Hosts cutover archived 2026-08-11 ([`gaps/archive/deploy.meta-brand-url-cutover.md`](gaps/archive/deploy.meta-brand-url-cutover.md)).
 
 Apex `bringthebuzzover.com` → www is a **Cloudflare** Single Redirect (`Server: cloudflare`; see [`gaps/archive/deploy.apex-hostinger-forward-blocked.md`](gaps/archive/deploy.apex-hostinger-forward-blocked.md)). GitHub Pages brand custom domain cleared ([`gaps/archive/deploy.gh-pages-brand-domain-retire.md`](gaps/archive/deploy.gh-pages-brand-domain-retire.md)); apex does not depend on Pages.
 
@@ -192,14 +192,14 @@ Order: Postgres → API (migrate + health) → Frontend (baked API URL) → Cron
 - [x] Build + deploy the frontend with `build:prod` + `REACT_APP_API_URL=https://api.bringthebuzzover.com`.
 - [ ] Confirm cron services exit after each run (Completed, not stuck Active) — spot-check after schedule changes.
 - [x] Custom domains attached; SPA rebuilt; `FRONTEND_URL` / `INSTAGRAM_REDIRECT_URI` → www; `SameSite=lax`.
-- [ ] Update Meta dashboard URLs to www/api ([`gaps/deploy.meta-brand-url-cutover.md`](gaps/deploy.meta-brand-url-cutover.md)).
+- [x] Update Meta dashboard URLs to www/api ([`gaps/archive/deploy.meta-brand-url-cutover.md`](gaps/archive/deploy.meta-brand-url-cutover.md)).
 
 ---
 
 ## Phase 5 — Post-deploy verification
 
 - [x] `GET https://api.bringthebuzzover.com/api/health` returns ok envelope when Postgres is up (and **503** with an error envelope when it is not).
-- [ ] Instagram login completes end-to-end on www (blocked on Meta URL paste — `deploy.meta-brand-url-cutover`). Set-Cookie `SameSite=lax` already verified on login GET.
+- [x] Instagram login completes end-to-end on www (Meta Hosts + MEDIA_CREATOR allowlist + Fernet key; Set-Cookie `SameSite=lax` on login GET).
 - [x] A transactional email arrives (Resend live path + verified sending domain; brand invite proof 2026-08-11).
 - [ ] Home Join Us section routes: "Join as Student Organization" → `/login` (Instagram OAuth), "Apply as Brand" → `/brand/apply` (POST /api/brands/apply).
 - [ ] Brand login → dashboard; org role is blocked from the brand dashboard (403).
