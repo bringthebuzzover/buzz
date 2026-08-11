@@ -2,8 +2,9 @@
  * /onboarding/verify-email — .edu verification (Stage 7, Phase 3).
  *
  * Two modes:
- *  - With `?token=…` (the link from the email): auto-verify, then refresh the
- *    user so the guard forwards to /onboarding/pending-approval.
+ *  - With `?token=…` (the link from the email): show Confirm; only the click
+ *    POSTs verify (no auto-consume on mount — scanners/prefetch must not burn
+ *    the one-shot token). Strip `token` from the URL after successful confirm.
  *  - Without a token: the "check your inbox" waiting screen, with a Resend
  *    button (rate-limited server-side).
  *
@@ -47,13 +48,8 @@ function markEmailSent(ok: boolean) {
 export default function VerifyEmailPage() {
   const { status, user } = useAuth();
   const [searchParams] = useSearchParams();
+  // Keep token in state across refresh-before-click; do not strip on mount.
   const [token] = useState(() => searchParams.get("token"));
-
-  useEffect(() => {
-    if (token) {
-      stripTokenFromUrl();
-    }
-  }, [token]);
 
   if (token) {
     return <VerifyWithToken token={token} />;
@@ -78,6 +74,7 @@ export default function VerifyEmailPage() {
 }
 
 type VerifyState =
+  | { kind: "idle" }
   | { kind: "verifying" }
   | { kind: "success"; authenticated: boolean }
   | { kind: "error"; message: string };
@@ -86,40 +83,62 @@ function VerifyWithToken({ token }: { token: string }) {
   const { refreshUser } = useAuth();
   const navigate = useNavigate();
   const verify = useVerifyEmail();
-  const [state, setState] = useState<VerifyState>({ kind: "verifying" });
-  const startedRef = useRef(false);
+  const [state, setState] = useState<VerifyState>({ kind: "idle" });
+  const inFlightRef = useRef(false);
 
-  useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-    (async () => {
-      try {
-        await verify.mutateAsync(token);
-        // The link is often opened in a fresh tab/browser with no session, so
-        // refreshUser() may return null. Show a self-contained success screen
-        // either way rather than auto-navigating to a guarded page (which would
-        // bounce an unauthenticated visitor to "/").
+  const onConfirm = async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    setState({ kind: "verifying" });
+    try {
+      await verify.mutateAsync(token);
+      // The link is often opened in a fresh tab/browser with no session, so
+      // refreshUser() may return null. Show a self-contained success screen
+      // either way rather than auto-navigating to a guarded page (which would
+      // bounce an unauthenticated visitor to "/").
+      const me = await refreshUser();
+      stripTokenFromUrl();
+      setState({ kind: "success", authenticated: !!me });
+    } catch (err) {
+      // Re-clicking an already-used link is success, not failure: the email is
+      // verified. Show the success screen (refreshUser decides where Continue
+      // goes).
+      if (err instanceof ApiError && err.code === "EMAIL_ALREADY_VERIFIED") {
         const me = await refreshUser();
+        stripTokenFromUrl();
         setState({ kind: "success", authenticated: !!me });
-      } catch (err) {
-        // Re-clicking an already-used link is success, not failure: the email is
-        // verified. Show the success screen (refreshUser decides where Continue
-        // goes).
-        if (err instanceof ApiError && err.code === "EMAIL_ALREADY_VERIFIED") {
-          const me = await refreshUser();
-          setState({ kind: "success", authenticated: !!me });
-          return;
-        }
-        setState({
-          kind: "error",
-          message:
-            err instanceof ApiError
-              ? err.message
-              : "Could not verify your email. The link may have expired.",
-        });
+        return;
       }
-    })();
-  }, [token, verify, refreshUser]);
+      setState({
+        kind: "error",
+        message:
+          err instanceof ApiError
+            ? err.message
+            : "Could not verify your email. The link may have expired.",
+      });
+    }
+  };
+
+  if (state.kind === "idle") {
+    return (
+      <div className="mx-auto max-w-md px-8 py-24 text-center">
+        <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+          Verify Your <span className="text-buzz-coral">Email</span>
+        </h1>
+        <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
+          Confirm this is you to finish verifying your school email.
+        </p>
+        <button
+          type="button"
+          onClick={() => void onConfirm()}
+          disabled={verify.isPending}
+          className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper shadow-md transition enabled:hover:bg-buzz-coralDark disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Verify email
+        </button>
+      </div>
+    );
+  }
 
   if (state.kind === "verifying") {
     return (
@@ -144,6 +163,7 @@ function VerifyWithToken({ token }: { token: string }) {
           {state.message}
         </p>
         <button
+          type="button"
           onClick={() => navigate("/onboarding/verify-email", { replace: true })}
           className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
         >
@@ -164,6 +184,7 @@ function VerifyWithToken({ token }: { token: string }) {
         soon as a Buzz admin reviews it.
       </p>
       <button
+        type="button"
         onClick={() =>
           navigate(
             state.authenticated ? "/onboarding/pending-approval" : "/login",
@@ -266,7 +287,8 @@ function AwaitVerification() {
       )}
 
       <button
-        onClick={onResend}
+        type="button"
+        onClick={() => void onResend()}
         disabled={resend.isPending}
         className="rounded-lg border-2 border-buzz-coral px-6 py-3 text-sm font-bold text-buzz-coral transition enabled:hover:bg-buzz-coral enabled:hover:text-buzz-paper disabled:cursor-not-allowed disabled:opacity-60"
       >

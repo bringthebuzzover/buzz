@@ -172,14 +172,12 @@ stop_if:
 Auto-pick (`run next cluster`) = first `status: pending` below.
 `ops` clusters require `run cluster <id>`. Do not auto-pick `parked`.
 
-Priority rationale (UX + prod correctness first; small batches; deps respected):
-1. Email false-success / one-shot burns (unblocks safe notify cron)
-2. IG reconnect SPA
-3. Admin drop logistics + DB CHECKs
-4. PRODUCT capacity Fork A (docs/copy)
-5. Autolink mint only at drop_active
-6. Cron INFO logging
-Then human ops: notify Railway cron, SameSite App Review checklist.
+Priority rationale (2026-08-11 delivery order — code first, then ops parallel):
+1. `org-verify-email-confirm` — **done** (confirm before .edu verify POST)
+2. `org-onboarding-required-fields` — required profile fields + Graph followers
+3. `brand-delivery-address` — null denied applicants' deliveryAddress
+4. `org-edu-email-change` — active org .edu rotate (PRODUCT ask on interim)
+Ops (not auto-pick): `meta-business-verification`, `ops.brand-mailbox` (follow-ups).
 
 ---
 
@@ -485,18 +483,7 @@ note: |
   Shipped admin org hybrid erase (PRODUCT §3.1.2 / §4.3): IG-handle confirm;
   identity scrub; KPI retention; confirmation email; legal copy align.
   No brand erase / Meta deletion callback.
-  `brand.delivery-address-all-applicants` remains parked alone below.
-
----
-
-## brand-delivery-address
-
-status: parked
-gaps:
-  - brand.delivery-address-all-applicants
-note: |
-  API nulls deliveryAddress unless decision is applied or accepted; one
-  backend test; no FE privacy branching. Parked separately from org erase.
+  Sibling authz: `brand-delivery-address` (pending in open queue).
 
 ---
 
@@ -585,9 +572,23 @@ stop_if:
 
 ---
 
+## org-verify-email-confirm
+
+status: done
+gaps:
+  - org.verify-email-auto-consumes-token
+approach: |
+  **Done.** FE confirm-before-verify on VerifyEmailPage; strip after success;
+  unit test; archived `gaps/archive/org.verify-email-auto-consumes-token.md`.
+stop_if:
+  - PRODUCT wants keep auto-verify — ask (unlikely).
+  - Field reports scanners clicking Confirm — pause and ask before OTP.
+
+---
+
 ## org-onboarding-required-fields
 
-status: parked
+status: pending
 gaps:
   - org.onboarding-members-category-required
 approach: |
@@ -606,9 +607,22 @@ stop_if:
 
 ---
 
+## brand-delivery-address
+
+status: pending
+gaps:
+  - brand.delivery-address-all-applicants
+approach: |
+  API nulls deliveryAddress unless decision is applied or accepted; one
+  backend test; no FE privacy branching.
+stop_if:
+  - (none)
+
+---
+
 ## org-edu-email-change
 
-status: parked
+status: pending
 gaps:
   - org.edu-email-change-after-verify
 approach: |
@@ -618,23 +632,6 @@ approach: |
   hard re-verify gate. Update PRODUCT §3.1 (today forbids PATCH edu).
 stop_if:
   - PRODUCT disagrees on interim access while new edu is unverified — ask.
-
----
-
-## org-verify-email-confirm
-
-status: parked
-gaps:
-  - org.verify-email-auto-consumes-token
-approach: |
-  Locked in gap file (research 2026-08-11). FE-only: remove mount auto-POST;
-  Confirm/Verify button; stripTokenFromUrl **after success** (not on mount —
-  unlike brand/reset, so refresh-before-click keeps ?token=). Mirror
-  BrandSetup/ResetPassword submit UX. Backend unchanged (POST one-shot already
-  correct). Test: no verify until click. OTP/intent-token out of v1.
-stop_if:
-  - PRODUCT wants keep auto-verify — ask (unlikely).
-  - Field reports scanners clicking Confirm — pause and ask before OTP.
 
 ---
 
