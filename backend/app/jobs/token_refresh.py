@@ -15,7 +15,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.enums import PortalRole
+from app.models.enums import OrgUserStatus, PortalRole
 from app.models.user import User
 from app.security.token_crypto import TokenDecryptionError, decrypt_token, encrypt_token
 from app.services.instagram import InstagramClient
@@ -34,6 +34,7 @@ async def refresh_due_tokens(db: AsyncSession, ig: InstagramClient) -> dict[str,
         await db.scalars(
             select(User).where(
                 User.portal_role == PortalRole.ORG.value,
+                User.status != OrgUserStatus.ERASED.value,
                 User.instagram_access_token.isnot(None),
                 User.instagram_token_expires_at.isnot(None),
                 User.instagram_token_expires_at > now + _SAFE_MIN,

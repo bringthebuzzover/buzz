@@ -70,6 +70,15 @@ Each fact is stored once; APIs may still expose familiar field names by joining 
 
 `organizations` holds club profile metadata (name, campus, address, etc.). `brands.instagram_handle` remains a separate brand-side field used for autolink caption matching.
 
+### 3.1.2 Org account erase (data-deletion fulfillment)
+
+After a verified data-deletion request (mailto on `/data-deletion`), a Buzz **admin** may **erase** an organization account from the admin org detail page (confirm by typing the Instagram handle).
+
+- Erase removes login identity and contact PII (IG ids/token/username, email on file, shipping/contact fields) and ends the session (`token_version` bump). The account status becomes **erased** (terminal — not the same as onboarding **denied**).
+- Erase **does not** remove attributed campaign KPIs (**§4.3**). Accepted seats, linked posts’ numeric metrics, follower-based reach inputs, and campus strings are retained; the org may appear as an anonymized tombstone (e.g. “Deleted organization”) on brand/admin surfaces.
+- When an email address is on file before erase, Buzz may send a **confirmation email** to that address after a successful erase (best-effort; failure does not undo erase).
+- **v1:** no brand-portal erase; no self-serve account delete; Meta Hosts continue to use the public instructions URL (not a data-deletion callback).
+
 ### 3.2 Demo / internal preview
 
 Production users cannot switch portals. Internal operators use admin **View as** (impersonation) to open an org or brand session; see [`TESTING.md`](TESTING.md) / [`DEPLOYMENT.md`](DEPLOYMENT.md).
@@ -102,6 +111,7 @@ For v1, drops expose two timestamps:
 - **Estimated reach (v1 definition):** Derived from **follower counts** of the participating student org(s) (and/or connected accounts as implemented), combined with product rules for display.
 - **Aggregate likes:** Show **aggregate likes** across the campaign’s linked posts (in addition to or alongside estimated reach, per product copy).
 - Brand-facing layout (per-org, UGC, roll-ups): **§5.3**.
+- **KPI preservation (hard rule):** Attributed campaign contribution — linked post counts, likes, comments, engagement series, estimated reach from retained follower counts, and campus counts from retained university — **must not disappear** when an org account is erased or identity is removed (**§3.1.2**). Identity, contact PII, IG credentials, and identifiable post content (permalinks, captions, media) may be scrubbed or anonymized; **numeric campaign stats stay**. Brand dashboards may show a tombstone participant label with prior metrics intact.
 
 ---
 
@@ -347,7 +357,7 @@ Aggregated all drops →  Brand aggregate dashboard
 | Org   | Onboarding          | Login with org Instagram account; university + org name + **.edu**; verify email → Buzz approval → access                                                    |
 | Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts when Active                                                                                           |
-| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; timing/reopen/fulfillment coordination; integrations (see §5.2.1 TODO) |
+| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; timing/reopen/fulfillment coordination; erase org account after verified data-deletion request (**§3.1.2**); integrations (see §5.2.1 TODO) |
 
 ---
 

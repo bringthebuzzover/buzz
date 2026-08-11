@@ -35,6 +35,11 @@
       },
       "AdminApplicantItem": {
         "properties": {
+          "accountErased": {
+            "default": false,
+            "title": "Accounterased",
+            "type": "boolean"
+          },
           "allocatedUnits": {
             "anyOf": [
               {
@@ -1273,6 +1278,55 @@
         "title": "AdminOrgDetail",
         "type": "object"
       },
+      "AdminOrgEraseRequest": {
+        "description": "Typed confirm payload \u2014 Instagram handle only (PRODUCT \u00a73.1.2).",
+        "properties": {
+          "confirm": {
+            "title": "Confirm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "title": "AdminOrgEraseRequest",
+        "type": "object"
+      },
+      "AdminOrgEraseResponse": {
+        "properties": {
+          "emailSent": {
+            "title": "Emailsent",
+            "type": "boolean"
+          },
+          "emailToDomain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emailtodomain"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "status",
+          "emailSent"
+        ],
+        "title": "AdminOrgEraseResponse",
+        "type": "object"
+      },
       "AdminOrgItem": {
         "description": "A row in ``GET /api/admin/orgs``.\n\n``id`` (the ``organizations`` row) is nullable: ``pending_org_profile``\nusers have not created a profile yet.",
         "properties": {
@@ -2112,6 +2166,11 @@
       "BrandDropDetailApplicant": {
         "description": "One applicant row in the brand drop detail view (\u00a78.2).",
         "properties": {
+          "accountErased": {
+            "default": false,
+            "title": "Accounterased",
+            "type": "boolean"
+          },
           "allocatedUnits": {
             "anyOf": [
               {
@@ -3449,6 +3508,44 @@
           }
         },
         "title": "DataResponse[AdminOrgDetail]",
+        "type": "object"
+      },
+      "DataResponse_AdminOrgEraseResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminOrgEraseResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminOrgEraseResponse]",
         "type": "object"
       },
       "DataResponse_AdminOrgStatusResponse_": {
@@ -8165,6 +8262,76 @@
           }
         },
         "summary": "Clear Org Instagram Token Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/orgs/{user_id}/erase": {
+      "post": {
+        "description": "Hybrid erase: scrub identity/PII; keep campaign KPIs (PRODUCT \u00a73.1.2 / \u00a74.3).",
+        "operationId": "erase_org_endpoint_api_admin_orgs__user_id__erase_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminOrgEraseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminOrgEraseResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Erase Org Endpoint",
         "tags": [
           "admin"
         ]

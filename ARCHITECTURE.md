@@ -62,7 +62,7 @@ Commit both `openapi.json` and `frontend/src/api/generated/schema.ts` when route
 - Both access and refresh JWTs carry `ver`; API compares to `users.token_version` (revocation on logout, deny, password reset, re-login/refresh rotation, IG token clear/deauth, etc.).
 - Guards: `get_current_user` → `require_role` / `require_status` → aliases `CurrentOrg` / `CurrentBrand` / `CurrentAdmin`.
 - Impersonation: short-lived access token (default ~15m); admin refresh cookie untouched; default `IMPERSONATION_READONLY=true`. Same-tab reload remints via a `sessionStorage` View-as latch (Exit / logout clear it); access JWT stays memory-only.
-- Org portal access statuses on `users.status`: `pending_org_profile` → `pending_email_verification` → `pending_approval` → `active` | `denied` (behavior: PRODUCT §6.1). Brand review lives on `brands.status` (`pending_review` / `approved` / `denied`).
+- Org portal access statuses on `users.status`: `pending_org_profile` → `pending_email_verification` → `pending_approval` → `active` | `denied` | `erased` (behavior: PRODUCT §6.1 / §3.1.2). `erased` is terminal after admin org erase (identity scrubbed; campaign KPIs retained — PRODUCT §4.3). Brand review lives on `brands.status` (`pending_review` / `approved` / `denied`).
 
 Cookie SameSite on today’s dual Railway hosts vs future custom DNS: see [`DEPLOYMENT.md`](DEPLOYMENT.md) (do not invent cookie policy here).
 
@@ -105,7 +105,7 @@ Mounted in `backend/app/main.py`:
 | `/api/drops/*` | `routes/drops.py` | Org feed, detail, apply, Notify Me |
 | `/api/campaigns/*` | `routes/campaigns.py` | My campaigns, link/unlink, suggestions, aggregate |
 | `/api/brands/*` | `routes/brands.py` | Apply, brand profile, drops, finalize, aggregates |
-| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, drop config/tracker, health, impersonate |
+| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org erase (`POST …/orgs/{user_id}/erase` → `services/admin_erase.py`), drop config/tracker, health, impersonate |
 
 Thin routes; business logic in `backend/app/services/`.
 
