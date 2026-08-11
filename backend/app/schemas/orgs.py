@@ -49,28 +49,36 @@ class OrgProfileUpdate(CamelModel):
     ``edu_email`` and ``instagram_handle`` are intentionally absent — edu is
     the verified login identity; the IG handle mirrors the OAuth username and
     is not separately choosable.
+    ``follower_count`` is Graph-owned (omit from PATCH; ``extra=forbid``).
+    Profile fields that are required on create cannot be cleared to null/blank
+    when sent; omit leaves the prior value (legacy nulls persist until filled).
     ``extra="forbid"`` so an unknown/typo'd key (or an attempt to send
-    ``eduEmail`` / ``instagramHandle``) is a 422 rather than a silently-ignored
-    no-op write.
+    ``eduEmail`` / ``instagramHandle`` / ``followerCount``) is a 422 rather than
+    a silently-ignored no-op write.
     """
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
 
-    # Fields backed by NOT-NULL columns: explicit ``null`` is rejected (it would
-    # otherwise flush an IntegrityError → 500). Omitting them is still fine.
+    # Fields that cannot be cleared when present in the body.
     org_name: str | None = None
     university: str | None = None
-    # Genuinely-nullable columns: sending ``null`` is an intentional "clear".
-    tiktok_handle: str | None = None
-    follower_count: int | None = None
     member_count: int | None = None
     category: OrgCategory | None = None
     city: str | None = None
     state: str | None = None
     contact_name: str | None = None
     delivery_address: str | None = None
+    # Genuinely optional / clearable.
+    tiktok_handle: str | None = None
 
-    @field_validator("org_name", "university")
+    @field_validator(
+        "org_name",
+        "university",
+        "city",
+        "state",
+        "contact_name",
+        "delivery_address",
+    )
     @classmethod
     def _required_non_blank(cls, value: str | None) -> str | None:
         if value is None:
@@ -80,7 +88,7 @@ class OrgProfileUpdate(CamelModel):
             raise ValueError("must not be blank")
         return value
 
-    @field_validator("tiktok_handle", "city", "state", "contact_name", "delivery_address")
+    @field_validator("tiktok_handle")
     @classmethod
     def _optional_non_blank(cls, value: str | None) -> str | None:
         if value is not None:
@@ -89,9 +97,18 @@ class OrgProfileUpdate(CamelModel):
                 raise ValueError("must not be blank")
         return value
 
-    @field_validator("follower_count", "member_count")
+    @field_validator("member_count")
     @classmethod
-    def _non_negative(cls, value: int | None) -> int | None:
-        if value is not None and value < 0:
+    def _member_count(cls, value: int | None) -> int | None:
+        if value is None:
+            raise ValueError("must not be null")
+        if value < 0:
             raise ValueError("must be non-negative")
+        return value
+
+    @field_validator("category")
+    @classmethod
+    def _category_required(cls, value: OrgCategory | None) -> OrgCategory | None:
+        if value is None:
+            raise ValueError("must not be null")
         return value

@@ -29,7 +29,12 @@ _VALID_PROFILE = {
     "orgName": "Buzz Club",
     "university": "Test University",
     "eduEmail": "club@test.edu",
-    "followerCount": 1200,
+    "memberCount": 40,
+    "category": "social",
+    "city": "Ithaca",
+    "state": "NY",
+    "contactName": "Casey Officer",
+    "deliveryAddress": "123 Campus Rd, Ithaca, NY 14850",
 }
 
 
@@ -205,6 +210,74 @@ async def test_onboarding_rejects_unknown_field(app_client: AsyncClient, db_sess
         headers={"Authorization": f"Bearer {mint_access_token(user)}"},
     )
     assert resp.status_code == 422
+
+
+async def test_onboarding_rejects_client_follower_count(
+    app_client: AsyncClient, db_session
+) -> None:
+    user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_followers"),
+    )
+    resp = await app_client.post(
+        "/api/orgs/onboarding",
+        json={**_VALID_PROFILE, "followerCount": 1200},
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+async def test_onboarding_requires_profile_fields(app_client: AsyncClient, db_session) -> None:
+    user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_req"),
+    )
+    minimal = {
+        "orgName": "Buzz Club",
+        "university": "Test University",
+        "eduEmail": "club@test.edu",
+    }
+    resp = await app_client.post(
+        "/api/orgs/onboarding",
+        json=minimal,
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 422
+
+
+async def test_seed_follower_count_from_graph_helper(db_session, fake_instagram) -> None:
+    """Create-time Graph seed writes followers; no HTTP (avoids token-refresh middleware)."""
+    from app.security.token_crypto import encrypt_token
+    from app.services.onboarding import _seed_follower_count_from_graph
+
+    fake_instagram.followers_count = 4242
+    user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_seed"),
+    )
+    user.instagram_access_token = encrypt_token("fake-long-lived")
+    user.instagram_token_expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+    org = await persist(
+        db_session,
+        Organization(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            org_name="Seed Club",
+            university="Test University",
+            follower_count=None,
+            member_count=10,
+            category="social",
+            city="Ithaca",
+            state="NY",
+            contact_name="Casey",
+            delivery_address="1 Main",
+        ),
+    )
+    await _seed_follower_count_from_graph(org, user, fake_instagram)
+    await db_session.flush()
+    await db_session.refresh(org)
+    assert org.follower_count == 4242
 
 
 # --- Org onboarding: email verification -------------------------------------

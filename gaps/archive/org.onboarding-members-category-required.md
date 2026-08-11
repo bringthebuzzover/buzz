@@ -3,7 +3,7 @@ id: org.onboarding-members-category-required
 title: Org profile required fields wrong — followers on create; members/type/city/state/contact/delivery optional
 kind: ux_hole
 severity: P2
-status: open
+status: fixed
 surface: org
 evidence:
   - path: frontend/src/pages/onboarding/OrgProfilePage.tsx

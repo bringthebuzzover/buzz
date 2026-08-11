@@ -5,6 +5,8 @@
  * org profile, advances the account to pending_email_verification, and triggers
  * the .edu verification email; we then refresh the user so the route guard
  * forwards to /onboarding/verify-email.
+ *
+ * Followers are Graph-seeded server-side — not collected here.
  */
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -28,9 +30,11 @@ export default function OrgProfilePage() {
   const [orgName, setOrgName] = useState("");
   const [university, setUniversity] = useState("");
   const [eduEmail, setEduEmail] = useState("");
-  const [followerCount, setFollowerCount] = useState("");
   const [memberCount, setMemberCount] = useState("");
   const [category, setCategory] = useState<OrgCategory | "">("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [contactName, setContactName] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -45,15 +49,21 @@ export default function OrgProfilePage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!category) {
+      setError("Select an organization type.");
+      return;
+    }
     try {
       const result = await submit.mutateAsync({
         orgName: orgName.trim(),
         university: university.trim(),
         eduEmail: eduEmail.trim(),
-        followerCount: followerCount ? Number(followerCount) : undefined,
-        memberCount: memberCount ? Number(memberCount) : undefined,
-        category: category || undefined,
-        deliveryAddress: deliveryAddress.trim() || undefined,
+        memberCount: Number(memberCount),
+        category,
+        city: city.trim(),
+        state: state.trim(),
+        contactName: contactName.trim(),
+        deliveryAddress: deliveryAddress.trim(),
       });
       await refreshUser();
       // Durable across hard refresh of the verify-await screen.
@@ -85,7 +95,7 @@ export default function OrgProfilePage() {
         personal member account.
       </p>
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
         {signedInAs && (
           <div className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
@@ -135,27 +145,13 @@ export default function OrgProfilePage() {
             required
           />
           <p className="mt-1 text-xs text-buzz-inkMuted">
-            We'll send a verification link here.
+            We&apos;ll send a verification link here.
           </p>
         </div>
 
         <div>
           <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Follower count <span className="font-normal text-buzz-inkMuted">(optional)</span>
-          </label>
-          <input
-            type="number"
-            min="0"
-            className={inputClass}
-            value={followerCount}
-            onChange={(e) => setFollowerCount(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Number of members{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
+            Number of members
           </label>
           <input
             type="number"
@@ -163,18 +159,19 @@ export default function OrgProfilePage() {
             className={inputClass}
             value={memberCount}
             onChange={(e) => setMemberCount(e.target.value)}
+            required
           />
         </div>
 
         <div>
           <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Organization type{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
+            Organization type
           </label>
           <select
             className={inputClass}
             value={category}
             onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
+            required
           >
             <option value="">Select a type…</option>
             {ORG_CATEGORY_OPTIONS.map((opt) => (
@@ -185,10 +182,46 @@ export default function OrgProfilePage() {
           </select>
         </div>
 
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-buzz-ink">
+              City
+            </label>
+            <input
+              className={inputClass}
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-buzz-ink">
+              State
+            </label>
+            <input
+              className={inputClass}
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+
         <div>
           <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Shipping address{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
+            Contact name
+          </label>
+          <input
+            className={inputClass}
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
+            Shipping address
           </label>
           <textarea
             className={inputClass}
@@ -196,6 +229,7 @@ export default function OrgProfilePage() {
             value={deliveryAddress}
             onChange={(e) => setDeliveryAddress(e.target.value)}
             placeholder="Where should brands ship products?"
+            required
           />
         </div>
 

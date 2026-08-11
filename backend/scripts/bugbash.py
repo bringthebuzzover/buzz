@@ -450,8 +450,12 @@ async def scenario_onboarding(api: Api) -> None:
             "orgName": "Bash Onboard",
             "university": "Bash U",
             "eduEmail": f"onboard-{suffix}@campus.edu",
-            "instagramHandle": "bashonboard",
             "category": "academic",
+            "memberCount": 25,
+            "city": "Ithaca",
+            "state": "NY",
+            "contactName": "Bash Contact",
+            "deliveryAddress": "1 Bash Way",
         },
     )
     submitted = _ok(r, 200)

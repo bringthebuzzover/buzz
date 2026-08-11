@@ -5,6 +5,7 @@ Pure service functions (no FastAPI types) the route layer calls.
 
 from __future__ import annotations
 
+import logging
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -23,8 +24,12 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.schemas.onboarding import OrgOnboardingRequest
 from app.security.one_shot_tokens import hash_token
+from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.email import send_verification_email
-from app.services.instagram import require_instagram_handle
+from app.services.instagram import InstagramClient, require_instagram_handle
+from app.services.instagram_token import clear_unusable_instagram_token
+
+logger = logging.getLogger(__name__)
 
 
 def _now() -> datetime:
@@ -126,10 +131,72 @@ async def _mint_and_send_verification(
     return ok
 
 
+async def _seed_follower_count_from_graph(
+    org: Organization,
+    user: User,
+    ig: InstagramClient,
+) -> None:
+    """Best-effort Graph followers write after org create. Never raises."""
+    now = _now()
+    if not user.instagram_access_token:
+        logger.warning(
+            "onboarding followers_seed_failed org_id=%s user_id=%s reason=missing_token",
+            org.id,
+            user.id,
+        )
+        return
+    exp = user.instagram_token_expires_at
+    if exp is not None:
+        if exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        if exp <= now:
+            logger.warning(
+                "onboarding followers_seed_failed org_id=%s user_id=%s reason=expired_token",
+                org.id,
+                user.id,
+            )
+            return
+    try:
+        token = decrypt_token(user.instagram_access_token)
+    except TokenDecryptionError:
+        clear_unusable_instagram_token(user)
+        logger.warning(
+            "onboarding followers_seed_failed org_id=%s user_id=%s reason=decrypt_error",
+            org.id,
+            user.id,
+        )
+        return
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "onboarding followers_seed_failed org_id=%s user_id=%s reason=decrypt_error",
+            org.id,
+            user.id,
+        )
+        return
+    try:
+        profile = await ig.fetch_profile(token)
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "onboarding followers_seed_failed org_id=%s user_id=%s reason=fetch_error",
+            org.id,
+            user.id,
+        )
+        return
+    if profile.followers_count is None:
+        logger.warning(
+            "onboarding followers_seed_failed org_id=%s user_id=%s reason=omitted",
+            org.id,
+            user.id,
+        )
+        return
+    org.follower_count = profile.followers_count
+
+
 async def submit_org_onboarding(
     db: AsyncSession,
     user: User,
     payload: OrgOnboardingRequest,
+    ig: InstagramClient,
 ) -> dict[str, Any]:
     """Phase 2: create org profile, advance to email verification.
 
@@ -162,9 +229,9 @@ async def submit_org_onboarding(
         org_name=payload.org_name,
         university=payload.university,
         tiktok_handle=payload.tiktok_handle,
-        follower_count=payload.follower_count,
+        follower_count=None,
         member_count=payload.member_count,
-        category=payload.category.value if payload.category is not None else None,
+        category=payload.category.value,
         city=payload.city,
         state=payload.state,
         contact_name=payload.contact_name,
@@ -195,6 +262,9 @@ async def submit_org_onboarding(
             "Profile has already been submitted.",
             status_code=400,
         ) from exc
+
+    await _seed_follower_count_from_graph(org, user, ig)
+    await db.flush()
 
     email_sent = await _mint_and_send_verification(
         db, user, payload.edu_email, org_name=payload.org_name

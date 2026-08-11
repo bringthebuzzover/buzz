@@ -2,8 +2,8 @@
  * `/org/profile` — view/edit org profile after onboarding (PRODUCT.md §3.1).
  *
  * Distinct from `/onboarding/profile`, which creates the org row. Edu email and
- * Instagram handle are login identity (read-only); editable fields PATCH via
- * `/api/orgs/me`.
+ * Instagram handle are login identity (read-only); follower count is Graph-owned
+ * (read-only). Editable fields PATCH via `/api/orgs/me`.
  */
 import { useEffect, useState } from "react";
 import { ApiError } from "../../api/client";
@@ -27,7 +27,6 @@ export default function OrgPortalProfilePage() {
   const [orgName, setOrgName] = useState("");
   const [university, setUniversity] = useState("");
   const [tiktokHandle, setTiktokHandle] = useState("");
-  const [followerCount, setFollowerCount] = useState("");
   const [memberCount, setMemberCount] = useState("");
   const [category, setCategory] = useState<OrgCategory | "">("");
   const [city, setCity] = useState("");
@@ -42,9 +41,6 @@ export default function OrgPortalProfilePage() {
     setOrgName(data.orgName);
     setUniversity(data.university);
     setTiktokHandle(data.tiktokHandle ?? "");
-    setFollowerCount(
-      data.followerCount != null ? String(data.followerCount) : "",
-    );
     setMemberCount(data.memberCount != null ? String(data.memberCount) : "");
     setCategory((data.category as OrgCategory | null) ?? "");
     setCity(data.city ?? "");
@@ -59,6 +55,28 @@ export default function OrgPortalProfilePage() {
     setError(null);
     setSaved(false);
 
+    if (!category) {
+      setError("Select an organization type.");
+      return;
+    }
+    const nextMembers = Number(memberCount);
+    if (
+      memberCount.trim() === "" ||
+      Number.isNaN(nextMembers) ||
+      nextMembers < 0
+    ) {
+      setError("Enter a valid member count.");
+      return;
+    }
+    const nextCity = city.trim();
+    const nextState = state.trim();
+    const nextContact = contactName.trim();
+    const nextAddress = deliveryAddress.trim();
+    if (!nextCity || !nextState || !nextContact || !nextAddress) {
+      setError("City, state, contact name, and shipping address are required.");
+      return;
+    }
+
     const payload: OrgProfileUpdate = {};
     const nextName = orgName.trim();
     const nextUniversity = university.trim();
@@ -70,34 +88,19 @@ export default function OrgPortalProfilePage() {
       payload.tiktokHandle = nextTiktok;
     }
 
-    const nextFollowers =
-      followerCount.trim() === "" ? null : Number(followerCount);
-    if (nextFollowers !== (data.followerCount ?? null)) {
-      payload.followerCount = nextFollowers;
-    }
-
-    const nextMembers = memberCount.trim() === "" ? null : Number(memberCount);
     if (nextMembers !== (data.memberCount ?? null)) {
       payload.memberCount = nextMembers;
     }
 
-    const nextCategory = category || null;
-    if (nextCategory !== (data.category ?? null)) {
-      payload.category = nextCategory;
+    if (category !== (data.category ?? null)) {
+      payload.category = category;
     }
 
-    const nextCity = city.trim() || null;
     if (nextCity !== (data.city ?? null)) payload.city = nextCity;
-
-    const nextState = state.trim() || null;
     if (nextState !== (data.state ?? null)) payload.state = nextState;
-
-    const nextContact = contactName.trim() || null;
     if (nextContact !== (data.contactName ?? null)) {
       payload.contactName = nextContact;
     }
-
-    const nextAddress = deliveryAddress.trim() || null;
     if (nextAddress !== (data.deliveryAddress ?? null)) {
       payload.deliveryAddress = nextAddress;
     }
@@ -138,6 +141,8 @@ export default function OrgPortalProfilePage() {
   const igHandle = data.instagramHandle
     ? `@${data.instagramHandle.replace(/^@/, "")}`
     : "—";
+  const followersDisplay =
+    data.followerCount != null ? String(data.followerCount) : "—";
 
   return (
     <div className="mx-auto max-w-md px-8 py-16">
@@ -198,22 +203,17 @@ export default function OrgPortalProfilePage() {
 
         <div>
           <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Follower count{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
+            Instagram followers{" "}
+            <span className="font-normal text-buzz-inkMuted">(from Instagram)</span>
           </label>
-          <input
-            type="number"
-            min="0"
-            className={inputClass}
-            value={followerCount}
-            onChange={(e) => setFollowerCount(e.target.value)}
-          />
+          <p className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3 text-sm font-medium text-buzz-ink">
+            {followersDisplay}
+          </p>
         </div>
 
         <div>
           <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Number of members{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
+            Number of members
           </label>
           <input
             type="number"
@@ -221,18 +221,19 @@ export default function OrgPortalProfilePage() {
             className={inputClass}
             value={memberCount}
             onChange={(e) => setMemberCount(e.target.value)}
+            required
           />
         </div>
 
         <div>
           <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Organization type{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
+            Organization type
           </label>
           <select
             className={inputClass}
             value={category}
             onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
+            required
           >
             <option value="">Select a type…</option>
             {ORG_CATEGORY_OPTIONS.map((opt) => (
@@ -246,44 +247,43 @@ export default function OrgPortalProfilePage() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-              City{" "}
-              <span className="font-normal text-buzz-inkMuted">(optional)</span>
+              City
             </label>
             <input
               className={inputClass}
               value={city}
               onChange={(e) => setCity(e.target.value)}
+              required
             />
           </div>
           <div>
             <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-              State{" "}
-              <span className="font-normal text-buzz-inkMuted">(optional)</span>
+              State
             </label>
             <input
               className={inputClass}
               value={state}
               onChange={(e) => setState(e.target.value)}
+              required
             />
           </div>
         </div>
 
         <div>
           <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Contact name{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
+            Contact name
           </label>
           <input
             className={inputClass}
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
+            required
           />
         </div>
 
         <div>
           <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Shipping address{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
+            Shipping address
           </label>
           <textarea
             className={inputClass}
@@ -291,6 +291,7 @@ export default function OrgPortalProfilePage() {
             value={deliveryAddress}
             onChange={(e) => setDeliveryAddress(e.target.value)}
             placeholder="Where should brands ship products?"
+            required
           />
         </div>
 
