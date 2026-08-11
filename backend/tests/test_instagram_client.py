@@ -79,6 +79,46 @@ async def test_fetch_media_parses_fields() -> None:
     assert f.caption == "hello @nike"
 
 
+async def test_fetch_media_omitted_engagement_is_none_not_zero() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "id": "m1",
+                "caption": "no counts",
+                "media_type": "IMAGE",
+                "media_product_type": "FEED",
+                "permalink": "https://instagram.com/p/m1",
+                "timestamp": "2030-01-01T00:00:00+0000",
+            },
+        )
+
+    f = await _client(handler).fetch_media("tok", "m1")
+    assert f.like_count is None
+    assert f.comments_count is None
+
+
+async def test_fetch_media_present_zero_engagement() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "id": "m1",
+                "like_count": 0,
+                "comments_count": 0,
+                "caption": "zeros",
+                "media_type": "IMAGE",
+                "media_product_type": "FEED",
+                "permalink": "https://instagram.com/p/m1",
+                "timestamp": "2030-01-01T00:00:00+0000",
+            },
+        )
+
+    f = await _client(handler).fetch_media("tok", "m1")
+    assert f.like_count == 0
+    assert f.comments_count == 0
+
+
 async def test_fetch_media_insights_feed_includes_profile_metrics() -> None:
     captured: dict[str, str] = {}
 

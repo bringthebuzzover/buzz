@@ -612,7 +612,7 @@ async def test_metric_sync_skips_orgs_without_live_campaign(db_session) -> None:
 # ===========================================================================
 
 
-def _raw_post(org_id, *, caption, posted_at, product_type="FEED", likes=10, ext=None):
+def _raw_post(org_id, *, caption, posted_at, product_type="FEED", likes=10, comments=0, ext=None):
     """Build (not persist) a SocialPost with an explicit posted_at / product type."""
     return SocialPost(
         id=uuid.uuid4(),
@@ -625,7 +625,28 @@ def _raw_post(org_id, *, caption, posted_at, product_type="FEED", likes=10, ext=
         media_product_type=product_type,
         posted_at=posted_at,
         likes=likes,
-        comments=0,
+        comments=comments,
+    )
+
+
+def _media_fields(
+    media_id: str,
+    *,
+    like_count: int | None = 10,
+    comments_count: int | None = 2,
+    caption: str = "updated",
+) -> MediaFields:
+    return MediaFields(
+        id=media_id,
+        caption=caption,
+        media_type="IMAGE",
+        media_product_type="FEED",
+        permalink=f"https://instagram.com/p/{media_id}",
+        thumbnail_url=None,
+        media_url=None,
+        timestamp="2030-01-01T00:00:00+0000",
+        like_count=like_count,
+        comments_count=comments_count,
     )
 
 
@@ -1026,6 +1047,80 @@ async def test_metric_sync_counts_per_post_failure(db_session) -> None:
     assert result["failures"] >= 1
     await db_session.refresh(post)
     assert post.metrics_updated_at == pre  # not updated on failure
+    assert result["likes_omitted"] == 0
+    assert result["comments_omitted"] == 0
+
+
+async def test_metric_sync_carries_likes_when_graph_omits_like_count(db_session) -> None:
+    _, org = await _eligible_sync_org(db_session, suffix="omitlikes")
+    post = _raw_post(
+        org.id,
+        caption="old",
+        posted_at=_now() - timedelta(hours=2),
+        likes=120,
+        comments=4,
+        ext="omitlikes1",
+    )
+    db_session.add(post)
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.media_fields = {
+        "omitlikes1": _media_fields("omitlikes1", like_count=None, comments_count=9)
+    }
+    result = await sync_metrics(db_session, fake)
+    await db_session.refresh(post)
+    assert post.likes == 120
+    assert post.comments == 9
+    assert result["likes_omitted"] == 1
+    assert result["comments_omitted"] == 0
+
+
+async def test_metric_sync_carries_comments_when_graph_omits_comments_count(
+    db_session,
+) -> None:
+    _, org = await _eligible_sync_org(db_session, suffix="omitcomments")
+    post = _raw_post(
+        org.id,
+        caption="old",
+        posted_at=_now() - timedelta(hours=2),
+        likes=11,
+        comments=55,
+        ext="omitcomments1",
+    )
+    db_session.add(post)
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.media_fields = {
+        "omitcomments1": _media_fields("omitcomments1", like_count=8, comments_count=None)
+    }
+    result = await sync_metrics(db_session, fake)
+    await db_session.refresh(post)
+    assert post.likes == 8
+    assert post.comments == 55
+    assert result["likes_omitted"] == 0
+    assert result["comments_omitted"] == 1
+
+
+async def test_metric_sync_applies_present_zero_engagement(db_session) -> None:
+    _, org = await _eligible_sync_org(db_session, suffix="zeroeng")
+    post = _raw_post(
+        org.id,
+        caption="old",
+        posted_at=_now() - timedelta(hours=2),
+        likes=120,
+        comments=4,
+        ext="zeroeng1",
+    )
+    db_session.add(post)
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.media_fields = {"zeroeng1": _media_fields("zeroeng1", like_count=0, comments_count=0)}
+    result = await sync_metrics(db_session, fake)
+    await db_session.refresh(post)
+    assert post.likes == 0
+    assert post.comments == 0
+    assert result["likes_omitted"] == 0
+    assert result["comments_omitted"] == 0
 
 
 async def test_metric_sync_discovery_skips_old_and_existing(db_session) -> None:

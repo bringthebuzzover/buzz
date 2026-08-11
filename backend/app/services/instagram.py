@@ -86,7 +86,11 @@ class MediaRef:
 
 @dataclass(frozen=True)
 class MediaFields:
-    """Basic fields for one media item (§10.1)."""
+    """Basic fields for one media item (§10.1).
+
+    ``like_count`` / ``comments_count`` are ``None`` when Graph omits the key
+    (distinct from a present ``0``) so metric_sync can carry prior DB values.
+    """
 
     id: str
     caption: str
@@ -96,8 +100,17 @@ class MediaFields:
     thumbnail_url: str | None
     media_url: str | None
     timestamp: str
-    like_count: int
-    comments_count: int
+    like_count: int | None
+    comments_count: int | None
+
+
+def _optional_int_field(body: dict[str, object], key: str) -> int | None:
+    """Parse an int Graph field; ``None`` only when the key is absent."""
+
+    if key not in body:
+        return None
+    # Same cast style as ``_parse_insight_value`` (non-fractional).
+    return int(float(body[key]))  # type: ignore[arg-type]
 
 
 @runtime_checkable
@@ -374,8 +387,8 @@ class HttpInstagramClient:
             thumbnail_url=b.get("thumbnail_url"),
             media_url=b.get("media_url"),
             timestamp=str(b.get("timestamp", "")),
-            like_count=int(b.get("like_count", 0)),
-            comments_count=int(b.get("comments_count", 0)),
+            like_count=_optional_int_field(b, "like_count"),
+            comments_count=_optional_int_field(b, "comments_count"),
         )
 
     async def fetch_media_insights(
