@@ -3,7 +3,7 @@ id: deploy.gh-pages-brand-domain-retire
 title: GitHub Pages still holds brand custom domain; Lawrence cannot clear it
 kind: ops
 severity: P2
-status: ops
+status: fixed
 surface: deploy
 evidence:
   - path: gaps/archive/deploy.apex-hostinger-forward-blocked.md
@@ -28,38 +28,34 @@ fix_when: |
 
 Plan A Phase 4: remove brand custom domain from GitHub Pages after www moved
 to Railway. Repo-side retire is done (`CNAME` file gone, `gh-pages` npm deploy
-removed). **Settings → Pages** still has `cname: www.bringthebuzzover.com`.
+removed). **Settings → Pages** still had `cname: www.bringthebuzzover.com`.
 
 **2026-08-10:** Apex → www is now Cloudflare (see archived
 `deploy.apex-hostinger-forward-blocked`). Clearing Pages is **hygiene only** —
 safe for apex; no longer blocks brand DNS.
 
-## Current blocker
+## Resolution (2026-08-11)
 
-- Actor `lawrencegranda` has **push**, not **admin**, on `ShannonLin284/buzz`.
-- Pages mutate API returns **404**; domain unchanged.
-- Ask sent to **Shannon** (repo owner) to clear custom domain in UI.
-- **Waiting on Shannon.**
+Shannon cleared the custom domain on `ShannonLin284/buzz` Settings → Pages
+(UI; Lawrence lacks admin). Verified:
 
-## Coupling / order
+- `gh api repos/ShannonLin284/buzz/pages` → `cname: null` (site still at
+  `https://shannonlin284.github.io/buzz/` from `gh-pages` branch — optional)
+- `bringthebuzzover/buzz` → no Pages site (404)
+- `https://www.bringthebuzzover.com` → `server: railway-hikari`, HTTP 200
+- Repo: no `frontend/public/CNAME`, no `gh-pages` npm deploy
 
-Cloudflare apex redirect is **already live**. Pages Remove can proceed whenever
-Shannon clears the custom domain; apex stays healthy.
+## Historical blocker
 
-## Shannon UI checklist
+- Actor `lawrencegranda` had **push**, not **admin**, on `ShannonLin284/buzz`.
+- Pages mutate API returned **404**; domain unchanged until Shannon UI clear.
 
-1. https://github.com/ShannonLin284/buzz → **Settings → Pages**
-2. Clear / remove custom domain `www.bringthebuzzover.com` and save
-3. Optional: unpublish Pages / stop `gh-pages` branch deploy
-4. Do **not** change Cloudflare DNS or Railway
-
-## Verify probes
+## Verify probes (pass state)
 
 ```bash
-# Pass when cname null / Pages gone
-gh api repos/ShannonLin284/buzz/pages --jq '{status,cname,domains:.https_certificate.domains}'
+gh api repos/ShannonLin284/buzz/pages --jq '{status,cname}'
+# expect cname null
 
-# www must stay Railway
-curl -4 -sI --resolve www.bringthebuzzover.com:443:$(dig @1.1.1.1 +short A p29bzdj1.up.railway.app | head -1) \
-  https://www.bringthebuzzover.com | rg -i 'server:|HTTP/'
+curl -4 -sI https://www.bringthebuzzover.com | rg -i 'server:|HTTP/'
+# expect railway-hikari + 200
 ```

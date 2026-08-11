@@ -3,7 +3,7 @@ id: ops.observability-thin
 title: "Observability leftovers: no readyz/livez/metrics; (STORY counters → posts.stories-unsupported)"
 kind: ops
 severity: P3
-status: open
+status: deferred
 surface: admin
 evidence:
   - path: backend/app/routes

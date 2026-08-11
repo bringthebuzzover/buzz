@@ -7,8 +7,8 @@ severity: P1
 status: fixed
 surface: deploy
 evidence:
-  - path: gaps/deploy.gh-pages-brand-domain-retire.md
-    note: Pages clear still needs Shannon admin on legacy repo
+  - path: gaps/archive/deploy.gh-pages-brand-domain-retire.md
+    note: Pages custom domain cleared by Shannon 2026-08-11
   - path: DEPLOYMENT.md
     note: Docs target bringthebuzzover/buzz @ main; Railway Source must match
 repro: |
@@ -71,7 +71,7 @@ We re-run `get-service-config` and archive this gap when Source matches.
 
 ## Legacy
 
-`ShannonLin284/buzz` remains public/abandoned (no admin to archive). Stop pushing there. Pages custom domain still on Shannon — sibling [`deploy.gh-pages-brand-domain-retire`](deploy.gh-pages-brand-domain-retire.md).
+`ShannonLin284/buzz` remains public/abandoned (no admin to archive). Stop pushing there. Pages custom domain later cleared — sibling [`deploy.gh-pages-brand-domain-retire`](deploy.gh-pages-brand-domain-retire.md).
 
 ## Closed
 
