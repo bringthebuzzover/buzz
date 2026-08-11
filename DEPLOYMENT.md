@@ -78,7 +78,7 @@ Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway
 
 | Service                 | What                                                                                      | Notes                                                                                                                                 |
 | ----------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Frontend**            | React SPA under `/frontend` (reads `backend/brand_emails.json` at build)                    | Root Directory `/` (full repo); Watch Paths `/frontend/**` + `/backend/brand_emails.json`; Build `cd frontend && npm ci && npm run build:prod`; Start `cd frontend && npm run start:prod` |
+| **Frontend**            | React SPA under `/frontend` (reads `backend/brand_emails.json` at build)                    | Root Directory `/` (repo root `package.json` so Railpack’s Node provider installs one Node for build+runtime); Watch Paths `/frontend/**` + `/backend/brand_emails.json`; Build `npm run build`; Start `npm start` (scripts delegate to `frontend/`) |
 | **api**                 | FastAPI + Uvicorn (`poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT`)         | Root Directory `/backend`; Watch Paths `/backend/**`; Pre-deploy `poetry run alembic upgrade head`; **1 replica**; Health `/api/health` (DB ping — 503 if Postgres is down) |
 | **PostgreSQL**          | Railway-managed                                                                           | Injects `DATABASE_URL` (`postgres://…` / `postgresql://…`); backend rewrites to `postgresql+asyncpg://` at startup                    |
 | **Cron ×6** | One service per job: `.venv/bin/python scripts/run_job.py <name>` | **Live:** `cron-drop-autoclose`, `cron-metric-sync`, `cron-token-cleanup`, `cron-autolink-scan`, `cron-token-refresh`, `cron-notify-reminders`. Root `/backend`; no public domain; share API env |
@@ -107,14 +107,15 @@ Meta URL paste after brand cutover: `gaps/deploy.meta-brand-url-cutover.md`.
 
 ### Frontend build / start
 
-CRA inlines `REACT_APP_API_URL` at **build** time. Railway Build Command should be `npm run build:prod` (runs `frontend/scripts/check-deploy-env.js`, then `craco build`) with the brand API origin:
+CRA inlines `REACT_APP_API_URL` at **build** time. Frontend Root Directory is `/` so the build can read `backend/brand_emails.json`. Repo-root [`package.json`](package.json) makes Railpack detect the Node provider (single mise Node in build and runtime — do **not** set `RAILPACK_PACKAGES` / `RAILPACK_DEPLOY_APT_PACKAGES` for Node). Service commands:
 
 ```text
+Build: npm run build    # → npm ci + build:prod in frontend/
+Start: npm start        # → serve -s build -l $PORT in frontend/
 REACT_APP_API_URL=https://api.bringthebuzzover.com
 ```
 
-(Secondary / historical Railway API host: `https://api-production-fbbc1.up.railway.app`.)
-Start Command: `npm run start:prod` → `serve -s build -l $PORT` (History API fallback for deep links / OAuth callback; `serve` binds `0.0.0.0` by default). Plain `npm run build` stays for CI (no API URL required).
+`frontend` `build:prod` runs `scripts/check-deploy-env.js`, then `craco build`. Plain `npm run build` inside `frontend/` stays for CI (no API URL required).
 
 ### Cron schedule (UTC)
 

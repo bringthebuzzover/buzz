@@ -1,0 +1,11 @@
+{
+  "name": "buzz-monorepo",
+  "private": true,
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "npm ci --prefix frontend && npm run build:prod --prefix frontend",
+    "start": "npm run start:prod --prefix frontend"
+  }
+}
