@@ -213,6 +213,16 @@ Publish checklist: <https://developers.facebook.com/docs/development/release/>
 
 ---
 
+## Agent verification (Meta Developer Tools MCP)
+
+After the Buzz Meta app is granted to **Meta Developer Tools** MCP (user Cursor
+config — not committed), agents can **read** app settings, App Review /
+compliance status, and API usage and diff them against this file. See
+[`AGENTS.md`](AGENTS.md) → MCP. Humans still paste Hosts (§C), run Business
+Verification, and submit App Review; MCP does not replace the dashboard for those.
+
+---
+
 ## Buzz platform (engineering)
 
 Already in code: OAuth handshake, signed state cookie, encrypted tokens, Business/Creator gate, token refresh job, deauthorize webhook, data-deletion page, fail-fast missing IG config off-dev.
