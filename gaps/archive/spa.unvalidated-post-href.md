@@ -4,7 +4,7 @@ title: Brand post links bind href={p.url} with no http(s) scheme allowlist
 kind: authz
 severity: P2
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: spa
 evidence:
   - path: frontend/src/components/brand/ApiDropOrgTable.tsx

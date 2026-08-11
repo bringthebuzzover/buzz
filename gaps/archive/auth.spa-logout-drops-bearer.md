@@ -4,7 +4,7 @@ title: SPA logout clears Bearer before /logout so cookie-less revoke never runs
 kind: authz
 severity: P1
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: auth
 evidence:
   - path: frontend/src/contexts/AuthContext.tsx

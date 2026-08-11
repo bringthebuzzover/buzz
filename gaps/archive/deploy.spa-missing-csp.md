@@ -4,7 +4,7 @@ title: www SPA served with no Content-Security-Policy (or page hardening headers
 kind: ops
 severity: P1
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: deploy
 evidence:
   - path: frontend/package.json

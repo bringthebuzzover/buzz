@@ -4,7 +4,7 @@ title: Fail-fast skipped when ENVIRONMENT is development (default); not allowlis
 kind: ops
 severity: P2
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: deploy
 evidence:
   - path: backend/app/config.py

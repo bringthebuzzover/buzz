@@ -4,7 +4,7 @@ title: /api/docs and /api/openapi.json public in production
 kind: ops
 severity: P2
 status: fixed
-closed_in: fc254e4
+closed_in: a32463a
 surface: openapi
 evidence:
   - path: backend/app/main.py
