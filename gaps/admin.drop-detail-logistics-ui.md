@@ -79,11 +79,17 @@ the ship-to address the API already returns.
 - Timeline / attribution tabs, capacity math, stage machine
 - Marketing / landing-style visual redesign
 
+### Confirmed 2026-08-11 (handoff)
+
+- Keep admin MVP logistics entry (no ownership redesign).
+- No EasyPost / multi-package TN in this change.
+- `brand.delivery-address-all-applicants` is **done** — FE Ship-to gate
+  (applied+accepted) is enough; do not block on brand API work.
+
 ### stop_if
 
-- PRODUCT asks to move logistics ownership away from admin MVP entry
-- EasyPost or multi-package TN model requested in this change
-- Admin applicants omit `deliveryAddress` in a deployed contract (schema currently includes it)
+- Admin applicants omit `deliveryAddress` in a deployed contract (schema
+  currently includes it) — verify then ask.
 
 ## File touch list (FE-only)
 

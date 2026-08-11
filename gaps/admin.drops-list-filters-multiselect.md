@@ -94,4 +94,7 @@ These are **not** org/brand category filters — stage + attention only. PRODUCT
 
 **Non-goals:** org/brand category filters; pagination; migrating other admin lists off `FilterChips`; client-only filter path; PRODUCT edits; CSV encoding.
 
-**stop_if:** PRODUCT/ops asks for XOR dimensions or AND-within-attention; or list volume forces pagination design before multi-filter ships — ask.
+**Confirmed 2026-08-11 (handoff):** keep OR-within / AND-across dimensions.
+Do **not** implement XOR dimensions or AND-within-attention.
+
+**stop_if:** list volume forces pagination design before multi-filter ships — ask.

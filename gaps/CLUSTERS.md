@@ -176,9 +176,10 @@ Priority rationale (2026-08-11 delivery order — code first, then ops parallel)
 1. `org-verify-email-confirm` — **done** (confirm before .edu verify POST)
 2. `org-onboarding-required-fields` — **done** (required profile fields + Graph followers)
 3. `brand-delivery-address` — **done** (null denied applicants' deliveryAddress)
-4. `org-edu-email-change` — active org .edu rotate (PRODUCT ask on interim)
+4. `org-edu-email-change` — pending-swap `.edu` rotate (decisions locked 2026-08-11)
 5. `admin-drops-ops-ui` — drops list multiselect filters + drop-detail logistics polish
 Ops (not auto-pick): `meta-business-verification`, `ops.brand-mailbox` (follow-ups).
+Parallel handoff OK: edu + list-filters + logistics on separate branches; merge on main later.
 
 ---
 
@@ -627,12 +628,14 @@ status: pending
 gaps:
   - org.edu-email-change-after-verify
 approach: |
-  Locked in gap file. Post-verify / active orgs can rotate `.edu` to a new
-  unique campus address; new address must verify before becoming identity.
-  Prefer pending-swap (keep old edu until verify) unless PRODUCT asks for a
-  hard re-verify gate. Update PRODUCT §3.1 (today forbids PATCH edu).
+  Locked in gap file (PRODUCT asks resolved 2026-08-11).
+  Pending-swap: users.pending_edu_email; keep live edu_email until verify;
+  then swap + refresh email_verified_at; status unchanged.
+  Eligible: active and pending_approval. v1: Resend + Cancel.
+  Dedicated rotate/cancel APIs (not PATCH eduEmail). Update PRODUCT §3.1.
+  Onboarding verify-email/change typo-fix unchanged.
 stop_if:
-  - PRODUCT disagrees on interim access while new edu is unverified — ask.
+  - (cleared — interim pending-swap, eligibility, resend/cancel locked)
 
 ---
 
@@ -643,7 +646,8 @@ gaps:
   - admin.drops-list-filters-multiselect
   - admin.drop-detail-logistics-ui
 approach: |
-  Admin drops ops UX (list + detail). Two gaps, same cluster.
+  Admin drops ops UX (list + detail). Two gaps, same cluster; may ship on
+  parallel branches and merge later (CLUSTERS conflict OK).
 
   1) List filters (`admin.drops-list-filters-multiselect`):
      Replace both FilterChips rows on AdminDropsPage with dropdown
@@ -657,6 +661,7 @@ approach: |
      attention across dimensions. Single-value overview deep links keep
      working. Regen openapi + FE schema. Extend test_admin_panel filter
      tests. No client-only filter path; no CSV encoding; no PRODUCT edits.
+     Confirmed 2026-08-11: NOT XOR dimensions; NOT AND-within-attention.
 
   2) Detail logistics (`admin.drop-detail-logistics-ui`):
      FE-only polish on AdminDropDetailPage DropConfigEditors + Applicants.
@@ -664,14 +669,14 @@ approach: |
      uppercase faint field labels; copy "Clear to spot-only" (drop "send
      null"); datetime-local local wall-clock seed helper (not toISOString
      slice); remove redundant Applicants Tracking column; add Ship to for
-     applied+accepted only (brand wording). No admin API change; do not
-     block on brand.delivery-address-all-applicants. No EasyPost / PRODUCT
-     logistics ownership change.
+     applied+accepted only (brand wording). No admin API change.
+     brand.delivery-address-all-applicants is done — FE gate only.
+     Confirmed 2026-08-11: no EasyPost / PRODUCT logistics ownership change.
 
 stop_if:
-  - Ops/PRODUCT wants XOR filter dimensions or AND-within-attention — ask.
-  - PRODUCT wants logistics ownership / EasyPost in this cluster — ask.
-  - Admin applicant contract missing deliveryAddress in practice — verify then ask.
+  - (cleared for handoff — filter semantics + logistics non-goals confirmed)
+  - List volume forces pagination design before multi-filter ships — ask.
+  - Admin applicants omit deliveryAddress in deployed contract — verify then ask.
 
 ---
 
