@@ -3,7 +3,8 @@ id: ops.resend-domain-unverified
 title: Resend sender domain not verified — transactional mail fails off-dev
 kind: ops
 severity: P1
-status: ops
+status: fixed
+closed_in: c23347d
 surface: deploy
 evidence:
   - path: backend/brand_emails.json
@@ -15,12 +16,9 @@ evidence:
   - path: DEPLOYMENT.md
     note: Phase 1 says DKIM/SPF only (omits send. MX); Resend § says “then set key” but key already on Railway
 repro: |
-  dig @1.1.1.1 NS bringthebuzzover.com → felipe/melody (Cloudflare SOT)
-  dig @1.1.1.1 TXT resend._domainkey.bringthebuzzover.com → empty
-  dig @1.1.1.1 TXT send.bringthebuzzover.com → empty
-  dig @1.1.1.1 MX send.bringthebuzzover.com → empty
-  Cloudflare zone 9103e4c774707bf5b2f17fbb9d9144cf: no Resend/mail-related DNS (verified 2026-08-11)
-  Railway api + cron-notify-reminders have RESEND_API_KEY var names present (values not via MCP OAuth)
+  Closed 2026-08-11: Resend domain Verified; Cloudflare DNS-only DKIM + send. SPF/MX;
+  Railway RESEND_API_KEY rotated (send-scoped); brand invite delivered to inbox.
+  dig @melody.ns.cloudflare.com TXT/MX send. + DKIM non-empty; apex MX still empty.
 fix_when: |
   Resend UI shows bringthebuzzover.com Verified (DKIM TXT + SPF on send. + MX on send.
   published in Cloudflare DNS-only / grey-cloud).
@@ -36,7 +34,7 @@ fix_when: |
 # Resend sender domain unverified
 
 Split from [`ops.brand-domain-email-unset`](archive/ops.brand-domain-email-unset.md)
-(2026-08-11). Sibling: [`ops.brand-mailbox`](ops.brand-mailbox.md) (human send+receive).
+(2026-08-11). Sibling: [`ops.brand-mailbox`](../ops.brand-mailbox.md) (human send+receive).
 
 Parked under `follow-ups` in [`CLUSTERS.md`](CLUSTERS.md) — do not auto-execute;
 un-park only when named explicitly.
@@ -73,7 +71,7 @@ Dev (`ENVIRONMENT=development`) never calls Resend — logs links, returns `True
 
 ## Independent of human mail
 
-| | This gap | [`ops.brand-mailbox`](ops.brand-mailbox.md) |
+| | This gap | [`ops.brand-mailbox`](../ops.brand-mailbox.md) |
 | --- | --- | --- |
 | DNS | `resend._domainkey` + `send.` SPF/MX | Apex MX (+ provider records) |
 | Blocks the other? | **No** (different names) | **No** |
@@ -95,8 +93,9 @@ mailbox cutover, not domain verify.
 | Transactional send | Resend | Buzz ops — **domain not verified** |
 | App | Railway (`www` / `api`) | Lawrence |
 
-No Resend MCP in this project — Domains UI / dashboard only for DNS values.
-Mutate Cloudflare / Railway only with explicit OK ([`AGENTS.md`](../AGENTS.md)).
+Resend Domains via Cursor MCP `plugin-resend-resend` (user/plugin; see
+[`AGENTS.md`](../AGENTS.md) MCP table). Mutate Cloudflare / Resend / Railway
+only with explicit OK.
 
 ## Required DNS (exact values from Resend UI)
 
@@ -112,7 +111,7 @@ trailing FQDN / auto-append on MX; region mismatch on `feedback-smtp.<region>…
 adding records at Hostinger (NS already points to CF — wrong place).
 
 **SPF coexistence:** Resend SPF stays on `send.`. Future mailbox SPF lives on
-**apex** ([`ops.brand-mailbox`](ops.brand-mailbox.md)). Do not copy Resend
+**apex** ([`ops.brand-mailbox`](../ops.brand-mailbox.md)). Do not copy Resend
 `include:` onto apex “just in case.”
 
 ## Steps
@@ -143,7 +142,7 @@ resend. **Avoid** Notify Me cron (`*/5`) for first proof — retries leave
 | Notify cron | Leave `sent_at` NULL → retry |
 | Password reset | Always `{ok: true}`; burn token + warn |
 
-Ledger / remaining honesty polish → [`ops.email-ledger`](ops.email-ledger.md).
+Ledger / remaining honesty polish → [`ops.email-ledger`](../ops.email-ledger.md).
 
 ## How to test
 
