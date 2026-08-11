@@ -4,6 +4,7 @@ title: Instagram Stories unsupported — skip discover/link; fix admin counter l
 kind: silent_loss
 severity: P2
 status: fixed
+closed_in: e5afd5e
 surface: jobs
 evidence:
   - path: backend/app/jobs/metric_sync.py
