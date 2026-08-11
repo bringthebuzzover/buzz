@@ -43,6 +43,7 @@ from app.models.enums import (
     SocialMediaType,
     SuggestionMatchReason,
 )
+from app.security.one_shot_tokens import hash_token
 
 
 def _now() -> datetime:
@@ -334,7 +335,7 @@ async def test_email_verification_token_roundtrip(db_session: AsyncSession) -> N
     user = await _make_org_user(db_session, ig_id="ig_email_token")
     token = EmailVerificationToken(
         user_id=user.id,
-        token=uuid.uuid4().hex,
+        token_hash=hash_token(uuid.uuid4().hex),
         email=user.edu_email or "x@uni.edu",
         expires_at=_now() + timedelta(hours=1),
     )

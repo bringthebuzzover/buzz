@@ -3,7 +3,8 @@ id: spa.unvalidated-post-href
 title: Brand post links bind href={p.url} with no http(s) scheme allowlist
 kind: authz
 severity: P2
-status: open
+status: fixed
+closed_in: fc254e4
 surface: spa
 evidence:
   - path: frontend/src/components/brand/ApiDropOrgTable.tsx

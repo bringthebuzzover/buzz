@@ -3,7 +3,8 @@ id: deploy.openapi-ungated
 title: /api/docs and /api/openapi.json public in production
 kind: ops
 severity: P2
-status: open
+status: fixed
+closed_in: fc254e4
 surface: openapi
 evidence:
   - path: backend/app/main.py

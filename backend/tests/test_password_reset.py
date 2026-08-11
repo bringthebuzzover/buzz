@@ -13,8 +13,8 @@ from app.models.enums import BrandStatus, OrgUserStatus, PortalRole
 from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
 from app.security import jwt
+from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password
-from app.services.password_reset import _hash_token
 from tests.conftest import make_brand, make_user, persist
 
 REFRESH = settings.REFRESH_COOKIE_NAME
@@ -86,7 +86,7 @@ async def test_brand_reset_happy_path(app_client: AsyncClient, db_session) -> No
     # Recover raw token by checking against a freshly minted one is hard; mint
     # a known token for the reset step instead.
     raw = "brand-reset-token-raw-value"
-    row.token_hash = _hash_token(raw)
+    row.token_hash = hash_token(raw)
     row.expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
     row.used_at = None
     await db_session.flush()
@@ -113,7 +113,7 @@ async def test_brand_reset_expired_token(app_client: AsyncClient, db_session) ->
         PasswordResetToken(
             id=uuid.uuid4(),
             user_id=user.id,
-            token_hash=_hash_token(raw),
+            token_hash=hash_token(raw),
             email="expired@brand.test",
             expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
         )
@@ -134,7 +134,7 @@ async def test_brand_reset_used_token(app_client: AsyncClient, db_session) -> No
         PasswordResetToken(
             id=uuid.uuid4(),
             user_id=user.id,
-            token_hash=_hash_token(raw),
+            token_hash=hash_token(raw),
             email="used@brand.test",
             expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
             used_at=datetime.now(timezone.utc),
@@ -157,7 +157,7 @@ async def test_post_reset_old_refresh_fails(app_client: AsyncClient, db_session)
         PasswordResetToken(
             id=uuid.uuid4(),
             user_id=user.id,
-            token_hash=_hash_token(raw),
+            token_hash=hash_token(raw),
             email=brand.company_email,
             expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
         )
@@ -180,7 +180,7 @@ async def test_admin_reset_happy_path(app_client: AsyncClient, db_session) -> No
         PasswordResetToken(
             id=uuid.uuid4(),
             user_id=user.id,
-            token_hash=_hash_token(raw),
+            token_hash=hash_token(raw),
             email=user.edu_email or "",
             expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
         )

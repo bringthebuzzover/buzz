@@ -112,6 +112,7 @@ async def mint_impersonation_token(
         target.status,
         token_version=target.token_version or 0,
         impersonated_by=admin.id,
+        impersonator_token_version=admin.token_version or 0,
         readonly=settings.IMPERSONATION_READONLY,
     )
 

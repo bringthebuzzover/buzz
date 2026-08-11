@@ -176,7 +176,11 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
         try:
             media = await ig.fetch_user_media(token)
         except Exception:  # noqa: BLE001
-            logger.warning("media list failed for org %s", org.id, exc_info=True)
+            logger.warning(
+                "media list failed for org %s",
+                org.id,
+                exc_info=False,
+            )
             failed += 1
             media = []
 

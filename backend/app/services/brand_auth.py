@@ -22,6 +22,7 @@ from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import BrandStatus, OrgUserStatus, PortalRole
 from app.models.user import User
 from app.schemas.auth import UserResponse
+from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password, verify_password
 
 # A fixed valid bcrypt hash used only to burn the same CPU as a real verify
@@ -112,18 +113,18 @@ async def create_brand_invite(db: AsyncSession, brand: Brand, user: User) -> str
         .values(used_at=now)
     )
 
-    token = secrets.token_urlsafe(48)
+    raw = secrets.token_urlsafe(48)
     bit = BrandInviteToken(
         id=uuid.uuid4(),
         user_id=user.id,
         brand_id=brand.id,
-        token=token,
+        token_hash=hash_token(raw),
         email=brand.company_email,
         expires_at=now + timedelta(days=settings.BRAND_INVITE_TOKEN_TTL_DAYS),
     )
     db.add(bit)
     await db.flush()
-    return token
+    return raw
 
 
 async def set_brand_password(
@@ -139,7 +140,9 @@ async def set_brand_password(
     # FOR UPDATE locks the invite row so two concurrent set-password calls
     # serialize: the second sees used_at set and is rejected.
     bit = await db.scalar(
-        select(BrandInviteToken).where(BrandInviteToken.token == token).with_for_update()
+        select(BrandInviteToken)
+        .where(BrandInviteToken.token_hash == hash_token(token))
+        .with_for_update()
     )
     if bit is None:
         raise BuzzAPIException(

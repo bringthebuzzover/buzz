@@ -104,8 +104,25 @@ async def _load_user_from_bearer(
 
     # Impersonation lives entirely in the token — no schema, no server session.
     # The attributes are transient (never flushed) and let /me + the read-only
-    # gate below see who is really behind the request.
+    # gate below see who is really behind the request. Bind to the admin's
+    # token_version so admin logout / revoke ends View-as without bumping the
+    # target account.
     impersonated_by = payload.imp
+    if impersonated_by:
+        try:
+            admin_id = uuid.UUID(impersonated_by)
+        except ValueError as exc:
+            raise _unauthorized("Invalid impersonation claim.") from exc
+        admin = await db.get(User, admin_id)
+        if (
+            admin is None
+            or admin.portal_role != PortalRole.ADMIN.value
+            or admin.status != OrgUserStatus.ACTIVE.value
+        ):
+            raise _unauthorized("Impersonation session is no longer valid.")
+        if (payload.imp_ver or 0) != (admin.token_version or 0):
+            raise _unauthorized("Impersonation session has been revoked.")
+
     readonly = bool(payload.imp_readonly) if impersonated_by else False
     set_impersonation(user, impersonated_by, readonly)
 

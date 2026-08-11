@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from fastapi import BackgroundTasks
 from sqlalchemy import select
 
@@ -27,6 +28,7 @@ from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
+from app.security.one_shot_tokens import hash_token
 from app.security.token_crypto import encrypt_token
 from app.services.instagram import MediaFields, MediaRef
 from app.services.instagram_token import (
@@ -128,7 +130,7 @@ async def test_cleanup_sweeps_old_used_and_expired_tokens(db_session) -> None:
         EmailVerificationToken(
             id=uuid.uuid4(),
             user_id=org_user.id,
-            token="t-used",
+            token_hash=hash_token("t-used"),
             email="a@x.edu",
             expires_at=_now() + timedelta(days=1),
             used_at=old,
@@ -139,7 +141,7 @@ async def test_cleanup_sweeps_old_used_and_expired_tokens(db_session) -> None:
         EmailVerificationToken(
             id=uuid.uuid4(),
             user_id=org_user.id,
-            token="t-exp",
+            token_hash=hash_token("t-exp"),
             email="b@x.edu",
             expires_at=old,
         )
@@ -149,7 +151,7 @@ async def test_cleanup_sweeps_old_used_and_expired_tokens(db_session) -> None:
         EmailVerificationToken(
             id=uuid.uuid4(),
             user_id=org_user.id,
-            token="t-fresh",
+            token_hash=hash_token("t-fresh"),
             email="c@x.edu",
             expires_at=_now() + timedelta(days=1),
         )
@@ -158,8 +160,8 @@ async def test_cleanup_sweeps_old_used_and_expired_tokens(db_session) -> None:
 
     result = await cleanup_tokens(db_session)
     assert result["verification_tokens_deleted"] == 2
-    remaining = list(await db_session.scalars(select(EmailVerificationToken.token)))
-    assert remaining == ["t-fresh"]
+    remaining = list(await db_session.scalars(select(EmailVerificationToken.token_hash)))
+    assert remaining == [hash_token("t-fresh")]
 
 
 async def test_cleanup_respects_grace_window(db_session) -> None:
@@ -169,7 +171,7 @@ async def test_cleanup_respects_grace_window(db_session) -> None:
         EmailVerificationToken(
             id=uuid.uuid4(),
             user_id=org_user.id,
-            token="t-recent",
+            token_hash=hash_token("t-recent"),
             email="d@x.edu",
             expires_at=_now() + timedelta(days=1),
             used_at=_now() - timedelta(days=1),
@@ -798,7 +800,7 @@ async def test_cleanup_sweeps_brand_invite_tokens(db_session) -> None:
             id=uuid.uuid4(),
             user_id=user.id,
             brand_id=brand.id,
-            token="bi-used",
+            token_hash=hash_token("bi-used"),
             email="b@x.com",
             expires_at=_now() + timedelta(days=1),
             used_at=old,
@@ -809,7 +811,7 @@ async def test_cleanup_sweeps_brand_invite_tokens(db_session) -> None:
             id=uuid.uuid4(),
             user_id=user.id,
             brand_id=brand.id,
-            token="bi-fresh",
+            token_hash=hash_token("bi-fresh"),
             email="c@x.com",
             expires_at=_now() + timedelta(days=3),
         )
@@ -817,8 +819,8 @@ async def test_cleanup_sweeps_brand_invite_tokens(db_session) -> None:
     await db_session.flush()
     result = await cleanup_tokens(db_session)
     assert result["brand_invite_tokens_deleted"] == 1
-    remaining = list(await db_session.scalars(select(BrandInviteToken.token)))
-    assert remaining == ["bi-fresh"]
+    remaining = list(await db_session.scalars(select(BrandInviteToken.token_hash)))
+    assert remaining == [hash_token("bi-fresh")]
 
 
 # --- token refresh edge cases ---
@@ -1082,3 +1084,72 @@ async def test_job_runner_persists_job_run(db_session, monkeypatch) -> None:
     assert row.ok is True
     assert row.finished_at is not None
     assert row.summary == {"cleaned": 0}
+
+
+async def test_job_runner_rolls_back_then_persists_failure(db_session, monkeypatch) -> None:
+    """On exception: rollback job session, then write JobRun(ok=False) separately."""
+    import importlib.util
+    from pathlib import Path
+
+    from app.models.job_run import JobRun
+
+    path = Path(__file__).resolve().parents[1] / "scripts" / "run_job.py"
+    spec = importlib.util.spec_from_file_location("run_job_fail_under_test", path)
+    assert spec is not None and spec.loader is not None
+    run_job = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_job)
+
+    async def _boom(_db):
+        raise RuntimeError("boom")
+
+    monkeypatch.setitem(run_job._JOBS, "token_cleanup", (_boom, False))
+
+    class _Ctx:
+        async def __aenter__(self):
+            return db_session
+
+        async def __aexit__(self, *args):
+            return None
+
+    monkeypatch.setattr(run_job, "async_session_factory", lambda: _Ctx())
+
+    async def _flush_only():
+        await db_session.flush()
+
+    monkeypatch.setattr(db_session, "commit", _flush_only)
+
+    order: list[str] = []
+
+    async def _fake_rollback():
+        order.append("rollback")
+        # Mimic session rollback: drop the in-flight JobRun from the identity map.
+        for obj in list(db_session.new) + list(db_session.dirty):
+            if isinstance(obj, JobRun):
+                db_session.expunge(obj)
+
+    monkeypatch.setattr(db_session, "rollback", _fake_rollback)
+
+    failure_row: dict[str, JobRun | None] = {"row": None}
+
+    async def _persist_failure(name: str, started):
+        order.append("persist")
+        row = JobRun(
+            job=name,
+            started_at=started,
+            finished_at=_now(),
+            ok=False,
+            summary={"error": "job failed"},
+        )
+        failure_row["row"] = row
+        db_session.add(row)
+        await db_session.flush()
+
+    monkeypatch.setattr(run_job, "_persist_failure_run", _persist_failure)
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await run_job._run("token_cleanup")
+
+    assert order == ["rollback", "persist"]
+    assert failure_row["row"] is not None
+    assert failure_row["row"].ok is False
+    assert failure_row["row"].summary == {"error": "job failed"}

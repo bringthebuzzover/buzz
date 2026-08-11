@@ -3,7 +3,8 @@ id: config.environment-dev-bypass
 title: Fail-fast skipped when ENVIRONMENT is development (default); not allowlisted
 kind: ops
 severity: P2
-status: open
+status: fixed
+closed_in: fc254e4
 surface: deploy
 evidence:
   - path: backend/app/config.py

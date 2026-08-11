@@ -3,7 +3,8 @@ id: auth.impersonation-unbound-from-admin
 title: View-as JWT not bound to admin session; logout with imp Bearer revokes target
 kind: authz
 severity: P2
-status: open
+status: fixed
+closed_in: fc254e4
 surface: admin
 evidence:
   - path: backend/app/services/admin_auth.py

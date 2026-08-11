@@ -321,25 +321,32 @@ async def logout(
     Prefer a valid Bearer access token (signature + type + exp; ``ver`` need not
     match so a just-revoked access can still identify the user). Else use a
     decodable refresh cookie. Bumping ``token_version`` invalidates every access
-    and refresh token the user holds. Always succeeds and clears the cookie.
+    and refresh token the user holds.
+
+    Impersonation access tokens (``imp`` claim) must not bump the *target*
+    ``sub`` — that would kick the real user. Cookie is cleared only when a bump
+    succeeded or the request actually carried the refresh cookie (avoids
+    cookieless cross-site POSTs blanking an unrelated session cookie jar).
     """
 
     bumped = False
+    had_refresh_cookie = settings.REFRESH_COOKIE_NAME in request.cookies
 
     authorization = request.headers.get("Authorization")
     if authorization and authorization.startswith("Bearer "):
         token = authorization[len("Bearer ") :].strip()
         try:
             payload = jwt.decode_token(token, expected_type=jwt.ACCESS_TOKEN_TYPE)
-            user = await db.get(User, uuid.UUID(payload.sub))
-            if user is not None:
-                bump_token_version(user)
-                await db.flush()
-                bumped = True
+            if not payload.imp:
+                user = await db.get(User, uuid.UUID(payload.sub))
+                if user is not None:
+                    bump_token_version(user)
+                    await db.flush()
+                    bumped = True
         except (jwt.TokenError, ValueError):
             pass
 
-    if not bumped:
+    if not bumped and had_refresh_cookie:
         cookie = request.cookies.get(settings.REFRESH_COOKIE_NAME)
         if cookie:
             try:
@@ -348,10 +355,12 @@ async def logout(
                 if user is not None:
                     bump_token_version(user)
                     await db.flush()
+                    bumped = True
             except (jwt.TokenError, ValueError):
-                pass  # nothing valid to revoke; just clear the cookie
+                pass  # nothing valid to revoke; still clear cookie below
 
-    _clear_refresh_cookie(response)
+    if bumped or had_refresh_cookie:
+        _clear_refresh_cookie(response)
     return api_response(data=OkResponse())
 
 

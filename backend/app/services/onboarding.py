@@ -22,6 +22,7 @@ from app.models.organization import Organization
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.schemas.onboarding import OrgOnboardingRequest
+from app.security.one_shot_tokens import hash_token
 from app.services.email import send_verification_email
 from app.services.instagram import require_instagram_handle
 
@@ -108,17 +109,17 @@ async def _mint_and_send_verification(
     success). On failure the just-minted token is deleted so it does not burn
     a max-3 slot.
     """
-    token = secrets.token_urlsafe(48)
+    raw = secrets.token_urlsafe(48)
     evt = EmailVerificationToken(
         id=uuid.uuid4(),
         user_id=user.id,
-        token=token,
+        token_hash=hash_token(raw),
         email=edu_email,
         expires_at=_now() + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
     )
     db.add(evt)
     await db.flush()
-    ok = await send_verification_email(edu_email, token, org_name=org_name)
+    ok = await send_verification_email(edu_email, raw, org_name=org_name)
     if not ok:
         await db.delete(evt)
         await db.flush()
@@ -269,7 +270,7 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     # serialize: the second waits, then sees used_at already set and is rejected.
     evt = await db.scalar(
         select(EmailVerificationToken)
-        .where(EmailVerificationToken.token == token)
+        .where(EmailVerificationToken.token_hash == hash_token(token))
         .with_for_update()
     )
     if evt is None:

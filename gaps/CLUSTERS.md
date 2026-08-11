@@ -415,82 +415,64 @@ stop_if:
 
 ## sec-audit-quick
 
-status: pending
+status: done
 gaps:
   - spa.dead-firebase-dependency
   - spa.unvalidated-post-href
   - auth.email-link-tokens-linger-in-url
   - deploy.openapi-ungated
   - config.environment-dev-bypass
-approach: |
-  Wave A (security_gaps_13_fix). Remove unused `firebase` dep + env leftovers.
-  `safeHttpUrl` allowlist http(s) for ApiDropOrgTable href/img. Strip `?token=`
-  via history.replaceState on BrandSetup / ResetPassword / VerifyEmail.
-  OpenAPI/docs only when ENVIRONMENT=development. ENVIRONMENT Literal
-  development|staging|production; Fernet-default reject test; DEPLOYMENT note.
-stop_if:
-  - Need PRODUCT change for any of these.
+note: |
+  Wave A archived 2026-08-11. firebase removed; safeHttpUrl; token URL strip;
+  OpenAPI development-only; ENVIRONMENT Literal + Fernet-default test.
 
 ---
 
 ## sec-audit-session
 
-status: pending
+status: done
 gaps:
   - auth.spa-logout-drops-bearer
   - auth.logout-clears-cookie-without-revoke
   - auth.impersonation-unbound-from-admin
-approach: |
-  Wave B. SPA logout: call logout with Bearer then clear memory. BE logout:
-  clear refresh cookie only if bump succeeded or cookie was present.
-  Impersonation: stamp imp_ver=admin.token_version; validate on load; logout
-  with imp must not bump target sub.
-stop_if:
-  - PRODUCT wants impersonation revoke semantics different from admin bump.
+note: |
+  Wave B archived 2026-08-11. SPA Bearer-then-clear logout; cookie clear only
+  on bump or present cookie; imp_ver binds View-as to admin token_version.
 
 ---
 
 ## sec-audit-token-hash
 
-status: pending
+status: done
 gaps:
   - auth.invite-verify-tokens-plaintext
-approach: |
-  Wave C. Shared SHA-256 hash helper; Alembic token→token_hash with data
-  migration hashing existing rows; mint stores hash, email sends raw; consume
-  hashes input. Admin metadata must not expose hash as link secret. Tests.
-stop_if:
-  - Live unredeemed invites break without hash migration (must migrate).
+note: |
+  Wave C archived 2026-08-11. Shared hash_token; Alembic e2f3a4b5c6d7
+  token→token_hash with pgcrypto digest migration.
 
 ---
 
 ## sec-audit-abuse
 
-status: pending
+status: done
 gaps:
   - auth.rate-limit-trusts-client-xff
   - jobs.run-job-commits-partial-on-failure
   - ops.ig-graph-secrets-in-logs
-approach: |
-  Wave D. Rate limit: X-Real-IP then request.client.host; ignore client XFF.
-  run_job: rollback on exception then persist JobRun(ok=False) in new session.
-  IG Graph: no raise-from httpx; log user_id + status without token/exc_info.
-stop_if:
-  - Railway stops sending X-Real-IP (need alternate trusted hop).
+note: |
+  Wave D archived 2026-08-11. X-Real-IP rate buckets; run_job rollback then
+  failure JobRun; Graph raise from None + no exc_info token leaks.
 
 ---
 
 ## sec-audit-csp
 
-status: pending
+status: done
 gaps:
   - deploy.spa-missing-csp
-approach: |
-  Wave E. frontend/public/serve.json CSP + nosniff + Referrer-Policy +
-  X-Frame-Options; connect-src self + api.bringthebuzzover.com; img-src
-  self https data. Document DEPLOYMENT; curl www after deploy.
-stop_if:
-  - CSP breaks CRA/IG thumbs or serve.json not applied by serve package.
+note: |
+  Wave E archived 2026-08-11. frontend/public/serve.json CSP + hardening
+  headers. Live curl verify after deploy to www.
 
 ---
 
@@ -502,8 +484,8 @@ gaps:
   - product.data-deletion-overpromise
 note: |
   PRODUCT-gated remnants from security audit 2026-08-11. Code waves A–E are
-  sec-audit-quick / session / token-hash / abuse / csp. Do not auto-execute.
-  Ask before PRODUCT forks on delivery-address visibility or deletion copy.
+  done (archived). Ask before PRODUCT forks on delivery-address visibility or
+  deletion copy.
 
 ---
 

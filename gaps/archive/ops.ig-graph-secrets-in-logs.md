@@ -3,7 +3,8 @@ id: ops.ig-graph-secrets-in-logs
 title: Instagram access_token (and exchange secrets) can land in logs via httpx+exc_info
 kind: ops
 severity: P2
-status: open
+status: fixed
+closed_in: fc254e4
 surface: jobs
 evidence:
   - path: backend/app/services/instagram.py

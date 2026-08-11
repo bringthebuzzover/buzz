@@ -60,14 +60,12 @@ def _evict_stale(now: float) -> None:
 
 
 def _client_ip(request: Request) -> str:
-    # Behind Railway's edge proxy the client IP is the first X-Forwarded-For
-    # hop. This is spoofable if the app port is ever exposed directly — the real
-    # control is the platform network (documented in DEPLOYMENT.md).
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        first = xff.split(",")[0].strip()
-        if first:
-            return first
+    # Prefer Railway's ``X-Real-IP`` (edge-set). Do not trust client-supplied
+    # ``X-Forwarded-For`` for rate-limit buckets — it is spoofable. Fall back to
+    # the direct peer (documented in DEPLOYMENT.md).
+    real_ip = (request.headers.get("x-real-ip") or "").strip()
+    if real_ip:
+        return real_ip
     client = request.client
     return client.host if client else "unknown"
 

@@ -219,12 +219,19 @@ async def test_refresh_onboarding_user_allowed(app_client: AsyncClient, db_sessi
     assert resp.json()["data"]["access_token"]
 
 
-async def test_logout_clears_cookie(app_client: AsyncClient) -> None:
+async def test_logout_clears_cookie_when_present(app_client: AsyncClient) -> None:
+    set_request_cookies(app_client, {REFRESH: "not-a-jwt"})
     resp = await app_client.post("/api/auth/logout")
     assert resp.status_code == 200
     set_cookie = resp.headers.get("set-cookie", "")
     assert REFRESH in set_cookie
     assert "max-age=0" in set_cookie.lower() or "expires=thu, 01 jan 1970" in set_cookie.lower()
+
+
+async def test_logout_cookieless_does_not_clear(app_client: AsyncClient) -> None:
+    resp = await app_client.post("/api/auth/logout")
+    assert resp.status_code == 200
+    assert REFRESH not in resp.headers.get("set-cookie", "")
 
 
 async def test_logout_with_bearer_bumps_without_cookie(app_client: AsyncClient, db_session) -> None:

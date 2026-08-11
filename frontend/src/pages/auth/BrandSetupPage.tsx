@@ -5,19 +5,21 @@
  * brand. Sets the password, activates the account, then forwards to the brand
  * portal with a live session.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useBrandSetPassword } from "../../api/hooks/useOnboardingHooks";
 import { useAuth } from "../../contexts/AuthContext";
 import { ApiError } from "../../api/client";
 import type { PortalRole } from "../../types/auth";
+import { stripTokenFromUrl } from "../../utils/stripTokenFromUrl";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
 
 export default function BrandSetupPage() {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
+  // Capture once so stripping the query does not Navigate away.
+  const [token] = useState(() => searchParams.get("token"));
   const navigate = useNavigate();
   const { acceptSession } = useAuth();
   const setPassword = useBrandSetPassword();
@@ -25,6 +27,12 @@ export default function BrandSetupPage() {
   const [password, setPasswordValue] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (token) {
+      stripTokenFromUrl();
+    }
+  }, [token]);
 
   if (!token) {
     return <Navigate to="/" replace />;

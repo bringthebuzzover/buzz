@@ -141,9 +141,9 @@ The backend **fails fast at startup** (`backend/app/config.py`) when `ENVIRONMEN
 
 | Var                                                 | Requirement off-dev                          |
 | --------------------------------------------------- | -------------------------------------------- |
-| `ENVIRONMENT`                                       | `staging` or `production`                    |
+| `ENVIRONMENT`                                       | Exactly `staging` or `production` (unknown values rejected at load) |
 | `SECRET_KEY`                                        | real value (not the committed dev default)   |
-| `TOKEN_ENCRYPTION_KEY`                              | real Fernet key (not the dev default)        |
+| `TOKEN_ENCRYPTION_KEY`                              | real Fernet key (not the committed Fernet default) |
 | `REFRESH_COOKIE_SECURE`                             | `true` (enforced)                            |
 | `FRONTEND_URL`                                      | real SPA host, not `localhost` (enforced)    |
 | `INSTAGRAM_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | real Meta creds (enforced)                   |
@@ -168,7 +168,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
   - Deauthorize: `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize`
   - Data deletion / Privacy / Terms: www paths per META.md Hosts table
 
-**Operational gotcha:** Off-dev (`staging` / `production`) both take the hardened path (HSTS, Secure cookies, no localhost CORS), so you can't bring one up over plain `http://localhost` — use `ENVIRONMENT=development` for local bring-up. CORS always allowlists apex + www and also adds `FRONTEND_URL`'s origin (`backend/app/main.py`).
+**Operational gotcha:** Off-dev (`staging` / `production`) both take the hardened path (HSTS, Secure cookies, no localhost CORS), so you can't bring one up over plain `http://localhost` — use `ENVIRONMENT=development` for local bring-up. CORS always allowlists apex + www and also adds `FRONTEND_URL`'s origin (`backend/app/main.py`). `ENVIRONMENT` is a closed set (`development` \| `staging` \| `production`); typos like `prod` fail at startup. Interactive OpenAPI (`/api/docs`, `/api/openapi.json`) is **development-only** — off-dev those paths 404.
 
 ### Same-site SPA + API (auth cookies)
 
@@ -215,9 +215,21 @@ Order: Postgres → API (migrate + health) → Frontend (baked API URL) → Cron
 
 Rate limiting is **in-memory and per-process** (`app/security/rate_limit.py`). With more than one backend replica, counters split and limits weaken proportionally. For the MVP, **keep the backend at one replica**; to scale out, move the limiter to Redis. Toggle with `RATE_LIMIT_ENABLED` (default true).
 
+Bucket keys use Railway’s `X-Real-IP` when present, else the direct peer (`request.client.host`). Client-supplied `X-Forwarded-For` is **not** trusted for rate-limit identity.
+
 ### Security headers
 
 The backend sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, and (off-dev) `Strict-Transport-Security`. A page `Content-Security-Policy` belongs on the **static frontend host**, not the API.
+
+### SPA security headers (`serve.json`)
+
+Production SPA (`npm run start:prod` → `serve -s build`) reads `build/serve.json` (copied from `frontend/public/serve.json` by CRA). It sets CSP (`default-src 'self'`; `connect-src` includes `https://api.bringthebuzzover.com`; `img-src` allows `https:` for IG thumbs), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and `X-Frame-Options: DENY`.
+
+After deploy, smoke:
+
+```bash
+curl -sI https://www.bringthebuzzover.com/ | grep -i content-security-policy
+```
 
 ### Session revocation
 

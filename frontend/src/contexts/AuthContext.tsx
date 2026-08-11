@@ -303,10 +303,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     clearInstagramReconnectLatch();
     clearViewAsLatch();
+    const token = getAccessToken();
     setAccessToken(null);
     setUser(null);
     setStatus("idle");
-    await apiLogout();
+    await apiLogout(token);
     window.location.href = "/";
   }, []);
 

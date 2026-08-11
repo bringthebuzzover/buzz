@@ -169,7 +169,11 @@ async def refresh_instagram_token(user_id: uuid.UUID) -> bool:
             await db.commit()
             return False
         except Exception:  # noqa: BLE001 — best-effort; keep the old token
-            logger.warning("Instagram token refresh failed for user %s", user_id, exc_info=True)
+            logger.warning(
+                "Instagram token refresh failed for user %s",
+                user_id,
+                exc_info=False,
+            )
             return False
 
         now = _now()

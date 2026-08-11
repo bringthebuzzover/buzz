@@ -8,6 +8,7 @@
 import { useMemo, useState } from "react";
 import type { BrandDropApplicant } from "../../api/hooks/useBrandHooks";
 import { orgCategoryLabel } from "../../types/orgCategory";
+import { safeHttpUrl } from "../../utils/safeHttpUrl";
 
 type Props = {
   applicants: BrandDropApplicant[];
@@ -107,7 +108,8 @@ export default function ApiDropOrgTable({
             {a.posts.length > 0 ? (
               <ul className="mt-3 space-y-2">
                 {a.posts.map((p) => {
-                  const thumb = p.thumbnailUrl || p.mediaUrl;
+                  const thumb = safeHttpUrl(p.thumbnailUrl || p.mediaUrl);
+                  const postHref = safeHttpUrl(p.url);
                   return (
                     <li
                       key={p.id}
@@ -121,15 +123,24 @@ export default function ApiDropOrgTable({
                             className="h-12 w-12 shrink-0 rounded-md object-cover"
                           />
                         ) : null}
-                        <a
-                          href={p.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="truncate text-xs font-semibold text-buzz-coral hover:underline"
-                          title={p.caption}
-                        >
-                          {p.caption || p.url}
-                        </a>
+                        {postHref ? (
+                          <a
+                            href={postHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="truncate text-xs font-semibold text-buzz-coral hover:underline"
+                            title={p.caption}
+                          >
+                            {p.caption || p.url}
+                          </a>
+                        ) : (
+                          <span
+                            className="truncate text-xs font-semibold text-buzz-inkMuted"
+                            title={p.caption}
+                          >
+                            {p.caption || "Post"}
+                          </span>
+                        )}
                       </div>
                       <span className="shrink-0 text-[11px] font-bold text-buzz-inkMuted">
                         {p.likes} likes · {p.comments} comments

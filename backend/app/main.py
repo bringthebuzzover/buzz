@@ -2,8 +2,8 @@
 
 Wires the Stage 1 contract: CORS allowlist, the `{ data, meta, error }`
 envelope via `BuzzAPIException` + unhandled-exception handlers, and the
-liveness route. Docs are exposed under `/api/docs` and the spec at
-`/api/openapi.json` so all backend surfaces share the same `/api` prefix.
+liveness route. Interactive docs and the OpenAPI JSON are exposed only when
+``ENVIRONMENT=development`` (under `/api/docs` and `/api/openapi.json`).
 """
 
 from __future__ import annotations
@@ -76,12 +76,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await engine.dispose()
 
 
+_DOCS_ENABLED = settings.ENVIRONMENT == "development"
+
 app = FastAPI(
     title="Buzz API",
     version="0.1.0",
-    docs_url="/api/docs",
+    docs_url="/api/docs" if _DOCS_ENABLED else None,
     redoc_url=None,
-    openapi_url="/api/openapi.json",
+    openapi_url="/api/openapi.json" if _DOCS_ENABLED else None,
     lifespan=lifespan,
     # Override FastAPI's default {detail} 422 schema so OpenAPI matches the
     # runtime {data, meta, error} envelope (validation_exception_handler).
