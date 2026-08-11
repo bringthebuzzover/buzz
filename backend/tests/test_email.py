@@ -9,6 +9,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
+from app.brand_emails import EMAIL_FROM
 from app.config import settings
 from app.services import email
 
@@ -16,7 +17,6 @@ from app.services import email
 @pytest.fixture
 def _resend_key(monkeypatch):
     monkeypatch.setattr(settings, "RESEND_API_KEY", "re_test_key")
-    monkeypatch.setattr(settings, "EMAIL_FROM", "Buzz <noreply@buzz.test>")
 
 
 def _stub_transport(monkeypatch, handler) -> None:
@@ -44,7 +44,7 @@ async def test_dispatch_posts_to_resend(monkeypatch, _resend_key) -> None:
     assert seen["url"] == email._RESEND_ENDPOINT
     assert seen["auth"] == "Bearer re_test_key"
     assert seen["body"] == {
-        "from": "Buzz <noreply@buzz.test>",
+        "from": EMAIL_FROM,
         "to": ["to@campus.edu"],
         "subject": "Subject",
         "text": "Body text",

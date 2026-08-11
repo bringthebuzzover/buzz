@@ -2,7 +2,7 @@
 
 The go-live runbook for Buzz: what has to be true before we launch, how to provision and deploy, and the environment/operational invariants to respect. The application code is largely feature-complete and tested (backend `pytest`, frontend smoke + Playwright E2E, live API bug-bash). Remaining launch work is mostly **external configuration** (custom DNS, Meta go-live, Resend domain verify) — not greenfield Railway provisioning (Frontend + API + Postgres + six crons are live).
 
-Deploy target: **Railway** from branch **`main`** (autodeploy on) — repo **`bringthebuzzover/buzz`** — Frontend (`/frontend`) + Backend (`/backend`) + PostgreSQL + **six** cron services. Run `alembic upgrade head` as a pre-deploy step before the backend starts.
+Deploy target: **Railway** from branch **`main`** (autodeploy on) — repo **`bringthebuzzover/buzz`** — Frontend (root `/`, app in `/frontend`) + Backend (`/backend`) + PostgreSQL + **six** cron services. Run `alembic upgrade head` as a pre-deploy step before the backend starts.
 
 **GitHub:** org [`bringthebuzzover/buzz`](https://github.com/bringthebuzzover/buzz) (mirrored from legacy `ShannonLin284/buzz`; do not push there). Default branch **`main`** (`mvp` merged via PR #1). All 8 Railway code services Source = **`bringthebuzzover/buzz` @ `main`** (verified 2026-08-10; see [`gaps/archive/deploy.github-repo-owner-shannon.md`](gaps/archive/deploy.github-repo-owner-shannon.md)).
 
@@ -43,7 +43,7 @@ Env + cookies use **www/api**. Meta dashboard URLs must be pasted to match www/a
 | Instagram / Meta App Review + Business Verification  | Not started                         | **Yes** — gates public (non-tester) org signups |
 | Legal review of Privacy Policy + Terms               | Draft in app (`/privacy`, `/terms`) | **Yes** — required for Meta + PII   |
 | Railway stack (Frontend + API + Postgres + 6 crons)  | **Done** (env `production`; target autodeploy from `bringthebuzzover/buzz` @ `main`) | Reconfirm Railway Source if still on ShannonLin284 |
-| Custom DNS (`www` / `api.bringthebuzzover.com`)      | **Done** (Cloudflare DNS; TLS green; `SameSite=lax`) | Meta URL paste still open (`deploy.meta-brand-url-cutover`); GH Pages custom domain leftover (`deploy.gh-pages-brand-domain-retire`) |
+| Custom DNS (`www` / `api.bringthebuzzover.com`)      | **Done** (Cloudflare DNS; TLS green; `SameSite=lax`) | Meta URL paste still open (`deploy.meta-brand-url-cutover`) |
 | Secrets + env for current hosts                      | **Done** — Railway hosts + real IG creds | Re-check at custom DNS cutover          |
 | Env parity for custom domains (SPA/API URLs, Meta)   | N/A until DNS                       | **Yes** after cutover if any var still uses Railway-only URLs |
 | Resend verified sender domain                        | Not started                         | **Yes** — verification/denial email |
@@ -78,7 +78,7 @@ Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway
 
 | Service                 | What                                                                                      | Notes                                                                                                                                 |
 | ----------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Frontend**            | React SPA under `/frontend`                                                               | Root Directory `/frontend`; Watch Paths `/frontend/**`; Build `npm ci && npm run build:prod`; Start `npm run start:prod` (`serve -s`) |
+| **Frontend**            | React SPA under `/frontend` (reads `backend/brand_emails.json` at build)                    | Root Directory `/` (full repo); Watch Paths `/frontend/**` + `/backend/brand_emails.json`; Build `cd frontend && npm ci && npm run build:prod`; Start `cd frontend && npm run start:prod` |
 | **api**                 | FastAPI + Uvicorn (`poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT`)         | Root Directory `/backend`; Watch Paths `/backend/**`; Pre-deploy `poetry run alembic upgrade head`; **1 replica**; Health `/api/health` (DB ping — 503 if Postgres is down) |
 | **PostgreSQL**          | Railway-managed                                                                           | Injects `DATABASE_URL` (`postgres://…` / `postgresql://…`); backend rewrites to `postgresql+asyncpg://` at startup                    |
 | **Cron ×6** | One service per job: `.venv/bin/python scripts/run_job.py <name>` | **Live:** `cron-drop-autoclose`, `cron-metric-sync`, `cron-token-cleanup`, `cron-autolink-scan`, `cron-token-refresh`, `cron-notify-reminders`. Root `/backend`; no public domain; share API env |
@@ -174,7 +174,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 **Historical:** Distinct `*.up.railway.app` SPA/API hosts were cross-site (`up.railway.app` on the public suffix list), so App Review used `SameSite=none`. Dual-host Railway SPA↔API login is **not** a working auth backup after `lax`. Meta dashboard may still list Railway URLs until [`gaps/deploy.meta-brand-url-cutover.md`](gaps/deploy.meta-brand-url-cutover.md) closes — temporary Meta↔env misalignment is accepted.
 
-Apex `bringthebuzzover.com` → www is a **Cloudflare** Single Redirect (`Server: cloudflare`; see [`gaps/archive/deploy.apex-hostinger-forward-blocked.md`](gaps/archive/deploy.apex-hostinger-forward-blocked.md)). GitHub Pages may still list the brand custom domain as a leftover — clear when Shannon admin is available ([`gaps/deploy.gh-pages-brand-domain-retire.md`](gaps/deploy.gh-pages-brand-domain-retire.md)); apex no longer depends on Pages.
+Apex `bringthebuzzover.com` → www is a **Cloudflare** Single Redirect (`Server: cloudflare`; see [`gaps/archive/deploy.apex-hostinger-forward-blocked.md`](gaps/archive/deploy.apex-hostinger-forward-blocked.md)). GitHub Pages brand custom domain cleared ([`gaps/archive/deploy.gh-pages-brand-domain-retire.md`](gaps/archive/deploy.gh-pages-brand-domain-retire.md)); apex does not depend on Pages.
 
 Alternative long-term: same-origin reverse proxy (`/api` under the SPA domain) — cookies "just work"; not the first deploy path.
 
@@ -269,7 +269,7 @@ Set the resulting credentials in the backend env: `INSTAGRAM_CLIENT_ID`, `INSTAG
 - Troubleshooting verification: <https://resend.com/docs/knowledge-base/what-if-my-domain-is-not-verifying>
 - API keys dashboard: <https://resend.com/api-keys>
 
-Verify the `bringthebuzzover.com` sending domain, then set `RESEND_API_KEY` and `EMAIL_FROM` (a verified sender) in the backend env.
+Verify the `bringthebuzzover.com` sending domain, then set `RESEND_API_KEY` in the backend env. Transactional From and public contact email are committed in [`backend/brand_emails.json`](backend/brand_emails.json) (not env). Delete any leftover `EMAIL_FROM` service variable — it is ignored.
 
 ### Railway (hosting: Frontend + API + Postgres + Cron)
 
