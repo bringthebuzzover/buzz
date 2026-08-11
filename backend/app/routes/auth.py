@@ -177,6 +177,12 @@ async def instagram_callback(
             message="This organization's application was not approved.",
             status_code=403,
         )
+    if user.status == OrgUserStatus.ERASED.value:
+        raise BuzzAPIException(
+            code=errors.ACCOUNT_DENIED,
+            message="This account has been deleted.",
+            status_code=403,
+        )
     access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
@@ -288,7 +294,7 @@ async def refresh(
     # Cut off terminal accounts at the refresh boundary (defense-in-depth).
     # Onboarding states (pending_*) are intentionally allowed — those users
     # are non-active but still need a live session to finish onboarding.
-    if user.status == OrgUserStatus.DENIED.value:
+    if user.status in (OrgUserStatus.DENIED.value, OrgUserStatus.ERASED.value):
         return _unauthorized(
             "This account can no longer refresh its session.",
             clear_cookie=True,

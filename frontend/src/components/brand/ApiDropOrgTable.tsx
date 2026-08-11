@@ -86,8 +86,17 @@ export default function ApiDropOrgTable({
                       {orgCategoryLabel(a.category)}
                     </span>
                   ) : null}
+                  {a.accountErased ? (
+                    <span className="ml-2 text-buzz-inkMuted">
+                      · Account deleted
+                    </span>
+                  ) : null}
                 </p>
-                {a.deliveryAddress ? (
+                {a.accountErased ? (
+                  <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
+                    Shipping details removed
+                  </p>
+                ) : a.deliveryAddress ? (
                   <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
                     Ship to: {a.deliveryAddress}
                   </p>

@@ -321,6 +321,28 @@ export function useClearOrgInstagramToken() {
   );
 }
 
+export type AdminOrgEraseResult =
+  components["schemas"]["AdminOrgEraseResponse"];
+
+/** Hybrid erase — confirm is the org's Instagram handle (PRODUCT §3.1.2). */
+export function useEraseOrg() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { userId: string; confirm: string }) => {
+      const { data } = await apiFetch<AdminOrgEraseResult>(
+        `/api/admin/orgs/${input.userId}/erase`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ confirm: input.confirm }),
+        },
+      );
+      return data;
+    },
+    onSuccess: () => invalidateAdmin(queryClient),
+  });
+}
+
 export function useClearReopen(dropId: string) {
   return useAdminMutation((_: void) =>
     apiFetch(`/api/admin/drops/${dropId}/clear-reopen`, { method: "POST" }),

@@ -71,6 +71,19 @@ class ClearInstagramTokenResponse(CamelModel):
     instagram_token_cleared: bool
 
 
+class AdminOrgEraseRequest(CamelModel):
+    """Typed confirm payload — Instagram handle only (PRODUCT §3.1.2)."""
+
+    confirm: str
+
+
+class AdminOrgEraseResponse(CamelModel):
+    user_id: uuid.UUID
+    status: str
+    email_sent: bool
+    email_to_domain: str | None = None
+
+
 class AdminOrgStatusResponse(CamelModel):
     org_id: uuid.UUID
     status: str

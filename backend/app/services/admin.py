@@ -76,6 +76,9 @@ async def list_orgs(db: AsyncSession, *, status: str | None = None) -> list[dict
     )
     if status is not None:
         stmt = stmt.where(User.status == status)
+    else:
+        # All filter excludes erased tombstones (PRODUCT §3.1.2); use ?status=erased.
+        stmt = stmt.where(User.status != OrgUserStatus.ERASED.value)
 
     rows = list(await db.execute(stmt))
     return [
@@ -101,6 +104,15 @@ async def list_orgs(db: AsyncSession, *, status: str | None = None) -> list[dict
     ]
 
 
+def _refuse_erased_org(user: User) -> None:
+    if user.status == OrgUserStatus.ERASED.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Organization account has been erased.",
+            status_code=409,
+        )
+
+
 async def approve_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     """Approve a pending org: set user.active + org.approved_at=now."""
     org = await db.get(Organization, org_id)
@@ -111,6 +123,7 @@ async def approve_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
+    _refuse_erased_org(user)
     if user.status != OrgUserStatus.PENDING_APPROVAL.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -138,6 +151,7 @@ async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
+    _refuse_erased_org(user)
     if user.status != OrgUserStatus.PENDING_APPROVAL.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -292,6 +306,7 @@ async def undeny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
 
+    _refuse_erased_org(user)
     if user.status != OrgUserStatus.DENIED.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -392,6 +407,7 @@ async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization user not found.", status_code=404)
 
+    _refuse_erased_org(user)
     clear_unusable_instagram_token(user)
     await db.flush()
     return {"user_id": str(user.id), "instagram_token_cleared": True}

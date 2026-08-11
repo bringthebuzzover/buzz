@@ -39,6 +39,7 @@ from app.models.drop import Drop
 from app.models.enums import (
     ApplicationDecision,
     BrandTrackerStage,
+    OrgUserStatus,
     Platform,
     SocialMediaProductType,
 )
@@ -116,13 +117,20 @@ def _apply_metrics(
 
 
 async def _eligible_orgs(db: AsyncSession, now: datetime) -> list[Organization]:
-    """Orgs with at least one accepted application on a live-stage drop."""
+    """Orgs with at least one accepted application on a live-stage drop.
+
+    Erased accounts are excluded so Meta cannot rehydrate scrubbed identity
+    via discovery (PRODUCT §3.1.2).
+    """
     org_ids = (
         select(DropApplication.org_id)
         .join(Drop, Drop.id == DropApplication.drop_id)
+        .join(Organization, Organization.id == DropApplication.org_id)
+        .join(User, User.id == Organization.user_id)
         .where(
             DropApplication.decision == ApplicationDecision.ACCEPTED.value,
             Drop.brand_tracker_stage.in_(_LIVE_STAGES),
+            User.status != OrgUserStatus.ERASED.value,
         )
         .distinct()
     )

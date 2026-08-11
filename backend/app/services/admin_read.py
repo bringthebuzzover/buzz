@@ -328,6 +328,7 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
             db,
             select(func.count(User.id)).where(
                 User.portal_role == PortalRole.ORG.value,
+                User.status != OrgUserStatus.ERASED.value,
                 User.instagram_access_token.is_not(None),
                 User.instagram_token_expires_at.is_not(None),
                 User.instagram_token_expires_at <= now,
@@ -488,7 +489,10 @@ async def get_health(db: AsyncSession) -> dict[str, Any]:
         ),
     ]
 
-    org_only = User.portal_role == PortalRole.ORG.value
+    org_only = and_(
+        User.portal_role == PortalRole.ORG.value,
+        User.status != OrgUserStatus.ERASED.value,
+    )
     has_token = and_(
         User.instagram_access_token.is_not(None),
         User.instagram_token_expires_at.is_not(None),
@@ -858,6 +862,7 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
             "instagram_handle": org_user.instagram_username,
             "follower_count": org.follower_count,
             "delivery_address": org.delivery_address,
+            "account_erased": org_user.status == OrgUserStatus.ERASED.value,
             "decision": application.decision,
             "allocated_units": application.allocated_units,
             "pitch": application.pitch,

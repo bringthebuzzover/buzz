@@ -2,9 +2,8 @@
  * Public Data Deletion Instructions — the URL Meta's App Dashboard points at
  * for the "Data Deletion Instructions URL" field (Instagram App Review).
  *
- * Deletion is handled by an emailed request rather than a webhook: the user
- * emails the address in `siteIdentity.contact`, we delete their data. Keep the
- * contact string in one place (siteIdentity) — never inline it here.
+ * Deletion requests start via mailto; fulfillment for org accounts is admin
+ * hybrid erase (PRODUCT §3.1.2). Keep the contact string in siteIdentity.
  */
 import LegalLayout from "./LegalLayout";
 import { siteIdentity } from "../../data/siteIdentity";
@@ -15,7 +14,7 @@ export default function DataDeletionPage() {
   const { contact, brand, social } = siteIdentity;
   const mailtoHref = `mailto:${contact.email}?subject=${encodeURIComponent(DELETION_SUBJECT)}`;
   return (
-    <LegalLayout title="Data Deletion" lastUpdated="August 2, 2026">
+    <LegalLayout title="Data Deletion" lastUpdated="August 11, 2026">
       <p>
         You can ask {brand.displayName} (“Buzz”) to delete the personal data we
         hold about you at any time. This page explains how.
@@ -40,21 +39,26 @@ export default function DataDeletionPage() {
 
       <h2>What gets deleted</h2>
       <ul>
-        <li>Your Buzz account and profile.</li>
         <li>
-          Your Instagram identity and the access token we hold for you (the
-          token is also revoked with Meta).
+          Your Buzz login identity and profile contact details (including email
+          on file, shipping/contact fields, and Instagram credentials we hold
+          for you).
         </li>
         <li>
-          Onboarding details (university, organization info, verified{" "}
-          <code>.edu</code> email).
+          Identifiable post content tied to your account (permalinks, captions,
+          and media), which we anonymize or remove.
         </li>
-        <li>Campaign applications and any post-metric records tied to you.</li>
       </ul>
       <p>
-        We may retain a minimal record where required by law (for example, tax
-        or fraud-prevention obligations), and aggregated or anonymized data
-        that no longer identifies you.
+        Campaign participation metrics (for example attributed likes, comments,
+        and engagement used in brand reporting) may remain in anonymized form
+        after your identity is removed. We may also retain a minimal record
+        where required by law (for example, tax or fraud-prevention
+        obligations).
+      </p>
+      <p>
+        When an email address is on file at the time of deletion, we may send a
+        confirmation email to that address after the wipe completes.
       </p>
 
       <h2>Revoking access without deleting your account</h2>

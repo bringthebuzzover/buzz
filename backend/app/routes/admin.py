@@ -21,6 +21,8 @@ from app.response import APIResponse, DataResponse, api_response
 from app.schemas.acks import (
     AdminBrandInviteResponse,
     AdminBrandStatusResponse,
+    AdminOrgEraseRequest,
+    AdminOrgEraseResponse,
     AdminOrgStatusResponse,
     ClearInstagramTokenResponse,
     DropReopenResponse,
@@ -64,6 +66,7 @@ from app.services.admin import (
     update_drop_config,
 )
 from app.services.admin_auth import list_impersonatable_users, mint_impersonation_token
+from app.services.admin_erase import erase_org_user
 from app.services.admin_read import (
     get_brand_detail,
     get_drop_detail,
@@ -144,6 +147,21 @@ async def clear_org_instagram_token_endpoint(
     """Clear an expired/stuck IG token so the org can authenticate again."""
     result = await clear_org_instagram_token(db, user_id)
     return api_response(data=ClearInstagramTokenResponse.model_validate(result))
+
+
+@router.post(
+    "/orgs/{user_id}/erase",
+    response_model=DataResponse[AdminOrgEraseResponse],
+)
+async def erase_org_endpoint(
+    user_id: uuid.UUID,
+    body: AdminOrgEraseRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Hybrid erase: scrub identity/PII; keep campaign KPIs (PRODUCT §3.1.2 / §4.3)."""
+    result = await erase_org_user(db, user_id, body.confirm)
+    return api_response(data=AdminOrgEraseResponse.model_validate(result))
 
 
 @router.post("/orgs/{org_id}/approve", response_model=DataResponse[AdminOrgStatusResponse])

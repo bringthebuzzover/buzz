@@ -49,6 +49,7 @@ class OrgUserStatus(StrEnum):
     PENDING_APPROVAL = "pending_approval"
     ACTIVE = "active"
     DENIED = "denied"
+    ERASED = "erased"
 
 
 class BrandStatus(StrEnum):

@@ -478,19 +478,64 @@ note: |
 
 ## security-audit-product-ask
 
+status: done
+gaps:
+  - product.data-deletion-overpromise
+note: |
+  Shipped admin org hybrid erase (PRODUCT §3.1.2 / §4.3): IG-handle confirm;
+  identity scrub; KPI retention; confirmation email; legal copy align.
+  No brand erase / Meta deletion callback.
+  `brand.delivery-address-all-applicants` remains parked alone below.
+
+---
+
+## brand-delivery-address
+
 status: parked
 gaps:
   - brand.delivery-address-all-applicants
-  - product.data-deletion-overpromise
 note: |
-  Approaches locked 2026-08-11 (easy/clean design):
-  1. delivery-address — API nulls deliveryAddress unless decision is
-     applied or accepted; one backend test; no FE privacy branching.
-  2. data-deletion — copy-only honesty on /data-deletion (soften 30-day
-     wipe inventory); keep mailto + Meta instructions URL; no purge
-     product / admin delete / Meta deletion callback.
-  Was PRODUCT-ask parked; decisions above are approved — ready when
-  user says run this cluster.
+  API nulls deliveryAddress unless decision is applied or accepted; one
+  backend test; no FE privacy branching. Parked separately from org erase.
+
+---
+
+## jobs-metric-omitted-engagement
+
+status: pending
+gaps:
+  - jobs.metric-sync-omitted-engagement
+approach: |
+  Locked in gap file. Touch `instagram.py` `fetch_media` (or MediaFields +
+  apply path) and `metric_sync._apply_basics` / refresh loop + `test_jobs.py`.
+  1. Omitted `like_count` / `comments_count` in Graph JSON → carry prior DB
+     value (do not write 0).
+  2. Warning log with org_id, post_id, external_id, previous value.
+  3. Job summary counters `likes_omitted` / `comments_omitted`.
+  4. Present fields still overwrite; HTTP errors still skip (unchanged).
+  5. Tests: omit likes, omit comments, both present, exception path.
+stop_if:
+  - Treating real Graph `like_count: 0` as omit (must still apply zeros).
+
+---
+
+## jobs-follower-count-refresh
+
+status: pending
+gaps:
+  - jobs.follower-count-never-refreshed
+approach: |
+  Locked in gap file. Daily refresh via a phase inside `metric_sync` (avoid
+  new Railway cron): for every org user with a usable IG token, GET Graph
+  `followers_count` and write `organizations.follower_count`.
+  1. All tokened orgs — not only `_LIVE_STAGES` campaign eligibility.
+  2. Omit/null/fail → carry prior value + warn + summary counters
+     (`followers_omitted` / `followers_failed`); real 0 overwrites.
+  3. Skip erased / no-token (preserve stored count for brand reach KPIs).
+  4. Extend `fetch_profile` or add fetch; tests + ARCHITECTURE/DEPLOYMENT note.
+stop_if:
+  - Meta scopes cannot return `followers_count` for Instagram Login tokens —
+    pause and report (carry-over path still ships as no-op refresh).
 
 ---
 

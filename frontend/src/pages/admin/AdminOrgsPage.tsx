@@ -33,6 +33,7 @@ const FILTERS = [
   { value: "pending_org_profile", label: "No profile" },
   { value: "active", label: "Active" },
   { value: "denied", label: "Denied" },
+  { value: "erased", label: "Erased" },
 ] as const;
 
 const HEADERS = [

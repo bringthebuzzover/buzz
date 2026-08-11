@@ -397,6 +397,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/orgs/{user_id}/erase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Erase Org Endpoint
+         * @description Hybrid erase: scrub identity/PII; keep campaign KPIs (PRODUCT §3.1.2 / §4.3).
+         */
+        post: operations["erase_org_endpoint_api_admin_orgs__user_id__erase_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/overview": {
         parameters: {
             query?: never;
@@ -1344,6 +1364,11 @@ export interface components {
         };
         /** AdminApplicantItem */
         AdminApplicantItem: {
+            /**
+             * Accounterased
+             * @default false
+             */
+            accountErased: boolean;
             /** Allocatedunits */
             allocatedUnits: number | null;
             /** Appliedat */
@@ -1729,6 +1754,28 @@ export interface components {
             verification: components["schemas"]["AdminVerificationState"];
         };
         /**
+         * AdminOrgEraseRequest
+         * @description Typed confirm payload — Instagram handle only (PRODUCT §3.1.2).
+         */
+        AdminOrgEraseRequest: {
+            /** Confirm */
+            confirm: string;
+        };
+        /** AdminOrgEraseResponse */
+        AdminOrgEraseResponse: {
+            /** Emailsent */
+            emailSent: boolean;
+            /** Emailtodomain */
+            emailToDomain?: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+        };
+        /**
          * AdminOrgItem
          * @description A row in ``GET /api/admin/orgs``.
          *
@@ -2028,6 +2075,11 @@ export interface components {
          * @description One applicant row in the brand drop detail view (§8.2).
          */
         BrandDropDetailApplicant: {
+            /**
+             * Accounterased
+             * @default false
+             */
+            accountErased: boolean;
             /** Allocatedunits */
             allocatedUnits: number | null;
             /** Appliedat */
@@ -2492,6 +2544,15 @@ export interface components {
         /** DataResponse[AdminOrgDetail] */
         DataResponse_AdminOrgDetail_: {
             data?: components["schemas"]["AdminOrgDetail"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminOrgEraseResponse] */
+        DataResponse_AdminOrgEraseResponse_: {
+            data?: components["schemas"]["AdminOrgEraseResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -4309,6 +4370,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_ClearInstagramTokenResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    erase_org_endpoint_api_admin_orgs__user_id__erase_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminOrgEraseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminOrgEraseResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

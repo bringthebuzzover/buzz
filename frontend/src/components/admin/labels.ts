@@ -193,6 +193,7 @@ export const STATUS_LABELS: Record<string, string> = {
   active: "Active",
   approved: "Approved",
   denied: "Denied",
+  erased: "Erased",
 };
 
 export function humanizeKey(key: string): string {

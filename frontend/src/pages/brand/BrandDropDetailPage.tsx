@@ -188,7 +188,11 @@ function ApiApplicantTable({
                     </td>
                     <td className="px-4 py-3 font-medium">
                       <div>{app.orgName}</div>
-                      {app.deliveryAddress ? (
+                      {app.accountErased ? (
+                        <div className="mt-0.5 text-xs font-medium text-buzz-inkMuted">
+                          Account deleted · Shipping details removed
+                        </div>
+                      ) : app.deliveryAddress ? (
                         <div className="mt-0.5 text-xs font-medium text-buzz-inkMuted">
                           Ship to: {app.deliveryAddress}
                         </div>
