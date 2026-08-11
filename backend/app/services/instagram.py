@@ -24,8 +24,10 @@ from app import errors
 from app.config import settings
 from app.exceptions import BuzzAPIException
 
-# Instagram account types that may grant the business scopes Buzz needs.
-ALLOWED_ACCOUNT_TYPES = frozenset({"BUSINESS", "CREATOR"})
+# Instagram Login Graph ``account_type`` (Meta get-started: Business | Media_Creator).
+ACCOUNT_TYPE_BUSINESS = "BUSINESS"
+ACCOUNT_TYPE_MEDIA_CREATOR = "MEDIA_CREATOR"
+ALLOWED_ACCOUNT_TYPES = frozenset({ACCOUNT_TYPE_BUSINESS, ACCOUNT_TYPE_MEDIA_CREATOR})
 
 
 def canonical_instagram_handle(username: str | None) -> str:

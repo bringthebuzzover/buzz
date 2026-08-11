@@ -148,8 +148,7 @@ class FakeInstagramClient:
     """In-memory ``InstagramClient`` for tests — no network.
 
     ``account_type`` is configurable so a single fixture can drive the
-    Business/Creator success path and the Personal-account rejection. The
-    last ``code``/``state`` seen are captured for assertions.
+    BUSINESS / MEDIA_CREATOR success path and the Personal-account rejection.
     """
 
     def __init__(self, *, account_type: str = "BUSINESS", user_id: str = "ig_test_1") -> None:

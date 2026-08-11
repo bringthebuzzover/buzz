@@ -39,7 +39,7 @@ async def test_fetch_profile_omitted_followers_is_none() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
-            json={"id": "ig1", "username": "campus", "account_type": "CREATOR"},
+            json={"id": "ig1", "username": "campus", "account_type": "Media_Creator"},
         )
 
     profile = await _client(handler).fetch_profile("tok")
