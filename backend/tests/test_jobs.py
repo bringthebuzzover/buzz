@@ -21,6 +21,7 @@ from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import (
     ApplicationDecision,
     BrandTrackerStage,
+    OrgUserStatus,
     SocialMediaProductType,
 )
 from app.models.organization import Organization
@@ -1099,6 +1100,92 @@ async def test_metric_sync_carries_comments_when_graph_omits_comments_count(
     assert post.comments == 55
     assert result["likes_omitted"] == 0
     assert result["comments_omitted"] == 1
+
+
+async def test_metric_sync_refreshes_follower_count(db_session) -> None:
+    """Follower refresh runs for any tokened org, not only live-stage campaigns."""
+    user = await persist(db_session, make_user(instagram_user_id="ig_followers"))
+    user.instagram_access_token = encrypt_token("long-lived")
+    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    org = await make_org(db_session, user)
+    org.follower_count = 1000
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.followers_count = 5000
+    # No live campaign — media phase sees 0 orgs; follower phase still runs.
+    result = await sync_metrics(db_session, fake)
+    await db_session.refresh(org)
+    assert org.follower_count == 5000
+    assert result["followers_refreshed"] == 1
+    assert result["followers_omitted"] == 0
+    assert result["followers_failed"] == 0
+
+
+async def test_metric_sync_follower_omit_keeps_prior(db_session) -> None:
+    user = await persist(db_session, make_user(instagram_user_id="ig_follomit"))
+    user.instagram_access_token = encrypt_token("long-lived")
+    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    org = await make_org(db_session, user)
+    org.follower_count = 2222
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.followers_count = None
+    result = await sync_metrics(db_session, fake)
+    await db_session.refresh(org)
+    assert org.follower_count == 2222
+    assert result["followers_omitted"] == 1
+    assert result["followers_refreshed"] == 0
+
+
+async def test_metric_sync_follower_fail_keeps_prior(db_session) -> None:
+    class _FailingProfileClient(FakeInstagramClient):
+        async def fetch_profile(self, long_token, *args, **kwargs):  # type: ignore[override]
+            raise RuntimeError("profile down")
+
+    user = await persist(db_session, make_user(instagram_user_id="ig_follfail"))
+    user.instagram_access_token = encrypt_token("long-lived")
+    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    org = await make_org(db_session, user)
+    org.follower_count = 3333
+    await db_session.flush()
+    result = await sync_metrics(db_session, _FailingProfileClient())
+    await db_session.refresh(org)
+    assert org.follower_count == 3333
+    assert result["followers_failed"] == 1
+    assert result["followers_refreshed"] == 0
+
+
+async def test_metric_sync_follower_zero_overwrites(db_session) -> None:
+    user = await persist(db_session, make_user(instagram_user_id="ig_follzero"))
+    user.instagram_access_token = encrypt_token("long-lived")
+    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    org = await make_org(db_session, user)
+    org.follower_count = 999
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.followers_count = 0
+    result = await sync_metrics(db_session, fake)
+    await db_session.refresh(org)
+    assert org.follower_count == 0
+    assert result["followers_refreshed"] == 1
+
+
+async def test_metric_sync_skips_follower_refresh_for_erased(db_session) -> None:
+    user = await persist(
+        db_session,
+        make_user(instagram_user_id="ig_follerased", status=OrgUserStatus.ERASED),
+    )
+    user.instagram_access_token = encrypt_token("long-lived")
+    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    org = await make_org(db_session, user)
+    org.follower_count = 4444
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.followers_count = 1
+    result = await sync_metrics(db_session, fake)
+    await db_session.refresh(org)
+    assert org.follower_count == 4444
+    assert result["followers_refreshed"] == 0
 
 
 async def test_metric_sync_applies_present_zero_engagement(db_session) -> None:

@@ -69,11 +69,16 @@ class LongLivedToken:
 
 @dataclass(frozen=True)
 class InstagramProfile:
-    """``/me`` profile used to gate Personal accounts (§3.4)."""
+    """``/me`` profile used to gate Personal accounts (§3.4).
+
+    ``followers_count`` is ``None`` when Graph omits/nulls the key so jobs can
+    carry prior ``organizations.follower_count`` (distinct from a present ``0``).
+    """
 
     id: str
     username: str
     account_type: str
+    followers_count: int | None = None
 
 
 @dataclass(frozen=True)
@@ -105,12 +110,15 @@ class MediaFields:
 
 
 def _optional_int_field(body: dict[str, object], key: str) -> int | None:
-    """Parse an int Graph field; ``None`` only when the key is absent."""
+    """Parse an int Graph field; ``None`` when the key is absent or null."""
 
     if key not in body:
         return None
+    raw = body[key]
+    if raw is None:
+        return None
     # Same cast style as ``_parse_insight_value`` (non-fractional).
-    return int(float(body[key]))  # type: ignore[arg-type]
+    return int(float(raw))  # type: ignore[arg-type]
 
 
 @runtime_checkable
@@ -271,7 +279,10 @@ class HttpInstagramClient:
         try:
             resp = await client.get(
                 f"{settings.INSTAGRAM_GRAPH_BASE}/me",
-                params={"fields": "id,username,account_type", "access_token": long_token},
+                params={
+                    "fields": "id,username,account_type,followers_count",
+                    "access_token": long_token,
+                },
             )
             resp.raise_for_status()
             body = resp.json()
@@ -284,6 +295,7 @@ class HttpInstagramClient:
             id=str(body["id"]),
             username=str(body.get("username", "")),
             account_type=str(body["account_type"]),
+            followers_count=_optional_int_field(body, "followers_count"),
         )
 
     # --- Stage 8: media sync (§10.1) + token refresh (§10.5) -----------------

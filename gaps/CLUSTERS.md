@@ -521,7 +521,7 @@ stop_if:
 
 ## jobs-follower-count-refresh
 
-status: pending
+status: done
 gaps:
   - jobs.follower-count-never-refreshed
 approach: |

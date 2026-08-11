@@ -108,7 +108,7 @@ For v1, drops expose two timestamps:
 ### 4.3 Metrics
 
 - Likes, comments, and related engagement metrics are **refreshed periodically** (not a one-time snapshot at submission).
-- **Estimated reach (v1 definition):** Derived from **follower counts** of the participating student org(s) (and/or connected accounts as implemented), combined with product rules for display.
+- **Estimated reach (v1 definition):** Derived from **follower counts** of the participating student org(s) (and/or connected accounts as implemented), combined with product rules for display. Connected org follower counts are **refreshed daily from Instagram** when a usable token is on file (same cadence as post metric sync); manual onboarding/profile edits remain allowed.
 - **Aggregate likes:** Show **aggregate likes** across the campaign’s linked posts (in addition to or alongside estimated reach, per product copy).
 - Brand-facing layout (per-org, UGC, roll-ups): **§5.3**.
 - **KPI preservation (hard rule):** Attributed campaign contribution — linked post counts, likes, comments, engagement series, estimated reach from retained follower counts, and campus counts from retained university — **must not disappear** when an org account is erased or identity is removed (**§3.1.2**). Identity, contact PII, IG credentials, and identifiable post content (permalinks, captions, media) may be scrubbed or anonymized; **numeric campaign stats stay**. Brand dashboards may show a tombstone participant label with prior metrics intact.
