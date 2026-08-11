@@ -20,7 +20,7 @@ from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
-from app.models.enums import BrandTrackerStage, PostLinkSource
+from app.models.enums import BrandTrackerStage, PostLinkSource, SocialMediaProductType
 from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
@@ -36,6 +36,17 @@ from app.services.campaigns import resolve_owned_application
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _reject_if_story(post: SocialPost) -> None:
+    """Stories are unsupported for campaign attribution (v1)."""
+
+    if post.media_product_type == SocialMediaProductType.STORY.value:
+        raise BuzzAPIException(
+            errors.UNSUPPORTED_MEDIA_TYPE,
+            "Instagram Stories cannot be linked to campaigns.",
+            status_code=422,
+        )
 
 
 async def _dismiss_pending_for_post(
@@ -167,13 +178,19 @@ async def _require_org_id(db: AsyncSession, org_user: User) -> uuid.UUID:
 
 
 async def list_org_posts(db: AsyncSession, org_user: User) -> list[PostResponse]:
-    """All the caller org's posts, each annotated with its campaign link (if any)."""
+    """Caller org's linkable posts, each annotated with its campaign link (if any).
+
+    Stories are unsupported and omitted so the linker never shows dead rows.
+    """
 
     org_id = await _require_org_id(db, org_user)
     posts = list(
         await db.scalars(
             select(SocialPost)
-            .where(SocialPost.org_id == org_id)
+            .where(
+                SocialPost.org_id == org_id,
+                SocialPost.media_product_type != SocialMediaProductType.STORY.value,
+            )
             .order_by(SocialPost.posted_at.desc(), SocialPost.id.desc())
         )
     )
@@ -231,6 +248,7 @@ async def link_post(
     post = await db.get(SocialPost, post_id)
     if post is None or post.org_id != application.org_id:
         raise BuzzAPIException(errors.NOT_FOUND, "Post not found.", status_code=404)
+    _reject_if_story(post)
 
     existing = await db.scalar(select(PostCampaignLink).where(PostCampaignLink.post_id == post_id))
     if existing is not None:
@@ -418,6 +436,17 @@ async def accept_suggestion(
             db,
             suggestion,
             BuzzAPIException(errors.POST_DELETED, "This post no longer exists.", status_code=410),
+        )
+    if post.media_product_type == SocialMediaProductType.STORY.value:
+        # Autolink never mints STORY suggestions; reject if a row exists anyway.
+        raise await _dismiss_for_error(
+            db,
+            suggestion,
+            BuzzAPIException(
+                errors.UNSUPPORTED_MEDIA_TYPE,
+                "Instagram Stories cannot be linked to campaigns.",
+                status_code=422,
+            ),
         )
 
     existing = await db.scalar(select(PostCampaignLink).where(PostCampaignLink.post_id == post_id))

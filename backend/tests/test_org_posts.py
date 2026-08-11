@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from httpx import AsyncClient
 
-from app.models.enums import ApplicationDecision, OrgUserStatus, PortalRole
+from app.models.enums import ApplicationDecision, OrgUserStatus, PortalRole, SocialMediaProductType
 from tests.conftest import (
     make_application,
     make_brand,
@@ -85,3 +85,16 @@ async def test_list_posts_forbidden_for_brand(app_client: AsyncClient, db_sessio
         headers={"Authorization": f"Bearer {mint_access_token(brand_user)}"},
     )
     assert resp.status_code == 403
+
+
+async def test_list_posts_hides_stories(app_client: AsyncClient, db_session) -> None:
+    _, org, headers = await _ctx(db_session)
+    await make_social_post(db_session, org, caption="feed")
+    await make_social_post(
+        db_session, org, caption="story", media_product_type=SocialMediaProductType.STORY
+    )
+    resp = await app_client.get("/api/orgs/me/posts", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert len(data) == 1
+    assert data[0]["caption"] == "feed"

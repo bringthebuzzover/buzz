@@ -113,7 +113,7 @@ export const SIGNAL_META: Record<string, SignalMeta> = {
   },
   posts_never_refreshed: {
     label: "Posts with no metrics",
-    note: "Discovered by the sync job but never successfully refreshed.",
+    note: "FEED/REELS discovered by the sync job but never successfully refreshed. Instagram Stories are unsupported and excluded.",
   },
   posts_missing_insights: {
     label: "Posts missing insight metrics",
@@ -138,7 +138,8 @@ export const PIPELINE_META: Record<
   metric_sync: {
     label: "Metric sync",
     schedule: "daily 03:00 UTC",
-    inference: "Counts recent posts whose metrics are missing or over 36h old.",
+    inference:
+      "Counts recent FEED/REELS whose metrics are missing or over 36h old. Stories are unsupported and excluded.",
   },
   token_cleanup: {
     label: "Token cleanup",

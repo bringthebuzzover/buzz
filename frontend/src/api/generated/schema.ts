@@ -1024,7 +1024,7 @@ export interface paths {
         put?: never;
         /**
          * Link Campaign Post
-         * @description Manually link one of the caller's posts (409 ``POST_ALREADY_LINKED``).
+         * @description Manually link a post (409 ``POST_ALREADY_LINKED``; 422 Stories).
          */
         post: operations["link_campaign_post_api_campaigns__application_id__link_post_post"];
         /**
