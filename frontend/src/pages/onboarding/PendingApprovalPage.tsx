@@ -3,11 +3,13 @@
  *
  * Polls the current user every 15s so that once an admin approves (status →
  * active) or denies (→ denied) the account, the route guard forwards the user
- * automatically without a manual refresh.
+ * automatically without a manual refresh. Also hosts pending-swap .edu rotate
+ * (PRODUCT §3.1) so officers can correct the campus email before approval.
  */
 import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import EduEmailRotatePanel from "../../components/org/EduEmailRotatePanel";
 import { pathForUser } from "../../utils/landing";
 
 const POLL_INTERVAL_MS = 15_000;
@@ -34,10 +36,16 @@ export default function PendingApprovalPage() {
       <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
         Awaiting <span className="text-buzz-coral">Approval</span>
       </h1>
-      <p className="text-sm font-medium text-buzz-inkMuted">
+      <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
         Your organization is under review. You'll get access automatically once
         a Buzz admin approves your account — no need to refresh.
       </p>
+
+      <EduEmailRotatePanel
+        liveEmail={user.email}
+        pendingEmail={user.pendingEduEmail}
+        onChanged={() => refreshUser()}
+      />
     </div>
   );
 }

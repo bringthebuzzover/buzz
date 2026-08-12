@@ -1,17 +1,20 @@
 /**
  * `/org/profile` — view/edit org profile after onboarding (PRODUCT.md §3.1).
  *
- * Distinct from `/onboarding/profile`, which creates the org row. Edu email and
- * Instagram handle are login identity (read-only); follower count is Graph-owned
- * (read-only). Editable fields PATCH via `/api/orgs/me`.
+ * Distinct from `/onboarding/profile`, which creates the org row. Instagram
+ * handle is login identity (read-only); .edu rotates via pending-swap APIs
+ * (not PATCH). Follower count is Graph-owned (read-only). Other fields PATCH
+ * via `/api/orgs/me`.
  */
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ApiError } from "../../api/client";
 import {
   useOrgProfile,
   useUpdateOrgProfile,
   type OrgProfileUpdate,
 } from "../../api/hooks/useOrgHooks";
+import EduEmailRotatePanel from "../../components/org/EduEmailRotatePanel";
 import {
   ORG_CATEGORY_OPTIONS,
   type OrgCategory,
@@ -23,6 +26,7 @@ const inputClass =
 export default function OrgPortalProfilePage() {
   const { data, isLoading, error: loadError } = useOrgProfile();
   const update = useUpdateOrgProfile();
+  const queryClient = useQueryClient();
 
   const [orgName, setOrgName] = useState("");
   const [university, setUniversity] = useState("");
@@ -156,13 +160,18 @@ export default function OrgPortalProfilePage() {
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
         <div className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
-            Login identity (read-only)
+            Instagram identity (read-only)
           </p>
           <p className="mt-2 text-sm font-semibold text-buzz-ink">{igHandle}</p>
-          <p className="mt-1 text-sm text-buzz-inkMuted">
-            {data.eduEmail || "No .edu email on file"}
-          </p>
         </div>
+
+        <EduEmailRotatePanel
+          liveEmail={data.eduEmail}
+          pendingEmail={data.pendingEduEmail}
+          onChanged={() =>
+            queryClient.invalidateQueries({ queryKey: ["org-profile"] })
+          }
+        />
 
         <div>
           <label className="mb-1 block text-sm font-semibold text-buzz-ink">

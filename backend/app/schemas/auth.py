@@ -47,6 +47,7 @@ class UserResponse(BaseModel):
     status: str
     instagram_username: str | None = None
     email: str | None = None
+    pending_edu_email: str | None = None
     impersonated_by: uuid.UUID | None = None
     impersonation_readonly: bool | None = None
 

@@ -3,7 +3,8 @@ id: org.edu-email-change-after-verify
 title: Active orgs cannot change verified .edu email when officers swap
 kind: ux_hole
 severity: P2
-status: open
+status: fixed
+closed_in:
 surface: org
 evidence:
   - path: PRODUCT.md

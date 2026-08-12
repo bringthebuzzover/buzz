@@ -160,6 +160,7 @@ def build_user_response(user: User) -> UserResponse:
         status=user.status,
         instagram_username=user.instagram_username,
         email=user.edu_email,
+        pending_edu_email=user.pending_edu_email,
         impersonated_by=uuid.UUID(admin_id) if admin_id else None,
         impersonation_readonly=impersonation_readonly(user) if admin_id else None,
     )

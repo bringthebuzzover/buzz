@@ -341,6 +341,8 @@ export async function fetchMe(): Promise<MeResult> {
         portalRole: u.portal_role as AuthUser["portalRole"],
         status: u.status,
         instagramUsername: u.instagram_username ?? undefined,
+        email: u.email ?? undefined,
+        pendingEduEmail: u.pending_edu_email ?? undefined,
         impersonatedBy: u.impersonated_by ?? undefined,
         impersonationReadonly: u.impersonation_readonly ?? undefined,
       },

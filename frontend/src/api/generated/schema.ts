@@ -812,6 +812,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/verify-email/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Pending Edu Email Endpoint
+         * @description Cancel a pending-swap .edu rotate (clear latch + unused tokens).
+         */
+        post: operations["cancel_pending_edu_email_endpoint_api_auth_verify_email_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/verify-email/change": {
         parameters: {
             query?: never;
@@ -846,6 +866,26 @@ export interface paths {
          * @description Re-send the .edu verification email (rate-limited, auth required).
          */
         post: operations["resend_verification_endpoint_api_auth_verify_email_resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/verify-email/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate Edu Email Endpoint
+         * @description Start a pending-swap .edu rotate (active / pending_approval orgs).
+         */
+        post: operations["rotate_edu_email_endpoint_api_auth_verify_email_rotate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2472,6 +2512,21 @@ export interface components {
             trackingNumber: string | null;
         };
         /**
+         * CancelPendingEduEmailRequest
+         * @description Clear a pending .edu rotate latch (auth required).
+         */
+        CancelPendingEduEmailRequest: Record<string, never>;
+        /** CancelPendingEduEmailResponse */
+        CancelPendingEduEmailResponse: {
+            /**
+             * Ok
+             * @default true
+             */
+            ok: boolean;
+            /** Status */
+            status: string;
+        };
+        /**
          * ChangeEduEmailRequest
          * @description Correct a typo'd .edu while still awaiting verification.
          */
@@ -2649,6 +2704,15 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[CancelPendingEduEmailResponse] */
+        DataResponse_CancelPendingEduEmailResponse_: {
+            data?: components["schemas"]["CancelPendingEduEmailResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[ChangeEduEmailResponse] */
         DataResponse_ChangeEduEmailResponse_: {
             data?: components["schemas"]["ChangeEduEmailResponse"] | null;
@@ -2787,6 +2851,15 @@ export interface components {
         /** DataResponse[ResendVerificationResponse] */
         DataResponse_ResendVerificationResponse_: {
             data?: components["schemas"]["ResendVerificationResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[RotateEduEmailResponse] */
+        DataResponse_RotateEduEmailResponse_: {
+            data?: components["schemas"]["RotateEduEmailResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -3313,6 +3386,8 @@ export interface components {
             memberCount: number | null;
             /** Orgname */
             orgName: string;
+            /** Pendingeduemail */
+            pendingEduEmail?: string | null;
             /** State */
             state: string | null;
             /** Tiktokhandle */
@@ -3468,6 +3543,23 @@ export interface components {
             token: string;
         };
         /**
+         * RotateEduEmailRequest
+         * @description Request a new .edu after first verify (pending-swap; PRODUCT §3.1).
+         */
+        RotateEduEmailRequest: {
+            /** Eduemail */
+            eduEmail: string;
+        };
+        /** RotateEduEmailResponse */
+        RotateEduEmailResponse: {
+            /** Emailsentto */
+            emailSentTo: string;
+            /** Pendingeduemail */
+            pendingEduEmail: string;
+            /** Status */
+            status: string;
+        };
+        /**
          * SuggestionResponse
          * @description A pending auto-link suggestion joined with its post (architecture §7.4.1).
          */
@@ -3554,6 +3646,8 @@ export interface components {
             impersonation_readonly?: boolean | null;
             /** Instagram Username */
             instagram_username?: string | null;
+            /** Pending Edu Email */
+            pending_edu_email?: string | null;
             /** Portal Role */
             portal_role: string;
             /** Status */
@@ -4962,6 +5056,41 @@ export interface operations {
             };
         };
     };
+    cancel_pending_edu_email_endpoint_api_auth_verify_email_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelPendingEduEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_CancelPendingEduEmailResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     change_edu_email_endpoint_api_auth_verify_email_change_post: {
         parameters: {
             query?: never;
@@ -5019,6 +5148,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_ResendVerificationResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    rotate_edu_email_endpoint_api_auth_verify_email_rotate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RotateEduEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_RotateEduEmailResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

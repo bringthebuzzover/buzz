@@ -34,6 +34,7 @@ def build_org_profile(org: Organization, user: User) -> OrgProfileResponse:
         org_name=org.org_name,
         university=org.university,
         edu_email=user.edu_email or "",
+        pending_edu_email=user.pending_edu_email,
         instagram_handle=canonical_instagram_handle(user.instagram_username),
         tiktok_handle=org.tiktok_handle,
         follower_count=org.follower_count,

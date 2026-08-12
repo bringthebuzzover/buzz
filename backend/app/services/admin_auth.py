@@ -73,6 +73,7 @@ async def login_admin(db: AsyncSession, email: str, password: str) -> tuple[User
         status=user.status,
         instagram_username=user.instagram_username,
         email=user.edu_email,
+        pending_edu_email=user.pending_edu_email,
     )
 
 
@@ -122,6 +123,7 @@ async def mint_impersonation_token(
         status=target.status,
         instagram_username=target.instagram_username,
         email=target.edu_email,
+        pending_edu_email=target.pending_edu_email,
         impersonated_by=admin.id,
         impersonation_readonly=settings.IMPERSONATION_READONLY,
     )

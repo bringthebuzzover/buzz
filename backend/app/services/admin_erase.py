@@ -88,6 +88,7 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
     user.instagram_token_user_id = None
     user.instagram_username = None
     user.edu_email = None
+    user.pending_edu_email = None
     user.email_verified_at = None
     user.password_hash = None
     user.status = OrgUserStatus.ERASED.value
