@@ -112,6 +112,7 @@ class TestAdminOrgErase:
         assert user.instagram_username is None
         assert user.instagram_user_id is None
         assert user.edu_email is None
+        assert user.pending_edu_email is None
         assert user.instagram_access_token is None
         assert user.token_version == 2
         assert org.org_name == "Deleted organization"
@@ -138,6 +139,28 @@ class TestAdminOrgErase:
             select(func.count()).select_from(NotifyMe).where(NotifyMe.org_id == org.id)
         )
         assert notify_count == 0
+
+    async def test_erase_clears_pending_edu_email(
+        self, app_client: AsyncClient, db_session, monkeypatch
+    ):
+        """Pending-swap latch must not survive erase (org.edu-email-change)."""
+        send = AsyncMock(return_value=True)
+        monkeypatch.setattr("app.services.admin_erase.send_org_erased_email", send)
+        user, _org, *_rest = await _seed_erasable_org(db_session)
+        user.pending_edu_email = "new-officer@school.edu"
+        await db_session.flush()
+        headers = await _admin_headers(db_session)
+
+        res = await app_client.post(
+            f"/api/admin/orgs/{user.id}/erase",
+            headers=headers,
+            json={"confirm": "@CampusGreeks"},
+        )
+        assert res.status_code == 200, res.text
+        await db_session.refresh(user)
+        assert user.edu_email is None
+        assert user.pending_edu_email is None
+        assert user.status == OrgUserStatus.ERASED.value
 
     async def test_confirm_mismatch_and_email_rejected(
         self, app_client: AsyncClient, db_session, monkeypatch
