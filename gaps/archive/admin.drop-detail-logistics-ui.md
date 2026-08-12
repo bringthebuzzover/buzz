@@ -3,7 +3,7 @@ id: admin.drop-detail-logistics-ui
 title: Admin drop detail logistics editor is flush, jargon-y, and missing ship-to
 kind: ux_hole
 severity: P2
-status: open
+status: fixed
 surface: admin
 evidence:
   - path: frontend/src/pages/admin/AdminDropDetailPage.tsx
