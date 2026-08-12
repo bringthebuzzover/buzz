@@ -148,3 +148,5 @@ When something graduates from brainstorm:
 2. Spec the slice in [`PRODUCT.md`](../PRODUCT.md) (or a scoped PR that edits it).
 3. Implement via normal ship / gap-cluster workflow — not from this file alone.
 4. Set frontmatter `status: promoted` and link the PRODUCT § or gap/PR.
+
+Related (UI tooling, not platform AI): [`paper-ui.md`](paper-ui.md).
