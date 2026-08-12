@@ -4,6 +4,7 @@ title: Admin drop detail logistics editor is flush, jargon-y, and missing ship-t
 kind: ux_hole
 severity: P2
 status: fixed
+closed_in: 973944c
 surface: admin
 evidence:
   - path: frontend/src/pages/admin/AdminDropDetailPage.tsx
