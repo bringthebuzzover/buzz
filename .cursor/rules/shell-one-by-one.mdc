@@ -1,0 +1,27 @@
+---
+description: Prefer one shell command at a time so trivial steps stay auto-approved
+alwaysApply: true
+---
+
+# Shell: one command at a time
+
+Run **one** shell command per tool call when possible.
+
+Long chains of trivial commands (`cd && git status && git diff && …`) often trigger
+human approval even when each step alone would auto-approve. Prefer sequential
+single commands; wait for the result before the next.
+
+## Do
+
+- One logical step per invocation (`git status`, then `git diff`, then …).
+- Parallel tool calls only for **independent** reads (e.g. two `Read`s, or
+  `git status` + `Read` of an unrelated file).
+- Batch only when atomicity matters (e.g. a single intentional `git commit`
+  script the user asked for) or the user explicitly wants a combined command.
+
+## Don’t
+
+- Pack multi-step “status + diff + log + merge + push” into one shell string
+  just to save turns.
+- Use `&&`-chains for exploratory or approval-sensitive work when steps could
+  run separately.
