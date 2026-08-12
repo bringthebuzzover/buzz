@@ -541,8 +541,9 @@ note: |
     org channel (or wontfix) + invite/reset honesty.
   - `ops.resend-domain-unverified` — **archived** 2026-08-11 (domain Verified +
     brand invite inbox proof; key rotated onto Railway).
-  - `ops.brand-mailbox` — full company mailbox send+receive + replace Cornell
-    `contactEmail` (same split; not forward-only).
+  - `ops.brand-mailbox` — **provider locked: Google Workspace Business Starter**;
+    still need billing owner + local-part, then MX/proofs + flip Cornell
+    `contactEmail` (not forward-only; Resend stays on `send.`).
   - `deploy.npm-workspaces-wontfix` — Railpack ignores workspaces; keep root
     package.json scripts + engines (do not retry workspaces without OK).
   - `deploy.custom-domain-samesite-lax` — **archived** 2026-08-09 (Plan A).
