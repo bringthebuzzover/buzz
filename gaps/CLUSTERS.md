@@ -644,12 +644,15 @@ stop_if:
 status: pending
 gaps:
   - admin.drops-list-filters-multiselect
-  - admin.drop-detail-logistics-ui
+note: |
+  Detail half (`admin.drop-detail-logistics-ui`) archived on
+  `fix/admin-drop-detail-logistics`. Cluster stays `pending` until list
+  filters land — do not mark done for logistics alone.
 approach: |
   Admin drops ops UX (list + detail). Two gaps, same cluster; may ship on
   parallel branches and merge later (CLUSTERS conflict OK).
 
-  1) List filters (`admin.drops-list-filters-multiselect`):
+  1) List filters (`admin.drops-list-filters-multiselect`) — still open:
      Replace both FilterChips rows on AdminDropsPage with dropdown
      multiselects (Stage + Attention). New FilterMultiSelect in
      AdminPrimitives (do not change org/brand FilterChips). URL is SOT via
@@ -663,15 +666,13 @@ approach: |
      tests. No client-only filter path; no CSV encoding; no PRODUCT edits.
      Confirmed 2026-08-11: NOT XOR dimensions; NOT AND-within-attention.
 
-  2) Detail logistics (`admin.drop-detail-logistics-ui`):
+  2) Detail logistics (`admin.drop-detail-logistics-ui`) — archived:
      FE-only polish on AdminDropDetailPage DropConfigEditors + Applicants.
      Pad logistics editor (px-4 / pb) to match FieldGrid + TrackerControls;
      uppercase faint field labels; copy "Clear to spot-only" (drop "send
      null"); datetime-local local wall-clock seed helper (not toISOString
      slice); remove redundant Applicants Tracking column; add Ship to for
      applied+accepted only (brand wording). No admin API change.
-     brand.delivery-address-all-applicants is done — FE gate only.
-     Confirmed 2026-08-11: no EasyPost / PRODUCT logistics ownership change.
 
 stop_if:
   - (cleared for handoff — filter semantics + logistics non-goals confirmed)
