@@ -316,6 +316,61 @@ class TestDropList:
         assert (
             await app_client.get("/api/admin/drops?attention=bogus", headers=headers)
         ).status_code == 400
+        assert (
+            await app_client.get("/api/admin/drops?stage=drop_active&stage=bogus", headers=headers)
+        ).status_code == 400
+        assert (
+            await app_client.get(
+                "/api/admin/drops?attention=no_tracking&attention=bogus", headers=headers
+            )
+        ).status_code == 400
+
+    async def test_multi_stage_filter_ors(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        await make_drop(db_session, brand, title="Early", stage=BrandTrackerStage.REQUEST_RECEIVED)
+        await make_drop(db_session, brand, title="Active", stage=BrandTrackerStage.DROP_ACTIVE)
+        await make_drop(db_session, brand, title="Finished", stage=BrandTrackerStage.DROP_FINISHED)
+
+        res = await app_client.get(
+            "/api/admin/drops?stage=request_received&stage=drop_active",
+            headers=await _admin_headers(db_session),
+        )
+        assert sorted(r["title"] for r in res.json()["data"]) == ["Active", "Early"]
+
+    async def test_multi_attention_filter_ors(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        await make_drop(
+            db_session,
+            brand,
+            title="Overdue",
+            apply_open_at=_now() - timedelta(days=10),
+            apply_close_at=_now() - timedelta(days=1),
+            stage=BrandTrackerStage.REQUEST_RECEIVED,
+        )
+        await make_drop(db_session, brand, title="No TN", stage=BrandTrackerStage.AWAITING_PRODUCTS)
+        await make_drop(db_session, brand, title="Open")
+
+        res = await app_client.get(
+            "/api/admin/drops?attention=autoclose_overdue&attention=no_tracking",
+            headers=await _admin_headers(db_session),
+        )
+        assert sorted(r["title"] for r in res.json()["data"]) == ["No TN", "Overdue"]
+
+    async def test_stage_and_attention_combine(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        await make_drop(db_session, brand, title="No TN", stage=BrandTrackerStage.AWAITING_PRODUCTS)
+        tracked = await make_drop(
+            db_session, brand, title="Tracked", stage=BrandTrackerStage.AWAITING_PRODUCTS
+        )
+        tracked.tracking_number = "TRACK-1"
+        await make_drop(db_session, brand, title="Active", stage=BrandTrackerStage.DROP_ACTIVE)
+        await db_session.flush()
+
+        res = await app_client.get(
+            "/api/admin/drops?stage=awaiting_products&stage=drop_active&attention=no_tracking",
+            headers=await _admin_headers(db_session),
+        )
+        assert [r["title"] for r in res.json()["data"]] == ["No TN"]
 
 
 class TestDropDetail:

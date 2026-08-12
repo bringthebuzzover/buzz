@@ -1,17 +1,18 @@
 /**
  * /admin/drops — every drop, filterable by tracker stage or by attention state.
  *
- * Two filter rows because they answer different questions. Stage is "where is
- * this in the pipeline"; attention is "who is blocked and why", and those cut
+ * Two filter dimensions because they answer different questions. Stage is "where
+ * is this in the pipeline"; attention is "who is blocked and why", and those cut
  * across stages — a drop awaiting selection and a drop the auto-close cron never
- * touched are both sitting still for unrelated reasons.
+ * touched are both sitting still for unrelated reasons. Selections combine via
+ * repeated URL keys (OR within a dimension, AND across).
  */
 import { Link, useSearchParams } from "react-router-dom";
 import { useAdminDrops } from "../../api/hooks/useAdminHooks";
 import {
   AdminTable,
   Cell,
-  FilterChips,
+  FilterMultiSelect,
   PageHeading,
   Panel,
   Pill,
@@ -24,16 +25,12 @@ import {
   formatElapsed,
 } from "../../components/admin/labels";
 
-const STAGE_FILTERS = [
-  { value: null as string | null, label: "All stages" },
-  ...STAGE_ORDER.map((value) => ({
-    value,
-    label: STAGE_LABELS[value] ?? value,
-  })),
-];
+const STAGE_OPTIONS = STAGE_ORDER.map((value) => ({
+  value,
+  label: STAGE_LABELS[value] ?? value,
+}));
 
-const ATTENTION_FILTERS = [
-  { value: null, label: "Everything" },
+const ATTENTION_OPTIONS = [
   { value: "awaiting_finalization", label: "Awaiting selection" },
   { value: "ready_to_advance", label: "Ready to advance" },
   { value: "autoclose_overdue", label: "Auto-close overdue" },
@@ -51,13 +48,26 @@ const HEADERS = [
   "Flags",
 ] as const;
 
+function replaceParamValues(
+  current: URLSearchParams,
+  key: string,
+  values: readonly string[],
+): URLSearchParams {
+  const next = new URLSearchParams(current);
+  next.delete(key);
+  for (const value of values) {
+    next.append(key, value);
+  }
+  return next;
+}
+
 export default function AdminDropsPage() {
-  const [searchParams] = useSearchParams();
-  const stage = searchParams.get("stage");
-  const attention = searchParams.get("attention");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const stages = searchParams.getAll("stage");
+  const attentions = searchParams.getAll("attention");
   const drops = useAdminDrops({
-    stage: stage ?? undefined,
-    attention: attention ?? undefined,
+    stage: stages,
+    attention: attentions,
   });
 
   return (
@@ -67,18 +77,29 @@ export default function AdminDropsPage() {
         subtitle="Campaign lifecycle across every brand. Open a drop to move its tracker or reopen its apply window."
       />
 
-      <FilterChips
-        options={STAGE_FILTERS}
-        active={stage}
-        basePath="/admin/drops"
-        param="stage"
-      />
-      <FilterChips
-        options={ATTENTION_FILTERS}
-        active={attention}
-        basePath="/admin/drops"
-        param="attention"
-      />
+      <div className="mb-4 flex flex-wrap gap-2">
+        <FilterMultiSelect
+          label="Stage"
+          options={STAGE_OPTIONS}
+          selected={stages}
+          onChange={(next) =>
+            setSearchParams(replaceParamValues(searchParams, "stage", next), {
+              replace: true,
+            })
+          }
+        />
+        <FilterMultiSelect
+          label="Attention"
+          options={[...ATTENTION_OPTIONS]}
+          selected={attentions}
+          onChange={(next) =>
+            setSearchParams(
+              replaceParamValues(searchParams, "attention", next),
+              { replace: true },
+            )
+          }
+        />
+      </div>
 
       <Panel>
         {drops.isPending && (

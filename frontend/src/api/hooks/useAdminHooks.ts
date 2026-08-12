@@ -178,16 +178,17 @@ export function useAdminBrand(
 }
 
 export function useAdminDrops(params: {
-  stage?: string;
-  attention?: string;
+  stage?: readonly string[];
+  attention?: readonly string[];
 }): AdminQuery<AdminDropRow[]> {
-  const { stage, attention } = params;
+  const stages = [...(params.stage ?? [])];
+  const attentions = [...(params.attention ?? [])];
   return useQuery({
-    queryKey: ["admin", "drops", stage ?? "all", attention ?? "all"],
+    queryKey: ["admin", "drops", stages, attentions],
     queryFn: async () => {
       const search = new URLSearchParams();
-      if (stage) search.set("stage", stage);
-      if (attention) search.set("attention", attention);
+      for (const value of stages) search.append("stage", value);
+      for (const value of attentions) search.append("attention", value);
       const query = search.toString();
       const { data } = await apiFetch<AdminDropRow[]>(
         `/api/admin/drops${query ? `?${query}` : ""}`,
