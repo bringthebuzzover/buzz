@@ -177,9 +177,8 @@ Priority rationale (2026-08-11 delivery order — code first, then ops parallel)
 2. `org-onboarding-required-fields` — **done** (required profile fields + Graph followers)
 3. `brand-delivery-address` — **done** (null denied applicants' deliveryAddress)
 4. `org-edu-email-change` — **done** (pending-swap `.edu` rotate)
-5. `admin-drops-ops-ui` — list filters **done**; logistics polish merging separately
+5. `admin-drops-ops-ui` — **done** (list multiselect + detail logistics)
 Ops (not auto-pick): `meta-business-verification`, `ops.brand-mailbox` (follow-ups).
-Parallel handoff OK: edu + list-filters + logistics on separate branches; merge on main later.
 
 ---
 
@@ -641,35 +640,18 @@ stop_if:
 
 ## admin-drops-ops-ui
 
-status: pending
+status: done
 gaps:
+  - admin.drops-list-filters-multiselect
   - admin.drop-detail-logistics-ui
-note: |
-  §1 list filters (`admin.drops-list-filters-multiselect`) archived on
-  `fix/admin-drops-list-filters` — do not re-implement. Cluster stays
-  pending until logistics ships; then mark done.
 approach: |
-  Admin drops ops UX (list + detail). Two gaps, same cluster; may ship on
-  parallel branches and merge later (CLUSTERS conflict OK).
-
-  1) List filters (`admin.drops-list-filters-multiselect`) — **done**
-     (archived). Multiselect Stage+Attention; repeated URL keys; BE
-     list[str] OR-within AND-across.
-
-  2) Detail logistics (`admin.drop-detail-logistics-ui`):
-     FE-only polish on AdminDropDetailPage DropConfigEditors + Applicants.
-     Pad logistics editor (px-4 / pb) to match FieldGrid + TrackerControls;
-     uppercase faint field labels; copy "Clear to spot-only" (drop "send
-     null"); datetime-local local wall-clock seed helper (not toISOString
-     slice); remove redundant Applicants Tracking column; add Ship to for
-     applied+accepted only (brand wording). No admin API change.
-     brand.delivery-address-all-applicants is done — FE gate only.
-     Confirmed 2026-08-11: no EasyPost / PRODUCT logistics ownership change.
-
+  Both halves archived on merge to main (2026-08-11).
+  1) List filters: Stage+Attention FilterMultiSelect; repeated URL keys;
+     BE multi-value OR-within AND-across.
+  2) Detail logistics: FE polish (padding/labels/copy/local datetime);
+     Applicants Ship to for applied+accepted; Tracking column removed.
 stop_if:
-  - (cleared for handoff — filter semantics + logistics non-goals confirmed)
-  - List volume forces pagination design before multi-filter ships — ask.
-  - Admin applicants omit deliveryAddress in deployed contract — verify then ask.
+  - (cleared — cluster complete)
 
 ---
 
