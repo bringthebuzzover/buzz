@@ -71,6 +71,7 @@ Read the skill file when the trigger matches. Skills live under [`.agents/skills
 | Skill | When |
 | ----- | ---- |
 | [`fix-gap-cluster`](.agents/skills/fix-gap-cluster/SKILL.md) | `run next cluster`, `run cluster <id>`, `swarm gaps` |
+| [`parallel-branch-swarm`](.agents/skills/parallel-branch-swarm/SKILL.md) | `swarm parallel`, parallel branches/slices, multi-branch handoff |
 | [`ship-change`](.agents/skills/ship-change/SKILL.md) | Feature / fix / chore that is not a gap cluster |
 | [`simplify-pass`](.agents/skills/simplify-pass/SKILL.md) | After implementation, before claiming done / before CI archive |
 | [`file-gap`](.agents/skills/file-gap/SKILL.md) | New finding → create `gaps/<id>.md` correctly |
