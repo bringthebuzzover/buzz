@@ -39,9 +39,11 @@ import {
 import {
   STAGE_LABELS,
   STAGE_ORDER,
+  adminApplicantShipTo,
   formatDate,
   formatDateTime,
   formatElapsed,
+  toDatetimeLocalValue,
 } from "../../components/admin/labels";
 
 const TABS = [
@@ -56,8 +58,11 @@ const APPLICANT_HEADERS = [
   "Units",
   "Posts",
   "Applied",
-  "Tracking",
+  "Ship to",
 ] as const;
+
+const fieldLabelClass =
+  "mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-2 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
@@ -78,11 +83,9 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
     data.totalProductUnits === null ? "" : String(data.totalProductUnits),
   );
   const [clearUnits, setClearUnits] = useState(false);
-  const [openAt, setOpenAt] = useState(
-    new Date(data.applyOpenAt).toISOString().slice(0, 16),
-  );
+  const [openAt, setOpenAt] = useState(toDatetimeLocalValue(data.applyOpenAt));
   const [closeAt, setCloseAt] = useState(
-    new Date(data.applyCloseAt).toISOString().slice(0, 16),
+    toDatetimeLocalValue(data.applyCloseAt),
   );
   const [hashtag, setHashtag] = useState(data.campaignHashtag ?? "");
   const [clearHashtag, setClearHashtag] = useState(false);
@@ -144,101 +147,103 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
   };
 
   return (
-    <div className="mt-4 space-y-3 border-t border-buzz-lineMid pt-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
-        Edit logistics
-      </p>
-      {logisticsLocked && (
-        <p className="text-xs font-medium text-buzz-inkMuted">
-          Capacity, window, and unit budget are locked while the drop is live or
-          finished. Hashtag can still be updated.
+    <div className="mt-4 border-t border-buzz-lineMid">
+      <div className="space-y-3 px-4 py-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
+          Edit logistics
         </p>
-      )}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm font-medium text-buzz-ink">
-          Capacity
-          <input
-            type="number"
-            min={1}
-            className={inputClass}
-            value={capacity}
-            disabled={logisticsLocked || patch.isPending}
-            onChange={(e) => setCapacity(e.target.value)}
-          />
-        </label>
-        <label className="block text-sm font-medium text-buzz-ink">
-          Unit budget
-          <input
-            type="number"
-            min={1}
-            className={inputClass}
-            value={units}
-            disabled={logisticsLocked || clearUnits || patch.isPending}
-            placeholder="Spot-only when empty + clear"
-            onChange={(e) => setUnits(e.target.value)}
-          />
-          <label className="mt-1 flex items-center gap-2 text-xs font-medium text-buzz-inkMuted">
+        {logisticsLocked && (
+          <p className="text-xs font-medium text-buzz-inkMuted">
+            Capacity, window, and unit budget are locked while the drop is live or
+            finished. Hashtag can still be updated.
+          </p>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className={fieldLabelClass}>Capacity</span>
             <input
-              type="checkbox"
-              checked={clearUnits}
+              type="number"
+              min={1}
+              className={inputClass}
+              value={capacity}
               disabled={logisticsLocked || patch.isPending}
-              onChange={(e) => setClearUnits(e.target.checked)}
+              onChange={(e) => setCapacity(e.target.value)}
             />
-            Clear to spot-only (send null)
           </label>
-        </label>
-        <label className="block text-sm font-medium text-buzz-ink">
-          Apply opens
-          <input
-            type="datetime-local"
-            className={inputClass}
-            value={openAt}
-            disabled={logisticsLocked || patch.isPending}
-            onChange={(e) => setOpenAt(e.target.value)}
-          />
-        </label>
-        <label className="block text-sm font-medium text-buzz-ink">
-          Apply closes
-          <input
-            type="datetime-local"
-            className={inputClass}
-            value={closeAt}
-            disabled={logisticsLocked || patch.isPending}
-            onChange={(e) => setCloseAt(e.target.value)}
-          />
-        </label>
-        <label className="block text-sm font-medium text-buzz-ink sm:col-span-2">
-          Campaign hashtag
-          <input
-            type="text"
-            className={inputClass}
-            value={hashtag}
-            disabled={clearHashtag || patch.isPending}
-            placeholder="e.g. springdrop (no # required)"
-            onChange={(e) => setHashtag(e.target.value)}
-          />
-          <label className="mt-1 flex items-center gap-2 text-xs font-medium text-buzz-inkMuted">
+          <label className="block">
+            <span className={fieldLabelClass}>Unit budget</span>
             <input
-              type="checkbox"
-              checked={clearHashtag}
-              disabled={patch.isPending}
-              onChange={(e) => setClearHashtag(e.target.checked)}
+              type="number"
+              min={1}
+              className={inputClass}
+              value={units}
+              disabled={logisticsLocked || clearUnits || patch.isPending}
+              placeholder="Leave empty, then clear for spot-only"
+              onChange={(e) => setUnits(e.target.value)}
             />
-            Clear hashtag
+            <label className="mt-1 flex items-center gap-2 text-xs font-medium text-buzz-inkMuted">
+              <input
+                type="checkbox"
+                checked={clearUnits}
+                disabled={logisticsLocked || patch.isPending}
+                onChange={(e) => setClearUnits(e.target.checked)}
+              />
+              Clear to spot-only
+            </label>
           </label>
-        </label>
+          <label className="block">
+            <span className={fieldLabelClass}>Apply opens</span>
+            <input
+              type="datetime-local"
+              className={inputClass}
+              value={openAt}
+              disabled={logisticsLocked || patch.isPending}
+              onChange={(e) => setOpenAt(e.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className={fieldLabelClass}>Apply closes</span>
+            <input
+              type="datetime-local"
+              className={inputClass}
+              value={closeAt}
+              disabled={logisticsLocked || patch.isPending}
+              onChange={(e) => setCloseAt(e.target.value)}
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className={fieldLabelClass}>Campaign hashtag</span>
+            <input
+              type="text"
+              className={inputClass}
+              value={hashtag}
+              disabled={clearHashtag || patch.isPending}
+              placeholder="e.g. springdrop (no # required)"
+              onChange={(e) => setHashtag(e.target.value)}
+            />
+            <label className="mt-1 flex items-center gap-2 text-xs font-medium text-buzz-inkMuted">
+              <input
+                type="checkbox"
+                checked={clearHashtag}
+                disabled={patch.isPending}
+                onChange={(e) => setClearHashtag(e.target.checked)}
+              />
+              Clear hashtag
+            </label>
+          </label>
+        </div>
+        <ActionButton
+          testId="save-drop-config"
+          disabled={patch.isPending}
+          onClick={() => void onSave()}
+        >
+          {patch.isPending ? "Saving…" : "Save configuration"}
+        </ActionButton>
+        {notice && (
+          <p className="text-sm font-medium text-green-700">{notice}</p>
+        )}
+        {error && <ErrorNote>{error}</ErrorNote>}
       </div>
-      <ActionButton
-        testId="save-drop-config"
-        disabled={patch.isPending}
-        onClick={() => void onSave()}
-      >
-        {patch.isPending ? "Saving…" : "Save configuration"}
-      </ActionButton>
-      {notice && (
-        <p className="text-sm font-medium text-green-700">{notice}</p>
-      )}
-      {error && <ErrorNote>{error}</ErrorNote>}
     </div>
   );
 }
@@ -520,7 +525,12 @@ function Applicants({ applicants }: { applicants: AdminApplicant[] }) {
           <Cell muted>{applicant.allocatedUnits ?? "—"}</Cell>
           <Cell muted>{applicant.linkedPostCount}</Cell>
           <Cell muted>{formatDate(applicant.appliedAt)}</Cell>
-          <Cell muted>{applicant.trackingNumber ?? "—"}</Cell>
+          <Cell muted>
+            {adminApplicantShipTo(
+              applicant.decision,
+              applicant.deliveryAddress,
+            )}
+          </Cell>
         </Row>
       ))}
     </AdminTable>

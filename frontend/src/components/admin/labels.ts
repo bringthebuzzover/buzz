@@ -228,3 +228,23 @@ export function formatDateTime(epochMs: number | null): string {
     minute: "2-digit",
   });
 }
+
+/**
+ * Seed `<input type="datetime-local">` from epoch ms using the admin's
+ * local wall clock (not UTC from `toISOString().slice`).
+ */
+export function toDatetimeLocalValue(epochMs: number): string {
+  const d = new Date(epochMs);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Applicants "Ship to" cell: address for applied/accepted; else em dash. */
+export function adminApplicantShipTo(
+  decision: string,
+  deliveryAddress: string | null,
+): string {
+  if (decision !== "applied" && decision !== "accepted") return "—";
+  const trimmed = deliveryAddress?.trim();
+  return trimmed ? trimmed : "Not set";
+}
