@@ -3848,8 +3848,8 @@ export interface operations {
     list_drops_endpoint_api_admin_drops_get: {
         parameters: {
             query?: {
-                stage?: string | null;
-                attention?: string | null;
+                stage?: string[] | null;
+                attention?: string[] | null;
             };
             header?: {
                 authorization?: string | null;
