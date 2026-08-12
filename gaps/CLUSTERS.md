@@ -177,7 +177,7 @@ Priority rationale (2026-08-11 delivery order — code first, then ops parallel)
 2. `org-onboarding-required-fields` — **done** (required profile fields + Graph followers)
 3. `brand-delivery-address` — **done** (null denied applicants' deliveryAddress)
 4. `org-edu-email-change` — pending-swap `.edu` rotate (decisions locked 2026-08-11)
-5. `admin-drops-ops-ui` — drops list multiselect filters + drop-detail logistics polish
+5. `admin-drops-ops-ui` — list filters shipped on `fix/admin-drops-list-filters`; logistics polish remains
 Ops (not auto-pick): `meta-business-verification`, `ops.brand-mailbox` (follow-ups).
 Parallel handoff OK: edu + list-filters + logistics on separate branches; merge on main later.
 
@@ -643,25 +643,18 @@ stop_if:
 
 status: pending
 gaps:
-  - admin.drops-list-filters-multiselect
   - admin.drop-detail-logistics-ui
+note: |
+  §1 list filters (`admin.drops-list-filters-multiselect`) archived on
+  `fix/admin-drops-list-filters` — do not re-implement. Cluster stays
+  pending until logistics ships; then mark done.
 approach: |
   Admin drops ops UX (list + detail). Two gaps, same cluster; may ship on
   parallel branches and merge later (CLUSTERS conflict OK).
 
-  1) List filters (`admin.drops-list-filters-multiselect`):
-     Replace both FilterChips rows on AdminDropsPage with dropdown
-     multiselects (Stage + Attention). New FilterMultiSelect in
-     AdminPrimitives (do not change org/brand FilterChips). URL is SOT via
-     repeated keys (`?stage=a&stage=b&attention=x`); writers must merge into
-     existing searchParams so dimensions combine. Empty selection omits the
-     param. BE: extend GET /api/admin/drops + list_drops to accept
-     list[str] | None for stage and attention. Validate each value; stages
-     use IN (OR); attentions OR together and_(*_attention_clause); stage AND
-     attention across dimensions. Single-value overview deep links keep
-     working. Regen openapi + FE schema. Extend test_admin_panel filter
-     tests. No client-only filter path; no CSV encoding; no PRODUCT edits.
-     Confirmed 2026-08-11: NOT XOR dimensions; NOT AND-within-attention.
+  1) List filters (`admin.drops-list-filters-multiselect`) — **done**
+     (archived). Multiselect Stage+Attention; repeated URL keys; BE
+     list[str] OR-within AND-across.
 
   2) Detail logistics (`admin.drop-detail-logistics-ui`):
      FE-only polish on AdminDropDetailPage DropConfigEditors + Applicants.

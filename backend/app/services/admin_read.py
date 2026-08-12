@@ -724,24 +724,31 @@ async def get_brand_detail(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
 async def list_drops(
     db: AsyncSession,
     *,
-    stage: str | None = None,
-    attention: str | None = None,
+    stage: list[str] | None = None,
+    attention: list[str] | None = None,
     brand_id: UUID | None = None,
 ) -> list[dict[str, Any]]:
     """Drops with their applicant tallies, newest first.
 
-    ``attention`` narrows to one of the states the overview counts, so a badge
-    can deep-link straight to the rows behind it.
+    ``stage`` / ``attention`` accept zero-or-more values (repeated query keys).
+    Within a dimension values OR; across dimensions they AND. Empty/omitted
+    means no filter on that dimension. Overview badges deep-link with a single
+    attention value.
     """
 
-    if stage is not None and stage not in {member.value for member in BrandTrackerStage}:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR, f"Unknown tracker stage: {stage}.", status_code=400
-        )
-    if attention is not None and attention not in _ATTENTION_FILTERS:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR, f"Unknown attention filter: {attention}.", status_code=400
-        )
+    stages = list(stage or [])
+    attentions = list(attention or [])
+    known_stages = {member.value for member in BrandTrackerStage}
+    for value in stages:
+        if value not in known_stages:
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR, f"Unknown tracker stage: {value}.", status_code=400
+            )
+    for value in attentions:
+        if value not in _ATTENTION_FILTERS:
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR, f"Unknown attention filter: {value}.", status_code=400
+            )
 
     applied_sq = (
         select(DropApplication.drop_id, func.count().label("n"))
@@ -769,12 +776,13 @@ async def list_drops(
         .outerjoin(accepted_sq, accepted_sq.c.drop_id == Drop.id)
         .order_by(Drop.created_at.desc())
     )
-    if stage is not None:
-        stmt = stmt.where(Drop.brand_tracker_stage == stage)
+    if stages:
+        stmt = stmt.where(Drop.brand_tracker_stage.in_(stages))
     if brand_id is not None:
         stmt = stmt.where(Drop.brand_id == brand_id)
-    if attention is not None:
-        stmt = stmt.where(*_attention_clause(attention, _now()))
+    if attentions:
+        now = _now()
+        stmt = stmt.where(or_(*[and_(*_attention_clause(a, now)) for a in attentions]))
 
     return [
         {
