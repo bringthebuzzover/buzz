@@ -291,8 +291,8 @@ async def resend_brand_invite_endpoint(
 @router.get("/drops", response_model=DataResponse[list[AdminDropItem]])
 async def list_drops_endpoint(
     _user: CurrentAdmin,
-    stage: str | None = Query(default=None),
-    attention: str | None = Query(default=None),
+    stage: list[str] | None = Query(default=None),
+    attention: list[str] | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     rows = await list_drops(db, stage=stage, attention=attention)

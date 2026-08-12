@@ -3,7 +3,8 @@ id: admin.drops-list-filters-multiselect
 title: Admin drops list filters should be combinable dropdown multiselects
 kind: ux_hole
 severity: P2
-status: open
+status: fixed
+closed_in: ca28fa6
 surface: admin
 evidence:
   - path: frontend/src/pages/admin/AdminDropsPage.tsx

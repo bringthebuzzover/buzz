@@ -5,7 +5,13 @@
  * coral reserved for primary actions and non-zero counts so a page full of zeros
  * reads as calm. Same `buzz-*` palette as the rest of the app — no new colors.
  */
-import type { ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Link } from "react-router-dom";
 import { STATUS_LABELS } from "./labels";
 
@@ -209,6 +215,110 @@ export function FilterChips({
           </Link>
         );
       })}
+    </div>
+  );
+}
+
+/** Dropdown multiselect for combinable admin list filters (URL owned by caller). */
+export function FilterMultiSelect({
+  label,
+  options,
+  selected,
+  onChange,
+}: {
+  label: string;
+  options: ReadonlyArray<{ value: string; label: string }>;
+  selected: readonly string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  const selectedSet = new Set(selected);
+  const orderedSelected = options.filter((option) => selectedSet.has(option.value));
+
+  let summary = label;
+  if (orderedSelected.length === 1) {
+    summary = orderedSelected[0].label;
+  } else if (orderedSelected.length > 1) {
+    summary = `${orderedSelected[0].label} +${orderedSelected.length - 1}`;
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const toggle = (value: string) => {
+    if (selectedSet.has(value)) {
+      onChange(selected.filter((item) => item !== value));
+      return;
+    }
+    onChange([...selected, value]);
+  };
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => setOpen((prev) => !prev)}
+        className={`rounded-full border px-3 py-1 text-xs font-bold transition ${
+          selected.length > 0
+            ? "border-buzz-coral bg-buzz-coral text-buzz-paper"
+            : "border-buzz-lineMid bg-buzz-paper text-buzz-inkMuted hover:border-buzz-coral hover:text-buzz-coral"
+        }`}
+      >
+        {summary}
+      </button>
+      {open && (
+        <div
+          id={listId}
+          role="listbox"
+          aria-multiselectable="true"
+          aria-label={label}
+          className="absolute left-0 z-20 mt-2 min-w-[14rem] rounded-lg border border-buzz-lineMid bg-buzz-paper py-1 shadow-md"
+        >
+          {options.map((option) => {
+            const checked = selectedSet.has(option.value);
+            return (
+              <label
+                key={option.value}
+                className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-xs font-medium ${
+                  checked
+                    ? "bg-buzz-coral/10 text-buzz-coral"
+                    : "text-buzz-inkMuted hover:bg-buzz-neutralWash hover:text-buzz-ink"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  role="option"
+                  aria-selected={checked}
+                  checked={checked}
+                  onChange={() => toggle(option.value)}
+                  className="accent-buzz-coral"
+                />
+                {option.label}
+              </label>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
