@@ -56,6 +56,10 @@ export type AuthUser = {
   portalRole: PortalRole;
   status: string;
   instagramUsername?: string;
+  /** Live .edu (org) or company email (brand/admin) from `/me`. */
+  email?: string;
+  /** Pending-swap .edu while rotate verification is outstanding. */
+  pendingEduEmail?: string;
   /** Admin user id, set only while an admin is viewing as this user. */
   impersonatedBy?: string;
   /** Whether that impersonation session is barred from mutating. */

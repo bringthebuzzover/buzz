@@ -55,6 +55,7 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 - Routing and permissions enforce a **single portal** per authenticated user.
 - **Organization users** sign in with **Login with Instagram** (Instagram is the account identity for the org portal). The Instagram account used at login **is** the organization account (Business/Creator); the org handle is not separately choosable.
 - On first signup, the org completes a short profile—**university**, **org name**, \# of members, **organization type**, **city**, **state**, **contact name**, **shipping address**, and a **university .edu email**—and must **verify** that email, then await **Buzz admin approval**, before the Organization portal grants access. Until approval, the user remains in a pending state (no full portal access). Those profile fields remain required on later org profile edits (cannot be cleared). Instagram **follower count** is not manually entered — it is seeded from Instagram at profile creation when possible and refreshed daily (**§4.3**).
+- After first `.edu` verification, orgs in **`active`** or **`pending_approval`** may **rotate** to a new unique campus `.edu` (officer swap). Buzz uses a **pending-swap**: the current `users.edu_email` stays the live login/contact identity; `users.pending_edu_email` holds the new address until the verification link is confirmed; then Buzz swaps, refreshes `email_verified_at`, and **does not** demote status or block the portal. Resend and Cancel apply to the pending latch. Rotate/cancel use dedicated verify-email APIs — not `PATCH /orgs/me`. Onboarding typo-fix (`POST /api/auth/verify-email/change` while `pending_email_verification`) is unchanged.
 
 ### 3.1.1 Data ownership (single source of truth)
 
@@ -63,7 +64,8 @@ Each fact is stored once; APIs may still expose familiar field names by joining 
 | Fact | Owner column | Notes |
 | --- | --- | --- |
 | Org Instagram identity | `users.instagram_username` | Exposed as `instagramHandle` on org profile / applicant rows |
-| Org `.edu` email | `users.edu_email` | Unique login/verification identity; not editable via `PATCH /orgs/me` |
+| Org `.edu` email | `users.edu_email` | Unique login/verification identity; not editable via `PATCH /orgs/me`. Post-verify rotate uses pending-swap (`users.pending_edu_email`) via dedicated verify-email APIs |
+| Org pending `.edu` rotate | `users.pending_edu_email` | Unique when set; cleared on verify, cancel, or erase |
 | Brand display name | `brands.brand_name` | Drop/campaign responses join brand for `brandName` |
 | Campaign tracking number | `drops.tracking_number` | One TN per drop; org/brand/admin surfaces read the drop |
 | Post↔campaign membership | `drop_applications.drop_id` | Links/suggestions reference `application_id` only |

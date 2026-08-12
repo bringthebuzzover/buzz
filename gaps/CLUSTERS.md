@@ -176,7 +176,7 @@ Priority rationale (2026-08-11 delivery order — code first, then ops parallel)
 1. `org-verify-email-confirm` — **done** (confirm before .edu verify POST)
 2. `org-onboarding-required-fields` — **done** (required profile fields + Graph followers)
 3. `brand-delivery-address` — **done** (null denied applicants' deliveryAddress)
-4. `org-edu-email-change` — pending-swap `.edu` rotate (decisions locked 2026-08-11)
+4. `org-edu-email-change` — **done** (pending-swap `.edu` rotate)
 5. `admin-drops-ops-ui` — drops list multiselect filters + drop-detail logistics polish
 Ops (not auto-pick): `meta-business-verification`, `ops.brand-mailbox` (follow-ups).
 Parallel handoff OK: edu + list-filters + logistics on separate branches; merge on main later.
@@ -624,7 +624,7 @@ stop_if:
 
 ## org-edu-email-change
 
-status: pending
+status: done
 gaps:
   - org.edu-email-change-after-verify
 approach: |

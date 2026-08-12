@@ -722,3 +722,227 @@ async def test_brand_login_case_insensitive_email(app_client: AsyncClient, db_se
     )
     assert resp.status_code == 200, resp.text
     assert resp.json()["data"]["access_token"]
+
+
+# --- Post-verify .edu pending-swap rotate ------------------------------------
+
+
+async def _seed_verified_org(
+    db_session,
+    *,
+    email: str,
+    suffix: str,
+    status: OrgUserStatus = OrgUserStatus.ACTIVE,
+) -> User:
+    user = await persist(
+        db_session,
+        make_user(status=status, instagram_user_id=f"ig_rot_{suffix}"),
+    )
+    user.edu_email = email
+    user.email_verified_at = datetime.now(timezone.utc)
+    db_session.add(
+        Organization(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            org_name=f"Rotate Club {suffix}",
+            university="Test University",
+        )
+    )
+    await db_session.flush()
+    return user
+
+
+async def test_rotate_edu_email_pending_swap_then_verify(
+    app_client: AsyncClient, db_session
+) -> None:
+    user = await _seed_verified_org(db_session, email="live@test.edu", suffix="r1")
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+
+    resp = await app_client.post(
+        "/api/auth/verify-email/rotate",
+        json={"eduEmail": "new@test.edu"},
+        headers=headers,
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()["data"]
+    assert body["emailSentTo"] == "new@test.edu"
+    assert body["pendingEduEmail"] == "new@test.edu"
+    assert body["status"] == OrgUserStatus.ACTIVE.value
+
+    await db_session.refresh(user)
+    assert user.edu_email == "live@test.edu"
+    assert user.pending_edu_email == "new@test.edu"
+    assert user.status == OrgUserStatus.ACTIVE.value
+
+    tokens = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(
+                EmailVerificationToken.user_id == user.id,
+                EmailVerificationToken.used_at.is_(None),
+            )
+        )
+    )
+    assert len(tokens) == 1
+    assert tokens[0].email == "new@test.edu"
+
+    # Recover raw token from mint helper path: re-mint isn't exposed; use
+    # service mint by reading hash isn't reversible. Seed a known token instead.
+    raw = uuid.uuid4().hex
+    tokens[0].token_hash = hash_token(raw)
+    await db_session.flush()
+
+    verify = await app_client.post("/api/auth/verify-email", json={"token": raw})
+    assert verify.status_code == 200, verify.text
+    assert verify.json()["data"]["status"] == OrgUserStatus.ACTIVE.value
+
+    await db_session.refresh(user)
+    assert user.edu_email == "new@test.edu"
+    assert user.pending_edu_email is None
+    assert user.email_verified_at is not None
+    assert user.status == OrgUserStatus.ACTIVE.value
+
+
+async def test_rotate_edu_email_pending_approval_eligible(
+    app_client: AsyncClient, db_session
+) -> None:
+    user = await _seed_verified_org(
+        db_session,
+        email="pend@test.edu",
+        suffix="r2",
+        status=OrgUserStatus.PENDING_APPROVAL,
+    )
+    resp = await app_client.post(
+        "/api/auth/verify-email/rotate",
+        json={"eduEmail": "pend-new@test.edu"},
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 200, resp.text
+    await db_session.refresh(user)
+    assert user.edu_email == "pend@test.edu"
+    assert user.pending_edu_email == "pend-new@test.edu"
+    assert user.status == OrgUserStatus.PENDING_APPROVAL.value
+
+
+async def test_rotate_rejects_onboarding_only_change_path(
+    app_client: AsyncClient, db_session
+) -> None:
+    """POST /verify-email/change stays onboarding-only (typo fix)."""
+    user = await _seed_verified_org(db_session, email="keep@test.edu", suffix="r3")
+    resp = await app_client.post(
+        "/api/auth/verify-email/change",
+        json={"eduEmail": "typo@test.edu"},
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "INVALID_ONBOARDING_STATE"
+    await db_session.refresh(user)
+    assert user.edu_email == "keep@test.edu"
+    assert user.pending_edu_email is None
+
+
+async def test_cancel_pending_edu_email(app_client: AsyncClient, db_session) -> None:
+    user = await _seed_verified_org(db_session, email="cancel@test.edu", suffix="r4")
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    await app_client.post(
+        "/api/auth/verify-email/rotate",
+        json={"eduEmail": "cancel-new@test.edu"},
+        headers=headers,
+    )
+    raw = uuid.uuid4().hex
+    evt = (
+        await db_session.scalars(
+            select(EmailVerificationToken).where(
+                EmailVerificationToken.user_id == user.id,
+                EmailVerificationToken.used_at.is_(None),
+            )
+        )
+    ).first()
+    assert evt is not None
+    evt.token_hash = hash_token(raw)
+    await db_session.flush()
+
+    resp = await app_client.post(
+        "/api/auth/verify-email/cancel",
+        json={},
+        headers=headers,
+    )
+    assert resp.status_code == 200, resp.text
+    await db_session.refresh(user)
+    assert user.pending_edu_email is None
+    await db_session.refresh(evt)
+    assert evt.expires_at <= datetime.now(timezone.utc)
+
+    verify = await app_client.post("/api/auth/verify-email", json={"token": raw})
+    assert verify.status_code == 400
+
+
+async def test_resend_pending_swap(app_client: AsyncClient, db_session) -> None:
+    user = await _seed_verified_org(db_session, email="rs@test.edu", suffix="r5")
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    await app_client.post(
+        "/api/auth/verify-email/rotate",
+        json={"eduEmail": "rs-new@test.edu"},
+        headers=headers,
+    )
+    before = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
+        )
+    )
+    assert len(before) == 1
+
+    resp = await app_client.post(
+        "/api/auth/verify-email/resend",
+        json={},
+        headers=headers,
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["data"]["emailSentTo"] == "rs-new@test.edu"
+    after = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
+        )
+    )
+    assert len(after) == 2
+
+
+async def test_rotate_blocks_live_and_pending_collisions(
+    app_client: AsyncClient, db_session
+) -> None:
+    await _seed_verified_org(db_session, email="taken@test.edu", suffix="r6a")
+    peer = await _seed_verified_org(db_session, email="peer@test.edu", suffix="r6b")
+    peer.pending_edu_email = "pending-taken@test.edu"
+    await db_session.flush()
+
+    user = await _seed_verified_org(db_session, email="me@test.edu", suffix="r6c")
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+
+    live = await app_client.post(
+        "/api/auth/verify-email/rotate",
+        json={"eduEmail": "taken@test.edu"},
+        headers=headers,
+    )
+    assert live.status_code == 409
+    assert live.json()["error"]["code"] == "EDU_EMAIL_TAKEN"
+
+    pending = await app_client.post(
+        "/api/auth/verify-email/rotate",
+        json={"eduEmail": "pending-taken@test.edu"},
+        headers=headers,
+    )
+    assert pending.status_code == 409
+    assert pending.json()["error"]["code"] == "EDU_EMAIL_TAKEN"
+
+
+async def test_me_exposes_pending_edu_email(app_client: AsyncClient, db_session) -> None:
+    user = await _seed_verified_org(db_session, email="me-live@test.edu", suffix="r7")
+    user.pending_edu_email = "me-pend@test.edu"
+    await db_session.flush()
+    resp = await app_client.get(
+        "/api/auth/me",
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert data["email"] == "me-live@test.edu"
+    assert data["pending_edu_email"] == "me-pend@test.edu"

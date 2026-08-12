@@ -3231,6 +3231,30 @@
         "title": "CampaignListItem",
         "type": "object"
       },
+      "CancelPendingEduEmailRequest": {
+        "description": "Clear a pending .edu rotate latch (auth required).",
+        "properties": {},
+        "title": "CancelPendingEduEmailRequest",
+        "type": "object"
+      },
+      "CancelPendingEduEmailResponse": {
+        "properties": {
+          "ok": {
+            "default": true,
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "CancelPendingEduEmailResponse",
+        "type": "object"
+      },
       "ChangeEduEmailRequest": {
         "description": "Correct a typo'd .edu while still awaiting verification.",
         "properties": {
@@ -3928,6 +3952,44 @@
         "title": "DataResponse[CampaignDetailResponse]",
         "type": "object"
       },
+      "DataResponse_CancelPendingEduEmailResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CancelPendingEduEmailResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[CancelPendingEduEmailResponse]",
+        "type": "object"
+      },
       "DataResponse_ChangeEduEmailResponse_": {
         "properties": {
           "data": {
@@ -4534,6 +4596,44 @@
           }
         },
         "title": "DataResponse[ResendVerificationResponse]",
+        "type": "object"
+      },
+      "DataResponse_RotateEduEmailResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RotateEduEmailResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[RotateEduEmailResponse]",
         "type": "object"
       },
       "DataResponse_TokenResponse_": {
@@ -5981,6 +6081,17 @@
             "title": "Orgname",
             "type": "string"
           },
+          "pendingEduEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pendingeduemail"
+          },
           "state": {
             "anyOf": [
               {
@@ -6494,6 +6605,43 @@
         "title": "ResetPasswordRequest",
         "type": "object"
       },
+      "RotateEduEmailRequest": {
+        "description": "Request a new .edu after first verify (pending-swap; PRODUCT \u00a73.1).",
+        "properties": {
+          "eduEmail": {
+            "title": "Eduemail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eduEmail"
+        ],
+        "title": "RotateEduEmailRequest",
+        "type": "object"
+      },
+      "RotateEduEmailResponse": {
+        "properties": {
+          "emailSentTo": {
+            "title": "Emailsentto",
+            "type": "string"
+          },
+          "pendingEduEmail": {
+            "title": "Pendingeduemail",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "emailSentTo",
+          "pendingEduEmail",
+          "status"
+        ],
+        "title": "RotateEduEmailResponse",
+        "type": "object"
+      },
       "SuggestionResponse": {
         "description": "A pending auto-link suggestion joined with its post (architecture \u00a77.4.1).",
         "properties": {
@@ -6706,6 +6854,17 @@
               }
             ],
             "title": "Instagram Username"
+          },
+          "pending_edu_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Edu Email"
           },
           "portal_role": {
             "title": "Portal Role",
@@ -8984,6 +9143,66 @@
         ]
       }
     },
+    "/api/auth/verify-email/cancel": {
+      "post": {
+        "description": "Cancel a pending-swap .edu rotate (clear latch + unused tokens).",
+        "operationId": "cancel_pending_edu_email_endpoint_api_auth_verify_email_cancel_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelPendingEduEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_CancelPendingEduEmailResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Cancel Pending Edu Email Endpoint",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/auth/verify-email/change": {
       "post": {
         "description": "Correct a typo'd .edu while still awaiting verification.",
@@ -9099,6 +9318,66 @@
           }
         },
         "summary": "Resend Verification Endpoint",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/verify-email/rotate": {
+      "post": {
+        "description": "Start a pending-swap .edu rotate (active / pending_approval orgs).",
+        "operationId": "rotate_edu_email_endpoint_api_auth_verify_email_rotate_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RotateEduEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_RotateEduEmailResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Rotate Edu Email Endpoint",
         "tags": [
           "auth"
         ]

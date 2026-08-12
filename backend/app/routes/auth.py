@@ -24,10 +24,12 @@ from app.models.enums import OrgUserStatus, PortalRole
 from app.models.user import User
 from app.response import APIResponse, DataResponse, api_error_response, api_response
 from app.schemas.acks import (
+    CancelPendingEduEmailResponse,
     ChangeEduEmailResponse,
     InstagramDeauthorizeResponse,
     OkResponse,
     ResendVerificationResponse,
+    RotateEduEmailResponse,
     VerifyEmailResponse,
 )
 from app.schemas.auth import (
@@ -41,10 +43,12 @@ from app.schemas.onboarding import (
     AdminLoginRequest,
     BrandLoginRequest,
     BrandSetPasswordRequest,
+    CancelPendingEduEmailRequest,
     ChangeEduEmailRequest,
     ForgotPasswordRequest,
     ResendVerificationRequest,
     ResetPasswordRequest,
+    RotateEduEmailRequest,
     VerifyEmailRequest,
 )
 from app.security import jwt
@@ -61,8 +65,10 @@ from app.services.auth import (
 from app.services.brand_auth import login_brand, set_brand_password
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.onboarding import (
+    cancel_pending_edu_email,
     change_edu_email,
     resend_verification_email,
+    rotate_edu_email,
     verify_email,
 )
 from app.services.password_reset import request_password_reset, reset_password
@@ -481,6 +487,36 @@ async def change_edu_email_endpoint(
     """Correct a typo'd .edu while still awaiting verification."""
     result = await change_edu_email(db, user, payload.edu_email)
     return api_response(data=ChangeEduEmailResponse.model_validate(result))
+
+
+@router.post(
+    "/verify-email/rotate",
+    response_model=DataResponse[RotateEduEmailResponse],
+    dependencies=[Depends(rate_limited("verify_rotate", limit=5, window=60))],
+)
+async def rotate_edu_email_endpoint(
+    payload: RotateEduEmailRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Start a pending-swap .edu rotate (active / pending_approval orgs)."""
+    result = await rotate_edu_email(db, user, payload.edu_email)
+    return api_response(data=RotateEduEmailResponse.model_validate(result))
+
+
+@router.post(
+    "/verify-email/cancel",
+    response_model=DataResponse[CancelPendingEduEmailResponse],
+    dependencies=[Depends(rate_limited("verify_cancel", limit=10, window=60))],
+)
+async def cancel_pending_edu_email_endpoint(
+    _payload: CancelPendingEduEmailRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Cancel a pending-swap .edu rotate (clear latch + unused tokens)."""
+    result = await cancel_pending_edu_email(db, user)
+    return api_response(data=CancelPendingEduEmailResponse.model_validate(result))
 
 
 # ── Brand auth (Stage 7) ────────────────────────────────────────────────────

@@ -48,6 +48,17 @@ class ChangeEduEmailResponse(CamelModel):
     status: str
 
 
+class RotateEduEmailResponse(CamelModel):
+    email_sent_to: str
+    pending_edu_email: str
+    status: str
+
+
+class CancelPendingEduEmailResponse(CamelModel):
+    ok: bool = True
+    status: str
+
+
 class OrgOnboardingResponse(CamelModel):
     org_id: uuid.UUID
     status: str

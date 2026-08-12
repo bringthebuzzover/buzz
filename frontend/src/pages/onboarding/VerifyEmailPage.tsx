@@ -14,7 +14,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth, type AuthUser } from "../../contexts/AuthContext";
 import {
   useChangeEduEmail,
   useResendVerification,
@@ -76,7 +76,7 @@ export default function VerifyEmailPage() {
 type VerifyState =
   | { kind: "idle" }
   | { kind: "verifying" }
-  | { kind: "success"; authenticated: boolean }
+  | { kind: "success"; user: AuthUser | null }
   | { kind: "error"; message: string };
 
 function VerifyWithToken({ token }: { token: string }) {
@@ -85,6 +85,12 @@ function VerifyWithToken({ token }: { token: string }) {
   const verify = useVerifyEmail();
   const [state, setState] = useState<VerifyState>({ kind: "idle" });
   const inFlightRef = useRef(false);
+
+  const finishSuccess = async () => {
+    const me = await refreshUser();
+    stripTokenFromUrl();
+    setState({ kind: "success", user: me });
+  };
 
   const onConfirm = async () => {
     if (inFlightRef.current) return;
@@ -96,17 +102,13 @@ function VerifyWithToken({ token }: { token: string }) {
       // refreshUser() may return null. Show a self-contained success screen
       // either way rather than auto-navigating to a guarded page (which would
       // bounce an unauthenticated visitor to "/").
-      const me = await refreshUser();
-      stripTokenFromUrl();
-      setState({ kind: "success", authenticated: !!me });
+      await finishSuccess();
     } catch (err) {
       // Re-clicking an already-used link is success, not failure: the email is
       // verified. Show the success screen (refreshUser decides where Continue
       // goes).
       if (err instanceof ApiError && err.code === "EMAIL_ALREADY_VERIFIED") {
-        const me = await refreshUser();
-        stripTokenFromUrl();
-        setState({ kind: "success", authenticated: !!me });
+        await finishSuccess();
         return;
       }
       setState({
@@ -173,24 +175,23 @@ function VerifyWithToken({ token }: { token: string }) {
     );
   }
 
-  // success
+  // success — first-time verify lands on pending-approval; pending-swap rotate
+  // keeps status (active → portal, pending_approval → wait screen).
+  const successCopy =
+    state.user?.status === "active"
+      ? "Your school email is updated. You can continue using the org portal."
+      : "Thanks! Your account is now pending admin approval. We'll let you in as soon as a Buzz admin reviews it.";
+  const continueTo = state.user ? pathForUser(state.user) : "/login";
+
   return (
     <div className="mx-auto max-w-md px-8 py-24 text-center">
       <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
         Email <span className="text-buzz-coral">Verified</span>
       </h1>
-      <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
-        Thanks! Your account is now pending admin approval. We'll let you in as
-        soon as a Buzz admin reviews it.
-      </p>
+      <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{successCopy}</p>
       <button
         type="button"
-        onClick={() =>
-          navigate(
-            state.authenticated ? "/onboarding/pending-approval" : "/login",
-            { replace: true },
-          )
-        }
+        onClick={() => navigate(continueTo, { replace: true })}
         className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
       >
         Continue

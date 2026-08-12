@@ -25,6 +25,7 @@ class OrgProfileResponse(CamelModel):
     org_name: str
     university: str
     edu_email: str
+    pending_edu_email: str | None = None
     instagram_handle: str
     tiktok_handle: str | None
     follower_count: int | None

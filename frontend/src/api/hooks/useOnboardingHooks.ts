@@ -17,6 +17,10 @@ export type ResendVerificationResponse =
   components["schemas"]["ResendVerificationResponse"];
 export type ChangeEduEmailResponse =
   components["schemas"]["ChangeEduEmailResponse"];
+export type RotateEduEmailResponse =
+  components["schemas"]["RotateEduEmailResponse"];
+export type CancelPendingEduEmailResponse =
+  components["schemas"]["CancelPendingEduEmailResponse"];
 export type BrandApplyResponse = components["schemas"]["BrandApplyResponse"];
 export type PublicConfigResponse = components["schemas"]["PublicConfigResponse"];
 
@@ -92,6 +96,38 @@ export function useChangeEduEmail() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ eduEmail }),
+        },
+      );
+      return data;
+    },
+  });
+}
+
+export function useRotateEduEmail() {
+  return useMutation({
+    mutationFn: async (eduEmail: string) => {
+      const { data } = await apiFetch<RotateEduEmailResponse>(
+        "/api/auth/verify-email/rotate",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eduEmail }),
+        },
+      );
+      return data;
+    },
+  });
+}
+
+export function useCancelPendingEduEmail() {
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiFetch<CancelPendingEduEmailResponse>(
+        "/api/auth/verify-email/cancel",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
         },
       );
       return data;

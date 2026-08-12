@@ -58,6 +58,11 @@ class User(Base):
     status: Mapped[str] = mapped_column(OrgUserStatusEnum, nullable=False)
 
     edu_email: Mapped[str | None] = mapped_column(sa.String(320), unique=True, nullable=True)
+    # Pending-swap latch while rotating a verified .edu (PRODUCT §3.1). Live
+    # ``edu_email`` stays until the new address is confirmed.
+    pending_edu_email: Mapped[str | None] = mapped_column(
+        sa.String(320), unique=True, nullable=True
+    )
     email_verified_at: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True), nullable=True
     )
