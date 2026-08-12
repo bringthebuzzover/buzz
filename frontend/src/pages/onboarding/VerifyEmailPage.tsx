@@ -175,12 +175,15 @@ function VerifyWithToken({ token }: { token: string }) {
     );
   }
 
-  // success — first-time verify lands on pending-approval; pending-swap rotate
-  // keeps status (active → portal, pending_approval → wait screen).
+  // success — first-time verify → pending_approval; pending-swap keeps status
+  // (active → portal, pending_approval → wait screen). Unauthenticated link
+  // open: user null → login Continue with first-time-ish copy.
   const successCopy =
     state.user?.status === "active"
       ? "Your school email is updated. You can continue using the org portal."
-      : "Thanks! Your account is now pending admin approval. We'll let you in as soon as a Buzz admin reviews it.";
+      : state.user?.status === "pending_approval"
+        ? "Your school email is confirmed. Your account is awaiting admin approval."
+        : "Thanks! Your account is now pending admin approval. We'll let you in as soon as a Buzz admin reviews it.";
   const continueTo = state.user ? pathForUser(state.user) : "/login";
 
   return (
