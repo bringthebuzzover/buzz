@@ -4,6 +4,7 @@ title: Production CSP blocks leftover GitHub Pages inline scripts on every www l
 kind: ops
 severity: P3
 status: fixed
+closed_in: 8f78639
 surface: spa
 evidence:
   - path: frontend/public/index.html
