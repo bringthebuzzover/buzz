@@ -28,6 +28,10 @@ const BRAND_NAV_LINKS = [
   { to: "/brand/dashboard", label: "Dashboard" as const },
 ] as const;
 
+/** Guest/brand left clusters are short; org’s four labels need lg. */
+const ORG_DESKTOP_MIN_PX = 1024;
+const COMPACT_DESKTOP_MIN_PX = 650;
+
 export default function SiteHeader() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -69,14 +73,18 @@ export default function SiteHeader() {
     setMobileNavOpen(false);
   }, [pathname]);
 
+  const isApiAuth = authStatus === "authenticated" && user;
+  const isOrgNav = authStatus === "authenticated" && user?.portalRole === "org";
+  const desktopMinPx = isOrgNav ? ORG_DESKTOP_MIN_PX : COMPACT_DESKTOP_MIN_PX;
+
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 650px)");
+    const mq = window.matchMedia(`(min-width: ${desktopMinPx}px)`);
     const onChange = () => {
       if (mq.matches) setMobileNavOpen(false);
     };
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
-  }, []);
+  }, [desktopMinPx]);
 
   useEffect(() => {
     if (!mobileNavOpen) return;
@@ -88,7 +96,6 @@ export default function SiteHeader() {
   }, [mobileNavOpen]);
 
   // Determine nav links from the authenticated user's role.
-  const isApiAuth = authStatus === "authenticated" && user;
   const navLinks = isApiAuth
     ? user.portalRole === "brand"
       ? BRAND_NAV_LINKS
@@ -101,6 +108,11 @@ export default function SiteHeader() {
     if (to === "/") return pathname === "/";
     return pathname === to || pathname.startsWith(`${to}/`);
   };
+
+  const navItemClass = (active: boolean) =>
+    `whitespace-nowrap transition hover:text-buzz-butterBright ${
+      active ? "underline decoration-2 underline-offset-8" : ""
+    }`;
 
   const handleJoinClick = () => {
     goToHomeJoin(pathname, navigate);
@@ -174,29 +186,29 @@ export default function SiteHeader() {
         </div>
       </div>
 
-      {/* Coral nav bar */}
+      {/* Coral nav bar. Logo is in-flow (1fr / auto / 1fr) so it cannot cover
+          the side clusters. Org uses lg; guest/brand keep 650px. */}
       <nav className="relative bg-buzz-coral text-buzz-paper shadow-sm">
-        <div className="relative hidden min-[650px]:flex h-[6rem] items-center justify-between px-8 py-4 font-medium">
-          <div className="flex space-x-8">
-            <Link
-              to="/"
-              className={`transition hover:text-buzz-butterBright ${
-                isNavActive("/")
-                  ? "underline decoration-2 underline-offset-8"
-                  : ""
-              }`}
-            >
+        <div
+          className={`relative hidden h-[6rem] grid-cols-[1fr_auto_1fr] items-center px-8 py-4 font-medium ${
+            isOrgNav ? "lg:grid" : "min-[650px]:grid"
+          }`}
+        >
+          <div
+            className={
+              isOrgNav
+                ? "flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 xl:gap-x-8"
+                : "flex min-w-0 items-center gap-x-8"
+            }
+          >
+            <Link to="/" className={navItemClass(isNavActive("/"))}>
               Home
             </Link>
             {navLinks.map((link) => (
               <Link
                 key={link.label}
                 to={link.to}
-                className={`transition hover:text-buzz-butterBright ${
-                  isNavActive(link.to)
-                    ? "underline decoration-2 underline-offset-8"
-                    : ""
-                }`}
+                className={navItemClass(isNavActive(link.to))}
               >
                 {link.label}
               </Link>
@@ -205,8 +217,9 @@ export default function SiteHeader() {
 
           <button
             type="button"
+            data-testid="site-header-logo"
             onClick={() => navigate("/")}
-            className="absolute left-1/2 top-1/2 z-10 flex h-17 w-56 -translate-x-1/2 -translate-y-1/2 cursor-pointer items-center justify-center px-3"
+            className="flex h-16 max-w-[11rem] shrink-0 cursor-pointer items-center justify-center px-2"
           >
             <img
               src={images.logo}
@@ -215,11 +228,11 @@ export default function SiteHeader() {
             />
           </button>
 
-          <div className="flex space-x-8">
+          <div className="flex min-w-0 items-center justify-end gap-x-8">
             <button
               type="button"
               onClick={openContactModal}
-              className="transition hover:text-buzz-butterBright"
+              className="whitespace-nowrap transition hover:text-buzz-butterBright"
             >
               Contact
             </button>
@@ -227,7 +240,7 @@ export default function SiteHeader() {
               <button
                 type="button"
                 onClick={handleJoinClick}
-                className="transition hover:text-buzz-butterBright"
+                className="whitespace-nowrap transition hover:text-buzz-butterBright"
               >
                 Join Us!
               </button>
@@ -236,7 +249,11 @@ export default function SiteHeader() {
         </div>
 
         {/* Mobile nav */}
-        <div className="flex min-[650px]:hidden items-center justify-between gap-3 px-4 py-3">
+        <div
+          className={`flex items-center justify-between gap-3 px-4 py-3 ${
+            isOrgNav ? "lg:hidden" : "min-[650px]:hidden"
+          }`}
+        >
           <button
             type="button"
             onClick={() => setMobileNavOpen((o) => !o)}
@@ -249,6 +266,7 @@ export default function SiteHeader() {
           </button>
           <button
             type="button"
+            data-testid="site-header-logo"
             onClick={() => navigate("/")}
             className="flex h-12 max-h-[3.25rem] max-w-[55vw] shrink cursor-pointer items-center justify-end"
           >
@@ -262,7 +280,9 @@ export default function SiteHeader() {
 
         {/* Mobile panel */}
         <div
-          className={`fixed inset-x-0 bottom-0 z-[55] min-[650px]:hidden transition-opacity duration-300 ${
+          className={`fixed inset-x-0 bottom-0 z-[55] transition-opacity duration-300 ${
+            isOrgNav ? "lg:hidden" : "min-[650px]:hidden"
+          } ${
             mobileNavOpen
               ? "pointer-events-auto opacity-100"
               : "pointer-events-none opacity-0"
