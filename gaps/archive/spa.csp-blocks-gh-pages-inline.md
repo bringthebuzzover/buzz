@@ -3,7 +3,7 @@ id: spa.csp-blocks-gh-pages-inline
 title: Production CSP blocks leftover GitHub Pages inline scripts on every www load
 kind: ops
 severity: P3
-status: open
+status: fixed
 surface: spa
 evidence:
   - path: frontend/public/index.html

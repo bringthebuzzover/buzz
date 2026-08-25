@@ -224,7 +224,7 @@ The backend sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Re
 
 ### SPA security headers (`serve.json`)
 
-Production SPA (`npm run start:prod` → `serve -s build`) reads `build/serve.json` (copied from `frontend/public/serve.json` by CRA). It sets CSP (`default-src 'self'`; `connect-src` includes `https://api.bringthebuzzover.com`; `img-src` allows `https:` for IG thumbs), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and `X-Frame-Options: DENY`.
+Production SPA (`npm run start:prod` → `serve -s build`) reads `build/serve.json` (copied from `frontend/public/serve.json` by CRA). It sets CSP (`default-src 'self'`; `connect-src` includes `https://api.bringthebuzzover.com`; `img-src` allows `https:` for IG thumbs), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and `X-Frame-Options: DENY`. Source `frontend/public/index.html` has no inline scripts; production builds set `INLINE_RUNTIME_CHUNK=false` (see `frontend/.env.production`) so CRA does not embed the webpack runtime inline.
 
 After deploy, smoke:
 
