@@ -16,7 +16,7 @@ export const FEATURED_COLLABS: FeaturedCollab[] = [
   {
     id: 2,
     title: "Zeta Tau Alpha x La Croix",
-    subtitle: "Collaboration at Stanford University",
+    subtitle: "Collaboration at Ole Miss",
     image: ztaLacroix,
   },
 ];
