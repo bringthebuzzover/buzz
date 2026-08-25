@@ -20,6 +20,44 @@ the Buzz account ahead of time** so the org only has to **click a link in that
 email**. After the click, the account should be **set up**; the remaining work
 is **connect / sync Instagram**.
 
+## Current-stage overlay (why IG must be last)
+
+Public Instagram OAuth is still **Standard Access**. Only Instagram Testers
+can complete login ([`META.md`](../META.md),
+[`gaps/deploy.meta-business-verification.md`](../gaps/deploy.meta-business-verification.md)).
+Adding a tester is a **human Meta dashboard** step, and the org must
+**accept** the tester invite on Instagram before Buzz OAuth works.
+
+That changes the UX vs a naive “claim then Connect Instagram”:
+
+- If the claim landing **immediately** offers Connect, every non-tester fails
+  on the first real click. Worse first impression than today’s IG-first flow
+  (they never get past login).
+- Instagram handle on the import list is **required for ops** (Meta tester
+  add needs the username), even though it is **not** Buzz login identity until
+  OAuth binds.
+- After Advanced Access, drop the wait; keep the claim path if sales-led
+  seeding still matters. This overlay is a **bridge**, not a substitute for
+  Business Verification / App Review.
+
+**Recommended sequence for this stage**
+
+1. Admin imports list → `User` + `Organization` + one-shot claim email.
+2. Org clicks → session, `.edu` verified, profile already present (short
+   confirm if any field was missing).
+3. **Waiting room** — not a Connect button. Copy: we will email when Instagram
+   is ready.
+4. Buzz ops: add `@handle` as Instagram Tester. Org accepts on Instagram
+   (`instagram.com/accounts/manage_access/`).
+5. Admin marks tester-ready (or we detect somehow — do not guess) → **second
+   email**: Connect Instagram.
+6. OAuth **binds** this user (must not insert a second row). Follower seed +
+   media sync as today. Later logins: Login with Instagram.
+7. Keep public **PLG IG-first** in parallel for people who are already testers.
+
+Apply / post library / Graph follower counts stay behind step 6. Profile,
+shipping, and inbox proof do not.
+
 ## What exists today
 
 Org onboarding is **PLG, Instagram-first** ([`PRODUCT.md`](../PRODUCT.md) §1,
@@ -77,28 +115,34 @@ chapters to “just sync IG” will fail for anyone who is not a tester.
 
 ## Options
 
-### A — Claim link, then Connect Instagram (recommended shape)
+### A — Claim link, then Instagram later (recommended shape)
 
-Mirror brand invite, without a password.
+Mirror brand invite, without a password. **For this Meta stage, do not land
+on Connect Instagram on the first click** (see overlay above). Naive A
+(claim → Connect immediately) still hits the tester wall.
 
 1. Admin (or import) creates `User` (`portal_role=org`) + `Organization` from
-   the list. `edu_email` set; `email_verified_at` **unset until click** (or
-   set on click). No IG ids yet. New status e.g. `pending_instagram` (or
-   reuse `pending_org_profile` with a profile already present — worse).
+   the list. `edu_email` set; `email_verified_at` **unset until click**. No
+   IG ids yet. New status e.g. `pending_instagram` (waiting room). Do **not**
+   reuse `pending_org_profile` with a profile already present — that page
+   still calls `require_instagram_handle`.
 2. Mint one-shot `org_invite_tokens` (hash-at-rest, TTL, invalidate prior,
    `FOR UPDATE` on redeem — copy brand invite).
 3. Email `{FRONTEND_URL}/org/claim?token=…`.
-4. Click: consume token, mark email verified, mint session, land on
-   **Connect Instagram** (reuse reconnect CTA / OAuth start).
+4. Click: consume token, mark email verified, mint session, land on a
+   **waiting room** (not OAuth). Admin later marks tester-ready → second
+   email → Connect Instagram (reuse reconnect CTA / OAuth start).
 5. IG callback **binds** this user instead of inserting a second user.
    Follower seed + media sync as today. Status → `active` (if we skip
    approval) or `pending_approval`.
 6. Later logins: **Login with Instagram** (identity restored). If they never
    bound IG, **resend claim link** is the only way back (unless we add
-   magic-link login — extra fork).
+   magic-link login — extra fork). After bind, do **not** keep email as the
+   ongoing identity (that is C).
 
 **Why this matches the ask:** one click finishes Buzz-side setup; leftover
-work is Instagram. Brand invite is the implementation template.
+work is Instagram, and that leftover is ops-gated until testers / Advanced
+Access. Brand invite is the implementation template.
 
 ### B — Keep Instagram-first; invite is “start OAuth with prefill”
 
@@ -133,7 +177,7 @@ Same required onboarding fields (`OrgOnboardingRequest` /
 | City, state | Required on signup |
 | Contact name | Required |
 | Shipping address | Required free text today (`org.shipping-address-unverified`) |
-| Instagram handle | **Optional hint only.** Cannot log them in or skip OAuth. Soft-match after connect is a UX choice |
+| Instagram handle | **Required for this Meta stage** (tester add in the dashboard). Still not Buzz login identity — cannot skip OAuth. Soft-match after connect is a UX choice. After Advanced Access, can become optional again. |
 
 Missing required fields → either block import or land them on a short
 confirm form (not “one click”). Duplicate `.edu` / already-verified email →
@@ -173,11 +217,15 @@ and today’s verify page is confirm-before-consume, not “you are in.”
 
 ## Recommendation
 
-Ship **A** if we want sales-led campus seeding; keep public **PLG IG signup**
-as a parallel path. Do not implement C. Treat B as a fallback if we refuse to
-create users without Instagram.
+Ship **A with the waiting-room overlay** for sales-led campus seeding while
+Standard Access lasts. Keep public **PLG IG signup** as a parallel path
+(already-testers). Do not implement C. Do not ship naive A (Connect on first
+landing) or B — both make Meta OAuth the first org action.
 
-**Do not build until PRODUCT locks** the questions in the parent chat
-(approval, `.edu`, returning login, IG-required-for-portal, import vs admin
-UI). Independent of that lock: **Meta Advanced Access** still gates “any org
-can connect Instagram.”
+After Advanced Access, collapse steps 4–5: claim can land on Connect
+Instagram. The bind-not-insert OAuth change still pays off.
+
+**Do not build until PRODUCT locks** waiting-room vs browse-without-apply,
+auto-approve vs still review, `.edu` = click, returning login before bind,
+Connect hidden vs always-visible, import vs admin UI. Independent of that
+lock: **Meta Advanced Access** still gates “any org can connect Instagram.”
