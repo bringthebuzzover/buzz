@@ -4,6 +4,7 @@ title: Centered coral-nav logo covers org My Campaigns and Profile links
 kind: ux_hole
 severity: P2
 status: fixed
+closed_in: 0d05b12
 surface: spa
 evidence:
   - path: frontend/src/components/site/SiteHeader.tsx
