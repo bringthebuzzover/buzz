@@ -639,6 +639,28 @@ stop_if:
 
 ---
 
+## org-edu-verify-outlook-junk
+
+status: pending
+gaps:
+  - org.edu-verify-outlook-junk
+approach: |
+  Locked in gap file (copy + v1 2026-08-25).
+  1. Two verify bodies (signup vs rotate); pass kind + org_name on mint and
+     signup resend (today resend leaves org_name empty).
+  2. `_dispatch` sends html + text; coral Verify email button + paste URL.
+  3. `emailFrom` → `Buzz <hello@bringthebuzzover.com>`; `reply_to` =
+     CONTACT_EMAIL (leave Cornell until ops.brand-mailbox).
+  4. Waiting screen Junk line on VerifyEmailPage.
+  5. Tests: both bodies, html+text payload, From/Reply-To.
+  Out: other mail kinds, React Email, tracking, List-Unsubscribe, DMARC DNS
+  (Cloudflare only if the user names it).
+stop_if:
+  - Copy fork vs locked subjects/bodies in the gap file — pause and ask.
+  - Mutating Cloudflare / Resend domain DNS (DMARC) without explicit OK.
+
+---
+
 ## admin-drops-ops-ui
 
 status: done
@@ -653,6 +675,27 @@ approach: |
      Applicants Ship to for applied+accepted; Tracking column removed.
 stop_if:
   - (cleared — cluster complete)
+
+---
+
+## spa-role-tours
+
+status: parked
+gaps:
+  - spa.for-orgs-for-brands
+note: |
+  Last public comprehension step (`/for-orgs`, `/for-brands` + mockup frames).
+  Do not auto-execute. Un-park only when named after:
+  1. `drops.unconfigured-request-on-org-feed` archived (admin-drops option B
+     shipped; PRODUCT §5.2 rewritten).
+  2. Remaining `ideas/admin-drops.md` forks locked — especially creative
+     owner vs `brand.drop-creative-uneditable`.
+  for-orgs follows PRODUCT §6.1 unless `ideas/org-precreate.md` is
+  PRODUCT-locked first. Copy must not promise public IG login (Meta §E/F/G)
+  or a verified shipping address.
+stop_if:
+  - Un-parking while brand Plan your Campaign still inserts a live Drop.
+  - Drawing for-brands as self-serve drop create.
 
 ---
 
