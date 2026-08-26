@@ -23,6 +23,9 @@ export type CancelPendingEduEmailResponse =
   components["schemas"]["CancelPendingEduEmailResponse"];
 export type BrandApplyResponse = components["schemas"]["BrandApplyResponse"];
 export type PublicConfigResponse = components["schemas"]["PublicConfigResponse"];
+export type InstagramLookupResponse =
+  components["schemas"]["InstagramLookupResponse"];
+export type OrgApplyRequest = components["schemas"]["OrgApplyRequest"];
 
 // ── Org onboarding ─────────────────────────────────────────────────────────
 
@@ -38,6 +41,105 @@ export type OrgOnboardingInput = {
   contactName: string;
   deliveryAddress: string;
 };
+
+export type OrgApplyInput = OrgOnboardingInput & {
+  instagramHandle: string;
+  handleConfirmed: boolean;
+};
+
+/** Public org apply-first signup (→ pending_email_verification, no IG token). */
+export function useOrgApply() {
+  return useMutation({
+    mutationFn: async (input: OrgApplyInput) => {
+      const { data } = await apiFetch<OrgOnboardingResponse>("/api/orgs/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      return data;
+    },
+  });
+}
+
+/** Exact-username Business Discovery lookup for the apply confirm card. */
+export function useInstagramLookup() {
+  return useMutation({
+    mutationFn: async (username: string) => {
+      const q = encodeURIComponent(username.trim().replace(/^@/, ""));
+      const { data } = await apiFetch<InstagramLookupResponse>(
+        `/api/orgs/instagram-lookup?username=${q}`,
+      );
+      return data;
+    },
+  });
+}
+
+/** Public resend of .edu verify mail after apply (no session). */
+export function usePublicResendVerification() {
+  return useMutation({
+    mutationFn: async (eduEmail: string) => {
+      const { data } = await apiFetch<ResendVerificationResponse>(
+        "/api/auth/verify-email/resend-public",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eduEmail }),
+        },
+      );
+      return data;
+    },
+  });
+}
+
+/** Redeem approval connect-email token → session for Connect Instagram. */
+export function useRedeemOrgConnect() {
+  return useMutation({
+    mutationFn: async (token: string) => {
+      const { data } = await apiFetch<TokenResponse>(
+        "/api/auth/org-connect/redeem",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        },
+      );
+      if (!data.access_token) {
+        throw new ApiError(
+          "INTERNAL_ERROR",
+          "Connect redeem response missing access token.",
+          500,
+        );
+      }
+      return data;
+    },
+  });
+}
+
+export type InstagramBindStartResponse = {
+  authorizeUrl?: string;
+  authorize_url?: string;
+};
+
+/** Authenticated bind OAuth start for pending_instagram orgs. */
+export function useInstagramBindStart() {
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiFetch<InstagramBindStartResponse>(
+        "/api/auth/instagram/bind-start",
+        { method: "POST" },
+      );
+      const url = data.authorizeUrl ?? data.authorize_url;
+      if (!url) {
+        throw new ApiError(
+          "INTERNAL_ERROR",
+          "Bind start response missing authorize URL.",
+          500,
+        );
+      }
+      return { authorizeUrl: url };
+    },
+  });
+}
 
 export function useSubmitOnboarding() {
   return useMutation({

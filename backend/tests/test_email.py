@@ -48,6 +48,7 @@ async def test_dispatch_posts_to_resend(monkeypatch, _resend_key) -> None:
         "to": ["to@campus.edu"],
         "subject": "Subject",
         "text": "Body text",
+        "reply_to": "mc3237@cornell.edu",
     }
 
 

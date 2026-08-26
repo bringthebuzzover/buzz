@@ -46,6 +46,7 @@ _ROTATE_ELIGIBLE_STATUSES = frozenset(
     {
         OrgUserStatus.ACTIVE.value,
         OrgUserStatus.PENDING_APPROVAL.value,
+        OrgUserStatus.PENDING_INSTAGRAM.value,
     }
 )
 
@@ -152,6 +153,7 @@ async def _mint_and_send_verification(
     edu_email: str,
     *,
     org_name: str = "",
+    kind: str = "signup",
 ) -> bool:
     """Mint a live verification token and attempt delivery.
 
@@ -169,7 +171,7 @@ async def _mint_and_send_verification(
     )
     db.add(evt)
     await db.flush()
-    ok = await send_verification_email(edu_email, raw, org_name=org_name)
+    ok = await send_verification_email(edu_email, raw, org_name=org_name, kind=kind)
     if not ok:
         await db.delete(evt)
         await db.flush()
@@ -364,7 +366,9 @@ async def change_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict
             status_code=409,
         ) from exc
 
-    ok = await _mint_and_send_verification(db, user, edu_email, org_name=org.org_name)
+    ok = await _mint_and_send_verification(
+        db, user, edu_email, org_name=org.org_name, kind="signup"
+    )
     if not ok:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,
@@ -380,6 +384,9 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     Onboarding (``pending_email_verification``): advance to ``pending_approval``.
     Pending-swap (active / pending_approval with ``pending_edu_email``): swap the
     live address, clear the latch, refresh ``email_verified_at``, keep status.
+
+    Returns ``session_minted: True`` on the onboarding branch so the route can
+    issue a JWT + refresh cookie (apply-first has no prior IG session).
     """
     now = _now()
 
@@ -429,7 +436,7 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
         user.pending_edu_email = None
         user.email_verified_at = now
         await db.flush()
-        return {"status": user.status}
+        return {"status": user.status, "session_minted": False, "user": user}
 
     if user.status != OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
         raise BuzzAPIException(
@@ -444,7 +451,7 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     user.pending_edu_email = None
     await db.flush()
 
-    return {"status": user.status}
+    return {"status": user.status, "session_minted": True, "user": user}
 
 
 async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, Any]:
@@ -458,13 +465,17 @@ async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, A
 
     target: str | None = None
     org_name = ""
+    kind = "signup"
+    org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+    if org is not None:
+        org_name = org.org_name
+
     if user.status == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
         target = user.edu_email
+        kind = "signup"
     elif user.status in _ROTATE_ELIGIBLE_STATUSES and user.pending_edu_email:
         target = user.pending_edu_email
-        org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
-        if org is not None:
-            org_name = org.org_name
+        kind = "rotate"
     else:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -486,7 +497,7 @@ async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, A
             status_code=429,
         )
 
-    ok = await _mint_and_send_verification(db, user, target, org_name=org_name)
+    ok = await _mint_and_send_verification(db, user, target, org_name=org_name, kind=kind)
     if not ok:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,
@@ -559,7 +570,9 @@ async def rotate_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict
             status_code=409,
         ) from exc
 
-    ok = await _mint_and_send_verification(db, user, edu_email, org_name=org.org_name)
+    ok = await _mint_and_send_verification(
+        db, user, edu_email, org_name=org.org_name, kind="rotate"
+    )
     if not ok:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,
@@ -599,3 +612,29 @@ async def cancel_pending_edu_email(db: AsyncSession, user: User) -> dict[str, An
     await _invalidate_verification_tokens(db, user.id)
     await db.flush()
     return {"ok": True, "status": user.status}
+
+
+async def resend_verification_public(db: AsyncSession, edu_email: str) -> dict[str, Any]:
+    """Public resend by .edu address (no session). Always returns a benign ack.
+
+    Does not reveal whether the email exists. Only resends when the user is in
+    ``pending_email_verification``.
+    """
+    user = await db.scalar(
+        select(User).where(
+            User.edu_email == edu_email,
+            User.portal_role == PortalRole.ORG.value,
+            User.status == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value,
+        )
+    )
+    if user is None:
+        return {"email_sent_to": edu_email}
+
+    org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+    org_name = org.org_name if org is not None else ""
+
+    if await _count_active_verification_tokens(db, user.id) >= 3:
+        return {"email_sent_to": edu_email}
+
+    await _mint_and_send_verification(db, user, edu_email, org_name=org_name, kind="signup")
+    return {"email_sent_to": edu_email}

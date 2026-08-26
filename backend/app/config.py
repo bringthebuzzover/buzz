@@ -128,6 +128,23 @@ class Settings(BaseSettings):
     )
     INSTAGRAM_GRAPH_BASE: str = Field(default="https://graph.instagram.com")
 
+    # --- Business Discovery (apply-time handle lookup; META.md) ---
+    FACEBOOK_GRAPH_BASE: str = Field(
+        default="https://graph.facebook.com",
+        description="Graph host for Business Discovery (Facebook Login path).",
+    )
+    INSTAGRAM_BUSINESS_DISCOVERY_TOKEN: str = Field(
+        default="",
+        description=(
+            "Long-lived Facebook Login token for the Buzz service IG account. "
+            "Empty → lookup soft-fails (PRODUCT §6.1.1)."
+        ),
+    )
+    INSTAGRAM_BUSINESS_DISCOVERY_IG_USER_ID: str = Field(
+        default="",
+        description="Buzz-owned Instagram professional account id for Business Discovery.",
+    )
+
     # --- Onboarding + email (architecture.md §3.4, §4) ---
     FRONTEND_URL: str = Field(
         default="http://localhost:3000",
@@ -147,6 +164,10 @@ class Settings(BaseSettings):
     BRAND_INVITE_TOKEN_TTL_DAYS: int = Field(
         default=7,
         description="Brand account setup link lifetime in days.",
+    )
+    ORG_CONNECT_TOKEN_TTL_DAYS: int = Field(
+        default=7,
+        description="Org Connect Instagram link lifetime in days (after Approve).",
     )
     PASSWORD_RESET_TOKEN_TTL_HOURS: int = Field(
         default=1,

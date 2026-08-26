@@ -33,6 +33,10 @@ jest.mock("../../api/hooks/useOnboardingHooks", () => ({
     mutateAsync: jest.fn(),
     isPending: false,
   }),
+  usePublicResendVerification: () => ({
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
   useChangeEduEmail: () => ({
     mutateAsync: jest.fn(),
     isPending: false,
@@ -44,6 +48,7 @@ jest.mock("../../contexts/AuthContext", () => ({
     status: "idle",
     user: null,
     refreshUser: mockRefreshUser,
+    acceptSession: jest.fn(),
   }),
 }));
 

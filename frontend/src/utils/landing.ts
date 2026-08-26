@@ -17,6 +17,8 @@ export function pathForUser(user: AuthUser | null): string {
         return "/onboarding/verify-email";
       case "pending_approval":
         return "/onboarding/pending-approval";
+      case "pending_instagram":
+        return "/onboarding/connect-instagram";
       case "denied":
         return "/onboarding/denied";
       case "erased":

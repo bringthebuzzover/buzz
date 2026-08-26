@@ -18,7 +18,7 @@ import logging
 
 import httpx
 
-from app.brand_emails import EMAIL_FROM
+from app.brand_emails import CONTACT_EMAIL, EMAIL_FROM
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -36,24 +36,47 @@ async def send_verification_email(
     token: str,
     *,
     org_name: str = "",
+    kind: str = "signup",
 ) -> bool:
-    """Send a .edu verification link to the org contact."""
+    """Send a .edu verification link (signup vs rotate copy)."""
     verify_url = f"{settings.FRONTEND_URL}/onboarding/verify-email?token={token}"
+    name = org_name or "your organization"
 
-    subject = "Verify your Buzz organization email"
-    body = _verification_body(verify_url, org_name)
+    if kind == "rotate":
+        subject = f"Confirm the new school email for {name}"
+        text = _verification_rotate_text(verify_url, name)
+        html = _verification_html(
+            verify_url,
+            heading=f"Confirm the new school email for {name}",
+            paragraphs=[
+                f"Someone requested a new school email for {name} on Buzz.",
+                "Confirm this address to finish the change.",
+            ],
+        )
+    else:
+        subject = "Confirm your Buzz account"
+        text = _verification_signup_text(verify_url, name)
+        html = _verification_html(
+            verify_url,
+            heading=f"Confirm your Buzz account for {name}",
+            paragraphs=[
+                f"You just created a Buzz account for {name}.",
+                f"Confirm this school email so we can review {name}.",
+            ],
+        )
 
     if settings.ENVIRONMENT == "development":
         logger.info(
             "\n╔══════════════════════════════════════════════════════════════╗\n"
             "║  DEV EMAIL — Verification link (copy into browser):         ║\n"
             f"║  To: {to_email:<52s}║\n"
+            f"║  Kind: {kind:<50s}║\n"
             f"║  URL: {verify_url:<50s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
         return True
 
-    return await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, text, html=html)
 
 
 async def send_brand_invite_email(
@@ -83,23 +106,49 @@ async def send_brand_invite_email(
     return await _dispatch(to_email, subject, body)
 
 
-async def send_org_approved_email(to_email: str, *, org_name: str = "") -> bool:
-    """Tell an org their account was approved and they can sign in."""
-    login_url = f"{settings.FRONTEND_URL}/login"
-    subject = "Your Buzz organization account is approved"
-    body = _org_approved_body(login_url, org_name)
+async def send_org_approved_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+    connect_token: str | None = None,
+) -> bool:
+    """Tell an org they are approved and must Connect Instagram (or legacy login)."""
+    name = org_name or "your organization"
+    if connect_token:
+        connect_url = f"{settings.FRONTEND_URL}/onboarding/connect-instagram?token={connect_token}"
+        subject = "Your Buzz organization is approved — connect Instagram"
+        text = _org_connect_text(connect_url, name)
+        html = _cta_html(
+            connect_url,
+            subject=subject,
+            button="Connect Instagram",
+            paragraphs=[
+                f"Good news — {name} has been approved on Buzz.",
+                "First, accept the Instagram Tester invite at "
+                "instagram.com/accounts/manage_access/ (Tester Invites).",
+                "Then connect the organization's Business or Creator Instagram "
+                "account to finish setup.",
+            ],
+        )
+        log_url = connect_url
+    else:
+        login_url = f"{settings.FRONTEND_URL}/login"
+        subject = "Your Buzz organization account is approved"
+        text = _org_approved_body(login_url, name)
+        html = None
+        log_url = login_url
 
     if settings.ENVIRONMENT == "development":
         logger.info(
             "\n╔══════════════════════════════════════════════════════════════╗\n"
             "║  DEV EMAIL — Org approved:                                  ║\n"
             f"║  To: {to_email:<52s}║\n"
-            f"║  URL: {login_url:<50s}║\n"
+            f"║  URL: {log_url:<50s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
         return True
 
-    return await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, text, html=html)
 
 
 async def send_org_denied_email(to_email: str, *, org_name: str = "") -> bool:
@@ -284,7 +333,13 @@ async def send_password_reset_email(
     return await _dispatch(to_email, subject, body)
 
 
-async def _dispatch(to_email: str, subject: str, body: str) -> bool:
+async def _dispatch(
+    to_email: str,
+    subject: str,
+    body: str,
+    *,
+    html: str | None = None,
+) -> bool:
     """Send one email through Resend. Best-effort: never raises.
 
     Returns ``True`` on HTTP 2xx provider accept, ``False`` on unset key /
@@ -295,17 +350,21 @@ async def _dispatch(to_email: str, subject: str, body: str) -> bool:
     if not settings.RESEND_API_KEY:
         logger.warning("Email not sent (RESEND_API_KEY unset): to=%s subject=%s", to_email, subject)
         return False
+    payload: dict[str, object] = {
+        "from": EMAIL_FROM,
+        "to": [to_email],
+        "subject": subject,
+        "text": body,
+        "reply_to": CONTACT_EMAIL,
+    }
+    if html:
+        payload["html"] = html
     try:
         async with _email_client() as client:
             resp = await client.post(
                 _RESEND_ENDPOINT,
                 headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
-                json={
-                    "from": EMAIL_FROM,
-                    "to": [to_email],
-                    "subject": subject,
-                    "text": body,
-                },
+                json=payload,
             )
             resp.raise_for_status()
             resend_id = None
@@ -325,12 +384,87 @@ async def _dispatch(to_email: str, subject: str, body: str) -> bool:
     return True
 
 
-def _verification_body(verify_url: str, org_name: str) -> str:
-    name = org_name or "your organization"
+def _verification_signup_text(verify_url: str, org_name: str) -> str:
     return (
-        f"Click the link below to verify your email for {name} on Buzz.\n\n"
-        f"{verify_url}\n\n"
-        "This link expires in 24 hours."
+        f"You just created a Buzz account for {org_name}.\n\n"
+        f"Confirm this school email so we can review {org_name}.\n\n"
+        f"Verify email:\n{verify_url}\n\n"
+        "This link expires in 24 hours.\n\n"
+        "If you didn't create this account, ignore this email."
+    )
+
+
+def _verification_rotate_text(verify_url: str, org_name: str) -> str:
+    return (
+        f"Someone requested a new school email for {org_name} on Buzz.\n\n"
+        "Confirm this address to finish the change.\n\n"
+        f"Verify email:\n{verify_url}\n\n"
+        "This link expires in 24 hours.\n\n"
+        "If you didn't request this, ignore this email."
+    )
+
+
+def _verification_body(verify_url: str, org_name: str) -> str:
+    """Backward-compatible alias (signup). Prefer ``_verification_signup_text``."""
+    return _verification_signup_text(verify_url, org_name or "your organization")
+
+
+def _org_connect_text(connect_url: str, org_name: str) -> str:
+    return (
+        f"Good news — {org_name} has been approved on Buzz.\n\n"
+        "1. Accept the Instagram Tester invite at "
+        "https://www.instagram.com/accounts/manage_access/ (Tester Invites).\n"
+        "2. Connect your organization's Business or Creator Instagram:\n\n"
+        f"{connect_url}\n\n"
+        "This link expires in 7 days."
+    )
+
+
+_CORAL = "#E85D4C"
+_CREAM = "#FBF7F0"
+_INK = "#1A1A1A"
+
+
+def _verification_html(verify_url: str, *, heading: str, paragraphs: list[str]) -> str:
+    return _cta_html(
+        verify_url,
+        subject=heading,
+        button="Verify email",
+        paragraphs=paragraphs + ["This link expires in 24 hours."],
+    )
+
+
+def _cta_html(
+    url: str,
+    *,
+    subject: str,
+    button: str,
+    paragraphs: list[str],
+) -> str:
+    paras = "".join(
+        f'<p style="margin:0 0 16px;color:{_INK};font-size:16px;line-height:1.5;">'
+        f"{_escape(p)}</p>"
+        for p in paragraphs
+    )
+    return (
+        f'<!DOCTYPE html><html><body style="margin:0;padding:24px;background:{_CREAM};'
+        f'font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">'
+        f'<div style="max-width:520px;margin:0 auto;background:#fff;padding:32px;'
+        f'border-radius:12px;color:{_INK};">'
+        f'<h1 style="margin:0 0 20px;font-size:22px;color:{_INK};">{_escape(subject)}</h1>'
+        f"{paras}"
+        f'<p style="margin:24px 0;"><a href="{_escape(url)}" '
+        f'style="display:inline-block;background:{_CORAL};color:#fff;text-decoration:none;'
+        f'padding:12px 24px;border-radius:8px;font-weight:600;">{_escape(button)}</a></p>'
+        f'<p style="margin:0;color:#666;font-size:13px;line-height:1.5;">'
+        f"Or paste this link:<br/>{_escape(url)}</p>"
+        f"</div></body></html>"
+    )
+
+
+def _escape(value: str) -> str:
+    return (
+        value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )
 
 

@@ -226,6 +226,7 @@ class AdminOrgItem(CamelModel):
     org_name: str | None
     university: str | None
     instagram_handle: str | None
+    instagram_handle_confirmed: bool = False
     follower_count: int | None
     member_count: int | None
     category: str | None
@@ -291,6 +292,12 @@ class AdminVerificationState(CamelModel):
         return to_epoch_ms(value)
 
 
+class AdminOrgApproveRequest(CamelModel):
+    """Honor-system confirm that the Instagram Tester invite was sent."""
+
+    tester_invite_confirmed: bool = False
+
+
 class AdminOrgDetail(CamelModel):
     user_id: uuid.UUID
     org_id: uuid.UUID | None
@@ -299,6 +306,7 @@ class AdminOrgDetail(CamelModel):
     university: str | None
     category: str | None
     instagram_handle: str | None
+    instagram_handle_confirmed: bool = False
     instagram_username: str | None
     tiktok_handle: str | None
     follower_count: int | None

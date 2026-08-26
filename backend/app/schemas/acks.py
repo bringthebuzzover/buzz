@@ -12,6 +12,10 @@ import uuid
 from app.schemas.common import CamelModel
 
 
+class InstagramBindStartResponse(CamelModel):
+    authorize_url: str
+
+
 class OkResponse(CamelModel):
     """Generic success ack (logout, notify, unlink, dismiss, password flows)."""
 
@@ -36,7 +40,12 @@ class InstagramDeauthorizeResponse(CamelModel):
 
 
 class VerifyEmailResponse(CamelModel):
+    """Onboarding verify may also mint a session (``access_token`` + ``user``)."""
+
     status: str
+    access_token: str | None = None
+    token_type: str | None = None
+    user: dict[str, object] | None = None
 
 
 class ResendVerificationResponse(CamelModel):
@@ -98,6 +107,7 @@ class AdminOrgEraseResponse(CamelModel):
 class AdminOrgStatusResponse(CamelModel):
     org_id: uuid.UUID
     status: str
+    email_sent: bool | None = None
 
 
 class AdminBrandStatusResponse(CamelModel):

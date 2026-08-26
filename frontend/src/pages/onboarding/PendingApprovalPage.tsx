@@ -37,8 +37,9 @@ export default function PendingApprovalPage() {
         Awaiting <span className="text-buzz-coral">Approval</span>
       </h1>
       <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
-        Your organization is under review. You'll get access automatically once
-        a Buzz admin approves your account — no need to refresh.
+        We&apos;re reviewing your organization. We&apos;ll email when Instagram
+        is ready to connect. Campus inboxes often put first-time Buzz mail in
+        Junk.
       </p>
 
       <EduEmailRotatePanel

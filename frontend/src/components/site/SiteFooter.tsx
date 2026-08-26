@@ -29,8 +29,13 @@ export default function SiteFooter() {
           <h4 className="mb-4 font-bold text-buzz-ink">Get Started</h4>
           <ul className="space-y-2 text-sm font-medium text-buzz-inkMuted">
             <li>
+              <Link to="/org/apply" className="hover:text-buzz-coral">
+                Apply as Org
+              </Link>
+            </li>
+            <li>
               <Link to="/login" className="hover:text-buzz-coral">
-                Login
+                Org login
               </Link>
             </li>
             <li>

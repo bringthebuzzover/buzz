@@ -8,7 +8,6 @@
 import { Link, useSearchParams } from "react-router-dom";
 import {
   useAdminOrgs,
-  useApproveOrg,
   useDenyOrg,
   useViewAs,
   type AdminOrgRow,
@@ -21,6 +20,7 @@ import {
   FilterChips,
   PageHeading,
   Panel,
+  Pill,
   Row,
   StatusPill,
 } from "../../components/admin/AdminPrimitives";
@@ -29,6 +29,7 @@ import { formatElapsed } from "../../components/admin/labels";
 const FILTERS = [
   { value: null, label: "All" },
   { value: "pending_approval", label: "Awaiting approval" },
+  { value: "pending_instagram", label: "Awaiting Instagram" },
   { value: "pending_email_verification", label: "Unverified" },
   { value: "pending_org_profile", label: "No profile" },
   { value: "active", label: "Active" },
@@ -49,12 +50,11 @@ export default function AdminOrgsPage() {
   const [searchParams] = useSearchParams();
   const status = searchParams.get("status");
   const orgs = useAdminOrgs(status ?? undefined);
-  const approve = useApproveOrg();
   const deny = useDenyOrg();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
 
-  const busy = approve.isPending || deny.isPending;
-  const actionError = approve.isError || deny.isError;
+  const busy = deny.isPending;
+  const actionError = deny.isError;
 
   const decidable = (row: AdminOrgRow) =>
     row.status === "pending_approval" && row.id !== null;
@@ -63,7 +63,7 @@ export default function AdminOrgsPage() {
     <div>
       <PageHeading
         title="Organizations"
-        subtitle="Student orgs across every onboarding state. Approve or deny from the awaiting-approval filter."
+        subtitle="Student orgs across every onboarding state. Open a row to Approve (tester invite confirm) or Deny from the awaiting-approval filter."
       />
 
       {viewAsError && <ErrorNote>{viewAsError}</ErrorNote>}
@@ -107,8 +107,11 @@ export default function AdminOrgsPage() {
                     {row.orgName ?? "Profile not submitted"}
                   </Link>
                   {row.instagramHandle && (
-                    <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
+                    <span className="ml-2 inline-flex flex-wrap items-center gap-1 text-xs font-medium text-buzz-inkMuted">
                       @{row.instagramHandle.replace(/^@/, "")}
+                      {!row.instagramHandleConfirmed && (
+                        <Pill tone="warn">Unconfirmed</Pill>
+                      )}
                     </span>
                   )}
                 </Cell>
@@ -121,24 +124,14 @@ export default function AdminOrgsPage() {
                 <Cell align="right">
                   <div className="flex justify-end gap-2">
                     {decidable(row) && (
-                      <>
-                        <ActionButton
-                          variant="primary"
-                          testId={`approve-org-${row.userId}`}
-                          disabled={busy}
-                          onClick={() => approve.mutate(row.id as string)}
-                        >
-                          Approve
-                        </ActionButton>
-                        <ActionButton
-                          variant="danger"
-                          testId={`deny-org-${row.userId}`}
-                          disabled={busy}
-                          onClick={() => deny.mutate(row.id as string)}
-                        >
-                          Deny
-                        </ActionButton>
-                      </>
+                      <ActionButton
+                        variant="danger"
+                        testId={`deny-org-${row.userId}`}
+                        disabled={busy}
+                        onClick={() => deny.mutate(row.id as string)}
+                      >
+                        Deny
+                      </ActionButton>
                     )}
                     <ActionButton
                       testId={`view-as-${row.userId}`}

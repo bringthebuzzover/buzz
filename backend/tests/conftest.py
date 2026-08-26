@@ -212,6 +212,43 @@ class FakeInstagramClient:
     ) -> dict[str, int | float]:
         return dict(getattr(self, "insights", {"reach": 100, "saved": 5}))
 
+    async def fetch_business_discovery(self, username: str):
+        from app.services.instagram import BusinessDiscoveryProfile
+
+        profiles = getattr(self, "business_discovery", None)
+        if profiles is None:
+            # Default: echo a professional profile for the requested username.
+            handle = (username or "").lstrip("@")
+            if getattr(self, "business_discovery_miss", False):
+                return None
+            if getattr(self, "business_discovery_unavailable", False):
+                from app import errors
+                from app.exceptions import BuzzAPIException
+
+                raise BuzzAPIException(
+                    errors.VALIDATION_ERROR,
+                    "unavailable",
+                    status_code=503,
+                )
+            if getattr(self, "business_discovery_throttled", False):
+                from app import errors
+                from app.exceptions import BuzzAPIException
+
+                raise BuzzAPIException(
+                    errors.RATE_LIMITED,
+                    "throttled",
+                    status_code=429,
+                )
+            return BusinessDiscoveryProfile(
+                username=handle or self.username,
+                name="Test Org",
+                profile_picture_url="https://example.com/pic.jpg",
+                biography="Campus org",
+                followers_count=1200,
+            )
+        handle = (username or "").lstrip("@").lower()
+        return profiles.get(handle)
+
 
 def set_request_cookies(client: AsyncClient, cookies: dict[str, str]) -> None:
     """Replace the ASGI test client's cookie jar.

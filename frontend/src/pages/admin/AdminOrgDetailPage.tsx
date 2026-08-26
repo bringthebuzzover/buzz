@@ -9,6 +9,9 @@
  *
  * Erase (PRODUCT §3.1.2) is confirm-by-IG-handle; confirmation email is
  * best-effort after wipe.
+ *
+ * Approve requires tester-invite confirmation (LAUNCH.md Phase A) and moves the
+ * org to pending_instagram until they Connect.
  */
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -18,6 +21,7 @@ import {
   useClearOrgInstagramToken,
   useDenyOrg,
   useEraseOrg,
+  useResendOrgConnect,
   useUndenyOrg,
   useViewAs,
 } from "../../api/hooks/useAdminHooks";
@@ -45,11 +49,15 @@ export default function AdminOrgDetailPage() {
   const approve = useApproveOrg();
   const deny = useDenyOrg();
   const undeny = useUndenyOrg();
+  const resendConnect = useResendOrgConnect();
   const clearIg = useClearOrgInstagramToken();
   const erase = useEraseOrg();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
   const [eraseNotice, setEraseNotice] = useState<string | null>(null);
   const [eraseError, setEraseError] = useState<string | null>(null);
+  const [testerInviteConfirmed, setTesterInviteConfirmed] = useState(false);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const data = org.data;
   const erased = data?.status === "erased";
@@ -58,7 +66,8 @@ export default function AdminOrgDetailPage() {
     deny.isPending ||
     undeny.isPending ||
     clearIg.isPending ||
-    erase.isPending;
+    erase.isPending ||
+    resendConnect.isPending;
   const tokenExpired =
     data?.instagramTokenExpiresAt !== null &&
     data?.instagramTokenExpiresAt !== undefined &&
@@ -67,6 +76,45 @@ export default function AdminOrgDetailPage() {
     data?.instagramTokenExpiresAt !== null &&
     data?.instagramTokenExpiresAt !== undefined;
   const canErase = Boolean(data?.instagramHandle) && !erased;
+  const claimedHandle = data?.instagramHandle
+    ? `@${data.instagramHandle.replace(/^@/, "")}`
+    : null;
+
+  async function onApprove() {
+    if (!data?.orgId) return;
+    setActionError(null);
+    setActionNotice(null);
+    try {
+      await approve.mutateAsync({
+        orgId: data.orgId,
+        testerInviteConfirmed,
+      });
+      setTesterInviteConfirmed(false);
+      setActionNotice("Approved — org moved to awaiting Instagram connect.");
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError
+          ? err.message
+          : "Approve failed. Confirm the tester invite checkbox and try again.",
+      );
+    }
+  }
+
+  async function onResendConnect() {
+    if (!data?.orgId) return;
+    setActionError(null);
+    setActionNotice(null);
+    try {
+      await resendConnect.mutateAsync(data.orgId);
+      setActionNotice("Connect Instagram email re-sent.");
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not resend the connect email.",
+      );
+    }
+  }
 
   async function onErase() {
     if (!data?.instagramHandle) return;
@@ -129,6 +177,12 @@ export default function AdminOrgDetailPage() {
           {eraseNotice}
         </p>
       )}
+      {actionError && <ErrorNote>{actionError}</ErrorNote>}
+      {actionNotice && (
+        <p className="mb-4 rounded border border-buzz-lineMid bg-buzz-cream px-3 py-2 text-sm font-medium text-buzz-ink">
+          {actionNotice}
+        </p>
+      )}
 
       {data && (
         <>
@@ -143,8 +197,8 @@ export default function AdminOrgDetailPage() {
                     <ActionButton
                       variant="primary"
                       testId="approve-org"
-                      disabled={busy}
-                      onClick={() => approve.mutate(data.orgId as string)}
+                      disabled={busy || !testerInviteConfirmed}
+                      onClick={() => void onApprove()}
                     >
                       Approve
                     </ActionButton>
@@ -157,6 +211,15 @@ export default function AdminOrgDetailPage() {
                       Deny
                     </ActionButton>
                   </>
+                )}
+                {!erased && data.status === "pending_instagram" && data.orgId && (
+                  <ActionButton
+                    testId="resend-connect"
+                    disabled={busy}
+                    onClick={() => void onResendConnect()}
+                  >
+                    Resend connect email
+                  </ActionButton>
                 )}
                 {!erased && data.status === "denied" && data.orgId && (
                   <ActionButton
@@ -220,12 +283,37 @@ export default function AdminOrgDetailPage() {
             </ErrorNote>
           )}
 
+          {!erased && data.status === "pending_approval" && claimedHandle && (
+            <Panel title="Before you approve">
+              <label className="flex cursor-pointer items-start gap-3 text-sm font-medium text-buzz-ink">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={testerInviteConfirmed}
+                  onChange={(e) => setTesterInviteConfirmed(e.target.checked)}
+                  data-testid="tester-invite-confirmed"
+                />
+                <span>
+                  I added {claimedHandle} as an Instagram Tester in Meta App
+                  roles.
+                </span>
+              </label>
+            </Panel>
+          )}
+
           <Panel title="Profile">
             <FieldGrid>
-              <Field label="Instagram">
-                {data.instagramHandle
-                  ? `@${data.instagramHandle.replace(/^@/, "")}`
-                  : "—"}
+              <Field label="Claimed Instagram">
+                {claimedHandle ? (
+                  <span className="inline-flex flex-wrap items-center gap-2 font-semibold text-buzz-ink">
+                    {claimedHandle}
+                    {!data.instagramHandleConfirmed && (
+                      <Pill tone="warn">Unconfirmed lookup</Pill>
+                    )}
+                  </span>
+                ) : (
+                  "—"
+                )}
               </Field>
               <Field label="TikTok">{data.tiktokHandle ?? "—"}</Field>
               <Field label="Category">{data.category ?? "—"}</Field>

@@ -12,7 +12,7 @@ import { API_BASE_URL } from "../../api/config";
 
 type CallbackState =
   | { kind: "exchanging" }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string; applyRequired?: boolean };
 
 export default function InstagramCallbackPage() {
   const [searchParams] = useSearchParams();
@@ -48,6 +48,15 @@ export default function InstagramCallbackPage() {
           // Denied orgs must reach the denial screen even without a session.
           if (code === "ACCOUNT_DENIED") {
             window.location.href = "/onboarding/denied";
+            return;
+          }
+          if (code === "ORG_APPLY_REQUIRED") {
+            setState({
+              kind: "error",
+              message:
+                "Buzz doesn't create accounts from Instagram login anymore. Apply as a student organization first, then connect Instagram after approval.",
+              applyRequired: true,
+            });
             return;
           }
           const msg =
@@ -96,12 +105,21 @@ export default function InstagramCallbackPage() {
       <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
         {state.message}
       </p>
-      <Link
-        to="/login"
-        className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper transition hover:bg-buzz-coralDark"
-      >
-        Try Again
-      </Link>
+      {state.applyRequired ? (
+        <Link
+          to="/org/apply"
+          className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper transition hover:bg-buzz-coralDark"
+        >
+          Apply as a student organization
+        </Link>
+      ) : (
+        <Link
+          to="/login"
+          className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper transition hover:bg-buzz-coralDark"
+        >
+          Try Again
+        </Link>
+      )}
     </div>
   );
 }

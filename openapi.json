@@ -995,6 +995,18 @@
         "title": "AdminLoginRequest",
         "type": "object"
       },
+      "AdminOrgApproveRequest": {
+        "description": "Honor-system confirm that the Instagram Tester invite was sent.",
+        "properties": {
+          "testerInviteConfirmed": {
+            "default": false,
+            "title": "Testerinviteconfirmed",
+            "type": "boolean"
+          }
+        },
+        "title": "AdminOrgApproveRequest",
+        "type": "object"
+      },
       "AdminOrgDetail": {
         "properties": {
           "applications": {
@@ -1113,6 +1125,11 @@
               }
             ],
             "title": "Instagramhandle"
+          },
+          "instagramHandleConfirmed": {
+            "default": false,
+            "title": "Instagramhandleconfirmed",
+            "type": "boolean"
           },
           "instagramTokenExpiresAt": {
             "anyOf": [
@@ -1423,6 +1440,11 @@
             ],
             "title": "Instagramhandle"
           },
+          "instagramHandleConfirmed": {
+            "default": false,
+            "title": "Instagramhandleconfirmed",
+            "type": "boolean"
+          },
           "instagramTokenExpiresAt": {
             "anyOf": [
               {
@@ -1511,6 +1533,17 @@
       },
       "AdminOrgStatusResponse": {
         "properties": {
+          "emailSent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emailsent"
+          },
           "orgId": {
             "format": "uuid",
             "title": "Orgid",
@@ -4294,6 +4327,44 @@
         "title": "DataResponse[ImpersonateResponse]",
         "type": "object"
       },
+      "DataResponse_InstagramBindStartResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstagramBindStartResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[InstagramBindStartResponse]",
+        "type": "object"
+      },
       "DataResponse_InstagramDeauthorizeResponse_": {
         "properties": {
           "data": {
@@ -4330,6 +4401,44 @@
           }
         },
         "title": "DataResponse[InstagramDeauthorizeResponse]",
+        "type": "object"
+      },
+      "DataResponse_InstagramLookupResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstagramLookupResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[InstagramLookupResponse]",
         "type": "object"
       },
       "DataResponse_OkResponse_": {
@@ -5776,6 +5885,19 @@
         "title": "ImpersonateResponse",
         "type": "object"
       },
+      "InstagramBindStartResponse": {
+        "properties": {
+          "authorizeUrl": {
+            "title": "Authorizeurl",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorizeUrl"
+        ],
+        "title": "InstagramBindStartResponse",
+        "type": "object"
+      },
       "InstagramCallbackRequest": {
         "description": "Body for ``POST /api/auth/instagram/callback``.",
         "properties": {
@@ -5825,6 +5947,86 @@
         "title": "InstagramDeauthorizeResponse",
         "type": "object"
       },
+      "InstagramLookupResponse": {
+        "description": "Business Discovery lookup result for the apply confirm card.",
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "biography": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Biography"
+          },
+          "followersCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followerscount"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "profilePictureUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profilepictureurl"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "title": "InstagramLookupResponse",
+        "type": "object"
+      },
       "LinkPostRequest": {
         "description": "Body for ``POST|DELETE /api/campaigns/{id}/link-post``.",
         "properties": {
@@ -5866,6 +6068,81 @@
         "title": "OkResponse",
         "type": "object"
       },
+      "OrgApplyRequest": {
+        "additionalProperties": false,
+        "description": "Public ``POST /api/orgs/apply`` \u2014 profile + claimed Instagram handle.",
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/OrgCategory"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "contactName": {
+            "title": "Contactname",
+            "type": "string"
+          },
+          "deliveryAddress": {
+            "title": "Deliveryaddress",
+            "type": "string"
+          },
+          "eduEmail": {
+            "title": "Eduemail",
+            "type": "string"
+          },
+          "handleConfirmed": {
+            "default": false,
+            "title": "Handleconfirmed",
+            "type": "boolean"
+          },
+          "instagramHandle": {
+            "title": "Instagramhandle",
+            "type": "string"
+          },
+          "memberCount": {
+            "title": "Membercount",
+            "type": "integer"
+          },
+          "orgName": {
+            "title": "Orgname",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "tiktokHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tiktokhandle"
+          },
+          "university": {
+            "title": "University",
+            "type": "string"
+          }
+        },
+        "required": [
+          "orgName",
+          "university",
+          "eduEmail",
+          "instagramHandle",
+          "memberCount",
+          "category",
+          "city",
+          "state",
+          "contactName",
+          "deliveryAddress"
+        ],
+        "title": "OrgApplyRequest",
+        "type": "object"
+      },
       "OrgCategory": {
         "description": "Classification of a student org (``organizations.category``).\n\nDrives brand-side applicant filtering (PRODUCT.md \u00a75.3.1). Nullable on the\ncolumn \u2014 orgs onboarded before this field, or that decline to classify,\nhave no category.",
         "enum": [
@@ -5879,9 +6156,23 @@
         "title": "OrgCategory",
         "type": "string"
       },
+      "OrgConnectRedeemRequest": {
+        "description": "Redeem approval connect-email token to mint a session.",
+        "properties": {
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "OrgConnectRedeemRequest",
+        "type": "object"
+      },
       "OrgOnboardingRequest": {
         "additionalProperties": false,
-        "description": "Phase 2: submit org profile after Instagram OAuth.",
+        "description": "Phase 2: submit org profile after Instagram OAuth (legacy drain).",
         "properties": {
           "category": {
             "$ref": "#/components/schemas/OrgCategory"
@@ -6547,6 +6838,20 @@
         "title": "PublicConfigResponse",
         "type": "object"
       },
+      "PublicResendVerificationRequest": {
+        "description": "Public resend of .edu verify mail (no session; rate-limited).",
+        "properties": {
+          "eduEmail": {
+            "title": "Eduemail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eduEmail"
+        ],
+        "title": "PublicResendVerificationRequest",
+        "type": "object"
+      },
       "RefreshResponse": {
         "description": "Result of a successful ``POST /api/auth/refresh``.\n\n``user`` mirrors the payload that ``GET /api/auth/me`` would return for the\nbearer we just minted. Serializing both from the same transaction lets the\nSPA bootstrap without a follow-up ``/me`` \u2014 closing the\n``token_version`` mint-then-read race\n(see ``gaps/auth.ci-session-restore-flake.md``).",
         "properties": {
@@ -6902,10 +7207,45 @@
         "type": "object"
       },
       "VerifyEmailResponse": {
+        "description": "Onboarding verify may also mint a session (``access_token`` + ``user``).",
         "properties": {
+          "accessToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accesstoken"
+          },
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "tokenType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tokentype"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User"
           }
         },
         "required": [
@@ -8113,6 +8453,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminOrgApproveRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -8195,6 +8545,65 @@
           }
         },
         "summary": "Deny Org Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/orgs/{org_id}/resend-connect": {
+      "post": {
+        "operationId": "resend_org_connect_endpoint_api_admin_orgs__org_id__resend_connect_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminOrgStatusResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Resend Org Connect Endpoint",
         "tags": [
           "admin"
         ]
@@ -8884,6 +9293,56 @@
         ]
       }
     },
+    "/api/auth/instagram/bind-start": {
+      "post": {
+        "description": "Mint OAuth state with bind claim for ``pending_instagram`` orgs.",
+        "operationId": "instagram_bind_start_api_auth_instagram_bind_start_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_InstagramBindStartResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Instagram Bind Start",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/auth/instagram/callback": {
       "post": {
         "description": "Exchange the OAuth code, upsert the org user, issue Buzz tokens.",
@@ -8969,7 +9428,7 @@
     },
     "/api/auth/instagram/login": {
       "get": {
-        "description": "Redirect (302) to the Instagram OAuth authorize URL (\u00a73.4 Phase 1).\n\nThe signed ``state`` is also stored in a short-lived httpOnly cookie so the\ncallback can prove the round-trip belongs to the same browser that started\nit (double-submit; defends against OAuth login-CSRF / session fixation,\narchitecture \u00a711.1). No server-side state store is needed.",
+        "description": "Redirect (302) to the Instagram OAuth authorize URL (\u00a73.4 Phase 1).\n\nFor Connect-after-Approve, use ``POST /api/auth/instagram/bind-start`` first\n(authenticated) which returns an authorize URL with bind state.",
         "operationId": "instagram_login_api_auth_instagram_login_get",
         "responses": {
           "200": {
@@ -9079,6 +9538,48 @@
         ]
       }
     },
+    "/api/auth/org-connect/redeem": {
+      "post": {
+        "description": "Redeem approval connect-email token \u2192 session \u2192 connect page.",
+        "operationId": "redeem_org_connect_endpoint_api_auth_org_connect_redeem_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgConnectRedeemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_TokenResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Redeem Org Connect Endpoint",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/auth/refresh": {
       "post": {
         "description": "Issue a new access token from the refresh cookie; rotate the cookie.\n\nSuccessful refresh bumps ``token_version`` and mints a new pair.\n\nCookie-clear policy on 401 (load-bearing under concurrent refresh/login):\n\n- Missing cookie \u2192 do **not** clear. A ``Max-Age=0`` can race a concurrent\n  login ``Set-Cookie`` and wipe the new session.\n- ``ver`` mismatch (superseded rotation) \u2192 do **not** clear. Two in-flight\n  refreshes with the same cookie (common across a full page navigation:\n  the old document's HTTP may still complete after the new document's\n  bootstrap refresh) leave the winner's cookie intact only if the loser\n  does not emit ``Max-Age=0``. Logout / deny still revoke via version bump\n  and clear on their own endpoints.\n- Garbage / expired / unknown user / denied \u2192 clear (credential is dead).",
@@ -9113,7 +9614,7 @@
     },
     "/api/auth/verify-email": {
       "post": {
-        "description": "Phase 3: consume a one-time .edu verification token (rate-limited: token guessing).",
+        "description": "Consume a one-time .edu verification token (rate-limited: token guessing).\n\nOnboarding success mints a session (apply-first has no prior IG cookie).\nRotate success keeps the existing session and returns status only.",
         "operationId": "verify_email_endpoint_api_auth_verify_email_post",
         "requestBody": {
           "content": {
@@ -9328,6 +9829,48 @@
           }
         },
         "summary": "Resend Verification Endpoint",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/verify-email/resend-public": {
+      "post": {
+        "description": "Public resend after apply (no session). Enumerate-safe: always 200-shaped.",
+        "operationId": "resend_verification_public_endpoint_api_auth_verify_email_resend_public_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicResendVerificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_ResendVerificationResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Resend Verification Public Endpoint",
         "tags": [
           "auth"
         ]
@@ -10740,6 +11283,93 @@
         "summary": "Get Health",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/orgs/apply": {
+      "post": {
+        "description": "Public apply-first signup (no Instagram OAuth).",
+        "operationId": "org_apply_api_orgs_apply_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OrgOnboardingResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Org Apply",
+        "tags": [
+          "orgs"
+        ]
+      }
+    },
+    "/api/orgs/instagram-lookup": {
+      "get": {
+        "description": "Exact-username Business Discovery lookup for the apply confirm card.",
+        "operationId": "org_instagram_lookup_api_orgs_instagram_lookup_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "username",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Username",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_InstagramLookupResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Org Instagram Lookup",
+        "tags": [
+          "orgs"
         ]
       }
     },

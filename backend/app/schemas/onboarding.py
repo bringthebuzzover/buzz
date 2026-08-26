@@ -9,8 +9,59 @@ from app.models.enums import OrgCategory
 from app.schemas.common import CamelModel
 
 
+class OrgApplyRequest(CamelModel):
+    """Public ``POST /api/orgs/apply`` — profile + claimed Instagram handle."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    org_name: str
+    university: str
+    edu_email: str
+    instagram_handle: str
+    handle_confirmed: bool = False
+    tiktok_handle: str | None = None
+    member_count: int
+    category: OrgCategory
+    city: str
+    state: str
+    contact_name: str
+    delivery_address: str
+
+    @field_validator("edu_email")
+    @classmethod
+    def _validate_edu(cls, v: str) -> str:
+        v = v.strip().lower()
+        if len(v) > 320 or v.count("@") != 1:
+            raise ValueError("Invalid email address")
+        local, _, domain = v.partition("@")
+        if not local or not domain.endswith(".edu") or len(domain) <= len(".edu"):
+            raise ValueError("Must be a valid .edu email address")
+        return v
+
+    @field_validator("org_name", "university", "city", "state", "contact_name", "delivery_address")
+    @classmethod
+    def _non_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Must not be empty")
+        return v.strip()
+
+    @field_validator("instagram_handle")
+    @classmethod
+    def _handle_non_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Must not be empty")
+        return v.strip()
+
+    @field_validator("member_count")
+    @classmethod
+    def _non_negative(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("Must be zero or greater")
+        return v
+
+
 class OrgOnboardingRequest(CamelModel):
-    """Phase 2: submit org profile after Instagram OAuth."""
+    """Phase 2: submit org profile after Instagram OAuth (legacy drain)."""
 
     # extra="forbid" so a typo'd/unknown key is a 422, not silently dropped
     # (matches OrgProfileUpdate).
@@ -56,6 +107,41 @@ class OrgOnboardingRequest(CamelModel):
         if v < 0:
             raise ValueError("Must be zero or greater")
         return v
+
+
+class PublicResendVerificationRequest(CamelModel):
+    """Public resend of .edu verify mail (no session; rate-limited)."""
+
+    edu_email: str
+
+    @field_validator("edu_email")
+    @classmethod
+    def _validate_edu(cls, v: str) -> str:
+        v = v.strip().lower()
+        if len(v) > 320 or v.count("@") != 1:
+            raise ValueError("Invalid email address")
+        local, _, domain = v.partition("@")
+        if not local or not domain.endswith(".edu") or len(domain) <= len(".edu"):
+            raise ValueError("Must be a valid .edu email address")
+        return v
+
+
+class OrgConnectRedeemRequest(CamelModel):
+    """Redeem approval connect-email token to mint a session."""
+
+    token: str
+
+
+class InstagramLookupResponse(CamelModel):
+    """Business Discovery lookup result for the apply confirm card."""
+
+    available: bool
+    username: str | None = None
+    name: str | None = None
+    profile_picture_url: str | None = None
+    biography: str | None = None
+    followers_count: int | None = None
+    reason: str | None = None  # not_found | not_professional | unavailable | throttled
 
 
 class VerifyEmailRequest(CamelModel):

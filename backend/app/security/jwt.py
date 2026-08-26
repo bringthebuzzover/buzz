@@ -56,6 +56,7 @@ class TokenPayload(BaseModel):
     imp: str | None = None  # admin user id when this is an impersonation token
     imp_ver: int | None = None  # admin token_version at impersonation mint
     imp_readonly: bool | None = None  # impersonation session may not mutate
+    bind: str | None = None  # user id for Connect Instagram OAuth bind
 
 
 def _now() -> datetime:
@@ -131,8 +132,12 @@ def create_refresh_token(user_id: uuid.UUID | str, token_version: int = 0) -> st
     return _encode(claims)
 
 
-def create_oauth_state_token() -> str:
-    """Mint a signed, short-lived CSRF ``state`` for the OAuth round-trip."""
+def create_oauth_state_token(*, bind_user_id: uuid.UUID | str | None = None) -> str:
+    """Mint a signed, short-lived CSRF ``state`` for the OAuth round-trip.
+
+    When ``bind_user_id`` is set, the callback binds Instagram to that existing
+    user instead of inserting (LAUNCH.md Phase A Connect).
+    """
 
     issued = _now()
     claims: dict[str, Any] = {
@@ -143,6 +148,8 @@ def create_oauth_state_token() -> str:
         "exp": issued + timedelta(minutes=settings.OAUTH_STATE_TTL_MINUTES),
         "jti": uuid.uuid4().hex,
     }
+    if bind_user_id is not None:
+        claims["bind"] = str(bind_user_id)
     return _encode(claims)
 
 

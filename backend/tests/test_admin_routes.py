@@ -86,17 +86,32 @@ class TestApproveOrg:
         org = await make_org(db_session, user, org_name="To Approve")
 
         res = await app_client.post(
-            f"/api/admin/orgs/{org.id}/approve", headers=await _admin_headers(db_session)
+            f"/api/admin/orgs/{org.id}/approve",
+            headers=await _admin_headers(db_session),
+            json={"testerInviteConfirmed": True},
         )
         assert res.status_code == 200
         data = res.json()["data"]
-        assert data["status"] == "active"
+        assert data["status"] == "pending_instagram"
 
-        # Verify DB state
         await db_session.refresh(user)
         await db_session.refresh(org)
-        assert user.status == OrgUserStatus.ACTIVE.value
+        assert user.status == OrgUserStatus.PENDING_INSTAGRAM.value
         assert org.approved_at is not None
+
+    async def test_approve_requires_tester_confirm(self, app_client: AsyncClient, db_session):
+        user = await persist(
+            db_session,
+            make_user(role=PortalRole.ORG, status=OrgUserStatus.PENDING_APPROVAL),
+        )
+        org = await make_org(db_session, user, org_name="No Confirm")
+
+        res = await app_client.post(
+            f"/api/admin/orgs/{org.id}/approve",
+            headers=await _admin_headers(db_session),
+            json={"testerInviteConfirmed": False},
+        )
+        assert res.status_code == 400
 
     async def test_approve_wrong_state(self, app_client: AsyncClient, db_session):
         user = await persist(
@@ -105,7 +120,9 @@ class TestApproveOrg:
         org = await make_org(db_session, user, org_name="Already Active")
 
         res = await app_client.post(
-            f"/api/admin/orgs/{org.id}/approve", headers=await _admin_headers(db_session)
+            f"/api/admin/orgs/{org.id}/approve",
+            headers=await _admin_headers(db_session),
+            json={"testerInviteConfirmed": True},
         )
         assert res.status_code == 400
         assert res.json()["error"]["code"] == "INVALID_ONBOARDING_STATE"
@@ -114,6 +131,7 @@ class TestApproveOrg:
         res = await app_client.post(
             "/api/admin/orgs/00000000-0000-0000-0000-000000000099/approve",
             headers=await _admin_headers(db_session),
+            json={"testerInviteConfirmed": True},
         )
         assert res.status_code == 404
 

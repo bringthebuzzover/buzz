@@ -3,7 +3,7 @@ id: org.edu-verify-outlook-junk
 title: Org .edu verification mail is junk-shaped and campus Outlook files it as junk
 kind: ux_hole
 severity: P1
-status: open
+status: fixed
 surface: org
 evidence:
   - path: backend/app/services/email.py
@@ -64,7 +64,7 @@ Subject: `Confirm your Buzz account`
 ```
 You just created a Buzz account for {org}.
 
-Confirm this school email so we can review {org} and open the org portal.
+Confirm this school email so we can review {org}.
 
 Verify email:
 {url}

@@ -25,10 +25,12 @@ import ReconnectInstagramPage from "./pages/auth/ReconnectInstagramPage";
 import BrandSetupPage from "./pages/auth/BrandSetupPage";
 import BrandLoginPage from "./pages/auth/BrandLoginPage";
 import BrandApplyPage from "./pages/auth/BrandApplyPage";
+import OrgApplyPage from "./pages/auth/OrgApplyPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import OrgProfilePage from "./pages/onboarding/OrgProfilePage";
 import VerifyEmailPage from "./pages/onboarding/VerifyEmailPage";
+import ConnectInstagramPage from "./pages/onboarding/ConnectInstagramPage";
 import PendingApprovalPage from "./pages/onboarding/PendingApprovalPage";
 import DeniedPage from "./pages/onboarding/DeniedPage";
 import PrivacyPolicyPage from "./pages/legal/PrivacyPolicyPage";
@@ -112,12 +114,14 @@ export default function AppRoot(): ReactElement {
         />
         <Route path="brand/setup" element={<BrandSetupPage />} />
         <Route path="brand/apply" element={<BrandApplyPage />} />
+        <Route path="org/apply" element={<OrgApplyPage />} />
 
         {/* Onboarding pages. These require an authenticated session
             (architecture §6.4) — RequireAuth standardizes the redirect to
             /login; each page still self-routes on its specific status.
             verify-email is intentionally public: the email link is opened in a
-            fresh tab/browser with no session and carries its own ?token. */}
+            fresh tab/browser with no session and carries its own ?token.
+            org/apply is public (apply-first). */}
         <Route
           path="onboarding/profile"
           element={
@@ -129,6 +133,10 @@ export default function AppRoot(): ReactElement {
         <Route
           path="onboarding/verify-email"
           element={<VerifyEmailPage />}
+        />
+        <Route
+          path="onboarding/connect-instagram"
+          element={<ConnectInstagramPage />}
         />
         <Route
           path="onboarding/pending-approval"

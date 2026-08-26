@@ -107,6 +107,9 @@ function onAuthRoute(): boolean {
     p.startsWith("/brand/apply") ||
     p.startsWith("/brand/forgot-password") ||
     p.startsWith("/brand/reset-password") ||
+    p.startsWith("/org/apply") ||
+    p.startsWith("/onboarding/verify-email") ||
+    p.startsWith("/onboarding/connect-instagram") ||
     p.startsWith("/admin") ||
     p.startsWith("/auth/")
   );
@@ -114,7 +117,7 @@ function onAuthRoute(): boolean {
 
 /**
  * Public marketing/legal pages also skip auto-dev-login. Visiting `/` must stay
- * anonymous so Join Us → `/login` is testable; portal routes (`/org/*`, etc.)
+ * anonymous so Join Us → `/org/apply` is testable; portal routes (`/org/*`, etc.)
  * still auto-login for local DX without Instagram.
  */
 function onPublicMarketingRoute(): boolean {
