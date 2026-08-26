@@ -107,6 +107,47 @@ dead, `failHard` → `/login`. Sibling
 `auth.revoked-access-skips-refresh` is `apiFetch`; here `fetchMe`
 *does* refresh and the cookie is already revoked too.
 
+## `[e2e-stress-10]` on `f4364ca` (v2)
+
+[Run 32974819755](https://github.com/bringthebuzzover/buzz/actions/runs/32974819755):
+**8/10 jobs green**. v2 remint fully closed the dev-login family — org
+apply / mid-width / phone are **10/10**. The race resurfaced on the
+symmetric refresh-cookie path we intentionally left out of v2:
+
+| Job | Test | Observed |
+| --- | --- | --- |
+| 8 | admin session survives a reload | `waitForAuthSettled(admin-overview)` timed out on `/admin/login` |
+| 4 | admin View as / exit | `bootstrap fell back to /login` at [`admin.spec.ts:139`](../frontend/e2e/admin.spec.ts) (reload during impersonation) |
+| 8 | admin View as / exit | same as above |
+
+Same 15-27 ms token_version race, refresh path: `POST /refresh` mints
+admin `ver:N`, then `GET /me` immediately after → 401 revoked because
+`user.token_version` has moved past N. `fetchMe`'s internal refresh
+retry hits 401 revoked too, `applyMeResult({kind:"unauthenticated"})`
+→ `failHard` → `/admin/login`.
+
+## Locked v3 (refresh path symmetry)
+
+Apply the v2 remint pattern to the refresh branch:
+
+1. **Bootstrap refresh branch.** After a successful `refreshAccessToken`,
+   if the immediate `/me` is `unauthenticated` (and no Instagram
+   reconnect latch), call `refreshAccessToken` once more and re-fetch
+   `/me` before falling through to the user / latch branches. Off-dev
+   this also runs; a second refresh is a normal server operation and
+   cannot escalate privileges (bumping `token_version` only invalidates
+   older tokens for this user).
+2. **`restoreAdminFromCookie`.** Same remint after the first `/me` is
+   unauthenticated. Covers exit-impersonation from the SPA.
+3. Two new unit tests in `AuthContext.bootstrap.test.tsx`:
+   `refresh + /me revoked → remint + /me user → authenticated` and
+   `refresh + double-unauth → failHard`.
+
+Refresh path is not `dev-login`-guarded, so this fix lands in prod
+too. Blast radius: one extra `POST /refresh` per bootstrap iff the
+first `/me` says `unauthenticated`; capped by
+`rate_limited("refresh", 60/60s)`.
+
 ## Locked v2 (token_version race after dev-login)
 
 Exact race root between mint and `/me` is unproven (pool visibility,

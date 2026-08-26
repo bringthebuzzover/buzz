@@ -207,8 +207,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const refreshed = await refreshAccessToken();
       if (!bootstrapStillOwner()) return;
       if (refreshed) {
-        const me = await fetchMeWithRetry(bootstrapStillOwner);
+        let me = await fetchMeWithRetry(bootstrapStillOwner);
         if (!bootstrapStillOwner()) return;
+        // Refresh mint can race a token_version bump
+        // (auth.ci-session-restore-flake): /me returns unauthenticated while
+        // the cookie we just rotated is already stale. One remint reads the
+        // row's current ver. Symmetric with the dev-login branch below.
+        if (me.kind === "unauthenticated" && !hasInstagramReconnectLatch()) {
+          const remint = await refreshAccessToken();
+          if (!bootstrapStillOwner()) return;
+          if (remint) me = await fetchMeWithRetry(bootstrapStillOwner);
+          if (!bootstrapStillOwner()) return;
+        }
         if (me.kind === "user") {
           let sessionUser = me.user;
           if (sessionUser.portalRole === "admin") {
@@ -388,10 +398,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    const me = await fetchMeWithRetry(() => gen === genRef.current);
+    let me = await fetchMeWithRetry(() => gen === genRef.current);
     if (gen !== genRef.current) {
       resolveSupersededAuthenticating();
       return false;
+    }
+    // Same token_version race as bootstrap (auth.ci-session-restore-flake):
+    // refresh minted admin ver:N; between response and /me, something bumped
+    // admin.token_version. A second refresh reads the current ver.
+    if (me.kind === "unauthenticated" && !hasInstagramReconnectLatch()) {
+      const remint = await refreshAccessToken();
+      if (gen !== genRef.current) {
+        resolveSupersededAuthenticating();
+        return false;
+      }
+      if (remint) me = await fetchMeWithRetry(() => gen === genRef.current);
+      if (gen !== genRef.current) {
+        resolveSupersededAuthenticating();
+        return false;
+      }
     }
     return applyMeResult(me, { softOnTransient: true });
   }, [applyMeResult, failHard, resolveSupersededAuthenticating]);
