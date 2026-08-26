@@ -34,11 +34,17 @@ fix_when: |
   nav. refreshAccessToken and devLogin retry once on thrown network errors
   only (not 401/4xx). After successful devLogin, if immediate /me is
   unauthenticated, remint once via a second devLogin (dev-only;
-  auth.ci-session-restore-flake v2). waitForAuthSettled org path fails fast
-  on /login. Playwright retries stay 0. Unit tests cover the retry and
-  remint. workflow_dispatch e2e_repeat=10 all E2E jobs green. Do not rewrite
-  RequireAuth, do not treat all /admin* as a reason to skip refresh, do not
-  retry UNAUTHORIZED (that is auth.revoked-access-skips-refresh).
+  auth.ci-session-restore-flake v2). POST /api/auth/refresh returns the same
+  UserResponse as /me in the same transaction; bootstrap +
+  restoreAdminFromCookie + retryRestore consume the returned user and skip
+  the follow-up /me on the refresh path — closing the mint-then-read race
+  window structurally (v4). Same for POST /api/admin/impersonate (already
+  returns user; resumeImpersonation now consumes it). waitForAuthSettled org
+  path fails fast on /login. Playwright retries stay 0. Unit tests cover the
+  retry and same-transaction-user paths. workflow_dispatch e2e_repeat=10 all
+  E2E jobs green. Do not rewrite RequireAuth, do not treat all /admin* as a
+  reason to skip refresh, do not retry UNAUTHORIZED (that is
+  auth.revoked-access-skips-refresh).
 ---
 
 # CI session restore flakes (tests + one-shot refresh)
@@ -126,27 +132,61 @@ admin `ver:N`, then `GET /me` immediately after → 401 revoked because
 retry hits 401 revoked too, `applyMeResult({kind:"unauthenticated"})`
 → `failHard` → `/admin/login`.
 
-## Locked v3 (refresh path symmetry)
+## `[e2e-stress-10]` on `112c1f5` (v3)
 
-Apply the v2 remint pattern to the refresh branch:
+[Run 32976891708](https://github.com/bringthebuzzover/buzz/actions/runs/32976891708):
+still **8/10** — same two admin failures. v3's "refresh once more" was a
+no-op for this race:
 
-1. **Bootstrap refresh branch.** After a successful `refreshAccessToken`,
-   if the immediate `/me` is `unauthenticated` (and no Instagram
-   reconnect latch), call `refreshAccessToken` once more and re-fetch
-   `/me` before falling through to the user / latch branches. Off-dev
-   this also runs; a second refresh is a normal server operation and
-   cannot escalate privileges (bumping `token_version` only invalidates
-   older tokens for this user).
-2. **`restoreAdminFromCookie`.** Same remint after the first `/me` is
-   unauthenticated. Covers exit-impersonation from the SPA.
-3. Two new unit tests in `AuthContext.bootstrap.test.tsx`:
-   `refresh + /me revoked → remint + /me user → authenticated` and
-   `refresh + double-unauth → failHard`.
+- `refresh` mints access `ver:N` and rotates cookie to `ver:N`.
+- `/me` immediately 401s revoked → `user.token_version` has moved past N.
+- `fetchMe`'s internal retry calls `refresh` again with the just-rotated
+  cookie `ver:N`; server sees `user.ver > N` → 401 revoked, cookie left
+  intact (superseded-rotation policy). Client returns `unauthenticated`.
+- v3's extra `refresh` in bootstrap runs a **third** time with the same
+  stale cookie → same 401 → same `unauthenticated` → `failHard`.
 
-Refresh path is not `dev-login`-guarded, so this fix lands in prod
-too. Blast radius: one extra `POST /refresh` per bootstrap iff the
-first `/me` says `unauthenticated`; capped by
-`rate_limited("refresh", 60/60s)`.
+Dev-login self-heals because it is stateless (mints from the row's
+current `token_version`). A stale refresh cookie cannot self-heal:
+once the cookie's `ver` trails `user.token_version`, only a fresh
+login can revive the session. v3 fundamentally could not fix the
+refresh path.
+
+## Locked v4 (same-transaction user in /refresh)
+
+Kill the race window instead of retrying inside it. `POST /api/auth/refresh`
+now returns the same `UserResponse` payload that `GET /api/auth/me` would
+have returned for the newly minted bearer, built from the same DB
+transaction as `issue_token_pair`. Bootstrap consumes that user directly
+and skips the follow-up `/me` — there is no window in which
+`user.token_version` can drift between mint and read.
+
+1. **Backend `RefreshResponse` gets `user: UserResponse`.**
+   [`backend/app/routes/auth.py`](../backend/app/routes/auth.py) `/refresh`
+   builds `build_user_response(user)` after `issue_token_pair`. Same
+   fields as `/me`. `openapi.json` regenerated. No new auth surface
+   (proving cookie ownership already yields `/me` today).
+2. **Frontend `refreshAccessToken` stashes `lastRefreshedUser`.**
+   [`frontend/src/api/auth.ts`](../frontend/src/api/auth.ts) exposes
+   `takeRefreshedUser()` (single-use). Bootstrap, `restoreAdminFromCookie`,
+   and `retryRestore` in
+   [`frontend/src/contexts/AuthContext.tsx`](../frontend/src/contexts/AuthContext.tsx)
+   consume it and only fall back to `/me` when the response lacked user
+   (older mocks). The v3 remint code is removed.
+3. **`POST /api/admin/impersonate` already returns user** — the SPA now
+   consumes it too (`takeImpersonatedUser`) so bootstrap's View-as
+   resume no longer calls `/me` on the imp bearer either. Test 6
+   (`View as / exit` reload) is covered by the same fix.
+4. Tests: backend `test_refresh_valid_cookie_rotates` now asserts
+   `data.user.id/portal_role/status`. Two new unit tests replace the
+   obsolete v3 pair: bootstrap uses same-transaction user with **zero**
+   `/me` calls; falls back to `/me` when user is absent from the
+   response.
+
+Security: the response already gives the caller everything they need to
+call `/me` themselves; inlining the same payload does not widen the
+surface. CSRF posture unchanged (cross-origin can't read the body). Load
+cost is one fewer `/me` per bootstrap.
 
 ## Locked v2 (token_version race after dev-login)
 

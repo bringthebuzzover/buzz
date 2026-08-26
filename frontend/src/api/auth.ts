@@ -107,9 +107,25 @@ export function isAdminPath(pathname: string): boolean {
 }
 
 /**
+ * User returned by the most recent successful ``resumeImpersonation``. Same
+ * intent as ``lastRefreshedUser`` for the impersonation path: the imp endpoint
+ * mints the token and serializes the target user from the same transaction,
+ * so bootstrap can skip a follow-up ``/me`` that would race a
+ * ``token_version`` bump (auth.ci-session-restore-flake). Single-use.
+ */
+let lastImpersonatedUser: AuthUser | null = null;
+
+export function takeImpersonatedUser(): AuthUser | null {
+  const u = lastImpersonatedUser;
+  lastImpersonatedUser = null;
+  return u;
+}
+
+/**
  * Re-mint View as using the current admin bearer. Does not touch the latch
  * (caller clears on failure). Returns whether an impersonation token was
- * installed.
+ * installed. On success also stashes the target user for
+ * {@link takeImpersonatedUser}.
  */
 export async function resumeImpersonation(userId: string): Promise<boolean> {
   const token = getAccessToken();
@@ -124,14 +140,27 @@ export async function resumeImpersonation(userId: string): Promise<boolean> {
       },
     );
     if (!resp.ok) return false;
+    // ImpersonateResponse uses camelCase (accessToken); legacy snake_case
+    // fallback kept for older mocks. ``user`` is always present in the current
+    // schema and mirrors what ``GET /me`` would return for the target.
     const body = (await resp.json()) as {
-      data: { accessToken?: string; access_token?: string } | null;
+      data:
+        | {
+            accessToken?: string;
+            access_token?: string;
+            user?: UserWire;
+          }
+        | null;
     };
     const access = body.data?.accessToken ?? body.data?.access_token;
     if (!access) return false;
     setImpersonationToken(access);
+    lastImpersonatedUser = body.data?.user
+      ? _authUserFromWire(body.data.user)
+      : null;
     return true;
   } catch {
+    lastImpersonatedUser = null;
     return false;
   }
 }
@@ -193,6 +222,26 @@ async function fetchWithOneThrowRetry(
 let refreshInFlight: Promise<boolean> | null = null;
 /** Access token observed when the current in-flight refresh began. */
 let refreshInFlightStartedWith: string | null = null;
+/**
+ * User returned by the most recent successful ``/refresh``. The refresh
+ * response carries the same ``UserResponse`` payload as ``/me`` (built in the
+ * same transaction), so bootstrap can consume this and skip a follow-up
+ * ``/me`` — that follow-up was the mint-then-read race in
+ * ``gaps/auth.ci-session-restore-flake.md``. Callers must ``take`` the value
+ * (single-use) so a stale user from an earlier refresh never resurfaces.
+ */
+let lastRefreshedUser: AuthUser | null = null;
+
+/**
+ * Consume + clear the user from the most recent successful ``refreshAccessToken``.
+ * Returns ``null`` if refresh hasn't run yet or if the response lacked a user
+ * field (e.g. older mocks in tests). Single-use.
+ */
+export function takeRefreshedUser(): AuthUser | null {
+  const u = lastRefreshedUser;
+  lastRefreshedUser = null;
+  return u;
+}
 
 export async function refreshAccessToken(): Promise<boolean> {
   if (refreshInFlight) {
@@ -222,11 +271,13 @@ export async function refreshAccessToken(): Promise<boolean> {
       );
       if (!resp.ok) {
         if (accessToken === tokenAtStart) setAccessToken(null);
+        lastRefreshedUser = null;
         return false;
       }
       const body = (await resp.json()) as { data: RefreshData | null };
       if (!body.data?.access_token) {
         if (accessToken === tokenAtStart) setAccessToken(null);
+        lastRefreshedUser = null;
         return false;
       }
       // Refresh 200 rotated token_version / cookie — always adopt the new
@@ -234,9 +285,13 @@ export async function refreshAccessToken(): Promise<boolean> {
       // is dead after this rotation). Failure paths above still respect
       // tokenAtStart so a 401 does not wipe a concurrent login.
       setAccessToken(body.data.access_token);
+      // Same-transaction user body → bootstrap consumes via takeRefreshedUser
+      // and skips /me. Guard against schema drift / older mocks.
+      lastRefreshedUser = body.data.user ? _authUserFromWire(body.data.user) : null;
       return true;
     } catch {
       if (accessToken === tokenAtStart) setAccessToken(null);
+      lastRefreshedUser = null;
       return false;
     } finally {
       refreshInFlight = null;
@@ -273,6 +328,24 @@ async function _meRequest(token: string): Promise<Response> {
     headers: { Authorization: `Bearer ${token}` },
     credentials: "include",
   });
+}
+
+/**
+ * Map a wire ``UserResponse`` (snake_case, backend contract) to the SPA's
+ * ``AuthUser`` (camelCase). Shared by ``fetchMe`` and the ``/refresh`` user
+ * inlining (auth.ci-session-restore-flake).
+ */
+function _authUserFromWire(u: UserWire): AuthUser {
+  return {
+    id: u.id,
+    portalRole: u.portal_role as AuthUser["portalRole"],
+    status: u.status,
+    instagramUsername: u.instagram_username ?? undefined,
+    email: u.email ?? undefined,
+    pendingEduEmail: u.pending_edu_email ?? undefined,
+    impersonatedBy: u.impersonated_by ?? undefined,
+    impersonationReadonly: u.impersonation_readonly ?? undefined,
+  };
 }
 
 async function _errorCode(resp: Response): Promise<string | undefined> {
@@ -352,19 +425,7 @@ export async function fetchMe(): Promise<MeResult> {
     const body = (await resp.json()) as { data: UserWire | null };
     const u = body.data;
     if (!u) return { kind: "error" };
-    return {
-      kind: "user",
-      user: {
-        id: u.id,
-        portalRole: u.portal_role as AuthUser["portalRole"],
-        status: u.status,
-        instagramUsername: u.instagram_username ?? undefined,
-        email: u.email ?? undefined,
-        pendingEduEmail: u.pending_edu_email ?? undefined,
-        impersonatedBy: u.impersonated_by ?? undefined,
-        impersonationReadonly: u.impersonation_readonly ?? undefined,
-      },
-    };
+    return { kind: "user", user: _authUserFromWire(u) };
   } catch {
     return { kind: "error" }; // network throw → transient
   }

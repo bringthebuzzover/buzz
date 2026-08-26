@@ -25,6 +25,8 @@ jest.mock("../api/auth", () => {
     devLogin: jest.fn(),
     logout: jest.fn(async () => {}),
     resumeImpersonation: jest.fn(),
+    takeRefreshedUser: jest.fn(() => null),
+    takeImpersonatedUser: jest.fn(() => null),
   };
 });
 
@@ -37,6 +39,8 @@ import {
   resumeImpersonation,
   setAccessToken,
   setViewAsLatch,
+  takeImpersonatedUser,
+  takeRefreshedUser,
 } from "../api/auth";
 
 const refreshMock = refreshAccessToken as jest.MockedFunction<
@@ -47,6 +51,12 @@ const resumeMock = resumeImpersonation as jest.MockedFunction<
   typeof resumeImpersonation
 >;
 const devLoginMock = jest.requireMock("../api/auth").devLogin as jest.Mock;
+const takeRefreshedUserMock = takeRefreshedUser as jest.MockedFunction<
+  typeof takeRefreshedUser
+>;
+const takeImpersonatedUserMock = takeImpersonatedUser as jest.MockedFunction<
+  typeof takeImpersonatedUser
+>;
 
 function Probe() {
   const {
@@ -117,6 +127,10 @@ describe("AuthProvider bootstrap resolution", () => {
     fetchMeMock.mockReset();
     resumeMock.mockReset();
     devLoginMock.mockReset();
+    takeRefreshedUserMock.mockReset();
+    takeRefreshedUserMock.mockReturnValue(null);
+    takeImpersonatedUserMock.mockReset();
+    takeImpersonatedUserMock.mockReturnValue(null);
     setAccessToken(null);
     clearViewAsLatch();
     window.history.pushState({}, "", "/admin");
@@ -178,25 +192,18 @@ describe("AuthProvider bootstrap resolution", () => {
     expect(fetchMeMock).toHaveBeenCalledTimes(2);
   });
 
-  it("remints via a second refresh when refresh + /me hits an immediate revoke", async () => {
-    let refreshCalls = 0;
+  it("uses the user from /refresh and skips /me on the bootstrap refresh path (auth.ci-session-restore-flake v4)", async () => {
+    // Same-transaction user body eliminates the mint-then-read race — no /me
+    // call is expected on the refresh-success branch when refresh returned a
+    // user.
     refreshMock.mockImplementation(async () => {
-      refreshCalls += 1;
-      setAccessToken(`refresh-token-${refreshCalls}`);
+      setAccessToken("refresh-token");
       return true;
     });
-    let meCalls = 0;
-    fetchMeMock.mockImplementation(async () => {
-      meCalls += 1;
-      if (meCalls === 1) return { kind: "unauthenticated" as const };
-      return {
-        kind: "user" as const,
-        user: {
-          id: "admin-1",
-          portalRole: "admin" as const,
-          status: "active",
-        },
-      };
+    takeRefreshedUserMock.mockReturnValueOnce({
+      id: "admin-1",
+      portalRole: "admin",
+      status: "active",
     });
 
     await act(async () => {
@@ -209,17 +216,21 @@ describe("AuthProvider bootstrap resolution", () => {
 
     await waitForStatus(container, "authenticated");
     expect(userText(container)).toBe("admin-1");
-    expect(refreshMock).toHaveBeenCalledTimes(2);
-    expect(fetchMeMock).toHaveBeenCalledTimes(2);
-    expect(getAccessToken()).toBe("refresh-token-2");
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+    expect(fetchMeMock).not.toHaveBeenCalled();
+    expect(getAccessToken()).toBe("refresh-token");
   });
 
-  it("failHards when the second refresh /me is still unauthenticated", async () => {
+  it("falls back to /me when /refresh succeeds but user is not surfaced (older response / mock)", async () => {
     refreshMock.mockImplementation(async () => {
       setAccessToken("refresh-token");
       return true;
     });
-    fetchMeMock.mockResolvedValue({ kind: "unauthenticated" });
+    // takeRefreshedUser defaults to null in beforeEach → forces /me fallback.
+    fetchMeMock.mockResolvedValue({
+      kind: "user",
+      user: { id: "admin-1", portalRole: "admin", status: "active" },
+    });
 
     await act(async () => {
       root.render(
@@ -229,10 +240,8 @@ describe("AuthProvider bootstrap resolution", () => {
       );
     });
 
-    await waitForStatus(container, "error");
-    expect(refreshMock).toHaveBeenCalledTimes(2);
-    expect(fetchMeMock).toHaveBeenCalledTimes(2);
-    expect(getAccessToken()).toBeNull();
+    await waitForStatus(container, "authenticated");
+    expect(fetchMeMock).toHaveBeenCalledTimes(1);
   });
 
   it("remints via a second devLogin when the first /me is unauthenticated", async () => {

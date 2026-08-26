@@ -61,7 +61,15 @@ class TokenResponse(BaseModel):
 
 
 class RefreshResponse(BaseModel):
-    """Result of a successful ``POST /api/auth/refresh``."""
+    """Result of a successful ``POST /api/auth/refresh``.
+
+    ``user`` mirrors the payload that ``GET /api/auth/me`` would return for the
+    bearer we just minted. Serializing both from the same transaction lets the
+    SPA bootstrap without a follow-up ``/me`` — closing the
+    ``token_version`` mint-then-read race
+    (see ``gaps/auth.ci-session-restore-flake.md``).
+    """
 
     access_token: str
     token_type: Literal["bearer"] = "bearer"
+    user: UserResponse
