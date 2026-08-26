@@ -244,24 +244,18 @@ describe("AuthProvider bootstrap resolution", () => {
     expect(fetchMeMock).toHaveBeenCalledTimes(1);
   });
 
-  it("remints via a second devLogin when the first /me is unauthenticated", async () => {
+  it("uses the user from dev-login and skips /me on the bootstrap dev-login path (auth.ci-session-restore-flake v5)", async () => {
+    // dev-login's TokenResponse carries user in the same transaction as the
+    // mint — no /me follow-up needed, no mint-then-read race.
     refreshMock.mockResolvedValue(false);
-    let loginCalls = 0;
     devLoginMock.mockImplementation(async () => {
-      loginCalls += 1;
-      const token = `dev-token-${loginCalls}`;
-      setAccessToken(token);
-      return { access_token: token };
-    });
-    let meCalls = 0;
-    fetchMeMock.mockImplementation(async () => {
-      meCalls += 1;
-      if (meCalls === 1) return { kind: "unauthenticated" as const };
+      setAccessToken("dev-token");
       return {
-        kind: "user" as const,
+        access_token: "dev-token",
+        token_type: "bearer",
         user: {
           id: "seed-org",
-          portalRole: "org" as const,
+          portal_role: "org",
           status: "active",
         },
       };
@@ -278,20 +272,25 @@ describe("AuthProvider bootstrap resolution", () => {
 
     await waitForStatus(container, "authenticated");
     expect(userText(container)).toBe("seed-org");
-    expect(devLoginMock).toHaveBeenCalledTimes(2);
-    expect(fetchMeMock).toHaveBeenCalledTimes(2);
-    expect(getAccessToken()).toBe("dev-token-2");
+    expect(devLoginMock).toHaveBeenCalledTimes(1);
+    expect(fetchMeMock).not.toHaveBeenCalled();
+    expect(getAccessToken()).toBe("dev-token");
   });
 
-  it("failHards when a second devLogin /me is still unauthenticated", async () => {
+  it("falls back to /me when dev-login response lacks a user (older mock / schema drift)", async () => {
     refreshMock.mockResolvedValue(false);
-    let loginCalls = 0;
     devLoginMock.mockImplementation(async () => {
-      loginCalls += 1;
-      setAccessToken(`dev-token-${loginCalls}`);
-      return { access_token: `dev-token-${loginCalls}` };
+      setAccessToken("dev-token");
+      return { access_token: "dev-token" };
     });
-    fetchMeMock.mockResolvedValue({ kind: "unauthenticated" });
+    fetchMeMock.mockResolvedValue({
+      kind: "user",
+      user: {
+        id: "seed-org",
+        portalRole: "org",
+        status: "active",
+      },
+    });
     window.history.pushState({}, "", "/org/browse");
 
     await act(async () => {
@@ -302,10 +301,9 @@ describe("AuthProvider bootstrap resolution", () => {
       );
     });
 
-    await waitForStatus(container, "error");
-    expect(devLoginMock).toHaveBeenCalledTimes(2);
-    expect(fetchMeMock).toHaveBeenCalledTimes(2);
-    expect(getAccessToken()).toBeNull();
+    await waitForStatus(container, "authenticated");
+    expect(devLoginMock).toHaveBeenCalledTimes(1);
+    expect(fetchMeMock).toHaveBeenCalledTimes(1);
   });
 
   it("retryRestore recovers to authenticated after a soft failure", async () => {
