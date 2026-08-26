@@ -188,6 +188,50 @@ call `/me` themselves; inlining the same payload does not widen the
 surface. CSRF posture unchanged (cross-origin can't read the body). Load
 cost is one fewer `/me` per bootstrap.
 
+## `[e2e-stress-10]` on `4e02a6b` (v4)
+
+[Run 32985226853 (rerun)](https://github.com/bringthebuzzover/buzz/actions/runs/32985226853):
+**9/10 jobs green**. v4 fully closed the admin refresh + View-as / imp
+family — admin session survives reload and View-as / exit were **10/10**.
+Guards, brand, marketing, join, reconnect, admin queues, sidebar, orgs
+detail were all clean. The initial attempt was cancelled at the runner
+scheduler during a GitHub Actions Major Outage (2026-08-26 15:11 UTC);
+rerun after recovery went 9/10.
+
+Sole remaining failure — same dev-login mint-then-read race that v2
+tried to remint through:
+
+| Job | Test | Observed |
+| --- | --- | --- |
+| 9 | org drop feed renders cards | `bootstrap fell back to /login` at [`authSettled.ts`](../frontend/e2e/authSettled.ts) |
+
+Even with the v2 remint (call `devLogin` twice on immediate `/me`
+unauthenticated), the second mint's `/me` also 401s in the failing case
+— identical shape to why v3 didn't fix the refresh path.
+
+## Locked v5 (same-transaction user in dev-login bootstrap)
+
+`POST /api/auth/dev-login` already returns `TokenResponse` with
+`access_token + user` in the same transaction. Bootstrap was ignoring
+that user and calling `/me` — the exact race window v4 killed for
+`/refresh`. Symmetric structural fix:
+
+1. **`authUserFromWire` exported** from
+   [`frontend/src/api/auth.ts`](../frontend/src/api/auth.ts) — was the
+   private `_authUserFromWire` helper.
+2. **Bootstrap dev-login branch consumes `dev.user` directly** and skips
+   `/me`. Fallback to `fetchMeWithRetry` remains for the (only in tests)
+   case where the response lacks user. The v2 remint is removed — it
+   couldn't fix the case v5 now sidesteps.
+3. Unit tests: replaced the two v2 remint cases with
+   `dev-login returns user → bootstrap skips /me` and
+   `dev-login without user → /me fallback`.
+
+Same rationale as v4: proving cookie/dev-login response ownership
+already yields `/me`; inlining does not widen the surface. Off-dev
+`dev-login` 404s so the path never runs in prod. All admin/refresh
+paths remain covered by v4.
+
 ## Locked v2 (token_version race after dev-login)
 
 Exact race root between mint and `/me` is unproven (pool visibility,

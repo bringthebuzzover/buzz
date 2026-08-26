@@ -156,7 +156,7 @@ export async function resumeImpersonation(userId: string): Promise<boolean> {
     if (!access) return false;
     setImpersonationToken(access);
     lastImpersonatedUser = body.data?.user
-      ? _authUserFromWire(body.data.user)
+      ? authUserFromWire(body.data.user)
       : null;
     return true;
   } catch {
@@ -287,7 +287,7 @@ export async function refreshAccessToken(): Promise<boolean> {
       setAccessToken(body.data.access_token);
       // Same-transaction user body → bootstrap consumes via takeRefreshedUser
       // and skips /me. Guard against schema drift / older mocks.
-      lastRefreshedUser = body.data.user ? _authUserFromWire(body.data.user) : null;
+      lastRefreshedUser = body.data.user ? authUserFromWire(body.data.user) : null;
       return true;
     } catch {
       if (accessToken === tokenAtStart) setAccessToken(null);
@@ -332,10 +332,12 @@ async function _meRequest(token: string): Promise<Response> {
 
 /**
  * Map a wire ``UserResponse`` (snake_case, backend contract) to the SPA's
- * ``AuthUser`` (camelCase). Shared by ``fetchMe`` and the ``/refresh`` user
- * inlining (auth.ci-session-restore-flake).
+ * ``AuthUser`` (camelCase). Shared by ``fetchMe``, the ``/refresh`` user
+ * inlining, and the dev-login user inlining
+ * (auth.ci-session-restore-flake). Exported so bootstrap can consume the
+ * user body returned by dev-login without a follow-up ``/me``.
  */
-function _authUserFromWire(u: UserWire): AuthUser {
+export function authUserFromWire(u: UserWire): AuthUser {
   return {
     id: u.id,
     portalRole: u.portal_role as AuthUser["portalRole"],
@@ -425,7 +427,7 @@ export async function fetchMe(): Promise<MeResult> {
     const body = (await resp.json()) as { data: UserWire | null };
     const u = body.data;
     if (!u) return { kind: "error" };
-    return { kind: "user", user: _authUserFromWire(u) };
+    return { kind: "user", user: authUserFromWire(u) };
   } catch {
     return { kind: "error" }; // network throw → transient
   }
