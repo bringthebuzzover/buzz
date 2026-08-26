@@ -6548,7 +6548,7 @@
         "type": "object"
       },
       "RefreshResponse": {
-        "description": "Result of a successful ``POST /api/auth/refresh``.",
+        "description": "Result of a successful ``POST /api/auth/refresh``.\n\n``user`` mirrors the payload that ``GET /api/auth/me`` would return for the\nbearer we just minted. Serializing both from the same transaction lets the\nSPA bootstrap without a follow-up ``/me`` \u2014 closing the\n``token_version`` mint-then-read race\n(see ``gaps/auth.ci-session-restore-flake.md``).",
         "properties": {
           "access_token": {
             "title": "Access Token",
@@ -6559,10 +6559,14 @@
             "default": "bearer",
             "title": "Token Type",
             "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserResponse"
           }
         },
         "required": [
-          "access_token"
+          "access_token",
+          "user"
         ],
         "title": "RefreshResponse",
         "type": "object"

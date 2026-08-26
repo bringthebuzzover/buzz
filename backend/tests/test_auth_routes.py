@@ -122,7 +122,14 @@ async def test_refresh_valid_cookie_rotates(app_client: AsyncClient, db_session)
     set_request_cookies(app_client, {REFRESH: refresh})
     resp = await app_client.post("/api/auth/refresh")
     assert resp.status_code == 200
-    assert resp.json()["data"]["access_token"]
+    body = resp.json()["data"]
+    assert body["access_token"]
+    # /refresh now returns the same UserResponse as /me, built from the same
+    # transaction as the mint — closes the mint-then-read token_version race
+    # (gaps/auth.ci-session-restore-flake.md).
+    assert body["user"]["id"] == str(user.id)
+    assert body["user"]["portal_role"] == user.portal_role
+    assert body["user"]["status"] == user.status
     assert REFRESH in resp.headers.get("set-cookie", "")
     # Prior refresh cookie is dead after rotation (token_version bumped).
     set_request_cookies(app_client, {REFRESH: refresh})

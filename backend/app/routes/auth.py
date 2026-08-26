@@ -319,7 +319,11 @@ async def refresh(
 
     access, new_refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, new_refresh)
-    return api_response(data=RefreshResponse(access_token=access))
+    # Return user in the same response as the mint so the SPA bootstrap can
+    # skip a follow-up /me. That /me was the mint-then-read race window in
+    # gaps/auth.ci-session-restore-flake.md — same UserResponse fields as
+    # /me, same transaction, so token_version can't drift between them.
+    return api_response(data=RefreshResponse(access_token=access, user=build_user_response(user)))
 
 
 @router.post("/logout", response_model=DataResponse[OkResponse])

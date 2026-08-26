@@ -37,6 +37,8 @@ import {
   devLogin,
   fetchMe,
   logout as apiLogout,
+  takeImpersonatedUser,
+  takeRefreshedUser,
   viewAsPortalRoleFromPath,
   type MeResult,
 } from "../api/auth";
@@ -207,18 +209,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const refreshed = await refreshAccessToken();
       if (!bootstrapStillOwner()) return;
       if (refreshed) {
-        let me = await fetchMeWithRetry(bootstrapStillOwner);
+        // /refresh returns access_token + user from the same transaction, so
+        // there is no mint-then-read /me race window
+        // (auth.ci-session-restore-flake). Fall back to /me only if the
+        // response lacked user (older mocks in unit tests).
+        const refreshedUser = takeRefreshedUser();
+        const me: MeResult = refreshedUser
+          ? { kind: "user", user: refreshedUser }
+          : await fetchMeWithRetry(bootstrapStillOwner);
         if (!bootstrapStillOwner()) return;
-        // Refresh mint can race a token_version bump
-        // (auth.ci-session-restore-flake): /me returns unauthenticated while
-        // the cookie we just rotated is already stale. One remint reads the
-        // row's current ver. Symmetric with the dev-login branch below.
-        if (me.kind === "unauthenticated" && !hasInstagramReconnectLatch()) {
-          const remint = await refreshAccessToken();
-          if (!bootstrapStillOwner()) return;
-          if (remint) me = await fetchMeWithRetry(bootstrapStillOwner);
-          if (!bootstrapStillOwner()) return;
-        }
         if (me.kind === "user") {
           let sessionUser = me.user;
           if (sessionUser.portalRole === "admin") {
@@ -229,13 +228,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const resumed = await resumeImpersonation(latch.userId);
               if (!bootstrapStillOwner()) return;
               if (resumed) {
-                const targetMe = await fetchMeWithRetry(bootstrapStillOwner);
+                // Impersonate response returns access_token + target user from
+                // the same transaction (auth.ci-session-restore-flake), so no
+                // follow-up /me is required. Legacy /me fallback for the
+                // (unlikely) case the response lacked a user.
+                const impUser = takeImpersonatedUser();
+                const targetMe: MeResult = impUser
+                  ? { kind: "user", user: impUser }
+                  : await fetchMeWithRetry(bootstrapStillOwner);
                 if (!bootstrapStillOwner()) return;
                 if (targetMe.kind === "user") {
                   sessionUser = targetMe.user;
                 } else {
-                  // Imp token is installed but /me failed — drop View as and
-                  // remint admin access from the refresh cookie.
+                  // Imp token installed but /me fallback failed — drop View as
+                  // and remint admin access from the refresh cookie.
                   clearImpersonationSession();
                   const restored = await refreshAccessToken();
                   if (!bootstrapStillOwner()) return;
@@ -398,25 +404,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    let me = await fetchMeWithRetry(() => gen === genRef.current);
+    // /refresh returns access_token + user in the same transaction, so
+    // Exit View-as / cookie restore no longer races token_version with /me
+    // (auth.ci-session-restore-flake). Fall back to /me only for older mocks
+    // that don't return user.
+    const refreshedUser = takeRefreshedUser();
+    const me: MeResult = refreshedUser
+      ? { kind: "user", user: refreshedUser }
+      : await fetchMeWithRetry(() => gen === genRef.current);
     if (gen !== genRef.current) {
       resolveSupersededAuthenticating();
       return false;
-    }
-    // Same token_version race as bootstrap (auth.ci-session-restore-flake):
-    // refresh minted admin ver:N; between response and /me, something bumped
-    // admin.token_version. A second refresh reads the current ver.
-    if (me.kind === "unauthenticated" && !hasInstagramReconnectLatch()) {
-      const remint = await refreshAccessToken();
-      if (gen !== genRef.current) {
-        resolveSupersededAuthenticating();
-        return false;
-      }
-      if (remint) me = await fetchMeWithRetry(() => gen === genRef.current);
-      if (gen !== genRef.current) {
-        resolveSupersededAuthenticating();
-        return false;
-      }
     }
     return applyMeResult(me, { softOnTransient: true });
   }, [applyMeResult, failHard, resolveSupersededAuthenticating]);
@@ -434,7 +432,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else failHard();
       return;
     }
-    const me = await fetchMeWithRetry(() => gen === genRef.current);
+    // Same-transaction user body from /refresh (auth.ci-session-restore-flake);
+    // fall back to /me only when the response lacked user (older mocks).
+    const refreshedUser = takeRefreshedUser();
+    const me: MeResult = refreshedUser
+      ? { kind: "user", user: refreshedUser }
+      : await fetchMeWithRetry(() => gen === genRef.current);
     if (gen !== genRef.current) {
       resolveSupersededAuthenticating();
       return;
