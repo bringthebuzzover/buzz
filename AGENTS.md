@@ -13,6 +13,7 @@ This repo is **agent-first**: humans review and commit; agents implement. Follow
 | Concern | Location |
 | ------- | -------- |
 | Product behavior & UX | [`PRODUCT.md`](PRODUCT.md) |
+| Seeded-launch implementation plan (sequence, locks, phases) | [`LAUNCH.md`](LAUNCH.md) — not a second PRODUCT; not a gap list |
 | As-built system | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | Living bugs / holes | [`gaps/`](gaps/) (`gaps/<id>.md`) |
 | Fix queue / locked approaches | [`gaps/CLUSTERS.md`](gaps/CLUSTERS.md) |

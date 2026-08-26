@@ -16,27 +16,31 @@ evidence:
     note: Apply copy is review-then-setup-email only; no drop / monitor / finalize explanation
   - path: frontend/src/components/home/HomeJoinSection.tsx
     note: Join CTAs go straight to /login and /brand/apply with no “see how it works” path
-  - path: PRODUCT.md
-    note: §5.1–5.3 and §6.1–6.3 define both motions; PRODUCT does not specify public tour pages
+  - path:   PRODUCT.md
+    note: §5.1–5.3 and §6.1–6.3 define both motions; public tour routes are unspecified (LAUNCH.md Phase C)
 repro: |
   Open / as a logged-out prospect. “How to Bring the Buzz Over” lists benefits.
-  There is no page that shows org Instagram → profile → .edu → approval → apply,
-  or brand apply → sales call → Buzz-built drop → monitor → batch-finalize.
+  There is no page that walks apply-first org onboarding or brand ticket → admin
+  draft → Publish → monitor → batch-finalize.
   /login and /brand/apply do not link to such a page. AppRoot has no /for-orgs
   or /for-brands.
 fix_when: |
   Public `/for-orgs` and `/for-brands` exist (SiteLayout), each with a
   requirements list, numbered flow, stylized product frames (not stale live
-  PNGs), and a CTA to `/login` or `/brand/apply`. Home “How to…” becomes two
+  PNGs), and a CTA to `/org/apply` or `/brand/apply`. Home “How to…” becomes two
   cards into those routes; footer (v1) links the same. for-brands teaches
-  ideas/admin-drops.md option B (intake + admin-minted drop + monitor), not
-  today’s brand POST → live stub. for-orgs teaches PRODUCT §6.1 unless
-  org-precreate is PRODUCT-locked first. Copy does not promise public IG login
-  for non-testers or a verified mailing address. Tests cover routes + home/
-  footer links. Do not implement until blockers below are cleared.
+  LAUNCH.md Phase B (ticket + admin draft + Publish + monitor), not today’s
+  brand POST → live stub. for-orgs teaches PRODUCT §6.1 apply-first + Connect
+  after approval. Copy does not promise public IG login for non-testers or a
+  verified mailing address. Tests cover routes + home/footer links. Implement only
+  after Phase A and B gaps are archived.
 ---
 
 # Public role tours missing (`/for-orgs`, `/for-brands`)
+
+**Phase C** of [`LAUNCH.md`](../LAUNCH.md). Teach PRODUCT §6.1 apply-first and §5.2
+admin-minted drops (ticket → draft → **Publish**). Do not implement until Phase A
+and B are archived.
 
 Prospects cannot see either portal until Buzz approves them, and the two
 sides never overlap. The only public “how it works” surface is a value-prop
@@ -56,9 +60,9 @@ Two pages, not one with tabs.
 | | Orgs | Brands |
 | --- | --- | --- |
 | Route | `/for-orgs` | `/for-brands` |
-| Requirements | Org Instagram **Business/Creator** (not a personal member), campus `.edu`, profile fields in PRODUCT §3.1/§6.1, then Buzz review | Company name + email; Buzz reviews; setup-password email ([`PRODUCT.md`](../PRODUCT.md) §5.1 as-built invite) |
-| Flow to illustrate | IG login → profile + `.edu` → verify → pending approval → Drop Feed / apply → if accepted, products ship → post from that org account | Apply or invite → password → **Plan your Campaign** as a talk-to-Buzz ticket → sales call out of band → **admin creates the drop** → brand **monitors** applicants / KPIs / tracker → **batch-finalize after `apply_close_at`** |
-| CTA | `/login` | `/brand/apply` |
+| Requirements | **Instagram Business or Creator** for the **organization** (not a member’s personal account). Campus `.edu`, profile fields in PRODUCT §3.1/§6.1, **§6.1.1** handle confirm card on apply, then Buzz review | Company name + email; Buzz reviews; setup-password email ([`PRODUCT.md`](../PRODUCT.md) §5.1) |
+| Flow to illustrate | Public apply → type handle → **same-page confirm card** (photo + @handle) → `.edu` verify → pending approval → accept tester invite → Connect Instagram → Drop Feed / apply → if accepted, products ship → post from that org account | Apply or invite → password → **Plan your Campaign** (ticket) → sales call out of band → admin drafts drop → **Publish** → brand **monitors** applicants / KPIs / tracker → **batch-finalize after `apply_close_at`** |
+| CTA | `/org/apply` (returning orgs: `/login`) | `/brand/apply` |
 
 Home [`HomeBringBuzzSection.tsx`](../frontend/src/components/home/HomeBringBuzzSection.tsx)
 becomes two cards into these routes. Footer Get Started links the same. v1
@@ -73,39 +77,26 @@ invent targeting maps, Calendly, EasyPost, or guest brand dashboards.
 
 **Emails stay transactional.** Do not add a handbook newsletter.
 
-## for-brands must wait on admin-drops B
+## Hard blocker
 
-Brand motion to teach is [`ideas/admin-drops.md`](../ideas/admin-drops.md)
-**option B** (promoted; PRODUCT §5.2 not rewritten yet):
-
-1. Plan your Campaign → `drop_requests` intake, not a `drops` row.
-2. Sales call out of band.
-3. Admin POSTs a fully configured drop; email `{FRONTEND_URL}/brand/drops/{id}`.
-4. Brand watches tracker / applicants / KPIs; finalize unchanged (§7.1).
+[`drops.unconfigured-request-on-org-feed.md`](drops.unconfigured-request-on-org-feed.md)
+must be **archived** — intake + admin draft + Publish shipped; org feed only
+sees published drops. Locks live in [`LAUNCH.md`](../LAUNCH.md) §2 (not open forks).
 
 Do **not** screenshot `/brand/requests/new` → immediate `/brand/drops/:id`
-or org cards with `placehold.co` / “Multiple Campuses”.
+or org cards with `placehold.co` / “Multiple Campuses”. Do not teach brand
+self-configures creative (admin writes at mint; see LAUNCH §2).
 
-**Hard blockers (archive or lock these first):**
+## for-orgs — LAUNCH motion
 
-1. [`drops.unconfigured-request-on-org-feed.md`](drops.unconfigured-request-on-org-feed.md)
-   archived — intake + admin create shipped; org feed only sees real drops.
-2. PRODUCT §5.2 rewritten so “drop request” is not `POST /api/brands/me/drops`
-   (admin-drops: do not implement B until that rewrite).
-3. Remaining admin-drops forks locked so frames match reality, especially
-   **who owns creative** vs [`brand.drop-creative-uneditable.md`](brand.drop-creative-uneditable.md)
-   (brand PATCH title/hero vs Buzz writes creative at mint). Also tracker
-   start stage, publish-vs-create, intake field shape.
+[`LAUNCH.md`](../LAUNCH.md) locks public `/org/apply` (not IG-first create). Tour teaches
+PRODUCT §6.1 apply-first + **§6.1.1** handle confirm card + Business/Creator
+requirement + Connect after approval. Do not teach Continue with
+Instagram-as-signup.
 
-Until (3) is decided, do not draw a brand creative editor or claim the brand
-self-configures title/hero.
-
-## for-orgs — current PRODUCT, not precreate
-
-[`ideas/org-precreate.md`](../ideas/org-precreate.md) is **exploring**, not
-PRODUCT. Default tour is Instagram-first PLG (§3.1 / §6.1). If precreate is
-PRODUCT-locked **before** this gap is un-parked, rewrite for-orgs to claim
-link → waiting room / Connect Instagram; do not wait on that idea to ship.
+**for-orgs frames must include:** stylized apply form with handle field, inline
+confirm card (avatar + @handle), and visible “Business or Creator — not personal”
+copy matching shipped `/org/apply`.
 
 Copy constraints (not full blockers):
 
@@ -130,7 +121,7 @@ Copy constraints (not full blockers):
 - A combined FAQ / `/help` as the main fix.
 - One page with brand+org tabs.
 - Teaching today’s brand stub-as-campaign.
-- Teaching org-precreate until it is PRODUCT-locked.
+- Teaching admin CSV org import (`ideas/org-precreate.md` — superseded by public apply).
 - Header nav items in v1.
 - Guest (logged-out) live portal demos.
 - PRODUCT edits in this gap beyond naming the two public routes when

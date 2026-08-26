@@ -25,11 +25,11 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 | Dimension                  | Brands                                                          | Student organizations                                                                                     |
 | -------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | Go-to-market               | Sales-led (PLS)                                                 | Product-led (PLG) / sales-led (greek-life partnerships)                                                   |
-| Onboarding                 | Sales-led ; Buzz reviews and onboards                           | **Login with Instagram**; profile + verified university **.edu** email, then **Buzz admin approval**, grants portal access (**§3.1**, **§6.1**) |
+| Onboarding                 | Sales-led ; Buzz reviews and onboards                           | Public **org apply** (profile + claimed Instagram handle + verified **.edu**), Buzz review, then **Connect Instagram** (tester-bind); portal after bind (**§3.1**, **§6.1**) |
 | Scheduling / participation | Buzz coordinates ops; brands **batch-finalize** applicants after `apply_close_at` (§7.1) | Orgs discover campaigns, can enable notifications to be reminded when they drop, and apply (§6.3, §7)     |
 | Primary portal             | Status tracker + KPI dashboards + content library               | Drop feed + campaign history                                                                              |
 | Analytics lens             | Per-drop, aggregate across drops, engagement over time          | Own posts + aggregate engagement per active campaign                                                      |
-| Motion                     | Representative-driven                                           | Self-serve signup (Instagram + **.edu** verification)                                                     |
+| Motion                     | Representative-driven; brand **requests a call**, Buzz **mints** the drop (**§5.2**) | Self-serve apply (**.edu** first); Instagram **binds** after Buzz approval (**§6.1**) |
 
 **Key product rule:** A real user belongs to **exactly one** portal (Brand **or** Organization). Internal operators may use admin **View as** (impersonation) to open an org or brand session — that is not a production multi-portal capability.
 
@@ -42,7 +42,7 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 - **Drop:** A campaign instance with capacity, application windows, and lifecycle states visible differently to brands vs. orgs.
 - **Campaign (org context):** An org’s participation in a specific drop (application through completion).
 - **Spot:** One org slot in a drop’s fixed capacity.
-- **Buzz / Admin:** Internal operators who onboard brands and orgs to the platform, move brand **drop-request** tracker stages, manage agreements and exception handling, and operate behind the scenes where the product does not give the brand a direct control.
+- **Buzz / Admin:** Internal operators who onboard brands and orgs to the platform, manage **drop-request tickets** and **drop tracker** stages after publish (**§5.2**), agreements and exception handling, and operate behind the scenes where the product does not give the brand a direct control.
 - **Drop applicant decisions:** After the application window closes, the **brand** **batch-finalizes** applicants (approve or deny up to capacity). Rules: **§7.1**. No accept writes while the chronological Open window is still running.
 
 ---
@@ -53,9 +53,12 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 
 - No end user may belong to **both** the Brand portal and the Organization portal.
 - Routing and permissions enforce a **single portal** per authenticated user.
-- **Organization users** sign in with **Login with Instagram** (Instagram is the account identity for the org portal). The Instagram account used at login **is** the organization account (Business/Creator); the org handle is not separately choosable.
-- On first signup, the org completes a short profile—**university**, **org name**, \# of members, **organization type**, **city**, **state**, **contact name**, **shipping address**, and a **university .edu email**—and must **verify** that email, then await **Buzz admin approval**, before the Organization portal grants access. Until approval, the user remains in a pending state (no full portal access). Those profile fields remain required on later org profile edits (cannot be cleared). Instagram **follower count** is not manually entered — it is seeded from Instagram at profile creation when possible and refreshed daily (**§4.3**).
-- After first `.edu` verification, orgs in **`active`** or **`pending_approval`** may **rotate** to a new unique campus `.edu` (officer swap). Buzz uses a **pending-swap**: the current `users.edu_email` stays the live login/contact identity; `users.pending_edu_email` holds the new address until the verification link is confirmed; then Buzz swaps, refreshes `email_verified_at`, and **does not** demote status or block the portal. Resend and Cancel apply to the pending latch. Rotate/cancel use dedicated verify-email APIs — not `PATCH /orgs/me`. Onboarding typo-fix (`POST /api/auth/verify-email/change` while `pending_email_verification`) is unchanged.
+- **Organization accounts** are created by a public **org apply** form (not by Instagram OAuth). Required: **university**, **org name**, \# of members, **organization type**, **city**, **state**, **contact name**, **shipping address**, a university **.edu** email, and a **claimed Instagram handle** confirmed on the same page via the inline lookup card (**§6.1.1**). The handle must be the org’s **Business or Creator** account — not a personal member profile. The handle is for Buzz ops (Instagram Tester) until OAuth **binds** Graph identity. Those profile fields remain required on later org profile edits (cannot be cleared).
+- After **.edu** verification the org awaits **Buzz admin review**. During review, Buzz adds the claimed handle as an **Instagram Tester** (Meta App roles; Standard Access). Admin **approval** does not open the portal yet: the org **Connects Instagram** (Business/Creator) so Graph ids/token attach to **this** user. **Portal access** (`active`) starts after that bind. Denied applicants are notified by **email** and do not Connect. A **denied** org keeps its claimed handle reserved until **erase** (another applicant cannot claim it).
+- **Returning** org login is **Login with Instagram** on the bound account every time (no org password, no magic-link as ongoing login). Instagram OAuth **must not** create a second Buzz user. An unknown Instagram with no bind latch is told to apply first. The Instagram account used at connect/login **is** the organization account (Business/Creator). Claimed Instagram handles are **unique** among non-erased orgs (case-insensitive, `@` stripped). If Graph returns a different `@` at Connect than was claimed at apply, Buzz **binds anyway** and overwrites from Graph (ops may have tester’d a typo); log for ops.
+- Instagram **follower count** is not manually entered — it is seeded from Instagram **at bind** when possible and refreshed daily (**§4.3**).
+- After first `.edu` verification, orgs in **`active`**, **`pending_approval`**, or **`pending_instagram`** may **rotate** to a new unique campus `.edu` (officer swap). Buzz uses a **pending-swap**: the current `users.edu_email` stays the live login/contact identity; `users.pending_edu_email` holds the new address until the verification link is confirmed; then Buzz swaps, refreshes `email_verified_at`, and **does not** demote status or block the portal. Resend and Cancel apply to the pending latch. Rotate/cancel use dedicated verify-email APIs — not `PATCH /orgs/me`. Onboarding typo-fix (`POST /api/auth/verify-email/change` while `pending_email_verification`) is unchanged. **Resend verify** after public apply is allowed **without** a session (email + rate-limit).
+- While **`pending_approval`** (verified `.edu`, no connect email yet), a lost session waits for the **approval email** — there is no connect link to resend. At **Approve**, if the org already has Graph ids/token on file (legacy mid-flight), Buzz may set **`active`** and skip Connect; otherwise → **`pending_instagram`**. Admin **View as** is not offered for `pending_instagram` (no portal until bind).
 
 ### 3.1.1 Data ownership (single source of truth)
 
@@ -63,7 +66,7 @@ Each fact is stored once; APIs may still expose familiar field names by joining 
 
 | Fact | Owner column | Notes |
 | --- | --- | --- |
-| Org Instagram identity | `users.instagram_username` | Exposed as `instagramHandle` on org profile / applicant rows |
+| Org Instagram identity | `users.instagram_username` | Claimed at apply (ops / tester add); overwritten from Graph at bind. Exposed as `instagramHandle` on org profile / applicant rows |
 | Org `.edu` email | `users.edu_email` | Unique login/verification identity; not editable via `PATCH /orgs/me`. Post-verify rotate uses pending-swap (`users.pending_edu_email`) via dedicated verify-email APIs |
 | Org pending `.edu` rotate | `users.pending_edu_email` | Unique when set; cleared on verify, cancel, or erase |
 | Brand display name | `brands.brand_name` | Drop/campaign responses join brand for `brandName` |
@@ -110,7 +113,7 @@ For v1, drops expose two timestamps:
 ### 4.3 Metrics
 
 - Likes, comments, and related engagement metrics are **refreshed periodically** (not a one-time snapshot at submission).
-- **Estimated reach (v1 definition):** Derived from **follower counts** of the participating student org(s) (and/or connected accounts as implemented), combined with product rules for display. Connected org follower counts are **Graph-owned**: best-effort seed from Instagram at org profile creation, then **refreshed daily** when a usable token is on file (same cadence as post metric sync). Manual follower edits on onboarding/profile are not allowed.
+- **Estimated reach (v1 definition):** Derived from **follower counts** of the participating student org(s) (and/or connected accounts as implemented), combined with product rules for display. Connected org follower counts are **Graph-owned**: best-effort seed from Instagram **at Instagram bind**, then **refreshed daily** when a usable token is on file (same cadence as post metric sync). Manual follower edits on onboarding/profile are not allowed.
 - **Aggregate likes:** Show **aggregate likes** across the campaign’s linked posts (in addition to or alongside estimated reach, per product copy).
 - Brand-facing layout (per-org, UGC, roll-ups): **§5.3**.
 - **KPI preservation (hard rule):** Attributed campaign contribution — linked post counts, likes, comments, engagement series, estimated reach from retained follower counts, and campus counts from retained university — **must not disappear** when an org account is erased or identity is removed (**§3.1.2**). Identity, contact PII, IG credentials, and identifiable post content (permalinks, captions, media) may be scrubbed or anonymized; **numeric campaign stats stay**. Brand dashboards may show a tombstone participant label with prior metrics intact.
@@ -131,22 +134,29 @@ For v1, drops expose two timestamps:
 
 ### 5.2 Requesting a drop
 
-1. Brand submits a **drop request**.
-2. A Buzz representative handles **agreements, logistics, product shipment, and scheduling** behind the scenes.
-3. The brand sees a **read-only status tracker** for these high-level stages (Buzz updates them).
+A **drop request** and a **drop** are different objects.
 
-**Brand-facing tracker stages (canonical order):**
+1. Brand submits a **drop request** (intake ticket: free-text message / notes). That text is **not** the campaign title or description. The request is **not** a live campaign and **must not** appear on the org Drop Feed. Brand-facing ticket copy: a representative will contact them.
+2. A Buzz representative handles **agreements, logistics, product shipment, and scheduling** behind the scenes (sales call out of band).
+3. A Buzz **admin** opens the ticket beside a **draft drop editor** (side-by-side). They write title, description, hero **https** image URL, location, capacity, apply window, optional units / hashtag — using the ticket as reference, not as auto-fill. Save as **unpublished draft**. Every drop **must** link to a ticket; admin cannot create a drop without one.
+4. Admin **Publish**. Only then: orgs can see the drop (Upcoming countdown / Open apply); Notify Me and autoclose key off the real window; the brand **tracker** starts at **Awaiting Products** and the brand is emailed `{FRONTEND_URL}/brand/drops/{id}`.
+5. After publish, the brand sees a **read-only status tracker** (Buzz updates stages). Brand users do not edit logistics or creative in v1 of this motion. The owning brand may **view unpublished drafts** on the brand portal (not on the org feed).
 
-1. **Request Received** — _A representative will contact you soon_
-2. **Finalizing Agreements** — _Contracts being processed_
-3. **Awaiting Products** — _Shipped — tracking number shown_ (when applicable)
-4. **Drop Active** — _Campaign is live_
-5. **Drop Finished** — _Campaign complete_
+The owning brand **monitors** applicants and KPIs and **batch-finalizes** after `apply_close_at` (**§7.1**). They **cannot** mint or publish a `Drop` from the portal.
+
+**Ticket vs tracker:** “Request received” is **ticket** status, not a drop tracker stage.
+
+**Brand-facing drop tracker stages (after publish, canonical order):**
+
+1. **Awaiting Products** — _Shipped — tracking number shown_ (when applicable)
+2. **Drop Active** — _Campaign is live_
+3. **Drop Finished** — _Campaign complete_
 
 **Interactions:**
 
 - Brand users **cannot** advance these tracker stages themselves.
 - Tracking number appears when relevant at **Awaiting Products** (and may remain visible where product copy dictates).
+- Unpublished drafts are **not** on the org feed; the brand may still see them on brand surfaces.
 
 #### 5.2.1 Logistics integrations (e.g. EasyPost)
 
@@ -162,7 +172,8 @@ For v1, drops expose two timestamps:
 
 #### 5.3.1 Per-drop view
 
-When a drop is past the application window (selection / post-window stages such as **finalizing agreements**, or later **active** / **finished**), the brand can open it and sees:
+When a drop is past the application window (post-window **selection** stage — after
+`apply_close_at`, while Buzz ops may still be coordinating shipment), the brand can open it and sees:
 
 - **Applicants and participants by organization:** Each applying org appears as its own row (or card). Brands **finalize** applicants **after `apply_close_at`**, approving or denying up to capacity (and allocating units when budgeted) — not as rolling mid-window decisions during Open (**§7.1**). Approved orgs remain visible for the lifecycle of the drop.
 - **All social posts** linked or submitted for the drop, **grouped by org** where useful, plus roll-up summaries across the drop.
@@ -199,15 +210,42 @@ A separate **high-level** view across **all** the brand’s drops:
 
 ### 6.1 Onboarding
 
-1. Org user chooses **Login with Instagram** using the **organization’s** Instagram Business/Creator account (creates or signs into a Buzz account tied to that Instagram identity; this login account is the org identity — not a personal member account).
-2. The app collects **university**, **org name**, \# of members, **organization type**, **city**, **state**, **contact name**, **shipping address**, and a **university .edu email** address (must match the org’s campus).
-3. Buzz sends a **verification** to that **.edu** address; the user completes verification (confirm on the verify page).
-4. After **verified .edu** email, the org enters **pending Buzz review** — a Buzz admin manually reviews the org and **approves** or **denies** it.
-5. After **Buzz approval**, the user is **granted access** to the Organization portal (Drop Feed, My Campaigns). Denied applicants are notified by **email** and do not gain portal access.
+1. Org user submits a public **org apply** form: **university**, **org name**, \# of members, **organization type**, **city**, **state**, **contact name**, **shipping address**, campus **.edu**, and the organization’s Instagram **handle** via **§6.1.1** (lookup + same-page confirm). This **creates** the Buzz account. Instagram OAuth does not.
+2. Buzz sends a **verification** to that **.edu** address; the user completes verification (confirm on the verify page).
+3. After **verified .edu**, the org enters **pending Buzz review**. A Buzz admin reviews the org. During review, Buzz adds the claimed handle as an Instagram Tester (Meta; Standard Access), then **approves** or **denies**.
+4. After **approval**, the org **Connects Instagram** on the organization Business/Creator account. OAuth **binds** Graph identity to this user (token, ids, handle from Graph). Follower seed runs at bind (**§4.3**).
+5. After bind, the user is **`active`** and is granted the Organization portal (Drop Feed, My Campaigns). **Returning** sign-in is Login with Instagram. Denied applicants are notified by **email** and do not Connect or gain portal access.
 
-**Access gate:** Portal features are unavailable until step 5 completes. Neither Instagram login nor `.edu` verification alone grants access — Buzz admin approval is required.
+**Access gate:** Portal features are unavailable until step 5 completes. Apply, post library, and Graph follower counts require the Instagram bind. `.edu` verification or admin approval alone does not open the feed.
 
-**Additional platforms:** Campaign post selection (**§6.4.2**) may require connecting other supported accounts (e.g. TikTok) in addition to the Instagram identity used at login.
+Typed TikTok handle on the org profile remains optional. Connecting TikTok as a second OAuth account is **not** v1 (**§11**).
+
+#### 6.1.1 Instagram handle — same-page confirm card
+
+On **`/org/apply`** (and illustrated on public **`/for-orgs`** — Phase C), the Instagram handle is **not** free text alone.
+
+**Always visible (apply + for-orgs):**
+
+- The account must be the **organization’s** Instagram **Business or Creator** profile — **not** a member’s personal account.
+- Plain-language note that personal accounts cannot be used and that Buzz will verify the account type at lookup / Connect.
+
+**On `/org/apply` (single page — no separate confirm route):**
+
+1. Applicant types their handle (with or without `@`).
+2. After a **debounced pause** (~500ms) on a valid username shape, Buzz looks up that **exact** handle server-side (Meta Business Discovery — see [`META.md`](META.md) for limits and caching). There is **no** Instagram-style typeahead of similar handles (not supported by Meta’s public API). Do **not** call Meta on every keystroke.
+3. **Inline on the same form**, show a **confirm card** when lookup succeeds:
+   - Profile picture, `@username`, display name (when available), follower count, short bio snippet.
+   - Primary action: **“Confirm this is our organization’s account.”**
+4. **Submit** stays disabled until the user confirms the card for the current handle — **except** soft-fail (below).
+5. If the user **edits the handle** after confirming, clear confirmation and re-run lookup.
+6. **Lookup failure states** (inline on the card, same page):
+   - **Not found** or **not a Business/Creator (professional) account** → explain they need a professional org account (not personal); link to Meta’s convert-to-professional help where useful. **Blocks submit.**
+   - **Transient API error**, **rate limit**, or **lookup unavailable** (token unset / Meta outage) → **soft-fail**: retry affordance; do **not** block typing; allow submit with the handle marked **unconfirmed**. Admin org detail surfaces the unconfirmed flag so ops can verify before Approve.
+7. Confirming the card only latches the **claimed handle** for apply — it does **not** OAuth-bind or open the portal. Connect still happens after Buzz approval (**§6.1** step 4).
+
+**`/for-orgs`:** Requirements list and at least one stylized frame must show this handle field + confirm card pattern and the Business/Creator requirement (not only a bullet in prose).
+
+**Explicit OUT:** separate `/confirm-instagram` step; unofficial/scraped IG search typeahead; requiring OAuth at apply time.
 
 ### 6.2 Pages
 
@@ -343,7 +381,7 @@ Aggregated all drops →  Brand aggregate dashboard
 ## 9. Status authority
 
 - **Brand:** Batch-finalize (approve/deny) drop applicants **after `apply_close_at`** (**§7.1**). Org moves **Applied → Accepted** after brand approval (labels may differ by surface).
-- **Buzz:** Brand **platform** onboarding; **drop-request** tracker stages (**§5.2**); agreements and ops coordination; **§4.1** reopen; **org** lifecycle beyond applicant choice (e.g. **Active** / **Finished** when fulfillment and campaign rules are met — triggers TBD with brands). Org **portal access** is gated by **.edu** verification **followed by Buzz admin approval** (**§6.1**).
+- **Buzz:** Brand **platform** onboarding; drop-request **tickets** and drop **tracker** stages after publish (**§5.2**); agreements and ops coordination; **§4.1** reopen; **org** lifecycle beyond applicant choice (e.g. **Active** / **Finished** when fulfillment and campaign rules are met — triggers TBD with brands). Org **portal access** is gated by **.edu** verification, Buzz admin approval, then **Instagram bind** (**§6.1**).
 - **Automation / rules:** Feed **Open/Closed** follows **§4.1**, **§6.3**, **§7.2** (capacity-Closed is post-selection / reopen leftovers, not mid-window accept).
 
 ---
@@ -353,10 +391,10 @@ Aggregated all drops →  Brand aggregate dashboard
 | Actor | Surface             | Primary actions                                                                                                                  |
 | ----- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | Brand | Onboarding          | Submit info + message; wait for rep                                                                                              |
-| Brand | Drop request        | Submit request; view read-only tracker                                                                                           |
+| Brand | Drop request        | Submit ticket; wait for Buzz; after publish, view read-only tracker on the drop                                              |
 | Brand | Per-drop dashboard  | Batch-finalize applicants after close; per-org posts + metrics; drop KPIs; UGC preview/download                                |
 | Brand | Aggregate dashboard | Totals, time series, compare drops, running totals                                                                               |
-| Org   | Onboarding          | Login with org Instagram account; university + org name + **.edu**; verify email → Buzz approval → access                                                    |
+| Org   | Onboarding          | Public apply (profile + **§6.1.1** Instagram confirm card + **.edu**); verify; Buzz review; accept Instagram Tester invite; Connect Instagram; then portal |
 | Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts when Active                                                                                           |
 | Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; timing/reopen/fulfillment coordination; erase org account after verified data-deletion request (**§3.1.2**); integrations (see §5.2.1 TODO) |
@@ -368,6 +406,7 @@ Aggregated all drops →  Brand aggregate dashboard
 - **Notify Me push notifications:** Out of scope — reminder delivery is **email only** (**§6.3.1**).
 - **In-app denial UI for orgs:** Out of scope — channel is **email**; rules **§7.1** (drop applicant denials).
 - **Rich drop scheduling beyond apply window:** Only `apply_open_at` and `apply_close_at` specified for v1; other timestamps may be implicit inside Buzz ops.
+- **TikTok OAuth / dual-platform metrics:** Out of v1. Org profile may store an optional typed TikTok handle. Connecting TikTok as a login or metrics source is later.
 
 ---
 

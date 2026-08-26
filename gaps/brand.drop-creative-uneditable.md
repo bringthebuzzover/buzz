@@ -32,14 +32,22 @@ repro: |
      no picture.
   4. Org browse card for that drop shows the placehold.co hero.
 fix_when: |
-  Owning brand can change title, description, and picture (replace URL or
-  upload a new file) on an existing drop they own. Org feed / detail / campaign
-  cards pick up the new creative. Other brands 404. Logistics stay admin-only.
-  PRODUCT §5.2 notes brand-owned creative is editable after request. Tests
-  cover authz, omit-vs-null, validation, and SPA editor. Locked v1 below.
+  **Deferred Want** — do not implement during [`LAUNCH.md`](../LAUNCH.md) Phase B.
+  Admin writes creative at mint/Publish; brand does not edit creative in this revamp
+  (PRODUCT §5.2; LAUNCH §2 Brand/drops). Re-open this gap only after launch-admin-drops
+  is archived if brand typo-fix on published drops is still wanted.
+
+  When implemented (post-revamp), owning brand can change title, description, and picture
+  on an existing drop they own. Logistics stay admin-only. Tests cover authz, validation,
+  and SPA editor. Spec below is the prior Locked v1 — not current launch scope.
 ---
 
 # Brand cannot edit drop creative after create
+
+**Not in seeded-launch scope.** [`LAUNCH.md`](../LAUNCH.md) §2 locks **admin** creative on
+draft/Publish; brand monitor is read-only. This gap is a **Want after** Phase B
+(`LAUNCH.md` §3 “After this revamp”). Do not ship brand `PATCH` creative while
+implementing `launch-admin-drops`.
 
 `brand.drop-create-thin` shipped **admin** logistics PATCH and explicitly left
 `title` / `description` / `image` **OUT** as brand-owned. There is still **no
@@ -51,7 +59,7 @@ PRODUCT §5.1–§5.2 keeps **logistics** with Buzz (capacity, window, units,
 hashtag, tracker). It does not freeze the brand’s campaign copy or hero.
 Typos and a missing picture are unrecoverable in-product today.
 
-## Locked v1
+## Deferred Want v1 (post-revamp only — not Phase B)
 
 ### Fields (brand-owned only)
 
@@ -144,8 +152,9 @@ org UI change beyond seeing the new asset.
 - R2/S3/Railway volume; CDN.
 - Changing picture after orgs have applied does **not** notify orgs (v1).
 
-## PRODUCT
+## PRODUCT (when this gap is un-parked)
 
 Add to §5.2 that the owning brand may edit **title, description, and hero
-picture** after the request; Buzz still owns logistics and tracker stages.
-Do not widen brand PLG into capacity/window/hashtag here.
+picture** after publish; Buzz still owns logistics and tracker stages.
+Do not widen brand PLG into capacity/window/hashtag here. **Not part of the
+current LAUNCH revamp** — admin writes creative until this ships.
