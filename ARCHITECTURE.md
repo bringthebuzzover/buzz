@@ -1,6 +1,6 @@
 # Buzz — as-built architecture
 
-Short description of **what is implemented today**. Behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md) — do not restate them here. Agent workflow: [`AGENTS.md`](AGENTS.md). Deploy/ops: [`DEPLOYMENT.md`](DEPLOYMENT.md).
+Short description of **what is implemented today**. Behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md) — do not restate them here. **Seeded-launch target** (apply-first orgs, admin-minted drops): [`LAUNCH.md`](LAUNCH.md). Agent workflow: [`AGENTS.md`](AGENTS.md). Deploy/ops: [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ---
 
@@ -62,7 +62,9 @@ Commit both `openapi.json` and `frontend/src/api/generated/schema.ts` when route
 - Both access and refresh JWTs carry `ver`; API compares to `users.token_version` (revocation on logout, deny, password reset, re-login/refresh rotation, IG token clear/deauth, etc.).
 - Guards: `get_current_user` → `require_role` / `require_status` → aliases `CurrentOrg` / `CurrentBrand` / `CurrentAdmin`.
 - Impersonation: short-lived access token (default ~15m); admin refresh cookie untouched; default `IMPERSONATION_READONLY=true`. Same-tab reload remints via a `sessionStorage` View-as latch (Exit / logout clear it); access JWT stays memory-only.
-- Org portal access statuses on `users.status`: `pending_org_profile` → `pending_email_verification` → `pending_approval` → `active` | `denied` | `erased` (behavior: PRODUCT §6.1 / §3.1.2). `erased` is terminal after admin org erase (identity scrubbed; campaign KPIs retained — PRODUCT §4.3). Brand review lives on `brands.status` (`pending_review` / `approved` / `denied`).
+- Org portal access statuses on `users.status` (**as-built today**): `pending_org_profile` → `pending_email_verification` → `pending_approval` → `active` | `denied` | `erased`. `erased` is terminal after admin org erase (identity scrubbed; campaign KPIs retained — PRODUCT §4.3). Brand review lives on `brands.status` (`pending_review` / `approved` / `denied`).
+
+**Seeded-launch target** ([`LAUNCH.md`](LAUNCH.md) Phase A): after admin Approve → `pending_instagram` (until IG bind) → `active`; legacy rows with Graph already on file may skip to `active`. Public `/org/apply` creates the account without IG OAuth; returning login is Instagram on the bound account. Full status machine: LAUNCH §4.
 
 Cookie SameSite on today’s dual Railway hosts vs future custom DNS: see [`DEPLOYMENT.md`](DEPLOYMENT.md) (do not invent cookie policy here).
 
@@ -87,7 +89,9 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | `email_verification_tokens` / `brand_invite_tokens` / `password_reset_tokens` | One-shot tokens |
 | `job_runs` | Cron observability |
 
-Brand tracker stages (enum): `request_received` → `finalizing_agreements` → `awaiting_products` → `drop_active` → `drop_finished`.
+Brand tracker stages (enum, **as-built today**): `request_received` → `finalizing_agreements` → `awaiting_products` → `drop_active` → `drop_finished`.
+
+**Seeded-launch target** ([`LAUNCH.md`](LAUNCH.md) Phase B): ticket (`drop_requests`) is separate from `drops`. After admin **Publish** (`published_at`), drop tracker is `awaiting_products` → `drop_active` → `drop_finished` only. Org feed lists published drops, not tickets or unpublished drafts.
 
 Data ownership facts (which column owns which fact): **PRODUCT §3.1.1** — do not duplicate the table here.
 
@@ -127,7 +131,7 @@ One-shot scripts via `backend/scripts/run_job.py <name>` (Railway Cron). Idempot
 
 | Job | Typical UTC cadence | Role |
 | --- | ------------------- | ---- |
-| `drop_autoclose` | `*/5` | Close apply window → `finalizing_agreements` |
+| `drop_autoclose` | `*/5` | Close apply window → `finalizing_agreements` (**as-built**; Phase B: published drops only — see [`LAUNCH.md`](LAUNCH.md)) |
 | `notify_reminders` | `*/5` | Notify Me emails |
 | `metric_sync` | daily ~03:00 | Instagram FEED/REELS media + insights (`/me/media`); also refreshes `organizations.follower_count` from Graph `/me` for all tokened non-erased orgs. Stories out of scope (no `/stories` poller) |
 | `token_cleanup` | daily ~03:00 | Sweep spent tokens |

@@ -15,8 +15,9 @@ memory. This folder is **not** a source of truth for shipped behavior.
 - Ideas are **not** gaps. Do not file a gap until something is a broken path
   **today** (see [`gaps/README.md`](../gaps/README.md)).
 - Promoting an idea into the product requires an explicit PRODUCT / UX decision
-  (hard stop in [`AGENTS.md`](../AGENTS.md)) — do not implement from an idea
-  file alone.
+(hard stop in [`AGENTS.md`](../AGENTS.md)) — do not implement from an idea
+file alone. The seeded-launch revamp is specified in [`LAUNCH.md`](../LAUNCH.md),
+not in this folder.
 - Prefer updating an existing theme file over creating near-duplicates.
 - Status in frontmatter is advisory only (`seed` | `exploring` | `parked` |
   `promoted` | `discarded`). `promoted` means it earned PRODUCT/gap follow-up,

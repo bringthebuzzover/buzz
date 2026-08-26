@@ -4,7 +4,7 @@ Full-stack platform connecting brands with campus student organizations for camp
 
 **Stack:** React 18 + TypeScript + Tailwind (CRA/CRACO) frontend · FastAPI + PostgreSQL backend · JWT auth (Instagram OAuth for orgs, password login for brands) · Resend for transactional email.
 
-Product behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md) (including **§3.1.1** data ownership / single source of truth). As-built system: [`ARCHITECTURE.md`](ARCHITECTURE.md). Agent operating guide: [`AGENTS.md`](AGENTS.md). Living product holes and bugs: [`gaps/`](gaps/). Future bets / brainstorm (not committed behavior): [`ideas/`](ideas/). Launch ops: [`DEPLOYMENT.md`](DEPLOYMENT.md). Meta/Instagram app setup: [`META.md`](META.md). Backend details: [`backend/README.md`](backend/README.md).
+Product behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md) (including **§3.1.1** data ownership / single source of truth). Seeded-launch implementation sequence: [`LAUNCH.md`](LAUNCH.md). As-built system: [`ARCHITECTURE.md`](ARCHITECTURE.md). Agent operating guide: [`AGENTS.md`](AGENTS.md). Living product holes and bugs: [`gaps/`](gaps/). Future bets / brainstorm (not committed behavior): [`ideas/`](ideas/). Launch ops: [`DEPLOYMENT.md`](DEPLOYMENT.md). Meta/Instagram app setup: [`META.md`](META.md). Backend details: [`backend/README.md`](backend/README.md).
 
 ---
 
@@ -12,15 +12,15 @@ Product behavior and UX rules live in [`PRODUCT.md`](PRODUCT.md) (including **§
 
 | Surface        | Routes (high level)                                                                                     |
 | -------------- | ------------------------------------------------------------------------------------------------------- |
-| Marketing      | `/` (Join Us → `/login` or `/brand/apply`)                                                              |
+| Marketing      | `/` (Join Us → `/org/apply` or `/brand/apply` — see [`LAUNCH.md`](LAUNCH.md); as-built Join still `/login` until Phase A) |
 | Legal          | `/privacy`, `/terms`, `/data-deletion`                                                                  |
-| Auth           | `/login` (org Instagram), `/auth/instagram/callback`, `/brand/login`, `/brand/forgot-password`, `/brand/reset-password`, `/brand/setup`, `/brand/apply`, `/admin/login`, `/admin/forgot-password`, `/admin/reset-password` |
-| Org onboarding | `/onboarding/profile`, `/onboarding/verify-email`, `/onboarding/pending-approval`, `/onboarding/denied` |
+| Auth           | `/login` (returning org Instagram), `/org/apply` (new org — Phase A), `/auth/instagram/callback`, `/brand/login`, `/brand/forgot-password`, `/brand/reset-password`, `/brand/setup`, `/brand/apply`, `/admin/login`, `/admin/forgot-password`, `/admin/reset-password` |
+| Org onboarding | `/org/apply` (Phase A), `/onboarding/profile` (legacy drain), `/onboarding/verify-email`, `/onboarding/pending-approval`, `/onboarding/connect-instagram` (Phase A), `/onboarding/denied` |
 | Org portal     | `/org/browse`, `/org/campaigns`, `/org/campaigns/:campaignId`                                           |
 | Brand portal   | `/brand/dashboard`, `/brand/drops/:dropId`, `/brand/requests/new`                                       |
 | Admin          | `/admin` (overview, queues, drops, health, Invite brand, View as)                                       |
 
-Portals are gated by real auth (`RequireAuth` → `RequireStatus` → `RequireRole`), not a demo passcode. Public join intent goes through real account paths: student orgs via Instagram (`/login`), brands via `/brand/apply`.
+Portals are gated by real auth (`RequireAuth` → `RequireStatus` → `RequireRole`), not a demo passcode. Public join intent: student orgs via **org apply** (`/org/apply`, [`LAUNCH.md`](LAUNCH.md) Phase A); brands via `/brand/apply`. As-built until Phase A: orgs still go through Instagram (`/login`).
 
 Admins sign in with email + password (`/admin/login`) and can "View as" any active org or brand from `/admin`. Impersonation rides a short-lived access token — the admin's own refresh cookie is untouched — and is read-only unless `IMPERSONATION_READONLY=false`. See [`TESTING.md`](TESTING.md) for the permanent test accounts.
 

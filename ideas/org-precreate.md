@@ -1,18 +1,31 @@
 ---
 id: org-precreate
 title: Pre-create org accounts and invite by email
-status: exploring
+status: promoted
 updated: 2026-08-25
 ---
 
 # Pre-create organization accounts (email claim + later Instagram)
+
+**Implementation locks live in [`LAUNCH.md`](../LAUNCH.md)** (public `/org/apply`, not admin CSV). This file is brainstorm provenance. Do not implement from here.
+
+## What shipped instead (2026-08-25)
+
+| This idea (brainstorm) | LAUNCH / PRODUCT lock |
+| --- | --- |
+| Admin CSV import + claim email | Public **`/org/apply`** |
+| Second “Connect ready” email | **One** approval email (tester accept + Connect) |
+| Parallel PLG IG-first signup | Apply-first; unknown IG does not insert |
+| `/org/claim` tokens | `.edu` verify → `pending_approval` → Approve → `pending_instagram` → Connect |
+
+Everything below is **historical brainstorm** unless it matches LAUNCH §4 Target.
 
 Brainstorm (2026-08-25). **Not committed behavior.** Promoting this needs an
 explicit PRODUCT / UX lock ([`AGENTS.md`](../AGENTS.md) hard stop). Related
 ops: [`gaps/deploy.meta-business-verification.md`](../gaps/deploy.meta-business-verification.md)
 (public Instagram login still blocked).
 
-## Desired motion
+## Historical brainstorm — desired motion (superseded)
 
 We already have a list of student orgs plus some of the profile fields the
 onboarding form collects, and we already have their emails. Goal: **provision
@@ -40,7 +53,7 @@ That changes the UX vs a naive “claim then Connect Instagram”:
   seeding still matters. This overlay is a **bridge**, not a substitute for
   Business Verification / App Review.
 
-**Recommended sequence for this stage**
+**Recommended sequence for this stage (superseded — see LAUNCH §4 Target)**
 
 1. Admin imports list → `User` + `Organization` + one-shot claim email.
 2. Org clicks → session, `.edu` verified, profile already present (short

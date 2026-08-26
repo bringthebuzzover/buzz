@@ -7,9 +7,7 @@ updated: 2026-08-25
 
 # Admin-owned drop creation (sales call → Buzz builds → brand monitors)
 
-Brainstorm (2026-08-25). **Not committed behavior until PRODUCT.md is
-updated.** Direction **locked: option B** (intake ticket + admin POSTs a
-real drop). Remaining forks below still block implementation.
+**Implementation locks live in [`LAUNCH.md`](../LAUNCH.md)** (option B + creative = admin at mint). Remaining forks in this file are **closed there**. Do not implement from here.
 
 Related: [`gaps/drops.unconfigured-request-on-org-feed.md`](../gaps/drops.unconfigured-request-on-org-feed.md)
 (this is now that gap’s locked fix),
@@ -26,11 +24,9 @@ Drop **configuration** sits with Buzz, not with the brand.
    regions / org types, units, timing, creative, what “good” looks like.
 2. In the brand portal, **Plan your Campaign** is a **request to talk with a
    Buzz representative** — not a self-serve drop builder.
-3. After the call, ops has the intake. A **Buzz admin creates the drop** with
-   logistics and creative fully filled in, then starts it (real apply window,
-   real hero, real capacity).
-4. The brand gets a **link** to that drop: applicants, follower totals across
-   applicants, KPIs as they come in, tracker stages. They **watch** it.
+3. After the call, ops has the intake. A **Buzz admin** drafts the drop beside the
+   ticket (creative + logistics), then **Publish** (real apply window, real hero).
+4. On **Publish**, the brand gets a link to monitor applicants, KPIs, and tracker.
 5. After `apply_close_at`, the brand **batch-finalizes** applicants as today
    ([`PRODUCT.md`](../PRODUCT.md) §7.1).
 
@@ -40,18 +36,15 @@ Drop **configuration** sits with Buzz, not with the brand.
 
 Split **intake** from **campaign**. A request is not a `drops` row.
 
-1. **Plan your Campaign** creates a `drop_requests` (or `campaign_intakes`)
-   row: message, optional campuses / notes. Stage copy: *A representative
-   will contact you.* No `apply_open_at`. Not on the org feed.
+1. **Plan your Campaign** creates a `drop_requests` row: message, optional notes.
+   Stage copy: *A representative will contact you.* No `apply_open_at`. Not on the org feed.
 2. Sales call happens out of band (Calendly, phone, email).
-3. Admin **Create drop** on that brand (or “promote this request”): full
-   form — title, description, hero, location label, capacity, window,
-   units, hashtag. Insert one real `Drop`. Link `converted_drop_id` on the
-   request.
-4. Email the brand `{FRONTEND_URL}/brand/drops/{id}` (“your campaign is
-   up — monitor applicants here”).
-5. Brand portal: request ticket until converted; then the existing drop
-   detail. Finalize unchanged.
+3. Admin **side-by-side** ticket | draft editor. Every `drops` row links to a ticket.
+   Save **unpublished draft** (title, description, https hero, location, capacity,
+   window, units, hashtag). Brand may see drafts; orgs do not.
+4. Admin **Publish** sets `published_at`; tracker starts at `awaiting_products`.
+   Email brand `{FRONTEND_URL}/brand/drops/{id}` on **publish** (not draft save).
+5. Brand portal: ticket + draft until published; then existing drop detail. Finalize unchanged.
 
 New table + admin create + one Resend template. Existing monitor / finalize
 / KPI code stays. Org feed only ever sees configured rows.
@@ -195,25 +188,12 @@ the existing applicant list (`follower_count` is already on the brand
 applicant schema). Sum-while-pending vs sum-accepted-only is a product
 sentence, not a new pipeline.
 
-## Still to lock before building
+## Locks closed (implement from LAUNCH.md only)
 
-Direction **B is locked**. These are not:
-
-1. **Who owns creative after mint?** B says Buzz writes it.
-   `brand.drop-creative-uneditable` locks **brand** PATCH for
-   title/description/image. Those can coexist (admin creates, brand fixes
-   typos) or we pick one owner — do not ship both as competing SOT.
-2. **Tracker:** does admin-mint start at `request_received` (agreements
-   still ahead) or skip to a later stage? Autoclose must not treat a
-   request as a drop (B already prevents that).
-3. **Publish vs create:** is insert-with-real-window enough, or do we need
-   `published_at` so ops can stage a drop without Upcoming countdown?
-4. **Intake fields:** free-text message vs structured campuses / org types
-   / budget. Structured data without targeting does not change org UX.
-5. **Returning “link”:** session deep link (default under B) vs tokenized
-   guest view.
-6. **Plan your Campaign** copy and whether the brand dashboard CTA stays
-   primary once drops are admin-minted.
+All forks are closed in [`LAUNCH.md`](../LAUNCH.md) §2 (ticket vs drop, draft,
+Publish, side-by-side editor, https image, admin creative, three tracker stages,
+ticket required, brand sees unpublished drafts). This file is provenance — do not
+implement from the ASCII flow or “what exists today” sections without checking LAUNCH.
 
 ## Explicit OUT
 
@@ -225,6 +205,4 @@ Direction **B is locked**. These are not:
 - Guest (logged-out) brand dashboards.
 - Changing org apply / Notify Me / finalize rules.
 
-**Do not implement** until PRODUCT §5.2 matches B and the remaining forks
-are locked. The monitor and finalize UX the pitch wants is already the
-brand per-drop page.
+The monitor and finalize UX the pitch wants is already the brand per-drop page.
