@@ -7,7 +7,7 @@ posts surface.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -18,15 +18,49 @@ from app.models.organization import Organization
 from app.models.user import User
 from app.response import APIResponse, DataResponse, api_response
 from app.schemas.acks import OrgOnboardingResponse
-from app.schemas.onboarding import OrgOnboardingRequest
+from app.schemas.onboarding import InstagramLookupResponse, OrgApplyRequest, OrgOnboardingRequest
 from app.schemas.orgs import OrgProfileResponse, OrgProfileUpdate
 from app.schemas.posts import PostResponse
+from app.security.rate_limit import rate_limited
 from app.services.instagram import InstagramClient, get_instagram_client
+from app.services.instagram_lookup import lookup_instagram_handle
 from app.services.onboarding import submit_org_onboarding
+from app.services.org_apply import apply_org
 from app.services.orgs import build_org_profile, get_org_for_user, update_org_profile
 from app.services.posts import list_org_posts
 
 router = APIRouter(prefix="/orgs", tags=["orgs"])
+
+
+@router.post(
+    "/apply",
+    response_model=DataResponse[OrgOnboardingResponse],
+    dependencies=[Depends(rate_limited("org_apply", limit=5, window=60))],
+)
+async def org_apply(
+    payload: OrgApplyRequest,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Public apply-first signup (no Instagram OAuth)."""
+    result = await apply_org(db, payload)
+    return api_response(data=OrgOnboardingResponse.model_validate(result))
+
+
+@router.get(
+    "/instagram-lookup",
+    response_model=DataResponse[InstagramLookupResponse],
+    dependencies=[
+        Depends(rate_limited("ig_lookup_burst", limit=10, window=60)),
+        Depends(rate_limited("ig_lookup_hour", limit=30, window=3600)),
+    ],
+)
+async def org_instagram_lookup(
+    username: str = Query(min_length=1, max_length=64),
+    ig: InstagramClient = Depends(get_instagram_client),
+) -> APIResponse:
+    """Exact-username Business Discovery lookup for the apply confirm card."""
+    result = await lookup_instagram_handle(ig, username)
+    return api_response(data=InstagramLookupResponse.model_validate(result))
 
 
 @router.post("/onboarding", response_model=DataResponse[OrgOnboardingResponse])

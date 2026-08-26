@@ -37,6 +37,7 @@ from app.schemas.admin import (
     AdminDropDetail,
     AdminDropItem,
     AdminHealthResponse,
+    AdminOrgApproveRequest,
     AdminOrgDetail,
     AdminOrgItem,
     AdminOverviewResponse,
@@ -60,6 +61,7 @@ from app.services.admin import (
     list_orgs,
     reopen_drop,
     resend_brand_invite,
+    resend_org_connect,
     set_drop_tracking_number,
     undeny_brand,
     undeny_org,
@@ -167,10 +169,24 @@ async def erase_org_endpoint(
 @router.post("/orgs/{org_id}/approve", response_model=DataResponse[AdminOrgStatusResponse])
 async def approve_org_endpoint(
     org_id: uuid.UUID,
+    payload: AdminOrgApproveRequest,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await approve_org(db, org_id)
+    result = await approve_org(db, org_id, tester_invite_confirmed=payload.tester_invite_confirmed)
+    return api_response(data=AdminOrgStatusResponse.model_validate(result))
+
+
+@router.post(
+    "/orgs/{org_id}/resend-connect",
+    response_model=DataResponse[AdminOrgStatusResponse],
+)
+async def resend_org_connect_endpoint(
+    org_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await resend_org_connect(db, org_id)
     return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 

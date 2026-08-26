@@ -47,6 +47,7 @@ class OrgUserStatus(StrEnum):
     PENDING_ORG_PROFILE = "pending_org_profile"
     PENDING_EMAIL_VERIFICATION = "pending_email_verification"
     PENDING_APPROVAL = "pending_approval"
+    PENDING_INSTAGRAM = "pending_instagram"
     ACTIVE = "active"
     DENIED = "denied"
     ERASED = "erased"

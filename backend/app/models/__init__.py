@@ -14,6 +14,7 @@ from app.models.brand_invite_token import BrandInviteToken
 from app.models.drop import Drop
 from app.models.job_run import JobRun
 from app.models.notify_me import NotifyMe
+from app.models.org_connect_token import OrgConnectToken
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
 from app.models.post_link import PostCampaignLink
@@ -33,6 +34,7 @@ __all__ = [
     "EmailVerificationToken",
     "JobRun",
     "NotifyMe",
+    "OrgConnectToken",
     "Organization",
     "PasswordResetToken",
     "PostCampaignLink",

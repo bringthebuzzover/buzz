@@ -46,6 +46,16 @@ async def cleanup_tokens(
             )
         )
     )
+    from app.models.org_connect_token import OrgConnectToken
+
+    connects = await db.execute(
+        delete(OrgConnectToken).where(
+            or_(
+                OrgConnectToken.used_at < cutoff,
+                OrgConnectToken.expires_at < cutoff,
+            )
+        )
+    )
     resets = await db.execute(
         delete(PasswordResetToken).where(
             or_(
@@ -59,5 +69,6 @@ async def cleanup_tokens(
     return {
         "verification_tokens_deleted": getattr(verif, "rowcount", 0) or 0,
         "brand_invite_tokens_deleted": getattr(invites, "rowcount", 0) or 0,
+        "org_connect_tokens_deleted": getattr(connects, "rowcount", 0) or 0,
         "password_reset_tokens_deleted": getattr(resets, "rowcount", 0) or 0,
     }

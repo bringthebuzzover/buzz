@@ -123,6 +123,17 @@ def _optional_int_field(body: dict[str, object], key: str) -> int | None:
     return int(float(raw))  # type: ignore[arg-type]
 
 
+@dataclass(frozen=True)
+class BusinessDiscoveryProfile:
+    """Apply-time Business Discovery card fields (META.md)."""
+
+    username: str
+    name: str | None
+    profile_picture_url: str | None
+    biography: str | None
+    followers_count: int | None
+
+
 @runtime_checkable
 class InstagramClient(Protocol):
     """The IG operations Buzz needs (OAuth + Stage 8 sync). HTTP + fakes."""
@@ -147,6 +158,8 @@ class InstagramClient(Protocol):
     async def fetch_media_insights(
         self, long_token: str, media_id: str, *, is_reel: bool = False
     ) -> dict[str, int | float]: ...
+
+    async def fetch_business_discovery(self, username: str) -> BusinessDiscoveryProfile | None: ...
 
 
 def _ig_error(message: str) -> BuzzAPIException:
@@ -428,6 +441,79 @@ class HttpInstagramClient:
             if name and values:
                 out[str(name)] = _parse_insight_value(str(name), values[0].get("value", 0))
         return out
+
+    async def fetch_business_discovery(self, username: str) -> BusinessDiscoveryProfile | None:
+        """Exact-username Business Discovery via Facebook Graph + service token.
+
+        Returns ``None`` when not found / not professional. Raises
+        ``BuzzAPIException`` with ``RATE_LIMITED`` on Meta throttle; other
+        HTTP failures raise a soft ``VALIDATION_ERROR`` for soft-fail UX.
+        """
+        token = settings.INSTAGRAM_BUSINESS_DISCOVERY_TOKEN
+        ig_user_id = settings.INSTAGRAM_BUSINESS_DISCOVERY_IG_USER_ID
+        if not token or not ig_user_id:
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                "Instagram lookup is temporarily unavailable.",
+                status_code=503,
+            )
+
+        handle = canonical_instagram_handle(username)
+        fields = (
+            f"business_discovery.username({handle})"
+            "{username,name,profile_picture_url,biography,followers_count}"
+        )
+        client = await self._client()
+        try:
+            resp = await client.get(
+                f"{settings.FACEBOOK_GRAPH_BASE}/{ig_user_id}",
+                params={"fields": fields, "access_token": token},
+            )
+            usage = resp.headers.get("x-app-usage") or resp.headers.get("X-App-Usage")
+            if usage:
+                import logging
+
+                logging.getLogger(__name__).info(
+                    "business_discovery X-App-Usage=%s username=%s", usage, handle
+                )
+            if resp.status_code == 429:
+                raise BuzzAPIException(
+                    errors.RATE_LIMITED,
+                    "Instagram lookup is rate limited. Try again in a few minutes.",
+                    status_code=429,
+                )
+            body = resp.json() if resp.content else {}
+            err = body.get("error") if isinstance(body, dict) else None
+            if err:
+                code = err.get("code")
+                if code in (4, 17, 32, 613):
+                    raise BuzzAPIException(
+                        errors.RATE_LIMITED,
+                        "Instagram lookup is rate limited. Try again in a few minutes.",
+                        status_code=429,
+                    )
+                # Not found / personal / invalid username
+                return None
+            resp.raise_for_status()
+            bd = body.get("business_discovery") if isinstance(body, dict) else None
+            if not isinstance(bd, dict) or not bd.get("username"):
+                return None
+            followers = bd.get("followers_count")
+            return BusinessDiscoveryProfile(
+                username=str(bd["username"]),
+                name=bd.get("name"),
+                profile_picture_url=bd.get("profile_picture_url"),
+                biography=bd.get("biography"),
+                followers_count=int(followers) if followers is not None else None,
+            )
+        except BuzzAPIException:
+            raise
+        except httpx.HTTPError:
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                "Instagram lookup is temporarily unavailable.",
+                status_code=503,
+            ) from None
 
 
 _default_client = HttpInstagramClient()

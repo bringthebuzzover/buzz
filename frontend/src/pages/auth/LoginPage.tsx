@@ -30,11 +30,8 @@ export default function LoginPage() {
         Join or sign in to <span className="text-buzz-coral">Buzz</span>
       </h1>
       <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
-        Student organizations sign in with the organization&apos;s Instagram
-        Business or Creator account (not a personal member account). You&apos;ll
-        verify a
-        <span className="whitespace-nowrap"> .edu </span>
-        email and go through a quick Buzz review before your portal unlocks.
+        Returning organizations sign in with the organization&apos;s Instagram
+        Business or Creator account (not a personal member account).
       </p>
 
       <button
@@ -50,6 +47,13 @@ export default function LoginPage() {
       </button>
 
       <p className="mt-8 text-sm font-medium text-buzz-inkMuted">
+        New org?{" "}
+        <Link to="/org/apply" className="font-bold text-buzz-coral hover:underline">
+          Apply here.
+        </Link>
+      </p>
+
+      <p className="mt-4 text-sm font-medium text-buzz-inkMuted">
         Are you a brand?{" "}
         <Link to="/brand/login" className="font-bold text-buzz-coral hover:underline">
           Brand login

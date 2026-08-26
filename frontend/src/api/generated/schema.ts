@@ -343,6 +343,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/orgs/{org_id}/resend-connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Org Connect Endpoint */
+        post: operations["resend_org_connect_endpoint_api_admin_orgs__org_id__resend_connect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/orgs/{org_id}/undeny": {
         parameters: {
             query?: never;
@@ -634,6 +651,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/instagram/bind-start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Instagram Bind Start
+         * @description Mint OAuth state with bind claim for ``pending_instagram`` orgs.
+         */
+        post: operations["instagram_bind_start_api_auth_instagram_bind_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/instagram/callback": {
         parameters: {
             query?: never;
@@ -694,10 +731,8 @@ export interface paths {
          * Instagram Login
          * @description Redirect (302) to the Instagram OAuth authorize URL (§3.4 Phase 1).
          *
-         *     The signed ``state`` is also stored in a short-lived httpOnly cookie so the
-         *     callback can prove the round-trip belongs to the same browser that started
-         *     it (double-submit; defends against OAuth login-CSRF / session fixation,
-         *     architecture §11.1). No server-side state store is needed.
+         *     For Connect-after-Approve, use ``POST /api/auth/instagram/bind-start`` first
+         *     (authenticated) which returns an authorize URL with bind state.
          */
         get: operations["instagram_login_api_auth_instagram_login_get"];
         put?: never;
@@ -758,6 +793,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/org-connect/redeem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Redeem Org Connect Endpoint
+         * @description Redeem approval connect-email token → session → connect page.
+         */
+        post: operations["redeem_org_connect_endpoint_api_auth_org_connect_redeem_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/refresh": {
         parameters: {
             query?: never;
@@ -803,7 +858,10 @@ export interface paths {
         put?: never;
         /**
          * Verify Email Endpoint
-         * @description Phase 3: consume a one-time .edu verification token (rate-limited: token guessing).
+         * @description Consume a one-time .edu verification token (rate-limited: token guessing).
+         *
+         *     Onboarding success mints a session (apply-first has no prior IG cookie).
+         *     Rotate success keeps the existing session and returns status only.
          */
         post: operations["verify_email_endpoint_api_auth_verify_email_post"];
         delete?: never;
@@ -866,6 +924,26 @@ export interface paths {
          * @description Re-send the .edu verification email (rate-limited, auth required).
          */
         post: operations["resend_verification_endpoint_api_auth_verify_email_resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/verify-email/resend-public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend Verification Public Endpoint
+         * @description Public resend after apply (no session). Enumerate-safe: always 200-shaped.
+         */
+        post: operations["resend_verification_public_endpoint_api_auth_verify_email_resend_public_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1283,6 +1361,46 @@ export interface paths {
          *     closed rather than reporting a healthy API with a dead DB.
          */
         get: operations["get_health_api_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orgs/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Org Apply
+         * @description Public apply-first signup (no Instagram OAuth).
+         */
+        post: operations["org_apply_api_orgs_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orgs/instagram-lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Org Instagram Lookup
+         * @description Exact-username Business Discovery lookup for the apply confirm card.
+         */
+        get: operations["org_instagram_lookup_api_orgs_instagram_lookup_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1735,6 +1853,17 @@ export interface components {
             /** Password */
             password: string;
         };
+        /**
+         * AdminOrgApproveRequest
+         * @description Honor-system confirm that the Instagram Tester invite was sent.
+         */
+        AdminOrgApproveRequest: {
+            /**
+             * Testerinviteconfirmed
+             * @default false
+             */
+            testerInviteConfirmed: boolean;
+        };
         /** AdminOrgDetail */
         AdminOrgDetail: {
             applications: components["schemas"]["AdminApplicationTally"];
@@ -1760,6 +1889,11 @@ export interface components {
             impersonatable: boolean;
             /** Instagramhandle */
             instagramHandle: string | null;
+            /**
+             * Instagramhandleconfirmed
+             * @default false
+             */
+            instagramHandleConfirmed: boolean;
             /** Instagramtokenexpiresat */
             instagramTokenExpiresAt: number | null;
             /** Instagramtokenrefreshedat */
@@ -1841,6 +1975,11 @@ export interface components {
             impersonatable: boolean;
             /** Instagramhandle */
             instagramHandle: string | null;
+            /**
+             * Instagramhandleconfirmed
+             * @default false
+             */
+            instagramHandleConfirmed: boolean;
             /** Instagramtokenexpiresat */
             instagramTokenExpiresAt: number | null;
             /** Lastloginat */
@@ -1861,6 +2000,8 @@ export interface components {
         };
         /** AdminOrgStatusResponse */
         AdminOrgStatusResponse: {
+            /** Emailsent */
+            emailSent?: boolean | null;
             /**
              * Orgid
              * Format: uuid
@@ -2785,9 +2926,27 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[InstagramBindStartResponse] */
+        DataResponse_InstagramBindStartResponse_: {
+            data?: components["schemas"]["InstagramBindStartResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[InstagramDeauthorizeResponse] */
         DataResponse_InstagramDeauthorizeResponse_: {
             data?: components["schemas"]["InstagramDeauthorizeResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[InstagramLookupResponse] */
+        DataResponse_InstagramLookupResponse_: {
+            data?: components["schemas"]["InstagramLookupResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -3250,6 +3409,11 @@ export interface components {
             tokenType: string;
             user: components["schemas"]["UserResponse"];
         };
+        /** InstagramBindStartResponse */
+        InstagramBindStartResponse: {
+            /** Authorizeurl */
+            authorizeUrl: string;
+        };
         /**
          * InstagramCallbackRequest
          * @description Body for ``POST /api/auth/instagram/callback``.
@@ -3274,6 +3438,26 @@ export interface components {
             reason?: string | null;
             /** Revoked */
             revoked: boolean;
+        };
+        /**
+         * InstagramLookupResponse
+         * @description Business Discovery lookup result for the apply confirm card.
+         */
+        InstagramLookupResponse: {
+            /** Available */
+            available: boolean;
+            /** Biography */
+            biography?: string | null;
+            /** Followerscount */
+            followersCount?: number | null;
+            /** Name */
+            name?: string | null;
+            /** Profilepictureurl */
+            profilePictureUrl?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /** Username */
+            username?: string | null;
         };
         /**
          * LinkPostRequest
@@ -3306,6 +3490,38 @@ export interface components {
             ok: boolean;
         };
         /**
+         * OrgApplyRequest
+         * @description Public ``POST /api/orgs/apply`` — profile + claimed Instagram handle.
+         */
+        OrgApplyRequest: {
+            category: components["schemas"]["OrgCategory"];
+            /** City */
+            city: string;
+            /** Contactname */
+            contactName: string;
+            /** Deliveryaddress */
+            deliveryAddress: string;
+            /** Eduemail */
+            eduEmail: string;
+            /**
+             * Handleconfirmed
+             * @default false
+             */
+            handleConfirmed: boolean;
+            /** Instagramhandle */
+            instagramHandle: string;
+            /** Membercount */
+            memberCount: number;
+            /** Orgname */
+            orgName: string;
+            /** State */
+            state: string;
+            /** Tiktokhandle */
+            tiktokHandle?: string | null;
+            /** University */
+            university: string;
+        };
+        /**
          * OrgCategory
          * @description Classification of a student org (``organizations.category``).
          *
@@ -3316,8 +3532,16 @@ export interface components {
          */
         OrgCategory: "sorority" | "fraternity" | "sports" | "academic" | "social" | "other";
         /**
+         * OrgConnectRedeemRequest
+         * @description Redeem approval connect-email token to mint a session.
+         */
+        OrgConnectRedeemRequest: {
+            /** Token */
+            token: string;
+        };
+        /**
          * OrgOnboardingRequest
-         * @description Phase 2: submit org profile after Instagram OAuth.
+         * @description Phase 2: submit org profile after Instagram OAuth (legacy drain).
          */
         OrgOnboardingRequest: {
             category: components["schemas"]["OrgCategory"];
@@ -3509,6 +3733,14 @@ export interface components {
             brandSelfRegistrationEnabled: boolean;
         };
         /**
+         * PublicResendVerificationRequest
+         * @description Public resend of .edu verify mail (no session; rate-limited).
+         */
+        PublicResendVerificationRequest: {
+            /** Eduemail */
+            eduEmail: string;
+        };
+        /**
          * RefreshResponse
          * @description Result of a successful ``POST /api/auth/refresh``.
          *
@@ -3668,10 +3900,21 @@ export interface components {
             /** Token */
             token: string;
         };
-        /** VerifyEmailResponse */
+        /**
+         * VerifyEmailResponse
+         * @description Onboarding verify may also mint a session (``access_token`` + ``user``).
+         */
         VerifyEmailResponse: {
+            /** Accesstoken */
+            accessToken?: string | null;
             /** Status */
             status: string;
+            /** Tokentype */
+            tokenType?: string | null;
+            /** User */
+            user?: {
+                [key: string]: unknown;
+            } | null;
         };
     };
     responses: never;
@@ -4329,7 +4572,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminOrgApproveRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -4352,6 +4599,39 @@ export interface operations {
         };
     };
     deny_org_endpoint_api_admin_orgs__org_id__deny_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminOrgStatusResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    resend_org_connect_endpoint_api_admin_orgs__org_id__resend_connect_post: {
         parameters: {
             query?: never;
             header?: {
@@ -4846,6 +5126,37 @@ export interface operations {
             };
         };
     };
+    instagram_bind_start_api_auth_instagram_bind_start_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_InstagramBindStartResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     instagram_callback_api_auth_instagram_callback_post: {
         parameters: {
             query?: never;
@@ -4988,6 +5299,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_UserResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    redeem_org_connect_endpoint_api_auth_org_connect_redeem_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgConnectRedeemRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_TokenResponse_"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -5145,6 +5489,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ResendVerificationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_ResendVerificationResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    resend_verification_public_endpoint_api_auth_verify_email_resend_public_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicResendVerificationRequest"];
             };
         };
         responses: {
@@ -5959,6 +6336,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_HealthStatusResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    org_apply_api_orgs_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OrgOnboardingResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    org_instagram_lookup_api_orgs_instagram_lookup_get: {
+        parameters: {
+            query: {
+                username: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_InstagramLookupResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

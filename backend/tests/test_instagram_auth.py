@@ -18,7 +18,6 @@ from app.config import settings
 from app.exceptions import BuzzAPIException
 from app.models.user import User
 from app.security import jwt
-from app.security.token_crypto import decrypt_token
 from tests.conftest import FakeInstagramClient, set_request_cookies
 
 
@@ -48,9 +47,10 @@ async def _begin_login(client: AsyncClient) -> str:
     return parse_qs(urlparse(location).query)["state"][0]
 
 
-async def test_callback_business_account_creates_org_user(
+async def test_callback_unknown_ig_requires_apply(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
 ) -> None:
+    """Unknown Graph id must not INSERT — apply-first (LAUNCH Phase A)."""
     fake_instagram.account_type = "BUSINESS"
     fake_instagram.user_id = "ig_business_1"
     state = await _begin_login(app_client)
@@ -58,24 +58,10 @@ async def test_callback_business_account_creates_org_user(
         "/api/auth/instagram/callback",
         json={"code": "oauth-code", "state": state},
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["error"] is None
-    data = body["data"]
-    assert data["access_token"]
-    assert data["user"]["portal_role"] == "org"
-    assert data["user"]["status"] == "pending_org_profile"
-    # Refresh cookie set, httpOnly.
-    set_cookie = resp.headers.get("set-cookie", "")
-    assert settings.REFRESH_COOKIE_NAME in set_cookie
-    assert "httponly" in set_cookie.lower()
-
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == errors.ORG_APPLY_REQUIRED
     user = await db_session.scalar(select(User).where(User.instagram_user_id == "ig_business_1"))
-    assert user is not None
-    assert user.instagram_username == "testorg"
-    # Token is encrypted at rest (not the fake's plaintext) and round-trips.
-    assert user.instagram_access_token != fake_instagram.long_lived_token
-    assert decrypt_token(user.instagram_access_token) == fake_instagram.long_lived_token
+    assert user is None
 
 
 async def test_callback_denied_user_forbidden(
@@ -100,7 +86,7 @@ async def test_callback_denied_user_forbidden(
     assert resp.json()["error"]["code"] == "ACCOUNT_DENIED"
 
 
-async def test_callback_media_creator_account_ok(
+async def test_callback_media_creator_unknown_requires_apply(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient
 ) -> None:
     fake_instagram.account_type = "Media_Creator"
@@ -109,7 +95,8 @@ async def test_callback_media_creator_account_ok(
         "/api/auth/instagram/callback",
         json={"code": "c", "state": state},
     )
-    assert resp.status_code == 200
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == errors.ORG_APPLY_REQUIRED
 
 
 async def test_callback_personal_account_rejected(
@@ -170,24 +157,20 @@ async def test_callback_state_cookie_mismatch_unauthorized(
 async def test_returning_active_user_not_downgraded(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
 ) -> None:
-    # First login creates the user (pending_org_profile).
+    from app.models.enums import OrgUserStatus
+    from tests.conftest import make_user, persist
+
     fake_instagram.user_id = "ig_return_1"
-    state = await _begin_login(app_client)
-    await app_client.post(
-        "/api/auth/instagram/callback",
-        json={"code": "c1", "state": state},
+    await persist(
+        db_session,
+        make_user(status=OrgUserStatus.ACTIVE, instagram_user_id="ig_return_1"),
     )
-    user = await db_session.scalar(select(User).where(User.instagram_user_id == "ig_return_1"))
-    assert user is not None
-    # Promote to active (simulating completed onboarding).
-    user.status = "active"
     await db_session.commit()
 
-    # Second login must NOT downgrade back to pending.
-    state2 = await _begin_login(app_client)
+    state = await _begin_login(app_client)
     resp = await app_client.post(
         "/api/auth/instagram/callback",
-        json={"code": "c2", "state": state2},
+        json={"code": "c2", "state": state},
     )
     assert resp.status_code == 200
     assert resp.json()["data"]["user"]["status"] == "active"

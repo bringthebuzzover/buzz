@@ -1,8 +1,9 @@
 """Auth / onboarding orchestration (architecture.md §3.4).
 
-Pure service functions — no FastAPI types — that the route layer calls. The
-Instagram OAuth handshake terminates here at ``status = pending_org_profile``;
-profile collection, email verification, and admin approval are Stage 7.
+Pure service functions — no FastAPI types — that the route layer calls.
+Instagram OAuth: returning users refresh tokens; Connect binds an existing
+apply-first user; unknown Graph ids without bind context do **not** insert
+(``ORG_APPLY_REQUIRED`` — LAUNCH.md Phase A).
 """
 
 from __future__ import annotations
@@ -22,7 +23,11 @@ from app.schemas.auth import UserResponse
 from app.security import jwt
 from app.security.session import bump_token_version
 from app.security.token_crypto import encrypt_token
-from app.services.instagram import ALLOWED_ACCOUNT_TYPES, InstagramClient
+from app.services.instagram import (
+    ALLOWED_ACCOUNT_TYPES,
+    InstagramClient,
+    canonical_instagram_handle,
+)
 from app.services.instagram_token import clear_unusable_instagram_token
 
 logger = logging.getLogger(__name__)
@@ -36,14 +41,14 @@ async def handle_instagram_callback(
     db: AsyncSession,
     ig: InstagramClient,
     code: str,
+    *,
+    bind_user_id: uuid.UUID | None = None,
 ) -> User:
-    """Run the full OAuth handshake and upsert the org user (§3.4 Phase 1).
+    """OAuth handshake: bind existing user, refresh returning user, or reject insert.
 
-    Exchanges ``code`` → short-lived → long-lived token, verifies Graph
-    ``account_type`` is ``BUSINESS`` or ``MEDIA_CREATOR``, then persists the
-    encrypted long-lived token. A new user is created ``org`` /
-    ``pending_org_profile``; a returning user keeps their existing role +
-    status (no downgrade of an active org).
+    * ``bind_user_id`` set (Connect flow) → update that pending_instagram user.
+    * Graph id already on a user → refresh tokens (returning login).
+    * Unknown Graph id, no bind → ``ORG_APPLY_REQUIRED`` (no INSERT).
     """
 
     short = await ig.exchange_code(code)
@@ -68,8 +73,6 @@ async def handle_instagram_callback(
 
     now = _now()
     expires_at = now + timedelta(seconds=long.expires_in)
-    # Match either Graph /me.id or the token-exchange user_id (deauthorize
-    # sends the latter; they usually match but we store both).
     existing = await db.scalar(
         select(User).where(
             or_(
@@ -81,54 +84,81 @@ async def handle_instagram_callback(
         )
     )
 
-    if existing is None:
-        user = User(
-            instagram_user_id=profile.id,
-            instagram_token_user_id=short.user_id,
-            instagram_username=profile.username,
-            instagram_access_token=encrypt_token(long.access_token),
-            instagram_token_issued_at=now,
-            instagram_token_expires_at=expires_at,
-            instagram_token_refreshed_at=now,
-            portal_role=PortalRole.ORG.value,
-            status=OrgUserStatus.PENDING_ORG_PROFILE.value,
-            last_login_at=now,
+    if bind_user_id is not None:
+        target = await db.get(User, bind_user_id)
+        if target is None or target.portal_role != PortalRole.ORG.value:
+            raise BuzzAPIException(
+                errors.NOT_FOUND,
+                "Organization account not found.",
+                status_code=404,
+            )
+        if target.status != OrgUserStatus.PENDING_INSTAGRAM.value:
+            raise BuzzAPIException(
+                errors.INVALID_ONBOARDING_STATE,
+                "This account is not waiting to connect Instagram.",
+                status_code=400,
+            )
+        if existing is not None and existing.id != target.id:
+            raise BuzzAPIException(
+                errors.INSTAGRAM_HANDLE_TAKEN,
+                "This Instagram account is already linked to another Buzz user.",
+                status_code=409,
+            )
+        claimed = canonical_instagram_handle(target.instagram_username)
+        graph_handle = canonical_instagram_handle(profile.username)
+        if claimed and graph_handle and claimed.lower() != graph_handle.lower():
+            logger.info(
+                "instagram bind handle overwrite user_id=%s claimed=%s graph=%s",
+                target.id,
+                claimed,
+                graph_handle,
+            )
+        _apply_ig_credentials(target, profile, short.user_id, long.access_token, now, expires_at)
+        target.status = OrgUserStatus.ACTIVE.value
+        target.last_login_at = now
+        user = target
+    elif existing is None:
+        raise BuzzAPIException(
+            code=errors.ORG_APPLY_REQUIRED,
+            message=(
+                "No Buzz organization is linked to this Instagram account. "
+                "Apply first at /org/apply, then connect Instagram after approval."
+            ),
+            status_code=400,
         )
-        db.add(user)
     else:
-        # Returning user: refresh the token + login stamp, preserve role/status.
-        existing.instagram_user_id = profile.id
-        existing.instagram_token_user_id = short.user_id
-        existing.instagram_username = profile.username
-        existing.instagram_access_token = encrypt_token(long.access_token)
-        existing.instagram_token_issued_at = now
-        existing.instagram_token_expires_at = expires_at
-        existing.instagram_token_refreshed_at = now
+        _apply_ig_credentials(existing, profile, short.user_id, long.access_token, now, expires_at)
         existing.last_login_at = now
+        if existing.status == OrgUserStatus.PENDING_INSTAGRAM.value:
+            existing.status = OrgUserStatus.ACTIVE.value
         user = existing
 
-    # flush (not commit): the request-scoped get_db dependency commits on a
-    # clean response and rolls back on error, so every service uses flush() for
-    # one consistent transaction convention. refresh populates server defaults
-    # (id/created_at) for the token + response.
     await db.flush()
     await db.refresh(user)
     return user
 
 
+def _apply_ig_credentials(
+    user: User,
+    profile: object,
+    token_user_id: str,
+    long_token: str,
+    now: datetime,
+    expires_at: datetime,
+) -> None:
+    user.instagram_user_id = profile.id  # type: ignore[attr-defined]
+    user.instagram_token_user_id = token_user_id
+    user.instagram_username = profile.username  # type: ignore[attr-defined]
+    user.instagram_access_token = encrypt_token(long_token)
+    user.instagram_token_issued_at = now
+    user.instagram_token_expires_at = expires_at
+    user.instagram_token_refreshed_at = now
+
+
 async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: str) -> bool:
     """Handle a Meta deauthorize webhook: drop the token, kill live sessions.
 
-    The user removed our app from their Instagram, so their stored token is
-    dead. We null out the token fields and bump ``token_version`` (same trick
-    logout / admin-deny use) to invalidate every outstanding refresh token.
-    The user row is kept — deauthorize is not account deletion.
-
-    Returns True when a matching user was revoked, False when the Meta
-    ``user_id`` is unknown (callers must surface that distinctly — silent
-    ``{ok:true}`` hid live tokens when Graph ``/me.id`` and exchange
-    ``user_id`` diverged). Matches either ``instagram_user_id`` or
-    ``instagram_token_user_id``.
+    Returns True when a matching user was revoked, False when unknown.
     """
 
     user = await db.scalar(
@@ -167,11 +197,7 @@ def build_user_response(user: User) -> UserResponse:
 
 
 async def issue_token_pair(db: AsyncSession, user: User) -> tuple[str, str]:
-    """Bump ``token_version``, then mint ``(access_token, refresh_token)``.
-
-    Every login and refresh rotation invalidates prior access + refresh tokens
-    for this user (stolen cookies die on re-login / rotation).
-    """
+    """Bump ``token_version``, then mint ``(access_token, refresh_token)``."""
 
     bump_token_version(user)
     await db.flush()

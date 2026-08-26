@@ -41,7 +41,9 @@ async def test_verification_mint_persists_hash_not_raw(db_session, monkeypatch) 
     user.edu_email = "hash@test.edu"
     captured: list[str] = []
 
-    async def _fake_send(email: str, token: str, *, org_name: str = "") -> bool:
+    async def _fake_send(
+        email: str, token: str, *, org_name: str = "", kind: str = "signup"
+    ) -> bool:
         captured.append(token)
         return True
 

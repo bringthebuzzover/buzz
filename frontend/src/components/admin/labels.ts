@@ -189,6 +189,7 @@ export const STATUS_LABELS: Record<string, string> = {
   pending_org_profile: "No profile yet",
   pending_email_verification: "Unverified email",
   pending_approval: "Awaiting approval",
+  pending_instagram: "Awaiting Instagram connect",
   pending_review: "Awaiting review",
   active: "Active",
   approved: "Approved",

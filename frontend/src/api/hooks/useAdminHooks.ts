@@ -236,8 +236,21 @@ function useAdminMutation<TInput>(
 
 /** Takes the `organizations` id — the approve/deny routes key on the profile. */
 export function useApproveOrg() {
+  return useAdminMutation(
+    (input: { orgId: string; testerInviteConfirmed: boolean }) =>
+      apiFetch(`/api/admin/orgs/${input.orgId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          testerInviteConfirmed: input.testerInviteConfirmed,
+        }),
+      }),
+  );
+}
+
+export function useResendOrgConnect() {
   return useAdminMutation((orgId: string) =>
-    apiFetch(`/api/admin/orgs/${orgId}/approve`, { method: "POST" }),
+    apiFetch(`/api/admin/orgs/${orgId}/resend-connect`, { method: "POST" }),
   );
 }
 

@@ -44,6 +44,12 @@ class Organization(Base):
     contact_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     delivery_address: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
 
+    # Apply-time Instagram confirm card (PRODUCT §6.1.1). False when soft-fail
+    # (lookup unavailable) or legacy rows; True when the applicant confirmed.
+    instagram_handle_confirmed: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, server_default=sa.text("false")
+    )
+
     approved_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()

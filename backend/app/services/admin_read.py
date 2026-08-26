@@ -637,6 +637,9 @@ async def get_org_detail(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
         "university": org.university if org is not None else None,
         "category": org.category if org is not None else None,
         "instagram_handle": user.instagram_username,
+        "instagram_handle_confirmed": (
+            org.instagram_handle_confirmed if org is not None else False
+        ),
         "instagram_username": user.instagram_username,
         "tiktok_handle": org.tiktok_handle if org is not None else None,
         "follower_count": org.follower_count if org is not None else None,

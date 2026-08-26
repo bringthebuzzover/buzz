@@ -26,6 +26,7 @@ from app.response import APIResponse, DataResponse, api_error_response, api_resp
 from app.schemas.acks import (
     CancelPendingEduEmailResponse,
     ChangeEduEmailResponse,
+    InstagramBindStartResponse,
     InstagramDeauthorizeResponse,
     OkResponse,
     ResendVerificationResponse,
@@ -46,6 +47,8 @@ from app.schemas.onboarding import (
     CancelPendingEduEmailRequest,
     ChangeEduEmailRequest,
     ForgotPasswordRequest,
+    OrgConnectRedeemRequest,
+    PublicResendVerificationRequest,
     ResendVerificationRequest,
     ResetPasswordRequest,
     RotateEduEmailRequest,
@@ -68,6 +71,7 @@ from app.services.onboarding import (
     cancel_pending_edu_email,
     change_edu_email,
     resend_verification_email,
+    resend_verification_public,
     rotate_edu_email,
     verify_email,
 )
@@ -128,16 +132,38 @@ async def instagram_login(
 ) -> RedirectResponse:
     """Redirect (302) to the Instagram OAuth authorize URL (§3.4 Phase 1).
 
-    The signed ``state`` is also stored in a short-lived httpOnly cookie so the
-    callback can prove the round-trip belongs to the same browser that started
-    it (double-submit; defends against OAuth login-CSRF / session fixation,
-    architecture §11.1). No server-side state store is needed.
+    For Connect-after-Approve, use ``POST /api/auth/instagram/bind-start`` first
+    (authenticated) which returns an authorize URL with bind state.
     """
 
     state = jwt.create_oauth_state_token()
     redirect = RedirectResponse(ig.build_authorize_url(state), status_code=302)
     _set_state_cookie(redirect, state)
     return redirect
+
+
+@router.post("/instagram/bind-start", response_model=DataResponse[InstagramBindStartResponse])
+async def instagram_bind_start(
+    response: Response,
+    user: User = Depends(get_current_user),
+    ig: InstagramClient = Depends(get_instagram_client),
+) -> APIResponse:
+    """Mint OAuth state with bind claim for ``pending_instagram`` orgs."""
+
+    if (
+        user.portal_role != PortalRole.ORG.value
+        or user.status != OrgUserStatus.PENDING_INSTAGRAM.value
+    ):
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Only orgs awaiting Instagram connect can start a bind login.",
+            status_code=400,
+        )
+    state = jwt.create_oauth_state_token(bind_user_id=user.id)
+    _set_state_cookie(response, state)
+    return api_response(
+        data=InstagramBindStartResponse(authorize_url=ig.build_authorize_url(state))
+    )
 
 
 @router.post(
@@ -159,9 +185,17 @@ async def instagram_callback(
     # type + not expired). Either failure → 401, never partially trusting one.
     cookie_state = request.cookies.get(settings.OAUTH_STATE_COOKIE_NAME)
     state_ok = bool(cookie_state) and cookie_state == payload.state
+    bind_user_id: uuid.UUID | None = None
     if state_ok:
         try:
-            jwt.decode_token(payload.state, expected_type=jwt.OAUTH_STATE_TOKEN_TYPE)
+            state_payload = jwt.decode_token(
+                payload.state, expected_type=jwt.OAUTH_STATE_TOKEN_TYPE
+            )
+            if state_payload.bind:
+                try:
+                    bind_user_id = uuid.UUID(state_payload.bind)
+                except ValueError:
+                    bind_user_id = None
         except jwt.TokenError:
             state_ok = False
     if not state_ok:
@@ -173,7 +207,7 @@ async def instagram_callback(
         )
     _clear_state_cookie(response)
 
-    user = await handle_instagram_callback(db, ig, payload.code)
+    user = await handle_instagram_callback(db, ig, payload.code, bind_user_id=bind_user_id)
     # Don't mint fresh credentials for a terminally-denied account — symmetric
     # with the refresh boundary. New users are pending_org_profile, so signup
     # is unaffected. Distinct code so the SPA can land on /onboarding/denied.
@@ -456,11 +490,62 @@ async def dev_login(
 )
 async def verify_email_endpoint(
     payload: VerifyEmailRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Phase 3: consume a one-time .edu verification token (rate-limited: token guessing)."""
+    """Consume a one-time .edu verification token (rate-limited: token guessing).
+
+    Onboarding success mints a session (apply-first has no prior IG cookie).
+    Rotate success keeps the existing session and returns status only.
+    """
     result = await verify_email(db, payload.token)
-    return api_response(data=VerifyEmailResponse.model_validate(result))
+    if result.get("session_minted"):
+        user = result["user"]
+        access, refresh = await issue_token_pair(db, user)
+        _set_refresh_cookie(response, refresh)
+        ur = build_user_response(user)
+        return api_response(
+            data=VerifyEmailResponse(
+                status=user.status,
+                access_token=access,
+                token_type="bearer",
+                user=ur.model_dump(mode="json"),
+            )
+        )
+    return api_response(data=VerifyEmailResponse(status=result["status"]))
+
+
+@router.post(
+    "/verify-email/resend-public",
+    response_model=DataResponse[ResendVerificationResponse],
+    dependencies=[Depends(rate_limited("verify_resend_public", limit=3, window=60))],
+)
+async def resend_verification_public_endpoint(
+    payload: PublicResendVerificationRequest,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Public resend after apply (no session). Enumerate-safe: always 200-shaped."""
+    result = await resend_verification_public(db, payload.edu_email)
+    return api_response(data=ResendVerificationResponse.model_validate(result))
+
+
+@router.post(
+    "/org-connect/redeem",
+    response_model=DataResponse[TokenResponse],
+    dependencies=[Depends(rate_limited("org_connect_redeem", limit=10, window=60))],
+)
+async def redeem_org_connect_endpoint(
+    payload: OrgConnectRedeemRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Redeem approval connect-email token → session → connect page."""
+    from app.services.org_connect import redeem_org_connect_token
+
+    user = await redeem_org_connect_token(db, payload.token)
+    access, refresh = await issue_token_pair(db, user)
+    _set_refresh_cookie(response, refresh)
+    return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
 
 
 @router.post(

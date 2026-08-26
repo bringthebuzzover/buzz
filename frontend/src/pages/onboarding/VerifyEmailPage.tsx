@@ -1,34 +1,36 @@
 /**
  * /onboarding/verify-email — .edu verification (Stage 7, Phase 3).
  *
- * Two modes:
- *  - With `?token=…` (the link from the email): show Confirm; only the click
- *    POSTs verify (no auto-consume on mount — scanners/prefetch must not burn
- *    the one-shot token). Strip `token` from the URL after successful confirm.
- *  - Without a token: the "check your inbox" waiting screen, with a Resend
- *    button (rate-limited server-side).
- *
- * The token path is allowed to render even when the user is not in
- * pending_email_verification (they may click the link from a fresh tab); the
- * waiting screen still requires that status.
+ * Modes:
+ *  - With `?token=…`: Confirm button POSTs verify (no auto-consume). Onboarding
+ *    success may mint a session (access_token + user) for apply-first orgs.
+ *  - Authenticated waiting (pending_email_verification): resend + change email.
+ *  - Public waiting (after /org/apply, no session): Junk copy + resend-public.
  */
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth, type AuthUser } from "../../contexts/AuthContext";
 import {
   useChangeEduEmail,
+  usePublicResendVerification,
   useResendVerification,
   useVerifyEmail,
 } from "../../api/hooks/useOnboardingHooks";
+import { authUserFromWire, setAccessToken } from "../../api/auth";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
 import { stripTokenFromUrl } from "../../utils/stripTokenFromUrl";
+import type { components } from "../../api/generated/schema";
+
+type UserWire = components["schemas"]["UserResponse"];
 
 const VERIFY_EMAIL_SENT_KEY = "buzz.verifyEmailSent";
+const VERIFY_EDU_EMAIL_KEY = "buzz.verifyEduEmail";
 
-function readEmailSentFlag(
-  locationState: unknown,
-): boolean {
+const JUNK_HINT =
+  "Campus inboxes often put first-time Buzz mail in Junk.";
+
+function readEmailSentFlag(locationState: unknown): boolean {
   const fromState =
     locationState &&
     typeof locationState === "object" &&
@@ -41,8 +43,25 @@ function readEmailSentFlag(
   return sessionStorage.getItem(VERIFY_EMAIL_SENT_KEY) !== "0";
 }
 
+function readEduEmail(locationState: unknown): string {
+  const fromState =
+    locationState &&
+    typeof locationState === "object" &&
+    "eduEmail" in locationState
+      ? (locationState as { eduEmail?: string }).eduEmail
+      : undefined;
+  if (typeof fromState === "string" && fromState.trim()) {
+    return fromState.trim().toLowerCase();
+  }
+  return (sessionStorage.getItem(VERIFY_EDU_EMAIL_KEY) ?? "").trim().toLowerCase();
+}
+
 function markEmailSent(ok: boolean) {
   sessionStorage.setItem(VERIFY_EMAIL_SENT_KEY, ok ? "1" : "0");
+}
+
+function markEduEmail(email: string) {
+  sessionStorage.setItem(VERIFY_EDU_EMAIL_KEY, email.trim().toLowerCase());
 }
 
 export default function VerifyEmailPage() {
@@ -66,11 +85,15 @@ export default function VerifyEmailPage() {
     );
   }
 
-  if (!user || user.status !== "pending_email_verification") {
-    return <Navigate to={pathForUser(user)} replace />;
+  if (user?.status === "pending_email_verification") {
+    return <AwaitVerification />;
   }
 
-  return <AwaitVerification />;
+  if (!user) {
+    return <PublicAwaitVerification />;
+  }
+
+  return <Navigate to={pathForUser(user)} replace />;
 }
 
 type VerifyState =
@@ -80,16 +103,15 @@ type VerifyState =
   | { kind: "error"; message: string };
 
 function VerifyWithToken({ token }: { token: string }) {
-  const { refreshUser } = useAuth();
+  const { acceptSession, refreshUser } = useAuth();
   const navigate = useNavigate();
   const verify = useVerifyEmail();
   const [state, setState] = useState<VerifyState>({ kind: "idle" });
   const inFlightRef = useRef(false);
 
-  const finishSuccess = async () => {
-    const me = await refreshUser();
+  const finishSuccess = async (sessionUser: AuthUser | null) => {
     stripTokenFromUrl();
-    setState({ kind: "success", user: me });
+    setState({ kind: "success", user: sessionUser });
   };
 
   const onConfirm = async () => {
@@ -97,18 +119,34 @@ function VerifyWithToken({ token }: { token: string }) {
     inFlightRef.current = true;
     setState({ kind: "verifying" });
     try {
-      await verify.mutateAsync(token);
-      // The link is often opened in a fresh tab/browser with no session, so
-      // refreshUser() may return null. Show a self-contained success screen
-      // either way rather than auto-navigating to a guarded page (which would
-      // bounce an unauthenticated visitor to "/").
-      await finishSuccess();
+      const result = await verify.mutateAsync(token);
+      // CamelModel wire may expose accessToken; tolerate snake_case too.
+      const access =
+        (result as { accessToken?: string | null; access_token?: string | null })
+          .accessToken ??
+        (result as { access_token?: string | null }).access_token ??
+        null;
+      const wireUser = result.user as UserWire | null | undefined;
+
+      if (access && wireUser && typeof wireUser === "object" && "id" in wireUser) {
+        const next = authUserFromWire(wireUser);
+        acceptSession(next, access);
+        await finishSuccess(next);
+        return;
+      }
+
+      if (access) {
+        setAccessToken(access);
+      }
+      const me = await refreshUser();
+      await finishSuccess(me);
     } catch (err) {
       // Re-clicking an already-used link is success, not failure: the email is
       // verified. Show the success screen (refreshUser decides where Continue
       // goes).
       if (err instanceof ApiError && err.code === "EMAIL_ALREADY_VERIFIED") {
-        await finishSuccess();
+        const me = await refreshUser();
+        await finishSuccess(me);
         return;
       }
       setState({
@@ -177,7 +215,7 @@ function VerifyWithToken({ token }: { token: string }) {
 
   // success — first-time verify → pending_approval; pending-swap keeps status
   // (active → portal, pending_approval → wait screen). Unauthenticated link
-  // open: user null → login Continue with first-time-ish copy.
+  // open without session mint: user null → login Continue.
   const successCopy =
     state.user?.status === "active"
       ? "Your school email is updated. You can continue using the org portal."
@@ -278,11 +316,12 @@ function AwaitVerification() {
       <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
         Verify Your <span className="text-buzz-coral">Email</span>
       </h1>
-      <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
+      <p className="mb-2 text-sm font-medium text-buzz-inkMuted">
         {emailSent
           ? "We sent a verification link to your school email. Click it to continue."
           : "Your profile is saved, but we could not send the verification email yet. Use Resend below when you are ready."}
       </p>
+      <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{JUNK_HINT}</p>
 
       {notice && (
         <p className="mb-4 rounded-lg bg-green-50 p-3 text-sm font-medium text-green-700">
@@ -340,6 +379,95 @@ function AwaitVerification() {
           </form>
         )}
       </div>
+
+      {error && (
+        <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Post-apply waiting screen when the applicant has no session yet. */
+function PublicAwaitVerification() {
+  const location = useLocation();
+  const publicResend = usePublicResendVerification();
+  const [emailSent, setEmailSent] = useState(() =>
+    readEmailSentFlag(location.state),
+  );
+  const [eduEmail, setEduEmail] = useState(() => readEduEmail(location.state));
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    emailSent
+      ? null
+      : "We could not send the verification email. Enter your school email below to try again.",
+  );
+
+  const onResend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNotice(null);
+    setError(null);
+    const trimmed = eduEmail.trim().toLowerCase();
+    if (!trimmed) {
+      setError("Enter the school email you used on your application.");
+      return;
+    }
+    try {
+      await publicResend.mutateAsync(trimmed);
+      markEduEmail(trimmed);
+      markEmailSent(true);
+      setEmailSent(true);
+      setNotice("Verification email re-sent. Check your inbox (and Junk).");
+    } catch (err) {
+      markEmailSent(false);
+      setEmailSent(false);
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not re-send the email. Please try again later.",
+      );
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-md px-8 py-24 text-center">
+      <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+        Verify Your <span className="text-buzz-coral">Email</span>
+      </h1>
+      <p className="mb-2 text-sm font-medium text-buzz-inkMuted">
+        {emailSent
+          ? "We sent a verification link to your school email. Click it to continue."
+          : "Enter your school email below to send or resend the verification link."}
+      </p>
+      <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{JUNK_HINT}</p>
+
+      {notice && (
+        <p className="mb-4 rounded-lg bg-green-50 p-3 text-sm font-medium text-green-700">
+          {notice}
+        </p>
+      )}
+
+      <form onSubmit={(e) => void onResend(e)} className="space-y-3 text-left">
+        <label className="block text-sm font-medium text-buzz-ink">
+          School email
+          <input
+            type="email"
+            required
+            value={eduEmail}
+            onChange={(ev) => setEduEmail(ev.target.value)}
+            className="mt-1 w-full rounded-lg border border-buzz-ink/15 bg-buzz-paper px-3 py-2 text-sm"
+            placeholder="you@university.edu"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={publicResend.isPending}
+          className="w-full rounded-lg border-2 border-buzz-coral px-6 py-3 text-sm font-bold text-buzz-coral transition enabled:hover:bg-buzz-coral enabled:hover:text-buzz-paper disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {publicResend.isPending ? "Sending…" : "Resend email"}
+        </button>
+      </form>
 
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">

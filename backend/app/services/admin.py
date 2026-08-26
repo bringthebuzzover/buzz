@@ -38,6 +38,7 @@ from app.services.email import (
     send_org_undenied_email,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.org_connect import create_org_connect_token
 
 _STAGE_ORDER = [
     BrandTrackerStage.REQUEST_RECEIVED.value,
@@ -88,6 +89,9 @@ async def list_orgs(db: AsyncSession, *, status: str | None = None) -> list[dict
             "org_name": org.org_name if org is not None else None,
             "university": org.university if org is not None else None,
             "instagram_handle": user.instagram_username,
+            "instagram_handle_confirmed": (
+                org.instagram_handle_confirmed if org is not None else False
+            ),
             "follower_count": org.follower_count if org is not None else None,
             "member_count": org.member_count if org is not None else None,
             "category": org.category if org is not None else None,
@@ -113,8 +117,13 @@ def _refuse_erased_org(user: User) -> None:
         )
 
 
-async def approve_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
-    """Approve a pending org: set user.active + org.approved_at=now."""
+async def approve_org(
+    db: AsyncSession,
+    org_id: UUID,
+    *,
+    tester_invite_confirmed: bool = False,
+) -> dict[str, Any]:
+    """Approve a pending org → pending_instagram (or active if IG already bound)."""
     org = await db.get(Organization, org_id)
     if org is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
@@ -131,14 +140,62 @@ async def approve_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
             status_code=400,
         )
 
-    now = datetime.now(timezone.utc)
-    user.status = OrgUserStatus.ACTIVE.value
-    org.approved_at = now
-    await db.flush()
+    if not tester_invite_confirmed:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Confirm you added this org as an Instagram Tester before approving.",
+            status_code=400,
+        )
 
-    await send_org_approved_email(user.edu_email or "", org_name=org.org_name)
+    now = datetime.now(timezone.utc)
+    org.approved_at = now
+
+    # Legacy mid-flight: Graph ids + token already on file → skip Connect.
+    already_bound = bool(user.instagram_user_id and user.instagram_access_token)
+    connect_token: str | None = None
+    if already_bound:
+        user.status = OrgUserStatus.ACTIVE.value
+        await db.flush()
+        await send_org_approved_email(user.edu_email or "", org_name=org.org_name)
+    else:
+        user.status = OrgUserStatus.PENDING_INSTAGRAM.value
+        connect_token = await create_org_connect_token(db, org, user)
+        await db.flush()
+        await send_org_approved_email(
+            user.edu_email or "",
+            org_name=org.org_name,
+            connect_token=connect_token,
+        )
 
     return {"org_id": str(org.id), "status": user.status}
+
+
+async def resend_org_connect(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
+    """Mint a fresh connect token and email it (pending_instagram only)."""
+    org = await db.get(Organization, org_id)
+    if org is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+
+    user = await db.get(User, org.user_id)
+    if user is None or user.portal_role != PortalRole.ORG.value:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+
+    _refuse_erased_org(user)
+    if user.status != OrgUserStatus.PENDING_INSTAGRAM.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Organization is not waiting to connect Instagram.",
+            status_code=400,
+        )
+
+    raw = await create_org_connect_token(db, org, user)
+    await db.flush()
+    email_sent = await send_org_approved_email(
+        user.edu_email or "",
+        org_name=org.org_name,
+        connect_token=raw,
+    )
+    return {"org_id": str(org.id), "status": user.status, "email_sent": email_sent}
 
 
 async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
