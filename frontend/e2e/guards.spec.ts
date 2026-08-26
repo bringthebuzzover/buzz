@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { waitForAuthSettled } from "./authSettled";
 
 /**
  * Route guards. The dev session is the active ORG; a role-gated brand route must
@@ -6,6 +7,7 @@ import { test, expect } from "@playwright/test";
  */
 test("org session is blocked from the brand dashboard (403)", async ({ page }) => {
   await page.goto("/brand/dashboard");
+  await waitForAuthSettled(page, "org");
   // The brand dashboard must NOT render…
   await expect(page.getByRole("heading", { name: /brand dashboard/i })).toHaveCount(0);
   // …and the 403 guard page is shown instead.

@@ -177,6 +177,18 @@ export function endImpersonation(reason?: "expired"): void {
   window.location.href = `/admin${suffix}`;
 }
 
+/** One retry when `fetch` throws (dropped connection). HTTP status is not retried. */
+async function fetchWithOneThrowRetry(
+  input: string,
+  init: RequestInit,
+): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch {
+    return await fetch(input, init);
+  }
+}
+
 /** Exchange the refresh cookie for a fresh access token. Returns success. */
 let refreshInFlight: Promise<boolean> | null = null;
 /** Access token observed when the current in-flight refresh began. */
@@ -201,10 +213,13 @@ export async function refreshAccessToken(): Promise<boolean> {
   refreshInFlightStartedWith = tokenAtStart;
   refreshInFlight = (async () => {
     try {
-      const resp = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-        method: "POST",
-        credentials: "include",
-      });
+      const resp = await fetchWithOneThrowRetry(
+        `${API_BASE_URL}/api/auth/refresh`,
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
       if (!resp.ok) {
         if (accessToken === tokenAtStart) setAccessToken(null);
         return false;
@@ -233,12 +248,15 @@ export async function refreshAccessToken(): Promise<boolean> {
 /** Dev-only: mint a session for a seeded org user (404 outside development). */
 export async function devLogin(): Promise<LoginData | null> {
   try {
-    const resp = await fetch(`${API_BASE_URL}/api/auth/dev-login`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    });
+    const resp = await fetchWithOneThrowRetry(
+      `${API_BASE_URL}/api/auth/dev-login`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      },
+    );
     if (!resp.ok) return null;
     const body = (await resp.json()) as { data: LoginData | null };
     if (body.data?.access_token) {
