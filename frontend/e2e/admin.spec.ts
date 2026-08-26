@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { waitForAuthSettled } from "./authSettled";
 
 /**
  * The admin panel: login, the overview's queue cards, sidebar navigation into a
@@ -40,6 +41,7 @@ async function loginAsAdmin(page: Page) {
   ).toBeTruthy();
 
   await expect(page).toHaveURL(/\/admin$/);
+  await waitForAuthSettled(page, "admin-overview");
 }
 
 /** The desktop rail is hidden below `lg`, so scope nav lookups to it. */
@@ -66,9 +68,7 @@ test("the session survives a reload", async ({ page }) => {
 
   // Regression guard: the refresh cookie has to re-mint an access token rather
   // than bouncing back to the login form.
-  await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
+  await waitForAuthSettled(page, "admin-overview");
 });
 
 test("sidebar reaches every section", async ({ page }) => {
@@ -127,6 +127,7 @@ test("admin views as an org from a row and can exit", async ({ page }) => {
 
   // Lands in the org portal with the read-only banner up.
   await expect(page).toHaveURL(/\/org\/browse$/);
+  await waitForAuthSettled(page, "org");
   const banner = page.getByTestId("impersonation-banner");
   await expect(banner).toBeVisible();
   await expect(banner).toContainText(/viewing as/i);
@@ -135,25 +136,24 @@ test("admin views as an org from a row and can exit", async ({ page }) => {
   // Same-tab hard reload remints View as from the sessionStorage latch.
   await page.reload();
   await expect(page).toHaveURL(/\/org\/browse$/);
+  await waitForAuthSettled(page, "org");
   await expect(page.getByTestId("impersonation-banner")).toBeVisible();
   await expect(page.getByTestId("impersonation-banner")).toContainText(/viewing as/i);
 
   await page.getByTestId("exit-impersonation").click();
 
   // Soft SPA exit restores admin without a document navigation.
-  await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
+  await waitForAuthSettled(page, "admin-overview");
   await expect(page.getByTestId("impersonation-banner")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
 
   // Latch cleared on Exit — portal URL must not remint View as.
   await page.goto("/org/browse");
-  await expect(page).toHaveURL(/\/admin$/);
+  await waitForAuthSettled(page, "admin-overview");
   await expect(page.getByTestId("impersonation-banner")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
 });
 
 test("unauthenticated /admin redirects to the admin login", async ({ page }) => {
   await page.goto("/admin");
+  await waitForAuthSettled(page);
   await expect(page).toHaveURL(/\/admin\/login$/);
 });

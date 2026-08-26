@@ -5,6 +5,7 @@
  * in-flight refresh after login, or start a second rotating refresh.
  */
 import {
+  devLogin,
   getAccessToken,
   refreshAccessToken,
   setAccessToken,
@@ -91,5 +92,71 @@ describe("refreshAccessToken concurrent login", () => {
 
     await expect(pending).resolves.toBe(true);
     expect(getAccessToken()).toBe("from-refresh");
+  });
+});
+
+describe("refreshAccessToken / devLogin throw retry (auth.ci-session-restore-flake)", () => {
+  const realFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = realFetch;
+    setAccessToken(null);
+  });
+
+  it("retries refresh once when fetch throws, then succeeds", async () => {
+    const fetchMock = jest.fn()
+      .mockRejectedValueOnce(new TypeError("network"))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { data: { access_token: "after-retry" } }),
+      );
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(refreshAccessToken()).resolves.toBe(true);
+    expect(getAccessToken()).toBe("after-retry");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry refresh on 401", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse(401, { data: null, error: { code: "UNAUTHORIZED" } }),
+    );
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(refreshAccessToken()).resolves.toBe(false);
+    expect(getAccessToken()).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns false when refresh throws twice", async () => {
+    const fetchMock = jest.fn().mockRejectedValue(new TypeError("network"));
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(refreshAccessToken()).resolves.toBe(false);
+    expect(getAccessToken()).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries devLogin once when fetch throws, then succeeds", async () => {
+    const fetchMock = jest.fn()
+      .mockRejectedValueOnce(new TypeError("network"))
+      .mockResolvedValueOnce(
+        jsonResponse(200, { data: { access_token: "dev-after-retry" } }),
+      );
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await devLogin();
+    expect(result?.access_token).toBe("dev-after-retry");
+    expect(getAccessToken()).toBe("dev-after-retry");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry devLogin on 404", async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse(404, { data: null, error: { code: "NOT_FOUND" } }),
+    );
+    global.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(devLogin()).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

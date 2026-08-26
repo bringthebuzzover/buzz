@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
+import { waitForAuthSettled } from "./authSettled";
 
 /**
  * Org journeys. In dev the app auto-dev-logins as the seeded active org on
@@ -8,6 +9,7 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
 
 test("org drop feed renders cards", async ({ page }) => {
   await page.goto("/org/browse");
+  await waitForAuthSettled(page, "org");
   await expect(page.getByRole("heading", { name: /browse/i })).toBeVisible();
   // Seed has 4 drops + the E2E open drop.
   await expect(page.getByTestId("drop-card").first()).toBeVisible();
@@ -16,6 +18,7 @@ test("org drop feed renders cards", async ({ page }) => {
 
 test("org can apply to an open drop", async ({ page }) => {
   await page.goto("/org/browse");
+  await waitForAuthSettled(page, "org");
   // The deterministic open, unapplied drop seeded by seed_e2e.
   const card = page
     .getByTestId("drop-card")
@@ -68,6 +71,7 @@ async function assertNoOverlapWithLogo(page: Page, target: Locator) {
 test("org desktop nav does not overlap the logo at 1280px", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/org/browse");
+  await waitForAuthSettled(page, "org");
   const header = page.locator("header");
   await expect(header.getByRole("button", { name: /open menu/i })).toBeHidden();
 
@@ -96,6 +100,7 @@ test("org mid-width chrome uses the hamburger and keeps campaign links", async (
 }) => {
   await page.setViewportSize({ width: 900, height: 800 });
   await page.goto("/org/browse");
+  await waitForAuthSettled(page, "org");
   await expect(page.getByRole("heading", { name: /browse/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /open menu/i })).toBeVisible();
   await page.getByRole("button", { name: /open menu/i }).click();
@@ -110,6 +115,7 @@ test("org mid-width chrome uses the hamburger and keeps campaign links", async (
 test("org phone chrome lists portal links in the menu", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 720 });
   await page.goto("/org/browse");
+  await waitForAuthSettled(page, "org");
   await expect(page.getByRole("button", { name: /open menu/i })).toBeVisible();
   await page.getByRole("button", { name: /open menu/i }).click();
   const panel = page.locator("#mobile-nav-menu");
