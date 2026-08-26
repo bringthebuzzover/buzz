@@ -178,6 +178,70 @@ describe("AuthProvider bootstrap resolution", () => {
     expect(fetchMeMock).toHaveBeenCalledTimes(2);
   });
 
+  it("remints via a second devLogin when the first /me is unauthenticated", async () => {
+    refreshMock.mockResolvedValue(false);
+    let loginCalls = 0;
+    devLoginMock.mockImplementation(async () => {
+      loginCalls += 1;
+      const token = `dev-token-${loginCalls}`;
+      setAccessToken(token);
+      return { access_token: token };
+    });
+    let meCalls = 0;
+    fetchMeMock.mockImplementation(async () => {
+      meCalls += 1;
+      if (meCalls === 1) return { kind: "unauthenticated" as const };
+      return {
+        kind: "user" as const,
+        user: {
+          id: "seed-org",
+          portalRole: "org" as const,
+          status: "active",
+        },
+      };
+    });
+    window.history.pushState({}, "", "/org/browse");
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+
+    await waitForStatus(container, "authenticated");
+    expect(userText(container)).toBe("seed-org");
+    expect(devLoginMock).toHaveBeenCalledTimes(2);
+    expect(fetchMeMock).toHaveBeenCalledTimes(2);
+    expect(getAccessToken()).toBe("dev-token-2");
+  });
+
+  it("failHards when a second devLogin /me is still unauthenticated", async () => {
+    refreshMock.mockResolvedValue(false);
+    let loginCalls = 0;
+    devLoginMock.mockImplementation(async () => {
+      loginCalls += 1;
+      setAccessToken(`dev-token-${loginCalls}`);
+      return { access_token: `dev-token-${loginCalls}` };
+    });
+    fetchMeMock.mockResolvedValue({ kind: "unauthenticated" });
+    window.history.pushState({}, "", "/org/browse");
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+
+    await waitForStatus(container, "error");
+    expect(devLoginMock).toHaveBeenCalledTimes(2);
+    expect(fetchMeMock).toHaveBeenCalledTimes(2);
+    expect(getAccessToken()).toBeNull();
+  });
+
   it("retryRestore recovers to authenticated after a soft failure", async () => {
     let meCalls = 0;
     refreshMock.mockImplementation(async () => {
