@@ -32,8 +32,11 @@ repro: |
 fix_when: |
   E2E waits for settled auth (Restoring gone) before Overview / 403 / persona
   nav. refreshAccessToken and devLogin retry once on thrown network errors
-  only (not 401/4xx). Playwright retries stay 0. Unit tests cover the retry.
-  workflow_dispatch e2e_repeat=10 all E2E jobs green. Do not rewrite
+  only (not 401/4xx). After successful devLogin, if immediate /me is
+  unauthenticated, remint once via a second devLogin (dev-only;
+  auth.ci-session-restore-flake v2). waitForAuthSettled org path fails fast
+  on /login. Playwright retries stay 0. Unit tests cover the retry and
+  remint. workflow_dispatch e2e_repeat=10 all E2E jobs green. Do not rewrite
   RequireAuth, do not treat all /admin* as a reason to skip refresh, do not
   retry UNAUTHORIZED (that is auth.revoked-access-skips-refresh).
 ---
@@ -81,6 +84,51 @@ the helper + throw retry): **171 passed / 9 failed**. All 9 were
 seeded open drop; later repeats share that DB. Auth restore / header /
 guards were 10/10. That command is **not** the archive bar: GitHub
 `e2e_repeat` is N isolated jobs each with its own Postgres.
+
+[`stress ×10` on `4620f47`](https://github.com/bringthebuzzover/buzz/actions/runs/32917060798)
+(`[e2e-stress-10]`): **8 E2E jobs passed, 2 failed**. Backend + frontend
+green. Original family is gone this round: admin reload, View as / exit,
+guards 403, and org desktop nav at 1280 were **10/10**.
+
+| Job | Test | Observed |
+| --- | --- | --- |
+| 5 | org can apply | `waitForAuthSettled` Org Portal not visible (10s) |
+| 5 | org mid-width hamburger | same Org Portal timeout; desktop 1280 passed in this job |
+| 1 | org phone chrome | same Org Portal timeout; apply + mid-width passed in this job |
+
+Not a hidden-label / Restoring-count race. Artifacts (all 3):
+guest `/login` (“Join or sign in to Buzz”). Network is the same
+sequence: `POST /refresh` 401 missing cookie → `POST /dev-login`
+**200** (JWT `ver: 3` for seed org `…0002`) → `GET /me` 401
+“This session has been revoked” ~15–27ms later → `POST /refresh`
+401 revoked (cookie already stale). Something else called
+`issue_token_pair` on that user in the gap; this tab’s mint is
+dead, `failHard` → `/login`. Sibling
+`auth.revoked-access-skips-refresh` is `apiFetch`; here `fetchMe`
+*does* refresh and the cookie is already revoked too.
+
+## Locked v2 (token_version race after dev-login)
+
+Exact race root between mint and `/me` is unproven (pool visibility,
+cancelled-but-processed request, etc.). Recovery is clear in
+development: a second `dev-login` reads the row’s current
+`token_version` and remints.
+
+1. **Bootstrap remint (dev-only).** After a successful `devLogin`, if
+   the immediate `/me` is `unauthenticated` (and no Instagram reconnect
+   latch), call `devLogin` once more and `/me` again, then
+   `applyMeResult`. Still soft-fail on `kind: "error"`; still
+   `failHard` if the second `/me` is unauthenticated. Off-dev
+   `dev-login` 404s so this path cannot run in prod. Refresh / admin
+   cookie bootstrap unchanged (those specs were 10/10 on `4620f47`).
+2. **`waitForAuthSettled` org fast-fail.** Race Org Portal vs
+   `/login`; if guest login wins, throw with a pointer to this gap
+   instead of hanging 10s on Org Portal. Debuggability only — not a
+   retry.
+3. Unit coverage in `AuthContext.bootstrap.test.tsx`: remint→authenticated
+   and double-unauth→error.
+
+Archive bar unchanged: `workflow_dispatch e2e_repeat=10` all green.
 
 ## Why
 

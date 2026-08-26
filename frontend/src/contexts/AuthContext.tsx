@@ -279,8 +279,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (dev) {
           // Token is installed — soft-fail /me blips like the cookie-refresh path
           // (failHard would send RequireAuth to /login and flake E2E).
-          const me = await fetchMeWithRetry(bootstrapStillOwner);
+          let me = await fetchMeWithRetry(bootstrapStillOwner);
           if (!bootstrapStillOwner()) return;
+          // Dev-login mint can race a token_version bump
+          // (auth.ci-session-restore-flake): /me returns unauthenticated while
+          // the cookie is already stale. One remint reads the row's current
+          // ver. Off-dev this path never runs (dev-login 404s).
+          if (me.kind === "unauthenticated" && !hasInstagramReconnectLatch()) {
+            const remint = await devLogin();
+            if (!bootstrapStillOwner()) return;
+            if (remint) me = await fetchMeWithRetry(bootstrapStillOwner);
+            if (!bootstrapStillOwner()) return;
+          }
           applyMeResult(me, { softOnTransient: true });
           return;
         }
