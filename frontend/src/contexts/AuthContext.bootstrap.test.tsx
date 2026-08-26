@@ -178,6 +178,63 @@ describe("AuthProvider bootstrap resolution", () => {
     expect(fetchMeMock).toHaveBeenCalledTimes(2);
   });
 
+  it("remints via a second refresh when refresh + /me hits an immediate revoke", async () => {
+    let refreshCalls = 0;
+    refreshMock.mockImplementation(async () => {
+      refreshCalls += 1;
+      setAccessToken(`refresh-token-${refreshCalls}`);
+      return true;
+    });
+    let meCalls = 0;
+    fetchMeMock.mockImplementation(async () => {
+      meCalls += 1;
+      if (meCalls === 1) return { kind: "unauthenticated" as const };
+      return {
+        kind: "user" as const,
+        user: {
+          id: "admin-1",
+          portalRole: "admin" as const,
+          status: "active",
+        },
+      };
+    });
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+
+    await waitForStatus(container, "authenticated");
+    expect(userText(container)).toBe("admin-1");
+    expect(refreshMock).toHaveBeenCalledTimes(2);
+    expect(fetchMeMock).toHaveBeenCalledTimes(2);
+    expect(getAccessToken()).toBe("refresh-token-2");
+  });
+
+  it("failHards when the second refresh /me is still unauthenticated", async () => {
+    refreshMock.mockImplementation(async () => {
+      setAccessToken("refresh-token");
+      return true;
+    });
+    fetchMeMock.mockResolvedValue({ kind: "unauthenticated" });
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+
+    await waitForStatus(container, "error");
+    expect(refreshMock).toHaveBeenCalledTimes(2);
+    expect(fetchMeMock).toHaveBeenCalledTimes(2);
+    expect(getAccessToken()).toBeNull();
+  });
+
   it("remints via a second devLogin when the first /me is unauthenticated", async () => {
     refreshMock.mockResolvedValue(false);
     let loginCalls = 0;
