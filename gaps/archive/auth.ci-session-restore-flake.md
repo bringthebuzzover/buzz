@@ -3,7 +3,8 @@ id: auth.ci-session-restore-flake
 title: E2E asserts the next screen before session restore settles; refresh/dev-login are single-shot
 kind: test_gap
 severity: P2
-status: in_progress
+status: fixed
+closed_in: e429c7a
 surface: auth
 evidence:
   - path: frontend/e2e/guards.spec.ts
