@@ -4,6 +4,7 @@ title: Org .edu verification mail is junk-shaped and campus Outlook files it as 
 kind: ux_hole
 severity: P1
 status: fixed
+closed_in: 9bdbb52
 surface: org
 evidence:
   - path: backend/app/services/email.py

@@ -4,6 +4,7 @@ title: Org signup is Instagram-first; non-testers cannot create an account
 kind: ux_hole
 severity: P1
 status: fixed
+closed_in: 9bdbb52
 surface: org
 evidence:
   - path: PRODUCT.md
