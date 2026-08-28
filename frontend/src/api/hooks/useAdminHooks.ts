@@ -443,17 +443,39 @@ export type AdminDropCreateInput = {
 };
 
 export function useCreateAdminDrop() {
-  return useAdminMutation(async (input: AdminDropCreateInput) => {
-    const { brandId, ...body } = input;
-    const { data } = await apiFetch<AdminDropDetail>(
-      `/api/admin/brands/${brandId}/drops`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      },
-    );
-    return data;
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AdminDropCreateInput) => {
+      const { brandId, ...body } = input;
+      const { data } = await apiFetch<AdminDropDetail>(
+        `/api/admin/brands/${brandId}/drops`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      return data;
+    },
+    onSuccess: (data, input) => {
+      // Seed before the fan-out refetch so Publish does not wait on every
+      // ["admin"] query (staleTime 30s). Do not await invalidate — that was
+      // blocking mutateAsync and leaving the stub disabled
+      // (admin.publish-disabled-after-draft).
+      if (data?.id) {
+        queryClient.setQueryData(["admin", "drop", data.id], data);
+        if (input.dropRequestId) {
+          queryClient.setQueryData(
+            ["admin", "drop-request", input.dropRequestId],
+            (old: AdminDropRequest | undefined) =>
+              old
+                ? { ...old, convertedDropId: data.id, status: "converted" }
+                : old,
+          );
+        }
+      }
+      void invalidateAdmin(queryClient);
+    },
   });
 }
 

@@ -31,7 +31,10 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
     isError: false,
   }),
   useCreateAdminDrop: () => ({
-    mutateAsync: jest.fn(),
+    mutateAsync: jest.fn().mockResolvedValue({
+      id: "drop-1",
+      publishedAt: null,
+    }),
     isPending: false,
   }),
   usePatchAdminDropConfig: () => ({
@@ -82,11 +85,12 @@ describe("AdminDropRequestDetailPage", () => {
       );
     });
 
-    const publish = container.querySelector(
-      '[data-testid="publish-drop"]',
-    ) as HTMLButtonElement | null;
-    expect(publish).toBeTruthy();
-    expect(publish!.disabled).toBe(true);
+    expect(container.querySelector('[data-testid="publish-drop"]')).toBeNull();
+    const stub = Array.from(container.querySelectorAll("button")).find(
+      (el) => el.textContent === "Publish",
+    ) as HTMLButtonElement | undefined;
+    expect(stub).toBeTruthy();
+    expect(stub!.disabled).toBe(true);
 
     const save = container.querySelector(
       '[data-testid="save-draft"]',
@@ -161,5 +165,43 @@ describe("AdminDropRequestDetailPage", () => {
       fillRequired(container, "https://cdn.example.test/hero.png");
     });
     expect(save().disabled).toBe(false);
+  });
+
+  it("enables Publish after Save draft returns a drop", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    act(() => {
+      root.render(
+        <MemoryRouter initialEntries={["/admin/requests/req-1"]}>
+          <QueryClientProvider client={queryClient}>
+            <Routes>
+              <Route
+                path="/admin/requests/:requestId"
+                element={<AdminDropRequestDetailPage />}
+              />
+            </Routes>
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+    });
+
+    act(() => {
+      fillRequired(container, "https://cdn.example.test/hero.png");
+    });
+    const save = container.querySelector(
+      '[data-testid="save-draft"]',
+    ) as HTMLButtonElement;
+    expect(save.disabled).toBe(false);
+
+    await act(async () => {
+      save.click();
+    });
+
+    const publish = container.querySelector(
+      '[data-testid="publish-drop"]',
+    ) as HTMLButtonElement | null;
+    expect(publish).toBeTruthy();
+    expect(publish!.disabled).toBe(false);
   });
 });
