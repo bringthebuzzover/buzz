@@ -134,6 +134,17 @@ Background jobs are one-shot scripts the scheduler invokes — no worker. Each i
 
 The primary IG token refresh is **on-login**; `token_refresh` only catches inactive orgs and is optional for a tight MVP. `refresh_due_tokens` only selects still-valid tokens with `now < expires_at < now+14d`; already-expired tokens are never selected and cannot be Meta-refreshed — the org must OAuth reconnect (`/reconnect-instagram`). A 5-minute cadence means the 5-minute reminder option can land up to ~5 minutes late, and the first `notify_reminders` run mails every already-due subscription that predates the job. Confirm each cron run **exits** (Completed, not stuck Active). Each invocation writes a `job_runs` row (`ok` + `summary`); `/api/admin/health` surfaces last-run age on pipeline signals.
 
+**One-shot (not a cron):** convert leftover unpublished `request_received` stub drops into closed tickets.
+
+```
+cd backend
+railway run -s api -e production -- poetry run python scripts/cleanup_request_received_stubs.py --dry-run
+# after explicit ops OK:
+railway run -s api -e production -- poetry run python scripts/cleanup_request_received_stubs.py --confirm
+```
+
+- [ ] Ran `--confirm` on production (date: ____). Production HTTP `POST /api/admin/tools/cleanup-request-received` stays 403.
+
 ---
 
 ## Phase 3 — Configure environment (parity checklist)

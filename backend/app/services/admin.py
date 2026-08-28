@@ -804,13 +804,37 @@ async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
     return drop
 
 
+async def _unpublished_request_received_stubs(db: AsyncSession) -> list[Drop]:
+    """Unpublished drops still in the legacy request_received stage."""
+    return list(
+        await db.scalars(
+            select(Drop).where(
+                Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
+                Drop.published_at.is_(None),
+            )
+        )
+    )
+
+
 async def cleanup_request_received_stubs(
-    db: AsyncSession, *, force: bool = False
+    db: AsyncSession, *, force: bool = False, dry_run: bool = False
 ) -> dict[str, Any]:
     """Convert unpublished request_received stubs into closed tickets and delete them.
 
-    Idempotent. Production refuses unless ``force=True`` (script ``--confirm``).
+    Idempotent. ``dry_run`` lists matching ids with no writes (allowed in
+    production). Writes refuse production unless ``force=True`` (script
+    ``--confirm``).
     """
+
+    stubs = await _unpublished_request_received_stubs(db)
+    stub_ids = [drop.id for drop in stubs]
+    if dry_run:
+        logger.info("cleanup_request_received dry-run: %s stubs", len(stub_ids))
+        return {
+            "converted_count": len(stub_ids),
+            "deleted_drop_ids": stub_ids,
+            "dry_run": True,
+        }
 
     if settings.ENVIRONMENT == "production" and not force:
         raise BuzzAPIException(
@@ -819,14 +843,6 @@ async def cleanup_request_received_stubs(
             status_code=403,
         )
 
-    stubs = list(
-        await db.scalars(
-            select(Drop).where(
-                Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
-                Drop.published_at.is_(None),
-            )
-        )
-    )
     deleted_ids: list[UUID] = []
     for drop in stubs:
         ticket = DropRequest(
