@@ -197,8 +197,14 @@ def build_user_response(user: User) -> UserResponse:
 
 
 async def issue_token_pair(db: AsyncSession, user: User) -> tuple[str, str]:
-    """Bump ``token_version``, then mint ``(access_token, refresh_token)``."""
+    """Bump ``token_version``, then mint ``(access_token, refresh_token)``.
 
+    ``FOR UPDATE`` serializes concurrent mints on the same row and reloads
+    ``token_version`` so a waiter cannot both compute ``old+1`` from a stale
+    snapshot (auth.ci-session-restore-flake v6).
+    """
+
+    await db.refresh(user, with_for_update=True)
     bump_token_version(user)
     await db.flush()
     ver = user.token_version or 0
