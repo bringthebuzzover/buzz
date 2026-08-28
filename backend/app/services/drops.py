@@ -14,7 +14,7 @@ comes from ``brands`` via join on ``Drop.brand_id``.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -29,7 +29,6 @@ from app.models.drop import Drop
 from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
-from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.schemas import drops as schemas
 from app.schemas.drops import ApplicationResponse, DropDetailResponse, DropFeedItem
@@ -42,11 +41,16 @@ def _as_utc(value: datetime) -> datetime:
 
 
 def _browsable_drop_filters() -> tuple[ColumnElement[bool], ...]:
-    """Predicate for drops an org may see in the feed (requires the Brand join)."""
+    """Predicate for drops an org may see in the feed (requires the Brand join).
+
+    Published only (LAUNCH.md Phase B): unpublished drafts and legacy
+    ``request_received`` stubs never appear on the org feed.
+    """
 
     return (
         Brand.status == BrandStatus.APPROVED.value,
         Drop.brand_tracker_stage != BrandTrackerStage.DROP_FINISHED.value,
+        Drop.published_at.isnot(None),
     )
 
 
@@ -61,6 +65,8 @@ async def _require_browsable_drop(db: AsyncSession, drop: Drop) -> Brand:
     if brand is None or brand.status != BrandStatus.APPROVED.value:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
     if drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value:
+        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
+    if drop.published_at is None:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
     return brand
 
@@ -411,44 +417,8 @@ async def clear_notify(db: AsyncSession, org_user: User, drop_id: uuid.UUID) -> 
         await db.flush()
 
 
-# --- Brand drop creation (Stage 5C) --------------------------------------------
-
-
-_PLACEHOLDER_IMAGE = "https://placehold.co/600x400/png"
-
-
-async def create_brand_drop(
-    db: AsyncSession,
-    brand: Brand,
-    title: str,
-    description: str,
-) -> Drop:
-    """Create a drop owned by *brand* with server defaults (§8.4)."""
-
-    now = datetime.now(timezone.utc)
-    drop = Drop(
-        id=uuid.uuid4(),
-        brand_id=brand.id,
-        title=title,
-        description=description,
-        image=_PLACEHOLDER_IMAGE,
-        location="Multiple Campuses",
-        capacity_total=10,
-        apply_open_at=now + timedelta(days=1),
-        apply_close_at=now + timedelta(days=8),
-        brand_tracker_stage=BrandTrackerStage.REQUEST_RECEIVED.value,
-        total_product_units=None,
-    )
-    db.add(drop)
-
-    tracker = DropTrackerEvent(
-        id=uuid.uuid4(),
-        drop_id=drop.id,
-        stage=BrandTrackerStage.REQUEST_RECEIVED.value,
-    )
-    db.add(tracker)
-    await db.flush()
-    return drop
+# --- Brand drop creation removed (LAUNCH.md Phase B) ---------------------------
+# Brand intake now creates ``drop_requests`` via ``app.services.drop_requests``.
 
 
 def build_brand_drop_response(drop: Drop, brand: Brand) -> schemas.BrandDropResponse:
@@ -469,5 +439,6 @@ def build_brand_drop_response(drop: Drop, brand: Brand) -> schemas.BrandDropResp
         total_product_units=drop.total_product_units,
         campaign_hashtag=drop.campaign_hashtag,
         applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
+        published_at=drop.published_at,
         created_at=drop.created_at,
     )

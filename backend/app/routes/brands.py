@@ -36,7 +36,7 @@ from app.schemas.brands import (
     EngagementSeriesPoint,
     FinalizeApplicantsRequest,
 )
-from app.schemas.drops import BrandDropCreateRequest, BrandDropResponse
+from app.schemas.drops import BrandDropRequestCreate, BrandDropRequestResponse
 from app.security.rate_limit import rate_limited
 from app.services.brand_auth import apply_brand
 from app.services.brands import (
@@ -49,7 +49,12 @@ from app.services.brands import (
     finalize_applicants,
     resolve_brand_drop,
 )
-from app.services.drops import build_brand_drop_response, create_brand_drop
+from app.services.drop_requests import (
+    build_drop_request_response,
+    create_brand_drop_request,
+    get_brand_drop_request,
+    list_brand_drop_requests,
+)
 
 router = APIRouter(prefix="/brands", tags=["brands"])
 
@@ -97,15 +102,49 @@ async def get_brand_profile(
     return api_response(data=BrandProfileResponse.model_validate(brand, from_attributes=True))
 
 
-@router.post("/me/drops", response_model=DataResponse[BrandDropResponse])
-async def create_drop(
-    payload: BrandDropCreateRequest,
+@router.post(
+    "/me/drop-requests",
+    response_model=DataResponse[BrandDropRequestResponse],
+    dependencies=[Depends(rate_limited("brand_drop_request", limit=10, window=60))],
+)
+async def create_drop_request(
+    payload: BrandDropRequestCreate,
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Plan your Campaign — create an intake ticket (LAUNCH.md Phase B)."""
+    brand = await _require_brand(db, user)
+    ticket = await create_brand_drop_request(
+        db, brand, message=payload.message, notes=payload.notes
+    )
+    return api_response(data=build_drop_request_response(ticket))
+
+
+@router.get(
+    "/me/drop-requests",
+    response_model=DataResponse[list[BrandDropRequestResponse]],
+)
+async def list_drop_requests(
     user: CurrentBrand,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     brand = await _require_brand(db, user)
-    drop = await create_brand_drop(db, brand, payload.title, payload.description)
-    return api_response(data=build_brand_drop_response(drop, brand))
+    tickets = await list_brand_drop_requests(db, brand)
+    return api_response(data=[build_drop_request_response(t) for t in tickets])
+
+
+@router.get(
+    "/me/drop-requests/{request_id}",
+    response_model=DataResponse[BrandDropRequestResponse],
+)
+async def get_drop_request(
+    request_id: uuid.UUID,
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    brand = await _require_brand(db, user)
+    ticket = await get_brand_drop_request(db, brand, request_id)
+    return api_response(data=build_drop_request_response(ticket))
 
 
 @router.get("/me/drops", response_model=DataResponse[list[BrandDropListItem]])

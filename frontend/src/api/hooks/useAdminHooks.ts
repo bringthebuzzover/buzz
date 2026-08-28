@@ -177,18 +177,61 @@ export function useAdminBrand(
   });
 }
 
+// ── Drop requests (intake tickets) ──────────────────────────────────────────
+
+export type AdminDropRequest = components["schemas"]["AdminDropRequestItem"];
+
+export function useAdminDropRequests(params?: {
+  status?: string;
+  brandId?: string;
+}): AdminQuery<AdminDropRequest[]> {
+  const status = params?.status;
+  const brandId = params?.brandId;
+  return useQuery({
+    queryKey: ["admin", "drop-requests", status ?? "all", brandId ?? "all"],
+    queryFn: async () => {
+      const search = new URLSearchParams();
+      if (status) search.set("status", status);
+      if (brandId) search.set("brand_id", brandId);
+      const query = search.toString();
+      const { data } = await apiFetch<AdminDropRequest[]>(
+        `/api/admin/drop-requests${query ? `?${query}` : ""}`,
+      );
+      return data;
+    },
+  });
+}
+
+export function useAdminDropRequest(
+  requestId: string | undefined,
+): AdminQuery<AdminDropRequest> {
+  return useQuery({
+    queryKey: ["admin", "drop-request", requestId],
+    enabled: Boolean(requestId),
+    queryFn: async () => {
+      const { data } = await apiFetch<AdminDropRequest>(
+        `/api/admin/drop-requests/${requestId}`,
+      );
+      return data;
+    },
+  });
+}
+
 export function useAdminDrops(params: {
   stage?: readonly string[];
   attention?: readonly string[];
+  published?: "draft" | "published" | null;
 }): AdminQuery<AdminDropRow[]> {
   const stages = [...(params.stage ?? [])];
   const attentions = [...(params.attention ?? [])];
+  const published = params.published ?? null;
   return useQuery({
-    queryKey: ["admin", "drops", stages, attentions],
+    queryKey: ["admin", "drops", stages, attentions, published ?? "all"],
     queryFn: async () => {
       const search = new URLSearchParams();
       for (const value of stages) search.append("stage", value);
       for (const value of attentions) search.append("attention", value);
+      if (published) search.set("published", published);
       const query = search.toString();
       const { data } = await apiFetch<AdminDropRow[]>(
         `/api/admin/drops${query ? `?${query}` : ""}`,
@@ -379,7 +422,46 @@ export type AdminDropConfigPatch = {
   applyCloseAt?: number;
   totalProductUnits?: number | null;
   campaignHashtag?: string | null;
+  title?: string;
+  description?: string;
+  image?: string;
+  location?: string;
 };
+
+export type AdminDropCreateInput = {
+  brandId: string;
+  title: string;
+  description: string;
+  image: string;
+  location: string;
+  capacityTotal: number;
+  applyOpenAt: number;
+  applyCloseAt: number;
+  totalProductUnits?: number | null;
+  campaignHashtag?: string | null;
+  dropRequestId?: string;
+};
+
+export function useCreateAdminDrop() {
+  return useAdminMutation(async (input: AdminDropCreateInput) => {
+    const { brandId, ...body } = input;
+    const { data } = await apiFetch<AdminDropDetail>(
+      `/api/admin/brands/${brandId}/drops`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+    return data;
+  });
+}
+
+export function usePublishDrop(dropId: string) {
+  return useAdminMutation((_: void) =>
+    apiFetch(`/api/admin/drops/${dropId}/publish`, { method: "POST" }),
+  );
+}
 
 export function usePatchAdminDropConfig(dropId: string) {
   return useAdminMutation((payload: AdminDropConfigPatch) =>

@@ -8,7 +8,7 @@ import { ChevronLeft, ClipboardList, Truck } from "lucide-react";
 import ApiPostSelector from "../../components/org/ApiPostSelector";
 import { useCampaignDetail, useCampaignAggregate } from "../../api/hooks/useOrgHooks";
 import { ApiError } from "../../api/errors";
-import { BRAND_DROP_TRACKER_ORDER } from "../../types/brandPortal";
+import { BRAND_DROP_TRACKER_FULL_ORDER } from "../../types/brandPortal";
 import {
   deriveOrgCampaignStatus,
   ORG_CAMPAIGN_STATUS_LABELS,
@@ -27,10 +27,10 @@ function shipmentOnTheWay(detail: {
   brandTrackerStage: string;
 }): boolean {
   if (detail.trackingNumber) return true;
-  const idx = BRAND_DROP_TRACKER_ORDER.indexOf(
-    detail.brandTrackerStage as (typeof BRAND_DROP_TRACKER_ORDER)[number],
+  const idx = BRAND_DROP_TRACKER_FULL_ORDER.indexOf(
+    detail.brandTrackerStage as (typeof BRAND_DROP_TRACKER_FULL_ORDER)[number],
   );
-  const awaitingIdx = BRAND_DROP_TRACKER_ORDER.indexOf("awaiting_products");
+  const awaitingIdx = BRAND_DROP_TRACKER_FULL_ORDER.indexOf("awaiting_products");
   return idx >= awaitingIdx && idx !== -1;
 }
 

@@ -1,15 +1,13 @@
 """Drop auto-close job (architecture.md §10.2).
 
-Every ~5 minutes. The feed status is already derived from ``apply_close_at`` +
-capacity (``getDropFeedStatus``), so this job's real work is the one tracker
-transition that is *time*-driven rather than fulfillment-driven: when a drop's
-application window closes, move it from ``request_received`` into
-``finalizing_agreements`` — the "ready for applicant selection" stage where the
-brand/admin runs ``finalize-applicants`` (which itself requires that stage AND a
-closed window, §8.3). The later fulfillment stages stay admin-only (§8.5).
+LAUNCH.md Phase B: autoclose only walks **published** drops. Legacy
+``request_received`` stubs are frozen (hidden from the org feed) until the
+one-shot cleanup converts them to tickets.
 
-Idempotent: only drops still in ``request_received`` with a passed window and
-``manual_reopen = false`` are advanced; re-running touches nothing new.
+Published drops whose application window has closed and that are still in
+``awaiting_products`` with no selection finalized stay put — later fulfillment
+stages remain admin-only. This job currently records that the window closed
+without advancing stage (no-op count for unpublished / stubs).
 """
 
 from __future__ import annotations
@@ -22,37 +20,41 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.drop import Drop
 from app.models.enums import BrandTrackerStage
-from app.models.tracker_event import DropTrackerEvent
-
-_AUTO_NOTE = "auto: application window closed — ready for applicant selection"
 
 
 async def auto_close_drops(db: AsyncSession) -> dict[str, Any]:
+    """No longer advances ``request_received`` stubs (Phase B).
+
+    Returns counts for observability. Published drops with a closed window are
+    left for brand finalize / admin tracker advances.
+    """
     now = datetime.now(timezone.utc)
 
-    # FOR UPDATE SKIP LOCKED so two overlapping runs don't both advance the same
-    # drop and write duplicate tracker events — the second run skips locked rows.
-    drops = list(
+    stubs = list(
         await db.scalars(
-            select(Drop)
-            .where(
+            select(Drop).where(
                 Drop.apply_close_at < now,
                 Drop.manual_reopen.is_(False),
                 Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
+                Drop.published_at.is_(None),
             )
-            .with_for_update(skip_locked=True)
+        )
+    )
+    # Explicitly do not advance stubs — freeze until cleanup.
+    published_closed = list(
+        await db.scalars(
+            select(Drop).where(
+                Drop.apply_close_at < now,
+                Drop.manual_reopen.is_(False),
+                Drop.published_at.isnot(None),
+                Drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value,
+            )
         )
     )
 
-    for drop in drops:
-        drop.brand_tracker_stage = BrandTrackerStage.FINALIZING_AGREEMENTS.value
-        db.add(
-            DropTrackerEvent(
-                drop_id=drop.id,
-                stage=BrandTrackerStage.FINALIZING_AGREEMENTS.value,
-                note=_AUTO_NOTE,
-            )
-        )
-
     await db.flush()
-    return {"advanced": len(drops)}
+    return {
+        "advanced": 0,
+        "frozen_stubs": len(stubs),
+        "published_closed_awaiting": len(published_closed),
+    }

@@ -17,6 +17,7 @@ import {
   useAdvanceTracker,
   useClearReopen,
   usePatchAdminDropConfig,
+  usePublishDrop,
   useReopenDrop,
   useSetDropTracking,
   type AdminApplicant,
@@ -77,7 +78,13 @@ const LOGISTICS_LOCKED = new Set(["drop_active", "drop_finished"]);
 
 function DropConfigEditors({ data }: { data: AdminDropDetail }) {
   const patch = usePatchAdminDropConfig(data.id);
+  const publish = usePublishDrop(data.id);
   const logisticsLocked = LOGISTICS_LOCKED.has(data.stage);
+  const creativeLocked = data.publishedAt != null;
+  const [title, setTitle] = useState(data.title);
+  const [description, setDescription] = useState(data.description);
+  const [image, setImage] = useState(data.image);
+  const [location, setLocation] = useState(data.location);
   const [capacity, setCapacity] = useState(String(data.capacityTotal));
   const [units, setUnits] = useState(
     data.totalProductUnits === null ? "" : String(data.totalProductUnits),
@@ -96,6 +103,14 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
     setError(null);
     setNotice(null);
     const body: Record<string, number | string | null> = {};
+    if (!creativeLocked) {
+      if (title.trim() !== data.title) body.title = title.trim();
+      if (description.trim() !== data.description) {
+        body.description = description.trim();
+      }
+      if (image.trim() !== data.image) body.image = image.trim();
+      if (location.trim() !== data.location) body.location = location.trim();
+    }
     if (!logisticsLocked) {
       const cap = Number(capacity);
       if (!Number.isInteger(cap) || cap < 1) {
@@ -146,12 +161,30 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
     }
   };
 
+  const onPublish = async () => {
+    setError(null);
+    setNotice(null);
+    try {
+      await publish.mutateAsync(undefined);
+      setNotice("Drop published.");
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not publish this drop.",
+      );
+    }
+  };
+
   return (
     <div className="mt-4 border-t border-buzz-lineMid">
       <div className="space-y-3 px-4 py-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
-          Edit logistics
+          Edit configuration
         </p>
+        {creativeLocked && (
+          <p className="text-xs font-medium text-buzz-inkMuted">
+            Title, description, image, and location are locked after publish.
+          </p>
+        )}
         {logisticsLocked && (
           <p className="text-xs font-medium text-buzz-inkMuted">
             Capacity, window, and unit budget are locked while the drop is live or
@@ -159,6 +192,46 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
           </p>
         )}
         <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block sm:col-span-2">
+            <span className={fieldLabelClass}>Title</span>
+            <input
+              type="text"
+              className={inputClass}
+              value={title}
+              disabled={creativeLocked || patch.isPending}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className={fieldLabelClass}>Description</span>
+            <textarea
+              rows={3}
+              className={inputClass}
+              value={description}
+              disabled={creativeLocked || patch.isPending}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className={fieldLabelClass}>Image (https)</span>
+            <input
+              type="url"
+              className={inputClass}
+              value={image}
+              disabled={creativeLocked || patch.isPending}
+              onChange={(e) => setImage(e.target.value)}
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className={fieldLabelClass}>Location</span>
+            <input
+              type="text"
+              className={inputClass}
+              value={location}
+              disabled={creativeLocked || patch.isPending}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </label>
           <label className="block">
             <span className={fieldLabelClass}>Capacity</span>
             <input
@@ -232,13 +305,25 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
             </label>
           </label>
         </div>
-        <ActionButton
-          testId="save-drop-config"
-          disabled={patch.isPending}
-          onClick={() => void onSave()}
-        >
-          {patch.isPending ? "Saving…" : "Save configuration"}
-        </ActionButton>
+        <div className="flex flex-wrap gap-2">
+          <ActionButton
+            testId="save-drop-config"
+            disabled={patch.isPending || publish.isPending}
+            onClick={() => void onSave()}
+          >
+            {patch.isPending ? "Saving…" : "Save configuration"}
+          </ActionButton>
+          {!creativeLocked && (
+            <ActionButton
+              variant="primary"
+              testId="publish-drop"
+              disabled={patch.isPending || publish.isPending}
+              onClick={() => void onPublish()}
+            >
+              {publish.isPending ? "Publishing…" : "Publish"}
+            </ActionButton>
+          )}
+        </div>
         {notice && (
           <p className="text-sm font-medium text-green-700">{notice}</p>
         )}
@@ -569,6 +654,11 @@ export default function AdminDropDetailPage() {
             actions={
               <div className="flex flex-wrap items-center gap-2">
                 <Pill>{STAGE_LABELS[data.stage] ?? data.stage}</Pill>
+                {data.publishedAt == null ? (
+                  <Pill tone="warn">Draft</Pill>
+                ) : (
+                  <Pill tone="good">Published</Pill>
+                )}
                 {data.manualReopen && <Pill tone="warn">Reopened</Pill>}
                 {acceptedCount > data.capacityTotal && (
                   <Pill tone="bad">Over capacity</Pill>
@@ -612,6 +702,23 @@ export default function AdminDropDetailPage() {
                   </span>
                 )}
               </Field>
+              <Field label="Published">
+                {data.publishedAt != null ? (
+                  formatDateTime(data.publishedAt)
+                ) : (
+                  <Pill tone="warn">Draft</Pill>
+                )}
+              </Field>
+              {data.dropRequestId && (
+                <Field label="Drop request">
+                  <Link
+                    to={`/admin/requests/${data.dropRequestId}`}
+                    className="font-bold text-buzz-coral hover:underline"
+                  >
+                    View ticket
+                  </Link>
+                </Field>
+              )}
             </FieldGrid>
             <DropConfigEditors data={data} />
           </Panel>

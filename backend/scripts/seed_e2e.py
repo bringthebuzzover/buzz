@@ -45,7 +45,8 @@ async def _add_open_drop() -> None:
                 apply_open_at=now - timedelta(days=1),
                 apply_close_at=now + timedelta(days=14),
                 manual_reopen=False,
-                brand_tracker_stage=BrandTrackerStage.REQUEST_RECEIVED.value,
+                brand_tracker_stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
+                published_at=now - timedelta(days=1),
             )
         )
         await db.commit()

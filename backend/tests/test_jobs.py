@@ -85,16 +85,20 @@ def _now() -> datetime:
 # --- 10.2 Drop auto-close ----------------------------------------------------
 
 
-async def test_autoclose_advances_closed_request_received(db_session) -> None:
+async def test_autoclose_freezes_unpublished_request_received(db_session) -> None:
     brand = await make_brand(db_session)
     drop = await make_drop(
-        db_session, brand, apply_close_at=_now() - timedelta(hours=1)
-    )  # request_received, window passed
+        db_session,
+        brand,
+        apply_close_at=_now() - timedelta(hours=1),
+        published_at=None,
+    )  # unpublished stub, window passed
     result = await auto_close_drops(db_session)
 
-    assert result["advanced"] == 1
+    assert result["advanced"] == 0
+    assert result["frozen_stubs"] == 1
     await db_session.refresh(drop)
-    assert drop.brand_tracker_stage == BrandTrackerStage.FINALIZING_AGREEMENTS.value
+    assert drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
 
 
 async def test_autoclose_skips_manual_reopen_and_open_window(db_session) -> None:
@@ -117,6 +121,22 @@ async def test_autoclose_skips_manual_reopen_and_open_window(db_session) -> None
     assert reopened.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
     assert still_open.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
     assert already.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value
+
+
+async def test_autoclose_skips_unpublished(db_session) -> None:
+    brand = await make_brand(db_session)
+    unpublished = await make_drop(
+        db_session,
+        brand,
+        apply_close_at=_now() - timedelta(hours=1),
+        stage=BrandTrackerStage.AWAITING_PRODUCTS,
+        published_at=None,
+    )
+    result = await auto_close_drops(db_session)
+    assert result["advanced"] == 0
+    await db_session.refresh(unpublished)
+    assert unpublished.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value
+    assert unpublished.published_at is None
 
 
 # --- 10.3 Token cleanup ------------------------------------------------------
@@ -440,6 +460,17 @@ async def test_notify_reminder_skips_unapproved_brand(db_session, monkeypatch) -
     brand = await db_session.get(Brand, drop.brand_id)
     assert brand is not None
     brand.status = BrandStatus.PENDING_REVIEW.value
+    await db_session.flush()
+
+    result = await send_due_reminders(db_session)
+    assert result["reminders_sent"] == 0
+    assert notify.sent_at is None
+
+
+async def test_notify_reminder_skips_unpublished(db_session, monkeypatch) -> None:
+    monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _never_called)
+    _, _, drop, notify = await _notify_ctx(db_session)
+    drop.published_at = None
     await db_session.flush()
 
     result = await send_due_reminders(db_session)

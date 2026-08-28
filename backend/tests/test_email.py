@@ -79,3 +79,35 @@ async def test_dispatch_swallows_provider_failure(monkeypatch, _resend_key) -> N
 async def test_verification_dev_path_returns_true(monkeypatch) -> None:
     monkeypatch.setattr(settings, "ENVIRONMENT", "development")
     assert await email.send_verification_email("a@test.edu", "tok") is True
+
+
+async def test_drop_published_email_uses_hello_from_and_cta(monkeypatch, _resend_key) -> None:
+    from app.brand_emails import CONTACT_EMAIL, EMAIL_FROM
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"id": "email_pub"})
+
+    _stub_transport(monkeypatch, handler)
+    drop_url = "https://app.example/brand/drops/abc"
+    assert (
+        await email.send_drop_published_email(
+            "ops@acme.test",
+            brand_name="Acme",
+            drop_title="Spring Drop",
+            drop_url=drop_url,
+        )
+        is True
+    )
+    assert seen["body"]["from"] == EMAIL_FROM
+    assert "hello@" in EMAIL_FROM
+    assert seen["body"]["reply_to"] == CONTACT_EMAIL
+    assert seen["body"]["to"] == ["ops@acme.test"]
+    assert drop_url in seen["body"]["text"]
+    assert "View drop" in seen["body"]["html"]
+    assert drop_url in seen["body"]["html"]

@@ -8,6 +8,8 @@ from httpx import AsyncClient
 from sqlalchemy import select
 
 from app.models.brand_invite_token import BrandInviteToken
+from app.models.drop import Drop
+from app.models.drop_request import DropRequest
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
@@ -22,6 +24,7 @@ from tests.conftest import (
     make_application,
     make_brand,
     make_drop,
+    make_drop_request,
     make_org,
     make_user,
     mint_access_token,
@@ -727,7 +730,7 @@ class TestDropConfigPatch:
         drop = await make_drop(db_session, brand)
         res = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
-            json={"title": "Nope"},
+            json={"notARealField": "Nope"},
             headers=await _admin_headers(db_session),
         )
         assert res.status_code == 422
@@ -829,3 +832,205 @@ class TestDropConfigPatch:
         )
         assert res.status_code == 200
         assert res.json()["data"]["campaignHashtag"] is None
+
+    async def test_admin_patch_image_https_on_draft(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, published_at=None)
+        headers = await _admin_headers(db_session)
+        ok = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"image": "https://cdn.example.test/hero.png"},
+            headers=headers,
+        )
+        assert ok.status_code == 200, ok.text
+        assert ok.json()["data"]["image"] == "https://cdn.example.test/hero.png"
+
+        http = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"image": "http://cdn.example.test/hero.png"},
+            headers=headers,
+        )
+        assert http.status_code == 422
+
+        placeholder = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"image": "https://placehold.co/600x400/png"},
+            headers=headers,
+        )
+        assert placeholder.status_code == 422
+
+    async def test_admin_patch_creative_blocked_after_publish(
+        self, app_client: AsyncClient, db_session
+    ):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        res = await app_client.patch(
+            f"/api/admin/drops/{drop.id}",
+            json={"title": "New title", "image": "https://cdn.example.test/new.png"},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 409
+
+
+def _draft_body(**overrides: object) -> dict:
+    now = datetime.now(timezone.utc)
+    body: dict = {
+        "title": "Campus Spring",
+        "description": "Real campaign copy",
+        "image": "https://cdn.example.test/hero.png",
+        "location": "Bay Area",
+        "capacityTotal": 8,
+        "applyOpenAt": int((now + timedelta(days=1)).timestamp() * 1000),
+        "applyCloseAt": int((now + timedelta(days=8)).timestamp() * 1000),
+    }
+    body.update(overrides)
+    return body
+
+
+class TestAdminCreateAndPublish:
+    async def test_create_unpublished_and_publish(
+        self, app_client: AsyncClient, db_session, monkeypatch
+    ):
+        sent: list[dict] = []
+
+        async def _capture(to_email, *, brand_name="", drop_title="", drop_url=""):
+            sent.append(
+                {
+                    "to": to_email,
+                    "brand_name": brand_name,
+                    "drop_title": drop_title,
+                    "drop_url": drop_url,
+                }
+            )
+            return True
+
+        monkeypatch.setattr("app.services.admin.send_drop_published_email", _capture)
+
+        brand = await make_brand(db_session, company_email="ops@acme.test")
+        ticket = await make_drop_request(db_session, brand)
+        headers = await _admin_headers(db_session)
+
+        created = await app_client.post(
+            f"/api/admin/brands/{brand.id}/drops",
+            json=_draft_body(dropRequestId=str(ticket.id)),
+            headers=headers,
+        )
+        assert created.status_code == 200, created.text
+        data = created.json()["data"]
+        drop_id = data["id"]
+        assert data["publishedAt"] is None
+        assert data["title"] == "Campus Spring"
+
+        await db_session.refresh(ticket)
+        assert ticket.status == "converted"
+        assert str(ticket.converted_drop_id) == drop_id
+
+        published = await app_client.post(
+            f"/api/admin/drops/{drop_id}/publish",
+            headers=headers,
+        )
+        assert published.status_code == 200, published.text
+        pub = published.json()["data"]
+        assert pub["publishedAt"] is not None
+        assert pub["stage"] == "awaiting_products"
+
+        events = list(await db_session.scalars(select(DropTrackerEvent)))
+        assert any(
+            str(evt.drop_id) == drop_id and evt.stage == "awaiting_products" for evt in events
+        )
+        assert len(sent) == 1
+        assert sent[0]["to"] == "ops@acme.test"
+        assert drop_id in sent[0]["drop_url"]
+        assert sent[0]["drop_url"].endswith(f"/brand/drops/{drop_id}")
+
+        again = await app_client.post(
+            f"/api/admin/drops/{drop_id}/publish",
+            headers=headers,
+        )
+        assert again.status_code == 409
+        assert len(sent) == 1
+
+    async def test_admin_create_rejects_non_https_image(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        ticket = await make_drop_request(db_session, brand)
+        res = await app_client.post(
+            f"/api/admin/brands/{brand.id}/drops",
+            json=_draft_body(dropRequestId=str(ticket.id), image="http://cdn.example.test/x.png"),
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 422
+
+    async def test_admin_create_rejects_placehold(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        ticket = await make_drop_request(db_session, brand)
+        res = await app_client.post(
+            f"/api/admin/brands/{brand.id}/drops",
+            json=_draft_body(
+                dropRequestId=str(ticket.id),
+                image="https://placehold.co/600x400/png",
+            ),
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 422
+
+
+class TestCleanupRequestReceived:
+    async def test_cleanup_migrates_stubs_to_tickets(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        stub = await make_drop(
+            db_session,
+            brand,
+            title="Stub request",
+            stage=BrandTrackerStage.REQUEST_RECEIVED,
+            published_at=None,
+        )
+        live = await make_drop(
+            db_session,
+            brand,
+            title="Live campaign",
+            stage=BrandTrackerStage.AWAITING_PRODUCTS,
+        )
+        headers = await _admin_headers(db_session)
+        stub_id = stub.id
+        live_id = live.id
+        brand_id = brand.id
+        stub_description = stub.description
+        res = await app_client.post(
+            "/api/admin/tools/cleanup-request-received",
+            headers=headers,
+        )
+        assert res.status_code == 200, res.text
+        body = res.json()["data"]
+        assert body["convertedCount"] == 1
+        assert str(stub_id) in body["deletedDropIds"]
+
+        db_session.expire_all()
+        remaining = await db_session.get(Drop, live_id)
+        assert remaining is not None
+        gone = await db_session.get(Drop, stub_id)
+        assert gone is None
+        tickets = list(
+            await db_session.scalars(select(DropRequest).where(DropRequest.brand_id == brand_id))
+        )
+        assert len(tickets) == 1
+        assert tickets[0].status == "closed"
+        assert tickets[0].message == stub_description
+
+        again = await app_client.post(
+            "/api/admin/tools/cleanup-request-received",
+            headers=headers,
+        )
+        assert again.status_code == 200
+        assert again.json()["data"]["convertedCount"] == 0
+
+    async def test_cleanup_blocked_in_production(
+        self, app_client: AsyncClient, db_session, monkeypatch
+    ):
+        from app.config import settings
+
+        monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+        res = await app_client.post(
+            "/api/admin/tools/cleanup-request-received",
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 403

@@ -32,6 +32,10 @@ const NAV: readonly NavItem[] = [
     badgeKeys: ["brands_pending_review"],
   },
   {
+    to: "/admin/requests",
+    label: "Requests",
+  },
+  {
     to: "/admin/drops",
     label: "Drops",
     badgeKeys: ["drops_ready_to_advance"],

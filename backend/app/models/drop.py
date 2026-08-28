@@ -35,6 +35,7 @@ class Drop(Base):
             "apply_open_at < apply_close_at",
             name="ck_drops_apply_window_ordered",
         ),
+        sa.Index("ix_drops_published_at", "published_at"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
@@ -60,6 +61,12 @@ class Drop(Base):
 
     applicant_selection_finalized_at: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True), nullable=True
+    )
+    published_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    drop_request_id: Mapped[uuid.UUID | None] = mapped_column(
+        sa.Uuid,
+        sa.ForeignKey("drop_requests.id", use_alter=True, name="fk_drops_drop_request_id"),
+        nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()

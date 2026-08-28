@@ -303,6 +303,46 @@ async def send_drop_opening_reminder_email(
     return await _dispatch(to_email, subject, body)
 
 
+async def send_drop_published_email(
+    to_email: str,
+    *,
+    brand_name: str = "",
+    drop_title: str = "",
+    drop_url: str,
+) -> bool:
+    """Tell a brand their campaign is live on the org feed (LAUNCH.md Phase B)."""
+    name = brand_name or "your brand"
+    title = drop_title or "your campaign"
+    subject = f"Your Buzz drop is live — {title}" if drop_title else "Your Buzz drop is live"
+    text = (
+        f"Good news — {title} for {name} is now published on Buzz.\n\n"
+        f"Student orgs can see it on the Drop Feed. Monitor applicants here:\n\n"
+        f"{drop_url}\n\n"
+        "We'll email when there are updates that need your attention."
+    )
+    html = _cta_html(
+        drop_url,
+        subject=subject,
+        button="View drop",
+        paragraphs=[
+            f"Good news — {title} for {name} is now published on Buzz.",
+            "Student orgs can see it on the Drop Feed. Monitor applicants from your brand portal.",
+        ],
+    )
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Drop published:                                ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            f"║  URL: {drop_url:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+
+    return await _dispatch(to_email, subject, text, html=html)
+
+
 async def send_password_reset_email(
     to_email: str,
     token: str,

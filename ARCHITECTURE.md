@@ -79,7 +79,8 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | `users` | Identity for all portals; IG ids/tokens; `edu_email`; `password_hash`; `token_version` |
 | `organizations` | Org profile (1:1 `user_id`) |
 | `brands` | Brand profile (1:1 `user_id`); `instagram_handle` for autolink |
-| `drops` | Campaign instance; capacity; apply window; tracker stage; units; tracking # |
+| `drops` | Campaign instance; capacity; apply window; tracker stage; units; tracking #; `published_at`; optional `drop_request_id` |
+| `drop_requests` | Brand intake tickets (not live campaigns); converted to a draft drop by admin |
 | `drop_applications` | Org ↔ drop; decision applied/accepted/denied |
 | `social_posts` | Cached IG media + metrics; unique `(org_id, platform, external_id)`. **Stories unsupported** — `metric_sync` does not catalog `STORY`; refresh/autolink/link skip them |
 | `post_campaign_links` | Confirmed post → application (one post → one campaign) |
@@ -89,9 +90,7 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | `email_verification_tokens` / `brand_invite_tokens` / `password_reset_tokens` | One-shot tokens |
 | `job_runs` | Cron observability |
 
-Brand tracker stages (enum, **as-built today**): `request_received` → `finalizing_agreements` → `awaiting_products` → `drop_active` → `drop_finished`.
-
-**Seeded-launch target** ([`LAUNCH.md`](LAUNCH.md) Phase B): ticket (`drop_requests`) is separate from `drops`. After admin **Publish** (`published_at`), drop tracker is `awaiting_products` → `drop_active` → `drop_finished` only. Org feed lists published drops, not tickets or unpublished drafts.
+Brand tracker stages (enum, **as-built today**): `request_received` and `finalizing_agreements` remain on the PG enum for legacy rows. New drops start at `awaiting_products` on **Publish**. Post-publish order: `awaiting_products` → `drop_active` → `drop_finished`. Org feed / apply / Notify Me require `published_at IS NOT NULL`. See [`PRODUCT.md`](PRODUCT.md) §5.2.
 
 Data ownership facts (which column owns which fact): **PRODUCT §3.1.1** — do not duplicate the table here.
 
@@ -131,7 +130,7 @@ One-shot scripts via `backend/scripts/run_job.py <name>` (Railway Cron). Idempot
 
 | Job | Typical UTC cadence | Role |
 | --- | ------------------- | ---- |
-| `drop_autoclose` | `*/5` | Close apply window → `finalizing_agreements` (**as-built**; Phase B: published drops only — see [`LAUNCH.md`](LAUNCH.md)) |
+| `drop_autoclose` | `*/5` | Published drops whose window closed (does not advance `request_received` stubs) |
 | `notify_reminders` | `*/5` | Notify Me emails |
 | `metric_sync` | daily ~03:00 | Instagram FEED/REELS media + insights (`/me/media`); also refreshes `organizations.follower_count` from Graph `/me` for all tokened non-erased orgs. Stories out of scope (no `/stories` poller) |
 | `token_cleanup` | daily ~03:00 | Sweep spent tokens |

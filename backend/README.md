@@ -248,7 +248,7 @@ backend/
       common.py    # CamelModel + to_epoch_ms (camelCase + epoch-ms convention)
       auth.py      # Auth request/response models
       orgs.py      # Org profile read/update models
-      drops.py     # Feed/detail/apply/notify models + BrandDropCreate/Response
+      drops.py     # Feed/detail/apply/notify models + BrandDropRequest Create/Response
       campaigns.py # My-campaigns list/detail models
       posts.py     # Post library / aggregate / suggestion / link-post models
       brands.py    # Brand profile, drop list/detail, finalize, aggregate, engagement-series
@@ -257,7 +257,7 @@ backend/
       instagram_token.py # §10.5.1 on-login long-lived token refresh (BackgroundTasks + advisory lock)
       auth.py      # handle_instagram_callback, token issuance, user response
       orgs.py      # Org profile orchestration
-      drops.py     # Feed + drop detail + apply + notify + create_brand_drop
+      drops.py     # Feed + drop detail + apply + notify
       campaigns.py # My-campaigns list/detail + resolve_owned_application gate
       posts.py     # Post library + link/unlink + aggregate + suggestions
       brands.py    # Brand aggregate, engagement series, finalize (7 rules + atomic txn)

@@ -472,6 +472,28 @@
         "title": "AdminBrandStatusResponse",
         "type": "object"
       },
+      "AdminCleanupStubsResponse": {
+        "properties": {
+          "convertedCount": {
+            "title": "Convertedcount",
+            "type": "integer"
+          },
+          "deletedDropIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Deleteddropids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "convertedCount",
+          "deletedDropIds"
+        ],
+        "title": "AdminCleanupStubsResponse",
+        "type": "object"
+      },
       "AdminCreateBrandRequest": {
         "description": "Admin-provisioned brand (works when public self-reg is off).",
         "properties": {
@@ -520,7 +542,7 @@
       },
       "AdminDropConfigPatch": {
         "additionalProperties": false,
-        "description": "Admin logistics patch for a drop (omit = leave alone; explicit null = clear).\n\nWindow fields accept epoch-ms integers on the wire (same as GET detail).",
+        "description": "Admin logistics + draft creative patch (omit = leave alone; explicit null = clear).\n\nCreative fields (title/description/image/location) are draft-only\n(``published_at IS NULL``). Window fields accept epoch-ms integers on the wire.",
         "properties": {
           "applyCloseAt": {
             "anyOf": [
@@ -569,6 +591,50 @@
             ],
             "title": "Capacitytotal"
           },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
           "totalProductUnits": {
             "anyOf": [
               {
@@ -583,6 +649,89 @@
           }
         },
         "title": "AdminDropConfigPatch",
+        "type": "object"
+      },
+      "AdminDropCreateRequest": {
+        "description": "Admin-minted unpublished draft drop (LAUNCH.md Phase B).",
+        "properties": {
+          "applyCloseAt": {
+            "format": "date-time",
+            "title": "Applycloseat",
+            "type": "string"
+          },
+          "applyOpenAt": {
+            "format": "date-time",
+            "title": "Applyopenat",
+            "type": "string"
+          },
+          "campaignHashtag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaignhashtag"
+          },
+          "capacityTotal": {
+            "minimum": 1.0,
+            "title": "Capacitytotal",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "dropRequestId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Droprequestid"
+          },
+          "image": {
+            "pattern": "^https://",
+            "title": "Image",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "totalProductUnits": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totalproductunits"
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "image",
+          "location",
+          "capacityTotal",
+          "applyOpenAt",
+          "applyCloseAt"
+        ],
+        "title": "AdminDropCreateRequest",
         "type": "object"
       },
       "AdminDropDetail": {
@@ -653,6 +802,18 @@
             "title": "Description",
             "type": "string"
           },
+          "dropRequestId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Droprequestid"
+          },
           "finalizedAt": {
             "anyOf": [
               {
@@ -688,6 +849,17 @@
           "pendingSuggestionCount": {
             "title": "Pendingsuggestioncount",
             "type": "integer"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
           },
           "stage": {
             "title": "Stage",
@@ -806,6 +978,18 @@
             "title": "Createdat",
             "type": "integer"
           },
+          "dropRequestId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Droprequestid"
+          },
           "finalizedAt": {
             "anyOf": [
               {
@@ -825,6 +1009,17 @@
           "manualReopen": {
             "title": "Manualreopen",
             "type": "boolean"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
           },
           "stage": {
             "title": "Stage",
@@ -877,6 +1072,76 @@
           "createdAt"
         ],
         "title": "AdminDropItem",
+        "type": "object"
+      },
+      "AdminDropRequestItem": {
+        "properties": {
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "convertedDropId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Converteddropid"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updatedAt": {
+            "title": "Updatedat",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "brandId",
+          "brandName",
+          "message",
+          "notes",
+          "status",
+          "convertedDropId",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "AdminDropRequestItem",
         "type": "object"
       },
       "AdminHealthResponse": {
@@ -2177,25 +2442,6 @@
         "title": "BrandApplyResponse",
         "type": "object"
       },
-      "BrandDropCreateRequest": {
-        "description": "Body for ``POST /api/brands/me/drops`` (architecture \u00a78.4).",
-        "properties": {
-          "description": {
-            "title": "Description",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "title",
-          "description"
-        ],
-        "title": "BrandDropCreateRequest",
-        "type": "object"
-      },
       "BrandDropDetailApplicant": {
         "description": "One applicant row in the brand drop detail view (\u00a78.2).",
         "properties": {
@@ -2745,56 +2991,14 @@
         "title": "BrandDropPostItem",
         "type": "object"
       },
-      "BrandDropResponse": {
-        "description": "A drop as returned to the brand portal (architecture \u00a78.4).",
+      "BrandDropRequestCreate": {
+        "description": "Body for ``POST /api/brands/me/drop-requests`` (LAUNCH.md Phase B).",
         "properties": {
-          "applicantSelectionFinalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applicantselectionfinalizedat"
-          },
-          "applyCloseAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applycloseat"
-          },
-          "applyOpenAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applyopenat"
-          },
-          "brandId": {
-            "format": "uuid",
-            "title": "Brandid",
+          "message": {
+            "title": "Message",
             "type": "string"
           },
-          "brandName": {
-            "title": "Brandname",
-            "type": "string"
-          },
-          "brandTrackerStage": {
-            "title": "Brandtrackerstage",
-            "type": "string"
-          },
-          "campaignHashtag": {
+          "notes": {
             "anyOf": [
               {
                 "type": "string"
@@ -2803,79 +3007,79 @@
                 "type": "null"
               }
             ],
-            "title": "Campaignhashtag"
+            "title": "Notes"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "BrandDropRequestCreate",
+        "type": "object"
+      },
+      "BrandDropRequestResponse": {
+        "description": "A brand intake ticket (not a live drop).",
+        "properties": {
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
           },
-          "capacityTotal": {
-            "title": "Capacitytotal",
-            "type": "integer"
-          },
-          "createdAt": {
+          "convertedDropId": {
             "anyOf": [
               {
-                "type": "integer"
+                "format": "uuid",
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Createdat"
+            "title": "Converteddropid"
           },
-          "description": {
-            "title": "Description",
-            "type": "string"
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
           },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
           },
-          "image": {
-            "title": "Image",
+          "message": {
+            "title": "Message",
             "type": "string"
           },
-          "location": {
-            "title": "Location",
-            "type": "string"
-          },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          },
-          "totalProductUnits": {
+          "notes": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Totalproductunits"
+            "title": "Notes"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updatedAt": {
+            "title": "Updatedat",
+            "type": "integer"
           }
         },
         "required": [
           "id",
           "brandId",
-          "brandName",
-          "title",
-          "description",
-          "image",
-          "location",
-          "capacityTotal",
-          "applyOpenAt",
-          "applyCloseAt",
-          "manualReopen",
-          "brandTrackerStage",
-          "totalProductUnits",
-          "campaignHashtag",
-          "applicantSelectionFinalizedAt",
-          "createdAt"
+          "message",
+          "notes",
+          "status",
+          "convertedDropId",
+          "createdAt",
+          "updatedAt"
         ],
-        "title": "BrandDropResponse",
+        "title": "BrandDropRequestResponse",
         "type": "object"
       },
       "BrandLoginRequest": {
@@ -3453,6 +3657,44 @@
         "title": "DataResponse[AdminBrandStatusResponse]",
         "type": "object"
       },
+      "DataResponse_AdminCleanupStubsResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminCleanupStubsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminCleanupStubsResponse]",
+        "type": "object"
+      },
       "DataResponse_AdminDropDetail_": {
         "properties": {
           "data": {
@@ -3489,6 +3731,44 @@
           }
         },
         "title": "DataResponse[AdminDropDetail]",
+        "type": "object"
+      },
+      "DataResponse_AdminDropRequestItem_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminDropRequestItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminDropRequestItem]",
         "type": "object"
       },
       "DataResponse_AdminHealthResponse_": {
@@ -3833,12 +4113,12 @@
         "title": "DataResponse[BrandDropDetailResponse]",
         "type": "object"
       },
-      "DataResponse_BrandDropResponse_": {
+      "DataResponse_BrandDropRequestResponse_": {
         "properties": {
           "data": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/BrandDropResponse"
+                "$ref": "#/components/schemas/BrandDropRequestResponse"
               },
               {
                 "type": "null"
@@ -3868,7 +4148,7 @@
             "title": "Meta"
           }
         },
-        "title": "DataResponse[BrandDropResponse]",
+        "title": "DataResponse[BrandDropRequestResponse]",
         "type": "object"
       },
       "DataResponse_BrandProfileResponse_": {
@@ -4981,6 +5261,48 @@
         "title": "DataResponse[list[AdminDropItem]]",
         "type": "object"
       },
+      "DataResponse_list_AdminDropRequestItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminDropRequestItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[AdminDropRequestItem]]",
+        "type": "object"
+      },
       "DataResponse_list_AdminOrgItem__": {
         "properties": {
           "data": {
@@ -5189,6 +5511,48 @@
           }
         },
         "title": "DataResponse[list[BrandDropListItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_BrandDropRequestResponse__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/BrandDropRequestResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[BrandDropRequestResponse]]",
         "type": "object"
       },
       "DataResponse_list_CampaignListItem__": {
@@ -7611,6 +7975,75 @@
         ]
       }
     },
+    "/api/admin/brands/{brand_id}/drops": {
+      "post": {
+        "operationId": "create_admin_drop_endpoint_api_admin_brands__brand_id__drops_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "brand_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Brand Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminDropCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminDropDetail_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Create Admin Drop Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/brands/{brand_id}/resend-invite": {
       "post": {
         "operationId": "resend_brand_invite_endpoint_api_admin_brands__brand_id__resend_invite_post",
@@ -7729,6 +8162,147 @@
         ]
       }
     },
+    "/api/admin/drop-requests": {
+      "get": {
+        "operationId": "list_drop_requests_endpoint_api_admin_drop_requests_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "brand_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Brand Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_list_AdminDropRequestItem__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Drop Requests Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/drop-requests/{request_id}": {
+      "get": {
+        "operationId": "get_drop_request_endpoint_api_admin_drop_requests__request_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminDropRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Drop Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/drops": {
       "get": {
         "operationId": "list_drops_endpoint_api_admin_drops_get",
@@ -7769,6 +8343,23 @@
                 }
               ],
               "title": "Attention"
+            }
+          },
+          {
+            "in": "query",
+            "name": "published",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(draft|published)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Published"
             }
           },
           {
@@ -7996,6 +8587,65 @@
           }
         },
         "summary": "Clear Reopen Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/drops/{drop_id}/publish": {
+      "post": {
+        "operationId": "publish_drop_endpoint_api_admin_drops__drop_id__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminDropDetail_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Publish Drop Endpoint",
         "tags": [
           "admin"
         ]
@@ -8902,6 +9552,56 @@
           }
         },
         "summary": "Get Overview Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/tools/cleanup-request-received": {
+      "post": {
+        "description": "One-shot B6b: convert unpublished request_received stubs into tickets.\n\nBlocked in production (run the script with ``--confirm`` after explicit ops OK).",
+        "operationId": "cleanup_request_received_endpoint_api_admin_tools_cleanup_request_received_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminCleanupStubsResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Cleanup Request Received Endpoint",
         "tags": [
           "admin"
         ]
@@ -10076,6 +10776,172 @@
         ]
       }
     },
+    "/api/brands/me/drop-requests": {
+      "get": {
+        "operationId": "list_drop_requests_api_brands_me_drop_requests_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_list_BrandDropRequestResponse__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Drop Requests",
+        "tags": [
+          "brands"
+        ]
+      },
+      "post": {
+        "description": "Plan your Campaign \u2014 create an intake ticket (LAUNCH.md Phase B).",
+        "operationId": "create_drop_request_api_brands_me_drop_requests_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandDropRequestCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_BrandDropRequestResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Create Drop Request",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
+    "/api/brands/me/drop-requests/{request_id}": {
+      "get": {
+        "operationId": "get_drop_request_api_brands_me_drop_requests__request_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_BrandDropRequestResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Drop Request",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
     "/api/brands/me/drops": {
       "get": {
         "operationId": "list_brand_drops_api_brands_me_drops_get",
@@ -10120,63 +10986,6 @@
           }
         },
         "summary": "List Brand Drops",
-        "tags": [
-          "brands"
-        ]
-      },
-      "post": {
-        "operationId": "create_drop_api_brands_me_drops_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BrandDropCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_BrandDropResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Create Drop",
         "tags": [
           "brands"
         ]

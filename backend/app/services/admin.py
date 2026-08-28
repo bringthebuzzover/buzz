@@ -5,18 +5,21 @@ Pure service functions (no FastAPI types) the route layer calls.
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
+from app.config import settings
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
+from app.models.drop_request import DropRequest
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
@@ -24,21 +27,26 @@ from app.models.enums import (
     OrgUserStatus,
     PortalRole,
 )
+from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
-from app.schemas.admin import AdminDropConfigPatch
+from app.schemas.admin import AdminDropConfigPatch, AdminDropCreateRequest
 from app.security.session import bump_token_version
+from app.services.drop_requests import touch_updated_at
 from app.services.email import (
     send_brand_denied_email,
     send_brand_invite_email,
     send_brand_undenied_email,
+    send_drop_published_email,
     send_org_approved_email,
     send_org_denied_email,
     send_org_undenied_email,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.org_connect import create_org_connect_token
+
+logger = logging.getLogger(__name__)
 
 _STAGE_ORDER = [
     BrandTrackerStage.REQUEST_RECEIVED.value,
@@ -638,6 +646,7 @@ async def reopen_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
 _LOGISTICS_FIELDS = frozenset(
     {"capacity_total", "apply_open_at", "apply_close_at", "total_product_units"}
 )
+_CREATIVE_FIELDS = frozenset({"title", "description", "image", "location"})
 _PRE_LIVE_STAGES = frozenset(
     {
         BrandTrackerStage.REQUEST_RECEIVED.value,
@@ -645,6 +654,25 @@ _PRE_LIVE_STAGES = frozenset(
         BrandTrackerStage.AWAITING_PRODUCTS.value,
     }
 )
+
+
+def validate_https_image(url: str) -> str:
+    """Require https hero URLs; reject placehold.co placeholders."""
+    value = url.strip()
+    if not value.startswith("https://"):
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "image must be an https:// URL.",
+            status_code=400,
+        )
+    lower = value.lower()
+    if "placehold.co" in lower or "://placehold.co" in lower:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "placeholder images are not allowed; use a real https image URL.",
+            status_code=400,
+        )
+    return value
 
 
 def _normalize_campaign_hashtag(raw: str | None) -> str | None:
@@ -662,12 +690,196 @@ def _normalize_campaign_hashtag(raw: str | None) -> str | None:
     return value
 
 
+async def create_admin_drop(
+    db: AsyncSession,
+    brand_id: UUID,
+    payload: AdminDropCreateRequest,
+) -> Drop:
+    """Create an unpublished draft drop; optionally promote a ticket."""
+
+    brand = await db.get(Brand, brand_id)
+    if brand is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
+
+    if payload.apply_open_at >= payload.apply_close_at:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "apply_open_at must be before apply_close_at.",
+            status_code=400,
+        )
+
+    image = validate_https_image(payload.image)
+    ticket: DropRequest | None = None
+    if payload.drop_request_id is not None:
+        ticket = await db.get(DropRequest, payload.drop_request_id)
+        if ticket is None or ticket.brand_id != brand.id:
+            raise BuzzAPIException(
+                errors.NOT_FOUND,
+                "Drop request not found for this brand.",
+                status_code=404,
+            )
+        if ticket.status != "received":
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                "Drop request is not in received status.",
+                status_code=409,
+            )
+
+    drop = Drop(
+        id=uuid4(),
+        brand_id=brand.id,
+        title=payload.title.strip(),
+        description=payload.description.strip(),
+        image=image,
+        location=payload.location.strip(),
+        capacity_total=payload.capacity_total,
+        apply_open_at=payload.apply_open_at,
+        apply_close_at=payload.apply_close_at,
+        brand_tracker_stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
+        total_product_units=payload.total_product_units,
+        campaign_hashtag=_normalize_campaign_hashtag(payload.campaign_hashtag),
+        published_at=None,
+        drop_request_id=ticket.id if ticket else None,
+    )
+    db.add(drop)
+    await db.flush()
+
+    if ticket is not None:
+        ticket.status = "converted"
+        ticket.converted_drop_id = drop.id
+        touch_updated_at(ticket)
+        await db.flush()
+    return drop
+
+
+async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
+    """Set published_at, seed awaiting_products tracker, email the brand."""
+
+    drop = await db.get(Drop, drop_id)
+    if drop is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    if drop.published_at is not None:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Drop is already published.",
+            status_code=409,
+        )
+
+    for field, label in (
+        (drop.title, "title"),
+        (drop.description, "description"),
+        (drop.image, "image"),
+        (drop.location, "location"),
+    ):
+        if not field or not str(field).strip():
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                f"{label} is required before publish.",
+                status_code=400,
+            )
+    validate_https_image(drop.image)
+
+    now = datetime.now(timezone.utc)
+    drop.published_at = now
+    if drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value:
+        drop.brand_tracker_stage = BrandTrackerStage.AWAITING_PRODUCTS.value
+    db.add(
+        DropTrackerEvent(
+            drop_id=drop.id,
+            stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
+            note="published",
+        )
+    )
+    await db.flush()
+
+    brand = await db.get(Brand, drop.brand_id)
+    if brand is not None and brand.company_email:
+        drop_url = f"{settings.FRONTEND_URL}/brand/drops/{drop.id}"
+        await send_drop_published_email(
+            brand.company_email,
+            brand_name=brand.brand_name,
+            drop_title=drop.title,
+            drop_url=drop_url,
+        )
+    return drop
+
+
+async def cleanup_request_received_stubs(
+    db: AsyncSession, *, force: bool = False
+) -> dict[str, Any]:
+    """Convert unpublished request_received stubs into closed tickets and delete them.
+
+    Idempotent. Production refuses unless ``force=True`` (script ``--confirm``).
+    """
+
+    if settings.ENVIRONMENT == "production" and not force:
+        raise BuzzAPIException(
+            errors.FORBIDDEN,
+            "Refusing stub cleanup in production. Re-run with --confirm after explicit ops OK.",
+            status_code=403,
+        )
+
+    stubs = list(
+        await db.scalars(
+            select(Drop).where(
+                Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
+                Drop.published_at.is_(None),
+            )
+        )
+    )
+    deleted_ids: list[UUID] = []
+    for drop in stubs:
+        ticket = DropRequest(
+            id=uuid4(),
+            brand_id=drop.brand_id,
+            message=drop.description or drop.title,
+            notes=None,
+            status="closed",
+        )
+        db.add(ticket)
+        await db.flush()
+
+        prior_tickets = list(
+            await db.scalars(select(DropRequest).where(DropRequest.converted_drop_id == drop.id))
+        )
+        for prior in prior_tickets:
+            prior.converted_drop_id = None
+        drop.drop_request_id = None
+        await db.flush()
+
+        apps = list(
+            await db.scalars(select(DropApplication).where(DropApplication.drop_id == drop.id))
+        )
+        for app in apps:
+            await db.delete(app)
+        notifies = list(await db.scalars(select(NotifyMe).where(NotifyMe.drop_id == drop.id)))
+        for n in notifies:
+            await db.delete(n)
+        events = list(
+            await db.scalars(select(DropTrackerEvent).where(DropTrackerEvent.drop_id == drop.id))
+        )
+        for evt in events:
+            await db.delete(evt)
+
+        deleted_ids.append(drop.id)
+        logger.info(
+            "cleanup_request_received: drop %s → closed ticket %s",
+            drop.id,
+            ticket.id,
+        )
+        await db.delete(drop)
+        await db.flush()
+
+    logger.info("cleanup_request_received: converted %s stubs", len(deleted_ids))
+    return {"converted_count": len(deleted_ids), "deleted_drop_ids": deleted_ids}
+
+
 async def update_drop_config(
     db: AsyncSession,
     drop_id: UUID,
     payload: AdminDropConfigPatch,
 ) -> None:
-    """Apply admin logistics patch fields (omit = unchanged; explicit null = clear)."""
+    """Apply admin logistics / draft creative patch fields."""
 
     drop = await db.get(Drop, drop_id)
     if drop is None:
@@ -676,6 +888,14 @@ async def update_drop_config(
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
         return
+
+    creative_touched = bool(_CREATIVE_FIELDS & updates.keys())
+    if creative_touched and drop.published_at is not None:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Title, description, image, and location cannot be changed after publish.",
+            status_code=409,
+        )
 
     logistics_touched = bool(_LOGISTICS_FIELDS & updates.keys())
     if logistics_touched and drop.brand_tracker_stage not in _PRE_LIVE_STAGES:
@@ -688,6 +908,13 @@ async def update_drop_config(
 
     if "campaign_hashtag" in updates:
         updates["campaign_hashtag"] = _normalize_campaign_hashtag(updates["campaign_hashtag"])
+
+    if "image" in updates:
+        updates["image"] = validate_https_image(updates["image"])
+
+    for key in ("title", "description", "location"):
+        if key in updates and isinstance(updates[key], str):
+            updates[key] = updates[key].strip()
 
     if "total_product_units" in updates and drop.applicant_selection_finalized_at is not None:
         current = drop.total_product_units

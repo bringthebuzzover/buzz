@@ -42,6 +42,7 @@ from app.models import Base, User
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
+from app.models.drop_request import DropRequest
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
@@ -371,6 +372,28 @@ async def make_brand(
     return brand
 
 
+async def make_drop_request(
+    db: AsyncSession,
+    brand: Brand,
+    *,
+    message: str = "Want a campus drop",
+    notes: str | None = None,
+    status: str = "received",
+) -> DropRequest:
+    """Persist a brand intake ticket (not a live drop)."""
+
+    ticket = DropRequest(
+        id=uuid.uuid4(),
+        brand_id=brand.id,
+        message=message,
+        notes=notes,
+        status=status,
+    )
+    db.add(ticket)
+    await db.flush()
+    return ticket
+
+
 async def make_drop(
     db: AsyncSession,
     brand: Brand,
@@ -382,8 +405,13 @@ async def make_drop(
     manual_reopen: bool = False,
     stage: BrandTrackerStage = BrandTrackerStage.REQUEST_RECEIVED,
     total_product_units: int | None = None,
+    published_at: datetime | None | object = ...,
 ) -> Drop:
-    """Persist a ``drops`` row owned by ``brand`` (apply window open by default)."""
+    """Persist a ``drops`` row owned by ``brand`` (apply window open by default).
+
+    Defaults to **published** (``published_at=now``) so org feed / apply / notify
+    tests keep working under Phase B. Pass ``published_at=None`` for drafts.
+    """
 
     now = datetime.now(timezone.utc)
     open_at = apply_open_at if apply_open_at is not None else (now - timedelta(days=1))
@@ -391,6 +419,7 @@ async def make_drop(
     # Keep CHECK (apply_open_at < apply_close_at) when callers only pass a past close.
     if open_at >= close_at:
         open_at = close_at - timedelta(days=7)
+    pub = now if published_at is ... else published_at  # type: ignore[assignment]
     drop = Drop(
         id=uuid.uuid4(),
         brand_id=brand.id,
@@ -404,6 +433,7 @@ async def make_drop(
         manual_reopen=manual_reopen,
         brand_tracker_stage=stage.value,
         total_product_units=total_product_units,
+        published_at=pub,  # type: ignore[arg-type]
     )
     db.add(drop)
     await db.flush()

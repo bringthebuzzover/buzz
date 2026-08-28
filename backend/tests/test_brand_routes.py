@@ -8,12 +8,13 @@ from httpx import AsyncClient
 from sqlalchemy import select
 
 from app.models.application import DropApplication
+from app.models.drop import Drop
+from app.models.drop_request import DropRequest
 from app.models.enums import (
     ApplicationDecision,
     BrandTrackerStage,
     PortalRole,
 )
-from app.models.tracker_event import DropTrackerEvent
 from tests.conftest import (
     make_application,
     make_brand,
@@ -60,35 +61,81 @@ class TestGetBrandProfile:
         assert res.status_code == 403
 
 
-class TestCreateDrop:
-    async def test_creates_drop_with_defaults(self, app_client: AsyncClient, db_session):
-        _, _, headers = await _brand_ctx(db_session)
+class TestCreateDropRequest:
+    async def test_creates_intake_ticket_not_drop(self, app_client: AsyncClient, db_session):
+        _, brand, headers = await _brand_ctx(db_session)
         res = await app_client.post(
-            "/api/brands/me/drops",
-            json={"title": "Test Drop", "description": "A test drop"},
+            "/api/brands/me/drop-requests",
+            json={"message": "Want a spring campus drop", "notes": "Southeast preferred"},
             headers=headers,
         )
         assert res.status_code == 200
         data = res.json()["data"]
-        assert data["title"] == "Test Drop"
-        assert data["capacityTotal"] == 10
-        assert data["brandTrackerStage"] == "request_received"
-        assert data["image"] == "https://placehold.co/600x400/png"
-        assert data["location"] == "Multiple Campuses"
-        assert data["totalProductUnits"] is None
-        # Verify tracker event was created
-        event = await db_session.scalar(
-            select(DropTrackerEvent).where(DropTrackerEvent.drop_id == data["id"])
+        assert data["message"] == "Want a spring campus drop"
+        assert data["notes"] == "Southeast preferred"
+        assert data["status"] == "received"
+        assert data["convertedDropId"] is None
+
+        tickets = list(
+            await db_session.scalars(select(DropRequest).where(DropRequest.brand_id == brand.id))
         )
-        assert event is not None
-        assert event.stage == "request_received"
+        assert len(tickets) == 1
+        drops = list(await db_session.scalars(select(Drop).where(Drop.brand_id == brand.id)))
+        assert drops == []
+
+    async def test_old_create_drop_path_gone(self, app_client: AsyncClient, db_session):
+        _, _, headers = await _brand_ctx(db_session)
+        res = await app_client.post(
+            "/api/brands/me/drops",
+            json={"title": "Nope", "description": "Must not mint a drop"},
+            headers=headers,
+        )
+        assert res.status_code == 405
+
+    async def test_rate_limited(self, app_client: AsyncClient, db_session):
+        from app.config import settings
+        from app.security import rate_limit
+
+        prev = settings.RATE_LIMIT_ENABLED
+        settings.RATE_LIMIT_ENABLED = True
+        rate_limit.reset()
+        try:
+            _, _, headers = await _brand_ctx(db_session)
+            statuses = []
+            for i in range(11):
+                res = await app_client.post(
+                    "/api/brands/me/drop-requests",
+                    json={"message": f"Ticket {i}"},
+                    headers=headers,
+                )
+                statuses.append(res.status_code)
+            assert statuses[:10] == [200] * 10
+            assert statuses[10] == 429
+        finally:
+            settings.RATE_LIMIT_ENABLED = prev
+            rate_limit.reset()
+
+    async def test_list_and_get(self, app_client: AsyncClient, db_session):
+        _, _, headers = await _brand_ctx(db_session)
+        created = await app_client.post(
+            "/api/brands/me/drop-requests",
+            json={"message": "Listed ticket"},
+            headers=headers,
+        )
+        ticket_id = created.json()["data"]["id"]
+        listed = await app_client.get("/api/brands/me/drop-requests", headers=headers)
+        assert listed.status_code == 200
+        assert len(listed.json()["data"]) == 1
+        one = await app_client.get(f"/api/brands/me/drop-requests/{ticket_id}", headers=headers)
+        assert one.status_code == 200
+        assert one.json()["data"]["message"] == "Listed ticket"
 
     async def test_org_user_forbidden(self, app_client: AsyncClient, db_session):
         user = await persist(db_session, make_user(role=PortalRole.ORG))
         headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
         res = await app_client.post(
-            "/api/brands/me/drops",
-            json={"title": "Nope", "description": "should not work"},
+            "/api/brands/me/drop-requests",
+            json={"message": "Nope"},
             headers=headers,
         )
         assert res.status_code == 403
