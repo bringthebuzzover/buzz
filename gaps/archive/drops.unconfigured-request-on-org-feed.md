@@ -4,6 +4,7 @@ title: Brand drop requests appear on the org feed with placeholder logistics
 kind: ux_hole
 severity: P2
 status: fixed
+closed_in: c51d5a5
 surface: drops
 evidence:
   - path: backend/app/services/drops.py
