@@ -2,12 +2,16 @@
  * The shared API client (architecture §6.1): base-URL prefixing, JWT attach,
  * envelope unwrap, and a single-shot 401→refresh→replay interceptor. Every
  * later slice fetches through `apiFetch`.
+ *
+ * Recoverable Buzz auth: TOKEN_EXPIRED (clock) and UNAUTHORIZED (token_version
+ * rotation / revoked access). INSTAGRAM_TOKEN_EXPIRED is not recoverable here.
  */
 import {
   endImpersonation,
   getAccessToken,
   isImpersonating,
   markInstagramReconnectLatch,
+  notifyApiSessionLost,
   refreshAccessToken,
   setAccessToken,
 } from "./auth";
@@ -56,15 +60,18 @@ async function doFetch<T>(
   return { data: body.data, meta: body.meta };
 }
 
+const RECOVERABLE_AUTH_CODES = new Set(["TOKEN_EXPIRED", "UNAUTHORIZED"]);
+
 /**
- * Fetch `path` through the envelope. On a Buzz `TOKEN_EXPIRED` 401 it refreshes
- * the access token once and replays once. On `INSTAGRAM_TOKEN_EXPIRED` it
- * latches reconnect framing and hard-navigates to `/reconnect-instagram`.
+ * Fetch `path` through the envelope. On Buzz `TOKEN_EXPIRED` or `UNAUTHORIZED`
+ * (with a bearer) it refreshes once and replays once. On `INSTAGRAM_TOKEN_EXPIRED`
+ * it latches reconnect framing and hard-navigates to `/reconnect-instagram`.
  */
 export async function apiFetch<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<ApiResult<T>> {
+  const tokenAtStart = getAccessToken();
   try {
     return await doFetch<T>(path, init);
   } catch (err) {
@@ -74,7 +81,7 @@ export async function apiFetch<T>(
       window.location.href = "/reconnect-instagram";
       throw err;
     }
-    if (err instanceof ApiError && err.code === "TOKEN_EXPIRED") {
+    if (err instanceof ApiError && RECOVERABLE_AUTH_CODES.has(err.code)) {
       // The refresh cookie belongs to the admin, not the impersonated user, so
       // refreshing here would quietly escalate the session. End impersonation
       // via full navigation — this module must not import Router/QueryClient;
@@ -83,11 +90,21 @@ export async function apiFetch<T>(
         endImpersonation("expired");
         throw err;
       }
+      if (!tokenAtStart) {
+        throw err;
+      }
       const refreshed = await refreshAccessToken();
       if (refreshed) {
         return await doFetch<T>(path, init);
       }
+      // Failed refresh must not wipe a bearer login installed mid-flight
+      // (refreshAccessToken returns false but keeps the newer token).
+      const current = getAccessToken();
+      if (current && current !== tokenAtStart) {
+        return await doFetch<T>(path, init);
+      }
       setAccessToken(null);
+      notifyApiSessionLost();
     }
     throw err;
   }

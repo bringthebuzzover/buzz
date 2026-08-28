@@ -3,11 +3,12 @@ id: auth.revoked-access-skips-refresh
 title: apiFetch does not refresh on UNAUTHORIZED from token_version rotation
 kind: ux_hole
 severity: P2
-status: open
+status: fixed
+closed_in: 517871e
 surface: auth
 evidence:
   - path: frontend/src/api/client.ts
-    note: interceptor refreshes only on TOKEN_EXPIRED; UNAUTHORIZED is thrown
+    note: interceptor refreshes TOKEN_EXPIRED and UNAUTHORIZED when a bearer was sent
   - path: backend/app/deps/auth.py
     note: ver mismatch and missing Bearer are UNAUTHORIZED 401, not TOKEN_EXPIRED
   - path: backend/app/routes/auth.py
@@ -34,20 +35,8 @@ fix_when: |
 
 # Revoked access JWT skips the refresh interceptor
 
-Access JWTs die two ways: clock expiry (`TOKEN_EXPIRED`) and `token_version`
-mismatch (`UNAUTHORIZED`, “This session has been revoked”). `apiFetch` only
-auto-refreshes the first. Refresh **success** bumps `token_version`, so a
-second document (other tab, in-flight navigation, View-as vs admin) that still
-holds the previous access token gets UNAUTHORIZED on the next API call and
-does **not** call `POST /api/auth/refresh`. TanStack Query retries once
-(`retry: 1`) → two console 401s. A full reload often works because the winning
-refresh cookie was intentionally **not** cleared on ver-mismatch (see refresh
-docstring).
-
-`apiFetch` on TOKEN_EXPIRED + failed refresh also `setAccessToken(null)`
-without updating `AuthContext`, so `status === "authenticated"` can remain true
-with a null bearer; the next query is UNAUTHORIZED with no interceptor refresh.
-
-The `/api/orgs/me` 401 pair is this path on the org profile query, not an
-endpoint bug (`CurrentOrg` would 403 on wrong role). Independent of
-`spa.csp-blocks-gh-pages-inline`.
+Fixed: `apiFetch` treats `UNAUTHORIZED` like `TOKEN_EXPIRED` when a bearer was
+sent (one refresh + replay). Impersonation still ends without refreshing the
+admin cookie. Dead refresh cookie clears the bearer and notifies AuthContext
+(`failHard`). A newer bearer installed mid-flight is replayed instead of
+wiping the login.
