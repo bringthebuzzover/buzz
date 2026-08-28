@@ -15,6 +15,7 @@ route signatures stay terse.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import Awaitable, Callable
 from typing import Annotated
@@ -30,6 +31,8 @@ from app.models.user import User
 from app.security import jwt
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.instagram_token import maybe_refresh_on_login
+
+logger = logging.getLogger(__name__)
 
 _BEARER_PREFIX = "Bearer "
 
@@ -100,6 +103,12 @@ async def _load_user_from_bearer(
     # Revocation: access tokens stamp ``ver`` at mint time (same as refresh).
     # Tokens minted before this field existed carry no ``ver``; treat as 0.
     if (payload.ver or 0) != (user.token_version or 0):
+        logger.info(
+            "access token version mismatch user=%s token_ver=%s row_ver=%s",
+            user.id,
+            payload.ver or 0,
+            user.token_version or 0,
+        )
         raise _unauthorized("This session has been revoked. Please sign in again.")
 
     # Impersonation lives entirely in the token — no schema, no server session.

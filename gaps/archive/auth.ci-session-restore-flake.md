@@ -1,54 +1,59 @@
 ---
 id: auth.ci-session-restore-flake
-title: E2E asserts the next screen before session restore settles; refresh/dev-login are single-shot
-kind: test_gap
+title: Concurrent token_version bumps lose an increment; next request looks revoked
+kind: invariant_break
 severity: P2
 status: fixed
-closed_in: e429c7a
 surface: auth
 evidence:
-  - path: frontend/e2e/guards.spec.ts
-    note: Asserts heading 403 immediately after goto; RequireAuth still shows Restoring while bootstrap runs
+  - path: backend/app/services/auth.py
+    note: issue_token_pair used to bump in-memory token_version without locking/reloading the row
+  - path: backend/app/deps/auth.py
+    note: Access JWT ver must equal users.token_version or 401 revoked
+  - path: backend/app/routes/auth.py
+    note: Refresh cookie ver mismatch is the same 401, cookie left intact
   - path: frontend/e2e/admin.spec.ts
-    note: Reload/exit expect Overview without waiting for restore; flake lands on /admin/login or stuck authenticating
-  - path: frontend/e2e/org.spec.ts
-    note: Desktop-nav test looks for My Campaigns before Org Portal chrome exists
-  - path: frontend/src/components/routing/RequireAuth.tsx
-    note: authenticating/idle → Restoring your session…; tests look through that at Overview/403/nav
-  - path: frontend/src/api/auth.ts
-    note: refreshAccessToken and devLogin are one attempt; catch returns false/null with no retry
-  - path: frontend/src/api/auth.ts
-    note: fetchMeWithRetry already retries /me on kind error; refresh/dev-login have no equivalent
-  - path: frontend/src/contexts/AuthContext.tsx
-    note: onAuthRoute is any /admin* so failed admin refresh never falls back to dev-login
+    note: "the session survives a reload" lands on /admin/login when the just-minted cookie is already stale
   - path: frontend/playwright.config.ts
     note: retries 0 by design; stress is the flake detector
 repro: |
-  Push to main or workflow_dispatch CI. 2026-08-25 dd0dcb9 run 32892971766
-  failed guards.spec 403 heading (10s). Stress ×10 run 32893559065: 7 pass / 3
-  fail. Failures: admin.spec session survives reload (URL /admin/login or
-  Overview missing on /admin); admin View as exit Overview missing; org.spec
-  My Campaigns not visible at 1280 (guest header). Same family on docs-only
-  0aaa92d. Local ci-local often green (faster machine, warm webpack).
+  Stress ×10 on c37eb1c run 33172931838 shard 9. admin.spec "session survives
+  a reload": POST /admin/login 200 mints access+cookie ver=2; 268ms later
+  GET /admin/overview and POST /refresh both 401 "This session has been
+  revoked" with the same ver=2. Trace:
+  test-results/admin-the-session-survives-a-reload-chromium/trace.zip
 fix_when: |
-  E2E waits for settled auth (Restoring gone) before Overview / 403 / persona
-  nav. refreshAccessToken and devLogin retry once on thrown network errors
-  only (not 401/4xx). After successful devLogin, if immediate /me is
-  unauthenticated, remint once via a second devLogin (dev-only;
-  auth.ci-session-restore-flake v2). POST /api/auth/refresh returns the same
-  UserResponse as /me in the same transaction; bootstrap +
-  restoreAdminFromCookie + retryRestore consume the returned user and skip
-  the follow-up /me on the refresh path — closing the mint-then-read race
-  window structurally (v4). Same for POST /api/admin/impersonate (already
-  returns user; resumeImpersonation now consumes it). waitForAuthSettled org
-  path fails fast on /login. Playwright retries stay 0. Unit tests cover the
-  retry and same-transaction-user paths. workflow_dispatch e2e_repeat=10 all
-  E2E jobs green. Do not rewrite RequireAuth, do not treat all /admin* as a
-  reason to skip refresh, do not retry UNAUTHORIZED (that is
-  auth.revoked-access-skips-refresh).
+  issue_token_pair SELECT FOR UPDATE + refresh so concurrent mints serialize
+  and waiters see the latest row_ver (v6). Version-mismatch branches log
+  token_ver vs row_ver. Sequential double-mint unit test. v1–v5 client
+  restore helpers stay. Playwright retries stay 0. No RequireAuth rewrite,
+  no grace-window rotation, no retry UNAUTHORIZED
+  (auth.revoked-access-skips-refresh). Archive bar is still stress ×10.
 ---
 
 # CI session restore flakes (tests + one-shot refresh)
+
+## Locked v6 (serialize the `token_version` bump)
+
+v4/v5 closed the mint-then-`/me` window. Residual on
+[`c37eb1c` stress ×10 run 33172931838](https://github.com/bringthebuzzover/buzz/actions/runs/33172931838)
+shard 9: `POST /admin/login` 200 minted access + cookie `ver:2`; 268ms later
+`GET /admin/overview` and `POST /refresh` both 401 “This session has been
+revoked” with the same `ver:2`. Client did not race `/me`. The row’s
+`token_version` had already moved past the just-minted pair — a lost update
+when two `issue_token_pair` calls both compute `(old or 0) + 1` from the same
+snapshot.
+
+1. **`issue_token_pair` refreshes `FOR UPDATE`** before bumping, so concurrent
+   mints serialize and the waiter reloads the latest row version.
+2. **Mismatch branches log `token_ver` vs `row_ver`** (access + refresh) so a
+   recurrence is diagnosable from CI logs without a Playwright trace.
+3. Unit test: two sequential mints produce strictly increasing `ver`.
+
+OUT (unchanged): Playwright `retries`, grace-window rotation, RequireAuth
+rewrite, retrying `UNAUTHORIZED`.
+
+---
 
 Access JWT is memory-only. After reload or a cold `goto`, bootstrap must
 `POST /api/auth/refresh` (cookie) or, in development on portal routes,

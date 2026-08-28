@@ -332,6 +332,25 @@ async def test_issue_token_pair_bumps_unrefreshed_user(db_session) -> None:
     assert access_payload.ver == 1
 
 
+async def test_issue_token_pair_second_mint_sees_prior_bump(db_session) -> None:
+    """Reload-for-update must mint strictly increasing vers, not two of the same."""
+    from app.services.auth import issue_token_pair
+
+    user = await persist(db_session, make_user())
+    start = user.token_version or 0
+    access1, refresh1 = await issue_token_pair(db_session, user)
+    access2, refresh2 = await issue_token_pair(db_session, user)
+    assert user.token_version == start + 2
+    a1 = jwt.decode_token(access1, expected_type=jwt.ACCESS_TOKEN_TYPE)
+    a2 = jwt.decode_token(access2, expected_type=jwt.ACCESS_TOKEN_TYPE)
+    r1 = jwt.decode_token(refresh1, expected_type=jwt.REFRESH_TOKEN_TYPE)
+    r2 = jwt.decode_token(refresh2, expected_type=jwt.REFRESH_TOKEN_TYPE)
+    assert a1.ver == start + 1
+    assert a2.ver == start + 2
+    assert r1.ver == a1.ver
+    assert r2.ver == a2.ver
+
+
 async def test_deny_org_revokes_sessions(app_client: AsyncClient, db_session) -> None:
     from tests.conftest import make_org
 

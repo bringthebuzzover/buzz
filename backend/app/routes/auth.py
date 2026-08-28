@@ -346,6 +346,12 @@ async def refresh(
     # Tokens minted before this field existed carry no `ver`; treat that as 0.
     # Do not clear the cookie here — see docstring (concurrent rotation race).
     if (payload.ver or 0) != (user.token_version or 0):
+        logger.info(
+            "refresh token version mismatch user=%s token_ver=%s row_ver=%s",
+            user.id,
+            payload.ver or 0,
+            user.token_version or 0,
+        )
         return _unauthorized(
             "This session has been revoked. Please sign in again.",
             clear_cookie=False,
