@@ -173,6 +173,21 @@ export function setAccessToken(token: string | null): void {
   accessToken = token;
 }
 
+/**
+ * apiFetch cannot import AuthContext (cycle). AuthProvider registers failHard
+ * so a dead refresh cookie after TOKEN_EXPIRED / UNAUTHORIZED clears the
+ * authenticated shell instead of leaving status authenticated with no bearer.
+ */
+let apiSessionLostHandler: (() => void) | null = null;
+
+export function registerApiSessionLostHandler(fn: (() => void) | null): void {
+  apiSessionLostHandler = fn;
+}
+
+export function notifyApiSessionLost(): void {
+  apiSessionLostHandler?.();
+}
+
 /** Swap in an impersonation token minted by `POST /api/admin/impersonate/:id`. */
 export function setImpersonationToken(token: string): void {
   accessToken = token;
