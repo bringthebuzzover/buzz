@@ -179,7 +179,9 @@ function DraftEditor({
   linkedDrop: AdminDropDetail | undefined;
 }) {
   const create = useCreateAdminDrop();
-  const dropId = linkedDrop?.id ?? "";
+  const [minted, setMinted] = useState<AdminDropDetail | undefined>(undefined);
+  const drop = linkedDrop ?? minted;
+  const dropId = drop?.id ?? "";
   const patch = usePatchAdminDropConfig(dropId);
   const publish = usePublishDrop(dropId);
   const [form, setForm] = useState<DraftFormState>(emptyForm);
@@ -192,7 +194,8 @@ function DraftEditor({
     }
   }, [linkedDrop]);
 
-  const published = linkedDrop?.publishedAt != null;
+  const published =
+    linkedDrop?.publishedAt != null || minted?.publishedAt != null;
   const creativeLocked = published;
   const ready = requiredReady(form);
   const busy = create.isPending || patch.isPending || publish.isPending;
@@ -248,7 +251,7 @@ function DraftEditor({
     setNotice(null);
     try {
       const body = parseBody();
-      if (linkedDrop) {
+      if (drop) {
         if (published) {
           setError("Creative fields are locked after publish. Use drop detail for logistics.");
           return;
@@ -256,11 +259,12 @@ function DraftEditor({
         await patch.mutateAsync(body);
         setNotice("Draft updated.");
       } else {
-        await create.mutateAsync({
+        const created = (await create.mutateAsync({
           brandId: ticket.brandId,
           dropRequestId: ticket.id,
           ...body,
-        });
+        })) as AdminDropDetail | undefined;
+        if (created?.id) setMinted(created);
         setNotice("Draft saved. You can publish when ready.");
       }
     } catch (err) {
@@ -277,7 +281,7 @@ function DraftEditor({
   const onPublish = async () => {
     setError(null);
     setNotice(null);
-    if (!linkedDrop) {
+    if (!drop) {
       setError("Save a draft before publishing.");
       return;
     }
@@ -291,6 +295,7 @@ function DraftEditor({
         await patch.mutateAsync(parseBody());
       }
       await publish.mutateAsync(undefined);
+      setMinted({ ...drop, publishedAt: Date.now() });
       setNotice("Drop published. Brand was emailed the monitor link.");
     } catch (err) {
       setError(
@@ -312,7 +317,7 @@ function DraftEditor({
         <div className="flex flex-wrap items-center gap-2">
           {published ? (
             <Pill tone="good">
-              Published {formatDate(linkedDrop!.publishedAt ?? null)}
+              Published {formatDate((drop ?? minted)?.publishedAt ?? null)}
             </Pill>
           ) : (
             <Pill tone="warn">Draft</Pill>
@@ -438,7 +443,7 @@ function DraftEditor({
               {create.isPending || patch.isPending ? "Saving…" : "Save draft"}
             </ActionButton>
           )}
-          {linkedDrop && !published && (
+          {drop && !published && (
             <ActionButton
               variant="primary"
               testId="publish-drop"
@@ -448,13 +453,8 @@ function DraftEditor({
               {publish.isPending ? "Publishing…" : "Publish"}
             </ActionButton>
           )}
-          {!linkedDrop && (
-            <ActionButton
-              variant="primary"
-              testId="publish-drop"
-              disabled
-              onClick={() => undefined}
-            >
+          {!drop && (
+            <ActionButton variant="primary" disabled onClick={() => undefined}>
               Publish
             </ActionButton>
           )}
