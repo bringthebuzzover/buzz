@@ -32,10 +32,13 @@ from app.schemas.acks import (
 from app.schemas.admin import (
     AdminBrandDetail,
     AdminBrandItem,
+    AdminCleanupStubsResponse,
     AdminCreateBrandRequest,
     AdminDropConfigPatch,
+    AdminDropCreateRequest,
     AdminDropDetail,
     AdminDropItem,
+    AdminDropRequestItem,
     AdminHealthResponse,
     AdminOrgApproveRequest,
     AdminOrgDetail,
@@ -52,13 +55,16 @@ from app.services.admin import (
     advance_tracker,
     approve_brand,
     approve_org,
+    cleanup_request_received_stubs,
     clear_manual_reopen,
     clear_org_instagram_token,
+    create_admin_drop,
     create_brand,
     deny_brand,
     deny_org,
     list_brands,
     list_orgs,
+    publish_drop,
     reopen_drop,
     resend_brand_invite,
     resend_org_connect,
@@ -77,6 +83,7 @@ from app.services.admin_read import (
     get_overview,
     list_drops,
 )
+from app.services.drop_requests import get_admin_drop_request, list_admin_drop_requests
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -301,6 +308,63 @@ async def resend_brand_invite_endpoint(
     return api_response(data=AdminBrandInviteResponse.model_validate(result))
 
 
+# ── Drop requests (intake tickets) ───────────────────────────────────────────
+
+
+@router.get(
+    "/drop-requests",
+    response_model=DataResponse[list[AdminDropRequestItem]],
+)
+async def list_drop_requests_endpoint(
+    _user: CurrentAdmin,
+    status: str | None = Query(default=None),
+    brand_id: uuid.UUID | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    rows = await list_admin_drop_requests(db, status=status, brand_id=brand_id)
+    return api_response(
+        data=[
+            AdminDropRequestItem(
+                id=ticket.id,
+                brand_id=ticket.brand_id,
+                brand_name=brand.brand_name,
+                message=ticket.message,
+                notes=ticket.notes,
+                status=ticket.status,
+                converted_drop_id=ticket.converted_drop_id,
+                created_at=ticket.created_at,
+                updated_at=ticket.updated_at,
+            )
+            for ticket, brand in rows
+        ]
+    )
+
+
+@router.get(
+    "/drop-requests/{request_id}",
+    response_model=DataResponse[AdminDropRequestItem],
+)
+async def get_drop_request_endpoint(
+    request_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    ticket, brand = await get_admin_drop_request(db, request_id)
+    return api_response(
+        data=AdminDropRequestItem(
+            id=ticket.id,
+            brand_id=ticket.brand_id,
+            brand_name=brand.brand_name,
+            message=ticket.message,
+            notes=ticket.notes,
+            status=ticket.status,
+            converted_drop_id=ticket.converted_drop_id,
+            created_at=ticket.created_at,
+            updated_at=ticket.updated_at,
+        )
+    )
+
+
 # ── Drops ───────────────────────────────────────────────────────────────────
 
 
@@ -309,9 +373,10 @@ async def list_drops_endpoint(
     _user: CurrentAdmin,
     stage: list[str] | None = Query(default=None),
     attention: list[str] | None = Query(default=None),
+    published: str | None = Query(default=None, pattern="^(draft|published)$"),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    rows = await list_drops(db, stage=stage, attention=attention)
+    rows = await list_drops(db, stage=stage, attention=attention, published=published)
     return api_response(data=[AdminDropItem(**r) for r in rows])
 
 
@@ -321,6 +386,33 @@ async def get_drop_detail_endpoint(
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
+    return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
+
+
+@router.post(
+    "/brands/{brand_id}/drops",
+    response_model=DataResponse[AdminDropDetail],
+)
+async def create_admin_drop_endpoint(
+    brand_id: uuid.UUID,
+    payload: AdminDropCreateRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    drop = await create_admin_drop(db, brand_id, payload)
+    return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop.id)))
+
+
+@router.post(
+    "/drops/{drop_id}/publish",
+    response_model=DataResponse[AdminDropDetail],
+)
+async def publish_drop_endpoint(
+    drop_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    await publish_drop(db, drop_id)
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 
@@ -377,6 +469,22 @@ async def clear_reopen_endpoint(
 ) -> APIResponse:
     result = await clear_manual_reopen(db, drop_id)
     return api_response(data=DropReopenResponse.model_validate(result))
+
+
+@router.post(
+    "/tools/cleanup-request-received",
+    response_model=DataResponse[AdminCleanupStubsResponse],
+)
+async def cleanup_request_received_endpoint(
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """One-shot B6b: convert unpublished request_received stubs into tickets.
+
+    Blocked in production (run the script with ``--confirm`` after explicit ops OK).
+    """
+    result = await cleanup_request_received_stubs(db)
+    return api_response(data=AdminCleanupStubsResponse(**result))
 
 
 # ── Impersonation ───────────────────────────────────────────────────────────

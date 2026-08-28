@@ -51,6 +51,7 @@ async def send_due_reminders(db: AsyncSession) -> dict[str, Any]:
                     # Same browsable gate as the org feed / detail / notify APIs.
                     Brand.status == BrandStatus.APPROVED.value,
                     Drop.brand_tracker_stage != BrandTrackerStage.DROP_FINISHED.value,
+                    Drop.published_at.isnot(None),
                 )
                 .with_for_update(of=NotifyMe, skip_locked=True)
             )

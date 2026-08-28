@@ -9,12 +9,12 @@ import type { components } from "../generated/schema";
 // Sourced from OpenAPI (`npm run gen:api`) via DataResponse[T] payloads.
 export type BrandProfile = components["schemas"]["BrandProfileResponse"];
 export type BrandDropItem = components["schemas"]["BrandDropListItem"];
-export type BrandDropCreated = components["schemas"]["BrandDropResponse"];
 export type BrandDropDetail = components["schemas"]["BrandDropDetailResponse"];
 export type BrandDropPost = components["schemas"]["BrandDropPostItem"];
 export type BrandDropApplicant = components["schemas"]["BrandDropDetailApplicant"];
 export type BrandAggregate = components["schemas"]["BrandAggregateResponse"];
 export type EngagementPoint = components["schemas"]["EngagementSeriesPoint"];
+export type BrandDropRequest = components["schemas"]["BrandDropRequestResponse"];
 
 // ── Hooks ────────────────────────────────────────────────────────────────
 
@@ -36,6 +36,20 @@ export function useBrandDrops() {
     queryKey: ["brand-drops"],
     queryFn: async () => {
       const { data } = await apiFetch<BrandDropItem[]>("/api/brands/me/drops");
+      return data;
+    },
+    enabled: status === "authenticated",
+  });
+}
+
+export function useBrandDropRequests() {
+  const { status } = useAuth();
+  return useQuery({
+    queryKey: ["brand-drop-requests"],
+    queryFn: async () => {
+      const { data } = await apiFetch<BrandDropRequest[]>(
+        "/api/brands/me/drop-requests",
+      );
       return data;
     },
     enabled: status === "authenticated",
@@ -84,19 +98,22 @@ export function useEngagementSeries(bucketCount = 12, windowDays = 14) {
   });
 }
 
-export function useCreateBrandDrop() {
+export function useCreateBrandDropRequest() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { title: string; description: string }) => {
-      const { data } = await apiFetch<BrandDropCreated>("/api/brands/me/drops", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+    mutationFn: async (body: { message: string; notes?: string }) => {
+      const { data } = await apiFetch<BrandDropRequest>(
+        "/api/brands/me/drop-requests",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["brand-drops"] });
+      queryClient.invalidateQueries({ queryKey: ["brand-drop-requests"] });
       queryClient.invalidateQueries({ queryKey: ["brand-aggregate"] });
     },
   });

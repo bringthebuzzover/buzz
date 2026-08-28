@@ -93,6 +93,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/brands/{brand_id}/drops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Admin Drop Endpoint */
+        post: operations["create_admin_drop_endpoint_api_admin_brands__brand_id__drops_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/brands/{brand_id}/resend-invite": {
         parameters: {
             query?: never;
@@ -121,6 +138,40 @@ export interface paths {
         put?: never;
         /** Undeny Brand Endpoint */
         post: operations["undeny_brand_endpoint_api_admin_brands__brand_id__undeny_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/drop-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Drop Requests Endpoint */
+        get: operations["list_drop_requests_endpoint_api_admin_drop_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/drop-requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Drop Request Endpoint */
+        get: operations["get_drop_request_endpoint_api_admin_drop_requests__request_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -173,6 +224,23 @@ export interface paths {
         put?: never;
         /** Clear Reopen Endpoint */
         post: operations["clear_reopen_endpoint_api_admin_drops__drop_id__clear_reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/drops/{drop_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Drop Endpoint */
+        post: operations["publish_drop_endpoint_api_admin_drops__drop_id__publish_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -448,6 +516,28 @@ export interface paths {
         get: operations["get_overview_endpoint_api_admin_overview_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/tools/cleanup-request-received": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cleanup Request Received Endpoint
+         * @description One-shot B6b: convert unpublished request_received stubs into tickets.
+         *
+         *     Blocked in production (run the script with ``--confirm`` after explicit ops OK).
+         */
+        post: operations["cleanup_request_received_endpoint_api_admin_tools_cleanup_request_received_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1027,6 +1117,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/brands/me/drop-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Drop Requests */
+        get: operations["list_drop_requests_api_brands_me_drop_requests_get"];
+        put?: never;
+        /**
+         * Create Drop Request
+         * @description Plan your Campaign — create an intake ticket (LAUNCH.md Phase B).
+         */
+        post: operations["create_drop_request_api_brands_me_drop_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/brands/me/drop-requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Drop Request */
+        get: operations["get_drop_request_api_brands_me_drop_requests__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/brands/me/drops": {
         parameters: {
             query?: never;
@@ -1037,8 +1165,7 @@ export interface paths {
         /** List Brand Drops */
         get: operations["list_brand_drops_api_brands_me_drops_get"];
         put?: never;
-        /** Create Drop */
-        post: operations["create_drop_api_brands_me_drops_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1680,6 +1807,13 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** AdminCleanupStubsResponse */
+        AdminCleanupStubsResponse: {
+            /** Convertedcount */
+            convertedCount: number;
+            /** Deleteddropids */
+            deletedDropIds: string[];
+        };
         /**
          * AdminCreateBrandRequest
          * @description Admin-provisioned brand (works when public self-reg is off).
@@ -1701,9 +1835,10 @@ export interface components {
         };
         /**
          * AdminDropConfigPatch
-         * @description Admin logistics patch for a drop (omit = leave alone; explicit null = clear).
+         * @description Admin logistics + draft creative patch (omit = leave alone; explicit null = clear).
          *
-         *     Window fields accept epoch-ms integers on the wire (same as GET detail).
+         *     Creative fields (title/description/image/location) are draft-only
+         *     (``published_at IS NULL``). Window fields accept epoch-ms integers on the wire.
          */
         AdminDropConfigPatch: {
             /** Applycloseat */
@@ -1714,6 +1849,46 @@ export interface components {
             campaignHashtag?: string | null;
             /** Capacitytotal */
             capacityTotal?: number | null;
+            /** Description */
+            description?: string | null;
+            /** Image */
+            image?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Totalproductunits */
+            totalProductUnits?: number | null;
+        };
+        /**
+         * AdminDropCreateRequest
+         * @description Admin-minted unpublished draft drop (LAUNCH.md Phase B).
+         */
+        AdminDropCreateRequest: {
+            /**
+             * Applycloseat
+             * Format: date-time
+             */
+            applyCloseAt: string;
+            /**
+             * Applyopenat
+             * Format: date-time
+             */
+            applyOpenAt: string;
+            /** Campaignhashtag */
+            campaignHashtag?: string | null;
+            /** Capacitytotal */
+            capacityTotal: number;
+            /** Description */
+            description: string;
+            /** Droprequestid */
+            dropRequestId?: string | null;
+            /** Image */
+            image: string;
+            /** Location */
+            location: string;
+            /** Title */
+            title: string;
             /** Totalproductunits */
             totalProductUnits?: number | null;
         };
@@ -1746,6 +1921,8 @@ export interface components {
             createdAt: number;
             /** Description */
             description: string;
+            /** Droprequestid */
+            dropRequestId?: string | null;
             /** Finalizedat */
             finalizedAt: number | null;
             /**
@@ -1763,6 +1940,8 @@ export interface components {
             manualReopen: boolean;
             /** Pendingsuggestioncount */
             pendingSuggestionCount: number;
+            /** Publishedat */
+            publishedAt?: number | null;
             /** Stage */
             stage: string;
             /** Title */
@@ -1799,6 +1978,8 @@ export interface components {
             capacityTotal: number;
             /** Createdat */
             createdAt: number;
+            /** Droprequestid */
+            dropRequestId?: string | null;
             /** Finalizedat */
             finalizedAt: number | null;
             /**
@@ -1808,6 +1989,8 @@ export interface components {
             id: string;
             /** Manualreopen */
             manualReopen: boolean;
+            /** Publishedat */
+            publishedAt?: number | null;
             /** Stage */
             stage: string;
             /** Title */
@@ -1816,6 +1999,33 @@ export interface components {
             totalProductUnits: number | null;
             /** Trackingnumber */
             trackingNumber: string | null;
+        };
+        /** AdminDropRequestItem */
+        AdminDropRequestItem: {
+            /**
+             * Brandid
+             * Format: uuid
+             */
+            brandId: string;
+            /** Brandname */
+            brandName: string;
+            /** Converteddropid */
+            convertedDropId: string | null;
+            /** Createdat */
+            createdAt: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Message */
+            message: string;
+            /** Notes */
+            notes: string | null;
+            /** Status */
+            status: string;
+            /** Updatedat */
+            updatedAt: number;
         };
         /** AdminHealthResponse */
         AdminHealthResponse: {
@@ -2242,16 +2452,6 @@ export interface components {
             status: string;
         };
         /**
-         * BrandDropCreateRequest
-         * @description Body for ``POST /api/brands/me/drops`` (architecture §8.4).
-         */
-        BrandDropCreateRequest: {
-            /** Description */
-            description: string;
-            /** Title */
-            title: string;
-        };
-        /**
          * BrandDropDetailApplicant
          * @description One applicant row in the brand drop detail view (§8.2).
          */
@@ -2458,48 +2658,42 @@ export interface components {
             url: string;
         };
         /**
-         * BrandDropResponse
-         * @description A drop as returned to the brand portal (architecture §8.4).
+         * BrandDropRequestCreate
+         * @description Body for ``POST /api/brands/me/drop-requests`` (LAUNCH.md Phase B).
          */
-        BrandDropResponse: {
-            /** Applicantselectionfinalizedat */
-            applicantSelectionFinalizedAt: number | null;
-            /** Applycloseat */
-            applyCloseAt: number | null;
-            /** Applyopenat */
-            applyOpenAt: number | null;
+        BrandDropRequestCreate: {
+            /** Message */
+            message: string;
+            /** Notes */
+            notes?: string | null;
+        };
+        /**
+         * BrandDropRequestResponse
+         * @description A brand intake ticket (not a live drop).
+         */
+        BrandDropRequestResponse: {
             /**
              * Brandid
              * Format: uuid
              */
             brandId: string;
-            /** Brandname */
-            brandName: string;
-            /** Brandtrackerstage */
-            brandTrackerStage: string;
-            /** Campaignhashtag */
-            campaignHashtag: string | null;
-            /** Capacitytotal */
-            capacityTotal: number;
+            /** Converteddropid */
+            convertedDropId: string | null;
             /** Createdat */
-            createdAt: number | null;
-            /** Description */
-            description: string;
+            createdAt: number;
             /**
              * Id
              * Format: uuid
              */
             id: string;
-            /** Image */
-            image: string;
-            /** Location */
-            location: string;
-            /** Manualreopen */
-            manualReopen: boolean;
-            /** Title */
-            title: string;
-            /** Totalproductunits */
-            totalProductUnits: number | null;
+            /** Message */
+            message: string;
+            /** Notes */
+            notes: string | null;
+            /** Status */
+            status: string;
+            /** Updatedat */
+            updatedAt: number;
         };
         /**
          * BrandLoginRequest
@@ -2719,9 +2913,27 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[AdminCleanupStubsResponse] */
+        DataResponse_AdminCleanupStubsResponse_: {
+            data?: components["schemas"]["AdminCleanupStubsResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[AdminDropDetail] */
         DataResponse_AdminDropDetail_: {
             data?: components["schemas"]["AdminDropDetail"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminDropRequestItem] */
+        DataResponse_AdminDropRequestItem_: {
+            data?: components["schemas"]["AdminDropRequestItem"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -2809,9 +3021,9 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /** DataResponse[BrandDropResponse] */
-        DataResponse_BrandDropResponse_: {
-            data?: components["schemas"]["BrandDropResponse"] | null;
+        /** DataResponse[BrandDropRequestResponse] */
+        DataResponse_BrandDropRequestResponse_: {
+            data?: components["schemas"]["BrandDropRequestResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -3081,6 +3293,16 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[list[AdminDropRequestItem]] */
+        DataResponse_list_AdminDropRequestItem__: {
+            /** Data */
+            data?: components["schemas"]["AdminDropRequestItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[list[AdminOrgItem]] */
         DataResponse_list_AdminOrgItem__: {
             /** Data */
@@ -3125,6 +3347,16 @@ export interface components {
         DataResponse_list_BrandDropListItem__: {
             /** Data */
             data?: components["schemas"]["BrandDropListItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[BrandDropRequestResponse]] */
+        DataResponse_list_BrandDropRequestResponse__: {
+            /** Data */
+            data?: components["schemas"]["BrandDropRequestResponse"][] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -4123,6 +4355,43 @@ export interface operations {
             };
         };
     };
+    create_admin_drop_endpoint_api_admin_brands__brand_id__drops_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                brand_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminDropCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminDropDetail_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     resend_brand_invite_endpoint_api_admin_brands__brand_id__resend_invite_post: {
         parameters: {
             query?: never;
@@ -4189,11 +4458,79 @@ export interface operations {
             };
         };
     };
+    list_drop_requests_endpoint_api_admin_drop_requests_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                brand_id?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_list_AdminDropRequestItem__"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    get_drop_request_endpoint_api_admin_drop_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminDropRequestItem_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     list_drops_endpoint_api_admin_drops_get: {
         parameters: {
             query?: {
                 stage?: string[] | null;
                 attention?: string[] | null;
+                published?: string | null;
             };
             header?: {
                 authorization?: string | null;
@@ -4313,6 +4650,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_DropReopenResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    publish_drop_endpoint_api_admin_drops__drop_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminDropDetail_"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -4818,6 +5188,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminOverviewResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    cleanup_request_received_endpoint_api_admin_tools_cleanup_request_received_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminCleanupStubsResponse_"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -5675,6 +6076,105 @@ export interface operations {
             };
         };
     };
+    list_drop_requests_api_brands_me_drop_requests_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_list_BrandDropRequestResponse__"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    create_drop_request_api_brands_me_drop_requests_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandDropRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_BrandDropRequestResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    get_drop_request_api_brands_me_drop_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_BrandDropRequestResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     list_brand_drops_api_brands_me_drops_get: {
         parameters: {
             query?: never;
@@ -5693,41 +6193,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_list_BrandDropListItem__"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    create_drop_api_brands_me_drops_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BrandDropCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_BrandDropResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

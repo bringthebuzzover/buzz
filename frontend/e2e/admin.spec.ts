@@ -82,6 +82,10 @@ test("sidebar reaches every section", async ({ page }) => {
   await expect(page).toHaveURL(/\/admin\/brands$/);
   await expect(page.getByText(TEST_BRAND)).toBeVisible();
 
+  await sidebar(page).getByRole("link", { name: /requests/i }).click();
+  await expect(page).toHaveURL(/\/admin\/requests$/);
+  await expect(page.getByRole("heading", { name: /drop requests/i })).toBeVisible();
+
   await sidebar(page).getByRole("link", { name: /drops/i }).click();
   await expect(page).toHaveURL(/\/admin\/drops$/);
   await expect(page.getByRole("heading", { name: "Drops" })).toBeVisible();
@@ -156,4 +160,42 @@ test("unauthenticated /admin redirects to the admin login", async ({ page }) => 
   await page.goto("/admin");
   await waitForAuthSettled(page);
   await expect(page).toHaveURL(/\/admin\/login$/);
+});
+
+test("admin saves a draft from a ticket and publishes it", async ({ page }) => {
+  await loginAsAdmin(page);
+  await sidebar(page).getByRole("link", { name: /requests/i }).click();
+  await expect(page).toHaveURL(/\/admin\/requests$/);
+  await expect(page.getByText("E2E Drop Request")).toBeVisible();
+  await page
+    .getByRole("row", { name: /E2E Drop Request/ })
+    .getByRole("link", { name: /^open$/i })
+    .click();
+  await expect(page).toHaveURL(/\/admin\/requests\/[0-9a-f-]+$/);
+
+  await page.getByTestId("draft-title").fill("E2E Published Drop");
+  await page.getByTestId("draft-description").fill("Admin-minted campaign for E2E.");
+  await page.getByTestId("draft-image").fill("https://example.test/e2e-hero.png");
+  await page.getByTestId("draft-location").fill("E2E Campus");
+  await expect(page.getByTestId("save-draft")).toBeEnabled();
+
+  const saveResp = page.waitForResponse(
+    (r) =>
+      r.url().includes("/api/admin/brands/") &&
+      r.url().includes("/drops") &&
+      r.request().method() === "POST",
+  );
+  await page.getByTestId("save-draft").click();
+  const saved = await saveResp;
+  expect(saved.ok(), await saved.text()).toBeTruthy();
+
+  await expect(page.getByTestId("publish-drop")).toBeEnabled();
+  const publishResp = page.waitForResponse(
+    (r) =>
+      r.url().includes("/publish") && r.request().method() === "POST",
+  );
+  await page.getByTestId("publish-drop").click();
+  const published = await publishResp;
+  expect(published.ok(), await published.text()).toBeTruthy();
+  await expect(page.getByText(/^Published\b/).first()).toBeVisible();
 });

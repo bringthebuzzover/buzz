@@ -131,14 +131,31 @@ class NotifyRequest(CamelModel):
         return value
 
 
-# --- Brand-facing schemas (Stage 5C) -------------------------------------------
+# --- Brand-facing schemas (Stage 5C / Phase B) ---------------------------------
 
 
-class BrandDropCreateRequest(CamelModel):
-    """Body for ``POST /api/brands/me/drops`` (architecture §8.4)."""
+class BrandDropRequestCreate(CamelModel):
+    """Body for ``POST /api/brands/me/drop-requests`` (LAUNCH.md Phase B)."""
 
-    title: str
-    description: str
+    message: str
+    notes: str | None = None
+
+
+class BrandDropRequestResponse(CamelModel):
+    """A brand intake ticket (not a live drop)."""
+
+    id: uuid.UUID
+    brand_id: uuid.UUID
+    message: str
+    notes: str | None
+    status: str
+    converted_drop_id: uuid.UUID | None
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def _epoch(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
 
 
 class BrandDropResponse(CamelModel):
@@ -159,12 +176,14 @@ class BrandDropResponse(CamelModel):
     total_product_units: int | None
     campaign_hashtag: str | None
     applicant_selection_finalized_at: datetime | None
+    published_at: datetime | None = None
     created_at: datetime
 
     @field_serializer(
         "apply_open_at",
         "apply_close_at",
         "applicant_selection_finalized_at",
+        "published_at",
         "created_at",
     )
     def _epoch(self, value: datetime | None) -> int | None:

@@ -65,9 +65,15 @@ export default function AdminDropsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const stages = searchParams.getAll("stage");
   const attentions = searchParams.getAll("attention");
+  const publishedParam = searchParams.get("published");
+  const published =
+    publishedParam === "draft" || publishedParam === "published"
+      ? publishedParam
+      : null;
   const drops = useAdminDrops({
     stage: stages,
     attention: attentions,
+    published,
   });
 
   return (
@@ -78,6 +84,39 @@ export default function AdminDropsPage() {
       />
 
       <div className="mb-4 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { value: null, label: "All" },
+              { value: "draft", label: "Draft" },
+              { value: "published", label: "Published" },
+            ] as const
+          ).map((option) => {
+            const selected = option.value === published;
+            return (
+              <button
+                key={option.label}
+                type="button"
+                onClick={() => {
+                  const next = new URLSearchParams(searchParams);
+                  if (option.value) {
+                    next.set("published", option.value);
+                  } else {
+                    next.delete("published");
+                  }
+                  setSearchParams(next, { replace: true });
+                }}
+                className={`rounded-full border px-3 py-1 text-xs font-bold transition ${
+                  selected
+                    ? "border-buzz-coral bg-buzz-coral text-buzz-paper"
+                    : "border-buzz-lineMid bg-buzz-paper text-buzz-inkMuted hover:border-buzz-coral hover:text-buzz-coral"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
         <FilterMultiSelect
           label="Stage"
           options={STAGE_OPTIONS}
@@ -100,6 +139,14 @@ export default function AdminDropsPage() {
           }
         />
       </div>
+
+      <p className="mb-4 text-xs font-medium text-buzz-inkMuted">
+        Intake tickets live under{" "}
+        <Link to="/admin/requests" className="font-bold text-buzz-coral hover:underline">
+          Drop requests
+        </Link>
+        .
+      </p>
 
       <Panel>
         {drops.isPending && (
@@ -152,6 +199,7 @@ export default function AdminDropsPage() {
                   </Cell>
                   <Cell>
                     <div className="flex flex-wrap gap-1">
+                      {!drop.publishedAt && <Pill tone="warn">Draft</Pill>}
                       {drop.manualReopen && <Pill tone="warn">Reopened</Pill>}
                       {drop.acceptedCount > drop.capacityTotal && (
                         <Pill tone="bad">Over capacity</Pill>

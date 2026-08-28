@@ -44,6 +44,8 @@ import AdminBrandsPage from "./pages/admin/AdminBrandsPage";
 import AdminBrandDetailPage from "./pages/admin/AdminBrandDetailPage";
 import AdminDropsPage from "./pages/admin/AdminDropsPage";
 import AdminDropDetailPage from "./pages/admin/AdminDropDetailPage";
+import AdminDropRequestsPage from "./pages/admin/AdminDropRequestsPage";
+import AdminDropRequestDetailPage from "./pages/admin/AdminDropRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
@@ -293,6 +295,8 @@ export default function AppRoot(): ReactElement {
         <Route path="orgs/:userId" element={<AdminOrgDetailPage />} />
         <Route path="brands" element={<AdminBrandsPage />} />
         <Route path="brands/:brandId" element={<AdminBrandDetailPage />} />
+        <Route path="requests" element={<AdminDropRequestsPage />} />
+        <Route path="requests/:requestId" element={<AdminDropRequestDetailPage />} />
         <Route path="drops" element={<AdminDropsPage />} />
         <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />

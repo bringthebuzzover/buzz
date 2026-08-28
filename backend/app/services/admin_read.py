@@ -730,6 +730,7 @@ async def list_drops(
     stage: list[str] | None = None,
     attention: list[str] | None = None,
     brand_id: UUID | None = None,
+    published: str | None = None,
 ) -> list[dict[str, Any]]:
     """Drops with their applicant tallies, newest first.
 
@@ -737,6 +738,8 @@ async def list_drops(
     Within a dimension values OR; across dimensions they AND. Empty/omitted
     means no filter on that dimension. Overview badges deep-link with a single
     attention value.
+
+    ``published`` is ``draft`` | ``published`` | None (all).
     """
 
     stages = list(stage or [])
@@ -752,6 +755,12 @@ async def list_drops(
             raise BuzzAPIException(
                 errors.VALIDATION_ERROR, f"Unknown attention filter: {value}.", status_code=400
             )
+    if published is not None and published not in ("draft", "published"):
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "published must be draft or published.",
+            status_code=400,
+        )
 
     applied_sq = (
         select(DropApplication.drop_id, func.count().label("n"))
@@ -783,6 +792,10 @@ async def list_drops(
         stmt = stmt.where(Drop.brand_tracker_stage.in_(stages))
     if brand_id is not None:
         stmt = stmt.where(Drop.brand_id == brand_id)
+    if published == "draft":
+        stmt = stmt.where(Drop.published_at.is_(None))
+    elif published == "published":
+        stmt = stmt.where(Drop.published_at.isnot(None))
     if attentions:
         now = _now()
         stmt = stmt.where(or_(*[and_(*_attention_clause(a, now)) for a in attentions]))
@@ -805,6 +818,8 @@ async def list_drops(
             "tracking_number": drop.tracking_number,
             "campaign_hashtag": drop.campaign_hashtag,
             "finalized_at": drop.applicant_selection_finalized_at,
+            "published_at": drop.published_at,
+            "drop_request_id": drop.drop_request_id,
             "created_at": drop.created_at,
         }
         for drop, brand_name, brand_status, applied_count, accepted_count in (
@@ -949,6 +964,8 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
         "apply_open_at": drop.apply_open_at,
         "apply_close_at": drop.apply_close_at,
         "finalized_at": drop.applicant_selection_finalized_at,
+        "published_at": drop.published_at,
+        "drop_request_id": drop.drop_request_id,
         "created_at": drop.created_at,
         "linked_post_count": linked_posts,
         "pending_suggestion_count": pending_suggestions,

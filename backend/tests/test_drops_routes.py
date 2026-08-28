@@ -106,6 +106,22 @@ async def test_feed_hides_non_approved_brands(app_client: AsyncClient, db_sessio
     assert body["meta"]["total"] == 1  # total tracks the filter, not the table
 
 
+async def test_feed_hides_unpublished(app_client: AsyncClient, db_session) -> None:
+    user = await persist(db_session, make_user())
+    await make_org(db_session, user)
+    brand = await make_brand(db_session)
+    await make_drop(db_session, brand, title="Draft", published_at=None)
+    await make_drop(db_session, brand, title="Live")
+
+    resp = await app_client.get(
+        "/api/drops", headers={"Authorization": f"Bearer {mint_access_token(user)}"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [d["title"] for d in body["data"]] == ["Live"]
+    assert body["meta"]["total"] == 1
+
+
 async def test_feed_hides_finished_drops(app_client: AsyncClient, db_session) -> None:
     user = await persist(db_session, make_user())
     await make_org(db_session, user)

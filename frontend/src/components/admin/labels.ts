@@ -7,7 +7,7 @@
  * to know what admin routes exist.
  */
 
-import { BRAND_DROP_TRACKER_ORDER } from "../../types/brandPortal";
+import { BRAND_DROP_TRACKER_FULL_ORDER } from "../../types/brandPortal";
 
 export type QueueMeta = {
   label: string;
@@ -182,8 +182,8 @@ export const STAGE_LABELS: Record<string, string> = {
   drop_finished: "Drop finished",
 };
 
-/** Same order as brand portal — single stage-order SOT. */
-export const STAGE_ORDER = BRAND_DROP_TRACKER_ORDER;
+/** Full pipeline including legacy stages (admin filters / advance). */
+export const STAGE_ORDER = BRAND_DROP_TRACKER_FULL_ORDER;
 
 export const STATUS_LABELS: Record<string, string> = {
   pending_org_profile: "No profile yet",

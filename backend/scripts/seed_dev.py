@@ -57,6 +57,7 @@ from app.models import (  # noqa: E402
     Brand,
     Drop,
     DropApplication,
+    DropRequest,
     DropTrackerEvent,
     NotifyMe,
     Organization,
@@ -230,7 +231,14 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         approved_at=now,
     )
 
-    # --- Drops -------------------------------------------------------------
+    # --- Drop requests (intake tickets) ------------------------------------
+    request_e2e = DropRequest(
+        id=_uuid(25),
+        brand_id=brand_a.id,
+        message="E2E Drop Request",
+        notes="Seeded ticket for admin publish E2E.",
+        status="received",
+    )
     drop_brief = Drop(
         id=_uuid(30),
         brand_id=brand_a.id,
@@ -245,6 +253,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         brand_tracker_stage=BrandTrackerStage.REQUEST_RECEIVED.value,
         total_product_units=200,
         campaign_hashtag="AcmeFallBrew",
+        published_at=None,  # legacy-style unpublished stub / draft
     )
     drop_review = Drop(
         id=_uuid(31),
@@ -259,6 +268,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         manual_reopen=False,
         brand_tracker_stage=BrandTrackerStage.FINALIZING_AGREEMENTS.value,
         total_product_units=None,
+        published_at=now - timedelta(days=3),
     )
     drop_shipped = Drop(
         id=_uuid(32),
@@ -276,6 +286,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         total_product_units=400,
         campaign_hashtag="NorthwindGameDay",
         applicant_selection_finalized_at=now - timedelta(days=6),
+        published_at=now - timedelta(days=30),
     )
     drop_finished = Drop(
         id=_uuid(33),
@@ -291,6 +302,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         brand_tracker_stage=BrandTrackerStage.DROP_FINISHED.value,
         total_product_units=300,
         applicant_selection_finalized_at=now - timedelta(days=89),
+        published_at=now - timedelta(days=120),
     )
 
     # --- Drop applications -------------------------------------------------
@@ -432,6 +444,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         ],
         "organizations": [org_active, org_pending],
         "brands": [brand_a, brand_b],
+        "drop_requests": [request_e2e],
         "drops": [drop_brief, drop_review, drop_shipped, drop_finished],
         "drop_applications": [
             app_accepted,

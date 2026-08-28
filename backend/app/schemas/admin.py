@@ -79,9 +79,10 @@ class TrackingRepairRequest(CamelModel):
 
 
 class AdminDropConfigPatch(CamelModel):
-    """Admin logistics patch for a drop (omit = leave alone; explicit null = clear).
+    """Admin logistics + draft creative patch (omit = leave alone; explicit null = clear).
 
-    Window fields accept epoch-ms integers on the wire (same as GET detail).
+    Creative fields (title/description/image/location) are draft-only
+    (``published_at IS NULL``). Window fields accept epoch-ms integers on the wire.
     """
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
@@ -91,6 +92,10 @@ class AdminDropConfigPatch(CamelModel):
     apply_close_at: Annotated[datetime | None, BeforeValidator(_epoch_ms_to_aware)] = None
     total_product_units: int | None = Field(default=None, ge=1)
     campaign_hashtag: str | None = None
+    title: str | None = None
+    description: str | None = None
+    image: str | None = None
+    location: str | None = None
 
     @field_validator("capacity_total", "apply_open_at", "apply_close_at")
     @classmethod
@@ -105,6 +110,74 @@ class AdminDropConfigPatch(CamelModel):
         if value is not None and value.tzinfo is None:
             raise ValueError("must be timezone-aware")
         return value
+
+    @field_validator("title", "description", "image", "location")
+    @classmethod
+    def _creative_not_null(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("must not be null")
+        return value
+
+    @field_validator("image")
+    @classmethod
+    def _reject_placeholder_image(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        if not value.startswith("https://"):
+            raise ValueError("image must be an https:// URL")
+        if "placehold.co" in value.lower():
+            raise ValueError("placeholder images are not allowed")
+        return value
+
+
+class AdminDropCreateRequest(CamelModel):
+    """Admin-minted unpublished draft drop (LAUNCH.md Phase B)."""
+
+    title: str
+    description: str
+    image: Annotated[str, Field(pattern=r"^https://")]
+    location: str
+    capacity_total: int = Field(ge=1)
+    apply_open_at: Annotated[datetime, BeforeValidator(_epoch_ms_to_aware)]
+    apply_close_at: Annotated[datetime, BeforeValidator(_epoch_ms_to_aware)]
+    total_product_units: int | None = Field(default=None, ge=1)
+    campaign_hashtag: str | None = None
+    drop_request_id: uuid.UUID | None = None
+
+    @field_validator("apply_open_at", "apply_close_at")
+    @classmethod
+    def _reject_naive_create(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            raise ValueError("must be timezone-aware")
+        return value
+
+    @field_validator("image")
+    @classmethod
+    def _reject_placeholder_image(cls, value: str) -> str:
+        if "placehold.co" in value.lower():
+            raise ValueError("placeholder images are not allowed")
+        return value
+
+
+class AdminDropRequestItem(CamelModel):
+    id: uuid.UUID
+    brand_id: uuid.UUID
+    brand_name: str
+    message: str
+    notes: str | None
+    status: str
+    converted_drop_id: uuid.UUID | None
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def _epoch(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+
+class AdminCleanupStubsResponse(CamelModel):
+    converted_count: int
+    deleted_drop_ids: list[uuid.UUID]
 
 
 class AdminCreateBrandRequest(CamelModel):
@@ -370,13 +443,15 @@ class AdminDropItem(CamelModel):
     tracking_number: str | None
     campaign_hashtag: str | None
     finalized_at: datetime | None
+    published_at: datetime | None = None
+    drop_request_id: uuid.UUID | None = None
     created_at: datetime
 
     @field_serializer("apply_open_at", "apply_close_at", "created_at")
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("finalized_at")
+    @field_serializer("finalized_at", "published_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
@@ -468,6 +543,8 @@ class AdminDropDetail(CamelModel):
     apply_open_at: datetime
     apply_close_at: datetime
     finalized_at: datetime | None
+    published_at: datetime | None = None
+    drop_request_id: uuid.UUID | None = None
     created_at: datetime
     linked_post_count: int
     pending_suggestion_count: int
@@ -478,6 +555,6 @@ class AdminDropDetail(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("finalized_at")
+    @field_serializer("finalized_at", "published_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)

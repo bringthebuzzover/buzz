@@ -29,14 +29,15 @@ export default function BrandDropTrackerStepper({
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-lg font-bold text-buzz-ink">Drop status</h2>
         <span className="rounded-full border border-buzz-lineMid bg-buzz-cream px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-buzz-coral">
-          {BRAND_DROP_TRACKER_COPY[currentStage].label}
+          {BRAND_DROP_TRACKER_COPY[currentStage]?.label ?? currentStage}
         </span>
       </div>
 
-      <ol className="grid grid-cols-1 gap-4 md:grid-cols-5">
+      <ol className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {BRAND_DROP_TRACKER_ORDER.map((stage, idx) => {
-          const reached = idx <= currentIdx;
-          const isCurrent = idx === currentIdx;
+          // Legacy pre-publish stages are not in the stepper order (idx -1).
+          const reached = currentIdx >= 0 && idx <= currentIdx;
+          const isCurrent = currentIdx >= 0 && idx === currentIdx;
           const copy = BRAND_DROP_TRACKER_COPY[stage];
           return (
             <li

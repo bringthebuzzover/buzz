@@ -1,11 +1,12 @@
 /**
- * Brand portal domain types — the read-only 5-stage tracker stages and the rolled-up
+ * Brand portal domain types — post-publish drop tracker stages and the rolled-up
  * brand-side summary view of a drop (no per-org breakdown in v1).
  *
- * Stage 6: collapsed to 5 stages matching backend BrandTrackerStage enum.
+ * LAUNCH.md Phase B: brand-facing stepper is three stages after publish.
+ * Legacy stages remain typed for older drops / admin labels.
  */
 
-/** Read-only brand-facing tracker (architecture §8.5 — 5 stages). */
+/** Read-only brand-facing tracker stages (including legacy pre-publish). */
 export type BrandDropTrackerStage =
   | "request_received"
   | "finalizing_agreements"
@@ -19,8 +20,18 @@ export type BrandDropTrackerStageCopy = {
   subcopy: string;
 };
 
-/** Canonical order of the brand tracker stages (left-to-right rendering). */
+/**
+ * Canonical post-publish order for the brand stepper
+ * (awaiting_products → drop_active → drop_finished).
+ */
 export const BRAND_DROP_TRACKER_ORDER: readonly BrandDropTrackerStage[] = [
+  "awaiting_products",
+  "drop_active",
+  "drop_finished",
+] as const;
+
+/** Full pipeline including legacy stages (admin filters / advance). */
+export const BRAND_DROP_TRACKER_FULL_ORDER: readonly BrandDropTrackerStage[] = [
   "request_received",
   "finalizing_agreements",
   "awaiting_products",
@@ -28,7 +39,7 @@ export const BRAND_DROP_TRACKER_ORDER: readonly BrandDropTrackerStage[] = [
   "drop_finished",
 ] as const;
 
-/** Spec-aligned copy for each stage (architecture §8.5). */
+/** Spec-aligned copy for each stage (architecture §8.5 / PRODUCT §5.2). */
 export const BRAND_DROP_TRACKER_COPY: Record<
   BrandDropTrackerStage,
   BrandDropTrackerStageCopy

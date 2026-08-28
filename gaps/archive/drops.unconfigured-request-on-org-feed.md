@@ -3,7 +3,7 @@ id: drops.unconfigured-request-on-org-feed
 title: Brand drop requests appear on the org feed with placeholder logistics
 kind: ux_hole
 severity: P2
-status: open
+status: fixed
 surface: drops
 evidence:
   - path: backend/app/services/drops.py
@@ -22,7 +22,7 @@ repro: |
   3. Card shows placehold.co hero, location "Multiple Campuses", "Up to 10 spots".
   4. After ~1 day the window is Open; orgs can Apply / Notify Me before admin PATCHes logistics or creative.
 fix_when: |
-  Full lock: [`LAUNCH.md`](../LAUNCH.md) Phase B + §2 Brand/drops. Do not implement from
+  Full lock: [`LAUNCH.md`](../../LAUNCH.md) Phase B + §2 Brand/drops. Do not implement from
   `ideas/admin-drops.md` alone.
 
   1. Brand "Plan your Campaign" creates a `drop_requests` ticket only — not a `drops` row.
@@ -38,30 +38,15 @@ fix_when: |
 
 # Unconfigured drop requests leak onto the org feed
 
-`brand.drop-create-thin` made brand create **title + description** and moved
-logistics to admin PATCH. Create still inserts a **live** `drops` row with a
-real apply window starting tomorrow. The org feed predicate does not care
-that the tracker is `request_received` or that the hero/location/capacity
-are server placeholders.
+Fixed in Phase B (`launch-admin-drops`): brand intake writes `drop_requests` only;
+admin mints an unpublished draft and **Publish** sets `published_at`. Org feed /
+apply / Notify Me / autoclose gate on published. Set `closed_in` at the fixing commit.
 
-PRODUCT §5.2 is ticket-then-rep; §6.3 is a catalog of **published** campaigns orgs can
-plan around. A placeholder card with a ticking countdown is neither.
-
-**Locked fix:** [`LAUNCH.md`](../LAUNCH.md) Phase B — ticket + admin draft + **Publish**
+**Locked fix:** [`LAUNCH.md`](../../LAUNCH.md) Phase B — ticket + admin draft + **Publish**
 (`published_at`). A request is not a `drops` row. Orgs never see unpublished drafts.
 
-Downstream: [`spa.for-orgs-for-brands.md`](spa.for-orgs-for-brands.md) stays
+Downstream: [`spa.for-orgs-for-brands.md`](../spa.for-orgs-for-brands.md) stays
 parked until this is archived so `/for-brands` does not teach stub-as-campaign.
-
-## Notes
-
-- Notify Me cron keys off `apply_open_at`; a stub window will email orgs if
-  they subscribed from the leaked Upcoming card.
-- As-built `drop_autoclose` advances `request_received` → `finalizing_agreements`
-  after the window passes; Phase B stops that path and autoclose applies to
-  **published** drops only.
-- Interim honesty (LAUNCH §9 B.1–2): hide legacy `request_received` stubs from the
-  org feed before the full ticket table ships — that is a **stop-gap**, not the product rule.
 
 ## Explicit OUT
 

@@ -664,7 +664,7 @@ stop_if:
 
 ## launch-admin-drops
 
-status: pending
+status: done
 gaps:
   - drops.unconfigured-request-on-org-feed
 approach: |
