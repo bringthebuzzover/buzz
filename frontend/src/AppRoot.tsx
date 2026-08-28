@@ -12,6 +12,8 @@ import RequireAuth from "./components/routing/RequireAuth";
 import RequireRole from "./components/routing/RequireRole";
 import RequireStatus from "./components/routing/RequireStatus";
 import HomePage from "./pages/home/HomePage";
+import ForOrgsPage from "./pages/marketing/ForOrgsPage";
+import ForBrandsPage from "./pages/marketing/ForBrandsPage";
 import OrgDropFeedPage from "./pages/org/OrgDropFeedPage";
 import OrgMyCampaignsPage from "./pages/org/OrgMyCampaignsPage";
 import OrgCampaignDetailPage from "./pages/org/OrgCampaignDetailPage";
@@ -85,6 +87,8 @@ export default function AppRoot(): ReactElement {
     <Routes>
       <Route element={<SiteLayout />}>
         <Route index element={<HomePage />} />
+        <Route path="for-orgs" element={<ForOrgsPage />} />
+        <Route path="for-brands" element={<ForBrandsPage />} />
 
         {/* Public auth pages. */}
         <Route path="login" element={<LoginPage />} />

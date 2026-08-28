@@ -700,14 +700,13 @@ stop_if:
 
 ## spa-role-tours
 
-status: parked
+status: done
 gaps:
   - spa.for-orgs-for-brands
 note: |
-  [`LAUNCH.md`](../LAUNCH.md) Phase C. Un-park after `launch-org-apply` and
-  `launch-admin-drops` are archived. Teach apply-first + admin-minted drops
-  (PRODUCT §6.1 / §5.2). Copy must not promise public IG login without testers
-  or a verified shipping address.
+  [`LAUNCH.md`](../LAUNCH.md) Phase C. Public `/for-orgs` and `/for-brands` with
+  requirements, numbered flow, stylized frames, home/footer/login/brand-apply
+  links. Archived after ci-local green. Set `closed_in` on the archive at commit.
 stop_if:
   - Un-parking while brand Plan your Campaign still inserts a live Drop.
   - Drawing for-brands as self-serve drop create.

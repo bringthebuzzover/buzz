@@ -29,6 +29,16 @@ export default function SiteFooter() {
           <h4 className="mb-4 font-bold text-buzz-ink">Get Started</h4>
           <ul className="space-y-2 text-sm font-medium text-buzz-inkMuted">
             <li>
+              <Link to="/for-orgs" className="hover:text-buzz-coral">
+                For orgs
+              </Link>
+            </li>
+            <li>
+              <Link to="/for-brands" className="hover:text-buzz-coral">
+                For brands
+              </Link>
+            </li>
+            <li>
               <Link to="/org/apply" className="hover:text-buzz-coral">
                 Apply as Org
               </Link>

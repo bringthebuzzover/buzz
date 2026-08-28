@@ -118,6 +118,7 @@ Thin routes; business logic in `backend/app/services/`.
 
 - Entry: `frontend/src/index.tsx` → `BrowserRouter` → `QueryClientProvider` → `AuthProvider` → `AppRoot.tsx` routes.
 - Shells: marketing `SiteLayout`; admin `AdminLayout`.
+- Public marketing under `SiteLayout`: `/`, `/for-orgs`, `/for-brands`, legal pages.
 - Guards: `RequireAuth` → `RequireStatus` → `RequireRole`.
 - HTTP: hand-written `apiFetch` (`frontend/src/api/client.ts`) + TanStack Query hooks; OpenAPI types for typing (`schema.ts`), not a generated runtime SDK.
 - Access token in memory; refresh via cookie; IG reconnect latch → `/reconnect-instagram`.
