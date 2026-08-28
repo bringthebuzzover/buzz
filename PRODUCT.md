@@ -134,7 +134,7 @@ For v1, drops expose two timestamps:
 
 ### 5.2 Requesting a drop
 
-A **drop request** and a **drop** are different objects.
+A **drop request** and a **drop** are different objects. Public **`/for-brands`** illustrates this motion (ticket → admin draft → **Publish**).
 
 1. Brand submits a **drop request** (intake ticket: free-text message / notes). That text is **not** the campaign title or description. The request is **not** a live campaign and **must not** appear on the org Drop Feed. Brand-facing ticket copy: a representative will contact them.
 2. A Buzz representative handles **agreements, logistics, product shipment, and scheduling** behind the scenes (sales call out of band).

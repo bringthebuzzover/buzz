@@ -124,6 +124,8 @@ function onPublicMarketingRoute(): boolean {
   const p = window.location.pathname;
   return (
     p === "/" ||
+    p.startsWith("/for-orgs") ||
+    p.startsWith("/for-brands") ||
     p.startsWith("/privacy") ||
     p.startsWith("/terms") ||
     p.startsWith("/data-deletion")

@@ -21,6 +21,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./contexts/AuthContext";
 
 import HomePage from "./pages/home/HomePage";
+import ForOrgsPage from "./pages/marketing/ForOrgsPage";
+import ForBrandsPage from "./pages/marketing/ForBrandsPage";
 import OrgDropFeedPage from "./pages/org/OrgDropFeedPage";
 import OrgMyCampaignsPage from "./pages/org/OrgMyCampaignsPage";
 import OrgCampaignDetailPage from "./pages/org/OrgCampaignDetailPage";
@@ -52,6 +54,8 @@ import AdminHealthPage from "./pages/admin/AdminHealthPage";
 
 const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["HomePage", HomePage],
+  ["ForOrgsPage", ForOrgsPage],
+  ["ForBrandsPage", ForBrandsPage],
   ["OrgDropFeedPage", OrgDropFeedPage],
   ["OrgMyCampaignsPage", OrgMyCampaignsPage],
   ["OrgCampaignDetailPage", OrgCampaignDetailPage],

@@ -93,6 +93,11 @@ export default function BrandApplyPage() {
         <Link to="/brand/login" className="font-bold text-buzz-coral hover:underline">
           Already have an account? Brand login
         </Link>
+        <p className="mt-4 text-sm font-medium text-buzz-inkMuted">
+          <Link to="/for-brands" className="font-bold text-buzz-coral hover:underline">
+            See how it works
+          </Link>
+        </p>
       </div>
     );
   }
@@ -174,6 +179,11 @@ export default function BrandApplyPage() {
           </p>
         )}
 
+        <p className="text-center text-xs text-buzz-inkMuted">
+          <Link to="/for-brands" className="font-bold text-buzz-coral hover:underline">
+            See how it works
+          </Link>
+        </p>
         <p className="text-center text-xs text-buzz-inkMuted">
           Already have an account?{" "}
           <Link to="/brand/login" className="font-bold text-buzz-coral hover:underline">

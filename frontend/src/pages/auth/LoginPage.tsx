@@ -52,6 +52,11 @@ export default function LoginPage() {
           Apply here.
         </Link>
       </p>
+      <p className="mt-3 text-sm font-medium text-buzz-inkMuted">
+        <Link to="/for-orgs" className="font-bold text-buzz-coral hover:underline">
+          See how it works
+        </Link>
+      </p>
 
       <p className="mt-4 text-sm font-medium text-buzz-inkMuted">
         Are you a brand?{" "}
