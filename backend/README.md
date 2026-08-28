@@ -122,17 +122,20 @@ Feed items carry server-computed `acceptedCount`/`alreadyApplied`; list paginati
 
 ## Brand portal (Stage 5C)
 
-Brand-facing endpoints (§8.1–§8.5). All `CurrentBrand` (JWT + `brand` role + `active`); responses are camelCase + epoch-ms. The `BrandTrackerStage` enum collapsed from 7 values to the architecture 5-stage vocabulary (`request_received` → `finalizing_agreements` → `awaiting_products` → `drop_active` → `drop_finished`).
+Brand-facing endpoints. All `CurrentBrand` (JWT + `brand` role + `active`); responses are camelCase + epoch-ms. After LAUNCH Phase B, brand intake is a **ticket** (`drop_requests`). Live campaigns are admin-minted `drops` with `published_at`. Brand-facing tracker after publish: `awaiting_products` → `drop_active` → `drop_finished`.
 
 ```
 GET    /api/brands/me                           brand profile
-POST   /api/brands/me/drops                     create a drop (title, description) — defaults capacity=10, stage=request_received
+POST   /api/brands/me/drop-requests             ticket only {message, notes?} — not a Drop
+GET    /api/brands/me/drop-requests             list tickets
 GET    /api/brands/me/drops                     list brand's drops with per-drop aggregate (posts, likes, comments, engagement, reach)
 GET    /api/brands/me/drops/{drop_id}           drop detail with applicants + org-attributed totals
 POST   /api/brands/me/drops/{drop_id}/finalize-applicants   accept/deny applicants (7 rules, atomic txn)
 GET    /api/brands/me/aggregate                 brand-level rollup (drops, posts, likes, comments, engagement, reach, orgs, campuses)
 GET    /api/brands/me/engagement-series         cumulative engagement time series (?bucket_count=&window_days=)
 ```
+
+Admin **Publish** (`POST /api/admin/drops/{id}/publish`) sets `published_at` and emails the brand. Org feed / apply / Notify Me require `published_at IS NOT NULL`.
 
 `finalize-applicants` enforces 7 rules before the atomic accept/deny transaction: no duplicate orgs, stage must be `finalizing_agreements`, apply window closed, not already finalized, selected ≤ capacity, unit allocation ≤ budget, all allocated orgs must have applied. `resolve_brand_drop` gates every per-drop endpoint (404 not 403, no existence leak). Aggregates port `frontend/src/utils/metrics.ts` (`computeDropAggregate`, `computeBrandAggregate`, `computeEngagementTimeSeries`) — all SQL SUMs are COALESCE'd.
 

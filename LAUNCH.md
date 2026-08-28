@@ -1,6 +1,6 @@
 # Seeded launch revamp — implementation plan
 
-**Status:** locked for implementation (2026-08-25)  
+**Status:** Phases A–C shipped (2026-08-28). Locks below still apply; do not reopen.  
 **Not** an idea file. **Not** a gap list. **Not** a second PRODUCT.
 
 | This file | [`PRODUCT.md`](PRODUCT.md) | [`ARCHITECTURE.md`](ARCHITECTURE.md) | [`gaps/`](gaps/) |
@@ -231,7 +231,7 @@ Admin org detail:
 
 ## 5. Brand / drop motion
 
-### Current (as-built)
+### Pre-B (historical — do not re-implement)
 
 ```
 /brand/requests/new → POST /api/brands/me/drops {title, description}
@@ -243,11 +243,11 @@ Org GET /api/drops: any approved-brand drop except drop_finished
 drop_autoclose: request_received + window passed → finalizing_agreements
 ```
 
-Evidence: `create_brand_drop`; `_browsable_drop_filters`; `jobs/drop_autoclose.py`.
+Evidence at the time: `create_brand_drop`; `_browsable_drop_filters`; `jobs/drop_autoclose.py`.
 
-PRODUCT §5.2 already said “request then Buzz logistics.” As-built fights that.
+PRODUCT §5.2 already said “request then Buzz logistics.” That as-built fought it until Phase B.
 
-### Target
+### Target (shipped — Phase B)
 
 ```
 /brand/requests/new → POST /api/brands/me/drop-requests {message, notes?}
@@ -397,20 +397,23 @@ Meta BV, App Review, address verifier, brand creative editor, Paper, AI, TikTok 
 
 ---
 
-## 10. Current vs expected — quick surfaces
+## 10. Surfaces after A–C (as-built)
 
-| Surface | Current | Expected |
-| ------- | ------- | -------- |
-| `/` Join org | `/login` | `/org/apply` |
-| `/login` | Creates account | Returning + “New org? Apply” |
-| `/org/apply` | missing | Public form |
-| `/onboarding/profile` | Required after IG | Legacy drain only |
-| `/onboarding/connect-instagram` | missing | After approve |
-| `/brand/requests/new` | Creates Drop | Creates ticket |
-| Admin brand | Cannot create drop | Full create form |
-| Admin org Approve | → `active` | → `pending_instagram` |
-| Org feed | All non-finished | **Published** only (`published_at` set); hide legacy stubs |
-| IG callback unknown user | INSERT | 400 apply-required |
+As-built detail: [`ARCHITECTURE.md`](ARCHITECTURE.md). PRODUCT remains SOT for UX.
+
+| Surface | After A–C |
+| ------- | --------- |
+| `/` Join org | `/org/apply` |
+| `/login` | Returning orgs + “New org? Apply” |
+| `/org/apply` | Public form |
+| `/onboarding/profile` | Legacy drain only |
+| `/onboarding/connect-instagram` | After approve |
+| `/for-orgs` / `/for-brands` | Public role tours (Phase C) |
+| `/brand/requests/new` | Creates ticket |
+| Admin brand | Full create form + Publish |
+| Admin org Approve | → `pending_instagram` |
+| Org feed | **Published** only (`published_at` set); hide leftover unpublished stubs until ops cleanup |
+| IG callback unknown user | 400 apply-required |
 
 Unchanged on purpose: org Drop Feed card UX, My Campaigns, brand dashboard KPIs, batch finalize §7.1, View as, erase, `.edu` rotate, brand apply/password, admin tracker stage moves.
 

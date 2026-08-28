@@ -7,30 +7,25 @@ status: open
 surface: brand
 evidence:
   - path: backend/app/routes/brands.py
-    note: POST /api/brands/me/drops is the only brand write; no PATCH for owned drops
+    note: Brand writes are drop-requests + finalize; no PATCH for owned drop title/description/image
   - path: backend/app/schemas/drops.py
-    note: BrandDropCreateRequest is title+description only; image is not on create
-  - path: backend/app/services/drops.py
-    note: create_brand_drop hardcodes image=https://placehold.co/600x400/png
+    note: No brand creative patch schema; admin AdminDropConfigPatch covers draft creative
   - path: frontend/src/pages/brand/BrandRequestDropPage.tsx
-    note: Request form has working title + short message; no picture control
+    note: Plan your Campaign posts a ticket (message/notes), not drop creative
   - path: frontend/src/pages/brand/BrandDropDetailPage.tsx
-    note: Header renders title+description read-only; image is unused on this page
-  - path: frontend/src/components/org/DropFeedCard.tsx
-    note: Org feed hero is <img src={drop.image}> — every product-created drop is a placeholder
+    note: Header renders title+description read-only after admin mint/Publish
   - path: backend/app/schemas/admin.py
-    note: AdminDropConfigPatch extra=forbid; title/description/image were OUT of brand.drop-create-thin
+    note: Creative PATCH is admin + draft-only (409 after published_at)
   - path: backend/app/models/drop.py
     note: title String(255), description Text, image String(1024) NOT NULL — URL column, no blob
   - path: PRODUCT.md
-    note: §5.2 brand submits a request then sees a read-only tracker; does not say creative is frozen
+    note: §5.2 brand sees a read-only tracker; does not get a creative editor in this revamp
 repro: |
-  1. Brand POST /api/brands/me/drops {title, description}. 200. image is always
-     https://placehold.co/600x400/png.
-  2. PATCH /api/brands/me/drops/{id} → 405. No other brand write exists.
-  3. Open /brand/drops/:id — title and description are static text; no edit,
-     no picture.
-  4. Org browse card for that drop shows the placehold.co hero.
+  1. Brand POST /api/brands/me/drop-requests {message}. 200. No drops row.
+  2. Admin creates unpublished drop + Publish. Brand GET drop detail.
+  3. PATCH /api/brands/me/drops/{id} → 405. No brand creative write exists.
+  4. Open /brand/drops/:id — title and description are static text; no edit,
+     no picture control.
 fix_when: |
   **Deferred Want** — do not implement during [`LAUNCH.md`](../LAUNCH.md) Phase B.
   Admin writes creative at mint/Publish; brand does not edit creative in this revamp
@@ -49,15 +44,12 @@ draft/Publish; brand monitor is read-only. This gap is a **Want after** Phase B
 (`LAUNCH.md` §3 “After this revamp”). Do not ship brand `PATCH` creative while
 implementing `launch-admin-drops`.
 
-`brand.drop-create-thin` shipped **admin** logistics PATCH and explicitly left
-`title` / `description` / `image` **OUT** as brand-owned. There is still **no
-brand write** after `POST /api/brands/me/drops`. Create never accepts a
-picture, so every product-created drop ships the placehold.co hero to the org
-feed.
+`brand.drop-create-thin` shipped **admin** logistics PATCH. Admin later gained
+draft creative PATCH (Phase B). There is still **no brand write** for title /
+description / image after admin mint. Tickets are not creative.
 
 PRODUCT §5.1–§5.2 keeps **logistics** with Buzz (capacity, window, units,
-hashtag, tracker). It does not freeze the brand’s campaign copy or hero.
-Typos and a missing picture are unrecoverable in-product today.
+hashtag, tracker). Brand typo-fix on published creative remains a Want.
 
 ## Deferred Want v1 (post-revamp only — not Phase B)
 

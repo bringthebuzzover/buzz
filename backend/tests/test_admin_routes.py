@@ -1023,6 +1023,26 @@ class TestCleanupRequestReceived:
         assert again.status_code == 200
         assert again.json()["data"]["convertedCount"] == 0
 
+    async def test_cleanup_dry_run_does_not_delete(self, app_client: AsyncClient, db_session):
+        from app.services.admin import cleanup_request_received_stubs
+
+        brand = await make_brand(db_session)
+        stub = await make_drop(
+            db_session,
+            brand,
+            title="Stub request",
+            stage=BrandTrackerStage.REQUEST_RECEIVED,
+            published_at=None,
+        )
+        stub_id = stub.id
+        result = await cleanup_request_received_stubs(db_session, dry_run=True)
+        assert result["dry_run"] is True
+        assert result["converted_count"] == 1
+        assert stub_id in result["deleted_drop_ids"]
+        db_session.expire_all()
+        still = await db_session.get(Drop, stub_id)
+        assert still is not None
+
     async def test_cleanup_blocked_in_production(
         self, app_client: AsyncClient, db_session, monkeypatch
     ):
