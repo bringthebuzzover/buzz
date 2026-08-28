@@ -4,6 +4,7 @@ title: No public tour pages that show what each side needs and how the platform 
 kind: ux_hole
 severity: P2
 status: fixed
+closed_in: 11d2bd7
 surface: spa
 evidence:
   - path: frontend/src/components/home/HomeBringBuzzSection.tsx
