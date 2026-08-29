@@ -101,6 +101,41 @@ describe("View-as latch", () => {
     await expect(resumeImpersonation("target-1")).resolves.toBe(false);
     expect(peekViewAsLatch()?.userId).toBe("target-1");
     expect(isImpersonating()).toBe(false);
+    expect(
+      (global.fetch as jest.Mock).mock.calls.every(
+        (c) => !String(c[0]).includes("/api/auth/refresh"),
+      ),
+    ).toBe(true);
+  });
+
+  it("resumeImpersonation refreshes once on 401 then installs the token", async () => {
+    setAccessToken("stale-admin");
+    global.fetch = jest.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.includes("/api/auth/refresh")) {
+          return jsonResponse(200, {
+            data: { access_token: "fresh-admin" },
+          });
+        }
+        if (url.includes("/impersonate")) {
+          const headers = new Headers(init?.headers);
+          if (headers.get("Authorization") === "Bearer stale-admin") {
+            return jsonResponse(401, {
+              data: null,
+              error: { code: "UNAUTHORIZED", message: "revoked" },
+            });
+          }
+          return jsonResponse(200, {
+            data: { accessToken: "imp-from-resume" },
+          });
+        }
+        return jsonResponse(500, { data: null });
+      },
+    );
+    await expect(resumeImpersonation("target-1")).resolves.toBe(true);
+    expect(getAccessToken()).toBe("imp-from-resume");
+    expect(isImpersonating()).toBe(true);
   });
 });
 

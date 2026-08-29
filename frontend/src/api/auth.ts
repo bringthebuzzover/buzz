@@ -128,17 +128,25 @@ export function takeImpersonatedUser(): AuthUser | null {
  * {@link takeImpersonatedUser}.
  */
 export async function resumeImpersonation(userId: string): Promise<boolean> {
-  const token = getAccessToken();
+  const postImpersonate = (token: string) =>
+    fetch(`${API_BASE_URL}/api/admin/impersonate/${userId}`, {
+      method: "POST",
+      credentials: "include",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+  let token = getAccessToken();
   if (!token) return false;
   try {
-    const resp = await fetch(
-      `${API_BASE_URL}/api/admin/impersonate/${userId}`,
-      {
-        method: "POST",
-        credentials: "include",
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
+    let resp = await postImpersonate(token);
+    // Raw fetch (no apiFetch): 401 after cookie refresh rotated token_version.
+    // Refresh once and retry — do not refresh on 403 (inactive target).
+    if (resp.status === 401) {
+      if (!(await refreshAccessToken())) return false;
+      token = getAccessToken();
+      if (!token) return false;
+      resp = await postImpersonate(token);
+    }
     if (!resp.ok) return false;
     // ImpersonateResponse uses camelCase (accessToken); legacy snake_case
     // fallback kept for older mocks. ``user`` is always present in the current
