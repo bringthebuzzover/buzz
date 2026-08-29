@@ -202,11 +202,18 @@ async def issue_token_pair(db: AsyncSession, user: User) -> tuple[str, str]:
     ``FOR UPDATE`` serializes concurrent mints on the same row and reloads
     ``token_version`` so a waiter cannot both compute ``old+1`` from a stale
     snapshot (auth.ci-session-restore-flake v6).
+
+    Commits the bump here rather than leaving it to ``get_db``: FastAPI sends
+    the response *before* a yield-dependency's exit code runs, so the client can
+    present the token it was just handed while the bump is still uncommitted —
+    the row then still holds the old ``ver`` and the fresh token reads as
+    revoked (auth.mint-bump-not-durable-before-response). Callers must therefore
+    mint last; nothing may write after this returns.
     """
 
     await db.refresh(user, with_for_update=True)
     bump_token_version(user)
-    await db.flush()
+    await db.commit()
     ver = user.token_version or 0
     access = jwt.create_access_token(user.id, user.portal_role, user.status, token_version=ver)
     refresh = jwt.create_refresh_token(user.id, token_version=ver)
