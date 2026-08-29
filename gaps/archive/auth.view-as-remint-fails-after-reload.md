@@ -27,8 +27,8 @@ fix_when: |
 
 # View-as remint fails after reload
 
-Fixed: bootstrap retries `refreshAccessToken` + `resumeImpersonation` once
-before dropping the latch. `fetchMe` matches `apiFetch` (clock expiry ends
-View-as; ver-mismatch does not). Org-list E2E clicks the name link inside the
-row. Residual zombie-auth hole remains
-[`auth.failed-refresh-leaves-authenticated-shell`](../auth.failed-refresh-leaves-authenticated-shell.md).
+Fixed: `resumeImpersonation` retries POST /impersonate once after a 401
+(refresh cookie rotation), not on 403. Bootstrap no longer issues a second
+unconditional refresh (that extra `token_version` bump widened stress flakes
+on 7f5eac7). SPA View-as uses the impersonate response user instead of a
+follow-up `/me`. `fetchMe` ends View-as on TOKEN_EXPIRED only.

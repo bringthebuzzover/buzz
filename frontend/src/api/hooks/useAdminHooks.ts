@@ -19,7 +19,7 @@ import {
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../client";
-import { setImpersonationToken, setViewAsLatch } from "../auth";
+import { authUserFromWire, setImpersonationToken, setViewAsLatch } from "../auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { pathForUser } from "../../utils/landing";
 import type { components } from "../generated/schema";
@@ -548,7 +548,7 @@ export function useImpersonate(): AdminMutation<string> {
  * admin renders inside the target's portal. Then land wherever that user belongs.
  */
 export function useViewAs() {
-  const { refreshUser } = useAuth();
+  const { acceptSession } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const impersonate = useImpersonate();
@@ -558,10 +558,13 @@ export function useViewAs() {
     async (userId: string) => {
       setError(null);
       try {
-        await impersonate.mutateAsync(userId);
+        const data = (await impersonate.mutateAsync(
+          userId,
+        )) as ImpersonateResponse;
         queryClient.clear();
-        const me = await refreshUser();
-        navigate(me ? pathForUser(me) : "/", { replace: true });
+        const user = authUserFromWire(data.user);
+        acceptSession(user, data.accessToken);
+        navigate(pathForUser(user), { replace: true });
       } catch (err) {
         setError(
           err instanceof ApiError
@@ -570,7 +573,7 @@ export function useViewAs() {
         );
       }
     },
-    [impersonate, queryClient, refreshUser, navigate],
+    [impersonate, queryClient, acceptSession, navigate],
   );
 
   return { viewAs, error, isPending: impersonate.isPending };
