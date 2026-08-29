@@ -351,6 +351,29 @@ async def test_issue_token_pair_second_mint_sees_prior_bump(db_session) -> None:
     assert r2.ver == a2.ver
 
 
+async def test_issue_token_pair_commits_the_bump(db_session, monkeypatch) -> None:
+    """The bump must be durable before the caller builds its response.
+
+    FastAPI sends the response before ``get_db``'s exit-code commit runs, so a
+    client that immediately presents the token it was just handed would be
+    checked against the un-bumped row and read as revoked
+    (auth.mint-bump-not-durable-before-response).
+    """
+    from app.services.auth import issue_token_pair
+
+    user = await persist(db_session, make_user())
+    commits: list[int] = []
+    original = db_session.commit
+
+    async def spy() -> None:
+        commits.append(1)
+        await original()
+
+    monkeypatch.setattr(db_session, "commit", spy)
+    await issue_token_pair(db_session, user)
+    assert commits, "issue_token_pair must commit the token_version bump itself"
+
+
 async def test_deny_org_revokes_sessions(app_client: AsyncClient, db_session) -> None:
     from tests.conftest import make_org
 
