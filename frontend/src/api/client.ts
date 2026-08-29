@@ -11,7 +11,6 @@ import {
   getAccessToken,
   isImpersonating,
   markInstagramReconnectLatch,
-  notifyApiSessionLost,
   refreshAccessToken,
   setAccessToken,
 } from "./auth";
@@ -82,12 +81,13 @@ export async function apiFetch<T>(
       throw err;
     }
     if (err instanceof ApiError && RECOVERABLE_AUTH_CODES.has(err.code)) {
-      // The refresh cookie belongs to the admin, not the impersonated user, so
-      // refreshing here would quietly escalate the session. End impersonation
-      // via full navigation — this module must not import Router/QueryClient;
-      // UI Exit uses useEndImpersonation (SPA) instead.
+      // Refresh cookie is the admin's. Never refresh during View-as (would
+      // escalate). Clock expiry ends impersonation; ver-mismatch must not —
+      // remint on reload from the latch instead of dumping to /admin.
       if (isImpersonating()) {
-        endImpersonation("expired");
+        if (err.code === "TOKEN_EXPIRED") {
+          endImpersonation("expired");
+        }
         throw err;
       }
       if (!tokenAtStart) {
@@ -104,7 +104,6 @@ export async function apiFetch<T>(
         return await doFetch<T>(path, init);
       }
       setAccessToken(null);
-      notifyApiSessionLost();
     }
     throw err;
   }

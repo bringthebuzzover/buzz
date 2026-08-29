@@ -38,7 +38,6 @@ import {
   devLogin,
   fetchMe,
   logout as apiLogout,
-  registerApiSessionLostHandler,
   takeImpersonatedUser,
   takeRefreshedUser,
   viewAsPortalRoleFromPath,
@@ -167,11 +166,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setStatus("error");
   }, []);
-
-  useEffect(() => {
-    registerApiSessionLostHandler(failHard);
-    return () => registerApiSessionLostHandler(null);
-  }, [failHard]);
 
   const failSoft = useCallback(() => {
     // Keep access token — cookie/session may still be valid; Retry can recover.

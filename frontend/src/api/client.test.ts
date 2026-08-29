@@ -4,9 +4,11 @@
  */
 import { apiFetch, ApiError } from "./client";
 import {
+  clearImpersonationSession,
   getAccessToken,
-  registerApiSessionLostHandler,
+  isImpersonating,
   setAccessToken,
+  setImpersonationToken,
 } from "./auth";
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -23,7 +25,7 @@ describe("apiFetch", () => {
   afterEach(() => {
     global.fetch = realFetch;
     setAccessToken(null);
-    registerApiSessionLostHandler(null);
+    clearImpersonationSession();
     jest.clearAllMocks();
   });
 
@@ -195,10 +197,8 @@ describe("apiFetch", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it("notifies session lost when UNAUTHORIZED refresh fails", async () => {
+  it("clears the bearer but does not failHard when UNAUTHORIZED refresh fails", async () => {
     setAccessToken("stale");
-    const lost = jest.fn();
-    registerApiSessionLostHandler(lost);
     const fetchMock = jest
       .fn()
       .mockResolvedValueOnce(
@@ -222,8 +222,6 @@ describe("apiFetch", () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(getAccessToken()).toBeNull();
-    expect(lost).toHaveBeenCalledTimes(1);
-    registerApiSessionLostHandler(null);
   });
 
   it("does not refresh UNAUTHORIZED when no bearer was sent", async () => {
@@ -245,10 +243,8 @@ describe("apiFetch", () => {
     ).toBe(true);
   });
 
-  it("notifies session lost when TOKEN_EXPIRED refresh fails", async () => {
+  it("clears the bearer but does not failHard when TOKEN_EXPIRED refresh fails", async () => {
     setAccessToken("expired");
-    const lost = jest.fn();
-    registerApiSessionLostHandler(lost);
     const fetchMock = jest
       .fn()
       .mockResolvedValueOnce(
@@ -272,14 +268,10 @@ describe("apiFetch", () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(getAccessToken()).toBeNull();
-    expect(lost).toHaveBeenCalledTimes(1);
-    registerApiSessionLostHandler(null);
   });
 
   it("replays with a newer bearer when refresh fails after concurrent login", async () => {
     setAccessToken("stale");
-    const lost = jest.fn();
-    registerApiSessionLostHandler(lost);
     const fetchMock = jest.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
@@ -311,6 +303,27 @@ describe("apiFetch", () => {
     const res = await apiFetch<{ ok: boolean }>("/api/x");
     expect(res.data).toEqual({ ok: true });
     expect(getAccessToken()).toBe("login-token");
-    expect(lost).not.toHaveBeenCalled();
+  });
+
+  it("does not refresh or end View-as on UNAUTHORIZED while impersonating", async () => {
+    setImpersonationToken("imp-stale");
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse(401, {
+        data: null,
+        meta: null,
+        error: { code: "UNAUTHORIZED", message: "revoked" },
+      }),
+    );
+    global.fetch = fetchMock;
+
+    await expect(apiFetch("/api/orgs/me")).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(
+      fetchMock.mock.calls.every((c) => !String(c[0]).includes("/api/auth/refresh")),
+    ).toBe(true);
+    expect(isImpersonating()).toBe(true);
+    expect(getAccessToken()).toBe("imp-stale");
   });
 });

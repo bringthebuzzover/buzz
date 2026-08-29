@@ -4,7 +4,7 @@ title: apiFetch does not refresh on UNAUTHORIZED from token_version rotation
 kind: ux_hole
 severity: P2
 status: fixed
-closed_in: 517871e
+closed_in: 5ae043a
 surface: auth
 evidence:
   - path: frontend/src/api/client.ts
@@ -36,7 +36,9 @@ fix_when: |
 # Revoked access JWT skips the refresh interceptor
 
 Fixed: `apiFetch` treats `UNAUTHORIZED` like `TOKEN_EXPIRED` when a bearer was
-sent (one refresh + replay). Impersonation still ends without refreshing the
-admin cookie. Dead refresh cookie clears the bearer and notifies AuthContext
-(`failHard`). A newer bearer installed mid-flight is replayed instead of
-wiping the login.
+sent (one refresh + replay). View-as clock expiry still ends impersonation;
+ver-mismatch during View-as does not (would dump to `/admin`). A newer bearer
+installed mid-flight is replayed instead of wiping the login.
+
+`failHard` from `apiFetch` was reverted after stress ×20 (5/20 shards bounced
+to login). Residual: [`auth.failed-refresh-leaves-authenticated-shell`](../auth.failed-refresh-leaves-authenticated-shell.md).
