@@ -231,8 +231,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const path = window.location.pathname;
             const pathRole = viewAsPortalRoleFromPath(path);
             if (latch && pathRole === latch.portalRole) {
-              const resumed = await resumeImpersonation(latch.userId);
+              let resumed = await resumeImpersonation(latch.userId);
               if (!bootstrapStillOwner()) return;
+              if (!resumed) {
+                // Refresh just rotated admin token_version; the bearer
+                // impersonate used can already be stale (stress 33226739781).
+                const again = await refreshAccessToken();
+                if (!bootstrapStillOwner()) return;
+                if (again) {
+                  resumed = await resumeImpersonation(latch.userId);
+                  if (!bootstrapStillOwner()) return;
+                }
+              }
               if (resumed) {
                 // Impersonate response returns access_token + target user from
                 // the same transaction (auth.ci-session-restore-flake), so no

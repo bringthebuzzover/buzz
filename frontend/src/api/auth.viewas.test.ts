@@ -3,6 +3,7 @@
  */
 import {
   clearImpersonationSession,
+  fetchMe,
   peekViewAsLatch,
   setAccessToken,
   setImpersonationToken,
@@ -100,5 +101,63 @@ describe("View-as latch", () => {
     await expect(resumeImpersonation("target-1")).resolves.toBe(false);
     expect(peekViewAsLatch()?.userId).toBe("target-1");
     expect(isImpersonating()).toBe(false);
+  });
+});
+
+describe("fetchMe during View-as", () => {
+  const realFetch = global.fetch;
+  const originalLocation = window.location;
+
+  afterEach(() => {
+    global.fetch = realFetch;
+    clearImpersonationSession();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: originalLocation,
+    });
+  });
+
+  it("does not end View-as on UNAUTHORIZED", async () => {
+    const hrefAssign = { href: "http://localhost/org/browse" };
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: hrefAssign,
+    });
+    setImpersonationToken("imp-stale");
+    global.fetch = jest.fn(async () =>
+      jsonResponse(401, {
+        data: null,
+        error: { code: "UNAUTHORIZED", message: "revoked" },
+      }),
+    );
+
+    await expect(fetchMe()).resolves.toEqual({ kind: "error" });
+    expect(isImpersonating()).toBe(true);
+    expect(getAccessToken()).toBe("imp-stale");
+    expect(hrefAssign.href).toBe("http://localhost/org/browse");
+    expect(
+      (global.fetch as jest.Mock).mock.calls.every(
+        (c) => !String(c[0]).includes("/api/auth/refresh"),
+      ),
+    ).toBe(true);
+  });
+
+  it("ends View-as on TOKEN_EXPIRED", async () => {
+    const hrefAssign = { href: "http://localhost/org/browse" };
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: hrefAssign,
+    });
+    setImpersonationToken("imp-expired");
+    global.fetch = jest.fn(async () =>
+      jsonResponse(401, {
+        data: null,
+        error: { code: "TOKEN_EXPIRED", message: "expired" },
+      }),
+    );
+
+    await expect(fetchMe()).resolves.toEqual({ kind: "unauthenticated" });
+    expect(isImpersonating()).toBe(false);
+    expect(hrefAssign.href).toBe("/admin?impersonation=expired");
   });
 });

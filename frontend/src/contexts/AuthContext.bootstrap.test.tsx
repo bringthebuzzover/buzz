@@ -582,9 +582,47 @@ describe("AuthProvider bootstrap resolution", () => {
     });
 
     await waitForStatus(container, "authenticated");
+    expect(resumeMock).toHaveBeenCalledTimes(2);
     expect(resumeMock).toHaveBeenCalledWith("org-target");
     expect(userText(container)).toBe("admin-1");
     expect(peekViewAsLatch()).toBeNull();
+  });
+
+  it("retries View-as remint after a failed impersonate then succeeds", async () => {
+    window.history.pushState({}, "", "/org/browse");
+    setViewAsLatch("org-target", "org");
+    refreshMock.mockImplementation(async () => {
+      setAccessToken("admin-access");
+      return true;
+    });
+    takeRefreshedUserMock.mockReturnValue({
+      id: "admin-1",
+      portalRole: "admin",
+      status: "active",
+    });
+    resumeMock
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    takeImpersonatedUserMock.mockReturnValue({
+      id: "org-target",
+      portalRole: "org",
+      status: "active",
+      impersonatedBy: "admin-1",
+    });
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+
+    await waitForStatus(container, "authenticated");
+    expect(refreshMock).toHaveBeenCalledTimes(2);
+    expect(resumeMock).toHaveBeenCalledTimes(2);
+    expect(userText(container)).toBe("org-target");
+    expect(peekViewAsLatch()?.userId).toBe("org-target");
   });
 });
 
