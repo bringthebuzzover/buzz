@@ -114,7 +114,9 @@ test("org detail opens from the list", async ({ page }) => {
   await sidebar(page).getByRole("link", { name: /organizations/i }).click();
   await expect(page).toHaveURL(/\/admin\/orgs$/);
   await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
-  await page.getByRole("link", { name: TEST_ORG }).click();
+  const orgRow = page.getByRole("row", { name: new RegExp(TEST_ORG) });
+  await expect(orgRow).toBeVisible();
+  await orgRow.getByRole("link", { name: TEST_ORG }).click();
 
   await expect(page).toHaveURL(/\/admin\/orgs\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { name: TEST_ORG })).toBeVisible();

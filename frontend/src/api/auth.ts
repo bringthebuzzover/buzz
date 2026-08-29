@@ -401,11 +401,15 @@ export async function fetchMe(): Promise<MeResult> {
 
     let resp = await _meRequest(token);
     if (resp.status === 401) {
-      // Refreshing here would hand back the admin's own token, so an expired
-      // impersonation ends the session instead of silently escalating it.
+      // Refreshing here would hand back the admin's own token. Clock-expired
+      // View-as ends; ver-mismatch must not — remint from the latch on reload.
       if (impersonating) {
-        endImpersonation("expired");
-        return { kind: "unauthenticated" };
+        const impCode = await _errorCode(resp);
+        if (impCode === "TOKEN_EXPIRED") {
+          endImpersonation("expired");
+          return { kind: "unauthenticated" };
+        }
+        return { kind: "error" };
       }
       const code = await _errorCode(resp);
       if (code === "INSTAGRAM_TOKEN_EXPIRED") {
