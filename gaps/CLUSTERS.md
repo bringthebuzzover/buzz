@@ -561,7 +561,7 @@ note: |
 
 ## meta-business-verification
 
-status: parked
+status: deferred
 gaps:
   - deploy.meta-business-verification
 approach: |
