@@ -196,7 +196,16 @@ def build_user_response(user: User) -> UserResponse:
     )
 
 
-async def issue_token_pair(db: AsyncSession, user: User) -> tuple[str, str]:
+class StaleRefreshToken(Exception):
+    """Presented ``token_version`` lost the row-lock race; do not bump."""
+
+
+async def issue_token_pair(
+    db: AsyncSession,
+    user: User,
+    *,
+    expected_version: int | None = None,
+) -> tuple[str, str]:
     """Bump ``token_version``, then mint ``(access_token, refresh_token)``.
 
     ``FOR UPDATE`` serializes concurrent mints on the same row and reloads
@@ -209,9 +218,18 @@ async def issue_token_pair(db: AsyncSession, user: User) -> tuple[str, str]:
     the row then still holds the old ``ver`` and the fresh token reads as
     revoked (auth.mint-bump-not-durable-before-response). Callers must therefore
     mint last; nothing may write after this returns.
+
+    ``expected_version`` is compare-and-swap for ``/refresh``: after the row
+    lock, a superseded cookie must raise ``StaleRefreshToken`` without bumping
+    (auth.refresh-rotation-not-compare-and-swap). Login-style callers leave it
+    ``None`` so a new session still revokes outstanding ones. Do not rollback
+    on stale — the route catches and returns 401; ``get_db`` then commits an
+    empty txn and releases the lock.
     """
 
     await db.refresh(user, with_for_update=True)
+    if expected_version is not None and (user.token_version or 0) != expected_version:
+        raise StaleRefreshToken()
     bump_token_version(user)
     await db.commit()
     ver = user.token_version or 0

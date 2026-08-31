@@ -59,7 +59,7 @@ Commit both `openapi.json` and `frontend/src/api/generated/schema.ts` when route
 
 - **Access JWT** (~1h) in memory on the SPA (`Authorization: Bearer`).
 - **Refresh** (~7d) httpOnly cookie `buzz_refresh`, path `/api/auth`. OAuth CSRF: `buzz_oauth_state` cookie on IG login.
-- Both access and refresh JWTs carry `ver`; API compares to `users.token_version` (revocation on logout, deny, password reset, re-login/refresh rotation, IG token clear/deauth, etc.).
+- Both access and refresh JWTs carry `ver`; API compares to `users.token_version` (revocation on logout, deny, password reset, re-login/refresh rotation, IG token clear/deauth, etc.). Refresh rotation is compare-and-swap: a superseded cookie 401s without bumping so it cannot revoke the winner.
 - Guards: `get_current_user` → `require_role` / `require_status` → aliases `CurrentOrg` / `CurrentBrand` / `CurrentAdmin`.
 - Impersonation: short-lived access token (default ~15m); admin refresh cookie untouched; default `IMPERSONATION_READONLY=true`. Same-tab reload remints via a `sessionStorage` View-as latch (Exit / logout clear it); access JWT stays memory-only.
 - Org portal access statuses on `users.status` (**as-built today**): `pending_org_profile` → `pending_email_verification` → `pending_approval` → `active` | `denied` | `erased`. `erased` is terminal after admin org erase (identity scrubbed; campaign KPIs retained — PRODUCT §4.3). Brand review lives on `brands.status` (`pending_review` / `approved` / `denied`).

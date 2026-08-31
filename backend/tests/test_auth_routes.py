@@ -185,11 +185,15 @@ async def test_refresh_concurrent_loser_preserves_winner_cookie(
     assert won.status_code == 200
     new_cookie = won.cookies.get(REFRESH)
     assert new_cookie
+    await db_session.refresh(user)
+    winner_ver = user.token_version
 
     set_request_cookies(app_client, {REFRESH: old})
     lost = await app_client.post("/api/auth/refresh")
     assert lost.status_code == 401
     assert REFRESH not in lost.headers.get("set-cookie", "")
+    await db_session.refresh(user)
+    assert user.token_version == winner_ver
 
     # Winner's cookie still refreshes (loser did not Max-Age=0 the jar).
     set_request_cookies(app_client, {REFRESH: new_cookie})

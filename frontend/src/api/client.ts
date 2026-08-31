@@ -11,6 +11,7 @@ import {
   getAccessToken,
   isImpersonating,
   markInstagramReconnectLatch,
+  notifyApiSessionLost,
   refreshAccessToken,
   setAccessToken,
 } from "./auth";
@@ -97,13 +98,22 @@ export async function apiFetch<T>(
       if (refreshed) {
         return await doFetch<T>(path, init);
       }
-      // Failed refresh must not wipe a bearer login installed mid-flight
-      // (refreshAccessToken returns false but keeps the newer token).
-      const current = getAccessToken();
-      if (current && current !== tokenAtStart) {
+      // Failed refresh must not wipe a bearer login installed mid-flight.
+      // Null only if the token is still the one this call started with, then
+      // replay if a newer one appeared (acceptSession TOCTOU).
+      if (getAccessToken() === tokenAtStart) {
+        setAccessToken(null);
+      }
+      const latest = getAccessToken();
+      if (latest && latest !== tokenAtStart) {
         return await doFetch<T>(path, init);
       }
-      setAccessToken(null);
+      // Settled-session sign-out. Login/bootstrap races are ignored by the
+      // handler unless status is already authenticated; mint durability plus
+      // this CAS is what keeps post-login queries from bouncing to /login.
+      if (!latest) {
+        notifyApiSessionLost();
+      }
     }
     throw err;
   }

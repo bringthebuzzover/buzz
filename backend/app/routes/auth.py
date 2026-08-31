@@ -60,6 +60,7 @@ from app.security.session import bump_token_version
 from app.security.signed_request import SignedRequestError, parse_signed_request
 from app.services.admin_auth import login_admin
 from app.services.auth import (
+    StaleRefreshToken,
     build_user_response,
     handle_instagram_callback,
     issue_token_pair,
@@ -293,6 +294,9 @@ async def refresh(
     """Issue a new access token from the refresh cookie; rotate the cookie.
 
     Successful refresh bumps ``token_version`` and mints a new pair.
+    Concurrent refreshes with the same cookie are compare-and-swap: one 200,
+    the loser 401s without bumping so it cannot revoke the winner
+    (auth.refresh-rotation-not-compare-and-swap).
 
     Cookie-clear policy on 401 (load-bearing under concurrent refresh/login):
 
@@ -357,7 +361,14 @@ async def refresh(
             clear_cookie=False,
         )
 
-    access, new_refresh = await issue_token_pair(db, user)
+    # expected_version is load-bearing: omitting it reopens dual-200 rotation.
+    try:
+        access, new_refresh = await issue_token_pair(db, user, expected_version=payload.ver or 0)
+    except StaleRefreshToken:
+        return _unauthorized(
+            "This session has been revoked. Please sign in again.",
+            clear_cookie=False,
+        )
     _set_refresh_cookie(response, new_refresh)
     # Return user in the same response as the mint so the SPA bootstrap can
     # skip a follow-up /me. That /me was the mint-then-read race window in
