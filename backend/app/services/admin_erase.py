@@ -24,6 +24,7 @@ from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
+from app.security.session import commit_revocation
 from app.services.email import send_org_erased_email
 from app.services.instagram import canonical_instagram_handle
 from app.services.instagram_token import clear_unusable_instagram_token
@@ -94,6 +95,7 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
     user.status = OrgUserStatus.ERASED.value
 
     await db.flush()
+    await commit_revocation(db)
 
     email_sent = False
     if notify_email:

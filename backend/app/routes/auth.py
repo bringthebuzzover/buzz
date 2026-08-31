@@ -56,7 +56,7 @@ from app.schemas.onboarding import (
 )
 from app.security import jwt
 from app.security.rate_limit import enforce_account_limit, rate_limited
-from app.security.session import bump_token_version
+from app.security.session import bump_token_version, commit_revocation
 from app.security.signed_request import SignedRequestError, parse_signed_request
 from app.services.admin_auth import login_admin
 from app.services.auth import (
@@ -426,6 +426,8 @@ async def logout(
             except (jwt.TokenError, ValueError):
                 pass  # nothing valid to revoke; still clear cookie below
 
+    if bumped:
+        await commit_revocation(db)
     if bumped or had_refresh_cookie:
         _clear_refresh_cookie(response)
     return api_response(data=OkResponse())

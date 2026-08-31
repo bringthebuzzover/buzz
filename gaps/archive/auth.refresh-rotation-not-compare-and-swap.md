@@ -28,6 +28,4 @@ Fixed: `issue_token_pair(..., expected_version=)` re-checks under `FOR UPDATE`.
 `/refresh` passes the cookie's `ver`. Login-style mints leave `expected_version`
 unset so a new session still revokes outstanding ones.
 
-Residual (not this fix): logout / deny / password-reset still bump in-request
-and rely on `get_db` teardown to commit —
-[`auth.revocation-bump-uncommitted-until-teardown`](../auth.revocation-bump-uncommitted-until-teardown.md).
+Residual: jobs / on-login IG clears already commit on their own sessions.
