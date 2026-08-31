@@ -140,6 +140,23 @@ class TestAdminOrgErase:
         )
         assert notify_count == 0
 
+    async def test_erase_commits_the_bump(self, db_session, monkeypatch):
+        from app.services.admin_erase import erase_org_user
+
+        send = AsyncMock(return_value=True)
+        monkeypatch.setattr("app.services.admin_erase.send_org_erased_email", send)
+        user, *_ = await _seed_erasable_org(db_session)
+        commits: list[int] = []
+        original = db_session.commit
+
+        async def spy() -> None:
+            commits.append(1)
+            await original()
+
+        monkeypatch.setattr(db_session, "commit", spy)
+        await erase_org_user(db_session, user.id, "@CampusGreeks")
+        assert commits, "erase_org_user must commit the token_version bump itself"
+
     async def test_erase_clears_pending_edu_email(
         self, app_client: AsyncClient, db_session, monkeypatch
     ):

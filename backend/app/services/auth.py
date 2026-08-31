@@ -21,7 +21,7 @@ from app.models.enums import OrgUserStatus, PortalRole
 from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.security import jwt
-from app.security.session import bump_token_version
+from app.security.session import bump_token_version, commit_revocation
 from app.security.token_crypto import encrypt_token
 from app.services.instagram import (
     ALLOWED_ACCOUNT_TYPES,
@@ -173,6 +173,7 @@ async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: st
         return False
     clear_unusable_instagram_token(user)
     await db.flush()
+    await commit_revocation(db)
     return True
 
 

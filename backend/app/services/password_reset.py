@@ -20,7 +20,7 @@ from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
 from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password
-from app.security.session import bump_token_version
+from app.security.session import bump_token_version, commit_revocation
 from app.services.email import send_password_reset_email
 
 logger = logging.getLogger(__name__)
@@ -157,4 +157,5 @@ async def reset_password(
     user.password_hash = hash_password(password)
     bump_token_version(user)
     await db.flush()
+    await commit_revocation(db)
     return {"ok": True}

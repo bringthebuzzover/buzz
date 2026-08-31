@@ -18,10 +18,17 @@ from app.config import (
     settings,
 )
 from app.exceptions import BuzzAPIException
-from app.models.enums import OrgUserStatus, PortalRole
+from app.models.enums import BrandStatus, OrgUserStatus, PortalRole
 from app.security import jwt, rate_limit
 from app.security.rate_limit import enforce_account_limit
-from tests.conftest import make_user, mint_access_token, persist, set_request_cookies
+from tests.conftest import (
+    make_brand,
+    make_org,
+    make_user,
+    mint_access_token,
+    persist,
+    set_request_cookies,
+)
 
 REFRESH = settings.REFRESH_COOKIE_NAME
 
@@ -397,8 +404,6 @@ async def test_issue_token_pair_matching_expected_version_still_bumps(db_session
 
 
 async def test_deny_org_revokes_sessions(app_client: AsyncClient, db_session) -> None:
-    from tests.conftest import make_org
-
     org_user = await persist(
         db_session,
         make_user(status=OrgUserStatus.PENDING_APPROVAL, instagram_user_id="ig_deny"),
@@ -413,6 +418,106 @@ async def test_deny_org_revokes_sessions(app_client: AsyncClient, db_session) ->
     assert resp.status_code == 200
     await db_session.refresh(org_user)
     assert org_user.token_version == 1
+
+
+def _spy_commits(db_session, monkeypatch) -> list[int]:
+    commits: list[int] = []
+    original = db_session.commit
+
+    async def spy() -> None:
+        commits.append(1)
+        await original()
+
+    monkeypatch.setattr(db_session, "commit", spy)
+    return commits
+
+
+async def test_logout_commits_the_bump(app_client: AsyncClient, db_session, monkeypatch) -> None:
+    user = await persist(db_session, make_user())
+    access = mint_access_token(user)
+    commits = _spy_commits(db_session, monkeypatch)
+    resp = await app_client.post(
+        "/api/auth/logout",
+        headers={"Authorization": f"Bearer {access}"},
+    )
+    assert resp.status_code == 200
+    assert commits, "logout must commit the token_version bump itself"
+
+
+async def test_reset_password_commits_the_bump(db_session, monkeypatch) -> None:
+    import uuid
+    from datetime import datetime, timedelta, timezone
+
+    from app.models.password_reset_token import PasswordResetToken
+    from app.security.one_shot_tokens import hash_token
+    from app.security.password import hash_password
+    from app.services.password_reset import reset_password
+
+    user = await persist(db_session, make_user(role=PortalRole.BRAND))
+    user.password_hash = hash_password("old-password-9")
+    raw = "reset-commit-token"
+    db_session.add(
+        PasswordResetToken(
+            id=uuid.uuid4(),
+            user_id=user.id,
+            token_hash=hash_token(raw),
+            email="reset-commit@brand.test",
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        )
+    )
+    await db_session.flush()
+    commits = _spy_commits(db_session, monkeypatch)
+    result = await reset_password(db_session, portal="brand", token=raw, password="new-password-9")
+    assert result["ok"] is True
+    assert commits, "reset_password must commit the token_version bump itself"
+
+
+async def test_deny_org_commits_the_bump(db_session, monkeypatch) -> None:
+    from app.services.admin import deny_org
+
+    org_user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.PENDING_APPROVAL, instagram_user_id="ig_deny_commit"),
+    )
+    org = await make_org(db_session, org_user)
+    commits = _spy_commits(db_session, monkeypatch)
+    await deny_org(db_session, org.id)
+    assert commits, "deny_org must commit the token_version bump itself"
+
+
+async def test_deny_brand_commits_the_bump(db_session, monkeypatch) -> None:
+    from app.models.user import User
+    from app.services.admin import deny_brand
+
+    brand = await make_brand(db_session, brand_name="Deny Commit Brand")
+    brand.status = BrandStatus.PENDING_REVIEW.value
+    user = await db_session.get(User, brand.user_id)
+    assert user is not None
+    user.status = OrgUserStatus.PENDING_APPROVAL.value
+    await db_session.flush()
+    commits = _spy_commits(db_session, monkeypatch)
+    await deny_brand(db_session, brand.id)
+    assert commits, "deny_brand must commit the token_version bump itself"
+    await db_session.refresh(user)
+    assert user.token_version == 1
+
+
+async def test_deauthorize_commits_the_bump(db_session, monkeypatch) -> None:
+    from app.services.auth import revoke_instagram_authorization
+
+    await persist(db_session, make_user(instagram_user_id="ig_deauth_commit"))
+    commits = _spy_commits(db_session, monkeypatch)
+    assert await revoke_instagram_authorization(db_session, "ig_deauth_commit")
+    assert commits, "deauthorize must commit the token_version bump itself"
+
+
+async def test_clear_org_instagram_token_commits_the_bump(db_session, monkeypatch) -> None:
+    from app.services.admin import clear_org_instagram_token
+
+    user = await persist(db_session, make_user(instagram_user_id="ig_clear_commit"))
+    commits = _spy_commits(db_session, monkeypatch)
+    await clear_org_instagram_token(db_session, user.id)
+    assert commits, "clear_org_instagram_token must commit the token_version bump itself"
 
 
 async def test_security_headers_on_error_response(app_client: AsyncClient) -> None:

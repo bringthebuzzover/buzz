@@ -32,7 +32,7 @@ from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.schemas.admin import AdminDropConfigPatch, AdminDropCreateRequest
-from app.security.session import bump_token_version
+from app.security.session import bump_token_version, commit_revocation
 from app.services.drop_requests import touch_updated_at
 from app.services.email import (
     send_brand_denied_email,
@@ -227,6 +227,7 @@ async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     user.status = OrgUserStatus.DENIED.value
     bump_token_version(user)  # revoke outstanding sessions
     await db.flush()
+    await commit_revocation(db)
 
     await send_org_denied_email(user.edu_email or "", org_name=org.org_name)
 
@@ -355,6 +356,7 @@ async def deny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
         user.status = OrgUserStatus.DENIED.value
         bump_token_version(user)  # revoke outstanding sessions
     await db.flush()
+    await commit_revocation(db)
 
     await send_brand_denied_email(brand.company_email, brand_name=brand.brand_name)
 
@@ -475,6 +477,7 @@ async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str
     _refuse_erased_org(user)
     clear_unusable_instagram_token(user)
     await db.flush()
+    await commit_revocation(db)
     return {"user_id": str(user.id), "instagram_token_cleared": True}
 
 
