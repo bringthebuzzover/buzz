@@ -3,7 +3,7 @@ id: deploy.meta-business-verification
 title: Meta Business Verification not completed — blocks Advanced Access / public IG login
 kind: ops
 severity: P1
-status: ops
+status: deferred
 surface: deploy
 evidence:
   - path: META.md
@@ -11,7 +11,7 @@ evidence:
   - path: gaps/archive/deploy.meta-brand-url-cutover.md
     note: Hosts §C archived; launch residual was §E→F→G with no living gap until this file
   - path: gaps/CLUSTERS.md
-    note: Cluster meta-business-verification (parked); human Meta dashboard only
+    note: Cluster meta-business-verification (deferred); human Meta dashboard only
 repro: |
   Meta MCP (BUZZ app 1589568552810678), 2026-08-11:
   app_review requirements → business_verification_passes: false
