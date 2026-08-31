@@ -213,12 +213,10 @@ async def issue_token_pair(
     ``token_version`` so a waiter cannot both compute ``old+1`` from a stale
     snapshot (auth.ci-session-restore-flake v6).
 
-    Commits the bump here rather than leaving it to ``get_db``: FastAPI sends
-    the response *before* a yield-dependency's exit code runs, so the client can
-    present the token it was just handed while the bump is still uncommitted —
-    the row then still holds the old ``ver`` and the fresh token reads as
-    revoked (auth.mint-bump-not-durable-before-response). Callers must therefore
-    mint last; nothing may write after this returns.
+    Commits the bump here so the ``FOR UPDATE`` lock is released before the
+    response is built, and so the new ``ver`` is durable even if a caller
+    inspects the row before ``get_db`` commits. Callers must therefore mint
+    last; nothing may write after this returns.
 
     ``expected_version`` is compare-and-swap for ``/refresh``: after the row
     lock, a superseded cookie must raise ``StaleRefreshToken`` without bumping

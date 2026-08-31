@@ -20,11 +20,11 @@ def bump_token_version(user: User) -> int:
 async def commit_revocation(db: AsyncSession) -> None:
     """Make a ``token_version`` bump durable before the HTTP response is sent.
 
-    FastAPI delivers the body before ``get_db``'s yield-exit commit
-    (auth.revocation-bump-uncommitted-until-teardown). Call once, after all
-    ORM writes this request still needs. Do not call from ``issue_token_pair``
-    (it has its own mint-last commit) and do not put a commit in
-    ``bump_token_version`` (erase still writes after the bump).
+    Call once, after all ORM writes this request still needs, so the bump is
+    durable before post-commit work (email) and independent of ``get_db``.
+    Do not call from ``issue_token_pair`` (it has its own mint-last commit)
+    and do not put a commit in ``bump_token_version`` (erase still writes
+    after the bump).
     """
 
     await db.commit()

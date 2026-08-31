@@ -36,7 +36,7 @@ SPA (apiFetch) → /api/* (FastAPI)
                    └─ Cron: scripts/run_job.py → jobs/* → job_runs
 ```
 
-JSON API responses use `{ data, meta, error }` (camelCase, epoch-ms timestamps). OAuth authorize (`GET /api/auth/instagram/login`) is a redirect, not the envelope. Stable error `code` strings in `backend/app/errors.py`.
+JSON API responses use `{ data, meta, error }` (camelCase, epoch-ms timestamps). OAuth authorize (`GET /api/auth/instagram/login`) is a redirect, not the envelope. Stable error `code` strings in `backend/app/errors.py`. Per-request SQLAlchemy sessions (`get_db`) commit on FastAPI's function stack so flushed writes are durable before the HTTP body is sent.
 
 OpenAPI regen:
 

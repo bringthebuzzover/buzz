@@ -361,9 +361,8 @@ async def test_issue_token_pair_second_mint_sees_prior_bump(db_session) -> None:
 async def test_issue_token_pair_commits_the_bump(db_session, monkeypatch) -> None:
     """The bump must be durable before the caller builds its response.
 
-    FastAPI sends the response before ``get_db``'s exit-code commit runs, so a
-    client that immediately presents the token it was just handed would be
-    checked against the un-bumped row and read as revoked
+    ``issue_token_pair`` must commit the bump itself so the ``FOR UPDATE``
+    lock is released and the new ``ver`` is on disk before tokens are minted
     (auth.mint-bump-not-durable-before-response).
     """
     from app.services.auth import issue_token_pair
