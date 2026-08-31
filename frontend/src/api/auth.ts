@@ -251,6 +251,20 @@ export function takeRefreshedUser(): AuthUser | null {
   return u;
 }
 
+/**
+ * AuthContext registers here so a dead cookie after a settled session can
+ * failHard without `client.ts` importing the provider (cycle).
+ */
+let apiSessionLostHandler: (() => void) | null = null;
+
+export function registerApiSessionLostHandler(handler: (() => void) | null): void {
+  apiSessionLostHandler = handler;
+}
+
+export function notifyApiSessionLost(): void {
+  apiSessionLostHandler?.();
+}
+
 export async function refreshAccessToken(): Promise<boolean> {
   if (refreshInFlight) {
     // Login may install a token+cookie while bootstrap's refresh (started with

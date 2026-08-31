@@ -38,6 +38,8 @@ import {
   devLogin,
   fetchMe,
   logout as apiLogout,
+  isImpersonating,
+  registerApiSessionLostHandler,
   takeImpersonatedUser,
   takeRefreshedUser,
   viewAsPortalRoleFromPath,
@@ -199,6 +201,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [enterInstagramReconnect, failHard, failSoft],
   );
+
+  const statusRef = useRef<AuthStatus>(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  // Dead cookie after a settled session: sign out. Ignore while authenticating
+  // so bootstrap/login 401s do not failHard (auth.failed-refresh-leaves-authenticated-shell).
+  // Post-acceptSession safety is CAS-null in apiFetch + mint-commit, not this gate.
+  useEffect(() => {
+    registerApiSessionLostHandler(() => {
+      if (statusRef.current !== "authenticated") return;
+      if (isImpersonating()) return;
+      if (getAccessToken()) return;
+      failHard();
+    });
+    return () => registerApiSessionLostHandler(null);
+  }, [failHard]);
 
   useEffect(() => {
     if (startedRef.current) return;

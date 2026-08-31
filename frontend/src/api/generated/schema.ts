@@ -917,6 +917,9 @@ export interface paths {
          * @description Issue a new access token from the refresh cookie; rotate the cookie.
          *
          *     Successful refresh bumps ``token_version`` and mints a new pair.
+         *     Concurrent refreshes with the same cookie are compare-and-swap: one 200,
+         *     the loser 401s without bumping so it cannot revoke the winner
+         *     (auth.refresh-rotation-not-compare-and-swap).
          *
          *     Cookie-clear policy on 401 (load-bearing under concurrent refresh/login):
          *

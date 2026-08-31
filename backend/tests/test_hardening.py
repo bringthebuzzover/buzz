@@ -374,6 +374,28 @@ async def test_issue_token_pair_commits_the_bump(db_session, monkeypatch) -> Non
     assert commits, "issue_token_pair must commit the token_version bump itself"
 
 
+async def test_issue_token_pair_stale_expected_version_does_not_bump(db_session) -> None:
+    """A superseded refresh must not bump after losing the row lock."""
+    from app.services.auth import StaleRefreshToken, issue_token_pair
+
+    user = await persist(db_session, make_user())
+    start = user.token_version or 0
+    await issue_token_pair(db_session, user)
+    assert user.token_version == start + 1
+    with pytest.raises(StaleRefreshToken):
+        await issue_token_pair(db_session, user, expected_version=start)
+    assert user.token_version == start + 1
+
+
+async def test_issue_token_pair_matching_expected_version_still_bumps(db_session) -> None:
+    from app.services.auth import issue_token_pair
+
+    user = await persist(db_session, make_user())
+    start = user.token_version or 0
+    await issue_token_pair(db_session, user, expected_version=start)
+    assert user.token_version == start + 1
+
+
 async def test_deny_org_revokes_sessions(app_client: AsyncClient, db_session) -> None:
     from tests.conftest import make_org
 

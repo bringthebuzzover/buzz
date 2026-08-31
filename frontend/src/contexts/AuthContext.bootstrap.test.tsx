@@ -34,6 +34,7 @@ import {
   clearViewAsLatch,
   fetchMe,
   getAccessToken,
+  notifyApiSessionLost,
   peekViewAsLatch,
   refreshAccessToken,
   resumeImpersonation,
@@ -586,6 +587,52 @@ describe("AuthProvider bootstrap resolution", () => {
     expect(resumeMock).toHaveBeenCalledWith("org-target");
     expect(userText(container)).toBe("admin-1");
     expect(peekViewAsLatch()).toBeNull();
+  });
+
+  it("failHards on session-lost only after a settled authenticated session", async () => {
+    refreshMock.mockImplementation(async () => {
+      setAccessToken("refreshed-token");
+      return true;
+    });
+    takeRefreshedUserMock.mockReturnValue({
+      id: "admin-1",
+      portalRole: "admin",
+      status: "active",
+    });
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+    await waitForStatus(container, "authenticated");
+
+    setAccessToken(null);
+    act(() => {
+      notifyApiSessionLost();
+    });
+    expect(statusText(container)).toBe("error");
+    expect(getAccessToken()).toBeNull();
+  });
+
+  it("ignores session-lost while bootstrap is still authenticating", async () => {
+    refreshMock.mockImplementation(() => new Promise(() => {}));
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+    expect(statusText(container)).toBe("authenticating");
+
+    act(() => {
+      notifyApiSessionLost();
+    });
+    expect(statusText(container)).toBe("authenticating");
   });
 });
 
