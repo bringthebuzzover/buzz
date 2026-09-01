@@ -37,7 +37,7 @@ _buckets: dict[str, tuple[float, int]] = {}
 # entries whose window has fully elapsed (older than the longest window in use),
 # and if that isn't enough, drop the oldest entries to enforce a hard ceiling.
 _MAX_BUCKETS = 10_000
-_MAX_WINDOW_SECONDS = 600
+_MAX_WINDOW_SECONDS = 3600
 
 
 def reset() -> None:

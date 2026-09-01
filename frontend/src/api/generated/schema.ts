@@ -3816,7 +3816,7 @@ export interface components {
         OrgApplyRequest: {
             category: components["schemas"]["OrgCategory"];
             /** City */
-            city: string;
+            city?: string | null;
             /** Contactname */
             contactName: string;
             /** Eduemail */
@@ -3845,7 +3845,7 @@ export interface components {
             /** Shippingstate */
             shippingState: string;
             /** State */
-            state: string;
+            state?: string | null;
             /** Tiktokhandle */
             tiktokHandle?: string | null;
             /** University */
@@ -3876,7 +3876,7 @@ export interface components {
         OrgOnboardingRequest: {
             category: components["schemas"]["OrgCategory"];
             /** City */
-            city: string;
+            city?: string | null;
             /** Contactname */
             contactName: string;
             /** Eduemail */
@@ -3898,7 +3898,7 @@ export interface components {
             /** Shippingstate */
             shippingState: string;
             /** State */
-            state: string;
+            state?: string | null;
             /** Tiktokhandle */
             tiktokHandle?: string | null;
             /** University */

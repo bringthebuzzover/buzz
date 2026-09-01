@@ -74,8 +74,9 @@ async def org_instagram_lookup(
     "/address-suggest",
     response_model=DataResponse[AddressSuggestResponse],
     dependencies=[
-        Depends(rate_limited("addr_suggest_burst", limit=10, window=60)),
-        Depends(rate_limited("addr_suggest_hour", limit=30, window=3600)),
+        # Per-keystroke Places autocomplete (750ms debounce), not click-to-search.
+        Depends(rate_limited("addr_suggest_burst", limit=60, window=60)),
+        Depends(rate_limited("addr_suggest_hour", limit=300, window=3600)),
     ],
 )
 async def org_address_suggest(
@@ -95,8 +96,8 @@ async def org_address_suggest(
     "/address-preview",
     response_model=DataResponse[AddressPreviewResponse],
     dependencies=[
-        Depends(rate_limited("addr_preview_burst", limit=10, window=60)),
-        Depends(rate_limited("addr_preview_hour", limit=30, window=3600)),
+        Depends(rate_limited("addr_preview_burst", limit=20, window=60)),
+        Depends(rate_limited("addr_preview_hour", limit=60, window=3600)),
     ],
 )
 async def org_address_preview(

@@ -22,8 +22,8 @@ class OrgApplyRequest(CamelModel):
     tiktok_handle: str | None = None
     member_count: int
     category: OrgCategory
-    city: str
-    state: str
+    city: str | None = None
+    state: str | None = None
     contact_name: str
     shipping_line1: str
     shipping_line2: str | None = None
@@ -46,8 +46,6 @@ class OrgApplyRequest(CamelModel):
     @field_validator(
         "org_name",
         "university",
-        "city",
-        "state",
         "contact_name",
         "shipping_line1",
         "shipping_city",
@@ -59,6 +57,14 @@ class OrgApplyRequest(CamelModel):
         if not v.strip():
             raise ValueError("Must not be empty")
         return v.strip()
+
+    @field_validator("city", "state")
+    @classmethod
+    def _optional_campus(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
     @field_validator("shipping_line2", "shipping_place_id")
     @classmethod
@@ -98,8 +104,8 @@ class OrgOnboardingRequest(CamelModel):
     # follower_count is Graph-owned — omitted from create (extra=forbid rejects client write).
     member_count: int
     category: OrgCategory
-    city: str
-    state: str
+    city: str | None = None
+    state: str | None = None
     contact_name: str
     shipping_line1: str
     shipping_line2: str | None = None
@@ -125,8 +131,6 @@ class OrgOnboardingRequest(CamelModel):
     @field_validator(
         "org_name",
         "university",
-        "city",
-        "state",
         "contact_name",
         "shipping_line1",
         "shipping_city",
@@ -138,6 +142,14 @@ class OrgOnboardingRequest(CamelModel):
         if not v.strip():
             raise ValueError("Must not be empty")
         return v.strip()
+
+    @field_validator("city", "state")
+    @classmethod
+    def _optional_campus(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
     @field_validator("shipping_line2", "shipping_place_id")
     @classmethod

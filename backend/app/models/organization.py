@@ -43,8 +43,8 @@ class Organization(Base):
     state: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
     contact_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     delivery_address: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
-    # Structured US ship-to (distinct from campus city/state). Null on legacy
-    # rows until the next profile save; apply/create always writes these.
+    # Structured US ship-to. Null on legacy rows until the next profile save;
+    # apply/create always writes these. Campus city/state are not collected.
     shipping_line1: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     shipping_line2: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     shipping_city: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)

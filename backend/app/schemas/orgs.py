@@ -85,8 +85,6 @@ class OrgProfileUpdate(CamelModel):
     @field_validator(
         "org_name",
         "university",
-        "city",
-        "state",
         "contact_name",
         "shipping_line1",
         "shipping_city",
