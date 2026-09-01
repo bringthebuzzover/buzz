@@ -533,6 +533,7 @@ status: parked
 gaps:
   - ops.email-ledger
   - ops.brand-mailbox
+  - ops.ig-business-discovery-unset
   - deploy.npm-workspaces-wontfix
 note: |
   Required follow-ups for partial v1 clusters (not timeless-complete).
@@ -544,6 +545,9 @@ note: |
   - `ops.brand-mailbox` — **provider locked: Google Workspace Business Starter**;
     still need billing owner + local-part, then MX/proofs + flip Cornell
     `contactEmail` (not forward-only; Resend stays on `send.`).
+  - `ops.ig-business-discovery-unset` — apply confirm card soft-fails until
+    Facebook Login Business Discovery token + IG user id are on Railway api
+    (human Meta mint; not Instagram Login `INSTAGRAM_CLIENT_*`).
   - `deploy.npm-workspaces-wontfix` — Railpack ignores workspaces; keep root
     package.json scripts + engines (do not retry workspaces without OK).
   - `deploy.custom-domain-samesite-lax` — **archived** 2026-08-09 (Plan A).

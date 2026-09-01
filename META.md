@@ -192,7 +192,7 @@ Pending invites cannot log in. Invites are manual on both sides.
 
 Until those are set, lookup **soft-fails** (PRODUCT §6.1.1) — apply still works with handle marked unconfirmed.
 
-**Status (2026-08-26):** Meta app BUZZ (`1589568552810678`) is live. Service IG + Facebook Login long-lived token are still **human** steps — not yet on Railway. Soft-fail path ships in Phase A.
+**Status (2026-08-31):** Meta app BUZZ (`1589568552810678`) is live. Service IG + Facebook Login long-lived token are still **unset** on Railway `api` — production lookup returns `reason=unavailable`. Living ops runbook: [`gaps/ops.ig-business-discovery-unset.md`](gaps/ops.ig-business-discovery-unset.md). Soft-fail path ships in Phase A.
 
 **Product rules:**
 
