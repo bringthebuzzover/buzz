@@ -143,3 +143,93 @@ async def test_get_me_forbidden_for_brand(app_client: AsyncClient, db_session) -
     )
     assert resp.status_code == 403
     assert resp.json()["error"]["code"] == "FORBIDDEN"
+
+
+async def test_get_me_includes_shipping_fields(app_client: AsyncClient, db_session) -> None:
+    headers, org, _user = await _org_headers(db_session)
+    org.shipping_line1 = "123 College Ave"
+    org.shipping_city = "Ithaca"
+    org.shipping_state = "NY"
+    org.shipping_postal_code = "14850"
+    org.delivery_address = "123 College Ave, Ithaca, NY 14850"
+    await db_session.flush()
+    resp = await app_client.get("/api/orgs/me", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["shippingLine1"] == "123 College Ave"
+    assert data["shippingPostalCode"] == "14850"
+    assert data["deliveryAddress"] == "123 College Ave, Ithaca, NY 14850"
+
+
+async def test_patch_me_omitting_shipping_leaves_legacy_blob(
+    app_client: AsyncClient, db_session
+) -> None:
+    headers, org, _user = await _org_headers(db_session)
+    org.delivery_address = "legacy blob"
+    await db_session.flush()
+    resp = await app_client.patch(
+        "/api/orgs/me",
+        headers=headers,
+        json={"orgName": "Still Legacy"},
+    )
+    assert resp.status_code == 200
+    await db_session.refresh(org)
+    assert org.org_name == "Still Legacy"
+    assert org.delivery_address == "legacy blob"
+    assert org.shipping_line1 is None
+
+
+async def test_patch_me_rejects_garbage_shipping(app_client: AsyncClient, db_session) -> None:
+    headers, org, _user = await _org_headers(db_session)
+    org.delivery_address = "legacy blob"
+    await db_session.flush()
+    resp = await app_client.patch(
+        "/api/orgs/me",
+        headers=headers,
+        json={
+            "shippingLine1": "asdf",
+            "shippingCity": "Ithaca",
+            "shippingState": "NY",
+            "shippingPostalCode": "14850",
+        },
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "INVALID_SHIPPING_ADDRESS"
+    await db_session.refresh(org)
+    assert org.delivery_address == "legacy blob"
+
+
+async def test_patch_me_validates_structured_shipping(app_client: AsyncClient, db_session) -> None:
+    headers, org, _user = await _org_headers(db_session)
+    resp = await app_client.patch(
+        "/api/orgs/me",
+        headers=headers,
+        json={
+            "shippingLine1": "PO Box 123",
+            "shippingLine2": "CPO 400",
+            "shippingCity": "Ithaca",
+            "shippingState": "ny",
+            "shippingPostalCode": "14850",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert data["shippingLine1"] == "PO Box 123"
+    assert data["shippingLine2"] == "CPO 400"
+    assert data["shippingState"] == "NY"
+    assert data["deliveryAddress"] == "PO Box 123, CPO 400, Ithaca, NY 14850"
+    await db_session.refresh(org)
+    assert org.shipping_postal_code == "14850"
+
+
+async def test_patch_me_rejects_writable_delivery_address(
+    app_client: AsyncClient, db_session
+) -> None:
+    headers, _org, _user = await _org_headers(db_session)
+    resp = await app_client.patch(
+        "/api/orgs/me",
+        headers=headers,
+        json={"deliveryAddress": "asdf"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"

@@ -3,7 +3,7 @@ id: org.shipping-address-unverified
 title: Org shipping address is free text, not a verifiable mailing address
 kind: ux_hole
 severity: P2
-status: open
+status: fixed
 surface: org
 evidence:
   - path: frontend/src/pages/onboarding/OrgProfilePage.tsx
@@ -37,6 +37,13 @@ fix_when: |
 
 # Org shipping address is not verifiable
 
+**Shipped:** Google Places Autocomplete (New) + Address Validation on the
+server (`GOOGLE_ADDRESS_API_KEY`). Apply/onboarding/PATCH take structured US
+fields; garbage is `INVALID_SHIPPING_ADDRESS`. Campus city/state stay distinct.
+Legacy `delivery_address` blobs remain until the next shipping save. Development
+without a key uses format fallback. Production verify needs the Railway **api**
+var (not set in this change).
+
 Brands ship campaign product using `organizations.delivery_address`. That field
 is a required free-text blob. The API and SPA only check non-empty. City and
 state are collected separately and are also free text; they are **not** shown
@@ -55,7 +62,7 @@ copied into admin Ship to. A chapter house, dorm, or PO box that cannot be
 found is a fulfillment miss, not a polish item.
 
 Related (already fixed, different hole):
-[`org.profile-orphaned-and-address-silent`](archive/org.profile-orphaned-and-address-silent.md)
+[`org.profile-orphaned-and-address-silent`](org.profile-orphaned-and-address-silent.md)
 got the address onto brand/admin surfaces. This gap is that the value itself
 is not a mailing address.
 
@@ -63,27 +70,11 @@ PRODUCT §5.2.1 Future EasyPost covers labels, tracking, and carrier events —
 not verifying the org's ship-to. Address verify is a precursor if labels ever
 get generated from this profile.
 
-## Current shape
+## Locked v1 (implemented)
 
-| Piece | Today |
-| ----- | ----- |
-| Wire / DB | `delivery_address: str` (Text), plus independent `city` / `state` |
-| Validation | strip + must not be blank |
-| Org UI | textarea “Where should brands ship products?” |
-| Brand / admin | dump the blob as Ship to |
-
-## Locked v1 (needed before implement)
-
-**PRODUCT / UX fork — ask before coding.** Options to lock:
-
-1. **Verifier** — Google Places / Address Validation, USPS, EasyPost address
-   verify, or structured fields + ZIP regex only (no vendor).
-2. **City / state** — collapse into the verified address vs keep as campus
-   location distinct from ship-to.
-3. **Legacy** — force re-verify on next profile save vs admin/ops backfill vs
-   leave old blobs until edited.
-4. **International / campus mail** — US-only vs university mail-stop / CPO
-   that vendors often fail.
-
-Until those are locked, do not add a vendor, new columns, or PRODUCT field-set
-edits.
+1. **Verifier** — Google Places Autocomplete (New) + Address Validation
+   (server-side key). Dev empty key → structured US + ZIP fallback.
+2. **City / state** — campus `city`/`state` stay distinct from ship-to.
+3. **Legacy** — leave old `delivery_address` blobs until the org next saves
+   shipping fields. Apply/create always uses the new shape.
+4. **Campus mail** — US-only, including PO Boxes and dorm/CPO as street2.

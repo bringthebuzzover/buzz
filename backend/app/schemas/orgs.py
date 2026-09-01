@@ -11,7 +11,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import ConfigDict, field_serializer, field_validator
+from pydantic import ConfigDict, field_serializer, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
 from app.models.enums import OrgCategory
@@ -35,6 +35,11 @@ class OrgProfileResponse(CamelModel):
     state: str | None
     contact_name: str | None
     delivery_address: str | None
+    shipping_line1: str | None = None
+    shipping_line2: str | None = None
+    shipping_city: str | None = None
+    shipping_state: str | None = None
+    shipping_postal_code: str | None = None
     approved_at: datetime | None
     created_at: datetime
 
@@ -68,7 +73,12 @@ class OrgProfileUpdate(CamelModel):
     city: str | None = None
     state: str | None = None
     contact_name: str | None = None
-    delivery_address: str | None = None
+    shipping_line1: str | None = None
+    shipping_line2: str | None = None
+    shipping_city: str | None = None
+    shipping_state: str | None = None
+    shipping_postal_code: str | None = None
+    shipping_place_id: str | None = None
     # Genuinely optional / clearable.
     tiktok_handle: str | None = None
 
@@ -78,7 +88,10 @@ class OrgProfileUpdate(CamelModel):
         "city",
         "state",
         "contact_name",
-        "delivery_address",
+        "shipping_line1",
+        "shipping_city",
+        "shipping_state",
+        "shipping_postal_code",
     )
     @classmethod
     def _required_non_blank(cls, value: str | None) -> str | None:
@@ -98,6 +111,14 @@ class OrgProfileUpdate(CamelModel):
                 raise ValueError("must not be blank")
         return value
 
+    @field_validator("shipping_line2", "shipping_place_id")
+    @classmethod
+    def _optional_shipping(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
     @field_validator("member_count")
     @classmethod
     def _member_count(cls, value: int | None) -> int | None:
@@ -113,3 +134,24 @@ class OrgProfileUpdate(CamelModel):
         if value is None:
             raise ValueError("must not be null")
         return value
+
+    @model_validator(mode="after")
+    def _shipping_together(self) -> "OrgProfileUpdate":
+        keys = {
+            "shipping_line1",
+            "shipping_line2",
+            "shipping_city",
+            "shipping_state",
+            "shipping_postal_code",
+            "shipping_place_id",
+        }
+        if not (self.model_fields_set & keys):
+            return self
+        if not (
+            self.shipping_line1
+            and self.shipping_city
+            and self.shipping_state
+            and self.shipping_postal_code
+        ):
+            raise ValueError("shipping street, city, state, and ZIP are required together")
+        return self

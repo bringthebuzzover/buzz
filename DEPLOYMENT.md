@@ -155,11 +155,12 @@ The backend **fails fast at startup** (`backend/app/config.py`) when `ENVIRONMEN
 | --------------------------------------------------- | -------------------------------------------- |
 | `ENVIRONMENT`                                       | Exactly `staging` or `production` (unknown values rejected at load) |
 | `SECRET_KEY`                                        | real value (not the committed dev default)   |
-| `TOKEN_ENCRYPTION_KEY`                              | real Fernet key (not the committed Fernet default) |
+| `TOKEN_ENCRYPTION_KEY`                              | real Fernet key (not empty / not the development derived key) |
 | `REFRESH_COOKIE_SECURE`                             | `true` (enforced)                            |
 | `FRONTEND_URL`                                      | real SPA host, not `localhost` (enforced)    |
 | `INSTAGRAM_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | real Meta creds (enforced)                   |
 | `RESEND_API_KEY`                                    | real key (enforced; empty would no-op email) |
+| `GOOGLE_ADDRESS_API_KEY`                            | Google Cloud key with Places API (New) + Address Validation (enforced off-dev). Empty in development uses structured-format fallback. Server-side only — never in the SPA. |
 | `DATABASE_URL`                                      | Railway Postgres URL (rewritten to `postgresql+asyncpg://` at startup) |
 | `REFRESH_COOKIE_SAMESITE`                           | **`lax`** on brand www+api (same eTLD+1); historical dual-host Railway used `none` |
 | `RATE_LIMIT_ENABLED`                                | `true`                                                                 |
@@ -173,6 +174,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 - [x] Backend env on brand hosts: `FRONTEND_URL=https://www.bringthebuzzover.com`, `INSTAGRAM_REDIRECT_URI=https://www.bringthebuzzover.com/auth/instagram/callback`, `REFRESH_COOKIE_SAMESITE=lax` (+ Secure). Secrets never committed.
 - [x] `INSTAGRAM_CLIENT_ID` / `INSTAGRAM_CLIENT_SECRET` set on Railway **api** + cron services (and local `backend/.env` for laptop). **Do not** commit real secrets.
+- [ ] `GOOGLE_ADDRESS_API_KEY` on Railway **api** (Places API New + Address Validation enabled on the key). Until set, off-dev API will fail fast at startup. Do not put this key in the SPA.
 - [x] Frontend built via `npm run build:prod` with `REACT_APP_API_URL=https://api.bringthebuzzover.com` (guard: `frontend/scripts/check-deploy-env.js`).
 - [ ] `BRAND_SELF_REGISTRATION_ENABLED` set intentionally (`true` = public `POST /api/brands/apply`; `false` = admin-provisioned brands only).
 - [x] Meta dashboard URLs → brand www/api (archived [`gaps/archive/deploy.meta-brand-url-cutover.md`](gaps/archive/deploy.meta-brand-url-cutover.md)):

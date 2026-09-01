@@ -26,6 +26,12 @@ export type PublicConfigResponse = components["schemas"]["PublicConfigResponse"]
 export type InstagramLookupResponse =
   components["schemas"]["InstagramLookupResponse"];
 export type OrgApplyRequest = components["schemas"]["OrgApplyRequest"];
+export type AddressSuggestResponse =
+  components["schemas"]["AddressSuggestResponse"];
+export type AddressPreviewResponse =
+  components["schemas"]["AddressPreviewResponse"];
+export type AddressSuggestionItem =
+  components["schemas"]["AddressSuggestionItem"];
 
 // ── Org onboarding ─────────────────────────────────────────────────────────
 
@@ -39,7 +45,12 @@ export type OrgOnboardingInput = {
   city: string;
   state: string;
   contactName: string;
-  deliveryAddress: string;
+  shippingLine1: string;
+  shippingLine2?: string;
+  shippingCity: string;
+  shippingState: string;
+  shippingPostalCode: string;
+  shippingPlaceId?: string;
 };
 
 export type OrgApplyInput = OrgOnboardingInput & {
@@ -68,6 +79,32 @@ export function useInstagramLookup() {
       const q = encodeURIComponent(username.trim().replace(/^@/, ""));
       const { data } = await apiFetch<InstagramLookupResponse>(
         `/api/orgs/instagram-lookup?username=${q}`,
+      );
+      return data;
+    },
+  });
+}
+
+/** Public US address autocomplete (empty list when Google is unset in development). */
+export function useAddressSuggest() {
+  return useMutation({
+    mutationFn: async (query: string) => {
+      const q = encodeURIComponent(query.trim());
+      const { data } = await apiFetch<AddressSuggestResponse>(
+        `/api/orgs/address-suggest?q=${q}`,
+      );
+      return data;
+    },
+  });
+}
+
+/** Fill structured fields from a Places suggestion. */
+export function useAddressPreview() {
+  return useMutation({
+    mutationFn: async (placeId: string) => {
+      const q = encodeURIComponent(placeId.trim());
+      const { data } = await apiFetch<AddressPreviewResponse>(
+        `/api/orgs/address-preview?placeId=${q}`,
       );
       return data;
     },

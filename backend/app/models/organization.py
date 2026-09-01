@@ -43,6 +43,13 @@ class Organization(Base):
     state: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
     contact_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     delivery_address: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    # Structured US ship-to (distinct from campus city/state). Null on legacy
+    # rows until the next profile save; apply/create always writes these.
+    shipping_line1: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    shipping_line2: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    shipping_city: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    shipping_state: Mapped[str | None] = mapped_column(sa.String(2), nullable=True)
+    shipping_postal_code: Mapped[str | None] = mapped_column(sa.String(10), nullable=True)
 
     # Apply-time Instagram confirm card (PRODUCT §6.1.1). False when soft-fail
     # (lookup unavailable) or legacy rows; True when the applicant confirmed.

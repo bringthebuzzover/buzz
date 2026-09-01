@@ -203,7 +203,10 @@ _ONBOARDING_REQUIRED = {
     "city": "Ithaca",
     "state": "NY",
     "contactName": "Casey Officer",
-    "deliveryAddress": "123 Campus Rd",
+    "shippingLine1": "123 Campus Rd",
+    "shippingCity": "Ithaca",
+    "shippingState": "NY",
+    "shippingPostalCode": "14850",
 }
 
 

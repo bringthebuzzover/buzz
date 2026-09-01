@@ -1499,6 +1499,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orgs/address-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Org Address Preview
+         * @description Fill structured fields from a Places suggestion (re-validated on submit).
+         */
+        get: operations["org_address_preview_api_orgs_address_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orgs/address-suggest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Org Address Suggest
+         * @description US address autocomplete (server-side Google Places; empty in development).
+         */
+        get: operations["org_address_suggest_api_orgs_address_suggest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orgs/apply": {
         parameters: {
             query?: never;
@@ -1649,6 +1689,33 @@ export interface components {
             meta?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /** AddressPreviewResponse */
+        AddressPreviewResponse: {
+            /** Deliveryaddress */
+            deliveryAddress: string;
+            /** Shippingcity */
+            shippingCity: string;
+            /** Shippingline1 */
+            shippingLine1: string;
+            /** Shippingline2 */
+            shippingLine2?: string | null;
+            /** Shippingpostalcode */
+            shippingPostalCode: string;
+            /** Shippingstate */
+            shippingState: string;
+        };
+        /** AddressSuggestResponse */
+        AddressSuggestResponse: {
+            /** Suggestions */
+            suggestions: components["schemas"]["AddressSuggestionItem"][];
+        };
+        /** AddressSuggestionItem */
+        AddressSuggestionItem: {
+            /** Placeid */
+            placeId: string;
+            /** Text */
+            text: string;
         };
         /** AdminApplicantItem */
         AdminApplicantItem: {
@@ -2889,6 +2956,24 @@ export interface components {
              */
             userId: string;
         };
+        /** DataResponse[AddressPreviewResponse] */
+        DataResponse_AddressPreviewResponse_: {
+            data?: components["schemas"]["AddressPreviewResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AddressSuggestResponse] */
+        DataResponse_AddressSuggestResponse_: {
+            data?: components["schemas"]["AddressSuggestResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[AdminBrandDetail] */
         DataResponse_AdminBrandDetail_: {
             data?: components["schemas"]["AdminBrandDetail"] | null;
@@ -3734,8 +3819,6 @@ export interface components {
             city: string;
             /** Contactname */
             contactName: string;
-            /** Deliveryaddress */
-            deliveryAddress: string;
             /** Eduemail */
             eduEmail: string;
             /**
@@ -3749,6 +3832,18 @@ export interface components {
             memberCount: number;
             /** Orgname */
             orgName: string;
+            /** Shippingcity */
+            shippingCity: string;
+            /** Shippingline1 */
+            shippingLine1: string;
+            /** Shippingline2 */
+            shippingLine2?: string | null;
+            /** Shippingplaceid */
+            shippingPlaceId?: string | null;
+            /** Shippingpostalcode */
+            shippingPostalCode: string;
+            /** Shippingstate */
+            shippingState: string;
             /** State */
             state: string;
             /** Tiktokhandle */
@@ -3784,14 +3879,24 @@ export interface components {
             city: string;
             /** Contactname */
             contactName: string;
-            /** Deliveryaddress */
-            deliveryAddress: string;
             /** Eduemail */
             eduEmail: string;
             /** Membercount */
             memberCount: number;
             /** Orgname */
             orgName: string;
+            /** Shippingcity */
+            shippingCity: string;
+            /** Shippingline1 */
+            shippingLine1: string;
+            /** Shippingline2 */
+            shippingLine2?: string | null;
+            /** Shippingplaceid */
+            shippingPlaceId?: string | null;
+            /** Shippingpostalcode */
+            shippingPostalCode: string;
+            /** Shippingstate */
+            shippingState: string;
             /** State */
             state: string;
             /** Tiktokhandle */
@@ -3847,6 +3952,16 @@ export interface components {
             orgName: string;
             /** Pendingeduemail */
             pendingEduEmail?: string | null;
+            /** Shippingcity */
+            shippingCity?: string | null;
+            /** Shippingline1 */
+            shippingLine1?: string | null;
+            /** Shippingline2 */
+            shippingLine2?: string | null;
+            /** Shippingpostalcode */
+            shippingPostalCode?: string | null;
+            /** Shippingstate */
+            shippingState?: string | null;
             /** State */
             state: string | null;
             /** Tiktokhandle */
@@ -3875,12 +3990,22 @@ export interface components {
             city?: string | null;
             /** Contactname */
             contactName?: string | null;
-            /** Deliveryaddress */
-            deliveryAddress?: string | null;
             /** Membercount */
             memberCount?: number | null;
             /** Orgname */
             orgName?: string | null;
+            /** Shippingcity */
+            shippingCity?: string | null;
+            /** Shippingline1 */
+            shippingLine1?: string | null;
+            /** Shippingline2 */
+            shippingLine2?: string | null;
+            /** Shippingplaceid */
+            shippingPlaceId?: string | null;
+            /** Shippingpostalcode */
+            shippingPostalCode?: string | null;
+            /** Shippingstate */
+            shippingState?: string | null;
             /** State */
             state?: string | null;
             /** Tiktokhandle */
@@ -6804,6 +6929,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_HealthStatusResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    org_address_preview_api_orgs_address_preview_get: {
+        parameters: {
+            query: {
+                placeId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AddressPreviewResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    org_address_suggest_api_orgs_address_suggest_get: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AddressSuggestResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

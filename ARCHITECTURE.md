@@ -32,6 +32,7 @@ SPA (apiFetch) → /api/* (FastAPI)
                    ├─ deps.auth (JWT + role/status)
                    ├─ routes → services → models (async SQLAlchemy)
                    ├─ Instagram Graph (org media/tokens)
+                   ├─ Google Places Autocomplete (New) + Address Validation (org ship-to; server-side key)
                    ├─ Resend (transactional email)
                    └─ Cron: scripts/run_job.py → jobs/* → job_runs
 ```
@@ -77,7 +78,7 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | Table | Role |
 | ----- | ---- |
 | `users` | Identity for all portals; IG ids/tokens; `edu_email`; `password_hash`; `token_version` |
-| `organizations` | Org profile (1:1 `user_id`) |
+| `organizations` | Org profile (1:1 `user_id`); structured US `shipping_*` plus formatted `delivery_address` |
 | `brands` | Brand profile (1:1 `user_id`); `instagram_handle` for autolink |
 | `drops` | Campaign instance; capacity; apply window; tracker stage; units; tracking #; `published_at`; optional `drop_request_id` |
 | `drop_requests` | Brand intake tickets (not live campaigns); converted to a draft drop by admin |
@@ -104,7 +105,7 @@ Mounted in `backend/app/main.py`:
 | ------ | ------ | ------- |
 | `/api/health`, `/api/config` | `routes/health.py` | Liveness + public flags |
 | `/api/auth/*` | `routes/auth.py` | IG OAuth, refresh/logout/me, brand/admin login, verify-email, password reset, deauthorize |
-| `/api/orgs/*` | `routes/orgs.py` | Onboarding, org profile, post library |
+| `/api/orgs/*` | `routes/orgs.py` | Apply/onboarding, address suggest/preview, org profile, post library |
 | `/api/drops/*` | `routes/drops.py` | Org feed, detail, apply, Notify Me |
 | `/api/campaigns/*` | `routes/campaigns.py` | My campaigns, link/unlink, suggestions, aggregate |
 | `/api/brands/*` | `routes/brands.py` | Apply, brand profile, drops, finalize, aggregates |

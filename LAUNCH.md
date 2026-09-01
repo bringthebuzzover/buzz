@@ -108,7 +108,6 @@ All former “remaining questions” are closed. Implement from the locks above 
 | -- | -------- |
 | `auth.revoked-access-skips-refresh` | Session 401 after tab/View-as. Reload works. Not the loop. |
 | `auth.ci-session-restore-flake` | E2E/CI wait-for-restore. Not the user loop. |
-| `org.shipping-address-unverified` | Still required free text. Hand-check ship-to for the seeded list. Vendor still unlocked. |
 | `brand.drop-creative-uneditable` | Admin writes creative at mint. Brand typo-fix is a later Want. |
 | `ops.email-ledger` | PRODUCT still email-only for drop denials. |
 | `ideas/paper-ui.md` | Visual workshop. Not the loop. |
@@ -322,7 +321,7 @@ Scale: hand-add testers. Fine for a seeded list. Not a public flood.
 
 **Phase C (after A+B):** `/for-orgs` and `/for-brands` per `spa.for-orgs-for-brands` locked v1, teaching **these** flows (not IG-first create, not stub-as-campaign). Un-park cluster `spa-role-tours`.
 
-Do not promise: public IG login without testers; verified mailing address; brand self-configures logistics.
+Do not promise: public IG login without testers; brand self-configures logistics.
 
 ---
 
@@ -431,4 +430,4 @@ Unchanged on purpose: org Drop Feed card UX, My Campaigns, brand dashboard KPIs,
 
 ## 12. Explicit OUT (do not sneak in)
 
-Campus targeting, Calendly, EasyPost, guest brand dashboards, org passwords, magic-link as ongoing login after IG bind, admin CSV import, React Email, DMARC DNS unless named, public IG login copy, address validation vendor, brand hero upload/blob store (admin uses **https URL** in v1).
+Campus targeting, Calendly, EasyPost, guest brand dashboards, org passwords, magic-link as ongoing login after IG bind, admin CSV import, React Email, DMARC DNS unless named, public IG login copy, brand hero upload/blob store (admin uses **https URL** in v1).

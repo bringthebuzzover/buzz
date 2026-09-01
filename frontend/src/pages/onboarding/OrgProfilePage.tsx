@@ -14,6 +14,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useSubmitOnboarding } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
+import ShippingAddressFields, {
+  EMPTY_SHIPPING,
+  shippingToApi,
+} from "../../components/org/ShippingAddressFields";
 import {
   ORG_CATEGORY_OPTIONS,
   type OrgCategory,
@@ -35,7 +39,7 @@ export default function OrgProfilePage() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [contactName, setContactName] = useState("");
-  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [shipping, setShipping] = useState(EMPTY_SHIPPING);
   const [error, setError] = useState<string | null>(null);
 
   if (!user || user.status !== "pending_org_profile") {
@@ -63,7 +67,7 @@ export default function OrgProfilePage() {
         city: city.trim(),
         state: state.trim(),
         contactName: contactName.trim(),
-        deliveryAddress: deliveryAddress.trim(),
+        ...shippingToApi(shipping),
       });
       await refreshUser();
       // Durable across hard refresh of the verify-await screen.
@@ -185,7 +189,7 @@ export default function OrgProfilePage() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-              City
+              Campus city
             </label>
             <input
               className={inputClass}
@@ -196,7 +200,7 @@ export default function OrgProfilePage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-              State
+              Campus state
             </label>
             <input
               className={inputClass}
@@ -219,19 +223,12 @@ export default function OrgProfilePage() {
           />
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Shipping address
-          </label>
-          <textarea
-            className={inputClass}
-            rows={2}
-            value={deliveryAddress}
-            onChange={(e) => setDeliveryAddress(e.target.value)}
-            placeholder="Where should brands ship products?"
-            required
-          />
-        </div>
+        <ShippingAddressFields
+          value={shipping}
+          onChange={setShipping}
+          inputClass={inputClass}
+          testIdPrefix="org-onboarding"
+        />
 
         <button
           type="submit"

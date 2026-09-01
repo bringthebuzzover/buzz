@@ -103,7 +103,10 @@ test("org apply → verify → pending approval", async ({ page }) => {
   await page.getByTestId("org-apply-city").fill("Ithaca");
   await page.getByTestId("org-apply-state").fill("NY");
   await page.getByTestId("org-apply-contact-name").fill("E2E Tester");
-  await page.getByTestId("org-apply-delivery-address").fill("1 Campus Rd");
+  await page.getByTestId("org-apply-shipping-line1").fill("1 Campus Rd");
+  await page.getByTestId("org-apply-shipping-city").fill("Ithaca");
+  await page.getByTestId("org-apply-shipping-state").fill("NY");
+  await page.getByTestId("org-apply-shipping-postal").fill("14850");
 
   const applyResp = page.waitForResponse(
     (r) =>
