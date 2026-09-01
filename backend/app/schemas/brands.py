@@ -9,7 +9,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import field_serializer, field_validator
+from pydantic import ConfigDict, field_serializer, field_validator
+from pydantic.alias_generators import to_camel
 
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 
@@ -172,6 +173,7 @@ class BrandDropDetailResponse(CamelModel):
     brand_tracker_stage: str
     total_product_units: int | None
     campaign_hashtag: str | None
+    brand_can_edit_creative: bool
     applicant_selection_finalized_at: datetime | None
     created_at: datetime
     tracking_number: str | None
@@ -190,6 +192,39 @@ class BrandDropDetailResponse(CamelModel):
     @field_serializer("applicant_selection_finalized_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
+
+
+class BrandDropCreativePatch(CamelModel):
+    """Brand-owned title/description/image patch (omit = leave alone)."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    title: str | None = None
+    description: str | None = None
+    image: str | None = None
+
+    @field_validator("title", "description", "image")
+    @classmethod
+    def _required_not_null_non_blank(cls, value: object) -> object:
+        if value is None:
+            raise ValueError("must not be null")
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                raise ValueError("must not be blank")
+            return stripped
+        return value
+
+    @field_validator("image")
+    @classmethod
+    def _reject_placeholder_image(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        if not value.startswith("https://"):
+            raise ValueError("image must be an https:// URL")
+        if "placehold.co" in value.lower():
+            raise ValueError("placeholder images are not allowed")
+        return value
 
 
 class FinalizeAllocation(CamelModel):

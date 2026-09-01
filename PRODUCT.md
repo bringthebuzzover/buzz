@@ -141,7 +141,7 @@ A **drop request** and a **drop** are different objects. Public **`/for-brands`*
 2. A Buzz representative handles **agreements, logistics, product shipment, and scheduling** behind the scenes (sales call out of band).
 3. A Buzz **admin** opens the ticket beside a **draft drop editor** (side-by-side). They write title, description, hero **https** image URL, location, capacity, apply window, optional units / hashtag — using the ticket as reference, not as auto-fill. Save as **unpublished draft**. Every drop **must** link to a ticket; admin cannot create a drop without one.
 4. Admin **Publish**. Only then: orgs can see the drop (Upcoming countdown / Open apply); Notify Me and autoclose key off the real window; the brand **tracker** starts at **Awaiting Products** and the brand is emailed `{FRONTEND_URL}/brand/drops/{id}`.
-5. After publish, the brand sees a **read-only status tracker** (Buzz updates stages). Brand users do not edit logistics or creative in v1 of this motion. The owning brand may **view unpublished drafts** on the brand portal (not on the org feed).
+5. After publish, the brand sees a **read-only status tracker** (Buzz updates stages). Brand users **never** edit logistics, tracker stages, or Publish. The owning brand may **view unpublished drafts** on the brand portal (not on the org feed). Admin may edit title, description, hero **https** image, and location at any stage (including after publish). The owning brand may edit **title, description, and hero image** only when admin sets **`brand_can_edit_creative`** on that drop (default off).
 
 The owning brand **monitors** applicants and KPIs and **batch-finalizes** after `apply_close_at` (**§7.1**). They **cannot** mint or publish a `Drop` from the portal.
 
@@ -392,7 +392,7 @@ Aggregated all drops →  Brand aggregate dashboard
 | Actor | Surface             | Primary actions                                                                                                                  |
 | ----- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | Brand | Onboarding          | Submit info + message; wait for rep                                                                                              |
-| Brand | Drop request        | Submit ticket; wait for Buzz; after publish, view read-only tracker on the drop                                              |
+| Brand | Drop request        | Submit ticket; wait for Buzz; after publish, view tracker; edit title/description/hero only if admin enabled `brand_can_edit_creative` |
 | Brand | Per-drop dashboard  | Batch-finalize applicants after close; per-org posts + metrics; drop KPIs; UGC preview/download                                |
 | Brand | Aggregate dashboard | Totals, time series, compare drops, running totals                                                                               |
 | Org   | Onboarding          | Public apply (profile + **§6.1.1** Instagram confirm card + **.edu**); verify; Buzz review; accept Instagram Tester invite; Connect Instagram; then portal |

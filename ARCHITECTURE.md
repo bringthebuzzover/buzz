@@ -80,7 +80,7 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | `users` | Identity for all portals; IG ids/tokens; `edu_email`; `password_hash`; `token_version` |
 | `organizations` | Org profile (1:1 `user_id`); structured US `shipping_*` plus formatted `delivery_address` |
 | `brands` | Brand profile (1:1 `user_id`); `instagram_handle` for autolink |
-| `drops` | Campaign instance; capacity; apply window; tracker stage; units; tracking #; `published_at`; optional `drop_request_id` |
+| `drops` | Campaign instance; capacity; apply window; tracker stage; units; tracking #; `published_at`; optional `drop_request_id`; `brand_can_edit_creative` (default false) |
 | `drop_requests` | Brand intake tickets (not live campaigns); converted to a draft drop by admin |
 | `drop_applications` | Org ↔ drop; decision applied/accepted/denied |
 | `social_posts` | Cached IG media + metrics; unique `(org_id, platform, external_id)`. **Stories unsupported** — `metric_sync` does not catalog `STORY`; refresh/autolink/link skip them |

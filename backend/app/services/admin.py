@@ -33,6 +33,7 @@ from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.schemas.admin import AdminDropConfigPatch, AdminDropCreateRequest
 from app.security.session import bump_token_version, commit_revocation
+from app.services.drop_image import validate_https_image
 from app.services.drop_requests import touch_updated_at
 from app.services.email import (
     send_brand_denied_email,
@@ -659,25 +660,6 @@ _PRE_LIVE_STAGES = frozenset(
 )
 
 
-def validate_https_image(url: str) -> str:
-    """Require https hero URLs; reject placehold.co placeholders."""
-    value = url.strip()
-    if not value.startswith("https://"):
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "image must be an https:// URL.",
-            status_code=400,
-        )
-    lower = value.lower()
-    if "placehold.co" in lower or "://placehold.co" in lower:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "placeholder images are not allowed; use a real https image URL.",
-            status_code=400,
-        )
-    return value
-
-
 def _normalize_campaign_hashtag(raw: str | None) -> str | None:
     if raw is None:
         return None
@@ -908,14 +890,6 @@ async def update_drop_config(
     if not updates:
         return
 
-    creative_touched = bool(_CREATIVE_FIELDS & updates.keys())
-    if creative_touched and drop.published_at is not None:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Title, description, image, and location cannot be changed after publish.",
-            status_code=409,
-        )
-
     logistics_touched = bool(_LOGISTICS_FIELDS & updates.keys())
     if logistics_touched and drop.brand_tracker_stage not in _PRE_LIVE_STAGES:
         raise BuzzAPIException(
@@ -990,6 +964,14 @@ async def update_drop_config(
                 f"total_product_units cannot be below allocated units ({allocated}).",
                 status_code=400,
             )
+
+    creative_touched = bool(_CREATIVE_FIELDS & updates.keys())
+    if creative_touched:
+        logger.info(
+            "admin drop creative patch drop_id=%s fields=%s",
+            drop.id,
+            sorted(_CREATIVE_FIELDS & updates.keys()),
+        )
 
     for field, value in updates.items():
         setattr(drop, field, value)

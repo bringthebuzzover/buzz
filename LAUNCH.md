@@ -64,7 +64,7 @@ Public contact mailbox (`ops.brand-mailbox`) is **ops-parallel**, not a code gat
 | Request vs drop | **Two objects.** Ticket (`drop_requests`) is “request received.” A **new** `drops` row is what admin drafts and publishes. `request_received` is **not** a drop tracker stage. |
 | Intake vs creative | Ticket message/notes are **reference only**. They do **not** become title/description. Admin writes creative on the drop. |
 | Admin UX | Ticket detail: **side-by-side** ticket | draft-drop editor. Save draft; **Publish** is a separate action. |
-| Who writes creative | **Admin** on the draft (title, description, location, **https** image URL). Brand does **not** get a creative editor in this revamp. |
+| Who writes creative | **Admin** on the draft and after publish (title, description, location, **https** image URL). Brand gets a creative editor **only** when admin sets `brand_can_edit_creative` on that drop (default off). |
 | Image URL | **https only.** Reject blank, `http:`, `data:`, `javascript:`, `placehold.co`. No relative URLs. |
 | Publish | Unpublished draft: not on org feed, no Notify Me, no autoclose, brand tracker does not run. **Publish** sets `published_at`; orgs see Upcoming/Open from the real window; tracker starts; brand gets monitor email. |
 | Brand sees draft | **Yes** — logged-in brand sees unpublished drafts (not org-visible). Ticket + draft on brand surfaces. |
@@ -392,7 +392,7 @@ Does not block A–C. Do not flip `contactEmail` until receive + send-as proofs.
 
 ### Not a phase
 
-Meta BV, App Review, address verifier, brand creative editor, Paper, AI, TikTok OAuth, email ledger, CSP, observability.
+Meta BV, App Review, address verifier, always-on brand creative editor (flag-off default is the lock), Paper, AI, TikTok OAuth, email ledger, CSP, observability.
 
 ---
 

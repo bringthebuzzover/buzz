@@ -200,4 +200,24 @@ test("admin saves a draft from a ticket and publishes it", async ({ page }) => {
   const published = await publishResp;
   expect(published.ok(), await published.text()).toBeTruthy();
   await expect(page.getByText(/^Published\b/).first()).toBeVisible();
+
+  const savedJson = (await saved.json()) as { data?: { id?: string } };
+  const dropId = savedJson.data?.id;
+  expect(dropId, "save-draft should return a drop id").toBeTruthy();
+  await page.goto(`/admin/drops/${dropId}?tab=config`);
+  await expect(page.getByTestId("tab-config")).toBeVisible();
+  await expect(page.getByTestId("save-drop-config")).toBeVisible();
+  const titleField = page.getByLabel(/^title$/i).first();
+  await titleField.fill("E2E Config Title");
+  const patchResp = page.waitForResponse(
+    (r) =>
+      r.url().includes(`/api/admin/drops/${dropId}`) &&
+      r.request().method() === "PATCH",
+  );
+  await page.getByTestId("save-drop-config").click();
+  const patched = await patchResp;
+  expect(patched.ok(), await patched.text()).toBeTruthy();
+  await page.reload();
+  await expect(page.getByTestId("save-drop-config")).toBeVisible();
+  await expect(page.getByLabel(/^title$/i).first()).toHaveValue("E2E Config Title");
 });

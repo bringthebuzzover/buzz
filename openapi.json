@@ -620,7 +620,7 @@
       },
       "AdminDropConfigPatch": {
         "additionalProperties": false,
-        "description": "Admin logistics + draft creative patch (omit = leave alone; explicit null = clear).\n\nCreative fields (title/description/image/location) are draft-only\n(``published_at IS NULL``). Window fields accept epoch-ms integers on the wire.",
+        "description": "Admin logistics + creative patch (omit = leave alone; explicit null = 422).\n\nCreative fields (title/description/image/location) are patchable after\npublish. ``brand_can_edit_creative`` is not logistics and is patchable at\nany stage. Window fields accept epoch-ms integers on the wire.",
         "properties": {
           "applyCloseAt": {
             "anyOf": [
@@ -645,6 +645,17 @@
               }
             ],
             "title": "Applyopenat"
+          },
+          "brandCanEditCreative": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brandcaneditcreative"
           },
           "campaignHashtag": {
             "anyOf": [
@@ -833,6 +844,10 @@
             "title": "Applyopenat",
             "type": "integer"
           },
+          "brandCanEditCreative": {
+            "title": "Brandcaneditcreative",
+            "type": "boolean"
+          },
           "brandId": {
             "format": "uuid",
             "title": "Brandid",
@@ -992,6 +1007,7 @@
           "totalProductUnits",
           "allocatedUnits",
           "campaignHashtag",
+          "brandCanEditCreative",
           "trackingNumber",
           "manualReopen",
           "applyOpenAt",
@@ -2520,6 +2536,47 @@
         "title": "BrandApplyResponse",
         "type": "object"
       },
+      "BrandDropCreativePatch": {
+        "additionalProperties": false,
+        "description": "Brand-owned title/description/image patch (omit = leave alone).",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "BrandDropCreativePatch",
+        "type": "object"
+      },
       "BrandDropDetailApplicant": {
         "description": "One applicant row in the brand drop detail view (\u00a78.2).",
         "properties": {
@@ -2730,6 +2787,10 @@
             "title": "Applyopenat",
             "type": "integer"
           },
+          "brandCanEditCreative": {
+            "title": "Brandcaneditcreative",
+            "type": "boolean"
+          },
           "brandId": {
             "format": "uuid",
             "title": "Brandid",
@@ -2845,6 +2906,7 @@
           "brandTrackerStage",
           "totalProductUnits",
           "campaignHashtag",
+          "brandCanEditCreative",
           "applicantSelectionFinalizedAt",
           "createdAt",
           "trackingNumber",
@@ -11407,6 +11469,73 @@
           }
         },
         "summary": "Get Brand Drop Detail",
+        "tags": [
+          "brands"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_brand_drop_creative_api_brands_me_drops__drop_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandDropCreativePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_BrandDropDetailResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Patch Brand Drop Creative",
         "tags": [
           "brands"
         ]

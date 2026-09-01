@@ -22,12 +22,19 @@ from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage
+from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage, OrgUserStatus
 from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.social_post import SocialPost
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
+from app.schemas.brands import (
+    BrandDropCreativePatch,
+    BrandDropDetailApplicant,
+    BrandDropDetailResponse,
+    BrandDropPostItem,
+)
+from app.services.drop_image import validate_https_image
 from app.services.email import send_application_denied_email
 
 logger = logging.getLogger(__name__)
@@ -68,6 +75,123 @@ async def resolve_brand_drop(db: AsyncSession, brand: Brand, drop_id: UUID) -> D
     if drop is None or drop.brand_id != brand.id:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
     return drop
+
+
+async def build_brand_drop_detail(
+    db: AsyncSession, brand: Brand, drop: Drop
+) -> BrandDropDetailResponse:
+    """Same payload as ``GET /api/brands/me/drops/{drop_id}``."""
+
+    agg = await _drop_aggregate(db, drop.id)
+    rows = list(
+        await db.execute(
+            select(DropApplication, Organization, User)
+            .join(Organization, Organization.id == DropApplication.org_id)
+            .join(User, User.id == Organization.user_id)
+            .where(DropApplication.drop_id == drop.id)
+        )
+    )
+
+    applicants: list[BrandDropDetailApplicant] = []
+    for app, org, org_user in rows:
+        attr = await _org_attributed_totals(db, app.id)
+        posts = await _application_linked_posts(db, app.id)
+        applicants.append(
+            BrandDropDetailApplicant(
+                id=app.id,
+                drop_id=app.drop_id,
+                org_id=app.org_id,
+                decision=app.decision,
+                pitch=app.pitch,
+                tracking_number=drop.tracking_number,
+                allocated_units=app.allocated_units,
+                applied_at=app.applied_at,
+                decision_at=app.decision_at,
+                org_name=org.org_name,
+                university=org.university,
+                instagram_handle=org_user.instagram_username or "",
+                follower_count=org.follower_count,
+                member_count=org.member_count,
+                category=org.category,
+                delivery_address=(
+                    org.delivery_address
+                    if app.decision
+                    in (
+                        ApplicationDecision.APPLIED.value,
+                        ApplicationDecision.ACCEPTED.value,
+                    )
+                    else None
+                ),
+                account_erased=org_user.status == OrgUserStatus.ERASED.value,
+                attributed_post_count=attr["attributed_post_count"],
+                attributed_likes=attr["attributed_likes"],
+                attributed_comments=attr["attributed_comments"],
+                attributed_engagement=attr["attributed_engagement"],
+                posts=[
+                    BrandDropPostItem.model_validate(post, from_attributes=True) for post in posts
+                ],
+            )
+        )
+
+    return BrandDropDetailResponse(
+        id=drop.id,
+        brand_id=drop.brand_id,
+        brand_name=brand.brand_name,
+        title=drop.title,
+        description=drop.description,
+        image=drop.image,
+        location=drop.location,
+        capacity_total=drop.capacity_total,
+        apply_open_at=drop.apply_open_at,
+        apply_close_at=drop.apply_close_at,
+        manual_reopen=drop.manual_reopen,
+        brand_tracker_stage=drop.brand_tracker_stage,
+        total_product_units=drop.total_product_units,
+        campaign_hashtag=drop.campaign_hashtag,
+        brand_can_edit_creative=drop.brand_can_edit_creative,
+        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
+        created_at=drop.created_at,
+        tracking_number=drop.tracking_number,
+        applications=applicants,
+        total_posts=agg["total_posts"],
+        total_likes=agg["total_likes"],
+        total_comments=agg["total_comments"],
+        total_engagement=agg["total_engagement"],
+        total_reach=agg["total_reach"],
+    )
+
+
+async def update_brand_drop_creative(
+    db: AsyncSession, drop: Drop, payload: BrandDropCreativePatch
+) -> None:
+    """Apply brand title/description/image when ``brand_can_edit_creative`` is on."""
+
+    updates = payload.model_dump(exclude_unset=True)
+    if not updates:
+        return
+
+    if not drop.brand_can_edit_creative:
+        raise BuzzAPIException(
+            errors.FORBIDDEN,
+            "Brand cannot edit campaign creative on this drop.",
+            status_code=403,
+        )
+
+    if "image" in updates:
+        updates["image"] = validate_https_image(updates["image"])
+
+    for key in ("title", "description"):
+        if key in updates and isinstance(updates[key], str):
+            updates[key] = updates[key].strip()
+
+    logger.info(
+        "brand drop creative patch drop_id=%s fields=%s",
+        drop.id,
+        sorted(updates.keys()),
+    )
+    for field, value in updates.items():
+        setattr(drop, field, value)
+    await db.flush()
 
 
 # --- Per-drop aggregate (port of computeDropAggregate from metrics.ts) ---------

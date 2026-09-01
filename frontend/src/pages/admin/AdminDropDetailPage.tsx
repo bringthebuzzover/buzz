@@ -21,6 +21,7 @@ import {
   useReopenDrop,
   useSetDropTracking,
   type AdminApplicant,
+  type AdminDropConfigPatch,
   type AdminDropDetail,
 } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
@@ -48,6 +49,7 @@ import {
 } from "../../components/admin/labels";
 
 const TABS = [
+  { id: "config", label: "Config" },
   { id: "applicants", label: "Applicants" },
   { id: "timeline", label: "Timeline" },
   { id: "attribution", label: "Attribution" },
@@ -80,7 +82,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
   const patch = usePatchAdminDropConfig(data.id);
   const publish = usePublishDrop(data.id);
   const logisticsLocked = LOGISTICS_LOCKED.has(data.stage);
-  const creativeLocked = data.publishedAt != null;
+  const unpublished = data.publishedAt == null;
   const [title, setTitle] = useState(data.title);
   const [description, setDescription] = useState(data.description);
   const [image, setImage] = useState(data.image);
@@ -96,20 +98,24 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
   );
   const [hashtag, setHashtag] = useState(data.campaignHashtag ?? "");
   const [clearHashtag, setClearHashtag] = useState(false);
+  const [brandCanEditCreative, setBrandCanEditCreative] = useState(
+    Boolean(data.brandCanEditCreative),
+  );
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const onSave = async () => {
     setError(null);
     setNotice(null);
-    const body: Record<string, number | string | null> = {};
-    if (!creativeLocked) {
-      if (title.trim() !== data.title) body.title = title.trim();
-      if (description.trim() !== data.description) {
-        body.description = description.trim();
-      }
-      if (image.trim() !== data.image) body.image = image.trim();
-      if (location.trim() !== data.location) body.location = location.trim();
+    const body: AdminDropConfigPatch = {};
+    if (title.trim() !== data.title) body.title = title.trim();
+    if (description.trim() !== data.description) {
+      body.description = description.trim();
+    }
+    if (image.trim() !== data.image) body.image = image.trim();
+    if (location.trim() !== data.location) body.location = location.trim();
+    if (brandCanEditCreative !== Boolean(data.brandCanEditCreative)) {
+      body.brandCanEditCreative = brandCanEditCreative;
     }
     if (!logisticsLocked) {
       const cap = Number(capacity);
@@ -180,11 +186,6 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
         <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
           Edit configuration
         </p>
-        {creativeLocked && (
-          <p className="text-xs font-medium text-buzz-inkMuted">
-            Title, description, image, and location are locked after publish.
-          </p>
-        )}
         {logisticsLocked && (
           <p className="text-xs font-medium text-buzz-inkMuted">
             Capacity, window, and unit budget are locked while the drop is live or
@@ -198,7 +199,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
               type="text"
               className={inputClass}
               value={title}
-              disabled={creativeLocked || patch.isPending}
+              disabled={patch.isPending}
               onChange={(e) => setTitle(e.target.value)}
             />
           </label>
@@ -208,7 +209,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
               rows={3}
               className={inputClass}
               value={description}
-              disabled={creativeLocked || patch.isPending}
+              disabled={patch.isPending}
               onChange={(e) => setDescription(e.target.value)}
             />
           </label>
@@ -218,7 +219,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
               type="url"
               className={inputClass}
               value={image}
-              disabled={creativeLocked || patch.isPending}
+              disabled={patch.isPending}
               onChange={(e) => setImage(e.target.value)}
             />
           </label>
@@ -228,7 +229,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
               type="text"
               className={inputClass}
               value={location}
-              disabled={creativeLocked || patch.isPending}
+              disabled={patch.isPending}
               onChange={(e) => setLocation(e.target.value)}
             />
           </label>
@@ -304,6 +305,30 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
               Clear hashtag
             </label>
           </label>
+          <label className="block sm:col-span-2">
+            <span className={fieldLabelClass}>Who can edit</span>
+            <span className="flex items-start gap-2 text-sm font-medium text-buzz-ink">
+              <input
+                id="brand-can-edit-creative"
+                type="checkbox"
+                data-testid="brand-can-edit-creative"
+                className="mt-0.5"
+                checked={brandCanEditCreative}
+                disabled={patch.isPending}
+                onChange={(e) => setBrandCanEditCreative(e.target.checked)}
+                aria-describedby="brand-can-edit-creative-help"
+              />
+              <span>
+                Brand can edit title, description, and image
+                <span
+                  id="brand-can-edit-creative-help"
+                  className="mt-0.5 block text-xs font-medium text-buzz-inkMuted"
+                >
+                  Brand cannot change dates, capacity, or publish.
+                </span>
+              </span>
+            </span>
+          </label>
         </div>
         <div className="flex flex-wrap gap-2">
           <ActionButton
@@ -313,7 +338,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
           >
             {patch.isPending ? "Saving…" : "Save configuration"}
           </ActionButton>
-          {!creativeLocked && (
+          {unpublished && (
             <ActionButton
               variant="primary"
               testId="publish-drop"
@@ -626,8 +651,9 @@ export default function AdminDropDetailPage() {
   const { dropId } = useParams<{ dropId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const drop = useAdminDrop(dropId);
-  const activeTab = searchParams.get("tab") ?? "applicants";
   const data = drop.data;
+  const defaultTab = data?.publishedAt == null ? "config" : "applicants";
+  const activeTab = searchParams.get("tab") ?? defaultTab;
   const acceptedCount =
     data?.applicants.filter((a) => a.decision === "accepted").length ?? 0;
 
@@ -667,62 +693,6 @@ export default function AdminDropDetailPage() {
             }
           />
 
-          <Panel title="Configuration">
-            <FieldGrid>
-              <Field label="Capacity">
-                {acceptedCount} accepted of {data.capacityTotal}
-              </Field>
-              <Field label="Unit budget">
-                {data.totalProductUnits === null
-                  ? "Spot-only (no units)"
-                  : `${data.allocatedUnits} of ${data.totalProductUnits} allocated`}
-              </Field>
-              <Field label="Apply window">
-                {formatDate(data.applyOpenAt)} – {formatDate(data.applyCloseAt)}
-                {data.applyCloseAt <= Date.now() && (
-                  <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
-                    closed {formatElapsed(data.applyCloseAt)} ago
-                  </span>
-                )}
-              </Field>
-              <Field label="Selection finalized">
-                {data.finalizedAt ? (
-                  formatDateTime(data.finalizedAt)
-                ) : (
-                  <Pill tone="warn">Not yet</Pill>
-                )}
-              </Field>
-              <Field label="Tracking number">
-                {data.trackingNumber ?? "—"}
-              </Field>
-              <Field label="Campaign hashtag">
-                {data.campaignHashtag ?? (
-                  <span className="text-buzz-inkMuted">
-                    None — auto-link matches on the brand handle only
-                  </span>
-                )}
-              </Field>
-              <Field label="Published">
-                {data.publishedAt != null ? (
-                  formatDateTime(data.publishedAt)
-                ) : (
-                  <Pill tone="warn">Draft</Pill>
-                )}
-              </Field>
-              {data.dropRequestId && (
-                <Field label="Drop request">
-                  <Link
-                    to={`/admin/requests/${data.dropRequestId}`}
-                    className="font-bold text-buzz-coral hover:underline"
-                  >
-                    View ticket
-                  </Link>
-                </Field>
-              )}
-            </FieldGrid>
-            <DropConfigEditors data={data} />
-          </Panel>
-
           <TrackerControls
             dropId={data.id}
             currentStage={data.stage}
@@ -749,6 +719,63 @@ export default function AdminDropDetailPage() {
             ))}
           </div>
 
+          {activeTab === "config" && (
+            <Panel title="Configuration">
+              <FieldGrid>
+                <Field label="Capacity">
+                  {acceptedCount} accepted of {data.capacityTotal}
+                </Field>
+                <Field label="Unit budget">
+                  {data.totalProductUnits === null
+                    ? "Spot-only (no units)"
+                    : `${data.allocatedUnits} of ${data.totalProductUnits} allocated`}
+                </Field>
+                <Field label="Apply window">
+                  {formatDate(data.applyOpenAt)} – {formatDate(data.applyCloseAt)}
+                  {data.applyCloseAt <= Date.now() && (
+                    <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
+                      closed {formatElapsed(data.applyCloseAt)} ago
+                    </span>
+                  )}
+                </Field>
+                <Field label="Selection finalized">
+                  {data.finalizedAt ? (
+                    formatDateTime(data.finalizedAt)
+                  ) : (
+                    <Pill tone="warn">Not yet</Pill>
+                  )}
+                </Field>
+                <Field label="Tracking number">
+                  {data.trackingNumber ?? "—"}
+                </Field>
+                <Field label="Campaign hashtag">
+                  {data.campaignHashtag ?? (
+                    <span className="text-buzz-inkMuted">
+                      None — auto-link matches on the brand handle only
+                    </span>
+                  )}
+                </Field>
+                <Field label="Published">
+                  {data.publishedAt != null ? (
+                    formatDateTime(data.publishedAt)
+                  ) : (
+                    <Pill tone="warn">Draft</Pill>
+                  )}
+                </Field>
+                {data.dropRequestId && (
+                  <Field label="Drop request">
+                    <Link
+                      to={`/admin/requests/${data.dropRequestId}`}
+                      className="font-bold text-buzz-coral hover:underline"
+                    >
+                      View ticket
+                    </Link>
+                  </Field>
+                )}
+              </FieldGrid>
+              <DropConfigEditors data={data} />
+            </Panel>
+          )}
           {activeTab === "applicants" && (
             <Panel>
               <Applicants applicants={data.applicants} />

@@ -18,20 +18,15 @@ from app.config import settings
 from app.deps.auth import CurrentBrand
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
-from app.models.application import DropApplication
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, OrgUserStatus
-from app.models.organization import Organization
-from app.models.user import User
 from app.response import APIResponse, DataResponse, api_response
 from app.schemas.acks import BrandApplyResponse, FinalizeApplicantsResponse
 from app.schemas.brands import (
     BrandAggregateResponse,
     BrandApplyRequest,
-    BrandDropDetailApplicant,
+    BrandDropCreativePatch,
     BrandDropDetailResponse,
     BrandDropListItem,
-    BrandDropPostItem,
     BrandProfileResponse,
     EngagementSeriesPoint,
     FinalizeApplicantsRequest,
@@ -40,14 +35,14 @@ from app.schemas.drops import BrandDropRequestCreate, BrandDropRequestResponse
 from app.security.rate_limit import rate_limited
 from app.services.brand_auth import apply_brand
 from app.services.brands import (
-    _application_linked_posts,
     _drop_aggregate,
-    _org_attributed_totals,
     _require_brand,
+    build_brand_drop_detail,
     compute_brand_aggregate,
     compute_engagement_series,
     finalize_applicants,
     resolve_brand_drop,
+    update_brand_drop_creative,
 )
 from app.services.drop_requests import (
     build_drop_request_response,
@@ -201,86 +196,20 @@ async def get_brand_drop_detail(
 ) -> APIResponse:
     brand = await _require_brand(db, user)
     drop = await resolve_brand_drop(db, brand, drop_id)
-    agg = await _drop_aggregate(db, drop.id)
+    return api_response(data=await build_brand_drop_detail(db, brand, drop))
 
-    # Load all applications on this drop, joined with org profiles + owning user
-    # (edu email / IG identity live on users).
-    rows = list(
-        await db.execute(
-            sa_select(DropApplication, Organization, User)
-            .join(Organization, Organization.id == DropApplication.org_id)
-            .join(User, User.id == Organization.user_id)
-            .where(DropApplication.drop_id == drop.id)
-        )
-    )
 
-    applicants: list[BrandDropDetailApplicant] = []
-    for app, org, org_user in rows:
-        attr = await _org_attributed_totals(db, app.id)
-        posts = await _application_linked_posts(db, app.id)
-        applicants.append(
-            BrandDropDetailApplicant(
-                id=app.id,
-                drop_id=app.drop_id,
-                org_id=app.org_id,
-                decision=app.decision,
-                pitch=app.pitch,
-                tracking_number=drop.tracking_number,
-                allocated_units=app.allocated_units,
-                applied_at=app.applied_at,
-                decision_at=app.decision_at,
-                org_name=org.org_name,
-                university=org.university,
-                instagram_handle=org_user.instagram_username or "",
-                follower_count=org.follower_count,
-                member_count=org.member_count,
-                category=org.category,
-                delivery_address=(
-                    org.delivery_address
-                    if app.decision
-                    in (
-                        ApplicationDecision.APPLIED.value,
-                        ApplicationDecision.ACCEPTED.value,
-                    )
-                    else None
-                ),
-                account_erased=org_user.status == OrgUserStatus.ERASED.value,
-                attributed_post_count=attr["attributed_post_count"],
-                attributed_likes=attr["attributed_likes"],
-                attributed_comments=attr["attributed_comments"],
-                attributed_engagement=attr["attributed_engagement"],
-                posts=[
-                    BrandDropPostItem.model_validate(post, from_attributes=True) for post in posts
-                ],
-            )
-        )
-
-    detail = BrandDropDetailResponse(
-        id=drop.id,
-        brand_id=drop.brand_id,
-        brand_name=brand.brand_name,
-        title=drop.title,
-        description=drop.description,
-        image=drop.image,
-        location=drop.location,
-        capacity_total=drop.capacity_total,
-        apply_open_at=drop.apply_open_at,
-        apply_close_at=drop.apply_close_at,
-        manual_reopen=drop.manual_reopen,
-        brand_tracker_stage=drop.brand_tracker_stage,
-        total_product_units=drop.total_product_units,
-        campaign_hashtag=drop.campaign_hashtag,
-        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
-        created_at=drop.created_at,
-        tracking_number=drop.tracking_number,
-        applications=applicants,
-        total_posts=agg["total_posts"],
-        total_likes=agg["total_likes"],
-        total_comments=agg["total_comments"],
-        total_engagement=agg["total_engagement"],
-        total_reach=agg["total_reach"],
-    )
-    return api_response(data=detail)
+@router.patch("/me/drops/{drop_id}", response_model=DataResponse[BrandDropDetailResponse])
+async def patch_brand_drop_creative(
+    drop_id: uuid.UUID,
+    payload: BrandDropCreativePatch,
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    brand = await _require_brand(db, user)
+    drop = await resolve_brand_drop(db, brand, drop_id)
+    await update_brand_drop_creative(db, drop, payload)
+    return api_response(data=await build_brand_drop_detail(db, brand, drop))
 
 
 @router.post(

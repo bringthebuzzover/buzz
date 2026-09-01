@@ -10,6 +10,8 @@ import type { components } from "../generated/schema";
 export type BrandProfile = components["schemas"]["BrandProfileResponse"];
 export type BrandDropItem = components["schemas"]["BrandDropListItem"];
 export type BrandDropDetail = components["schemas"]["BrandDropDetailResponse"];
+export type BrandDropCreativePatch =
+  components["schemas"]["BrandDropCreativePatch"];
 export type BrandDropPost = components["schemas"]["BrandDropPostItem"];
 export type BrandDropApplicant = components["schemas"]["BrandDropDetailApplicant"];
 export type BrandAggregate = components["schemas"]["BrandAggregateResponse"];
@@ -115,6 +117,31 @@ export function useCreateBrandDropRequest() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["brand-drop-requests"] });
       queryClient.invalidateQueries({ queryKey: ["brand-aggregate"] });
+    },
+  });
+}
+
+export function usePatchBrandDropCreative(dropId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: BrandDropCreativePatch) => {
+      const body: BrandDropCreativePatch = {};
+      if (payload.title !== undefined) body.title = payload.title;
+      if (payload.description !== undefined) body.description = payload.description;
+      if (payload.image !== undefined) body.image = payload.image;
+      const { data } = await apiFetch<BrandDropDetail>(
+        `/api/brands/me/drops/${dropId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brand-drop-detail", dropId] });
+      queryClient.invalidateQueries({ queryKey: ["brand-drops"] });
     },
   });
 }
