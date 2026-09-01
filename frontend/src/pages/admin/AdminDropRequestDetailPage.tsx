@@ -171,6 +171,34 @@ function TicketPanel({ ticket }: { ticket: AdminDropRequest }) {
   );
 }
 
+function PublishedDropSummary({ drop }: { drop: AdminDropDetail }) {
+  return (
+    <Panel
+      title="Published drop"
+      description="Creative and logistics live on drop detail. This ticket stays the intake record."
+    >
+      <FieldGrid>
+        <Field label="Title">{drop.title}</Field>
+        <Field label="Location">{drop.location}</Field>
+        <Field label="Published">
+          {drop.publishedAt != null ? formatDate(drop.publishedAt) : "—"}
+        </Field>
+      </FieldGrid>
+      <div className="space-y-3 border-t border-buzz-lineMid px-4 py-4">
+        <p className="whitespace-pre-wrap text-sm font-medium text-buzz-ink">
+          {drop.description}
+        </p>
+        <Link
+          to={`/admin/drops/${drop.id}?tab=config`}
+          className="inline-block text-sm font-bold text-buzz-coral hover:underline"
+        >
+          Open drop config
+        </Link>
+      </div>
+    </Panel>
+  );
+}
+
 function DraftEditor({
   ticket,
   linkedDrop,
@@ -196,7 +224,6 @@ function DraftEditor({
 
   const published =
     linkedDrop?.publishedAt != null || minted?.publishedAt != null;
-  const creativeLocked = published;
   const ready = requiredReady(form);
   const busy = create.isPending || patch.isPending || publish.isPending;
 
@@ -252,10 +279,6 @@ function DraftEditor({
     try {
       const body = parseBody();
       if (drop) {
-        if (published) {
-          setError("Creative fields are locked after publish. Use drop detail for logistics.");
-          return;
-        }
         await patch.mutateAsync(body);
         setNotice("Draft updated.");
       } else {
@@ -290,10 +313,7 @@ function DraftEditor({
       return;
     }
     try {
-      if (!published) {
-        // Persist latest form values before publish.
-        await patch.mutateAsync(parseBody());
-      }
+      await patch.mutateAsync(parseBody());
       await publish.mutateAsync(undefined);
       setMinted({ ...drop, publishedAt: Date.now() });
       setNotice("Drop published. Brand was emailed the monitor link.");
@@ -308,20 +328,18 @@ function DraftEditor({
     }
   };
 
+  if (published && drop) {
+    return <PublishedDropSummary drop={drop} />;
+  }
+
   return (
     <Panel
-      title={published ? "Published drop" : "Draft drop"}
+      title="Draft drop"
       description="Admin writes creative and logistics. Ticket text is reference only."
     >
       <div className="space-y-3 px-4 py-4">
         <div className="flex flex-wrap items-center gap-2">
-          {published ? (
-            <Pill tone="good">
-              Published {formatDate((drop ?? minted)?.publishedAt ?? null)}
-            </Pill>
-          ) : (
-            <Pill tone="warn">Draft</Pill>
-          )}
+          <Pill tone="warn">Draft</Pill>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block sm:col-span-2">
@@ -330,7 +348,7 @@ function DraftEditor({
               data-testid="draft-title"
               className={inputClass}
               value={form.title}
-              disabled={creativeLocked || busy}
+              disabled={busy}
               onChange={(e) => setField("title", e.target.value)}
             />
           </label>
@@ -341,7 +359,7 @@ function DraftEditor({
               rows={3}
               className={inputClass}
               value={form.description}
-              disabled={creativeLocked || busy}
+              disabled={busy}
               onChange={(e) => setField("description", e.target.value)}
             />
           </label>
@@ -351,7 +369,7 @@ function DraftEditor({
               data-testid="draft-image"
               className={inputClass}
               value={form.image}
-              disabled={creativeLocked || busy}
+              disabled={busy}
               placeholder="https://…"
               onChange={(e) => setField("image", e.target.value)}
             />
@@ -369,7 +387,7 @@ function DraftEditor({
               data-testid="draft-location"
               className={inputClass}
               value={form.location}
-              disabled={creativeLocked || busy}
+              disabled={busy}
               onChange={(e) => setField("location", e.target.value)}
             />
           </label>
@@ -381,7 +399,7 @@ function DraftEditor({
               data-testid="draft-capacity"
               className={inputClass}
               value={form.capacity}
-              disabled={published || busy}
+              disabled={busy}
               onChange={(e) => setField("capacity", e.target.value)}
             />
           </label>
@@ -393,7 +411,7 @@ function DraftEditor({
               data-testid="draft-units"
               className={inputClass}
               value={form.units}
-              disabled={published || busy}
+              disabled={busy}
               placeholder="Optional"
               onChange={(e) => setField("units", e.target.value)}
             />
@@ -405,7 +423,7 @@ function DraftEditor({
               data-testid="draft-open-at"
               className={inputClass}
               value={form.openAt}
-              disabled={published || busy}
+              disabled={busy}
               onChange={(e) => setField("openAt", e.target.value)}
             />
           </label>
@@ -416,7 +434,7 @@ function DraftEditor({
               data-testid="draft-close-at"
               className={inputClass}
               value={form.closeAt}
-              disabled={published || busy}
+              disabled={busy}
               onChange={(e) => setField("closeAt", e.target.value)}
             />
           </label>
@@ -434,16 +452,14 @@ function DraftEditor({
         </div>
 
         <div className="flex flex-wrap gap-2 pt-2">
-          {!published && (
-            <ActionButton
-              testId="save-draft"
-              disabled={busy || !ready}
-              onClick={() => void onSaveDraft()}
-            >
-              {create.isPending || patch.isPending ? "Saving…" : "Save draft"}
-            </ActionButton>
-          )}
-          {drop && !published && (
+          <ActionButton
+            testId="save-draft"
+            disabled={busy || !ready}
+            onClick={() => void onSaveDraft()}
+          >
+            {create.isPending || patch.isPending ? "Saving…" : "Save draft"}
+          </ActionButton>
+          {drop ? (
             <ActionButton
               variant="primary"
               testId="publish-drop"
@@ -452,14 +468,13 @@ function DraftEditor({
             >
               {publish.isPending ? "Publishing…" : "Publish"}
             </ActionButton>
-          )}
-          {!drop && (
+          ) : (
             <ActionButton variant="primary" disabled onClick={() => undefined}>
               Publish
             </ActionButton>
           )}
         </div>
-        {!ready && !published && (
+        {!ready && (
           <p className="text-xs font-medium text-buzz-inkMuted">
             Fill title, description, https image, location, capacity, and apply
             window to enable Save draft / Publish.

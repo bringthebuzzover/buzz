@@ -1189,7 +1189,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Patch Brand Drop Creative */
+        patch: operations["patch_brand_drop_creative_api_brands_me_drops__drop_id__patch"];
         trace?: never;
     };
     "/api/brands/me/drops/{drop_id}/finalize-applicants": {
@@ -1905,16 +1906,19 @@ export interface components {
         };
         /**
          * AdminDropConfigPatch
-         * @description Admin logistics + draft creative patch (omit = leave alone; explicit null = clear).
+         * @description Admin logistics + creative patch (omit = leave alone; explicit null = 422).
          *
-         *     Creative fields (title/description/image/location) are draft-only
-         *     (``published_at IS NULL``). Window fields accept epoch-ms integers on the wire.
+         *     Creative fields (title/description/image/location) are patchable after
+         *     publish. ``brand_can_edit_creative`` is not logistics and is patchable at
+         *     any stage. Window fields accept epoch-ms integers on the wire.
          */
         AdminDropConfigPatch: {
             /** Applycloseat */
             applyCloseAt?: string | null;
             /** Applyopenat */
             applyOpenAt?: string | null;
+            /** Brandcaneditcreative */
+            brandCanEditCreative?: boolean | null;
             /** Campaignhashtag */
             campaignHashtag?: string | null;
             /** Capacitytotal */
@@ -1972,6 +1976,8 @@ export interface components {
             applyCloseAt: number;
             /** Applyopenat */
             applyOpenAt: number;
+            /** Brandcaneditcreative */
+            brandCanEditCreative: boolean;
             /**
              * Brandid
              * Format: uuid
@@ -2522,6 +2528,18 @@ export interface components {
             status: string;
         };
         /**
+         * BrandDropCreativePatch
+         * @description Brand-owned title/description/image patch (omit = leave alone).
+         */
+        BrandDropCreativePatch: {
+            /** Description */
+            description?: string | null;
+            /** Image */
+            image?: string | null;
+            /** Title */
+            title?: string | null;
+        };
+        /**
          * BrandDropDetailApplicant
          * @description One applicant row in the brand drop detail view (§8.2).
          */
@@ -2596,6 +2614,8 @@ export interface components {
             applyCloseAt: number;
             /** Applyopenat */
             applyOpenAt: number;
+            /** Brandcaneditcreative */
+            brandCanEditCreative: boolean;
             /**
              * Brandid
              * Format: uuid
@@ -6346,6 +6366,43 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_BrandDropDetailResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    patch_brand_drop_creative_api_brands_me_drops__drop_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandDropCreativePatch"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

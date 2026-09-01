@@ -859,7 +859,7 @@ class TestDropConfigPatch:
         )
         assert placeholder.status_code == 422
 
-    async def test_admin_patch_creative_blocked_after_publish(
+    async def test_admin_patch_creative_allowed_after_publish(
         self, app_client: AsyncClient, db_session
     ):
         brand = await make_brand(db_session)
@@ -869,7 +869,10 @@ class TestDropConfigPatch:
             json={"title": "New title", "image": "https://cdn.example.test/new.png"},
             headers=await _admin_headers(db_session),
         )
-        assert res.status_code == 409
+        assert res.status_code == 200, res.text
+        body = res.json()["data"]
+        assert body["title"] == "New title"
+        assert body["image"] == "https://cdn.example.test/new.png"
 
 
 def _draft_body(**overrides: object) -> dict:

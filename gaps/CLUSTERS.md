@@ -717,6 +717,20 @@ stop_if:
 
 ---
 
+## brand-drop-creative
+
+status: done
+gaps:
+  - brand.drop-creative-uneditable
+approach: |
+  Archived `gaps/archive/brand.drop-creative-uneditable.md`. Admin creative PATCH
+  after publish; `brand_can_edit_creative` default false; brand PATCH when on.
+  Admin Config tab; brand Campaign card. Set `closed_in` at commit.
+stop_if:
+  - Brand logistics / blob upload / org notify / ticket PATCH.
+
+---
+
 ## parked
 
 status: parked

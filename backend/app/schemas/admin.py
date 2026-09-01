@@ -79,10 +79,11 @@ class TrackingRepairRequest(CamelModel):
 
 
 class AdminDropConfigPatch(CamelModel):
-    """Admin logistics + draft creative patch (omit = leave alone; explicit null = clear).
+    """Admin logistics + creative patch (omit = leave alone; explicit null = 422).
 
-    Creative fields (title/description/image/location) are draft-only
-    (``published_at IS NULL``). Window fields accept epoch-ms integers on the wire.
+    Creative fields (title/description/image/location) are patchable after
+    publish. ``brand_can_edit_creative`` is not logistics and is patchable at
+    any stage. Window fields accept epoch-ms integers on the wire.
     """
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
@@ -92,12 +93,13 @@ class AdminDropConfigPatch(CamelModel):
     apply_close_at: Annotated[datetime | None, BeforeValidator(_epoch_ms_to_aware)] = None
     total_product_units: int | None = Field(default=None, ge=1)
     campaign_hashtag: str | None = None
+    brand_can_edit_creative: bool | None = None
     title: str | None = None
     description: str | None = None
     image: str | None = None
     location: str | None = None
 
-    @field_validator("capacity_total", "apply_open_at", "apply_close_at")
+    @field_validator("capacity_total", "apply_open_at", "apply_close_at", "brand_can_edit_creative")
     @classmethod
     def _required_not_null(cls, value: object) -> object:
         if value is None:
@@ -538,6 +540,7 @@ class AdminDropDetail(CamelModel):
     total_product_units: int | None
     allocated_units: int
     campaign_hashtag: str | None
+    brand_can_edit_creative: bool
     tracking_number: str | None
     manual_reopen: bool
     apply_open_at: datetime

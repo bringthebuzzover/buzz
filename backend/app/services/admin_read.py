@@ -959,6 +959,7 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
         "total_product_units": drop.total_product_units,
         "allocated_units": allocated,
         "campaign_hashtag": drop.campaign_hashtag,
+        "brand_can_edit_creative": drop.brand_can_edit_creative,
         "tracking_number": drop.tracking_number,
         "manual_reopen": drop.manual_reopen,
         "apply_open_at": drop.apply_open_at,

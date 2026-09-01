@@ -426,6 +426,7 @@ export type AdminDropConfigPatch = {
   description?: string;
   image?: string;
   location?: string;
+  brandCanEditCreative?: boolean;
 };
 
 export type AdminDropCreateInput = {

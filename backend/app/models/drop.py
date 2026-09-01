@@ -58,6 +58,9 @@ class Drop(Base):
 
     total_product_units: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
     campaign_hashtag: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    brand_can_edit_creative: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, server_default=sa.text("false")
+    )
 
     applicant_selection_finalized_at: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True), nullable=True

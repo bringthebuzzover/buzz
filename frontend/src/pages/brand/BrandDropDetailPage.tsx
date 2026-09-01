@@ -8,7 +8,7 @@ import { ChevronLeft } from "lucide-react";
 import BrandDropTrackerStepper from "../../components/brand/BrandDropTrackerStepper";
 import ApiDropOrgTable from "../../components/brand/ApiDropOrgTable";
 import DropKPISummary from "../../components/brand/DropKPISummary";
-import { useBrandDropDetail, useFinalizeApplicants } from "../../api/hooks/useBrandHooks";
+import { useBrandDropDetail, useFinalizeApplicants, usePatchBrandDropCreative } from "../../api/hooks/useBrandHooks";
 import type { BrandDropDetail, BrandDropApplicant } from "../../api/hooks/useBrandHooks";
 import { ApiError } from "../../api/errors";
 import { useMemo, useState } from "react";
@@ -286,6 +286,120 @@ function FinalizedRoster({
   );
 }
 
+/** Campaign creative editor — only when admin sets brandCanEditCreative. */
+function BrandCampaignEditor({ detail }: { detail: BrandDropDetail }) {
+  const patch = usePatchBrandDropCreative(detail.id);
+  const [title, setTitle] = useState(detail.title);
+  const [description, setDescription] = useState(detail.description);
+  const [image, setImage] = useState(detail.image);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const httpsPreview = (() => {
+    try {
+      return new URL(image.trim()).protocol === "https:";
+    } catch {
+      return false;
+    }
+  })();
+
+  const onSave = async () => {
+    setError(null);
+    setNotice(null);
+    const body: { title?: string; description?: string; image?: string } = {};
+    if (title.trim() !== detail.title) body.title = title.trim();
+    if (description.trim() !== detail.description) {
+      body.description = description.trim();
+    }
+    if (image.trim() !== detail.image) body.image = image.trim();
+    if (Object.keys(body).length === 0) {
+      setNotice("No changes to save.");
+      return;
+    }
+    try {
+      await patch.mutateAsync(body);
+      setNotice("Campaign updated.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not save campaign.",
+      );
+    }
+  };
+
+  const fieldLabel =
+    "mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkMuted";
+  const inputClass =
+    "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-2 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
+
+  return (
+    <section
+      data-testid="brand-campaign-editor"
+      className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-6 shadow-sm"
+    >
+      <h2 className="text-lg font-bold text-buzz-ink">Campaign</h2>
+      <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
+        Buzz can still change this.
+      </p>
+      <div className="mt-4 space-y-3">
+        <label className="block">
+          <span className={fieldLabel}>Title</span>
+          <input
+            type="text"
+            className={inputClass}
+            value={title}
+            disabled={patch.isPending}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </label>
+        <label className="block">
+          <span className={fieldLabel}>Description</span>
+          <textarea
+            rows={3}
+            className={inputClass}
+            value={description}
+            disabled={patch.isPending}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </label>
+        <label className="block">
+          <span className={fieldLabel}>Image URL</span>
+          <input
+            type="url"
+            className={inputClass}
+            value={image}
+            disabled={patch.isPending}
+            onChange={(e) => setImage(e.target.value)}
+          />
+        </label>
+        {httpsPreview ? (
+          <img
+            src={image.trim()}
+            alt=""
+            className="max-h-40 rounded-lg border border-buzz-lineMid object-cover"
+          />
+        ) : null}
+        <button
+          type="button"
+          data-testid="brand-save-creative"
+          disabled={patch.isPending}
+          onClick={() => void onSave()}
+          className="rounded-xl bg-buzz-coral px-6 py-2 text-sm font-bold text-buzz-paper hover:bg-buzz-coralDark disabled:opacity-60"
+        >
+          {patch.isPending ? "Saving..." : "Save"}
+        </button>
+        {notice ? (
+          <p className="text-sm font-medium text-green-600">{notice}</p>
+        ) : null}
+        {error ? (
+          <p className="text-sm font-medium text-buzz-coral" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 /** GET /api/brands/me/drops/:id. */
 function ApiDropDetail() {
   const { dropId } = useParams<{ dropId: string }>();
@@ -369,6 +483,12 @@ function ApiDropDetail() {
         currentStage={drop.brandTrackerStage as any}
         trackingNumber={drop.trackingNumber}
       />
+
+      {detail.brandCanEditCreative ? (
+        <div className="mt-8">
+          <BrandCampaignEditor detail={detail} />
+        </div>
+      ) : null}
 
       {canEditSelection ? (
         <ApiApplicantTable
