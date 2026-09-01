@@ -36,8 +36,6 @@ export default function OrgProfilePage() {
   const [eduEmail, setEduEmail] = useState("");
   const [memberCount, setMemberCount] = useState("");
   const [category, setCategory] = useState<OrgCategory | "">("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
   const [contactName, setContactName] = useState("");
   const [shipping, setShipping] = useState(EMPTY_SHIPPING);
   const [error, setError] = useState<string | null>(null);
@@ -64,8 +62,6 @@ export default function OrgProfilePage() {
         eduEmail: eduEmail.trim(),
         memberCount: Number(memberCount),
         category,
-        city: city.trim(),
-        state: state.trim(),
         contactName: contactName.trim(),
         ...shippingToApi(shipping),
       });
@@ -184,31 +180,6 @@ export default function OrgProfilePage() {
               </option>
             ))}
           </select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-              Campus city
-            </label>
-            <input
-              className={inputClass}
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-              Campus state
-            </label>
-            <input
-              className={inputClass}
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              required
-            />
-          </div>
         </div>
 
         <div>

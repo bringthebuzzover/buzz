@@ -43,7 +43,7 @@ export function shippingToApi(value: ShippingAddressValue) {
   };
 }
 
-const SUGGEST_DEBOUNCE_MS = 400;
+const SUGGEST_DEBOUNCE_MS = 750;
 
 type Props = {
   value: ShippingAddressValue;
@@ -66,30 +66,46 @@ export default function ShippingAddressFields({
   const preview = useAddressPreview();
   const [suggestions, setSuggestions] = useState<AddressSuggestionItem[]>([]);
   const [open, setOpen] = useState(false);
+  const [streetActive, setStreetActive] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
   const gen = useRef(0);
+  const allowSuggest = useRef(false);
   const listId = useId();
+
+  const dismissSuggestions = () => {
+    allowSuggest.current = false;
+    gen.current += 1;
+    setSuggestions([]);
+    setOpen(false);
+  };
 
   useEffect(() => {
     const q = value.line1.trim();
-    setLookupError(null);
-    if (q.length < 3) {
+    if (!streetActive || !allowSuggest.current || value.placeId || q.length < 3) {
+      gen.current += 1;
       setSuggestions([]);
       setOpen(false);
       return;
     }
+    setLookupError(null);
     const thisGen = ++gen.current;
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
           const data = await suggest.mutateAsync(q);
-          if (thisGen !== gen.current) return;
+          if (thisGen !== gen.current || !allowSuggest.current) return;
           setSuggestions(data.suggestions);
           setOpen(data.suggestions.length > 0);
         } catch (err) {
-          if (thisGen !== gen.current) return;
+          if (thisGen !== gen.current || !allowSuggest.current) return;
           setSuggestions([]);
           setOpen(false);
+          if (err instanceof ApiError && err.code === "RATE_LIMITED") {
+            setLookupError(
+              "Suggestions paused for a moment. You can keep typing the street, city, state, and ZIP.",
+            );
+            return;
+          }
           setLookupError(
             err instanceof ApiError
               ? err.message
@@ -99,12 +115,12 @@ export default function ShippingAddressFields({
       })();
     }, SUGGEST_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- debounce on line1 only
-  }, [value.line1]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- debounce on street activity
+  }, [value.line1, value.placeId, streetActive]);
 
   const pick = async (item: AddressSuggestionItem) => {
-    setOpen(false);
-    setSuggestions([]);
+    dismissSuggestions();
+    setStreetActive(false);
     try {
       const filled = await preview.mutateAsync(item.placeId);
       onChange({
@@ -135,8 +151,8 @@ export default function ShippingAddressFields({
         Shipping address (US)
       </legend>
       <p className="text-xs text-buzz-inkMuted">
-        Where brands should ship product. Separate from campus city/state. PO
-        Boxes and campus CPO/dorm lines are allowed.
+        Where brands should ship product. PO Boxes and campus CPO/dorm lines
+        are allowed.
       </p>
       {legacyHint ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
@@ -157,9 +173,18 @@ export default function ShippingAddressFields({
           data-testid={`${testIdPrefix}-shipping-line1`}
           className={inputClass}
           value={value.line1}
-          onChange={(e) => patch({ line1: e.target.value })}
+          onChange={(e) => {
+            allowSuggest.current = true;
+            setStreetActive(true);
+            patch({ line1: e.target.value });
+          }}
           onFocus={() => {
-            if (suggestions.length > 0) setOpen(true);
+            allowSuggest.current = true;
+            setStreetActive(true);
+          }}
+          onBlur={() => {
+            setStreetActive(false);
+            dismissSuggestions();
           }}
           autoComplete="street-address"
           required={required}
@@ -214,7 +239,7 @@ export default function ShippingAddressFields({
             htmlFor={`${testIdPrefix}-shipping-city`}
             className="mb-1 block text-sm font-semibold text-buzz-ink"
           >
-            Shipping city
+            City
           </label>
           <input
             id={`${testIdPrefix}-shipping-city`}
@@ -231,7 +256,7 @@ export default function ShippingAddressFields({
             htmlFor={`${testIdPrefix}-shipping-state`}
             className="mb-1 block text-sm font-semibold text-buzz-ink"
           >
-            Shipping state
+            State
           </label>
           <input
             id={`${testIdPrefix}-shipping-state`}

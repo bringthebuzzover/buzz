@@ -74,8 +74,7 @@ US_STATE_CODES = frozenset(
 )
 _ZIP_RE = re.compile(r"^\d{5}(?:-\d{4})?$")
 _INVALID_MSG = (
-    "Enter a US mailing address brands can ship to (street or PO Box, city, "
-    "state, and ZIP). Campus city/state is separate."
+    "Enter a US mailing address brands can ship to (street or PO Box, city," " state, and ZIP)."
 )
 
 

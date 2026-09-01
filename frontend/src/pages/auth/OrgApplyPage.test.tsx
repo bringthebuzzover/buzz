@@ -119,12 +119,10 @@ describe("OrgApplyPage confirm card", () => {
     set(byLabel("School (.edu) email"), "greeks@cornell.edu");
     set(byLabel("Number of members"), "40");
     set(byLabel("Organization type"), "sorority");
-    set(byLabel("Campus city"), "Ithaca");
-    set(byLabel("Campus state"), "NY");
     set(byLabel("Contact name"), "Alex");
     set(byLabel("Street"), "123 College Ave");
-    set(byLabel("Shipping city"), "Ithaca");
-    set(byLabel("Shipping state"), "NY");
+    set(byLabel("City"), "Ithaca");
+    set(byLabel("State"), "NY");
     set(byLabel("ZIP"), "14850");
     void inputs;
   }
@@ -164,8 +162,8 @@ describe("OrgApplyPage confirm card", () => {
     ) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
     expect(container.textContent).toMatch(/@campusgreeks/i);
-    expect(container.textContent).toMatch(/Campus city/);
-    expect(container.textContent).toMatch(/Shipping city/);
+    expect(container.textContent).toMatch(/Contact name/);
+    expect(container.textContent).toMatch(/Shipping address/);
 
     const confirm = Array.from(container.querySelectorAll("button")).find((b) =>
       /confirm this is our organization/i.test(b.textContent || ""),

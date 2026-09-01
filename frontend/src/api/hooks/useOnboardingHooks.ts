@@ -42,8 +42,8 @@ export type OrgOnboardingInput = {
   tiktokHandle?: string;
   memberCount: number;
   category: OrgCategory;
-  city: string;
-  state: string;
+  city?: string;
+  state?: string;
   contactName: string;
   shippingLine1: string;
   shippingLine2?: string;

@@ -4,14 +4,17 @@ from __future__ import annotations
 
 from urllib.parse import parse_qs, urlparse
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
 from app import errors
+from app.config import settings
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.organization import Organization
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
+from app.security import rate_limit
 from app.security.one_shot_tokens import hash_token
 from app.services.instagram_lookup import clear_instagram_lookup_cache
 from tests.conftest import FakeInstagramClient, make_user, persist
@@ -24,8 +27,6 @@ _APPLY = {
     "handleConfirmed": True,
     "memberCount": 40,
     "category": "sorority",
-    "city": "Ithaca",
-    "state": "NY",
     "contactName": "Alex",
     "shippingLine1": "123 College Ave",
     "shippingCity": "Ithaca",
@@ -55,6 +56,8 @@ async def test_org_apply_creates_without_ig_token(app_client: AsyncClient, db_se
     assert org.shipping_state == "NY"
     assert org.shipping_postal_code == "14850"
     assert org.delivery_address == "123 College Ave, Ithaca, NY 14850"
+    assert org.city is None
+    assert org.state is None
 
 
 async def test_org_apply_duplicate_handle(app_client: AsyncClient, db_session) -> None:
@@ -187,3 +190,36 @@ async def test_address_suggest_empty_without_google(app_client: AsyncClient) -> 
     resp = await app_client.get("/api/orgs/address-suggest", params={"q": "123 Main St"})
     assert resp.status_code == 200
     assert resp.json()["data"]["suggestions"] == []
+
+
+@pytest.fixture
+def _enable_rate_limit():
+    prev = settings.RATE_LIMIT_ENABLED
+    settings.RATE_LIMIT_ENABLED = True
+    rate_limit.reset()
+    yield
+    settings.RATE_LIMIT_ENABLED = prev
+    rate_limit.reset()
+
+
+async def test_address_suggest_allows_typing_burst(
+    app_client: AsyncClient, _enable_rate_limit
+) -> None:
+    """Autocomplete is per-keystroke; 10/min (IG lookup copy) is too tight."""
+    for i in range(40):
+        resp = await app_client.get("/api/orgs/address-suggest", params={"q": f"123 Main {i}"})
+        assert resp.status_code == 200, resp.text
+
+
+async def test_address_suggest_burst_still_caps(
+    app_client: AsyncClient, _enable_rate_limit
+) -> None:
+    statuses = [
+        (await app_client.get("/api/orgs/address-suggest", params={"q": f"1 Main {i}"})).status_code
+        for i in range(61)
+    ]
+    assert statuses[:60] == [200] * 60
+    assert statuses[60] == 429
+    assert (await app_client.get("/api/orgs/address-suggest", params={"q": "x"})).json()["error"][
+        "code"
+    ] == errors.RATE_LIMITED

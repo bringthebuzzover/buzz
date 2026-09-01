@@ -94,15 +94,14 @@ async def test_patch_me_validation_error(app_client: AsyncClient, db_session) ->
     assert isinstance(body["error"]["details"]["errors"], list)
 
 
-async def test_patch_me_null_profile_fields_rejected(app_client: AsyncClient, db_session) -> None:
+async def test_patch_me_clears_leftover_campus_city(app_client: AsyncClient, db_session) -> None:
     headers, org, _user = await _org_headers(db_session)
     org.city = "Ithaca"
     await db_session.flush()
     resp = await app_client.patch("/api/orgs/me", headers=headers, json={"city": None})
-    assert resp.status_code == 422
-    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert resp.status_code == 200
     await db_session.refresh(org)
-    assert org.city == "Ithaca"
+    assert org.city is None
 
 
 async def test_patch_me_rejects_instagram_handle(app_client: AsyncClient, db_session) -> None:

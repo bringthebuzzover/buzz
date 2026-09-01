@@ -6594,8 +6594,15 @@
             "$ref": "#/components/schemas/OrgCategory"
           },
           "city": {
-            "title": "City",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
           },
           "contactName": {
             "title": "Contactname",
@@ -6661,8 +6668,15 @@
             "type": "string"
           },
           "state": {
-            "title": "State",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
           },
           "tiktokHandle": {
             "anyOf": [
@@ -6687,8 +6701,6 @@
           "instagramHandle",
           "memberCount",
           "category",
-          "city",
-          "state",
           "contactName",
           "shippingLine1",
           "shippingCity",
@@ -6733,8 +6745,15 @@
             "$ref": "#/components/schemas/OrgCategory"
           },
           "city": {
-            "title": "City",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
           },
           "contactName": {
             "title": "Contactname",
@@ -6791,8 +6810,15 @@
             "type": "string"
           },
           "state": {
-            "title": "State",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
           },
           "tiktokHandle": {
             "anyOf": [
@@ -6816,8 +6842,6 @@
           "eduEmail",
           "memberCount",
           "category",
-          "city",
-          "state",
           "contactName",
           "shippingLine1",
           "shippingCity",
