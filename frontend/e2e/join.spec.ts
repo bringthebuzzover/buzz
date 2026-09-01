@@ -113,6 +113,8 @@ test("org apply → verify → pending approval", async ({ page }) => {
   await page.getByTestId("org-apply-submit").click();
   expect((await applyResp).ok()).toBeTruthy();
   await expect(page).toHaveURL(/\/onboarding\/verify-email/);
+  await expect(page.getByTestId("verify-edu-email")).toHaveText(eduEmail);
+  await expect(page.locator("input[type=email]")).toHaveCount(0);
 
   const token = mintVerifyToken(eduEmail);
   await page.goto(`/onboarding/verify-email?token=${token}`);

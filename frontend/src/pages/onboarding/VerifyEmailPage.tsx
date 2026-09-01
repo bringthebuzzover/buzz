@@ -4,14 +4,13 @@
  * Modes:
  *  - With `?token=…`: Confirm button POSTs verify (no auto-consume). Onboarding
  *    success may mint a session (access_token + user) for apply-first orgs.
- *  - Authenticated waiting (pending_email_verification): resend + change email.
- *  - Public waiting (after /org/apply, no session): Junk copy + resend-public.
+ *  - Authenticated waiting (pending_email_verification): listed .edu + resend.
+ *  - Public waiting (after /org/apply, no session): listed apply .edu + resend-public.
  */
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth, type AuthUser } from "../../contexts/AuthContext";
 import {
-  useChangeEduEmail,
   usePublicResendVerification,
   useResendVerification,
   useVerifyEmail,
@@ -29,6 +28,17 @@ const VERIFY_EDU_EMAIL_KEY = "buzz.verifyEduEmail";
 
 const JUNK_HINT =
   "Campus inboxes often put first-time Buzz mail in Junk.";
+
+function ListedEduEmail({ email }: { email: string }) {
+  return (
+    <p
+      data-testid="verify-edu-email"
+      className="mb-2 break-all text-base font-semibold text-buzz-ink"
+    >
+      {email}
+    </p>
+  );
+}
 
 function readEmailSentFlag(locationState: unknown): boolean {
   const fromState =
@@ -244,10 +254,10 @@ function VerifyWithToken({ token }: { token: string }) {
 const POLL_INTERVAL_MS = 15_000;
 
 function AwaitVerification() {
-  const { refreshUser } = useAuth();
+  const { refreshUser, user } = useAuth();
   const location = useLocation();
   const resend = useResendVerification();
-  const changeEmail = useChangeEduEmail();
+  const listedEmail = (user?.email ?? "").trim().toLowerCase();
   const [emailSent, setEmailSent] = useState(() =>
     readEmailSentFlag(location.state),
   );
@@ -257,8 +267,6 @@ function AwaitVerification() {
       ? null
       : "We could not send the verification email. Use Resend below to try again.",
   );
-  const [showChange, setShowChange] = useState(false);
-  const [newEmail, setNewEmail] = useState("");
 
   // Poll so a verify completed in another tab/device advances this waiting tab
   // automatically (the parent redirects once status leaves
@@ -289,28 +297,6 @@ function AwaitVerification() {
     }
   };
 
-  const onChangeEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setNotice(null);
-    setError(null);
-    try {
-      const result = await changeEmail.mutateAsync(newEmail.trim());
-      await refreshUser();
-      setShowChange(false);
-      markEmailSent(true);
-      setEmailSent(true);
-      setNotice(`Verification email sent to ${result.emailSentTo}.`);
-    } catch (err) {
-      markEmailSent(false);
-      setEmailSent(false);
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Could not update your email. Please try again.",
-      );
-    }
-  };
-
   return (
     <div className="mx-auto max-w-md px-8 py-24 text-center">
       <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
@@ -318,9 +304,12 @@ function AwaitVerification() {
       </h1>
       <p className="mb-2 text-sm font-medium text-buzz-inkMuted">
         {emailSent
-          ? "We sent a verification link to your school email. Click it to continue."
+          ? listedEmail
+            ? "We sent a verification link to this school email. Click it to continue."
+            : "We sent a verification link to your school email. Click it to continue."
           : "Your profile is saved, but we could not send the verification email yet. Use Resend below when you are ready."}
       </p>
+      {listedEmail ? <ListedEduEmail email={listedEmail} /> : null}
       <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{JUNK_HINT}</p>
 
       {notice && (
@@ -338,48 +327,6 @@ function AwaitVerification() {
         {resend.isPending ? "Sending…" : "Resend email"}
       </button>
 
-      <div className="mt-6">
-        {!showChange ? (
-          <button
-            type="button"
-            onClick={() => setShowChange(true)}
-            className="text-sm font-medium text-buzz-inkMuted underline-offset-2 hover:underline"
-          >
-            Wrong email? Change it
-          </button>
-        ) : (
-          <form onSubmit={onChangeEmail} className="space-y-3 text-left">
-            <label className="block text-sm font-medium text-buzz-ink">
-              School email
-              <input
-                type="email"
-                required
-                value={newEmail}
-                onChange={(ev) => setNewEmail(ev.target.value)}
-                className="mt-1 w-full rounded-lg border border-buzz-ink/15 bg-buzz-paper px-3 py-2 text-sm"
-                placeholder="you@university.edu"
-              />
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={changeEmail.isPending}
-                className="rounded-lg bg-buzz-coral px-4 py-2 text-sm font-bold text-buzz-paper disabled:opacity-60"
-              >
-                {changeEmail.isPending ? "Updating…" : "Update & resend"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowChange(false)}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-buzz-inkMuted"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
           {error}
@@ -396,21 +343,22 @@ function PublicAwaitVerification() {
   const [emailSent, setEmailSent] = useState(() =>
     readEmailSentFlag(location.state),
   );
-  const [eduEmail, setEduEmail] = useState(() => readEduEmail(location.state));
+  const [eduEmail] = useState(() => readEduEmail(location.state));
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(
     emailSent
       ? null
-      : "We could not send the verification email. Enter your school email below to try again.",
+      : "We could not send the verification email. Use Resend below to try again.",
   );
 
-  const onResend = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onResend = async () => {
     setNotice(null);
     setError(null);
     const trimmed = eduEmail.trim().toLowerCase();
     if (!trimmed) {
-      setError("Enter the school email you used on your application.");
+      setError(
+        "Open this page from the same browser after you apply so we can resend to your school email.",
+      );
       return;
     }
     try {
@@ -436,10 +384,13 @@ function PublicAwaitVerification() {
         Verify Your <span className="text-buzz-coral">Email</span>
       </h1>
       <p className="mb-2 text-sm font-medium text-buzz-inkMuted">
-        {emailSent
-          ? "We sent a verification link to your school email. Click it to continue."
-          : "Enter your school email below to send or resend the verification link."}
+        {eduEmail
+          ? emailSent
+            ? "We sent a verification link to this school email. Click it to continue."
+            : "Use Resend below to send the verification link to this school email."
+          : "We sent a verification link to the school email on your application. Click it to continue."}
       </p>
+      {eduEmail ? <ListedEduEmail email={eduEmail} /> : null}
       <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{JUNK_HINT}</p>
 
       {notice && (
@@ -448,26 +399,14 @@ function PublicAwaitVerification() {
         </p>
       )}
 
-      <form onSubmit={(e) => void onResend(e)} className="space-y-3 text-left">
-        <label className="block text-sm font-medium text-buzz-ink">
-          School email
-          <input
-            type="email"
-            required
-            value={eduEmail}
-            onChange={(ev) => setEduEmail(ev.target.value)}
-            className="mt-1 w-full rounded-lg border border-buzz-ink/15 bg-buzz-paper px-3 py-2 text-sm"
-            placeholder="you@university.edu"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={publicResend.isPending}
-          className="w-full rounded-lg border-2 border-buzz-coral px-6 py-3 text-sm font-bold text-buzz-coral transition enabled:hover:bg-buzz-coral enabled:hover:text-buzz-paper disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {publicResend.isPending ? "Sending…" : "Resend email"}
-        </button>
-      </form>
+      <button
+        type="button"
+        onClick={() => void onResend()}
+        disabled={publicResend.isPending || !eduEmail}
+        className="rounded-lg border-2 border-buzz-coral px-6 py-3 text-sm font-bold text-buzz-coral transition enabled:hover:bg-buzz-coral enabled:hover:text-buzz-paper disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {publicResend.isPending ? "Sending…" : "Resend email"}
+      </button>
 
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
