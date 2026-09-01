@@ -23,6 +23,7 @@ re-implementing that proxy plumbing, and the subprocess cost
 
 from __future__ import annotations
 
+import concurrent.futures
 import os
 import secrets
 import shutil
@@ -113,5 +114,31 @@ async def test_alembic_matches_models() -> None:
             f"alembic check exit {check.returncode}:\n"
             f"STDOUT:\n{check.stdout}\nSTDERR:\n{check.stderr}"
         )
+    finally:
+        await _drop_db(admin_url, parity_db)
+
+
+@pytest.mark.asyncio
+async def test_concurrent_alembic_upgrade_head() -> None:
+    """Two ``upgrade head`` processes must both succeed (api + cron pre-deploys)."""
+
+    admin_url, _, _ = _split_admin_url(settings.DATABASE_URL)
+    parity_db = f"buzz_alembic_lock_{secrets.token_hex(4)}"
+    parity_url = (
+        settings.DATABASE_URL.rsplit("/", 1)[0] + f"/{parity_db}"
+        if "/" in settings.DATABASE_URL
+        else f"postgresql+asyncpg://localhost/{parity_db}"
+    )
+
+    await _create_db(admin_url, parity_db)
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            futs = [pool.submit(_run_alembic, ["upgrade", "head"], parity_url) for _ in range(2)]
+            results = [fut.result() for fut in futs]
+        for upgrade in results:
+            assert upgrade.returncode == 0, (
+                f"alembic upgrade head failed (exit {upgrade.returncode}):\n"
+                f"STDOUT:\n{upgrade.stdout}\nSTDERR:\n{upgrade.stderr}"
+            )
     finally:
         await _drop_db(admin_url, parity_db)

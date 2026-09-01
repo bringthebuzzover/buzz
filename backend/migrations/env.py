@@ -9,16 +9,19 @@ project-specific bits:
   being read from ``alembic.ini`` so a single source of truth (the ``.env``
   file via pydantic-settings) drives both the FastAPI app and the migration
   runner.
+* Online Postgres runs take ``pg_advisory_xact_lock`` inside the migration
+  transaction so api + cron pre-deploys cannot apply the same revision in
+  parallel.
 """
 
 import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import pool
+from alembic import context
+from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from alembic import context
 from app.config import settings
 from app.models import Base
 
@@ -30,6 +33,10 @@ if config.config_file_name is not None:
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 target_metadata = Base.metadata
+
+# Transaction-scoped Postgres lock so api + cron pre-deploys cannot apply the
+# same revision in parallel (ADD COLUMN would otherwise fail on the loser).
+_ALEMBIC_ADVISORY_LOCK_KEY = 737841
 
 
 def run_migrations_offline() -> None:
@@ -60,6 +67,10 @@ def do_run_migrations(connection: Connection) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
+        if connection.dialect.name == "postgresql":
+            connection.execute(
+                text("SELECT pg_advisory_xact_lock(:k)"), {"k": _ALEMBIC_ADVISORY_LOCK_KEY}
+            )
         context.run_migrations()
 
 
