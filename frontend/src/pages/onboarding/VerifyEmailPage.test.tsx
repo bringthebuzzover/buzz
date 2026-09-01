@@ -15,6 +15,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
   true;
 
 const mockMutateAsync = jest.fn();
+const mockPublicResend = jest.fn();
 const mockRefreshUser = jest.fn(async () => null as null | {
   id: string;
   portalRole: "org";
@@ -23,6 +24,23 @@ const mockRefreshUser = jest.fn(async () => null as null | {
   pendingEduEmail: string | null;
   instagramUsername: string | null;
 });
+
+const mockAuthValue: {
+  status: string;
+  user: null | {
+    id: string;
+    portalRole: "org";
+    status: string;
+    email?: string;
+  };
+  refreshUser: typeof mockRefreshUser;
+  acceptSession: jest.Mock;
+} = {
+  status: "idle",
+  user: null,
+  refreshUser: mockRefreshUser,
+  acceptSession: jest.fn(),
+};
 
 jest.mock("../../api/hooks/useOnboardingHooks", () => ({
   useVerifyEmail: () => ({
@@ -34,22 +52,13 @@ jest.mock("../../api/hooks/useOnboardingHooks", () => ({
     isPending: false,
   }),
   usePublicResendVerification: () => ({
-    mutateAsync: jest.fn(),
-    isPending: false,
-  }),
-  useChangeEduEmail: () => ({
-    mutateAsync: jest.fn(),
+    mutateAsync: mockPublicResend,
     isPending: false,
   }),
 }));
 
 jest.mock("../../contexts/AuthContext", () => ({
-  useAuth: () => ({
-    status: "idle",
-    user: null,
-    refreshUser: mockRefreshUser,
-    acceptSession: jest.fn(),
-  }),
+  useAuth: () => mockAuthValue,
 }));
 
 import VerifyEmailPage from "./VerifyEmailPage";
@@ -61,8 +70,13 @@ describe("VerifyEmailPage confirm-before-verify", () => {
   beforeEach(() => {
     mockMutateAsync.mockReset();
     mockMutateAsync.mockResolvedValue({ ok: true });
+    mockPublicResend.mockReset();
+    mockPublicResend.mockResolvedValue({ emailSentTo: "club@test.edu" });
     mockRefreshUser.mockReset();
     mockRefreshUser.mockResolvedValue(null);
+    mockAuthValue.status = "idle";
+    mockAuthValue.user = null;
+    sessionStorage.clear();
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -153,5 +167,54 @@ describe("VerifyEmailPage confirm-before-verify", () => {
     expect(container.textContent).not.toContain(
       "Thanks! Your account is now pending admin approval",
     );
+  });
+});
+
+describe("VerifyEmailPage public wait", () => {
+  let container: HTMLDivElement;
+  let root: Root;
+
+  beforeEach(() => {
+    mockPublicResend.mockReset();
+    mockPublicResend.mockResolvedValue({ emailSentTo: "club@test.edu" });
+    mockAuthValue.status = "error";
+    mockAuthValue.user = null;
+    sessionStorage.clear();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(() => {
+    act(() => {
+      root.unmount();
+    });
+    container.remove();
+  });
+
+  function renderPublicWait() {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    act(() => {
+      root.render(
+        <MemoryRouter initialEntries={["/onboarding/verify-email"]}>
+          <QueryClientProvider client={queryClient}>
+            <VerifyEmailPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+    });
+  }
+
+  it("lists the apply email as copy with no email field", () => {
+    sessionStorage.setItem("buzz.verifyEduEmail", "club@test.edu");
+    renderPublicWait();
+
+    expect(container.querySelector('[data-testid="verify-edu-email"]')?.textContent).toBe(
+      "club@test.edu",
+    );
+    expect(container.querySelector("input")).toBeNull();
+    expect(container.textContent).not.toContain("Wrong email");
   });
 });
