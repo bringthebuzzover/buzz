@@ -7,12 +7,14 @@ import { Link } from "react-router-dom";
 import { siteIdentity } from "../../data/siteIdentity";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
 
+const linkClass = "hover:text-buzz-coral";
+
 export default function SiteFooter() {
   const { openContactModal } = useSiteChrome();
 
   return (
     <footer className="mt-16 border-t border-buzz-line bg-buzz-paper px-8 py-12">
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 md:grid-cols-3">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <img
             src={siteIdentity.images.logoCoral}
@@ -26,30 +28,31 @@ export default function SiteFooter() {
         </div>
 
         <div>
-          <h4 className="mb-4 font-bold text-buzz-ink">Get Started</h4>
+          <h4 className="mb-4 font-bold text-buzz-ink">How it works</h4>
           <ul className="space-y-2 text-sm font-medium text-buzz-inkMuted">
             <li>
-              <Link to="/for-orgs" className="hover:text-buzz-coral">
+              <Link to="/for-orgs" className={linkClass}>
                 For orgs
               </Link>
             </li>
             <li>
-              <Link to="/for-brands" className="hover:text-buzz-coral">
+              <Link to="/for-brands" className={linkClass}>
                 For brands
               </Link>
             </li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="mb-4 font-bold text-buzz-ink">Apply</h4>
+          <ul className="space-y-2 text-sm font-medium text-buzz-inkMuted">
             <li>
-              <Link to="/org/apply" className="hover:text-buzz-coral">
+              <Link to="/org/apply" className={linkClass}>
                 Apply as Org
               </Link>
             </li>
             <li>
-              <Link to="/login" className="hover:text-buzz-coral">
-                Org login
-              </Link>
-            </li>
-            <li>
-              <Link to="/brand/apply" className="hover:text-buzz-coral">
+              <Link to="/brand/apply" className={linkClass}>
                 Apply as Brand
               </Link>
             </li>
@@ -63,23 +66,23 @@ export default function SiteFooter() {
               <button
                 type="button"
                 onClick={openContactModal}
-                className="hover:text-buzz-coral"
+                className={linkClass}
               >
                 Contact
               </button>
             </li>
             <li>
-              <Link to="/privacy" className="hover:text-buzz-coral">
+              <Link to="/privacy" className={linkClass}>
                 Privacy Policy
               </Link>
             </li>
             <li>
-              <Link to="/terms" className="hover:text-buzz-coral">
+              <Link to="/terms" className={linkClass}>
                 Terms of Service
               </Link>
             </li>
             <li>
-              <Link to="/data-deletion" className="hover:text-buzz-coral">
+              <Link to="/data-deletion" className={linkClass}>
                 Data Deletion
               </Link>
             </li>

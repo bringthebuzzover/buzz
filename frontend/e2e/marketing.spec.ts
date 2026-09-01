@@ -50,6 +50,10 @@ test("home how-to cards open role tours", async ({ page }) => {
 test("footer and login link to tours", async ({ page }) => {
   await page.goto("/");
   const footer = page.getByRole("contentinfo");
+  await expect(
+    footer.getByRole("heading", { name: /how it works/i }),
+  ).toBeVisible();
+  await expect(footer.getByRole("heading", { name: /^apply$/i })).toBeVisible();
   await expect(footer.getByRole("link", { name: /for orgs/i })).toHaveAttribute(
     "href",
     "/for-orgs",
@@ -58,6 +62,13 @@ test("footer and login link to tours", async ({ page }) => {
     "href",
     "/for-brands",
   );
+  await expect(
+    footer.getByRole("link", { name: /apply as org/i }),
+  ).toHaveAttribute("href", "/org/apply");
+  await expect(
+    footer.getByRole("link", { name: /apply as brand/i }),
+  ).toHaveAttribute("href", "/brand/apply");
+  await expect(footer.getByRole("link", { name: /org login/i })).toHaveCount(0);
 
   await page.goto("/login");
   await page.getByRole("link", { name: /see how it works/i }).click();
