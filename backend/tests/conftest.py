@@ -62,6 +62,8 @@ from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
 from app.models.tracker_event import DropTrackerEvent
 from app.security import jwt, rate_limit
+from app.services import address as address_service
+from app.services.address import FormatFallbackAddressClient, get_address_client
 from app.services.instagram import (
     InstagramProfile,
     LongLivedToken,
@@ -85,6 +87,18 @@ def _disable_rate_limiting():
     yield
     settings.RATE_LIMIT_ENABLED = prev
     rate_limit.reset()
+
+
+@pytest.fixture(autouse=True)
+def _disable_google_address():
+    """Keep pytest on the format fallback even when local ``.env`` has a
+    ``GOOGLE_ADDRESS_API_KEY`` (billing + live HTTP would flake the suite)."""
+    prev = settings.GOOGLE_ADDRESS_API_KEY
+    settings.GOOGLE_ADDRESS_API_KEY = ""
+    address_service._google = None
+    yield
+    settings.GOOGLE_ADDRESS_API_KEY = prev
+    address_service._google = None
 
 
 @pytest_asyncio.fixture
@@ -273,6 +287,7 @@ async def app_client(db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
         yield db_session
 
     app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_address_client] = lambda: FormatFallbackAddressClient()
     transport = ASGITransport(app=app)
     # https base URL so the cookie jar forwards Secure cookies (the refresh +
     # OAuth-state cookies are Secure by default) across requests.
@@ -281,6 +296,7 @@ async def app_client(db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
             yield client
     finally:
         app.dependency_overrides.pop(get_db, None)
+        app.dependency_overrides.pop(get_address_client, None)
 
 
 @pytest_asyncio.fixture

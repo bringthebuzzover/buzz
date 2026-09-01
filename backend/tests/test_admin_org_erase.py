@@ -55,6 +55,10 @@ async def _seed_erasable_org(db_session, *, with_email: bool = True):
     org.follower_count = 1500
     org.university = "State U"
     org.delivery_address = "1 Main St"
+    org.shipping_line1 = "1 Main St"
+    org.shipping_city = "Ithaca"
+    org.shipping_state = "NY"
+    org.shipping_postal_code = "14850"
     org.contact_name = "Alex"
     org.member_count = 40
     org.category = OrgCategory.FRATERNITY.value
@@ -119,6 +123,10 @@ class TestAdminOrgErase:
         assert org.follower_count == 1500
         assert org.university == "State U"
         assert org.delivery_address is None
+        assert org.shipping_line1 is None
+        assert org.shipping_city is None
+        assert org.shipping_state is None
+        assert org.shipping_postal_code is None
         assert org.contact_name is None
         assert accepted.decision == ApplicationDecision.ACCEPTED.value
         assert accepted.pitch is None

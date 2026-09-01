@@ -455,7 +455,10 @@ async def scenario_onboarding(api: Api) -> None:
             "city": "Ithaca",
             "state": "NY",
             "contactName": "Bash Contact",
-            "deliveryAddress": "1 Bash Way",
+            "shippingLine1": "1 Bash Way",
+            "shippingCity": "Ithaca",
+            "shippingState": "NY",
+            "shippingPostalCode": "14850",
         },
     )
     submitted = _ok(r, 200)

@@ -2,8 +2,8 @@
 
 The long-lived Instagram access token is encrypted before it touches the
 database (architecture.md §10.5 / §11.1: "encrypted at rest"). The key comes
-from ``settings.TOKEN_ENCRYPTION_KEY`` — a fixed dev default that MUST be
-overridden in staging/production.
+from ``settings.TOKEN_ENCRYPTION_KEY``. Development may derive a local key when
+the env value is empty; staging/production must set a real Fernet key.
 
 Stage 3 only *encrypts* (on the OAuth write path). Decryption is exercised by
 the metric-sync / token-refresh jobs in Stage 8; ``decrypt_token`` is provided

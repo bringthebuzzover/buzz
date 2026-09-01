@@ -33,6 +33,7 @@ from app.routes.campaigns import router as campaigns_router
 from app.routes.drops import router as drops_router
 from app.routes.health import router as health_router
 from app.routes.orgs import router as orgs_router
+from app.services.address import close_address_client
 from app.services.instagram import close_instagram_client
 
 logger = logging.getLogger(__name__)
@@ -73,6 +74,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
     finally:
         await close_instagram_client()
+        await close_address_client()
         await engine.dispose()
 
 

@@ -167,6 +167,11 @@ def _scrub_org_profile(org: Organization) -> None:
     org.state = None
     org.contact_name = None
     org.delivery_address = None
+    org.shipping_line1 = None
+    org.shipping_line2 = None
+    org.shipping_city = None
+    org.shipping_state = None
+    org.shipping_postal_code = None
     org.approved_at = None
     # Keep follower_count and university for brand reach / campus KPIs.
 

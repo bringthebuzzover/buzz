@@ -25,7 +25,12 @@ class OrgApplyRequest(CamelModel):
     city: str
     state: str
     contact_name: str
-    delivery_address: str
+    shipping_line1: str
+    shipping_line2: str | None = None
+    shipping_city: str
+    shipping_state: str
+    shipping_postal_code: str
+    shipping_place_id: str | None = None
 
     @field_validator("edu_email")
     @classmethod
@@ -38,12 +43,30 @@ class OrgApplyRequest(CamelModel):
             raise ValueError("Must be a valid .edu email address")
         return v
 
-    @field_validator("org_name", "university", "city", "state", "contact_name", "delivery_address")
+    @field_validator(
+        "org_name",
+        "university",
+        "city",
+        "state",
+        "contact_name",
+        "shipping_line1",
+        "shipping_city",
+        "shipping_state",
+        "shipping_postal_code",
+    )
     @classmethod
     def _non_empty(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("Must not be empty")
         return v.strip()
+
+    @field_validator("shipping_line2", "shipping_place_id")
+    @classmethod
+    def _optional_blank(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
     @field_validator("instagram_handle")
     @classmethod
@@ -78,7 +101,12 @@ class OrgOnboardingRequest(CamelModel):
     city: str
     state: str
     contact_name: str
-    delivery_address: str
+    shipping_line1: str
+    shipping_line2: str | None = None
+    shipping_city: str
+    shipping_state: str
+    shipping_postal_code: str
+    shipping_place_id: str | None = None
 
     @field_validator("edu_email")
     @classmethod
@@ -94,12 +122,30 @@ class OrgOnboardingRequest(CamelModel):
             raise ValueError("Must be a valid .edu email address")
         return v
 
-    @field_validator("org_name", "university", "city", "state", "contact_name", "delivery_address")
+    @field_validator(
+        "org_name",
+        "university",
+        "city",
+        "state",
+        "contact_name",
+        "shipping_line1",
+        "shipping_city",
+        "shipping_state",
+        "shipping_postal_code",
+    )
     @classmethod
     def _non_empty(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("Must not be empty")
         return v.strip()
+
+    @field_validator("shipping_line2", "shipping_place_id")
+    @classmethod
+    def _optional_blank(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
     @field_validator("member_count")
     @classmethod

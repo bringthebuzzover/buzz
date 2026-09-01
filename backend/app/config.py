@@ -8,6 +8,8 @@ of truth that callers import rather than reaching into the environment.
 
 from __future__ import annotations
 
+import base64
+import hashlib
 from typing import Literal
 from urllib.parse import urlparse
 
@@ -23,7 +25,37 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _HISTORICAL_DEV_SECRET_KEY = "dev-secret-change-me"
 _DEV_SECRET_KEY = "dev-secret-change-me-not-for-production!!"
 _FORBIDDEN_DEV_SECRET_KEYS = frozenset({_HISTORICAL_DEV_SECRET_KEY, _DEV_SECRET_KEY})
-_DEV_TOKEN_ENCRYPTION_KEY = "Ja8bRSsk6Jv4KsqqOXS-1x6Ht6jj5WIztmsXkzXTnS4="
+
+
+def _derived_dev_fernet_key() -> str:
+    """Stable local/CI Fernet key that is not a committed key string.
+
+    GitGuardian matches Fernet-shaped literals in git. Deriving at runtime
+    keeps encrypt/decrypt working in development without a Generic Encryption
+    Key in the tree. Off-dev still requires a real env value.
+    """
+
+    digest = hashlib.sha256(b"buzz-dev-fernet-not-a-secret").digest()
+    return base64.urlsafe_b64encode(digest).decode("ascii")
+
+
+# SHA-256 of a historical committed Fernet dummy (removed from source). Still
+# rejected off-dev if someone pastes that old value into Railway.
+_FORBIDDEN_TOKEN_ENCRYPTION_KEY_SHA256 = frozenset(
+    {
+        "3897030c6bdc20dce7867c474ad8de8248740528b1484b3eaf7b98e6c5b8057a",
+    }
+)
+
+
+def _token_encryption_key_sha256(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _is_forbidden_token_encryption_key(value: str) -> bool:
+    if not value or value == _derived_dev_fernet_key():
+        return True
+    return _token_encryption_key_sha256(value) in _FORBIDDEN_TOKEN_ENCRYPTION_KEY_SHA256
 
 
 class Settings(BaseSettings):
@@ -145,6 +177,16 @@ class Settings(BaseSettings):
         description="Buzz-owned Instagram professional account id for Business Discovery.",
     )
 
+    # --- Google Address Validation + Places (org ship-to) ---
+    GOOGLE_ADDRESS_API_KEY: str = Field(
+        default="",
+        description=(
+            "Server-side Google Cloud key with Places API (New) + Address "
+            "Validation. Empty is allowed only in development (format fallback). "
+            "Required off-dev."
+        ),
+    )
+
     # --- Onboarding + email (architecture.md §3.4, §4) ---
     FRONTEND_URL: str = Field(
         default="http://localhost:3000",
@@ -198,12 +240,11 @@ class Settings(BaseSettings):
 
     # --- Token encryption at rest (architecture.md §10.5 / §11.1) ---
     TOKEN_ENCRYPTION_KEY: str = Field(
-        default=_DEV_TOKEN_ENCRYPTION_KEY,
+        default="",
         description=(
             "urlsafe-base64 32-byte Fernet key for encrypting Instagram "
-            "tokens at rest. MUST be overridden in staging/production; the "
-            "default is a fixed dev key (a per-process random key could not "
-            "decrypt previously persisted tokens)."
+            "tokens at rest. Empty is allowed only in development (derived "
+            "local key). MUST be a real key in staging/production."
         ),
     )
 
@@ -237,11 +278,13 @@ class Settings(BaseSettings):
         """
 
         if self.ENVIRONMENT == "development":
+            if not self.TOKEN_ENCRYPTION_KEY:
+                self.TOKEN_ENCRYPTION_KEY = _derived_dev_fernet_key()
             return self
         offenders = []
         if self.SECRET_KEY in _FORBIDDEN_DEV_SECRET_KEYS:
             offenders.append("SECRET_KEY")
-        if self.TOKEN_ENCRYPTION_KEY == _DEV_TOKEN_ENCRYPTION_KEY:
+        if _is_forbidden_token_encryption_key(self.TOKEN_ENCRYPTION_KEY):
             offenders.append("TOKEN_ENCRYPTION_KEY")
         if offenders:
             raise ValueError(
@@ -272,6 +315,8 @@ class Settings(BaseSettings):
         # a missing key strands every real signup. Fail fast off-dev.
         if not self.RESEND_API_KEY:
             misconfig.append("RESEND_API_KEY must be set (verification/denial email depends on it)")
+        if not self.GOOGLE_ADDRESS_API_KEY:
+            misconfig.append("GOOGLE_ADDRESS_API_KEY must be set (org shipping address verify)")
 
         if misconfig:
             raise ValueError(

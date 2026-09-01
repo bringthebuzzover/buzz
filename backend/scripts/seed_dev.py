@@ -197,6 +197,10 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         state="CA",
         contact_name="Avery Lin",
         delivery_address="2301 Bancroft Way, Berkeley, CA 94720",
+        shipping_line1="2301 Bancroft Way",
+        shipping_city="Berkeley",
+        shipping_state="CA",
+        shipping_postal_code="94720",
         approved_at=now,
     )
     org_pending = Organization(

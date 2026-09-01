@@ -17,6 +17,7 @@ from app.models.enums import OrgUserStatus, PortalRole
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.onboarding import OrgApplyRequest
+from app.services.address import AddressClient, apply_to_org
 from app.services.instagram import canonical_instagram_handle
 from app.services.onboarding import _mint_and_send_verification, _release_unverified_edu_claim
 
@@ -60,7 +61,9 @@ async def assert_handle_available(
         )
 
 
-async def apply_org(db: AsyncSession, payload: OrgApplyRequest) -> dict[str, Any]:
+async def apply_org(
+    db: AsyncSession, payload: OrgApplyRequest, addresses: AddressClient
+) -> dict[str, Any]:
     """Create User + Organization without IG token; mint .edu verify email."""
     handle = normalize_claimed_handle(payload.instagram_handle)
     user_id = uuid.uuid4()
@@ -75,6 +78,14 @@ async def apply_org(db: AsyncSession, payload: OrgApplyRequest) -> dict[str, Any
         edu_email=payload.edu_email,
         instagram_username=handle,
     )
+    addr = await addresses.validate(
+        line1=payload.shipping_line1,
+        line2=payload.shipping_line2,
+        city=payload.shipping_city,
+        state=payload.shipping_state,
+        postal_code=payload.shipping_postal_code,
+        place_id=payload.shipping_place_id,
+    )
     org = Organization(
         id=uuid.uuid4(),
         user_id=user.id,
@@ -87,9 +98,9 @@ async def apply_org(db: AsyncSession, payload: OrgApplyRequest) -> dict[str, Any
         city=payload.city,
         state=payload.state,
         contact_name=payload.contact_name,
-        delivery_address=payload.delivery_address,
         instagram_handle_confirmed=payload.handle_confirmed,
     )
+    apply_to_org(org, addr)
     db.add(user)
     await db.flush()
     db.add(org)

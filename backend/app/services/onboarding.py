@@ -25,6 +25,7 @@ from app.models.verification_token import EmailVerificationToken
 from app.schemas.onboarding import OrgOnboardingRequest
 from app.security.one_shot_tokens import hash_token
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
+from app.services.address import AddressClient, apply_to_org
 from app.services.email import send_verification_email
 from app.services.instagram import InstagramClient, require_instagram_handle
 from app.services.instagram_token import clear_unusable_instagram_token
@@ -244,6 +245,7 @@ async def submit_org_onboarding(
     user: User,
     payload: OrgOnboardingRequest,
     ig: InstagramClient,
+    addresses: AddressClient,
 ) -> dict[str, Any]:
     """Phase 2: create org profile, advance to email verification.
 
@@ -270,6 +272,14 @@ async def submit_org_onboarding(
     # Require OAuth username (org identity) before creating the profile row.
     require_instagram_handle(user.instagram_username)
 
+    addr = await addresses.validate(
+        line1=payload.shipping_line1,
+        line2=payload.shipping_line2,
+        city=payload.shipping_city,
+        state=payload.shipping_state,
+        postal_code=payload.shipping_postal_code,
+        place_id=payload.shipping_place_id,
+    )
     org = Organization(
         id=uuid.uuid4(),
         user_id=user.id,
@@ -282,8 +292,8 @@ async def submit_org_onboarding(
         city=payload.city,
         state=payload.state,
         contact_name=payload.contact_name,
-        delivery_address=payload.delivery_address,
     )
+    apply_to_org(org, addr)
     db.add(org)
 
     user.edu_email = payload.edu_email

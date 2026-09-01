@@ -18,10 +18,16 @@ from app.models.organization import Organization
 from app.models.user import User
 from app.response import APIResponse, DataResponse, api_response
 from app.schemas.acks import OrgOnboardingResponse
+from app.schemas.address import (
+    AddressPreviewResponse,
+    AddressSuggestionItem,
+    AddressSuggestResponse,
+)
 from app.schemas.onboarding import InstagramLookupResponse, OrgApplyRequest, OrgOnboardingRequest
 from app.schemas.orgs import OrgProfileResponse, OrgProfileUpdate
 from app.schemas.posts import PostResponse
 from app.security.rate_limit import rate_limited
+from app.services.address import AddressClient, get_address_client
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.instagram_lookup import lookup_instagram_handle
 from app.services.onboarding import submit_org_onboarding
@@ -40,9 +46,10 @@ router = APIRouter(prefix="/orgs", tags=["orgs"])
 async def org_apply(
     payload: OrgApplyRequest,
     db: AsyncSession = Depends(get_db),
+    addresses: AddressClient = Depends(get_address_client),
 ) -> APIResponse:
     """Public apply-first signup (no Instagram OAuth)."""
-    result = await apply_org(db, payload)
+    result = await apply_org(db, payload, addresses)
     return api_response(data=OrgOnboardingResponse.model_validate(result))
 
 
@@ -63,19 +70,67 @@ async def org_instagram_lookup(
     return api_response(data=InstagramLookupResponse.model_validate(result))
 
 
+@router.get(
+    "/address-suggest",
+    response_model=DataResponse[AddressSuggestResponse],
+    dependencies=[
+        Depends(rate_limited("addr_suggest_burst", limit=10, window=60)),
+        Depends(rate_limited("addr_suggest_hour", limit=30, window=3600)),
+    ],
+)
+async def org_address_suggest(
+    q: str = Query(min_length=1, max_length=200),
+    addresses: AddressClient = Depends(get_address_client),
+) -> APIResponse:
+    """US address autocomplete (server-side Google Places; empty in development)."""
+    items = await addresses.suggest(q)
+    return api_response(
+        data=AddressSuggestResponse(
+            suggestions=[AddressSuggestionItem(place_id=s.place_id, text=s.text) for s in items]
+        )
+    )
+
+
+@router.get(
+    "/address-preview",
+    response_model=DataResponse[AddressPreviewResponse],
+    dependencies=[
+        Depends(rate_limited("addr_preview_burst", limit=10, window=60)),
+        Depends(rate_limited("addr_preview_hour", limit=30, window=3600)),
+    ],
+)
+async def org_address_preview(
+    place_id: str = Query(alias="placeId", min_length=1, max_length=256),
+    addresses: AddressClient = Depends(get_address_client),
+) -> APIResponse:
+    """Fill structured fields from a Places suggestion (re-validated on submit)."""
+    addr = await addresses.preview(place_id)
+    return api_response(
+        data=AddressPreviewResponse(
+            shipping_line1=addr.line1,
+            shipping_line2=addr.line2,
+            shipping_city=addr.city,
+            shipping_state=addr.state,
+            shipping_postal_code=addr.postal_code,
+            delivery_address=addr.formatted,
+        )
+    )
+
+
 @router.post("/onboarding", response_model=DataResponse[OrgOnboardingResponse])
 async def org_onboarding(
     payload: OrgOnboardingRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     ig: InstagramClient = Depends(get_instagram_client),
+    addresses: AddressClient = Depends(get_address_client),
 ) -> APIResponse:
     """Phase 2: submit org profile, advance to email verification (Stage 7).
 
     Uses the bare authenticated user (not ``CurrentOrg``) because the caller is
     ``pending_org_profile``, not yet active — the active-status gate would 403.
     """
-    result = await submit_org_onboarding(db, user, payload, ig=ig)
+    result = await submit_org_onboarding(db, user, payload, ig=ig, addresses=addresses)
     return api_response(data=OrgOnboardingResponse.model_validate(result))
 
 
@@ -102,11 +157,12 @@ async def update_my_org(
     payload: OrgProfileUpdate,
     user: CurrentOrg,
     db: AsyncSession = Depends(get_db),
+    addresses: AddressClient = Depends(get_address_client),
 ) -> APIResponse:
     """Patch the editable subset of the caller org's profile."""
 
     org = await _require_org_profile(db, user)
-    org = await update_org_profile(db, org, payload)
+    org = await update_org_profile(db, org, payload, addresses)
     return api_response(data=build_org_profile(org, user))
 
 

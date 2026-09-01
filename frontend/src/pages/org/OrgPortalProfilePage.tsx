@@ -15,6 +15,11 @@ import {
   type OrgProfileUpdate,
 } from "../../api/hooks/useOrgHooks";
 import EduEmailRotatePanel from "../../components/org/EduEmailRotatePanel";
+import ShippingAddressFields, {
+  EMPTY_SHIPPING,
+  shippingToApi,
+  type ShippingAddressValue,
+} from "../../components/org/ShippingAddressFields";
 import {
   ORG_CATEGORY_OPTIONS,
   type OrgCategory,
@@ -36,7 +41,7 @@ export default function OrgPortalProfilePage() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [contactName, setContactName] = useState("");
-  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [shipping, setShipping] = useState<ShippingAddressValue>(EMPTY_SHIPPING);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -50,7 +55,14 @@ export default function OrgPortalProfilePage() {
     setCity(data.city ?? "");
     setState(data.state ?? "");
     setContactName(data.contactName ?? "");
-    setDeliveryAddress(data.deliveryAddress ?? "");
+    setShipping({
+      line1: data.shippingLine1 ?? "",
+      line2: data.shippingLine2 ?? "",
+      city: data.shippingCity ?? "",
+      state: data.shippingState ?? "",
+      postalCode: data.shippingPostalCode ?? "",
+      placeId: "",
+    });
   }, [data]);
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -75,9 +87,23 @@ export default function OrgPortalProfilePage() {
     const nextCity = city.trim();
     const nextState = state.trim();
     const nextContact = contactName.trim();
-    const nextAddress = deliveryAddress.trim();
-    if (!nextCity || !nextState || !nextContact || !nextAddress) {
-      setError("City, state, contact name, and shipping address are required.");
+    if (!nextCity || !nextState || !nextContact) {
+      setError("Campus city, campus state, and contact name are required.");
+      return;
+    }
+    const ship = shippingToApi(shipping);
+    const hasStructured = Boolean(data.shippingLine1);
+    const shippingMissing =
+      !ship.shippingLine1 ||
+      !ship.shippingCity ||
+      !ship.shippingState ||
+      !ship.shippingPostalCode;
+    if (!hasStructured && shippingMissing) {
+      setError("Enter a US mailing address (street, city, state, and ZIP).");
+      return;
+    }
+    if (hasStructured && shippingMissing) {
+      setError("Shipping street, city, state, and ZIP are required.");
       return;
     }
 
@@ -105,8 +131,22 @@ export default function OrgPortalProfilePage() {
     if (nextContact !== (data.contactName ?? null)) {
       payload.contactName = nextContact;
     }
-    if (nextAddress !== (data.deliveryAddress ?? null)) {
-      payload.deliveryAddress = nextAddress;
+    const shippingDirty =
+      !hasStructured ||
+      ship.shippingLine1 !== (data.shippingLine1 ?? "") ||
+      (ship.shippingLine2 ?? "") !== (data.shippingLine2 ?? "") ||
+      ship.shippingCity !== (data.shippingCity ?? "") ||
+      ship.shippingState !== (data.shippingState ?? "") ||
+      ship.shippingPostalCode !== (data.shippingPostalCode ?? "");
+    if (shippingDirty) {
+      payload.shippingLine1 = ship.shippingLine1;
+      payload.shippingLine2 = ship.shippingLine2 ?? null;
+      payload.shippingCity = ship.shippingCity;
+      payload.shippingState = ship.shippingState;
+      payload.shippingPostalCode = ship.shippingPostalCode;
+      if (ship.shippingPlaceId) {
+        payload.shippingPlaceId = ship.shippingPlaceId;
+      }
     }
 
     if (Object.keys(payload).length === 0) {
@@ -256,7 +296,7 @@ export default function OrgPortalProfilePage() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-              City
+              Campus city
             </label>
             <input
               className={inputClass}
@@ -267,7 +307,7 @@ export default function OrgPortalProfilePage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-              State
+              Campus state
             </label>
             <input
               className={inputClass}
@@ -290,19 +330,15 @@ export default function OrgPortalProfilePage() {
           />
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Shipping address
-          </label>
-          <textarea
-            className={inputClass}
-            rows={2}
-            value={deliveryAddress}
-            onChange={(e) => setDeliveryAddress(e.target.value)}
-            placeholder="Where should brands ship products?"
-            required
-          />
-        </div>
+        <ShippingAddressFields
+          value={shipping}
+          onChange={setShipping}
+          inputClass={inputClass}
+          testIdPrefix="org-profile"
+          legacyHint={
+            data.shippingLine1 ? null : (data.deliveryAddress ?? null)
+          }
+        />
 
         <button
           type="submit"

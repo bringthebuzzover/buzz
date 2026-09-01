@@ -11,10 +11,10 @@ from pydantic import ValidationError
 
 from app.config import (
     _DEV_SECRET_KEY,
-    _DEV_TOKEN_ENCRYPTION_KEY,
     _FORBIDDEN_DEV_SECRET_KEYS,
     _HISTORICAL_DEV_SECRET_KEY,
     Settings,
+    _derived_dev_fernet_key,
     settings,
 )
 from app.exceptions import BuzzAPIException
@@ -250,6 +250,7 @@ def _prod_kwargs(**over):
         INSTAGRAM_CLIENT_SECRET="ig-client-secret",
         INSTAGRAM_REDIRECT_URI="https://app.example.com/auth/instagram/callback",
         RESEND_API_KEY="re_test_key",
+        GOOGLE_ADDRESS_API_KEY="gaddr-test-key",
     )
     base.update(over)
     return base
@@ -280,7 +281,15 @@ def test_prod_config_rejects_dev_secret() -> None:
 
 def test_prod_config_rejects_dev_fernet_default() -> None:
     with pytest.raises(ValueError, match="TOKEN_ENCRYPTION_KEY"):
-        Settings(**_prod_kwargs(TOKEN_ENCRYPTION_KEY=_DEV_TOKEN_ENCRYPTION_KEY))
+        Settings(**_prod_kwargs(TOKEN_ENCRYPTION_KEY=_derived_dev_fernet_key()))
+    with pytest.raises(ValueError, match="TOKEN_ENCRYPTION_KEY"):
+        Settings(**_prod_kwargs(TOKEN_ENCRYPTION_KEY=""))
+
+
+def test_dev_empty_token_encryption_key_is_derived() -> None:
+    cfg = Settings(ENVIRONMENT="development", TOKEN_ENCRYPTION_KEY="")
+    assert cfg.TOKEN_ENCRYPTION_KEY == _derived_dev_fernet_key()
+    Fernet(cfg.TOKEN_ENCRYPTION_KEY.encode("utf-8"))
 
 
 def test_environment_rejects_unknown() -> None:
@@ -296,6 +305,11 @@ def test_prod_config_rejects_missing_instagram_creds() -> None:
 def test_prod_config_rejects_missing_resend_key() -> None:
     with pytest.raises(ValueError, match="RESEND_API_KEY"):
         Settings(**_prod_kwargs(RESEND_API_KEY=""))
+
+
+def test_prod_config_rejects_missing_google_address_key() -> None:
+    with pytest.raises(ValueError, match="GOOGLE_ADDRESS_API_KEY"):
+        Settings(**_prod_kwargs(GOOGLE_ADDRESS_API_KEY=""))
 
 
 @pytest.mark.parametrize(

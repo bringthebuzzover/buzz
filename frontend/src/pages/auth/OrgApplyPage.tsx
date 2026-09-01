@@ -13,6 +13,10 @@ import {
   type InstagramLookupResponse,
 } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
+import ShippingAddressFields, {
+  EMPTY_SHIPPING,
+  shippingToApi,
+} from "../../components/org/ShippingAddressFields";
 import {
   ORG_CATEGORY_OPTIONS,
   type OrgCategory,
@@ -61,7 +65,7 @@ export default function OrgApplyPage() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [contactName, setContactName] = useState("");
-  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [shipping, setShipping] = useState(EMPTY_SHIPPING);
   const [error, setError] = useState<string | null>(null);
 
   const lookupGen = useRef(0);
@@ -148,7 +152,7 @@ export default function OrgApplyPage() {
         city: city.trim(),
         state: state.trim(),
         contactName: contactName.trim(),
-        deliveryAddress: deliveryAddress.trim(),
+        ...shippingToApi(shipping),
       });
       sessionStorage.setItem(
         VERIFY_EMAIL_SENT_KEY,
@@ -363,7 +367,7 @@ export default function OrgApplyPage() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-              City
+              Campus city
             </label>
             <input
               data-testid="org-apply-city"
@@ -375,7 +379,7 @@ export default function OrgApplyPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-              State
+              Campus state
             </label>
             <input
               data-testid="org-apply-state"
@@ -400,20 +404,12 @@ export default function OrgApplyPage() {
           />
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Shipping address
-          </label>
-          <textarea
-            data-testid="org-apply-delivery-address"
-            className={inputClass}
-            rows={2}
-            value={deliveryAddress}
-            onChange={(e) => setDeliveryAddress(e.target.value)}
-            placeholder="Where should brands ship products?"
-            required
-          />
-        </div>
+        <ShippingAddressFields
+          value={shipping}
+          onChange={setShipping}
+          inputClass={inputClass}
+          testIdPrefix="org-apply"
+        />
 
         <button
           data-testid="org-apply-submit"

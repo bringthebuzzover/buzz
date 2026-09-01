@@ -27,7 +27,10 @@ _APPLY = {
     "city": "Ithaca",
     "state": "NY",
     "contactName": "Alex",
-    "deliveryAddress": "123 College Ave",
+    "shippingLine1": "123 College Ave",
+    "shippingCity": "Ithaca",
+    "shippingState": "NY",
+    "shippingPostalCode": "14850",
 }
 
 
@@ -47,6 +50,11 @@ async def test_org_apply_creates_without_ig_token(app_client: AsyncClient, db_se
     org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
     assert org is not None
     assert org.instagram_handle_confirmed is True
+    assert org.shipping_line1 == "123 College Ave"
+    assert org.shipping_city == "Ithaca"
+    assert org.shipping_state == "NY"
+    assert org.shipping_postal_code == "14850"
+    assert org.delivery_address == "123 College Ave, Ithaca, NY 14850"
 
 
 async def test_org_apply_duplicate_handle(app_client: AsyncClient, db_session) -> None:
@@ -164,3 +172,18 @@ async def test_bind_pending_instagram(
     await db_session.refresh(user)
     assert user.instagram_user_id == "ig_bind_1"
     assert user.status == OrgUserStatus.ACTIVE.value
+
+
+async def test_org_apply_rejects_garbage_shipping(app_client: AsyncClient) -> None:
+    resp = await app_client.post(
+        "/api/orgs/apply",
+        json={**_APPLY, "eduEmail": "garbage@cornell.edu", "shippingLine1": "asdf"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == errors.INVALID_SHIPPING_ADDRESS
+
+
+async def test_address_suggest_empty_without_google(app_client: AsyncClient) -> None:
+    resp = await app_client.get("/api/orgs/address-suggest", params={"q": "123 Main St"})
+    assert resp.status_code == 200
+    assert resp.json()["data"]["suggestions"] == []

@@ -20,11 +20,21 @@ jest.mock("../../api/hooks/useOnboardingHooks", () => ({
     mutateAsync: mockLookup,
     isPending: false,
   }),
-  useOrgApply: () => ({
-    mutateAsync: mockApply,
-    isPending: false,
-  }),
-}));
+    useOrgApply: () => ({
+      mutateAsync: mockApply,
+      isPending: false,
+    }),
+    useAddressSuggest: () => ({
+      mutateAsync: async () => ({ suggestions: [] }),
+      isPending: false,
+    }),
+    useAddressPreview: () => ({
+      mutateAsync: async () => {
+        throw new Error("preview unused in this test");
+      },
+      isPending: false,
+    }),
+  }));
 
 import OrgApplyPage from "./OrgApplyPage";
 
@@ -109,10 +119,13 @@ describe("OrgApplyPage confirm card", () => {
     set(byLabel("School (.edu) email"), "greeks@cornell.edu");
     set(byLabel("Number of members"), "40");
     set(byLabel("Organization type"), "sorority");
-    set(byLabel("City"), "Ithaca");
-    set(byLabel("State"), "NY");
+    set(byLabel("Campus city"), "Ithaca");
+    set(byLabel("Campus state"), "NY");
     set(byLabel("Contact name"), "Alex");
-    set(byLabel("Shipping address"), "123 College Ave");
+    set(byLabel("Street"), "123 College Ave");
+    set(byLabel("Shipping city"), "Ithaca");
+    set(byLabel("Shipping state"), "NY");
+    set(byLabel("ZIP"), "14850");
     void inputs;
   }
 
@@ -151,6 +164,8 @@ describe("OrgApplyPage confirm card", () => {
     ) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
     expect(container.textContent).toMatch(/@campusgreeks/i);
+    expect(container.textContent).toMatch(/Campus city/);
+    expect(container.textContent).toMatch(/Shipping city/);
 
     const confirm = Array.from(container.querySelectorAll("button")).find((b) =>
       /confirm this is our organization/i.test(b.textContent || ""),

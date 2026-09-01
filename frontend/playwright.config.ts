@@ -37,8 +37,10 @@ export default defineConfig({
     {
       // RATE_LIMIT_ENABLED=false: E2E alone does many admin/brand/dev-login
       // POSTs from one IP; prod keeps rate limits on.
+      // GOOGLE_ADDRESS_API_KEY=: force format fallback even if backend/.env
+      // has a billing key (CI has no key; local ci-local must match).
       command:
-        "cd ../backend && ENVIRONMENT=development RATE_LIMIT_ENABLED=false poetry run uvicorn app.main:app --port 8000 --log-level warning",
+        "cd ../backend && ENVIRONMENT=development RATE_LIMIT_ENABLED=false GOOGLE_ADDRESS_API_KEY= poetry run uvicorn app.main:app --port 8000 --log-level warning",
       url: "http://localhost:8000/api/health",
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,

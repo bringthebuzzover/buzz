@@ -34,7 +34,10 @@ _VALID_PROFILE = {
     "city": "Ithaca",
     "state": "NY",
     "contactName": "Casey Officer",
-    "deliveryAddress": "123 Campus Rd, Ithaca, NY 14850",
+    "shippingLine1": "123 Campus Rd",
+    "shippingCity": "Ithaca",
+    "shippingState": "NY",
+    "shippingPostalCode": "14850",
 }
 
 
@@ -57,6 +60,11 @@ async def test_onboarding_submit_advances_status(app_client: AsyncClient, db_ses
     # Org row + verification token created; identity lives on the user.
     org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
     assert org is not None
+    assert org.shipping_line1 == "123 Campus Rd"
+    assert org.shipping_city == "Ithaca"
+    assert org.shipping_state == "NY"
+    assert org.shipping_postal_code == "14850"
+    assert org.delivery_address == "123 Campus Rd, Ithaca, NY 14850"
     await db_session.refresh(user)
     assert user.edu_email == "club@test.edu"
     assert user.instagram_username is not None

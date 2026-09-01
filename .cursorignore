@@ -1,0 +1,5 @@
+# Local secrets — agents must not Read these files.
+# Railway set extracts GOOGLE_ADDRESS_API_KEY from backend/.env without printing it.
+.env
+backend/.env
+**/.env

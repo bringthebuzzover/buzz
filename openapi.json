@@ -33,6 +33,84 @@
         "title": "APIResponse",
         "type": "object"
       },
+      "AddressPreviewResponse": {
+        "properties": {
+          "deliveryAddress": {
+            "title": "Deliveryaddress",
+            "type": "string"
+          },
+          "shippingCity": {
+            "title": "Shippingcity",
+            "type": "string"
+          },
+          "shippingLine1": {
+            "title": "Shippingline1",
+            "type": "string"
+          },
+          "shippingLine2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingline2"
+          },
+          "shippingPostalCode": {
+            "title": "Shippingpostalcode",
+            "type": "string"
+          },
+          "shippingState": {
+            "title": "Shippingstate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "shippingLine1",
+          "shippingCity",
+          "shippingState",
+          "shippingPostalCode",
+          "deliveryAddress"
+        ],
+        "title": "AddressPreviewResponse",
+        "type": "object"
+      },
+      "AddressSuggestResponse": {
+        "properties": {
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/AddressSuggestionItem"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "suggestions"
+        ],
+        "title": "AddressSuggestResponse",
+        "type": "object"
+      },
+      "AddressSuggestionItem": {
+        "properties": {
+          "placeId": {
+            "title": "Placeid",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "placeId",
+          "text"
+        ],
+        "title": "AddressSuggestionItem",
+        "type": "object"
+      },
       "AdminApplicantItem": {
         "properties": {
           "accountErased": {
@@ -3543,6 +3621,82 @@
         "title": "ClearInstagramTokenResponse",
         "type": "object"
       },
+      "DataResponse_AddressPreviewResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AddressPreviewResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AddressPreviewResponse]",
+        "type": "object"
+      },
+      "DataResponse_AddressSuggestResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AddressSuggestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AddressSuggestResponse]",
+        "type": "object"
+      },
       "DataResponse_AdminBrandDetail_": {
         "properties": {
           "data": {
@@ -6447,10 +6601,6 @@
             "title": "Contactname",
             "type": "string"
           },
-          "deliveryAddress": {
-            "title": "Deliveryaddress",
-            "type": "string"
-          },
           "eduEmail": {
             "title": "Eduemail",
             "type": "string"
@@ -6470,6 +6620,44 @@
           },
           "orgName": {
             "title": "Orgname",
+            "type": "string"
+          },
+          "shippingCity": {
+            "title": "Shippingcity",
+            "type": "string"
+          },
+          "shippingLine1": {
+            "title": "Shippingline1",
+            "type": "string"
+          },
+          "shippingLine2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingline2"
+          },
+          "shippingPlaceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingplaceid"
+          },
+          "shippingPostalCode": {
+            "title": "Shippingpostalcode",
+            "type": "string"
+          },
+          "shippingState": {
+            "title": "Shippingstate",
             "type": "string"
           },
           "state": {
@@ -6502,7 +6690,10 @@
           "city",
           "state",
           "contactName",
-          "deliveryAddress"
+          "shippingLine1",
+          "shippingCity",
+          "shippingState",
+          "shippingPostalCode"
         ],
         "title": "OrgApplyRequest",
         "type": "object"
@@ -6549,10 +6740,6 @@
             "title": "Contactname",
             "type": "string"
           },
-          "deliveryAddress": {
-            "title": "Deliveryaddress",
-            "type": "string"
-          },
           "eduEmail": {
             "title": "Eduemail",
             "type": "string"
@@ -6563,6 +6750,44 @@
           },
           "orgName": {
             "title": "Orgname",
+            "type": "string"
+          },
+          "shippingCity": {
+            "title": "Shippingcity",
+            "type": "string"
+          },
+          "shippingLine1": {
+            "title": "Shippingline1",
+            "type": "string"
+          },
+          "shippingLine2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingline2"
+          },
+          "shippingPlaceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingplaceid"
+          },
+          "shippingPostalCode": {
+            "title": "Shippingpostalcode",
+            "type": "string"
+          },
+          "shippingState": {
+            "title": "Shippingstate",
             "type": "string"
           },
           "state": {
@@ -6594,7 +6819,10 @@
           "city",
           "state",
           "contactName",
-          "deliveryAddress"
+          "shippingLine1",
+          "shippingCity",
+          "shippingState",
+          "shippingPostalCode"
         ],
         "title": "OrgOnboardingRequest",
         "type": "object"
@@ -6747,6 +6975,61 @@
             ],
             "title": "Pendingeduemail"
           },
+          "shippingCity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingcity"
+          },
+          "shippingLine1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingline1"
+          },
+          "shippingLine2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingline2"
+          },
+          "shippingPostalCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingpostalcode"
+          },
+          "shippingState": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingstate"
+          },
           "state": {
             "anyOf": [
               {
@@ -6830,17 +7113,6 @@
             ],
             "title": "Contactname"
           },
-          "deliveryAddress": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Deliveryaddress"
-          },
           "memberCount": {
             "anyOf": [
               {
@@ -6862,6 +7134,72 @@
               }
             ],
             "title": "Orgname"
+          },
+          "shippingCity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingcity"
+          },
+          "shippingLine1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingline1"
+          },
+          "shippingLine2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingline2"
+          },
+          "shippingPlaceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingplaceid"
+          },
+          "shippingPostalCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingpostalcode"
+          },
+          "shippingState": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingstate"
           },
           "state": {
             "anyOf": [
@@ -12092,6 +12430,96 @@
         "summary": "Get Health",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/orgs/address-preview": {
+      "get": {
+        "description": "Fill structured fields from a Places suggestion (re-validated on submit).",
+        "operationId": "org_address_preview_api_orgs_address_preview_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "placeId",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 1,
+              "title": "Placeid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AddressPreviewResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Org Address Preview",
+        "tags": [
+          "orgs"
+        ]
+      }
+    },
+    "/api/orgs/address-suggest": {
+      "get": {
+        "description": "US address autocomplete (server-side Google Places; empty in development).",
+        "operationId": "org_address_suggest_api_orgs_address_suggest_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AddressSuggestResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Org Address Suggest",
+        "tags": [
+          "orgs"
         ]
       }
     },
