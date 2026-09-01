@@ -720,6 +720,8 @@ gaps:
   - ops.observability-thin
   - posts.sibling-dismiss-never-rearms
 note: |
+  `deploy.cron-races-api-predeploy` — **archived** (Alembic pre-deploy on all
+  six crons + pg_advisory_xact_lock in env.py).
   `ops.observability-thin` — **deferred** (platform readyz/livez/metrics still
   NO_PLAN; STORY slice → pending `posts-stories-unsupported`).
   Sibling dismiss is wontfix. Plus deferred DRY/contract chores from the

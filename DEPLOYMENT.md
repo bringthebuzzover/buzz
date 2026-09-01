@@ -82,7 +82,7 @@ Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway
 | **Frontend**            | React SPA under `/frontend` (reads `backend/brand_emails.json` at build)                    | Root Directory `/` (repo root [`package.json`](package.json) → Railpack Node provider + default `build`/`start` scripts; no custom Build/Start overrides); Watch Paths `/frontend/**` + `/backend/brand_emails.json` |
 | **api**                 | FastAPI + Uvicorn (`poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT`)         | Root Directory `/backend`; Watch Paths `/backend/**`; Pre-deploy `poetry run alembic upgrade head`; **1 replica**; Health `/api/health` (DB ping — 503 if Postgres is down) |
 | **PostgreSQL**          | Railway-managed                                                                           | Injects `DATABASE_URL` (`postgres://…` / `postgresql://…`); backend rewrites to `postgresql+asyncpg://` at startup                    |
-| **Cron ×6** | One service per job: `.venv/bin/python scripts/run_job.py <name>` | **Live:** `cron-drop-autoclose`, `cron-metric-sync`, `cron-token-cleanup`, `cron-autolink-scan`, `cron-token-refresh`, `cron-notify-reminders`. Root `/backend`; no public domain; share API env |
+| **Cron ×6** | One service per job: `.venv/bin/python scripts/run_job.py <name>` | **Live:** `cron-drop-autoclose`, `cron-metric-sync`, `cron-token-cleanup`, `cron-autolink-scan`, `cron-token-refresh`, `cron-notify-reminders`. Root `/backend`; no public domain; share API env. Pre-deploy `.venv/bin/alembic upgrade head` (same as api) so a git-push cannot run a job against an unmigrated schema. |
 
 - [x] Create the services in one Railway project (Frontend + API + Postgres + 6 crons) — **done**.
 - [x] Add cron service **`cron-notify-reminders`** (`*/5 * * * *`) — Notify Me delivery; env refs autoclose.
@@ -200,7 +200,7 @@ Alternative long-term: same-origin reverse proxy (`/api` under the SPA domain) �
 
 Order: Postgres → API (migrate + health) → Frontend (baked API URL) → Crons → DNS for custom domains → Meta URL update.
 
-- [x] Pre-deploy migrations: `poetry run alembic upgrade head` (before backend boot) — wired on the API service.
+- [x] Pre-deploy migrations: `.venv/bin/alembic upgrade head` before backend boot — wired on **api** and all **six cron** services (Postgres `pg_advisory_xact_lock` in `migrations/env.py` serializes concurrent upgrades).
 - [x] Deploy backend; confirm it boots (a bad env crashes it here by design).
 - [x] Build + deploy the frontend with `build:prod` + `REACT_APP_API_URL=https://api.bringthebuzzover.com`.
 - [ ] Confirm cron services exit after each run (Completed, not stuck Active) — spot-check after schedule changes.
