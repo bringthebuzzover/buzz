@@ -9,7 +9,7 @@ updated: 2026-09-01
 
 **Implementation locks live in [`LAUNCH.md`](../LAUNCH.md)** (public `/org/apply`, not admin CSV **accounts**). This file is brainstorm provenance. Do not implement from here.
 
-**Later intake aid (not this idea’s CSV users):** ops CLI **apply prefills** — hashed draft + email to `/org/apply?prefill=`. Still not a `User` until they submit apply. See PRODUCT §6.1.
+**Later intake aid (not this idea’s CSV users):** ops CLI **apply prefills** — hashed draft + local sidecar of `/org/apply?prefill=` URLs; email later from that file. Still not a `User` until they submit apply. See PRODUCT §6.1.
 
 ## What shipped instead (2026-08-25)
 

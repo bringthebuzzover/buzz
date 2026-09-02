@@ -38,7 +38,7 @@ Public contact mailbox (`ops.brand-mailbox`) is **ops-parallel**, not a code gat
 
 | Fork | Lock |
 | ---- | ---- |
-| Intake | **Public** `/org/apply` (brand-apply analog). No admin CSV that **mints org accounts**. Ops may CLI-import **apply prefills** (draft rows + email to `/org/apply?prefill=`); the org still submits apply. |
+| Intake | **Public** `/org/apply` (brand-apply analog). No admin CSV that **mints org accounts**. Ops may CLI-**mint** apply prefills (hashed drafts + local sidecar of `/org/apply?prefill=` URLs), verify on www, then **later** email from that sidecar; the org still submits apply. |
 | Identity until bind | `.edu` is the account. Claimed `@handle` is ops data, not login. |
 | Review | Still Buzz admin approve/deny. No auto-approve. |
 | Tester | Ops **sends** the Instagram Tester invite in Meta **before** Approve (honor-system confirm). Approval email: **accept the tester invite, then Connect**. Connect is expected to fail until they accept. |

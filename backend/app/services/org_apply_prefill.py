@@ -7,14 +7,17 @@ import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import parse_qs, unquote, urlparse
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
+from app.config import settings
 from app.exceptions import BuzzAPIException
 from app.models.org_apply_prefill import OrgApplyPrefill
 from app.security.one_shot_tokens import hash_token
+from app.services.email import send_org_apply_prefill_email
 from app.services.org_apply_prefill_parse import PREFILL_TTL_DAYS, ParsedPrefill
 
 logger = logging.getLogger(__name__)
@@ -97,6 +100,45 @@ async def find_by_source_row_key(db: AsyncSession, key: str | None) -> OrgApplyP
         select(OrgApplyPrefill).where(OrgApplyPrefill.source_row_key == key)
     )
     return row
+
+
+def apply_url_for_token(raw: str) -> str:
+    return f"{settings.FRONTEND_URL.rstrip('/')}/org/apply?prefill={raw}"
+
+
+def raw_token_from_apply_url(url: str) -> str | None:
+    parsed = urlparse((url or "").strip())
+    raw = (parse_qs(parsed.query).get("prefill") or [""])[0].strip()
+    return unquote(raw) if raw else None
+
+
+async def deliver_saved_prefill_email(
+    db: AsyncSession,
+    *,
+    invite_email: str,
+    org_name: str,
+    apply_url: str,
+    resend: bool = False,
+) -> str:
+    """Mail a sidecar URL. Does not mint. Returns a skip/sent status string."""
+    raw = raw_token_from_apply_url(apply_url)
+    if not raw:
+        return "skipped_bad_url"
+    try:
+        row = await get_live_prefill(db, raw)
+    except BuzzAPIException:
+        return "skipped_not_live"
+    if row.email_sent_at is not None and not resend:
+        return "skipped_already_sent"
+    ok = await send_org_apply_prefill_email(
+        invite_email,
+        raw,
+        org_name=org_name or row.org_name or "",
+    )
+    if not ok:
+        return "send_failed"
+    row.email_sent_at = _now()
+    return "sent"
 
 
 async def mark_prefill_used(
