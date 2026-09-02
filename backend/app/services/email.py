@@ -151,6 +151,48 @@ async def send_org_approved_email(
     return await _dispatch(to_email, subject, text, html=html)
 
 
+async def send_org_apply_prefill_email(
+    to_email: str,
+    raw_token: str,
+    *,
+    org_name: str = "",
+) -> bool:
+    """Invite an org to finish public apply with a prefilled form."""
+    apply_url = f"{settings.FRONTEND_URL}/org/apply?prefill={raw_token}"
+    name = org_name or "your organization"
+    subject = f"Finish your Buzz profile for {name}"
+    text = (
+        f"Finish setting up {name} on Buzz.\n\n"
+        "Confirm your campus .edu email, your organization's Instagram "
+        "(Business or Creator), and a US shipping address, then submit.\n\n"
+        f"{apply_url}\n\n"
+        "This link expires in 30 days."
+    )
+    html = _cta_html(
+        apply_url,
+        subject=subject,
+        button="Finish your profile",
+        paragraphs=[
+            f"Finish setting up {name} on Buzz.",
+            "Confirm your campus .edu email, your organization's Instagram "
+            "(Business or Creator), and a US shipping address, then submit.",
+            "This link expires in 30 days.",
+        ],
+    )
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Org apply prefill:                             ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            f"║  URL: {apply_url:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+
+    return await _dispatch(to_email, subject, text, html=html)
+
+
 async def send_org_denied_email(to_email: str, *, org_name: str = "") -> bool:
     """Tell an org their application was not approved."""
     subject = "Update on your Buzz application"

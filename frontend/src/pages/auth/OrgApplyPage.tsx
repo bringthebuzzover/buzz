@@ -6,10 +6,11 @@
  * waits for .edu verification with no session yet.
  */
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   useInstagramLookup,
   useOrgApply,
+  useOrgApplyPrefill,
   type InstagramLookupResponse,
 } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
@@ -46,8 +47,12 @@ function isBlockReason(reason: string | null | undefined): boolean {
 
 export default function OrgApplyPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [prefillToken] = useState(() => searchParams.get("prefill"));
   const apply = useOrgApply();
   const lookup = useInstagramLookup();
+  const prefill = useOrgApplyPrefill(prefillToken);
+  const hydrated = useRef(false);
 
   const [orgName, setOrgName] = useState("");
   const [university, setUniversity] = useState("");
@@ -64,7 +69,44 @@ export default function OrgApplyPage() {
   const [category, setCategory] = useState<OrgCategory | "">("");
   const [contactName, setContactName] = useState("");
   const [shipping, setShipping] = useState(EMPTY_SHIPPING);
+  const [shippingRawHint, setShippingRawHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [prefillError, setPrefillError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!prefillToken) return;
+    setSearchParams({}, { replace: true });
+  }, [prefillToken, setSearchParams]);
+
+  useEffect(() => {
+    if (prefill.isError && prefillToken) {
+      setPrefillError(
+        "This apply link is invalid or expired. You can still fill out the form.",
+      );
+    }
+  }, [prefill.isError, prefillToken]);
+
+  useEffect(() => {
+    if (!prefill.data || hydrated.current) return;
+    hydrated.current = true;
+    const d = prefill.data;
+    if (d.orgName) setOrgName(d.orgName);
+    if (d.university) setUniversity(d.university);
+    if (d.eduEmail) setEduEmail(d.eduEmail);
+    if (d.instagramHandle) setInstagramHandle(d.instagramHandle);
+    if (d.memberCount != null) setMemberCount(String(d.memberCount));
+    if (d.category) setCategory(d.category as OrgCategory);
+    if (d.contactName) setContactName(d.contactName);
+    setShipping({
+      line1: d.shippingLine1 ?? "",
+      line2: d.shippingLine2 ?? "",
+      city: d.shippingCity ?? "",
+      state: d.shippingState ?? "",
+      postalCode: d.shippingPostalCode ?? "",
+      placeId: "",
+    });
+    if (d.shippingRaw) setShippingRawHint(d.shippingRaw);
+  }, [prefill.data]);
 
   const lookupGen = useRef(0);
   const handleNorm = normalizeHandle(instagramHandle);
@@ -144,6 +186,7 @@ export default function OrgApplyPage() {
         eduEmail: eduEmail.trim(),
         instagramHandle: handleNorm,
         handleConfirmed: confirmedMatches,
+        prefillToken: prefillToken || undefined,
         tiktokHandle: tiktokHandle.trim().replace(/^@/, "") || undefined,
         memberCount: Number(memberCount),
         category,
@@ -180,6 +223,14 @@ export default function OrgApplyPage() {
         Tell us about your organization. We&apos;ll verify your school email,
         review your application, then invite you to connect Instagram.
       </p>
+      {prefillError && (
+        <p
+          data-testid="org-apply-prefill-error"
+          className="mb-4 rounded-lg bg-amber-50 p-3 text-sm font-medium text-amber-900"
+        >
+          {prefillError}
+        </p>
+      )}
       <p className="mb-8 rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3 text-xs font-medium text-buzz-inkMuted">
         Your Instagram must be the organization&apos;s{" "}
         <span className="font-semibold text-buzz-ink">Business or Creator</span>{" "}
@@ -379,6 +430,14 @@ export default function OrgApplyPage() {
           inputClass={inputClass}
           testIdPrefix="org-apply"
         />
+        {shippingRawHint && (
+          <p
+            data-testid="org-apply-shipping-raw"
+            className="text-xs font-medium text-buzz-inkMuted"
+          >
+            You wrote: {shippingRawHint}
+          </p>
+        )}
 
         <button
           data-testid="org-apply-submit"

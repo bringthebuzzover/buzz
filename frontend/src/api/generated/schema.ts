@@ -1560,6 +1560,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orgs/apply/prefill": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Org Apply Prefill
+         * @description Public hashed apply draft. Does not consume the token.
+         */
+        get: operations["org_apply_prefill_api_orgs_apply_prefill_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orgs/instagram-lookup": {
         parameters: {
             query?: never;
@@ -3282,6 +3302,15 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[OrgApplyPrefillResponse] */
+        DataResponse_OrgApplyPrefillResponse_: {
+            data?: components["schemas"]["OrgApplyPrefillResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[OrgOnboardingResponse] */
         DataResponse_OrgOnboardingResponse_: {
             data?: components["schemas"]["OrgOnboardingResponse"] | null;
@@ -3830,6 +3859,38 @@ export interface components {
             ok: boolean;
         };
         /**
+         * OrgApplyPrefillResponse
+         * @description Public GET draft for ``/org/apply?prefill=`` (no extras / invite email).
+         */
+        OrgApplyPrefillResponse: {
+            /** Category */
+            category?: string | null;
+            /** Contactname */
+            contactName?: string | null;
+            /** Eduemail */
+            eduEmail?: string | null;
+            /** Instagramhandle */
+            instagramHandle?: string | null;
+            /** Membercount */
+            memberCount?: number | null;
+            /** Orgname */
+            orgName?: string | null;
+            /** Shippingcity */
+            shippingCity?: string | null;
+            /** Shippingline1 */
+            shippingLine1?: string | null;
+            /** Shippingline2 */
+            shippingLine2?: string | null;
+            /** Shippingpostalcode */
+            shippingPostalCode?: string | null;
+            /** Shippingraw */
+            shippingRaw?: string | null;
+            /** Shippingstate */
+            shippingState?: string | null;
+            /** University */
+            university?: string | null;
+        };
+        /**
          * OrgApplyRequest
          * @description Public ``POST /api/orgs/apply`` — profile + claimed Instagram handle.
          */
@@ -3852,6 +3913,8 @@ export interface components {
             memberCount: number;
             /** Orgname */
             orgName: string;
+            /** Prefilltoken */
+            prefillToken?: string | null;
             /** Shippingcity */
             shippingCity: string;
             /** Shippingline1 */
@@ -7081,6 +7144,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_OrgOnboardingResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    org_apply_prefill_api_orgs_apply_prefill_get: {
+        parameters: {
+            query: {
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OrgApplyPrefillResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

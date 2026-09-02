@@ -23,7 +23,12 @@ from app.schemas.address import (
     AddressSuggestionItem,
     AddressSuggestResponse,
 )
-from app.schemas.onboarding import InstagramLookupResponse, OrgApplyRequest, OrgOnboardingRequest
+from app.schemas.onboarding import (
+    InstagramLookupResponse,
+    OrgApplyPrefillResponse,
+    OrgApplyRequest,
+    OrgOnboardingRequest,
+)
 from app.schemas.orgs import OrgProfileResponse, OrgProfileUpdate
 from app.schemas.posts import PostResponse
 from app.security.rate_limit import rate_limited
@@ -32,6 +37,7 @@ from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.instagram_lookup import lookup_instagram_handle
 from app.services.onboarding import submit_org_onboarding
 from app.services.org_apply import apply_org
+from app.services.org_apply_prefill import get_live_prefill, prefill_to_public
 from app.services.orgs import build_org_profile, get_org_for_user, update_org_profile
 from app.services.posts import list_org_posts
 
@@ -51,6 +57,20 @@ async def org_apply(
     """Public apply-first signup (no Instagram OAuth)."""
     result = await apply_org(db, payload, addresses)
     return api_response(data=OrgOnboardingResponse.model_validate(result))
+
+
+@router.get(
+    "/apply/prefill",
+    response_model=DataResponse[OrgApplyPrefillResponse],
+    dependencies=[Depends(rate_limited("org_apply_prefill", limit=10, window=60))],
+)
+async def org_apply_prefill(
+    token: str = Query(min_length=1, max_length=128),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Public hashed apply draft. Does not consume the token."""
+    row = await get_live_prefill(db, token)
+    return api_response(data=OrgApplyPrefillResponse.model_validate(prefill_to_public(row)))
 
 
 @router.get(

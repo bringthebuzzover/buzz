@@ -38,7 +38,7 @@ Public contact mailbox (`ops.brand-mailbox`) is **ops-parallel**, not a code gat
 
 | Fork | Lock |
 | ---- | ---- |
-| Intake | **Public** `/org/apply` (brand-apply analog). No admin CSV in this revamp. |
+| Intake | **Public** `/org/apply` (brand-apply analog). No admin CSV that **mints org accounts**. Ops may CLI-import **apply prefills** (draft rows + email to `/org/apply?prefill=`); the org still submits apply. |
 | Identity until bind | `.edu` is the account. Claimed `@handle` is ops data, not login. |
 | Review | Still Buzz admin approve/deny. No auto-approve. |
 | Tester | Ops **sends** the Instagram Tester invite in Meta **before** Approve (honor-system confirm). Approval email: **accept the tester invite, then Connect**. Connect is expected to fail until they accept. |
@@ -127,7 +127,7 @@ All former “remaining questions” are closed. Implement from the locks above 
 ### Contradictions closed
 
 1. **PRODUCT IG-first vs tester wall** → apply-first, IG bind last. `/login` is returning + Connect, not create.
-2. **org-precreate admin-CSV vs “fill out on the website”** → public `/org/apply`.
+2. **org-precreate admin-CSV vs “fill out on the website”** → public `/org/apply`. Prefill drafts are **not** a reopen of CSV account-create.
 3. **Two connect emails vs one approval email** → one approval email; ops adds tester **before** Approve.
 4. **Approve → `active` vs Connect** → `pending_instagram` in between so CurrentOrg cannot Apply without Graph.
 5. **admin-drops “Buzz writes creative” vs brand creative PATCH** → admin mint + admin PATCH only. Brand editor out.

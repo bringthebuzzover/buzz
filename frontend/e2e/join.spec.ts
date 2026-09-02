@@ -130,3 +130,63 @@ test("org apply → verify → pending approval", async ({ page }) => {
     page.getByRole("heading", { name: /awaiting.*approval/i }),
   ).toBeVisible();
 });
+
+test("org apply prefill hydrates then submits", async ({ page }) => {
+  test.setTimeout(60_000);
+  const stamp = Date.now().toString();
+  const eduEmail = `e2e-prefill-${stamp}@cornell.edu`;
+  const handle = `e2epf${stamp.slice(-8)}`;
+  const raw = `e2e-prefill-${stamp}`;
+  execSync(
+    `poetry run python scripts/mint_e2e_org_apply_prefill.py ${JSON.stringify(raw)} ${JSON.stringify(eduEmail)} ${JSON.stringify(handle)}`,
+    {
+      cwd: backendDir,
+      env: { ...process.env, ENVIRONMENT: "development" },
+      encoding: "utf8",
+    },
+  );
+
+  await page.route("**/api/orgs/instagram-lookup**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: {
+          available: true,
+          username: handle,
+          name: "E2E Prefill Org",
+          followersCount: 500,
+          biography: "Campus org",
+          profilePictureUrl: null,
+          reason: null,
+        },
+      }),
+    });
+  });
+
+  await page.goto(`/org/apply?prefill=${encodeURIComponent(raw)}`);
+  await expect(page.getByTestId("org-apply-org-name")).toHaveValue(
+    "E2E Prefill Org",
+  );
+  await expect(page.getByTestId("org-apply-edu-email")).toHaveValue(eduEmail);
+  await expect(page.getByTestId("org-apply-shipping-raw")).toBeVisible();
+  await expect(page).not.toHaveURL(/prefill=/);
+
+  await expect(page.getByText(`@${handle}`)).toBeVisible({ timeout: 10_000 });
+  await page
+    .getByRole("button", {
+      name: /confirm this is our organization/i,
+    })
+    .click();
+
+  const applyResp = page.waitForResponse(
+    (r) =>
+      r.url().includes("/api/orgs/apply") && r.request().method() === "POST",
+  );
+  await page.getByTestId("org-apply-submit").click();
+  const posted = await applyResp;
+  expect(posted.ok()).toBeTruthy();
+  const body = posted.request().postDataJSON() as { prefillToken?: string };
+  expect(body.prefillToken).toBe(raw);
+  await expect(page).toHaveURL(/\/onboarding\/verify-email/);
+});
