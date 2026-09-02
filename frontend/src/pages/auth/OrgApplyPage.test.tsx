@@ -14,27 +14,50 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const mockLookup = jest.fn();
 const mockApply = jest.fn();
+const mockPrefill = {
+  data: undefined as
+    | {
+        orgName: string;
+        university: string;
+        eduEmail: string;
+        instagramHandle: string;
+        memberCount: number;
+        category: string;
+        contactName: string;
+        shippingLine1: string;
+        shippingLine2: string | null;
+        shippingCity: string;
+        shippingState: string;
+        shippingPostalCode: string;
+        shippingRaw: string;
+      }
+    | undefined,
+  isError: false,
+  isPending: false,
+  isSuccess: false,
+};
 
 jest.mock("../../api/hooks/useOnboardingHooks", () => ({
   useInstagramLookup: () => ({
     mutateAsync: mockLookup,
     isPending: false,
   }),
-    useOrgApply: () => ({
-      mutateAsync: mockApply,
-      isPending: false,
-    }),
-    useAddressSuggest: () => ({
-      mutateAsync: async () => ({ suggestions: [] }),
-      isPending: false,
-    }),
-    useAddressPreview: () => ({
-      mutateAsync: async () => {
-        throw new Error("preview unused in this test");
-      },
-      isPending: false,
-    }),
-  }));
+  useOrgApply: () => ({
+    mutateAsync: mockApply,
+    isPending: false,
+  }),
+  useOrgApplyPrefill: () => mockPrefill,
+  useAddressSuggest: () => ({
+    mutateAsync: async () => ({ suggestions: [] }),
+    isPending: false,
+  }),
+  useAddressPreview: () => ({
+    mutateAsync: async () => {
+      throw new Error("preview unused in this test");
+    },
+    isPending: false,
+  }),
+}));
 
 import OrgApplyPage from "./OrgApplyPage";
 
@@ -46,6 +69,8 @@ describe("OrgApplyPage confirm card", () => {
     jest.useFakeTimers();
     mockLookup.mockReset();
     mockApply.mockReset();
+    mockPrefill.data = undefined;
+    mockPrefill.isError = false;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -210,5 +235,37 @@ describe("OrgApplyPage confirm card", () => {
       'button[type="submit"]',
     ) as HTMLButtonElement;
     expect(submit.disabled).toBe(false);
+  });
+
+  it("hydrates fields from a prefill draft without auto-confirming Instagram", () => {
+    mockPrefill.data = {
+      orgName: "Epsilon Nu Tau",
+      university: "Cornell University",
+      eduEmail: "ae101@example.edu",
+      instagramHandle: "test_org_1",
+      memberCount: 60,
+      category: "sorority",
+      contactName: "Avery Example",
+      shippingLine1: "101 Example St",
+      shippingLine2: null,
+      shippingCity: "Ithaca",
+      shippingState: "NY",
+      shippingPostalCode: "14850",
+      shippingRaw: "101 Example St, Ithaca, NY 14850",
+    };
+    renderPage();
+    const org = container.querySelector(
+      '[data-testid="org-apply-org-name"]',
+    ) as HTMLInputElement;
+    expect(org.value).toBe("Epsilon Nu Tau");
+    expect(
+      (container.querySelector('[data-testid="org-apply-contact-name"]') as HTMLInputElement)
+        .value,
+    ).toBe("Avery Example");
+    expect(container.textContent).toMatch(/You wrote:/);
+    const submit = container.querySelector(
+      'button[type="submit"]',
+    ) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
   });
 });

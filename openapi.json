@@ -4975,6 +4975,44 @@
         "title": "DataResponse[OkResponse]",
         "type": "object"
       },
+      "DataResponse_OrgApplyPrefillResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgApplyPrefillResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[OrgApplyPrefillResponse]",
+        "type": "object"
+      },
       "DataResponse_OrgOnboardingResponse_": {
         "properties": {
           "data": {
@@ -6648,6 +6686,156 @@
         "title": "OkResponse",
         "type": "object"
       },
+      "OrgApplyPrefillResponse": {
+        "description": "Public GET draft for ``/org/apply?prefill=`` (no extras / invite email).",
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "contactName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactname"
+          },
+          "eduEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eduemail"
+          },
+          "instagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instagramhandle"
+          },
+          "memberCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Membercount"
+          },
+          "orgName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgname"
+          },
+          "shippingCity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingcity"
+          },
+          "shippingLine1": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingline1"
+          },
+          "shippingLine2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingline2"
+          },
+          "shippingPostalCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingpostalcode"
+          },
+          "shippingRaw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingraw"
+          },
+          "shippingState": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingstate"
+          },
+          "university": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "University"
+          }
+        },
+        "title": "OrgApplyPrefillResponse",
+        "type": "object"
+      },
       "OrgApplyRequest": {
         "additionalProperties": false,
         "description": "Public ``POST /api/orgs/apply`` \u2014 profile + claimed Instagram handle.",
@@ -6690,6 +6878,17 @@
           "orgName": {
             "title": "Orgname",
             "type": "string"
+          },
+          "prefillToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prefilltoken"
           },
           "shippingCity": {
             "title": "Shippingcity",
@@ -12713,6 +12912,51 @@
           }
         },
         "summary": "Org Apply",
+        "tags": [
+          "orgs"
+        ]
+      }
+    },
+    "/api/orgs/apply/prefill": {
+      "get": {
+        "description": "Public hashed apply draft. Does not consume the token.",
+        "operationId": "org_apply_prefill_api_orgs_apply_prefill_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OrgApplyPrefillResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Org Apply Prefill",
         "tags": [
           "orgs"
         ]

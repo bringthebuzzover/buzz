@@ -25,7 +25,8 @@ export type BrandApplyResponse = components["schemas"]["BrandApplyResponse"];
 export type PublicConfigResponse = components["schemas"]["PublicConfigResponse"];
 export type InstagramLookupResponse =
   components["schemas"]["InstagramLookupResponse"];
-export type OrgApplyRequest = components["schemas"]["OrgApplyRequest"];
+export type OrgApplyPrefillResponse =
+  components["schemas"]["OrgApplyPrefillResponse"];
 export type AddressSuggestResponse =
   components["schemas"]["AddressSuggestResponse"];
 export type AddressPreviewResponse =
@@ -56,7 +57,24 @@ export type OrgOnboardingInput = {
 export type OrgApplyInput = OrgOnboardingInput & {
   instagramHandle: string;
   handleConfirmed: boolean;
+  prefillToken?: string;
 };
+
+/** Public hashed apply draft. Does not consume the token. */
+export function useOrgApplyPrefill(token: string | null) {
+  return useQuery({
+    queryKey: ["org-apply-prefill", token],
+    enabled: Boolean(token),
+    queryFn: async () => {
+      const q = encodeURIComponent(token ?? "");
+      const { data } = await apiFetch<OrgApplyPrefillResponse>(
+        `/api/orgs/apply/prefill?token=${q}`,
+      );
+      return data;
+    },
+    retry: false,
+  });
+}
 
 /** Public org apply-first signup (→ pending_email_verification, no IG token). */
 export function useOrgApply() {

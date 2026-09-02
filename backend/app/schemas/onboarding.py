@@ -31,6 +31,7 @@ class OrgApplyRequest(CamelModel):
     shipping_state: str
     shipping_postal_code: str
     shipping_place_id: str | None = None
+    prefill_token: str | None = None
 
     @field_validator("edu_email")
     @classmethod
@@ -66,7 +67,7 @@ class OrgApplyRequest(CamelModel):
         v = v.strip()
         return v or None
 
-    @field_validator("shipping_line2", "shipping_place_id")
+    @field_validator("shipping_line2", "shipping_place_id", "prefill_token")
     @classmethod
     def _optional_blank(cls, v: str | None) -> str | None:
         if v is None:
@@ -87,6 +88,24 @@ class OrgApplyRequest(CamelModel):
         if v < 0:
             raise ValueError("Must be zero or greater")
         return v
+
+
+class OrgApplyPrefillResponse(CamelModel):
+    """Public GET draft for ``/org/apply?prefill=`` (no extras / invite email)."""
+
+    org_name: str | None = None
+    university: str | None = None
+    edu_email: str | None = None
+    instagram_handle: str | None = None
+    member_count: int | None = None
+    category: str | None = None
+    contact_name: str | None = None
+    shipping_line1: str | None = None
+    shipping_line2: str | None = None
+    shipping_city: str | None = None
+    shipping_state: str | None = None
+    shipping_postal_code: str | None = None
+    shipping_raw: str | None = None
 
 
 class OrgOnboardingRequest(CamelModel):

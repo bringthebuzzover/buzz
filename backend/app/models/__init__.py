@@ -15,6 +15,7 @@ from app.models.drop import Drop
 from app.models.drop_request import DropRequest
 from app.models.job_run import JobRun
 from app.models.notify_me import NotifyMe
+from app.models.org_apply_prefill import OrgApplyPrefill
 from app.models.org_connect_token import OrgConnectToken
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
@@ -36,6 +37,7 @@ __all__ = [
     "EmailVerificationToken",
     "JobRun",
     "NotifyMe",
+    "OrgApplyPrefill",
     "OrgConnectToken",
     "Organization",
     "PasswordResetToken",

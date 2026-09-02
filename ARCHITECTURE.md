@@ -88,7 +88,7 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | `post_campaign_suggestions` | Autolink pending accept/dismiss |
 | `notify_me` | Org reminder subscription; `sent_at` when email dispatched |
 | `drop_tracker_events` | Tracker stage audit |
-| `email_verification_tokens` / `brand_invite_tokens` / `password_reset_tokens` | One-shot tokens |
+| `email_verification_tokens` / `brand_invite_tokens` / `password_reset_tokens` / `org_connect_tokens` / `org_apply_prefills` | One-shot tokens; prefills are apply **drafts** (no user until submit) |
 | `job_runs` | Cron observability |
 
 Brand tracker stages (enum, **as-built today**): `request_received` and `finalizing_agreements` remain on the PG enum for legacy rows. New drops start at `awaiting_products` on **Publish**. Post-publish order: `awaiting_products` → `drop_active` → `drop_finished`. Org feed / apply / Notify Me require `published_at IS NOT NULL`. See [`PRODUCT.md`](PRODUCT.md) §5.2.

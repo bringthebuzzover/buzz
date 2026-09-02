@@ -20,6 +20,7 @@ from app.schemas.onboarding import OrgApplyRequest
 from app.services.address import AddressClient, apply_to_org
 from app.services.instagram import canonical_instagram_handle
 from app.services.onboarding import _mint_and_send_verification, _release_unverified_edu_claim
+from app.services.org_apply_prefill import mark_prefill_used
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +125,7 @@ async def apply_org(
         org_name=payload.org_name,
         kind="signup",
     )
+    await mark_prefill_used(db, payload.prefill_token, user.id)
 
     return {
         "org_id": str(org.id),
