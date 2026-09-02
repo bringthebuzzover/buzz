@@ -158,12 +158,31 @@ async def send_org_apply_prefill_email(
     org_name: str = "",
 ) -> bool:
     """Invite an org to finish public apply with a prefilled form."""
-    apply_url = f"{settings.FRONTEND_URL}/org/apply?prefill={raw_token}"
+    subject, text, html = build_org_apply_prefill_email(raw_token, org_name=org_name)
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "DEV EMAIL — Org apply prefill to=%s (prefill token omitted from logs)",
+            to_email,
+        )
+        return True
+
+    return await _dispatch(to_email, subject, text, html=html)
+
+
+def build_org_apply_prefill_email(
+    raw_token: str,
+    *,
+    org_name: str = "",
+) -> tuple[str, str, str]:
+    apply_url = f"{settings.FRONTEND_URL.rstrip('/')}/org/apply?prefill={raw_token}"
     name = org_name or "your organization"
-    subject = f"Finish your Buzz profile for {name}"
+    subject = f"Finish {name}'s Buzz profile"
     text = (
-        f"Finish setting up {name} on Buzz.\n\n"
-        "Confirm your campus .edu email, your organization's Instagram "
+        "You told us you're interested in Buzz.\n\n"
+        f"Finish this profile for {name} so your organization can get access "
+        "to exclusive brand partnerships. We'll fill in what we already have — "
+        "confirm your campus .edu email, the organization's Instagram "
         "(Business or Creator), and a US shipping address, then submit.\n\n"
         f"{apply_url}\n\n"
         "This link expires in 30 days."
@@ -173,24 +192,15 @@ async def send_org_apply_prefill_email(
         subject=subject,
         button="Finish your profile",
         paragraphs=[
-            f"Finish setting up {name} on Buzz.",
-            "Confirm your campus .edu email, your organization's Instagram "
+            "You told us you're interested in Buzz.",
+            f"Finish this profile for {name} so your organization can get access "
+            "to exclusive brand partnerships. We'll fill in what we already have — "
+            "confirm your campus .edu email, the organization's Instagram "
             "(Business or Creator), and a US shipping address, then submit.",
             "This link expires in 30 days.",
         ],
     )
-
-    if settings.ENVIRONMENT == "development":
-        logger.info(
-            "\n╔══════════════════════════════════════════════════════════════╗\n"
-            "║  DEV EMAIL — Org apply prefill:                             ║\n"
-            f"║  To: {to_email:<52s}║\n"
-            f"║  URL: {apply_url:<50s}║\n"
-            "╚══════════════════════════════════════════════════════════════╝"
-        )
-        return True
-
-    return await _dispatch(to_email, subject, text, html=html)
+    return subject, text, html
 
 
 async def send_org_denied_email(to_email: str, *, org_name: str = "") -> bool:

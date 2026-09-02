@@ -111,3 +111,15 @@ async def test_drop_published_email_uses_hello_from_and_cta(monkeypatch, _resend
     assert drop_url in seen["body"]["text"]
     assert "View drop" in seen["body"]["html"]
     assert drop_url in seen["body"]["html"]
+
+
+def test_org_apply_prefill_email_copy() -> None:
+    subject, text, html = email.build_org_apply_prefill_email(
+        "preview",
+        org_name="Campus Greeks",
+    )
+    assert subject == "Finish Campus Greeks's Buzz profile"
+    assert "You told us you're interested in Buzz." in text
+    assert "exclusive brand partnerships" in text
+    assert "Finish your profile" in html
+    assert "prefill=preview" in html

@@ -7,6 +7,10 @@ build/
 !.cursor/rules/
 !.cursor/rules/**
 
+# Org apply prefill sheets and mint sidecars (PII / link secrets). Local ops only.
+backend/scripts/fixtures/*.csv
+backend/scripts/fixtures/*.json
+
 # Python
 __pycache__/
 *.pyc
