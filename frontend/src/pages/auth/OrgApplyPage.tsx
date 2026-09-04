@@ -14,6 +14,8 @@ import {
   type InstagramLookupResponse,
 } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
+import { userFacingApiError } from "../../api/userFacingError";
+import FieldError from "../../components/forms/FieldError";
 import ShippingAddressFields, {
   EMPTY_SHIPPING,
   shippingToApi,
@@ -22,6 +24,13 @@ import {
   ORG_CATEGORY_OPTIONS,
   type OrgCategory,
 } from "../../types/orgCategory";
+import {
+  isFieldError,
+  parseEduEmail,
+  parseMemberCount,
+  requireNonBlank,
+  unwrapParsed,
+} from "../../utils/formValidation";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
@@ -71,6 +80,7 @@ export default function OrgApplyPage() {
   const [shipping, setShipping] = useState(EMPTY_SHIPPING);
   const [shippingRawHint, setShippingRawHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [prefillError, setPrefillError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -171,6 +181,7 @@ export default function OrgApplyPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
     if (!category) {
       setError("Select an organization type.");
       return;
@@ -179,18 +190,45 @@ export default function OrgApplyPage() {
       setError("Confirm your organization's Instagram account to continue.");
       return;
     }
+    const next: Record<string, string> = {};
+    const name = requireNonBlank(orgName);
+    if (isFieldError(name)) next.orgName = name.error;
+    const uni = requireNonBlank(university);
+    if (isFieldError(uni)) next.university = uni.error;
+    const edu = parseEduEmail(eduEmail);
+    if (isFieldError(edu)) next.eduEmail = edu.error;
+    const members = parseMemberCount(memberCount);
+    if (isFieldError(members)) next.memberCount = members.error;
+    const contact = requireNonBlank(contactName);
+    if (isFieldError(contact)) next.contactName = contact.error;
+    const line1 = requireNonBlank(shipping.line1);
+    const city = requireNonBlank(shipping.city);
+    const state = requireNonBlank(shipping.state);
+    const zip = requireNonBlank(shipping.postalCode);
+    if (
+      isFieldError(line1) ||
+      isFieldError(city) ||
+      isFieldError(state) ||
+      isFieldError(zip)
+    ) {
+      next.shipping = "Must not be empty";
+    }
+    if (Object.keys(next).length > 0) {
+      setFieldErrors(next);
+      return;
+    }
     try {
       const result = await apply.mutateAsync({
-        orgName: orgName.trim(),
-        university: university.trim(),
-        eduEmail: eduEmail.trim(),
+        orgName: unwrapParsed(name),
+        university: unwrapParsed(uni),
+        eduEmail: unwrapParsed(edu),
         instagramHandle: handleNorm,
         handleConfirmed: confirmedMatches,
         prefillToken: prefillToken || undefined,
         tiktokHandle: tiktokHandle.trim().replace(/^@/, "") || undefined,
-        memberCount: Number(memberCount),
+        memberCount: unwrapParsed(members),
         category,
-        contactName: contactName.trim(),
+        contactName: unwrapParsed(contact),
         ...shippingToApi(shipping),
       });
       sessionStorage.setItem(
@@ -206,11 +244,12 @@ export default function OrgApplyPage() {
         },
       });
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Something went wrong. Please try again.",
+      const mapped = userFacingApiError(
+        err,
+        "Something went wrong. Please try again.",
       );
+      setFieldErrors(mapped.fields);
+      setError(mapped.banner);
     }
   };
 
@@ -239,6 +278,11 @@ export default function OrgApplyPage() {
       </p>
 
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+        {error && (
+          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
+            {error}
+          </p>
+        )}
         <div>
           <label className="mb-1 block text-sm font-semibold text-buzz-ink">
             Organization name
@@ -249,7 +293,10 @@ export default function OrgApplyPage() {
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.orgName)}
+            aria-describedby={fieldErrors.orgName ? "org-apply-org-name-error" : undefined}
           />
+          <FieldError id="org-apply-org-name-error" message={fieldErrors.orgName} />
         </div>
 
         <div>
@@ -262,6 +309,14 @@ export default function OrgApplyPage() {
             value={university}
             onChange={(e) => setUniversity(e.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.university)}
+            aria-describedby={
+              fieldErrors.university ? "org-apply-university-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-apply-university-error"
+            message={fieldErrors.university}
           />
         </div>
 
@@ -277,6 +332,14 @@ export default function OrgApplyPage() {
             onChange={(e) => setEduEmail(e.target.value)}
             placeholder="you@university.edu"
             required
+            aria-invalid={Boolean(fieldErrors.eduEmail)}
+            aria-describedby={
+              fieldErrors.eduEmail ? "org-apply-edu-email-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-apply-edu-email-error"
+            message={fieldErrors.eduEmail}
           />
           <p className="mt-1 text-xs text-buzz-inkMuted">
             We&apos;ll send a verification link here.
@@ -295,6 +358,16 @@ export default function OrgApplyPage() {
             placeholder="yourorg"
             required
             autoComplete="off"
+            aria-invalid={Boolean(fieldErrors.instagramHandle)}
+            aria-describedby={
+              fieldErrors.instagramHandle
+                ? "org-apply-instagram-error"
+                : undefined
+            }
+          />
+          <FieldError
+            id="org-apply-instagram-error"
+            message={fieldErrors.instagramHandle}
           />
           <p className="mt-1 text-xs text-buzz-inkMuted">
             Exact username of the org Business/Creator account (with or without
@@ -388,6 +461,14 @@ export default function OrgApplyPage() {
             value={memberCount}
             onChange={(e) => setMemberCount(e.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.memberCount)}
+            aria-describedby={
+              fieldErrors.memberCount ? "org-apply-member-count-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-apply-member-count-error"
+            message={fieldErrors.memberCount}
           />
         </div>
 
@@ -421,6 +502,14 @@ export default function OrgApplyPage() {
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.contactName)}
+            aria-describedby={
+              fieldErrors.contactName ? "org-apply-contact-name-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-apply-contact-name-error"
+            message={fieldErrors.contactName}
           />
         </div>
 
@@ -429,6 +518,7 @@ export default function OrgApplyPage() {
           onChange={setShipping}
           inputClass={inputClass}
           testIdPrefix="org-apply"
+          error={fieldErrors.shipping}
         />
         {shippingRawHint && (
           <p
@@ -447,12 +537,6 @@ export default function OrgApplyPage() {
         >
           {apply.isPending ? "Submitting…" : "Submit application"}
         </button>
-
-        {error && (
-          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-            {error}
-          </p>
-        )}
 
         <p className="text-center text-xs text-buzz-inkMuted">
           Already connected Instagram?{" "}

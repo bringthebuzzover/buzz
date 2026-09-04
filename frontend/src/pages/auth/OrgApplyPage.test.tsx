@@ -268,4 +268,166 @@ describe("OrgApplyPage confirm card", () => {
     ) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
   });
+
+  it("does not submit a Gmail address", async () => {
+    mockLookup.mockResolvedValue({
+      available: true,
+      username: "campusgreeks",
+      name: "Campus Greeks",
+      followersCount: 1200,
+      biography: "Greek life",
+      profilePictureUrl: null,
+      reason: null,
+    });
+    mockApply.mockResolvedValue({ emailSent: true });
+    renderPage();
+    fillRequiredFieldsExceptHandle();
+
+    const handleInput = Array.from(container.querySelectorAll("label"))
+      .find((el) => el.textContent?.includes("Instagram handle"))
+      ?.parentElement?.querySelector("input") as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(handleInput, "campusgreeks");
+      handleInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(600);
+      await Promise.resolve();
+    });
+    const confirm = Array.from(container.querySelectorAll("button")).find((b) =>
+      /confirm this is our organization/i.test(b.textContent || ""),
+    );
+    act(() => {
+      confirm!.click();
+    });
+
+    const email = container.querySelector(
+      '[data-testid="org-apply-edu-email"]',
+    ) as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(email, "president@gmail.com");
+      email.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    const form = container.querySelector("form") as HTMLFormElement;
+    await act(async () => {
+      form.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(mockApply).not.toHaveBeenCalled();
+    expect(container.textContent).toMatch(/Must be a valid \.edu email address/);
+  });
+
+  it("does not submit a decimal member count", async () => {
+    mockLookup.mockResolvedValue({
+      available: false,
+      username: null,
+      name: null,
+      followersCount: null,
+      biography: null,
+      profilePictureUrl: null,
+      reason: "unavailable",
+    });
+    renderPage();
+    fillRequiredFieldsExceptHandle();
+    const handleInput = Array.from(container.querySelectorAll("label"))
+      .find((el) => el.textContent?.includes("Instagram handle"))
+      ?.parentElement?.querySelector("input") as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(handleInput, "softfailorg");
+      handleInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(600);
+      await Promise.resolve();
+    });
+
+    const members = container.querySelector(
+      '[data-testid="org-apply-member-count"]',
+    ) as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(members, "12.5");
+      members.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    const form = container.querySelector("form") as HTMLFormElement;
+    await act(async () => {
+      form.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await Promise.resolve();
+    });
+    expect(mockApply).not.toHaveBeenCalled();
+    expect(container.textContent).toMatch(/Enter a valid member count/);
+  });
+
+  it("does not submit a whitespace-only org name", async () => {
+    mockLookup.mockResolvedValue({
+      available: false,
+      username: null,
+      name: null,
+      followersCount: null,
+      biography: null,
+      profilePictureUrl: null,
+      reason: "unavailable",
+    });
+    renderPage();
+    fillRequiredFieldsExceptHandle();
+    const handleInput = Array.from(container.querySelectorAll("label"))
+      .find((el) => el.textContent?.includes("Instagram handle"))
+      ?.parentElement?.querySelector("input") as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(handleInput, "softfailorg");
+      handleInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(600);
+      await Promise.resolve();
+    });
+
+    const org = container.querySelector(
+      '[data-testid="org-apply-org-name"]',
+    ) as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(org, "   ");
+      org.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    const form = container.querySelector("form") as HTMLFormElement;
+    await act(async () => {
+      form.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await Promise.resolve();
+    });
+    expect(mockApply).not.toHaveBeenCalled();
+    expect(container.textContent).toMatch(/Must not be empty/);
+  });
 });
