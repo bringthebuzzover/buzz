@@ -113,6 +113,33 @@ async def test_drop_published_email_uses_hello_from_and_cta(monkeypatch, _resend
     assert drop_url in seen["body"]["html"]
 
 
+async def test_update_prefill_send_ccs_contact_and_ops(monkeypatch, _resend_key) -> None:
+    from app.brand_emails import CONTACT_EMAIL, OPS_CC_EMAIL
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"id": "email_update_cc"})
+
+    _stub_transport(monkeypatch, handler)
+    assert (
+        await email.send_org_apply_prefill_update_email(
+            "org@campus.edu",
+            "preview",
+            org_name="Kappa Alpha Theta",
+            contact_name="Mia",
+        )
+        is True
+    )
+    assert seen["body"]["cc"] == [CONTACT_EMAIL, OPS_CC_EMAIL]
+    assert CONTACT_EMAIL in seen["body"]["cc"]
+    assert OPS_CC_EMAIL in seen["body"]["cc"]
+
+
 def test_org_apply_prefill_email_copy() -> None:
     subject, text, html = email.build_org_apply_prefill_email(
         "preview",
@@ -123,3 +150,46 @@ def test_org_apply_prefill_email_copy() -> None:
     assert "exclusive brand partnerships" in text
     assert "Finish your profile" in html
     assert "prefill=preview" in html
+
+
+def test_org_apply_prefill_update_email_fields() -> None:
+    from app.brand_emails import CONTACT_EMAIL
+
+    subject, text, html = email.build_org_apply_prefill_update_email(
+        "preview",
+        org_name="Kappa Alpha Theta",
+        contact_name="Mia Philippi",
+    )
+    assert "Kappa Alpha Theta" in subject
+    assert "Kappa Alpha Theta" in text
+    assert "UPDATE" in subject
+    assert "UPDATE" in text
+    assert "Mia" in text
+    assert "prefill=preview" in text
+    assert "prefill=preview" in html
+    assert "/login" in text
+    assert CONTACT_EMAIL in text
+    assert CONTACT_EMAIL in html
+    assert f"mailto:{CONTACT_EMAIL}" in html
+    assert "Finish your chapter's profile" in html
+    assert "The BUZZ Team" in text
+    assert "The BUZZ Team" in html
+    # Paste-this-link row is an <a>, not plain text only
+    assert html.count(f'href="{settings.FRONTEND_URL.rstrip("/")}/org/apply?prefill=preview"') >= 2
+    _, no_name_text, _ = email.build_org_apply_prefill_update_email(
+        "preview",
+        org_name="Campus Greeks",
+    )
+    assert "Campus Greeks" in no_name_text
+    assert "Hi!" in no_name_text
+
+
+def test_applied_on_from_source_row_key() -> None:
+    assert (
+        email.applied_on_from_source_row_key("8/30/2026 16:30:08|mp2282@cornell.edu") == "August 30"
+    )
+    assert email.applied_on_from_source_row_key("8/18/2026 1:19:20|mc3237@cornell.edu") == (
+        "August 18"
+    )
+    assert email.applied_on_from_source_row_key("not-a-date|x@y.edu") is None
+    assert email.applied_on_from_source_row_key(None) is None

@@ -7,6 +7,7 @@ declare module "@brandEmails" {
   const brandEmails: {
     emailFrom: string;
     contactEmail: string;
+    opsCcEmail: string;
   };
   export default brandEmails;
 }
