@@ -674,18 +674,41 @@ def _cta_html(
         f"{_escape(p)}</p>"
         for p in (footer_paragraphs or [])
     )
+    # Force the light Buzz palette in clients that invert for dark mode
+    # (Apple Mail / some Gmail). Exact hexes match the light template.
+    dark_lock = (
+        f"<style>:root{{color-scheme:light only;supported-color-schemes:light}}"
+        f"@media (prefers-color-scheme:dark){{"
+        f".buzz-mail{{background-color:{_CREAM}!important;color:{_INK}!important}}"
+        f".buzz-mail-card{{background-color:#ffffff!important;color:{_INK}!important}}"
+        f".buzz-mail h1,.buzz-mail p{{color:{_INK}!important;"
+        f"background-color:transparent!important}}"
+        f".buzz-mail a{{color:{_CORAL}!important}}"
+        f".buzz-mail a.buzz-mail-btn{{color:#ffffff!important;"
+        f"background-color:{_CORAL}!important}}"
+        f".buzz-mail-muted{{color:#666666!important}}"
+        f"}}</style>"
+    )
     return (
-        f'<!DOCTYPE html><html><body style="margin:0;padding:24px;background:{_CREAM};'
+        f'<!DOCTYPE html><html lang="en" style="color-scheme:light only;">'
+        f'<head><meta charset="utf-8"/>'
+        f'<meta name="color-scheme" content="light only"/>'
+        f'<meta name="supported-color-schemes" content="light"/>'
+        f"{dark_lock}</head>"
+        f'<body class="buzz-mail" bgcolor="{_CREAM}" style="margin:0;padding:24px;'
+        f"background-color:{_CREAM};color:{_INK};"
         f'font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">'
-        f'<div style="max-width:520px;margin:0 auto;background:#fff;padding:32px;'
-        f'border-radius:12px;color:{_INK};">'
+        f'<div class="buzz-mail-card" bgcolor="#ffffff" style="max-width:520px;'
+        f"margin:0 auto;background-color:#ffffff;padding:32px;border-radius:12px;"
+        f'color:{_INK};">'
         f'<h1 style="margin:0 0 20px;font-size:22px;color:{_INK};">{_escape(subject)}</h1>'
         f"{paras}"
-        f'<p style="margin:24px 0;"><a href="{_escape(url)}" '
-        f'style="display:inline-block;background:{_CORAL};color:#fff;text-decoration:none;'
-        f'padding:12px 24px;border-radius:8px;font-weight:600;">{_escape(button)}</a></p>'
-        f'<p style="margin:0;color:#666;font-size:13px;line-height:1.5;">'
-        f"Or paste this link:<br/>{_inline_a(url)}</p>"
+        f'<p style="margin:24px 0;"><a class="buzz-mail-btn" href="{_escape(url)}" '
+        f'style="display:inline-block;background-color:{_CORAL};color:#ffffff;'
+        f"text-decoration:none;padding:12px 24px;border-radius:8px;"
+        f'font-weight:600;">{_escape(button)}</a></p>'
+        f'<p class="buzz-mail-muted" style="margin:0;color:#666666;font-size:13px;'
+        f'line-height:1.5;">Or paste this link:<br/>{_inline_a(url)}</p>'
         f"{footer}"
         f"</div></body></html>"
     )

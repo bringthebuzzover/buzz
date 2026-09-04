@@ -172,6 +172,8 @@ def test_org_apply_prefill_update_email_fields() -> None:
     assert CONTACT_EMAIL in html
     assert f"mailto:{CONTACT_EMAIL}" in html
     assert "Finish your chapter's profile" in html
+    assert "color-scheme" in html
+    assert "light only" in html
     assert "The BUZZ Team" in text
     assert "The BUZZ Team" in html
     # Paste-this-link row is an <a>, not plain text only
