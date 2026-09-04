@@ -9,6 +9,11 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { setAccessToken, clearInstagramReconnectLatch } from "../../api/auth";
 import { API_BASE_URL } from "../../api/config";
+import {
+  INSTAGRAM_CALLBACK_MISSING_PARAMS,
+  INSTAGRAM_CALLBACK_NETWORK,
+  instagramCallbackFailureCopy,
+} from "../../utils/instagramCallbackCopy";
 
 type CallbackState =
   | { kind: "exchanging" }
@@ -29,7 +34,7 @@ export default function InstagramCallbackPage() {
     if (!code || !st) {
       setState({
         kind: "error",
-        message: "Missing code or state parameter. Please try logging in again.",
+        message: INSTAGRAM_CALLBACK_MISSING_PARAMS,
       });
       return;
     }
@@ -59,8 +64,12 @@ export default function InstagramCallbackPage() {
             });
             return;
           }
-          const msg =
-            body?.error?.message ?? `Instagram login failed (${resp.status}).`;
+          const msg = instagramCallbackFailureCopy(
+            code,
+            typeof body?.error?.message === "string"
+              ? body.error.message
+              : undefined,
+          );
           setState({ kind: "error", message: msg });
           return;
         }
@@ -80,7 +89,7 @@ export default function InstagramCallbackPage() {
       } catch {
         setState({
           kind: "error",
-          message: "Could not reach the server. Please try again.",
+          message: INSTAGRAM_CALLBACK_NETWORK,
         });
       }
     };
@@ -100,7 +109,7 @@ export default function InstagramCallbackPage() {
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-8 py-24 text-center">
       <h1 className="mb-4 text-2xl font-black text-buzz-coral">
-        Login Failed
+        Login failed
       </h1>
       <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
         {state.message}

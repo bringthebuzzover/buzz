@@ -111,4 +111,34 @@ describe("EduEmailRotatePanel", () => {
     expect(onChanged).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Pending school email change canceled");
   });
+
+  it("does not rotate to a non-.edu address", async () => {
+    render({});
+    const change = Array.from(container.querySelectorAll("button")).find((b) =>
+      /change school email/i.test(b.textContent ?? ""),
+    );
+    act(() => {
+      change!.click();
+    });
+    const input = container.querySelector(
+      'input[type="email"]',
+    ) as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(input, "club@gmail.com");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const form = container.querySelector("form") as HTMLFormElement;
+    await act(async () => {
+      form.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await Promise.resolve();
+    });
+    expect(mockRotate).not.toHaveBeenCalled();
+    expect(container.textContent).toMatch(/Must be a valid \.edu email address/);
+  });
 });

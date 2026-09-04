@@ -8,7 +8,8 @@
  */
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ApiError } from "../../api/client";
+import { userFacingApiError } from "../../api/userFacingError";
+import FieldError from "../../components/forms/FieldError";
 import {
   useOrgProfile,
   useUpdateOrgProfile,
@@ -24,6 +25,12 @@ import {
   ORG_CATEGORY_OPTIONS,
   type OrgCategory,
 } from "../../types/orgCategory";
+import {
+  isFieldError,
+  parseMemberCount,
+  requireNonBlank,
+  unwrapParsed,
+} from "../../utils/formValidation";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
@@ -41,6 +48,7 @@ export default function OrgPortalProfilePage() {
   const [contactName, setContactName] = useState("");
   const [shipping, setShipping] = useState<ShippingAddressValue>(EMPTY_SHIPPING);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -65,26 +73,22 @@ export default function OrgPortalProfilePage() {
     e.preventDefault();
     if (!data) return;
     setError(null);
+    setFieldErrors({});
     setSaved(false);
 
     if (!category) {
       setError("Select an organization type.");
       return;
     }
-    const nextMembers = Number(memberCount);
-    if (
-      memberCount.trim() === "" ||
-      Number.isNaN(nextMembers) ||
-      nextMembers < 0
-    ) {
-      setError("Enter a valid member count.");
-      return;
-    }
-    const nextContact = contactName.trim();
-    if (!nextContact) {
-      setError("Contact name is required.");
-      return;
-    }
+    const next: Record<string, string> = {};
+    const name = requireNonBlank(orgName);
+    if (isFieldError(name)) next.orgName = name.error;
+    const uni = requireNonBlank(university);
+    if (isFieldError(uni)) next.university = uni.error;
+    const members = parseMemberCount(memberCount);
+    if (isFieldError(members)) next.memberCount = members.error;
+    const contact = requireNonBlank(contactName);
+    if (isFieldError(contact)) next.contactName = contact.error;
     const ship = shippingToApi(shipping);
     const hasStructured = Boolean(data.shippingLine1);
     const shippingMissing =
@@ -93,35 +97,39 @@ export default function OrgPortalProfilePage() {
       !ship.shippingState ||
       !ship.shippingPostalCode;
     if (!hasStructured && shippingMissing) {
-      setError("Enter a US mailing address (street, city, state, and ZIP).");
-      return;
+      next.shipping = "Enter a US mailing address (street, city, state, and ZIP).";
+    } else if (hasStructured && shippingMissing) {
+      next.shipping = "Shipping street, city, state, and ZIP are required.";
     }
-    if (hasStructured && shippingMissing) {
-      setError("Shipping street, city, state, and ZIP are required.");
+    if (Object.keys(next).length > 0) {
+      setFieldErrors(next);
       return;
     }
 
+    const parsedName = unwrapParsed(name);
+    const parsedUni = unwrapParsed(uni);
+    const parsedMembers = unwrapParsed(members);
+    const parsedContact = unwrapParsed(contact);
+
     const payload: OrgProfileUpdate = {};
-    const nextName = orgName.trim();
-    const nextUniversity = university.trim();
-    if (nextName !== data.orgName) payload.orgName = nextName;
-    if (nextUniversity !== data.university) payload.university = nextUniversity;
+    if (parsedName !== data.orgName) payload.orgName = parsedName;
+    if (parsedUni !== data.university) payload.university = parsedUni;
 
     const nextTiktok = tiktokHandle.trim() || null;
     if (nextTiktok !== (data.tiktokHandle ?? null)) {
       payload.tiktokHandle = nextTiktok;
     }
 
-    if (nextMembers !== (data.memberCount ?? null)) {
-      payload.memberCount = nextMembers;
+    if (parsedMembers !== (data.memberCount ?? null)) {
+      payload.memberCount = parsedMembers;
     }
 
     if (category !== (data.category ?? null)) {
       payload.category = category;
     }
 
-    if (nextContact !== (data.contactName ?? null)) {
-      payload.contactName = nextContact;
+    if (parsedContact !== (data.contactName ?? null)) {
+      payload.contactName = parsedContact;
     }
     const shippingDirty =
       !hasStructured ||
@@ -150,11 +158,12 @@ export default function OrgPortalProfilePage() {
       await update.mutateAsync(payload);
       setSaved(true);
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Could not save your profile. Please try again.",
+      const mapped = userFacingApiError(
+        err,
+        "Could not save your profile. Please try again.",
       );
+      setFieldErrors(mapped.fields);
+      setError(mapped.banner);
     }
   };
 
@@ -190,6 +199,11 @@ export default function OrgPortalProfilePage() {
       </p>
 
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+        {error ? (
+          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
+            {error}
+          </p>
+        ) : null}
         <div className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
             Instagram identity (read-only)
@@ -214,7 +228,12 @@ export default function OrgPortalProfilePage() {
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.orgName)}
+            aria-describedby={
+              fieldErrors.orgName ? "org-profile-org-name-error" : undefined
+            }
           />
+          <FieldError id="org-profile-org-name-error" message={fieldErrors.orgName} />
         </div>
 
         <div>
@@ -226,6 +245,14 @@ export default function OrgPortalProfilePage() {
             value={university}
             onChange={(e) => setUniversity(e.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.university)}
+            aria-describedby={
+              fieldErrors.university ? "org-profile-university-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-profile-university-error"
+            message={fieldErrors.university}
           />
         </div>
 
@@ -263,6 +290,14 @@ export default function OrgPortalProfilePage() {
             value={memberCount}
             onChange={(e) => setMemberCount(e.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.memberCount)}
+            aria-describedby={
+              fieldErrors.memberCount ? "org-profile-member-count-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-profile-member-count-error"
+            message={fieldErrors.memberCount}
           />
         </div>
 
@@ -294,6 +329,14 @@ export default function OrgPortalProfilePage() {
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.contactName)}
+            aria-describedby={
+              fieldErrors.contactName ? "org-profile-contact-name-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-profile-contact-name-error"
+            message={fieldErrors.contactName}
           />
         </div>
 
@@ -302,6 +345,7 @@ export default function OrgPortalProfilePage() {
           onChange={setShipping}
           inputClass={inputClass}
           testIdPrefix="org-profile"
+          error={fieldErrors.shipping}
           legacyHint={
             data.shippingLine1 ? null : (data.deliveryAddress ?? null)
           }
@@ -315,15 +359,9 @@ export default function OrgPortalProfilePage() {
           {update.isPending ? "Saving…" : "Save profile"}
         </button>
 
-        {saved && !error ? (
+        {saved && !error && Object.keys(fieldErrors).length === 0 ? (
           <p className="rounded-lg bg-green-50 p-3 text-sm font-medium text-green-700">
             Profile saved.
-          </p>
-        ) : null}
-
-        {error ? (
-          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-            {error}
           </p>
         ) : null}
       </form>

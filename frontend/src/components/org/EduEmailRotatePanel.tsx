@@ -5,11 +5,14 @@
  */
 import { useState } from "react";
 import { ApiError } from "../../api/client";
+import { userFacingApiError } from "../../api/userFacingError";
+import FieldError from "../forms/FieldError";
 import {
   useCancelPendingEduEmail,
   useResendVerification,
   useRotateEduEmail,
 } from "../../api/hooks/useOnboardingHooks";
+import { isFieldError, parseEduEmail } from "../../utils/formValidation";
 
 type Props = {
   liveEmail: string | null | undefined;
@@ -29,6 +32,7 @@ export default function EduEmailRotatePanel({
   const [nextEmail, setNextEmail] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
 
   const busy = rotate.isPending || resend.isPending || cancel.isPending;
 
@@ -36,18 +40,25 @@ export default function EduEmailRotatePanel({
     e.preventDefault();
     setNotice(null);
     setError(null);
+    setFieldError(null);
+    const parsed = parseEduEmail(nextEmail);
+    if (isFieldError(parsed)) {
+      setFieldError(parsed.error);
+      return;
+    }
     try {
-      const result = await rotate.mutateAsync(nextEmail.trim());
+      const result = await rotate.mutateAsync(parsed);
       await onChanged();
       setShowForm(false);
       setNextEmail("");
       setNotice(`Verification email sent to ${result.emailSentTo}.`);
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Could not start the email change. Please try again.",
+      const mapped = userFacingApiError(
+        err,
+        "Could not start the email change. Please try again.",
       );
+      setFieldError(mapped.fields.eduEmail ?? null);
+      setError(mapped.banner);
     }
   };
 
@@ -137,7 +148,10 @@ export default function EduEmailRotatePanel({
               onChange={(ev) => setNextEmail(ev.target.value)}
               className="mt-1 w-full rounded-lg border border-buzz-ink/15 bg-buzz-cream px-3 py-2 text-sm"
               placeholder="you@university.edu"
+              aria-invalid={Boolean(fieldError)}
+              aria-describedby={fieldError ? "edu-rotate-email-error" : undefined}
             />
+            <FieldError id="edu-rotate-email-error" message={fieldError ?? undefined} />
           </label>
           <div className="flex gap-2">
             <button

@@ -11,6 +11,7 @@ import {
   type AddressSuggestionItem,
 } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
+import FieldError from "../forms/FieldError";
 
 export type ShippingAddressValue = {
   line1: string;
@@ -52,6 +53,7 @@ type Props = {
   testIdPrefix: string;
   required?: boolean;
   legacyHint?: string | null;
+  error?: string;
 };
 
 export default function ShippingAddressFields({
@@ -61,6 +63,7 @@ export default function ShippingAddressFields({
   testIdPrefix,
   required = true,
   legacyHint,
+  error,
 }: Props) {
   const suggest = useAddressSuggest();
   const preview = useAddressPreview();
@@ -188,6 +191,8 @@ export default function ShippingAddressFields({
           }}
           autoComplete="street-address"
           required={required}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${testIdPrefix}-shipping-error` : undefined}
           role="combobox"
           aria-autocomplete="list"
           aria-controls={listId}
@@ -249,6 +254,10 @@ export default function ShippingAddressFields({
             onChange={(e) => patch({ city: e.target.value })}
             autoComplete="address-level2"
             required={required}
+            aria-invalid={Boolean(error)}
+            aria-describedby={
+              error ? `${testIdPrefix}-shipping-error` : undefined
+            }
           />
         </div>
         <div>
@@ -267,6 +276,10 @@ export default function ShippingAddressFields({
             autoComplete="address-level1"
             maxLength={2}
             required={required}
+            aria-invalid={Boolean(error)}
+            aria-describedby={
+              error ? `${testIdPrefix}-shipping-error` : undefined
+            }
           />
         </div>
         <div>
@@ -284,6 +297,10 @@ export default function ShippingAddressFields({
             onChange={(e) => patch({ postalCode: e.target.value })}
             autoComplete="postal-code"
             required={required}
+            aria-invalid={Boolean(error)}
+            aria-describedby={
+              error ? `${testIdPrefix}-shipping-error` : undefined
+            }
           />
         </div>
       </div>
@@ -291,6 +308,7 @@ export default function ShippingAddressFields({
       {lookupError ? (
         <p className="text-xs font-medium text-amber-900">{lookupError}</p>
       ) : null}
+      <FieldError id={`${testIdPrefix}-shipping-error`} message={error} />
     </fieldset>
   );
 }

@@ -12,8 +12,9 @@ import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSubmitOnboarding } from "../../api/hooks/useOnboardingHooks";
-import { ApiError } from "../../api/client";
+import { userFacingApiError } from "../../api/userFacingError";
 import { pathForUser } from "../../utils/landing";
+import FieldError from "../../components/forms/FieldError";
 import ShippingAddressFields, {
   EMPTY_SHIPPING,
   shippingToApi,
@@ -22,6 +23,13 @@ import {
   ORG_CATEGORY_OPTIONS,
   type OrgCategory,
 } from "../../types/orgCategory";
+import {
+  isFieldError,
+  parseEduEmail,
+  parseMemberCount,
+  requireNonBlank,
+  unwrapParsed,
+} from "../../utils/formValidation";
 
 const inputClass =
   "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
@@ -39,6 +47,7 @@ export default function OrgProfilePage() {
   const [contactName, setContactName] = useState("");
   const [shipping, setShipping] = useState(EMPTY_SHIPPING);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   if (!user || user.status !== "pending_org_profile") {
     return <Navigate to={pathForUser(user)} replace />;
@@ -51,18 +60,46 @@ export default function OrgProfilePage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
     if (!category) {
       setError("Select an organization type.");
       return;
     }
+    const next: Record<string, string> = {};
+    const name = requireNonBlank(orgName);
+    if (isFieldError(name)) next.orgName = name.error;
+    const uni = requireNonBlank(university);
+    if (isFieldError(uni)) next.university = uni.error;
+    const edu = parseEduEmail(eduEmail);
+    if (isFieldError(edu)) next.eduEmail = edu.error;
+    const members = parseMemberCount(memberCount);
+    if (isFieldError(members)) next.memberCount = members.error;
+    const contact = requireNonBlank(contactName);
+    if (isFieldError(contact)) next.contactName = contact.error;
+    const line1 = requireNonBlank(shipping.line1);
+    const city = requireNonBlank(shipping.city);
+    const state = requireNonBlank(shipping.state);
+    const zip = requireNonBlank(shipping.postalCode);
+    if (
+      isFieldError(line1) ||
+      isFieldError(city) ||
+      isFieldError(state) ||
+      isFieldError(zip)
+    ) {
+      next.shipping = "Must not be empty";
+    }
+    if (Object.keys(next).length > 0) {
+      setFieldErrors(next);
+      return;
+    }
     try {
       const result = await submit.mutateAsync({
-        orgName: orgName.trim(),
-        university: university.trim(),
-        eduEmail: eduEmail.trim(),
-        memberCount: Number(memberCount),
+        orgName: unwrapParsed(name),
+        university: unwrapParsed(uni),
+        eduEmail: unwrapParsed(edu),
+        memberCount: unwrapParsed(members),
         category,
-        contactName: contactName.trim(),
+        contactName: unwrapParsed(contact),
         ...shippingToApi(shipping),
       });
       await refreshUser();
@@ -76,11 +113,12 @@ export default function OrgProfilePage() {
         state: { emailSent: result.emailSent !== false },
       });
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Something went wrong. Please try again.");
-      }
+      const mapped = userFacingApiError(
+        err,
+        "Something went wrong. Please try again.",
+      );
+      setFieldErrors(mapped.fields);
+      setError(mapped.banner);
     }
   };
 
@@ -96,6 +134,11 @@ export default function OrgProfilePage() {
       </p>
 
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+        {error && (
+          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
+            {error}
+          </p>
+        )}
         {signedInAs && (
           <div className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
@@ -117,7 +160,10 @@ export default function OrgProfilePage() {
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.orgName)}
+            aria-describedby={fieldErrors.orgName ? "org-onboarding-org-name-error" : undefined}
           />
+          <FieldError id="org-onboarding-org-name-error" message={fieldErrors.orgName} />
         </div>
 
         <div>
@@ -129,6 +175,14 @@ export default function OrgProfilePage() {
             value={university}
             onChange={(e) => setUniversity(e.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.university)}
+            aria-describedby={
+              fieldErrors.university ? "org-onboarding-university-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-onboarding-university-error"
+            message={fieldErrors.university}
           />
         </div>
 
@@ -143,6 +197,14 @@ export default function OrgProfilePage() {
             onChange={(e) => setEduEmail(e.target.value)}
             placeholder="you@university.edu"
             required
+            aria-invalid={Boolean(fieldErrors.eduEmail)}
+            aria-describedby={
+              fieldErrors.eduEmail ? "org-onboarding-edu-email-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-onboarding-edu-email-error"
+            message={fieldErrors.eduEmail}
           />
           <p className="mt-1 text-xs text-buzz-inkMuted">
             We&apos;ll send a verification link here.
@@ -160,6 +222,14 @@ export default function OrgProfilePage() {
             value={memberCount}
             onChange={(e) => setMemberCount(e.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.memberCount)}
+            aria-describedby={
+              fieldErrors.memberCount ? "org-onboarding-member-count-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-onboarding-member-count-error"
+            message={fieldErrors.memberCount}
           />
         </div>
 
@@ -191,6 +261,14 @@ export default function OrgProfilePage() {
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
             required
+            aria-invalid={Boolean(fieldErrors.contactName)}
+            aria-describedby={
+              fieldErrors.contactName ? "org-onboarding-contact-name-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-onboarding-contact-name-error"
+            message={fieldErrors.contactName}
           />
         </div>
 
@@ -199,6 +277,7 @@ export default function OrgProfilePage() {
           onChange={setShipping}
           inputClass={inputClass}
           testIdPrefix="org-onboarding"
+          error={fieldErrors.shipping}
         />
 
         <button
@@ -208,12 +287,6 @@ export default function OrgProfilePage() {
         >
           {submit.isPending ? "Submitting…" : "Continue"}
         </button>
-
-        {error && (
-          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-            {error}
-          </p>
-        )}
       </form>
     </div>
   );
