@@ -19,8 +19,10 @@ def test_brand_emails_json_matches_loaded_constants() -> None:
     raw = json.loads(_JSON_PATH.read_text(encoding="utf-8"))
     assert brand_emails.EMAIL_FROM == raw["emailFrom"]
     assert brand_emails.CONTACT_EMAIL == raw["contactEmail"]
+    assert brand_emails.OPS_CC_EMAIL == raw["opsCcEmail"]
     assert brand_emails.EMAIL_FROM.strip()
     assert brand_emails.CONTACT_EMAIL.strip()
+    assert brand_emails.OPS_CC_EMAIL.strip()
 
 
 @pytest.mark.asyncio
@@ -42,3 +44,4 @@ async def test_dispatch_from_uses_json_not_env(monkeypatch) -> None:
     assert await email._dispatch("to@campus.edu", "Subject", "Body") is True
     assert seen["body"]["from"] == brand_emails.EMAIL_FROM
     assert seen["body"]["from"] != os.environ["EMAIL_FROM"]
+    assert "cc" not in seen["body"]

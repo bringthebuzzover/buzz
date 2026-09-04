@@ -17,7 +17,7 @@ from app.config import settings
 from app.exceptions import BuzzAPIException
 from app.models.org_apply_prefill import OrgApplyPrefill
 from app.security.one_shot_tokens import hash_token
-from app.services.email import send_org_apply_prefill_email
+from app.services.email import send_org_apply_prefill_email, send_org_apply_prefill_update_email
 from app.services.org_apply_prefill_parse import PREFILL_TTL_DAYS, ParsedPrefill
 
 logger = logging.getLogger(__name__)
@@ -134,6 +134,36 @@ async def deliver_saved_prefill_email(
         invite_email,
         raw,
         org_name=org_name or row.org_name or "",
+    )
+    if not ok:
+        return "send_failed"
+    row.email_sent_at = _now()
+    return "sent"
+
+
+async def deliver_saved_prefill_update_email(
+    db: AsyncSession,
+    *,
+    invite_email: str,
+    org_name: str,
+    apply_url: str,
+    resend: bool = False,
+) -> str:
+    """Mail a sidecar URL with UPDATE copy. Does not mint."""
+    raw = raw_token_from_apply_url(apply_url)
+    if not raw:
+        return "skipped_bad_url"
+    try:
+        row = await get_live_prefill(db, raw)
+    except BuzzAPIException:
+        return "skipped_not_live"
+    if row.email_sent_at is not None and not resend:
+        return "skipped_already_sent"
+    ok = await send_org_apply_prefill_update_email(
+        invite_email,
+        raw,
+        org_name=org_name or row.org_name or "",
+        contact_name=row.contact_name or "",
     )
     if not ok:
         return "send_failed"

@@ -4,6 +4,7 @@ Do not commit the sidecar. Production requires --confirm.
 
     poetry run python scripts/send_org_apply_prefills.py path.json
     poetry run python scripts/send_org_apply_prefills.py path.json --confirm
+    poetry run python scripts/send_org_apply_prefills.py path.json --update --confirm
 """
 
 from __future__ import annotations
@@ -20,7 +21,10 @@ if str(_BACKEND_ROOT) not in sys.path:
 
 from app.config import settings  # noqa: E402
 from app.deps.db import async_session_factory, engine  # noqa: E402
-from app.services.org_apply_prefill import deliver_saved_prefill_email  # noqa: E402
+from app.services.org_apply_prefill import (  # noqa: E402
+    deliver_saved_prefill_email,
+    deliver_saved_prefill_update_email,
+)
 
 
 def _load_sidecar(path: Path) -> list[dict]:
@@ -31,12 +35,13 @@ def _load_sidecar(path: Path) -> list[dict]:
     return rows
 
 
-async def _run(*, path: Path, resend: bool) -> dict:
+async def _run(*, path: Path, resend: bool, update: bool) -> dict:
     rows = _load_sidecar(path)
     sent = 0
     skipped = 0
     failed = 0
     details: list[dict] = []
+    deliver = deliver_saved_prefill_update_email if update else deliver_saved_prefill_email
 
     async with async_session_factory() as db:
         for item in rows:
@@ -44,7 +49,7 @@ async def _run(*, path: Path, resend: bool) -> dict:
                 skipped += 1
                 details.append({"status": "skipped_bad_row"})
                 continue
-            status = await deliver_saved_prefill_email(
+            status = await deliver(
                 db,
                 invite_email=str(item.get("invite_email") or ""),
                 org_name=str(item.get("org_name") or ""),
@@ -88,6 +93,11 @@ def main() -> None:
         help="Mail even if email_sent_at is already set (same URL).",
     )
     parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Send UPDATE shipment copy (not the generic prefill mail).",
+    )
+    parser.add_argument(
         "--confirm",
         action="store_true",
         help="Required when ENVIRONMENT=production.",
@@ -103,7 +113,13 @@ def main() -> None:
         print(f"refusing: no such file {args.path}", file=sys.stderr)
         raise SystemExit(2)
     try:
-        result = asyncio.run(_run(path=args.path, resend=bool(args.resend)))
+        result = asyncio.run(
+            _run(
+                path=args.path,
+                resend=bool(args.resend),
+                update=bool(args.update),
+            )
+        )
     except ValueError as exc:
         print(f"refusing: {exc}", file=sys.stderr)
         raise SystemExit(2) from exc

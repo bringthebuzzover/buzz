@@ -1,4 +1,5 @@
 {
   "emailFrom": "Buzz <hello@bringthebuzzover.com>",
-  "contactEmail": "ae101@example.edu"
+  "contactEmail": "ae101@example.edu",
+  "opsCcEmail": "ops.cc@example.edu"
 }

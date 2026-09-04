@@ -15,10 +15,11 @@ success; ``False`` on unset key / HTTP error / exception.
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 
 import httpx
 
-from app.brand_emails import CONTACT_EMAIL, EMAIL_FROM
+from app.brand_emails import CONTACT_EMAIL, EMAIL_FROM, OPS_CC_EMAIL
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -199,6 +200,117 @@ def build_org_apply_prefill_email(
             "(Business or Creator), and a US shipping address, then submit.",
             "This link expires in 30 days.",
         ],
+    )
+    return subject, text, html
+
+
+_UPDATE_BRAND = "UPDATE"
+_FORM_TS_FORMATS = ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y %H:%M", "%m/%d/%Y")
+
+
+def applied_on_from_source_row_key(key: str | None) -> str | None:
+    """Prefill ``source_row_key`` prefix → 'August 30'. None if unparseable."""
+    text = (key or "").strip()
+    if "|" in text:
+        text = text.split("|", 1)[0].strip()
+    if not text:
+        return None
+    for fmt in _FORM_TS_FORMATS:
+        try:
+            dt = datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+        return f"{dt.strftime('%B')} {dt.day}"
+    return None
+
+
+async def send_org_apply_prefill_update_email(
+    to_email: str,
+    raw_token: str,
+    *,
+    org_name: str = "",
+    contact_name: str = "",
+) -> bool:
+    """Invite an org that already has an UPDATE shipment to finish apply."""
+    subject, text, html = build_org_apply_prefill_update_email(
+        raw_token,
+        org_name=org_name,
+        contact_name=contact_name,
+    )
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "DEV EMAIL — Org apply prefill UPDATE to=%s (prefill token omitted from logs)",
+            to_email,
+        )
+        return True
+
+    return await _dispatch(
+        to_email,
+        subject,
+        text,
+        html=html,
+        cc=_ops_cc(exclude=to_email),
+    )
+
+
+def _first_name(contact_name: str | None) -> str:
+    parts = (contact_name or "").strip().split()
+    return parts[0] if parts else ""
+
+
+def build_org_apply_prefill_update_email(
+    raw_token: str,
+    *,
+    org_name: str = "",
+    contact_name: str = "",
+) -> tuple[str, str, str]:
+    apply_url = f"{settings.FRONTEND_URL.rstrip('/')}/org/apply?prefill={raw_token}"
+    login_url = f"{settings.FRONTEND_URL.rstrip('/')}/login"
+    chapter = org_name or "your chapter"
+    first = _first_name(contact_name)
+    hi = f"Hi {first}!" if first else "Hi!"
+    subject = f"Your {_UPDATE_BRAND} cases have shipped — {chapter}"
+    shipped = (
+        f"Your {_UPDATE_BRAND} cases have shipped and may already be at the house! "
+        "If they haven't arrived yet, keep an eye out over the next few days. "
+        "We're so excited for you guys to try them :)"
+    )
+    complete = (
+        "When you have a chance, please complete your chapter's BUZZ profile "
+        "using your personalized link below so we can get your account set up!"
+    )
+    expiry = "This link is valid for 30 days."
+    login = f"Once you're set up, you can log in here: {login_url}"
+    support = (
+        "As a newer startup, your support means so much to us, and the content "
+        "you create for this collab would mean the world! We'd love to see you "
+        "make it your own, but if you need ideas or there's anything we can do "
+        f"to help, email {CONTACT_EMAIL}!"
+    )
+    more = (
+        "We also have some amazing makeup, skincare, and beverage partnerships "
+        f"coming up on BUZZ, and we'd love to include {chapter} in more collabs soon."
+    )
+    close = f"Hope you all love {_UPDATE_BRAND}!"
+    signoff = "Best,"
+    team = "The BUZZ Team"
+    text = (
+        f"{hi}\n\n{shipped}\n\n{complete}\n\n{apply_url}\n\n{expiry}\n\n{login}\n\n"
+        f"{support}\n\n{more}\n\n{close}\n\n{signoff}\n{team}"
+    )
+    html = _cta_html(
+        apply_url,
+        subject=subject,
+        button="Finish your chapter's profile",
+        paragraphs=[hi, shipped, complete],
+        footer_paragraphs=[expiry, login, support, more, close, signoff, team],
+    )
+    html = html.replace(_escape(login_url), _inline_a(login_url), 1)
+    html = html.replace(
+        _escape(CONTACT_EMAIL),
+        _inline_a(f"mailto:{CONTACT_EMAIL}", CONTACT_EMAIL),
+        1,
     )
     return subject, text, html
 
@@ -425,12 +537,28 @@ async def send_password_reset_email(
     return await _dispatch(to_email, subject, body)
 
 
+def _ops_cc(*, exclude: str) -> list[str]:
+    """CONTACT_EMAIL + OPS_CC_EMAIL, skipping blanks, dupes, and the To address."""
+    skip = {exclude.strip().lower()}
+    out: list[str] = []
+    seen: set[str] = set()
+    for addr in (CONTACT_EMAIL, OPS_CC_EMAIL):
+        v = addr.strip()
+        key = v.lower()
+        if not v or key in skip or key in seen:
+            continue
+        seen.add(key)
+        out.append(v)
+    return out
+
+
 async def _dispatch(
     to_email: str,
     subject: str,
     body: str,
     *,
     html: str | None = None,
+    cc: list[str] | None = None,
 ) -> bool:
     """Send one email through Resend. Best-effort: never raises.
 
@@ -451,6 +579,8 @@ async def _dispatch(
     }
     if html:
         payload["html"] = html
+    if cc:
+        payload["cc"] = cc
     try:
         async with _email_client() as client:
             resp = await client.post(
@@ -532,11 +662,17 @@ def _cta_html(
     subject: str,
     button: str,
     paragraphs: list[str],
+    footer_paragraphs: list[str] | None = None,
 ) -> str:
     paras = "".join(
         f'<p style="margin:0 0 16px;color:{_INK};font-size:16px;line-height:1.5;">'
         f"{_escape(p)}</p>"
         for p in paragraphs
+    )
+    footer = "".join(
+        f'<p style="margin:16px 0 0;color:{_INK};font-size:16px;line-height:1.5;">'
+        f"{_escape(p)}</p>"
+        for p in (footer_paragraphs or [])
     )
     return (
         f'<!DOCTYPE html><html><body style="margin:0;padding:24px;background:{_CREAM};'
@@ -549,8 +685,16 @@ def _cta_html(
         f'style="display:inline-block;background:{_CORAL};color:#fff;text-decoration:none;'
         f'padding:12px 24px;border-radius:8px;font-weight:600;">{_escape(button)}</a></p>'
         f'<p style="margin:0;color:#666;font-size:13px;line-height:1.5;">'
-        f"Or paste this link:<br/>{_escape(url)}</p>"
+        f"Or paste this link:<br/>{_inline_a(url)}</p>"
+        f"{footer}"
         f"</div></body></html>"
+    )
+
+
+def _inline_a(href: str, label: str | None = None) -> str:
+    lab = _escape(label if label is not None else href)
+    return (
+        f'<a href="{_escape(href)}" style="color:{_CORAL};text-decoration:underline;">' f"{lab}</a>"
     )
 
 
