@@ -164,6 +164,14 @@ test("unauthenticated /admin redirects to the admin login", async ({ page }) => 
   await expect(page).toHaveURL(/\/admin\/login$/);
 });
 
+test("unmatched admin URL shows a 404", async ({ page }) => {
+  await loginAsAdmin(page);
+  await page.goto("/admin/no-such-page");
+  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+  await expect(page.getByText(/does not exist/i)).toBeVisible();
+  await expect(page.locator("main")).not.toBeEmpty();
+});
+
 test("admin saves a draft from a ticket and publishes it", async ({ page }) => {
   await loginAsAdmin(page);
   await sidebar(page).getByRole("link", { name: /requests/i }).click();
