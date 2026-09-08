@@ -507,6 +507,36 @@ async def send_drop_published_email(
     return await _dispatch(to_email, subject, text, html=html)
 
 
+async def send_drop_hidden_email(
+    to_email: str,
+    *,
+    brand_name: str = "",
+    drop_title: str = "",
+) -> bool:
+    """Optional brand notice that a published drop was withdrawn (PRODUCT §5.2.2)."""
+    name = brand_name or "your brand"
+    title = drop_title or "your campaign"
+    subject = (
+        f"{title} is no longer live on Buzz" if drop_title else "A Buzz campaign was withdrawn"
+    )
+    text = (
+        f"{title} for {name} was withdrawn and is no longer visible in your brand portal.\n\n"
+        "Any monitor link you received for this campaign no longer works."
+    )
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Drop hidden / withdrawn:                       ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            f"║  Drop: {title[:50]:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+
+    return await _dispatch(to_email, subject, text)
+
+
 async def send_password_reset_email(
     to_email: str,
     token: str,

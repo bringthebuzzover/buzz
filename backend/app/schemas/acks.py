@@ -91,6 +91,13 @@ class ClearInstagramTokenResponse(CamelModel):
     instagram_token_cleared: bool
 
 
+class AdminDropHideRequest(CamelModel):
+    """Title confirm plus optional brand withdrawn email (PRODUCT §5.2.2)."""
+
+    confirm: str
+    notify_brand: bool = False
+
+
 class AdminOrgEraseRequest(CamelModel):
     """Typed confirm payload — Instagram handle only (PRODUCT §3.1.2)."""
 

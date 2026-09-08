@@ -60,6 +60,7 @@ async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignLi
                 .where(
                     DropApplication.org_id == org_id,
                     DropApplication.decision != ApplicationDecision.DENIED.value,
+                    Drop.hidden_at.is_(None),
                 )
             )
         ).all()
@@ -121,7 +122,15 @@ async def resolve_owned_application(
         application.decision == ApplicationDecision.DENIED.value
         or (require_accepted and application.decision != ApplicationDecision.ACCEPTED.value)
     )
-    if application is None or org_id is None or application.org_id != org_id or blocked:
+    drop = await db.get(Drop, application.drop_id) if application is not None else None
+    if (
+        application is None
+        or org_id is None
+        or application.org_id != org_id
+        or blocked
+        or drop is None
+        or drop.hidden_at is not None
+    ):
         raise BuzzAPIException(errors.NOT_FOUND, "Campaign not found.", status_code=404)
     return application
 
@@ -153,6 +162,7 @@ async def get_my_campaign(
         org_id is None
         or application.org_id != org_id
         or application.decision == ApplicationDecision.DENIED.value
+        or drop.hidden_at is not None
     ):
         raise BuzzAPIException(errors.NOT_FOUND, "Campaign not found.", status_code=404)
 

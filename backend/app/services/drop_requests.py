@@ -15,20 +15,40 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.brand import Brand
+from app.models.drop import Drop
 from app.models.drop_request import DropRequest
 from app.schemas.drops import BrandDropRequestResponse
 
 
-def build_drop_request_response(ticket: DropRequest) -> BrandDropRequestResponse:
+def build_drop_request_response(
+    ticket: DropRequest, *, converted_drop_id: uuid.UUID | None
+) -> BrandDropRequestResponse:
     return BrandDropRequestResponse(
         id=ticket.id,
         brand_id=ticket.brand_id,
         message=ticket.message,
         notes=ticket.notes,
         status=ticket.status,
-        converted_drop_id=ticket.converted_drop_id,
+        converted_drop_id=converted_drop_id,
         created_at=ticket.created_at,
         updated_at=ticket.updated_at,
+    )
+
+
+async def _brand_converted_drop_id(db: AsyncSession, ticket: DropRequest) -> uuid.UUID | None:
+    if ticket.converted_drop_id is None:
+        return None
+    drop = await db.get(Drop, ticket.converted_drop_id)
+    if drop is None or drop.hidden_at is not None:
+        return None
+    return ticket.converted_drop_id
+
+
+async def brand_drop_request_response(
+    db: AsyncSession, ticket: DropRequest
+) -> BrandDropRequestResponse:
+    return build_drop_request_response(
+        ticket, converted_drop_id=await _brand_converted_drop_id(db, ticket)
     )
 
 

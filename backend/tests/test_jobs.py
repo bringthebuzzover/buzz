@@ -478,6 +478,17 @@ async def test_notify_reminder_skips_unpublished(db_session, monkeypatch) -> Non
     assert notify.sent_at is None
 
 
+async def test_notify_reminder_skips_hidden(db_session, monkeypatch) -> None:
+    monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _never_called)
+    _, _, drop, notify = await _notify_ctx(db_session)
+    drop.hidden_at = datetime.now(timezone.utc)
+    await db_session.flush()
+
+    result = await send_due_reminders(db_session)
+    assert result["reminders_sent"] == 0
+    assert notify.sent_at is None
+
+
 # --- 10.5 Token refresh ------------------------------------------------------
 
 
@@ -780,6 +791,21 @@ async def test_autolink_ignores_drop_finished(db_session) -> None:
     brand = await make_brand(db_session)
     brand.instagram_handle = "nike"
     drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
+    await db_session.flush()
+    await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    await make_social_post(db_session, org, caption="love @nike after the drop")
+    result = await scan_autolink(db_session)
+    assert result["applications_scanned"] == 0
+    assert result["suggestions_created"] == 0
+
+
+async def test_autolink_ignores_hidden_drop(db_session) -> None:
+    org_user = await persist(db_session, make_user(instagram_user_id="ig_hidden_drop"))
+    org = await make_org(db_session, org_user)
+    brand = await make_brand(db_session)
+    brand.instagram_handle = "nike"
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop.hidden_at = datetime.now(timezone.utc)
     await db_session.flush()
     await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
     await make_social_post(db_session, org, caption="love @nike after the drop")

@@ -47,6 +47,7 @@ async def auto_close_drops(db: AsyncSession) -> dict[str, Any]:
                 Drop.apply_close_at < now,
                 Drop.manual_reopen.is_(False),
                 Drop.published_at.isnot(None),
+                Drop.hidden_at.is_(None),
                 Drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value,
             )
         )

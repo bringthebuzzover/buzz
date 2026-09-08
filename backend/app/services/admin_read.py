@@ -137,6 +137,7 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
             DropApplication,
             and_(DropApplication.drop_id == Drop.id, DropApplication.decision == accepted),
         )
+        .where(Drop.hidden_at.is_(None))
         .group_by(Drop.id, Drop.capacity_total)
         .having(func.count(DropApplication.id) > Drop.capacity_total)
         .subquery()
@@ -147,7 +148,7 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
             DropApplication,
             and_(DropApplication.drop_id == Drop.id, DropApplication.decision == accepted),
         )
-        .where(Drop.total_product_units.is_not(None))
+        .where(Drop.total_product_units.is_not(None), Drop.hidden_at.is_(None))
         .group_by(Drop.id, Drop.total_product_units)
         .having(
             func.coalesce(func.sum(DropApplication.allocated_units), 0) > Drop.total_product_units
@@ -181,6 +182,7 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
             select(func.count(Drop.id)).where(
                 Drop.manual_reopen.is_(True),
                 Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
+                Drop.hidden_at.is_(None),
             ),
         ),
         "awaiting_products_no_tracking": await _scalar_int(
@@ -188,6 +190,7 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
             select(func.count(Drop.id)).where(
                 Drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value,
                 Drop.tracking_number.is_(None),
+                Drop.hidden_at.is_(None),
             ),
         ),
         "verification_blocked_by_ig": await _scalar_int(
@@ -205,6 +208,7 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
             .where(
                 DropApplication.decision == applied,
                 Drop.applicant_selection_finalized_at.is_not(None),
+                Drop.hidden_at.is_(None),
             ),
         ),
         # --- Broken invariants ---
@@ -221,6 +225,7 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
             .where(
                 DropApplication.decision == accepted,
                 Drop.total_product_units.is_not(None),
+                Drop.hidden_at.is_(None),
                 or_(
                     DropApplication.allocated_units.is_(None),
                     DropApplication.allocated_units == 0,
@@ -255,6 +260,7 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
                 # Closed windows are historical misses the job will never mail;
                 # counting them forever makes the signal permanently red.
                 Drop.apply_close_at > now,
+                Drop.hidden_at.is_(None),
             ),
         ),
         "posts_never_refreshed": await _scalar_int(
@@ -288,6 +294,7 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
                 Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
                 Drop.manual_reopen.is_(False),
                 Drop.apply_close_at < now,
+                Drop.hidden_at.is_(None),
             ),
         ),
         "metric_sync_stale": await _scalar_int(
@@ -372,6 +379,7 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
             Drop.brand_tracker_stage == finalizing,
             Drop.applicant_selection_finalized_at.is_(None),
             Drop.apply_close_at < now,
+            Drop.hidden_at.is_(None),
         ),
     )
     # Selection is done and the tracker is behind drop_active, so an admin can
@@ -381,6 +389,7 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
         select(func.count(Drop.id), func.min(Drop.applicant_selection_finalized_at)).where(
             Drop.applicant_selection_finalized_at.is_not(None),
             Drop.brand_tracker_stage.in_([finalizing, BrandTrackerStage.AWAITING_PRODUCTS.value]),
+            Drop.hidden_at.is_(None),
         ),
     )
 
@@ -693,7 +702,7 @@ async def get_brand_detail(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
         )
     ).first()
 
-    drops = await list_drops(db, brand_id=brand.id)
+    drops = await list_drops(db, brand_id=brand.id, include_hidden=True)
 
     return {
         "id": brand.id,
@@ -731,6 +740,8 @@ async def list_drops(
     attention: list[str] | None = None,
     brand_id: UUID | None = None,
     published: str | None = None,
+    hidden: bool = False,
+    include_hidden: bool = False,
 ) -> list[dict[str, Any]]:
     """Drops with their applicant tallies, newest first.
 
@@ -740,6 +751,8 @@ async def list_drops(
     attention value.
 
     ``published`` is ``draft`` | ``published`` | None (all).
+    Default omits hidden drops. ``hidden=True`` returns only hidden rows.
+    ``include_hidden=True`` (admin brand detail) returns both.
     """
 
     stages = list(stage or [])
@@ -796,6 +809,10 @@ async def list_drops(
         stmt = stmt.where(Drop.published_at.is_(None))
     elif published == "published":
         stmt = stmt.where(Drop.published_at.isnot(None))
+    if hidden:
+        stmt = stmt.where(Drop.hidden_at.isnot(None))
+    elif not include_hidden:
+        stmt = stmt.where(Drop.hidden_at.is_(None))
     if attentions:
         now = _now()
         stmt = stmt.where(or_(*[and_(*_attention_clause(a, now)) for a in attentions]))
@@ -819,6 +836,7 @@ async def list_drops(
             "campaign_hashtag": drop.campaign_hashtag,
             "finalized_at": drop.applicant_selection_finalized_at,
             "published_at": drop.published_at,
+            "hidden_at": drop.hidden_at,
             "drop_request_id": drop.drop_request_id,
             "created_at": drop.created_at,
         }
@@ -966,6 +984,7 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
         "apply_close_at": drop.apply_close_at,
         "finalized_at": drop.applicant_selection_finalized_at,
         "published_at": drop.published_at,
+        "hidden_at": drop.hidden_at,
         "drop_request_id": drop.drop_request_id,
         "created_at": drop.created_at,
         "linked_post_count": linked_posts,

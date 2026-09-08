@@ -21,6 +21,7 @@ from app.response import APIResponse, DataResponse, api_response
 from app.schemas.acks import (
     AdminBrandInviteResponse,
     AdminBrandStatusResponse,
+    AdminDropHideRequest,
     AdminOrgEraseRequest,
     AdminOrgEraseResponse,
     AdminOrgStatusResponse,
@@ -62,6 +63,7 @@ from app.services.admin import (
     create_brand,
     deny_brand,
     deny_org,
+    hide_drop,
     list_brands,
     list_orgs,
     publish_drop,
@@ -71,6 +73,7 @@ from app.services.admin import (
     set_drop_tracking_number,
     undeny_brand,
     undeny_org,
+    unhide_drop,
     update_drop_config,
 )
 from app.services.admin_auth import list_impersonatable_users, mint_impersonation_token
@@ -374,9 +377,12 @@ async def list_drops_endpoint(
     stage: list[str] | None = Query(default=None),
     attention: list[str] | None = Query(default=None),
     published: str | None = Query(default=None, pattern="^(draft|published)$"),
+    hidden: bool = Query(default=False),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    rows = await list_drops(db, stage=stage, attention=attention, published=published)
+    rows = await list_drops(
+        db, stage=stage, attention=attention, published=published, hidden=hidden
+    )
     return api_response(data=[AdminDropItem(**r) for r in rows])
 
 
@@ -413,6 +419,33 @@ async def publish_drop_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     await publish_drop(db, drop_id)
+    return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
+
+
+@router.post(
+    "/drops/{drop_id}/hide",
+    response_model=DataResponse[AdminDropDetail],
+)
+async def hide_drop_endpoint(
+    drop_id: uuid.UUID,
+    payload: AdminDropHideRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    await hide_drop(db, drop_id, confirm=payload.confirm, notify_brand=payload.notify_brand)
+    return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
+
+
+@router.post(
+    "/drops/{drop_id}/unhide",
+    response_model=DataResponse[AdminDropDetail],
+)
+async def unhide_drop_endpoint(
+    drop_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    await unhide_drop(db, drop_id)
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 

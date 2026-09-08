@@ -169,6 +169,7 @@ async def _eligible_orgs(db: AsyncSession, now: datetime) -> list[Organization]:
         .where(
             DropApplication.decision == ApplicationDecision.ACCEPTED.value,
             Drop.brand_tracker_stage.in_(_LIVE_STAGES),
+            Drop.hidden_at.is_(None),
             User.status != OrgUserStatus.ERASED.value,
         )
         .distinct()

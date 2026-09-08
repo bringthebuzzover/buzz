@@ -80,7 +80,7 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | `users` | Identity for all portals; IG ids/tokens; `edu_email`; `password_hash`; `token_version` |
 | `organizations` | Org profile (1:1 `user_id`); structured US `shipping_*` plus formatted `delivery_address` |
 | `brands` | Brand profile (1:1 `user_id`); `instagram_handle` for autolink |
-| `drops` | Campaign instance; capacity; apply window; tracker stage; units; tracking #; `published_at`; optional `drop_request_id`; `brand_can_edit_creative` (default false) |
+| `drops` | Campaign instance; capacity; apply window; tracker stage; units; tracking #; `published_at`; `hidden_at`; optional `drop_request_id`; `brand_can_edit_creative` (default false) |
 | `drop_requests` | Brand intake tickets (not live campaigns); converted to a draft drop by admin |
 | `drop_applications` | Org ↔ drop; decision applied/accepted/denied |
 | `social_posts` | Cached IG media + metrics; unique `(org_id, platform, external_id)`. **Stories unsupported** — `metric_sync` does not catalog `STORY`; refresh/autolink/link skip them |
@@ -91,7 +91,7 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | `email_verification_tokens` / `brand_invite_tokens` / `password_reset_tokens` / `org_connect_tokens` / `org_apply_prefills` | One-shot tokens; prefills are apply **drafts** (no user until submit) |
 | `job_runs` | Cron observability |
 
-Brand tracker stages (enum, **as-built today**): `request_received` and `finalizing_agreements` remain on the PG enum for legacy rows. New drops start at `awaiting_products` on **Publish**. Post-publish order: `awaiting_products` → `drop_active` → `drop_finished`. Org feed / apply / Notify Me require `published_at IS NOT NULL`. See [`PRODUCT.md`](PRODUCT.md) §5.2.
+Brand tracker stages (enum, **as-built today**): `request_received` and `finalizing_agreements` remain on the PG enum for legacy rows. New drops start at `awaiting_products` on **Publish**. Post-publish order: `awaiting_products` → `drop_active` → `drop_finished`. Org feed / apply / Notify Me require `published_at IS NOT NULL` and `hidden_at IS NULL`. Brand portal lists unpublished drafts but never hidden drops. See [`PRODUCT.md`](PRODUCT.md) §5.2 / §5.2.2.
 
 Data ownership facts (which column owns which fact): **PRODUCT §3.1.1** — do not duplicate the table here.
 
@@ -109,7 +109,7 @@ Mounted in `backend/app/main.py`:
 | `/api/drops/*` | `routes/drops.py` | Org feed, detail, apply, Notify Me |
 | `/api/campaigns/*` | `routes/campaigns.py` | My campaigns, link/unlink, suggestions, aggregate |
 | `/api/brands/*` | `routes/brands.py` | Apply, brand profile, drops, finalize, aggregates |
-| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org erase (`POST …/orgs/{user_id}/erase` → `services/admin_erase.py`), drop config/tracker, health, impersonate |
+| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org erase (`POST …/orgs/{user_id}/erase` → `services/admin_erase.py`), drop config/tracker/hide/unhide, health, impersonate |
 
 Thin routes; business logic in `backend/app/services/`.
 

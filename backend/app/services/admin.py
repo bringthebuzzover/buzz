@@ -39,6 +39,7 @@ from app.services.email import (
     send_brand_denied_email,
     send_brand_invite_email,
     send_brand_undenied_email,
+    send_drop_hidden_email,
     send_drop_published_email,
     send_org_approved_email,
     send_org_denied_email,
@@ -786,6 +787,71 @@ async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
             drop_title=drop.title,
             drop_url=drop_url,
         )
+    return drop
+
+
+async def hide_drop(
+    db: AsyncSession, drop_id: UUID, *, confirm: str, notify_brand: bool = False
+) -> Drop:
+    """Hide a published drop from consumer portals (PRODUCT §5.2.2)."""
+
+    drop = await db.get(Drop, drop_id)
+    if drop is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    if drop.published_at is None:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Only published drops can be hidden.",
+            status_code=400,
+        )
+    if confirm.strip() != drop.title:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Confirmation does not match this drop's title.",
+            status_code=400,
+        )
+    if drop.hidden_at is not None:
+        return drop
+
+    drop.hidden_at = datetime.now(timezone.utc)
+    db.add(
+        DropTrackerEvent(
+            drop_id=drop.id,
+            stage=drop.brand_tracker_stage,
+            note="hidden",
+        )
+    )
+    await db.flush()
+
+    if notify_brand:
+        brand = await db.get(Brand, drop.brand_id)
+        if brand is not None and brand.company_email:
+            await send_drop_hidden_email(
+                brand.company_email,
+                brand_name=brand.brand_name,
+                drop_title=drop.title,
+            )
+    return drop
+
+
+async def unhide_drop(db: AsyncSession, drop_id: UUID) -> Drop:
+    """Restore a hidden drop to consumer portals (PRODUCT §5.2.2)."""
+
+    drop = await db.get(Drop, drop_id)
+    if drop is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    if drop.hidden_at is None:
+        return drop
+
+    drop.hidden_at = None
+    db.add(
+        DropTrackerEvent(
+            drop_id=drop.id,
+            stage=drop.brand_tracker_stage,
+            note="unhidden",
+        )
+    )
+    await db.flush()
     return drop
 
 
