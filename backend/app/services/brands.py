@@ -72,7 +72,7 @@ async def resolve_brand_drop(db: AsyncSession, brand: Brand, drop_id: UUID) -> D
     """Load a drop owned by *brand* or raise 404 (no existence leak)."""
 
     drop = await db.get(Drop, drop_id)
-    if drop is None or drop.brand_id != brand.id:
+    if drop is None or drop.brand_id != brand.id or drop.hidden_at is not None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
     return drop
 
@@ -328,7 +328,9 @@ async def _application_linked_posts(db: AsyncSession, application_id: UUID) -> l
 
 
 async def compute_brand_aggregate(db: AsyncSession, brand: Brand) -> dict[str, int]:
-    drop_ids = list(await db.scalars(select(Drop.id).where(Drop.brand_id == brand.id)))
+    drop_ids = list(
+        await db.scalars(select(Drop.id).where(Drop.brand_id == brand.id, Drop.hidden_at.is_(None)))
+    )
     if not drop_ids:
         return {
             "total_drops": 0,
@@ -414,7 +416,9 @@ async def compute_engagement_series(
 
     window_ms = window_days * 24 * 60 * 60 * 1000
 
-    drop_ids = list(await db.scalars(select(Drop.id).where(Drop.brand_id == brand.id)))
+    drop_ids = list(
+        await db.scalars(select(Drop.id).where(Drop.brand_id == brand.id, Drop.hidden_at.is_(None)))
+    )
     if not drop_ids:
         return []
 

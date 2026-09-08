@@ -133,6 +133,7 @@ async def scan_autolink(db: AsyncSession) -> dict[str, Any]:
             .where(
                 DropApplication.decision == ApplicationDecision.ACCEPTED.value,
                 Drop.brand_tracker_stage.in_(_MINT_STAGES),
+                Drop.hidden_at.is_(None),
                 Brand.instagram_handle.isnot(None),
             )
         )

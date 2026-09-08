@@ -40,6 +40,12 @@ def _as_utc(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
 
 
+def is_drop_hidden(drop: Drop) -> bool:
+    """True when admin has hidden this published drop (PRODUCT §5.2.2)."""
+
+    return drop.hidden_at is not None
+
+
 def _browsable_drop_filters() -> tuple[ColumnElement[bool], ...]:
     """Predicate for drops an org may see in the feed (requires the Brand join).
 
@@ -51,6 +57,7 @@ def _browsable_drop_filters() -> tuple[ColumnElement[bool], ...]:
         Brand.status == BrandStatus.APPROVED.value,
         Drop.brand_tracker_stage != BrandTrackerStage.DROP_FINISHED.value,
         Drop.published_at.isnot(None),
+        Drop.hidden_at.is_(None),
     )
 
 
@@ -66,7 +73,7 @@ async def _require_browsable_drop(db: AsyncSession, drop: Drop) -> Brand:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
     if drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
-    if drop.published_at is None:
+    if drop.published_at is None or is_drop_hidden(drop):
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
     return brand
 

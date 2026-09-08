@@ -221,17 +221,20 @@ export function useAdminDrops(params: {
   stage?: readonly string[];
   attention?: readonly string[];
   published?: "draft" | "published" | null;
+  hidden?: boolean;
 }): AdminQuery<AdminDropRow[]> {
   const stages = [...(params.stage ?? [])];
   const attentions = [...(params.attention ?? [])];
   const published = params.published ?? null;
+  const hidden = params.hidden === true;
   return useQuery({
-    queryKey: ["admin", "drops", stages, attentions, published ?? "all"],
+    queryKey: ["admin", "drops", stages, attentions, published ?? "all", hidden],
     queryFn: async () => {
       const search = new URLSearchParams();
       for (const value of stages) search.append("stage", value);
       for (const value of attentions) search.append("attention", value);
       if (published) search.set("published", published);
+      if (hidden) search.set("hidden", "true");
       const query = search.toString();
       const { data } = await apiFetch<AdminDropRow[]>(
         `/api/admin/drops${query ? `?${query}` : ""}`,
@@ -483,6 +486,25 @@ export function useCreateAdminDrop() {
 export function usePublishDrop(dropId: string) {
   return useAdminMutation((_: void) =>
     apiFetch(`/api/admin/drops/${dropId}/publish`, { method: "POST" }),
+  );
+}
+
+export function useHideDrop(dropId: string) {
+  return useAdminMutation((input: { confirm: string; notifyBrand?: boolean }) =>
+    apiFetch(`/api/admin/drops/${dropId}/hide`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        confirm: input.confirm,
+        notifyBrand: input.notifyBrand ?? false,
+      }),
+    }),
+  );
+}
+
+export function useUnhideDrop(dropId: string) {
+  return useAdminMutation((_: void) =>
+    apiFetch(`/api/admin/drops/${dropId}/unhide`, { method: "POST" }),
   );
 }
 

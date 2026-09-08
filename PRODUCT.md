@@ -169,6 +169,18 @@ The owning brand **monitors** applicants and KPIs and **batch-finalizes** after 
 
 **TODO:** Finalize EasyPost (or vendor) scope — API keys, webhook surface, who may purchase labels, rate shopping, multi-package drops, org-facing vs. brand-facing tracking parity, and error handling.
 
+#### 5.2.2 Hide campaign
+
+A Buzz **admin** may **hide** a **published** drop that should never have gone live (wrong window, test campaign, bad creative). Hide is allowed at **any** tracker stage after publish. Confirm by typing the **exact drop title**. **Unhide** restores the same drop and URLs.
+
+- Hide sets `hidden_at` and **keeps** `published_at`. It is not **Drop finished** and not a return to unpublished draft.
+- While hidden: org and brand portals (including admin **View as** those portals) have **no in-app trace**. Feed, apply, Notify Me, drop deep links, My Campaigns, brand drop list/detail, compare table, and brand aggregate KPIs omit the drop. Consumer APIs use existing codes (`DROP_NOT_OPEN` on feed/apply/notify; **404** on brand drop and org campaign, same as unknown/denied). There is **no** “withdrawn” copy.
+- Default: **no email**. An optional admin checkbox may email the **brand only** that the campaign was withdrawn. Unhide is silent (no “it’s back” mail).
+- Applications, posts, tracker events, and the ticket’s `converted_drop_id` stay in the DB. The ticket stays converted. Hidden seats are not live participation and must not appear on brand KPI rollups.
+- Admin default `/admin/drops` omits hidden rows; `?hidden=1` (hidden-only) and `/admin/drops/:id` remain. The admin brand page may still list hidden campaigns. Hide/unhide are idempotent.
+
+Out-of-band traces (publish email already in Gmail) cannot be erased.
+
 ### 5.3 Brand dashboard — two views
 
 #### 5.3.1 Per-drop view
@@ -398,7 +410,7 @@ Aggregated all drops →  Brand aggregate dashboard
 | Org   | Onboarding          | Public apply (profile + **§6.1.1** Instagram confirm card + **.edu**); verify; Buzz review; accept Instagram Tester invite; Connect Instagram; then portal |
 | Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts when Active                                                                                           |
-| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; timing/reopen/fulfillment coordination; erase org account after verified data-deletion request (**§3.1.2**); integrations (see §5.2.1 TODO) |
+| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment coordination; erase org account after verified data-deletion request (**§3.1.2**); integrations (see §5.2.1 TODO) |
 
 ---
 

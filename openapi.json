@@ -918,6 +918,17 @@
             ],
             "title": "Finalizedat"
           },
+          "hiddenAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hiddenat"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -1022,6 +1033,25 @@
         "title": "AdminDropDetail",
         "type": "object"
       },
+      "AdminDropHideRequest": {
+        "description": "Title confirm plus optional brand withdrawn email (PRODUCT \u00a75.2.2).",
+        "properties": {
+          "confirm": {
+            "title": "Confirm",
+            "type": "string"
+          },
+          "notifyBrand": {
+            "default": false,
+            "title": "Notifybrand",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "title": "AdminDropHideRequest",
+        "type": "object"
+      },
       "AdminDropItem": {
         "properties": {
           "acceptedCount": {
@@ -1094,6 +1124,17 @@
               }
             ],
             "title": "Finalizedat"
+          },
+          "hiddenAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hiddenat"
           },
           "id": {
             "format": "uuid",
@@ -8986,6 +9027,16 @@
             }
           },
           {
+            "in": "query",
+            "name": "hidden",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Hidden",
+              "type": "boolean"
+            }
+          },
+          {
             "in": "header",
             "name": "authorization",
             "required": false,
@@ -9210,6 +9261,75 @@
           }
         },
         "summary": "Clear Reopen Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/drops/{drop_id}/hide": {
+      "post": {
+        "operationId": "hide_drop_endpoint_api_admin_drops__drop_id__hide_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminDropHideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminDropDetail_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Hide Drop Endpoint",
         "tags": [
           "admin"
         ]
@@ -9466,6 +9586,65 @@
           }
         },
         "summary": "Set Drop Tracking Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/drops/{drop_id}/unhide": {
+      "post": {
+        "operationId": "unhide_drop_endpoint_api_admin_drops__drop_id__unhide_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminDropDetail_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Unhide Drop Endpoint",
         "tags": [
           "admin"
         ]

@@ -16,10 +16,12 @@ import {
   useAdminDrop,
   useAdvanceTracker,
   useClearReopen,
+  useHideDrop,
   usePatchAdminDropConfig,
   usePublishDrop,
   useReopenDrop,
   useSetDropTracking,
+  useUnhideDrop,
   type AdminApplicant,
   type AdminDropConfigPatch,
   type AdminDropDetail,
@@ -647,6 +649,105 @@ function Applicants({ applicants }: { applicants: AdminApplicant[] }) {
   );
 }
 
+function HideCampaignPanel({ drop }: { drop: AdminDropDetail }) {
+  const hide = useHideDrop(drop.id);
+  const unhide = useUnhideDrop(drop.id);
+  const [confirmTitle, setConfirmTitle] = useState("");
+  const [notifyBrand, setNotifyBrand] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (drop.publishedAt == null) {
+    return null;
+  }
+
+  const titleMatches = confirmTitle === drop.title;
+
+  async function doHide() {
+    setError(null);
+    try {
+      await hide.mutateAsync({ confirm: confirmTitle, notifyBrand });
+      setConfirmTitle("");
+      setNotifyBrand(false);
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not hide this drop.",
+      );
+    }
+  }
+
+  async function doUnhide() {
+    setError(null);
+    try {
+      await unhide.mutateAsync(undefined);
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not unhide this drop.",
+      );
+    }
+  }
+
+  if (drop.hiddenAt != null) {
+    return (
+      <Panel
+        title="Hidden campaign"
+        description="Org and brand portals cannot see this drop. Unhide restores the same URLs."
+      >
+        {error && <ErrorNote>{error}</ErrorNote>}
+        <div className="px-4 pb-4">
+          <ActionButton
+            variant="primary"
+            testId="drop-unhide"
+            disabled={unhide.isPending}
+            onClick={() => void doUnhide()}
+          >
+            {unhide.isPending ? "Unhiding…" : "Unhide campaign"}
+          </ActionButton>
+        </div>
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel
+      title="Hide campaign"
+      description="Removes this published drop from every org and brand portal. Confirm by typing the exact title. No email unless you opt in."
+    >
+      {error && <ErrorNote>{error}</ErrorNote>}
+      <div className="space-y-3 px-4 pb-4">
+        <label className="block">
+          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
+            Type the drop title to confirm
+          </span>
+          <input
+            data-testid="hide-drop-confirm"
+            value={confirmTitle}
+            onChange={(e) => setConfirmTitle(e.target.value)}
+            className="w-full rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-2 text-sm"
+            autoComplete="off"
+          />
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium text-buzz-inkMuted">
+          <input
+            type="checkbox"
+            data-testid="hide-drop-notify-brand"
+            checked={notifyBrand}
+            onChange={(e) => setNotifyBrand(e.target.checked)}
+          />
+          Email the brand that this campaign was withdrawn
+        </label>
+        <ActionButton
+          variant="danger"
+          testId="hide-drop"
+          disabled={!titleMatches || hide.isPending}
+          onClick={() => void doHide()}
+        >
+          {hide.isPending ? "Hiding…" : "Hide campaign"}
+        </ActionButton>
+      </div>
+    </Panel>
+  );
+}
+
 export default function AdminDropDetailPage() {
   const { dropId } = useParams<{ dropId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -685,6 +786,7 @@ export default function AdminDropDetailPage() {
                 ) : (
                   <Pill tone="good">Published</Pill>
                 )}
+                {data.hiddenAt != null && <Pill tone="bad">Hidden</Pill>}
                 {data.manualReopen && <Pill tone="warn">Reopened</Pill>}
                 {acceptedCount > data.capacityTotal && (
                   <Pill tone="bad">Over capacity</Pill>
@@ -826,6 +928,8 @@ export default function AdminDropDetailPage() {
               </FieldGrid>
             </Panel>
           )}
+
+          <HideCampaignPanel drop={data} />
         </>
       )}
     </div>

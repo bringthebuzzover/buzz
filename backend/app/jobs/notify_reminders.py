@@ -52,6 +52,7 @@ async def send_due_reminders(db: AsyncSession) -> dict[str, Any]:
                     Brand.status == BrandStatus.APPROVED.value,
                     Drop.brand_tracker_stage != BrandTrackerStage.DROP_FINISHED.value,
                     Drop.published_at.isnot(None),
+                    Drop.hidden_at.is_(None),
                 )
                 .with_for_update(of=NotifyMe, skip_locked=True)
             )

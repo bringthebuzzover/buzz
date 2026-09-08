@@ -446,6 +446,7 @@ class AdminDropItem(CamelModel):
     campaign_hashtag: str | None
     finalized_at: datetime | None
     published_at: datetime | None = None
+    hidden_at: datetime | None = None
     drop_request_id: uuid.UUID | None = None
     created_at: datetime
 
@@ -453,7 +454,7 @@ class AdminDropItem(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("finalized_at", "published_at")
+    @field_serializer("finalized_at", "published_at", "hidden_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
@@ -547,6 +548,7 @@ class AdminDropDetail(CamelModel):
     apply_close_at: datetime
     finalized_at: datetime | None
     published_at: datetime | None = None
+    hidden_at: datetime | None = None
     drop_request_id: uuid.UUID | None = None
     created_at: datetime
     linked_post_count: int
@@ -558,6 +560,6 @@ class AdminDropDetail(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("finalized_at", "published_at")
+    @field_serializer("finalized_at", "published_at", "hidden_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)

@@ -66,14 +66,18 @@ export default function AdminDropsPage() {
   const stages = searchParams.getAll("stage");
   const attentions = searchParams.getAll("attention");
   const publishedParam = searchParams.get("published");
+  const hidden = searchParams.get("hidden") === "1" || searchParams.get("hidden") === "true";
   const published =
-    publishedParam === "draft" || publishedParam === "published"
-      ? publishedParam
-      : null;
+    hidden
+      ? null
+      : publishedParam === "draft" || publishedParam === "published"
+        ? publishedParam
+        : null;
   const drops = useAdminDrops({
     stage: stages,
     attention: attentions,
     published,
+    hidden,
   });
 
   return (
@@ -87,22 +91,30 @@ export default function AdminDropsPage() {
         <div className="flex flex-wrap gap-2">
           {(
             [
-              { value: null, label: "All" },
+              { value: "all", label: "All" },
               { value: "draft", label: "Draft" },
               { value: "published", label: "Published" },
+              { value: "hidden", label: "Hidden" },
             ] as const
           ).map((option) => {
-            const selected = option.value === published;
+            const selected =
+              option.value === "hidden"
+                ? hidden
+                : option.value === "all"
+                  ? !hidden && published == null
+                  : !hidden && option.value === published;
             return (
               <button
                 key={option.label}
                 type="button"
                 onClick={() => {
                   const next = new URLSearchParams(searchParams);
-                  if (option.value) {
+                  next.delete("published");
+                  next.delete("hidden");
+                  if (option.value === "draft" || option.value === "published") {
                     next.set("published", option.value);
-                  } else {
-                    next.delete("published");
+                  } else if (option.value === "hidden") {
+                    next.set("hidden", "1");
                   }
                   setSearchParams(next, { replace: true });
                 }}
@@ -199,6 +211,7 @@ export default function AdminDropsPage() {
                   </Cell>
                   <Cell>
                     <div className="flex flex-wrap gap-1">
+                      {drop.hiddenAt != null && <Pill tone="bad">Hidden</Pill>}
                       {!drop.publishedAt && <Pill tone="warn">Draft</Pill>}
                       {drop.manualReopen && <Pill tone="warn">Reopened</Pill>}
                       {drop.acceptedCount > drop.capacityTotal && (

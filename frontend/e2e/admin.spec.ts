@@ -228,4 +228,23 @@ test("admin saves a draft from a ticket and publishes it", async ({ page }) => {
   await page.reload();
   await expect(page.getByTestId("save-drop-config")).toBeVisible();
   await expect(page.getByLabel(/^title$/i).first()).toHaveValue("E2E Config Title");
+
+  await page.getByTestId("hide-drop-confirm").fill("E2E Config Title");
+  const hideResp = page.waitForResponse(
+    (r) =>
+      r.url().includes(`/api/admin/drops/${dropId}/hide`) &&
+      r.request().method() === "POST",
+  );
+  await page.getByTestId("hide-drop").click();
+  const hidden = await hideResp;
+  expect(hidden.ok(), await hidden.text()).toBeTruthy();
+  await expect(page.getByText(/^Hidden$/).first()).toBeVisible();
+
+  await page.goto("/admin/drops");
+  await expect(page.getByRole("heading", { name: "Drops" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "E2E Config Title" })).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Hidden" }).click();
+  await expect(page).toHaveURL(/hidden=1/);
+  await expect(page.getByRole("link", { name: "E2E Config Title" })).toBeVisible();
 });

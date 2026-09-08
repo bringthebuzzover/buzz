@@ -66,6 +66,7 @@ class Drop(Base):
         sa.DateTime(timezone=True), nullable=True
     )
     published_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    hidden_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
     drop_request_id: Mapped[uuid.UUID | None] = mapped_column(
         sa.Uuid,
         sa.ForeignKey("drop_requests.id", use_alter=True, name="fk_drops_drop_request_id"),

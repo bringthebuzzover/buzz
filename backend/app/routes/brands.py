@@ -45,7 +45,7 @@ from app.services.brands import (
     update_brand_drop_creative,
 )
 from app.services.drop_requests import (
-    build_drop_request_response,
+    brand_drop_request_response,
     create_brand_drop_request,
     get_brand_drop_request,
     list_brand_drop_requests,
@@ -112,7 +112,7 @@ async def create_drop_request(
     ticket = await create_brand_drop_request(
         db, brand, message=payload.message, notes=payload.notes
     )
-    return api_response(data=build_drop_request_response(ticket))
+    return api_response(data=await brand_drop_request_response(db, ticket))
 
 
 @router.get(
@@ -125,7 +125,7 @@ async def list_drop_requests(
 ) -> APIResponse:
     brand = await _require_brand(db, user)
     tickets = await list_brand_drop_requests(db, brand)
-    return api_response(data=[build_drop_request_response(t) for t in tickets])
+    return api_response(data=[await brand_drop_request_response(db, t) for t in tickets])
 
 
 @router.get(
@@ -139,7 +139,7 @@ async def get_drop_request(
 ) -> APIResponse:
     brand = await _require_brand(db, user)
     ticket = await get_brand_drop_request(db, brand, request_id)
-    return api_response(data=build_drop_request_response(ticket))
+    return api_response(data=await brand_drop_request_response(db, ticket))
 
 
 @router.get("/me/drops", response_model=DataResponse[list[BrandDropListItem]])
@@ -152,7 +152,7 @@ async def list_brand_drops(
     drops = list(
         await db.scalars(
             sa_select(Drop)
-            .where(Drop.brand_id == brand.id)
+            .where(Drop.brand_id == brand.id, Drop.hidden_at.is_(None))
             .order_by(Drop.created_at.desc(), Drop.id.desc())
         )
     )

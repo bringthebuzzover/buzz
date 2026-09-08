@@ -230,6 +230,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/drops/{drop_id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hide Drop Endpoint */
+        post: operations["hide_drop_endpoint_api_admin_drops__drop_id__hide_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/drops/{drop_id}/publish": {
         parameters: {
             query?: never;
@@ -296,6 +313,23 @@ export interface paths {
         head?: never;
         /** Set Drop Tracking Endpoint */
         patch: operations["set_drop_tracking_endpoint_api_admin_drops__drop_id__tracking_patch"];
+        trace?: never;
+    };
+    "/api/admin/drops/{drop_id}/unhide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unhide Drop Endpoint */
+        post: operations["unhide_drop_endpoint_api_admin_drops__drop_id__unhide_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/admin/health": {
@@ -2021,6 +2055,8 @@ export interface components {
             dropRequestId?: string | null;
             /** Finalizedat */
             finalizedAt: number | null;
+            /** Hiddenat */
+            hiddenAt?: number | null;
             /**
              * Id
              * Format: uuid
@@ -2048,6 +2084,19 @@ export interface components {
             trackerEvents: components["schemas"]["AdminTrackerEventItem"][];
             /** Trackingnumber */
             trackingNumber: string | null;
+        };
+        /**
+         * AdminDropHideRequest
+         * @description Title confirm plus optional brand withdrawn email (PRODUCT §5.2.2).
+         */
+        AdminDropHideRequest: {
+            /** Confirm */
+            confirm: string;
+            /**
+             * Notifybrand
+             * @default false
+             */
+            notifyBrand: boolean;
         };
         /** AdminDropItem */
         AdminDropItem: {
@@ -2078,6 +2127,8 @@ export interface components {
             dropRequestId?: string | null;
             /** Finalizedat */
             finalizedAt: number | null;
+            /** Hiddenat */
+            hiddenAt?: number | null;
             /**
              * Id
              * Format: uuid
@@ -4742,6 +4793,7 @@ export interface operations {
                 stage?: string[] | null;
                 attention?: string[] | null;
                 published?: string | null;
+                hidden?: boolean;
             };
             header?: {
                 authorization?: string | null;
@@ -4861,6 +4913,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_DropReopenResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    hide_drop_endpoint_api_admin_drops__drop_id__hide_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminDropHideRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminDropDetail_"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -5001,6 +5090,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_DropTrackingResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    unhide_drop_endpoint_api_admin_drops__drop_id__unhide_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminDropDetail_"];
                 };
             };
             /** @description Unprocessable Entity */

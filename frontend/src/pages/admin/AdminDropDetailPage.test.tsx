@@ -25,6 +25,8 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
   usePublishDrop: () => idleMutation(),
   useReopenDrop: () => idleMutation(),
   useSetDropTracking: () => idleMutation(),
+  useHideDrop: () => idleMutation(),
+  useUnhideDrop: () => idleMutation(),
 }));
 
 import AdminDropDetailPage from "./AdminDropDetailPage";
@@ -52,6 +54,7 @@ function adminDrop(overrides: Record<string, unknown> = {}) {
     campaignHashtag: null,
     finalizedAt: null,
     publishedAt: null,
+    hiddenAt: null,
     dropRequestId: null,
     createdAt: now,
     allocatedUnits: 0,
@@ -119,6 +122,7 @@ describe("AdminDropDetailPage", () => {
     expect(
       container.querySelector('[data-testid="save-drop-config"]'),
     ).toBeTruthy();
+    expect(container.querySelector('[data-testid="hide-drop"]')).toBeFalsy();
   });
 
   it("defaults to Applicants for a published drop; Config holds the checkbox", () => {
@@ -146,5 +150,18 @@ describe("AdminDropDetailPage", () => {
     expect(
       container.querySelector('[data-testid="brand-can-edit-creative"]'),
     ).toBeTruthy();
+    expect(container.querySelector('[data-testid="hide-drop"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="drop-unhide"]')).toBeFalsy();
+  });
+
+  it("shows unhide when the drop is hidden", () => {
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({ publishedAt: now, hiddenAt: now }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1");
+    expect(container.querySelector('[data-testid="drop-unhide"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hide-drop"]')).toBeFalsy();
   });
 });
