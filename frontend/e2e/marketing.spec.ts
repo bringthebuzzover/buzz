@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { waitForAuthSettled } from "./authSettled";
 
 /** Marketing site must render for logged-out visitors (the cutover kept it). */
 test("home page renders the marketing shell + join section", async ({ page }) => {
@@ -73,4 +74,15 @@ test("footer and login link to tours", async ({ page }) => {
   await page.goto("/login");
   await page.getByRole("link", { name: /see how it works/i }).click();
   await expect(page).toHaveURL(/\/for-orgs$/);
+});
+
+test("unmatched public URL shows a 404 with marketing chrome", async ({
+  page,
+}) => {
+  await page.goto("/org/admin");
+  await waitForAuthSettled(page);
+  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+  await expect(page.getByText(/does not exist/i)).toBeVisible();
+  await expect(page.getByRole("navigation").first()).toBeVisible();
+  await expect(page.locator("main")).not.toBeEmpty();
 });

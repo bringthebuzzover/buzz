@@ -49,6 +49,7 @@ import AdminDropDetailPage from "./pages/admin/AdminDropDetailPage";
 import AdminDropRequestsPage from "./pages/admin/AdminDropRequestsPage";
 import AdminDropRequestDetailPage from "./pages/admin/AdminDropRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
 function PortalGuard({
@@ -283,6 +284,7 @@ export default function AppRoot(): ReactElement {
         <Route path="privacy" element={<PrivacyPolicyPage />} />
         <Route path="terms" element={<TermsPage />} />
         <Route path="data-deletion" element={<DataDeletionPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
 
       {/* Admin panel — its own shell, so no marketing header/footer. */}
@@ -304,6 +306,7 @@ export default function AppRoot(): ReactElement {
         <Route path="drops" element={<AdminDropsPage />} />
         <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
   );
