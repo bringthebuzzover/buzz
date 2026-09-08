@@ -4,6 +4,7 @@ title: No way to hide a published drop from every consumer portal
 kind: ux_hole
 severity: P2
 status: fixed
+closed_in: dcc1e0d
 surface: admin
 evidence:
   - path: backend/app/models/drop.py
@@ -48,7 +49,7 @@ fix_when: |
 # Hide / unhide a published drop (no consumer trace)
 
 Shipped: `drops.hidden_at`, admin hide/unhide APIs and danger-zone UI, consumer
-omit/404, jobs skip, PRODUCT §5.2.2. Set `closed_in` on the fixing commit.
+omit/404, jobs skip, PRODUCT §5.2.2.
 
 Ops need a kill switch for **“this never should have been published”** (wrong
 window, test campaign, bad creative). Today the only nearby states are
