@@ -10,11 +10,14 @@ import ImpersonationBanner from "../components/site/ImpersonationBanner";
 export default function SiteLayout() {
   return (
     <SiteChromeProvider>
-      <div className="min-h-screen bg-buzz-cream selection:bg-buzz-butter selection:text-buzz-coral">
+      <div className="flex min-h-screen flex-col bg-buzz-cream selection:bg-buzz-butter selection:text-buzz-coral">
         <ImpersonationBanner />
         <SiteHeader />
-        <main className="min-h-[60vh]">
-          <div className="animate-fade-in motion-reduce:animate-none motion-reduce:opacity-100">
+        {/* Flex column all the way to the outlet so `AUTH_SHELL.center` can
+            claim the space between header and footer with `flex-1` and center
+            in it for real, instead of guessing with `min-h-[60vh]`. */}
+        <main className="flex flex-1 flex-col">
+          <div className="flex flex-1 flex-col animate-fade-in motion-reduce:animate-none motion-reduce:opacity-100">
             <Outlet />
           </div>
         </main>

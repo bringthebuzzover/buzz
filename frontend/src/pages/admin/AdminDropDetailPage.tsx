@@ -34,7 +34,7 @@ import {
   TextField,
   fieldClass,
 } from "../../components/forms/controls";
-import { fieldLabelCompactClass } from "../../theme/controls";
+import { fieldLabelCompactClass, textAreaClass } from "../../theme/controls";
 import {
   ActionButton,
   AdminTable,
@@ -211,7 +211,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
             <span className={fieldLabelCompactClass}>Description</span>
             <textarea
               rows={3}
-              className={fieldClass.compact}
+              className={textAreaClass.compact}
               value={description}
               disabled={patch.isPending}
               onChange={(e) => setDescription(e.target.value)}

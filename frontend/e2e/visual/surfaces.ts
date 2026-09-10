@@ -50,6 +50,9 @@ export const SURFACES: Surface[] = [
   { id: "terms", route: "/terms", persona: "public", area: "public" },
   { id: "data-deletion", route: "/data-deletion", persona: "public", area: "public" },
   { id: "not-found", route: "/no-such-page", persona: "public", area: "public" },
+  // Not a product surface: the primitive gallery, so every control and state
+  // is reviewable in one shot instead of hunting them across 40 routes.
+  { id: "ui-kit", route: "/dev/ui-kit", persona: "public", area: "public" },
   {
     id: "contact-modal",
     route: "/",

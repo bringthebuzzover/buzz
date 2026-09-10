@@ -4,13 +4,16 @@
   "private": true,
   "homepage": "https://www.bringthebuzzover.com",
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.23",
     "@tanstack/react-query": "^5.100.14",
+    "class-variance-authority": "^0.7.1",
     "lucide-react": "^1.14.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.12.0",
     "react-scripts": "5.0.1",
-    "serve": "^14.2.6"
+    "serve": "^14.2.6",
+    "tailwind-merge": "^2.6.1"
   },
   "scripts": {
     "start": "craco start",

@@ -50,6 +50,7 @@ import AdminDropRequestsPage from "./pages/admin/AdminDropRequestsPage";
 import AdminDropRequestDetailPage from "./pages/admin/AdminDropRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import UiKitPage from "./pages/dev/UiKitPage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
 function PortalGuard({
@@ -284,6 +285,10 @@ export default function AppRoot(): ReactElement {
         <Route path="privacy" element={<PrivacyPolicyPage />} />
         <Route path="terms" element={<TermsPage />} />
         <Route path="data-deletion" element={<DataDeletionPage />} />
+        {/* Primitive gallery. Dev-only so it never ships to real users. */}
+        {process.env.NODE_ENV === "development" && (
+          <Route path="dev/ui-kit" element={<UiKitPage />} />
+        )}
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 
