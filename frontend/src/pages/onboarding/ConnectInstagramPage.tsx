@@ -16,6 +16,8 @@ import { authUserFromWire } from "../../api/auth";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
 import instagramIcon from "../../assets/insta-icon.png";
+import AuthShell from "../../components/site/AuthShell";
+import { ErrorBanner } from "../../components/forms/controls";
 import type { components } from "../../api/generated/schema";
 
 type UserWire = components["schemas"]["UserResponse"];
@@ -72,7 +74,7 @@ export default function ConnectInstagramPage() {
 
   if (redeemState.kind === "error") {
     return (
-      <div className="mx-auto max-w-md px-8 py-24 text-center">
+      <AuthShell align="center" className="text-center">
         <h1 className="mb-4 text-3xl font-bold text-buzz-coral">
           Connect Link Failed
         </h1>
@@ -85,7 +87,7 @@ export default function ConnectInstagramPage() {
         >
           Org login
         </Link>
-      </div>
+      </AuthShell>
     );
   }
 
@@ -108,7 +110,7 @@ export default function ConnectInstagramPage() {
   };
 
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-8 py-24 text-center">
+    <AuthShell align="center" className="items-center text-center">
       <h1 className="mb-4 text-3xl font-black text-buzz-ink">
         Connect <span className="text-buzz-coral">Instagram</span>
       </h1>
@@ -142,10 +144,10 @@ export default function ConnectInstagramPage() {
       </button>
 
       {connectError && (
-        <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-          {connectError}
-        </p>
+        <div className="mt-4 w-full">
+          <ErrorBanner>{connectError}</ErrorBanner>
+        </div>
       )}
-    </div>
+    </AuthShell>
   );
 }

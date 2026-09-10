@@ -10,11 +10,14 @@ import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useBrandSetPassword } from "../../api/hooks/useOnboardingHooks";
 import { useAuth } from "../../contexts/AuthContext";
 import { ApiError } from "../../api/client";
+import AuthShell from "../../components/site/AuthShell";
+import {
+  Button,
+  ErrorBanner,
+  TextField,
+} from "../../components/forms/controls";
 import type { PortalRole } from "../../types/auth";
 import { stripTokenFromUrl } from "../../utils/stripTokenFromUrl";
-
-const inputClass =
-  "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
 
 export default function BrandSetupPage() {
   const [searchParams] = useSearchParams();
@@ -72,7 +75,7 @@ export default function BrandSetupPage() {
   };
 
   return (
-    <div className="mx-auto max-w-md px-8 py-16">
+    <AuthShell align="center">
       <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
         Set Up Your <span className="text-buzz-coral">Brand Account</span>
       </h1>
@@ -81,47 +84,33 @@ export default function BrandSetupPage() {
       </p>
 
       <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Password
-          </label>
-          <input
-            type="password"
-            className={inputClass}
-            value={password}
-            onChange={(e) => setPasswordValue(e.target.value)}
-            placeholder="At least 8 characters"
-            required
-          />
-        </div>
+        <TextField
+          type="password"
+          label="Password"
+          value={password}
+          onChange={(e) => setPasswordValue(e.target.value)}
+          placeholder="At least 8 characters"
+          required
+        />
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Confirm password
-          </label>
-          <input
-            type="password"
-            className={inputClass}
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            required
-          />
-        </div>
+        <TextField
+          type="password"
+          label="Confirm password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          required
+        />
 
-        <button
+        <Button
           type="submit"
           disabled={setPassword.isPending}
-          className="w-full rounded-lg bg-buzz-coral py-3 text-sm font-bold text-buzz-paper shadow-md transition enabled:hover:bg-buzz-coralDark disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full"
         >
           {setPassword.isPending ? "Saving…" : "Activate account"}
-        </button>
+        </Button>
 
-        {error && (
-          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-            {error}
-          </p>
-        )}
+        {error && <ErrorBanner>{error}</ErrorBanner>}
       </form>
-    </div>
+    </AuthShell>
   );
 }

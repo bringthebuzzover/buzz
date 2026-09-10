@@ -10,12 +10,14 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApiError } from "../../api/errors";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
 const mockMutateAsync = jest.fn();
 const mockPublicResend = jest.fn();
+const mockResendFromToken = jest.fn();
 const mockRefreshUser = jest.fn(async () => null as null | {
   id: string;
   portalRole: "org";
@@ -55,6 +57,10 @@ jest.mock("../../api/hooks/useOnboardingHooks", () => ({
     mutateAsync: mockPublicResend,
     isPending: false,
   }),
+  useResendVerificationFromToken: () => ({
+    mutateAsync: mockResendFromToken,
+    isPending: false,
+  }),
 }));
 
 jest.mock("../../contexts/AuthContext", () => ({
@@ -71,7 +77,8 @@ describe("VerifyEmailPage confirm-before-verify", () => {
     mockMutateAsync.mockReset();
     mockMutateAsync.mockResolvedValue({ ok: true });
     mockPublicResend.mockReset();
-    mockPublicResend.mockResolvedValue({ emailSentTo: "club@test.edu" });
+    mockResendFromToken.mockReset();
+    mockResendFromToken.mockResolvedValue({ emailSentTo: "club@test.edu" });
     mockRefreshUser.mockReset();
     mockRefreshUser.mockResolvedValue(null);
     mockAuthValue.status = "idle";
@@ -167,6 +174,37 @@ describe("VerifyEmailPage confirm-before-verify", () => {
     expect(container.textContent).not.toContain(
       "Thanks! Your account is now pending admin approval",
     );
+  });
+
+  it("expired token Request a new link POSTs resend-from-token", async () => {
+    mockMutateAsync.mockRejectedValue(
+      new ApiError(
+        "VERIFICATION_TOKEN_EXPIRED",
+        "Verification token has expired. Request a new one.",
+        400,
+      ),
+    );
+    mockResendFromToken.mockResolvedValue({ emailSentTo: "club@test.edu" });
+    renderWithToken("expired-tok");
+    await clickVerify();
+
+    const requestNew = Array.from(container.querySelectorAll("button")).find((b) =>
+      /request a new link/i.test(b.textContent ?? ""),
+    );
+    expect(requestNew).toBeTruthy();
+    expect(mockResendFromToken).not.toHaveBeenCalled();
+
+    await act(async () => {
+      requestNew!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(mockResendFromToken).toHaveBeenCalledWith("expired-tok");
+    expect(sessionStorage.getItem("buzz.verifyEduEmail")).toBe("club@test.edu");
+    expect(sessionStorage.getItem("buzz.verifyEmailSent")).toBe("1");
+    expect(container.textContent).toContain("New Link");
+    expect(container.textContent).toContain("Sent");
+    expect(container.textContent).toContain("club@test.edu");
   });
 });
 

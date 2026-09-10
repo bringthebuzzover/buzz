@@ -32,12 +32,12 @@ import {
   formatDateTime,
   toDatetimeLocalValue,
 } from "../../components/admin/labels";
-
-const fieldLabelClass =
-  "mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint";
-
-const inputClass =
-  "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-2 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral disabled:opacity-60";
+import {
+  DateTimeField,
+  TextArea,
+  TextField,
+  fieldLabelCompactClass,
+} from "../../components/forms/controls";
 
 function isValidHeroImage(url: string): boolean {
   const trimmed = url.trim();
@@ -144,13 +144,13 @@ function TicketPanel({ ticket }: { ticket: AdminDropRequest }) {
       </FieldGrid>
       <div className="space-y-3 border-t border-buzz-lineMid px-4 py-4">
         <div>
-          <p className={fieldLabelClass}>Message</p>
+          <p className={fieldLabelCompactClass}>Message</p>
           <p className="whitespace-pre-wrap text-sm font-medium text-buzz-ink">
             {ticket.message}
           </p>
         </div>
         <div>
-          <p className={fieldLabelClass}>Notes</p>
+          <p className={fieldLabelCompactClass}>Notes</p>
           <p className="whitespace-pre-wrap text-sm font-medium text-buzz-inkMuted">
             {ticket.notes?.trim() ? ticket.notes : "—"}
           </p>
@@ -342,32 +342,35 @@ function DraftEditor({
           <Pill tone="warn">Draft</Pill>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block sm:col-span-2">
-            <span className={fieldLabelClass}>Title</span>
-            <input
+          <div className="sm:col-span-2">
+            <TextField
+              id="draft-title"
+              label="Title"
+              size="compact"
               data-testid="draft-title"
-              className={inputClass}
               value={form.title}
               disabled={busy}
               onChange={(e) => setField("title", e.target.value)}
             />
-          </label>
-          <label className="block sm:col-span-2">
-            <span className={fieldLabelClass}>Description</span>
-            <textarea
+          </div>
+          <div className="sm:col-span-2">
+            <TextArea
+              id="draft-description"
+              label="Description"
+              size="compact"
               data-testid="draft-description"
               rows={3}
-              className={inputClass}
               value={form.description}
               disabled={busy}
               onChange={(e) => setField("description", e.target.value)}
             />
-          </label>
-          <label className="block sm:col-span-2">
-            <span className={fieldLabelClass}>Image (https)</span>
-            <input
+          </div>
+          <div className="sm:col-span-2">
+            <TextField
+              id="draft-image"
+              label="Image (https)"
+              size="compact"
               data-testid="draft-image"
-              className={inputClass}
               value={form.image}
               disabled={busy}
               placeholder="https://…"
@@ -380,75 +383,71 @@ function DraftEditor({
                 className="mt-2 max-h-40 rounded-lg border border-buzz-lineMid object-cover"
               />
             ) : null}
-          </label>
-          <label className="block sm:col-span-2">
-            <span className={fieldLabelClass}>Location</span>
-            <input
+          </div>
+          <div className="sm:col-span-2">
+            <TextField
+              id="draft-location"
+              label="Location"
+              size="compact"
               data-testid="draft-location"
-              className={inputClass}
               value={form.location}
               disabled={busy}
               onChange={(e) => setField("location", e.target.value)}
             />
-          </label>
-          <label className="block">
-            <span className={fieldLabelClass}>Capacity</span>
-            <input
-              type="number"
-              min={1}
-              data-testid="draft-capacity"
-              className={inputClass}
-              value={form.capacity}
-              disabled={busy}
-              onChange={(e) => setField("capacity", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <span className={fieldLabelClass}>Unit budget</span>
-            <input
-              type="number"
-              min={1}
-              data-testid="draft-units"
-              className={inputClass}
-              value={form.units}
-              disabled={busy}
-              placeholder="Optional"
-              onChange={(e) => setField("units", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <span className={fieldLabelClass}>Apply opens</span>
-            <input
-              type="datetime-local"
-              data-testid="draft-open-at"
-              className={inputClass}
-              value={form.openAt}
-              disabled={busy}
-              onChange={(e) => setField("openAt", e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <span className={fieldLabelClass}>Apply closes</span>
-            <input
-              type="datetime-local"
-              data-testid="draft-close-at"
-              className={inputClass}
-              value={form.closeAt}
-              disabled={busy}
-              onChange={(e) => setField("closeAt", e.target.value)}
-            />
-          </label>
-          <label className="block sm:col-span-2">
-            <span className={fieldLabelClass}>Campaign hashtag</span>
-            <input
+          </div>
+          <TextField
+            id="draft-capacity"
+            label="Capacity"
+            size="compact"
+            type="number"
+            min={1}
+            data-testid="draft-capacity"
+            value={form.capacity}
+            disabled={busy}
+            onChange={(e) => setField("capacity", e.target.value)}
+          />
+          <TextField
+            id="draft-units"
+            label="Unit budget"
+            size="compact"
+            type="number"
+            min={1}
+            data-testid="draft-units"
+            value={form.units}
+            disabled={busy}
+            placeholder="Optional"
+            onChange={(e) => setField("units", e.target.value)}
+          />
+          <DateTimeField
+            id="draft-open-at"
+            label="Apply opens"
+            size="compact"
+            data-testid="draft-open-at"
+            value={form.openAt}
+            disabled={busy}
+            onChange={(e) => setField("openAt", e.target.value)}
+          />
+          <DateTimeField
+            id="draft-close-at"
+            label="Apply closes"
+            size="compact"
+            data-testid="draft-close-at"
+            value={form.closeAt}
+            disabled={busy}
+            onChange={(e) => setField("closeAt", e.target.value)}
+          />
+          <div className="sm:col-span-2">
+            <TextField
+              id="draft-hashtag"
+              label="Campaign hashtag"
+              size="compact"
               data-testid="draft-hashtag"
-              className={inputClass}
               value={form.hashtag}
               disabled={busy}
               placeholder="optional"
               onChange={(e) => setField("hashtag", e.target.value)}
             />
-          </label>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2 pt-2">

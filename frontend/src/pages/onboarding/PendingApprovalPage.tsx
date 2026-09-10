@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import EduEmailRotatePanel from "../../components/org/EduEmailRotatePanel";
+import AuthShell from "../../components/site/AuthShell";
 import { pathForUser } from "../../utils/landing";
 
 const POLL_INTERVAL_MS = 15_000;
@@ -32,7 +33,7 @@ export default function PendingApprovalPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-8 py-24 text-center">
+    <AuthShell align="center" className="text-center">
       <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
         Awaiting <span className="text-buzz-coral">Approval</span>
       </h1>
@@ -47,6 +48,6 @@ export default function PendingApprovalPage() {
         pendingEmail={user.pendingEduEmail}
         onChanged={() => refreshUser()}
       />
-    </div>
+    </AuthShell>
   );
 }

@@ -352,6 +352,55 @@ async def test_verify_email_expired(app_client: AsyncClient, db_session) -> None
     assert resp.json()["error"]["code"] == "VERIFICATION_TOKEN_EXPIRED"
 
 
+async def test_resend_from_expired_token_mints_new_mail(
+    app_client: AsyncClient, db_session
+) -> None:
+    user, evt, raw = await _seed_pending_verification(db_session, suffix="rft1")
+    evt.expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
+    await db_session.flush()
+
+    resp = await app_client.post(
+        "/api/auth/verify-email/resend-from-token",
+        json={"token": raw},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["data"]["emailSentTo"] == user.edu_email
+    tokens = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
+        )
+    )
+    assert len(tokens) == 2
+    assert any(row.expires_at > datetime.now(timezone.utc) for row in tokens)
+
+
+async def test_resend_from_token_unknown_is_invalid(
+    app_client: AsyncClient,
+) -> None:
+    resp = await app_client.post(
+        "/api/auth/verify-email/resend-from-token",
+        json={"token": "not-a-real-token"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "VERIFICATION_TOKEN_INVALID"
+
+
+async def test_resend_from_used_token_is_already_verified(
+    app_client: AsyncClient, db_session
+) -> None:
+    user, evt, raw = await _seed_pending_verification(db_session, suffix="rft2")
+    verify = await app_client.post("/api/auth/verify-email", json={"token": raw})
+    assert verify.status_code == 200, verify.text
+    resp = await app_client.post(
+        "/api/auth/verify-email/resend-from-token",
+        json={"token": raw},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "EMAIL_ALREADY_VERIFIED"
+    await db_session.refresh(user)
+    assert user.status == OrgUserStatus.PENDING_APPROVAL.value
+
+
 # --- Org onboarding: resend --------------------------------------------------
 
 

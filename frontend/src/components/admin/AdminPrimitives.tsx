@@ -14,6 +14,7 @@ import {
 } from "react";
 import { Link } from "react-router-dom";
 import { STATUS_LABELS } from "./labels";
+import { Checkbox } from "../forms/Checkbox";
 
 type Tone = "neutral" | "good" | "warn" | "bad";
 
@@ -297,24 +298,24 @@ export function FilterMultiSelect({
           {options.map((option) => {
             const checked = selectedSet.has(option.value);
             return (
-              <label
+              <div
                 key={option.value}
-                className={`flex cursor-pointer items-center gap-2 px-3 py-1.5 text-xs font-medium ${
+                className={`px-3 py-1.5 ${
                   checked
                     ? "bg-buzz-coral/10 text-buzz-coral"
                     : "text-buzz-inkMuted hover:bg-buzz-neutralWash hover:text-buzz-ink"
                 }`}
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   role="option"
                   aria-selected={checked}
                   checked={checked}
                   onChange={() => toggle(option.value)}
-                  className="accent-buzz-coral"
+                  label={
+                    <span className="text-xs font-medium">{option.label}</span>
+                  }
                 />
-                {option.label}
-              </label>
+              </div>
             );
           })}
         </div>

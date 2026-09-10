@@ -72,6 +72,7 @@ from app.services.onboarding import (
     cancel_pending_edu_email,
     change_edu_email,
     resend_verification_email,
+    resend_verification_from_token,
     resend_verification_public,
     rotate_edu_email,
     verify_email,
@@ -545,6 +546,20 @@ async def resend_verification_public_endpoint(
 ) -> APIResponse:
     """Public resend after apply (no session). Enumerate-safe: always 200-shaped."""
     result = await resend_verification_public(db, payload.edu_email)
+    return api_response(data=ResendVerificationResponse.model_validate(result))
+
+
+@router.post(
+    "/verify-email/resend-from-token",
+    response_model=DataResponse[ResendVerificationResponse],
+    dependencies=[Depends(rate_limited("verify_resend_from_token", limit=3, window=60))],
+)
+async def resend_verification_from_token_endpoint(
+    payload: VerifyEmailRequest,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Sessionless resend using the unused/expired token from the email link."""
+    result = await resend_verification_from_token(db, payload.token)
     return api_response(data=ResendVerificationResponse.model_validate(result))
 
 

@@ -13,6 +13,7 @@ import {
   deriveOrgCampaignStatus,
   ORG_CAMPAIGN_STATUS_LABELS,
 } from "../../utils/orgCampaignStatus";
+import PageShell from "../../components/site/PageShell";
 
 function StatusPanel({ children }: { children: React.ReactNode }) {
   return (
@@ -41,9 +42,9 @@ function ApiCampaignDetail() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-4xl px-8 py-12 text-center">
+      <PageShell width="portal" className="text-center">
         <p className="text-sm font-medium text-buzz-inkMuted">Loading...</p>
-      </div>
+      </PageShell>
     );
   }
 
@@ -53,7 +54,7 @@ function ApiCampaignDetail() {
 
   if (error || !detail) {
     return (
-      <div className="mx-auto max-w-4xl px-8 py-12">
+      <PageShell width="portal">
         <Link
           to="/org/campaigns"
           className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
@@ -66,7 +67,7 @@ function ApiCampaignDetail() {
             ? error.message
             : "Couldn’t load this campaign. Please try again."}
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -85,7 +86,7 @@ function ApiCampaignDetail() {
   const onTheWay = shipmentOnTheWay(detail);
 
   return (
-    <div className="mx-auto max-w-4xl px-8 py-12">
+    <PageShell width="portal">
       <Link
         to="/org/campaigns"
         className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
@@ -199,7 +200,7 @@ function ApiCampaignDetail() {
           />
         </div>
       ) : null}
-    </div>
+    </PageShell>
   );
 }
 

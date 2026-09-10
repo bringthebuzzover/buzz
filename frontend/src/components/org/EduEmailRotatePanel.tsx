@@ -7,6 +7,7 @@ import { useState } from "react";
 import { ApiError } from "../../api/client";
 import { userFacingApiError } from "../../api/userFacingError";
 import FieldError from "../forms/FieldError";
+import { Button, ErrorBanner, TextField } from "../forms/controls";
 import {
   useCancelPendingEduEmail,
   useResendVerification,
@@ -111,22 +112,24 @@ export default function EduEmailRotatePanel({
             then.
           </p>
           <div className="flex flex-wrap gap-2">
-            <button
+            <Button
               type="button"
+              size="compact"
+              variant="outline"
               onClick={() => void onResend()}
               disabled={busy}
-              className="rounded-lg border-2 border-buzz-coral px-3 py-1.5 text-sm font-bold text-buzz-coral transition enabled:hover:bg-buzz-coral enabled:hover:text-buzz-paper disabled:opacity-60"
             >
               {resend.isPending ? "Sending…" : "Resend"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="compact"
+              variant="ghost"
               onClick={() => void onCancel()}
               disabled={busy}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium text-buzz-inkMuted underline-offset-2 hover:underline disabled:opacity-60"
             >
               Cancel change
-            </button>
+            </Button>
           </div>
         </div>
       ) : !showForm ? (
@@ -139,38 +142,35 @@ export default function EduEmailRotatePanel({
         </button>
       ) : (
         <form onSubmit={(e) => void onRotate(e)} className="mt-3 space-y-3">
-          <label className="block text-sm font-medium text-buzz-ink">
-            New school email
-            <input
+          <div>
+            <TextField
+              id="edu-rotate-email"
               type="email"
               required
+              label="New school email"
               value={nextEmail}
               onChange={(ev) => setNextEmail(ev.target.value)}
-              className="mt-1 w-full rounded-lg border border-buzz-ink/15 bg-buzz-cream px-3 py-2 text-sm"
               placeholder="you@university.edu"
               aria-invalid={Boolean(fieldError)}
               aria-describedby={fieldError ? "edu-rotate-email-error" : undefined}
             />
             <FieldError id="edu-rotate-email-error" message={fieldError ?? undefined} />
-          </label>
+          </div>
           <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={busy}
-              className="rounded-lg bg-buzz-coral px-4 py-2 text-sm font-bold text-buzz-paper disabled:opacity-60"
-            >
+            <Button type="submit" size="compact" disabled={busy}>
               {rotate.isPending ? "Sending…" : "Send verification"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              size="compact"
+              variant="ghost"
               onClick={() => {
                 setShowForm(false);
                 setNextEmail("");
               }}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-buzz-inkMuted"
             >
               Back
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -181,9 +181,9 @@ export default function EduEmailRotatePanel({
         </p>
       ) : null}
       {error ? (
-        <p className="mt-3 rounded-lg bg-red-50 p-2 text-sm font-medium text-red-700">
-          {error}
-        </p>
+        <div className="mt-3">
+          <ErrorBanner>{error}</ErrorBanner>
+        </div>
       ) : null}
     </div>
   );

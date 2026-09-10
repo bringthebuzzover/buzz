@@ -14,6 +14,7 @@ import {
   INSTAGRAM_CALLBACK_NETWORK,
   instagramCallbackFailureCopy,
 } from "../../utils/instagramCallbackCopy";
+import AuthShell from "../../components/site/AuthShell";
 
 type CallbackState =
   | { kind: "exchanging" }
@@ -107,7 +108,7 @@ export default function InstagramCallbackPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-8 py-24 text-center">
+    <AuthShell align="center" className="items-center text-center">
       <h1 className="mb-4 text-2xl font-black text-buzz-coral">
         Login failed
       </h1>
@@ -129,6 +130,6 @@ export default function InstagramCallbackPage() {
           Try Again
         </Link>
       )}
-    </div>
+    </AuthShell>
   );
 }

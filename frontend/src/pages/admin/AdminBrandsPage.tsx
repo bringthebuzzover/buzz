@@ -32,6 +32,7 @@ import {
   StatusPill,
 } from "../../components/admin/AdminPrimitives";
 import { formatElapsed } from "../../components/admin/labels";
+import { Select, TextField } from "../../components/forms/controls";
 
 const FILTERS = [
   { value: null, label: "All" },
@@ -41,9 +42,6 @@ const FILTERS = [
 ] as const;
 
 const HEADERS = ["Brand", "Status", "Access", "Contact", "Waiting", ""] as const;
-
-const inputClass =
-  "w-full rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-2 text-sm font-medium text-buzz-ink outline-none focus:border-buzz-coral";
 
 /** Can this brand actually sign in, and if not, why not? */
 function AccessPill({ row }: { row: AdminBrandRow }) {
@@ -93,54 +91,42 @@ function InviteBrandForm() {
       <div className="space-y-3 px-4 py-4">
         {error && <ErrorNote>{error}</ErrorNote>}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
-              Brand name
-            </span>
-            <input
-              data-testid="invite-brand-name"
-              className={inputClass}
-              value={brandName}
-              onChange={(e) => setBrandName(e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
-              Company email
-            </span>
-            <input
-              data-testid="invite-brand-email"
-              type="email"
-              className={inputClass}
-              value={companyEmail}
-              onChange={(e) => setCompanyEmail(e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
-              Instagram (optional)
-            </span>
-            <input
-              data-testid="invite-brand-instagram"
-              className={inputClass}
-              value={instagramHandle}
-              onChange={(e) => setInstagramHandle(e.target.value)}
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
-              After create
-            </span>
-            <select
-              data-testid="invite-brand-approve-now"
-              className={inputClass}
-              value={approveNow ? "approve" : "pending"}
-              onChange={(e) => setApproveNow(e.target.value === "approve")}
-            >
-              <option value="approve">Approve and send invite now</option>
-              <option value="pending">Create pending — invite later</option>
-            </select>
-          </label>
+          <TextField
+            id="invite-brand-name"
+            label="Brand name"
+            size="compact"
+            data-testid="invite-brand-name"
+            value={brandName}
+            onChange={(e) => setBrandName(e.target.value)}
+          />
+          <TextField
+            id="invite-brand-email"
+            label="Company email"
+            size="compact"
+            type="email"
+            data-testid="invite-brand-email"
+            value={companyEmail}
+            onChange={(e) => setCompanyEmail(e.target.value)}
+          />
+          <TextField
+            id="invite-brand-instagram"
+            label="Instagram (optional)"
+            size="compact"
+            data-testid="invite-brand-instagram"
+            value={instagramHandle}
+            onChange={(e) => setInstagramHandle(e.target.value)}
+          />
+          <Select
+            id="invite-brand-approve-now"
+            label="After create"
+            size="compact"
+            data-testid="invite-brand-approve-now"
+            value={approveNow ? "approve" : "pending"}
+            onChange={(e) => setApproveNow(e.target.value === "approve")}
+          >
+            <option value="approve">Approve and send invite now</option>
+            <option value="pending">Create pending — invite later</option>
+          </Select>
         </div>
         <ActionButton
           variant="primary"

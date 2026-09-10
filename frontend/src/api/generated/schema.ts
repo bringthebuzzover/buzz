@@ -1057,6 +1057,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/verify-email/resend-from-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend Verification From Token Endpoint
+         * @description Sessionless resend using the unused/expired token from the email link.
+         */
+        post: operations["resend_verification_from_token_endpoint_api_auth_verify_email_resend_from_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/verify-email/resend-public": {
         parameters: {
             query?: never;
@@ -6223,6 +6243,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ResendVerificationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_ResendVerificationResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    resend_verification_from_token_endpoint_api_auth_verify_email_resend_from_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailRequest"];
             };
         };
         responses: {

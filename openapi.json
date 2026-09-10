@@ -11336,6 +11336,48 @@
         ]
       }
     },
+    "/api/auth/verify-email/resend-from-token": {
+      "post": {
+        "description": "Sessionless resend using the unused/expired token from the email link.",
+        "operationId": "resend_verification_from_token_endpoint_api_auth_verify_email_resend_from_token_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_ResendVerificationResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Resend Verification From Token Endpoint",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/auth/verify-email/resend-public": {
       "post": {
         "description": "Public resend after apply (no session). Enumerate-safe: always 200-shaped.",

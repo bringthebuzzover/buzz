@@ -12,8 +12,7 @@ import {
   ORG_CAMPAIGN_STATUS_ORDER,
   type OrgCampaignStatus,
 } from "../../utils/orgCampaignStatus";
-
-const PAGE_SHELL = "mx-auto max-w-4xl px-8 py-12";
+import PageShell from "../../components/site/PageShell";
 
 function CampaignsHeader() {
   return (
@@ -50,28 +49,28 @@ function ApiCampaigns() {
 
   if (isLoading) {
     return (
-      <div className={PAGE_SHELL}>
+      <PageShell width="portal">
         <CampaignsHeader />
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
           Loading campaigns…
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   if (error) {
     return (
-      <div className={PAGE_SHELL}>
+      <PageShell width="portal">
         <CampaignsHeader />
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-coral">
           Couldn't load campaigns. Please try again.
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className={PAGE_SHELL}>
+    <PageShell width="portal">
       <CampaignsHeader />
       {rows.length === 0 ? (
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
@@ -92,7 +91,7 @@ function ApiCampaigns() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }
 

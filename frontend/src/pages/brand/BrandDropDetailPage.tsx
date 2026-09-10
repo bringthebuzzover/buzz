@@ -13,6 +13,15 @@ import type { BrandDropDetail, BrandDropApplicant } from "../../api/hooks/useBra
 import { ApiError } from "../../api/errors";
 import { useMemo, useState } from "react";
 import { orgCategoryLabel } from "../../types/orgCategory";
+import PageShell from "../../components/site/PageShell";
+import {
+  Button,
+  Checkbox,
+  ErrorBanner,
+  Select,
+  TextArea,
+  TextField,
+} from "../../components/forms/controls";
 
 /** Map backend drop detail to the shape components expect. */
 function mapDropToView(d: BrandDropDetail) {
@@ -56,6 +65,7 @@ function ApiApplicantTable({
   const [accepted, setAccepted] = useState<Record<string, boolean>>({});
   const [allocations, setAllocations] = useState<Record<string, number>>({});
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [finalizeConfirmOpen, setFinalizeConfirmOpen] = useState(false);
 
   // After reopen, prior accepted/denied rows remain — selection only mutates applied.
   const pending = useMemo(
@@ -99,13 +109,9 @@ function ApiApplicantTable({
     const payload = pending
       .filter((a) => accepted[a.orgId])
       .map((a) => ({ orgId: a.orgId, units: allocations[a.orgId] ?? 0 }));
-    const ok = window.confirm(
-      `Finalize this drop?\n\n` +
-        `Accept ${acceptedCount} ${acceptedCount === 1 ? "org" : "orgs"} · ` +
-        `Deny ${deniedCount} ${deniedCount === 1 ? "org" : "orgs"}.\n\n` +
-        `Denied applicants are emailed and this cannot be undone.`,
-    );
-    if (ok) finalizeMutation.mutate(payload);
+    finalizeMutation.mutate(payload, {
+      onSuccess: () => setFinalizeConfirmOpen(false),
+    });
   };
 
   const totalAllocated = pending
@@ -127,9 +133,9 @@ function ApiApplicantTable({
           </p>
         </div>
         {categories.length > 0 ? (
-          <select
+          <Select
             aria-label="Filter by organization type"
-            className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-1.5 text-xs font-semibold text-buzz-ink"
+            size="compact"
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
           >
@@ -139,7 +145,7 @@ function ApiApplicantTable({
                 {orgCategoryLabel(c)}
               </option>
             ))}
-          </select>
+          </Select>
         ) : null}
       </div>
       <div className="overflow-x-auto rounded-2xl border border-buzz-lineMid bg-buzz-paper">
@@ -174,8 +180,7 @@ function ApiApplicantTable({
                 return (
                   <tr key={app.id} className="border-b border-buzz-line">
                     <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         aria-label={`Accept ${app.orgName}`}
                         checked={isAccepted}
                         onChange={(e) =>
@@ -213,11 +218,12 @@ function ApiApplicantTable({
                     </td>
                     {showUnits ? (
                       <td className="px-4 py-3">
-                        <input
+                        <TextField
                           type="number"
                           min={0}
+                          size="compact"
                           disabled={!isAccepted}
-                          className="w-16 rounded border border-buzz-lineMid px-2 py-1 text-sm disabled:bg-buzz-cream disabled:opacity-50"
+                          className="w-16"
                           value={isAccepted ? allocations[app.orgId] ?? 0 : 0}
                           onChange={(e) =>
                             setAllocations((prev) => ({
@@ -236,29 +242,67 @@ function ApiApplicantTable({
         </table>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm font-medium text-buzz-inkMuted">
           Accept {acceptedCount} · Deny {deniedCount}
           {showUnits ? ` · ${totalAllocated} units allocated` : ""}
         </span>
-        <button
-          type="button"
-          onClick={handleFinalize}
-          disabled={finalizeMutation.isPending}
-          className="rounded-xl bg-buzz-coral px-6 py-2 text-sm font-bold text-buzz-paper hover:bg-buzz-coralDark disabled:opacity-60"
-        >
-          {finalizeMutation.isPending ? "Finalizing..." : "Finalize Selection"}
-        </button>
+        {finalizeConfirmOpen ? (
+          <div
+            className="w-full space-y-3 rounded-2xl border border-buzz-lineMid bg-buzz-cream p-4"
+            role="region"
+            aria-label="Confirm finalize"
+          >
+            <p className="text-sm font-medium text-buzz-ink">
+              Accept {acceptedCount}{" "}
+              {acceptedCount === 1 ? "org" : "orgs"} · Deny {deniedCount}{" "}
+              {deniedCount === 1 ? "org" : "orgs"}. Denied applicants are
+              emailed and this cannot be undone.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="compact"
+                data-testid="finalize-cancel"
+                disabled={finalizeMutation.isPending}
+                onClick={() => setFinalizeConfirmOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="compact"
+                data-testid="finalize-confirm"
+                disabled={finalizeMutation.isPending}
+                onClick={handleFinalize}
+              >
+                {finalizeMutation.isPending
+                  ? "Finalizing..."
+                  : "Confirm finalize"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            data-testid="finalize-selection"
+            onClick={() => setFinalizeConfirmOpen(true)}
+            disabled={finalizeMutation.isPending}
+          >
+            Finalize Selection
+          </Button>
+        )}
       </div>
       {finalizeMutation.isSuccess ? (
         <p className="text-sm font-medium text-green-600">Selection finalized.</p>
       ) : null}
       {finalizeMutation.error ? (
-        <p className="text-sm font-medium text-buzz-coral">
+        <ErrorBanner>
           {finalizeMutation.error instanceof Error
             ? finalizeMutation.error.message
             : "Failed to finalize."}
-        </p>
+        </ErrorBanner>
       ) : null}
     </div>
   );
@@ -326,11 +370,6 @@ function BrandCampaignEditor({ detail }: { detail: BrandDropDetail }) {
     }
   };
 
-  const fieldLabel =
-    "mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkMuted";
-  const inputClass =
-    "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-2 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
-
   return (
     <section
       data-testid="brand-campaign-editor"
@@ -341,36 +380,30 @@ function BrandCampaignEditor({ detail }: { detail: BrandDropDetail }) {
         Buzz can still change this.
       </p>
       <div className="mt-4 space-y-3">
-        <label className="block">
-          <span className={fieldLabel}>Title</span>
-          <input
-            type="text"
-            className={inputClass}
-            value={title}
-            disabled={patch.isPending}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </label>
-        <label className="block">
-          <span className={fieldLabel}>Description</span>
-          <textarea
-            rows={3}
-            className={inputClass}
-            value={description}
-            disabled={patch.isPending}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </label>
-        <label className="block">
-          <span className={fieldLabel}>Image URL</span>
-          <input
-            type="url"
-            className={inputClass}
-            value={image}
-            disabled={patch.isPending}
-            onChange={(e) => setImage(e.target.value)}
-          />
-        </label>
+        <TextField
+          type="text"
+          label="Title"
+          size="compact"
+          value={title}
+          disabled={patch.isPending}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <TextArea
+          label="Description"
+          size="compact"
+          rows={3}
+          value={description}
+          disabled={patch.isPending}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <TextField
+          type="url"
+          label="Image URL"
+          size="compact"
+          value={image}
+          disabled={patch.isPending}
+          onChange={(e) => setImage(e.target.value)}
+        />
         {httpsPreview ? (
           <img
             src={image.trim()}
@@ -378,23 +411,18 @@ function BrandCampaignEditor({ detail }: { detail: BrandDropDetail }) {
             className="max-h-40 rounded-lg border border-buzz-lineMid object-cover"
           />
         ) : null}
-        <button
+        <Button
           type="button"
           data-testid="brand-save-creative"
           disabled={patch.isPending}
           onClick={() => void onSave()}
-          className="rounded-xl bg-buzz-coral px-6 py-2 text-sm font-bold text-buzz-paper hover:bg-buzz-coralDark disabled:opacity-60"
         >
           {patch.isPending ? "Saving..." : "Save"}
-        </button>
+        </Button>
         {notice ? (
           <p className="text-sm font-medium text-green-600">{notice}</p>
         ) : null}
-        {error ? (
-          <p className="text-sm font-medium text-buzz-coral" role="alert">
-            {error}
-          </p>
-        ) : null}
+        {error ? <ErrorBanner>{error}</ErrorBanner> : null}
       </div>
     </section>
   );
@@ -407,9 +435,9 @@ function ApiDropDetail() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-5xl px-8 py-12 text-center">
+      <PageShell width="wide" className="text-center">
         <p className="text-sm font-medium text-buzz-inkMuted">Loading...</p>
-      </div>
+      </PageShell>
     );
   }
 
@@ -419,7 +447,7 @@ function ApiDropDetail() {
 
   if (error || !detail) {
     return (
-      <div className="mx-auto max-w-5xl px-8 py-12">
+      <PageShell width="wide">
         <Link
           to="/brand/dashboard"
           className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
@@ -432,7 +460,7 @@ function ApiDropDetail() {
             ? error.message
             : "Couldn’t load this drop. Please try again."}
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -463,7 +491,7 @@ function ApiDropDetail() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-8 py-12">
+    <PageShell width="wide">
       <Link
         to="/brand/dashboard"
         className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
@@ -525,7 +553,7 @@ function ApiDropDetail() {
           Posts and KPIs will appear here once your drop goes live.
         </div>
       ) : null}
-    </div>
+    </PageShell>
   );
 }
 

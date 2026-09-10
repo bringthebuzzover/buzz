@@ -9,7 +9,7 @@ export default function FieldError({
     return null;
   }
   return (
-    <p id={id} className="mt-1 text-sm font-medium text-red-700" role="alert">
+    <p id={id} className="mt-1 text-sm font-medium text-buzz-danger" role="alert">
       {message}
     </p>
   );

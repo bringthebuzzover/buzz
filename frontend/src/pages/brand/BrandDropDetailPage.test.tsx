@@ -10,11 +10,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
   true;
 
 const mockUseBrandDropDetail = jest.fn();
+const mockFinalizeMutate = jest.fn();
 
 jest.mock("../../api/hooks/useBrandHooks", () => ({
   useBrandDropDetail: (...args: unknown[]) => mockUseBrandDropDetail(...args),
   useFinalizeApplicants: () => ({
-    mutate: jest.fn(),
+    mutate: mockFinalizeMutate,
     isPending: false,
   }),
   usePatchBrandDropCreative: () => ({
@@ -62,6 +63,7 @@ describe("BrandDropDetailPage", () => {
 
   beforeEach(() => {
     mockUseBrandDropDetail.mockReset();
+    mockFinalizeMutate.mockReset();
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -125,5 +127,64 @@ describe("BrandDropDetailPage", () => {
     expect(
       container.querySelector('[data-testid="brand-save-creative"]'),
     ).toBeTruthy();
+  });
+
+  it("asks for in-app finalize confirm instead of window.confirm", () => {
+    const confirmSpy = jest.spyOn(window, "confirm");
+    mockUseBrandDropDetail.mockReturnValue({
+      data: {
+        ...brandDrop(false),
+        brandTrackerStage: "finalizing_agreements",
+        applyCloseAt: now - 1000,
+        applications: [
+          {
+            id: "app-1",
+            dropId: "drop-1",
+            orgId: "org-1",
+            orgName: "Campus Greeks",
+            university: "Cornell",
+            instagramHandle: "campusgreeks",
+            category: "fraternity",
+            followerCount: 100,
+            memberCount: 40,
+            pitch: null,
+            decision: "applied",
+            decisionAt: null,
+            appliedAt: now,
+            allocatedUnits: null,
+            deliveryAddress: "Ithaca, NY",
+            accountErased: false,
+            trackingNumber: null,
+            attributedComments: 0,
+            attributedEngagement: 0,
+            attributedLikes: 0,
+            attributedPostCount: 0,
+            posts: [],
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+
+    const start = container.querySelector(
+      '[data-testid="finalize-selection"]',
+    ) as HTMLButtonElement;
+    act(() => {
+      start.click();
+    });
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(mockFinalizeMutate).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("cannot be undone");
+
+    const confirmBtn = container.querySelector(
+      '[data-testid="finalize-confirm"]',
+    ) as HTMLButtonElement;
+    act(() => {
+      confirmBtn.click();
+    });
+    expect(mockFinalizeMutate).toHaveBeenCalledTimes(1);
+    confirmSpy.mockRestore();
   });
 });

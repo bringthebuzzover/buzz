@@ -9,6 +9,19 @@ module.exports = {
       colors: tailwindThemeExtend.colors,
       boxShadow: tailwindThemeExtend.boxShadow,
       dropShadow: tailwindThemeExtend.dropShadow,
+      fontSize: {
+        buzzMicro: ["0.625rem", { lineHeight: "0.875rem", fontWeight: "700" }],
+      },
+      borderRadius: {
+        buzzControl: "0.5rem",
+        buzzCard: "1rem",
+        buzzModal: "1.5rem",
+      },
+      zIndex: {
+        buzzDrawer: "55",
+        buzzBanner: "100",
+        buzzModal: "120",
+      },
       keyframes: {
         slideInLeft: {
           "0%": { transform: "translateX(-80px)", opacity: "0" },
