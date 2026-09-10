@@ -19,8 +19,8 @@ import {
   type BrandDropRequest,
 } from "../../api/hooks/useBrandHooks";
 import type { BrandAggregate, EngagementPoint } from "../../api/hooks/useBrandHooks";
-
-const PAGE_SHELL = "mx-auto max-w-6xl px-8 py-12";
+import PageShell from "../../components/site/PageShell";
+import { Button } from "../../components/forms/controls";
 
 function DashboardHeader({
   onPlanCampaign,
@@ -30,19 +30,21 @@ function DashboardHeader({
   return (
     <header className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
       <div>
-        <h1 className="text-3xl font-bold text-buzz-ink">Brand Dashboard</h1>
+        <h1 className="text-3xl font-bold text-buzz-ink">
+          Brand <span className="text-buzz-coral">Dashboard</span>
+        </h1>
         <p className="mt-1 text-sm font-medium text-buzz-inkMuted">
           Aggregate performance across every drop you've run with Buzz.
         </p>
       </div>
-      <button
+      <Button
         type="button"
         onClick={onPlanCampaign}
         data-testid="plan-campaign"
-        className="flex items-center gap-2 rounded-lg bg-buzz-coral px-4 py-2 font-bold text-buzz-paper shadow-sm transition hover:bg-buzz-coralDark"
+        className="flex items-center gap-2"
       >
         <Sparkles size={16} /> Plan your Campaign
-      </button>
+      </Button>
     </header>
   );
 }
@@ -167,23 +169,23 @@ function ApiDashboard() {
 
   if (isLoading) {
     return (
-      <div className={PAGE_SHELL}>
+      <PageShell width="wide">
         <DashboardHeader onPlanCampaign={planCampaign} />
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
           Loading dashboard…
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   if (isError) {
     return (
-      <div className={PAGE_SHELL}>
+      <PageShell width="wide">
         <DashboardHeader onPlanCampaign={planCampaign} />
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-coral">
           Couldn’t load your dashboard. Please try again.
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -202,7 +204,7 @@ function ApiDashboard() {
   const pts = series ?? [];
 
   return (
-    <div className={PAGE_SHELL}>
+    <PageShell width="wide">
       <DashboardHeader onPlanCampaign={planCampaign} />
       {ticketSubmitted ? (
         <div
@@ -240,7 +242,7 @@ function ApiDashboard() {
           </>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }
 

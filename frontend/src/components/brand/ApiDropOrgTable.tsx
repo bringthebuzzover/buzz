@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import type { BrandDropApplicant } from "../../api/hooks/useBrandHooks";
 import { orgCategoryLabel } from "../../types/orgCategory";
 import { safeHttpUrl } from "../../utils/safeHttpUrl";
+import { Select } from "../forms/controls";
 
 type Props = {
   applicants: BrandDropApplicant[];
@@ -53,9 +54,9 @@ export default function ApiDropOrgTable({
         <h3 className="text-lg font-bold text-buzz-ink">{title}</h3>
         <div className="flex items-center gap-3">
           {categories.length > 0 ? (
-            <select
+            <Select
               aria-label="Filter by organization type"
-              className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-1.5 text-xs font-semibold text-buzz-ink"
+              size="compact"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
@@ -65,7 +66,7 @@ export default function ApiDropOrgTable({
                   {orgCategoryLabel(c)}
                 </option>
               ))}
-            </select>
+            </Select>
           ) : null}
           <span className="text-xs font-bold text-buzz-inkMuted">
             {rows.length} {rows.length === 1 ? "org" : "orgs"}

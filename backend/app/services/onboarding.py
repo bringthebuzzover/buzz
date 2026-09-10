@@ -648,3 +648,79 @@ async def resend_verification_public(db: AsyncSession, edu_email: str) -> dict[s
 
     await _mint_and_send_verification(db, user, edu_email, org_name=org_name, kind="signup")
     return {"email_sent_to": edu_email}
+
+
+async def resend_verification_from_token(db: AsyncSession, token: str) -> dict[str, Any]:
+    """Mint a new .edu verify mail from an unused (usually expired) token.
+
+    The caller already proved they received the original link (same raw token
+    as the failed redeem). Invalid or already-used tokens do not send.
+    """
+    evt = await db.scalar(
+        select(EmailVerificationToken).where(EmailVerificationToken.token_hash == hash_token(token))
+    )
+    if evt is None:
+        raise BuzzAPIException(
+            errors.VERIFICATION_TOKEN_INVALID,
+            "Invalid verification token.",
+            status_code=400,
+        )
+    if evt.used_at is not None:
+        raise BuzzAPIException(
+            errors.EMAIL_ALREADY_VERIFIED,
+            "This email has already been verified.",
+            status_code=400,
+        )
+
+    user = await db.get(User, evt.user_id)
+    if user is None or user.portal_role != PortalRole.ORG.value:
+        raise BuzzAPIException(
+            errors.VERIFICATION_TOKEN_INVALID,
+            "Invalid verification token.",
+            status_code=400,
+        )
+
+    token_email = (evt.email or "").strip().lower()
+    target: str | None = None
+    kind = "signup"
+    if user.status == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
+        target = user.edu_email
+        kind = "signup"
+    elif (
+        user.status in _ROTATE_ELIGIBLE_STATUSES
+        and user.pending_edu_email
+        and token_email == user.pending_edu_email
+    ):
+        target = user.pending_edu_email
+        kind = "rotate"
+    else:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Account is not awaiting email verification.",
+            status_code=400,
+        )
+
+    if not target:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "No .edu email on file.",
+            status_code=400,
+        )
+
+    if await _count_active_verification_tokens(db, user.id) >= 3:
+        raise BuzzAPIException(
+            errors.MAX_VERIFICATION_ATTEMPTS,
+            "Too many verification emails. Wait for previous tokens to expire.",
+            status_code=429,
+        )
+
+    org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+    org_name = org.org_name if org is not None else ""
+    ok = await _mint_and_send_verification(db, user, target, org_name=org_name, kind=kind)
+    if not ok:
+        raise BuzzAPIException(
+            errors.EMAIL_SEND_FAILED,
+            "We could not send the verification email. Please try again.",
+            status_code=502,
+        )
+    return {"email_sent_to": target}

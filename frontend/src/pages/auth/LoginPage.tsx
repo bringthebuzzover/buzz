@@ -6,6 +6,7 @@ import { Link, Navigate } from "react-router-dom";
 import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
 import instagramIcon from "../../assets/insta-icon.png";
 import { pathForUser } from "../../utils/landing";
+import AuthShell from "../../components/site/AuthShell";
 
 export default function LoginPage() {
   const { status, user, login } = useAuth();
@@ -25,7 +26,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-8 py-24 text-center">
+    <AuthShell align="center" className="items-center text-center">
       <h1 className="mb-4 text-3xl font-black text-buzz-ink">
         Join or sign in to <span className="text-buzz-coral">Buzz</span>
       </h1>
@@ -64,6 +65,6 @@ export default function LoginPage() {
           Brand login
         </Link>
       </p>
-    </div>
+    </AuthShell>
   );
 }

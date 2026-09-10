@@ -12,6 +12,7 @@ import type { DropFeedRow, DropFeedStatus } from "../../types/drop";
 import { useWallClockNow } from "../../utils/wallClock";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
 import { useApplyToDrop } from "../../api/hooks/useDropHooks";
+import PageShell from "../../components/site/PageShell";
 
 type FilterId = "all" | "upcoming" | "open" | "closed";
 
@@ -26,8 +27,6 @@ function matchesFilter(filter: FilterId, status: DropFeedStatus): boolean {
   if (filter === "all") return true;
   return filter === status;
 }
-
-const PAGE_SHELL = "mx-auto max-w-6xl px-8 py-12";
 
 function FeedHeader() {
   return (
@@ -80,7 +79,7 @@ function FeedContent({
   }, [rows, now, filter]);
 
   return (
-    <div className={PAGE_SHELL}>
+    <PageShell width="wide">
       <FeedHeader />
 
       <div className="mb-8 flex flex-wrap justify-center gap-2">
@@ -105,18 +104,19 @@ function FeedContent({
           No drops match this filter right now.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-wrap justify-center gap-8">
           {visibleDrops.map(({ row, status }) => {
             return (
-              <DropFeedCard
-                key={row.id}
-                drop={row}
-                acceptedCount={row.acceptedCount}
-                feedStatus={status}
-                alreadyApplied={row.alreadyApplied}
-                disableApply={disableApply}
-                onApply={() => onApply(row.id)}
-              />
+              <div key={row.id} className="w-full max-w-sm">
+                <DropFeedCard
+                  drop={row}
+                  acceptedCount={row.acceptedCount}
+                  feedStatus={status}
+                  alreadyApplied={row.alreadyApplied}
+                  disableApply={disableApply}
+                  onApply={() => onApply(row.id)}
+                />
+              </div>
             );
           })}
         </div>
@@ -134,7 +134,7 @@ function FeedContent({
           </button>
         </div>
       ) : null}
-    </div>
+    </PageShell>
   );
 }
 
@@ -175,23 +175,23 @@ function ApiDropFeed() {
 
   if (isLoading) {
     return (
-      <div className={PAGE_SHELL}>
+      <PageShell width="wide">
         <FeedHeader />
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
           Loading drops…
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   if (error) {
     return (
-      <div className={PAGE_SHELL}>
+      <PageShell width="wide">
         <FeedHeader />
         <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-coral">
           Couldn’t load drops. Please try again.
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -229,7 +229,7 @@ function ApiApplyForm({
   };
 
   return (
-    <div className={PAGE_SHELL}>
+    <PageShell width="wide">
       <FeedHeader />
       <div className="mx-auto max-w-md rounded-2xl border border-buzz-lineMid bg-buzz-paper p-8 shadow-sm">
         <h2 className="mb-4 text-xl font-bold text-buzz-ink">Apply to Drop</h2>
@@ -264,7 +264,7 @@ function ApiApplyForm({
           </p>
         ) : null}
       </div>
-    </div>
+    </PageShell>
   );
 }
 

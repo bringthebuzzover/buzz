@@ -79,6 +79,7 @@ Read the skill file when the trigger matches. Skills live under [`.agents/skills
 | [`react-patterns`](.agents/skills/react-patterns/SKILL.md) | Writing/reviewing React components |
 | [`react-performance`](.agents/skills/react-performance/SKILL.md) | React/Next performance work |
 | [`react-testing`](.agents/skills/react-testing/SKILL.md) | Component tests vs E2E boundary |
+| [`ui-fit-finish`](.agents/skills/ui-fit-finish/SKILL.md) | `run ui fit-finish` / `run UI token pass` — shells + form primitives |
 
 Cursor **user** skills under `~/.cursor/skills-cursor/` are IDE-local and **not** repo SOT.
 

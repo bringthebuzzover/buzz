@@ -4,9 +4,11 @@
  * failed refresh) so denial UX survives logout; Instagram callback also lands
  * here on ACCOUNT_DENIED.
  */
+import AuthShell from "../../components/site/AuthShell";
+
 export default function DeniedPage() {
   return (
-    <div className="mx-auto max-w-md px-8 py-24 text-center">
+    <AuthShell align="center" className="text-center">
       <h1 className="mb-4 text-3xl font-bold text-buzz-coral">
         Application Denied
       </h1>
@@ -14,6 +16,6 @@ export default function DeniedPage() {
         Your organization's application was not approved. Contact Buzz support
         if you have questions.
       </p>
-    </div>
+    </AuthShell>
   );
 }

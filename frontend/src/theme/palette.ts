@@ -38,11 +38,19 @@ export const tailwindThemeExtend = {
       darkDeep: "#0a0a0a",
       overlay: "#000000",
 
-      // Links & verified badge (2)
+      // Semantic status (mapped from the stock Tailwind red/green/amber we used)
+      danger: "#b91c1c",
+      dangerWash: "#fef2f2",
+      success: "#166534",
+      successWash: "#f0fdf4",
+      warn: "#b45309",
+      warnWash: "#fffbeb",
+
+      // Links & verified badge (2) — reserved; prefer ink/coral in product UI
       blue: "#3b82f6",
       blueDark: "#1e3a8a",
 
-      // Mock IG gradient (3)
+      // Mock IG gradient (3) — reserved for tour/marketing mocks
       spectrumStart: "#facc15",
       spectrumMid: "#f97316",
       spectrumEnd: "#9333ea",

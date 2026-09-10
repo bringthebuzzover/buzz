@@ -146,6 +146,23 @@ export function usePublicResendVerification() {
   });
 }
 
+/** Sessionless resend using the unused/expired token from the email link. */
+export function useResendVerificationFromToken() {
+  return useMutation({
+    mutationFn: async (token: string) => {
+      const { data } = await apiFetch<ResendVerificationResponse>(
+        "/api/auth/verify-email/resend-from-token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        },
+      );
+      return data;
+    },
+  });
+}
+
 /** Redeem approval connect-email token → session for Connect Instagram. */
 export function useRedeemOrgConnect() {
   return useMutation({

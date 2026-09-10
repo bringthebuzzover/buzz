@@ -11,6 +11,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { userFacingApiError } from "../../api/userFacingError";
 import FieldError from "../../components/forms/FieldError";
 import {
+  Button,
+  ErrorBanner,
+  Select,
+  TextField,
+} from "../../components/forms/controls";
+import AuthShell from "../../components/site/AuthShell";
+import {
   useOrgProfile,
   useUpdateOrgProfile,
   type OrgProfileUpdate,
@@ -31,9 +38,6 @@ import {
   requireNonBlank,
   unwrapParsed,
 } from "../../utils/formValidation";
-
-const inputClass =
-  "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
 
 export default function OrgPortalProfilePage() {
   const { data, isLoading, error: loadError } = useOrgProfile();
@@ -169,17 +173,17 @@ export default function OrgPortalProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-md px-8 py-16 text-center text-sm font-medium text-buzz-inkMuted">
+      <AuthShell align="stack" className="text-center text-sm font-medium text-buzz-inkMuted">
         Loading profile…
-      </div>
+      </AuthShell>
     );
   }
 
   if (loadError || !data) {
     return (
-      <div className="mx-auto max-w-md px-8 py-16 text-center text-sm font-medium text-buzz-coral">
+      <AuthShell align="stack" className="text-center text-sm font-medium text-buzz-coral">
         Couldn’t load your profile. Please try again.
-      </div>
+      </AuthShell>
     );
   }
 
@@ -190,7 +194,7 @@ export default function OrgPortalProfilePage() {
     data.followerCount != null ? String(data.followerCount) : "—";
 
   return (
-    <div className="mx-auto max-w-md px-8 py-16">
+    <AuthShell align="stack">
       <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
         Org <span className="text-buzz-coral">Profile</span>
       </h1>
@@ -199,11 +203,7 @@ export default function OrgPortalProfilePage() {
       </p>
 
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
-        {error ? (
-          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-            {error}
-          </p>
-        ) : null}
+        {error ? <ErrorBanner>{error}</ErrorBanner> : null}
         <div className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
             Instagram identity (read-only)
@@ -220,11 +220,9 @@ export default function OrgPortalProfilePage() {
         />
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Organization name
-          </label>
-          <input
-            className={inputClass}
+          <TextField
+            id="org-profile-org-name"
+            label="Organization name"
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             required
@@ -237,11 +235,9 @@ export default function OrgPortalProfilePage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            University
-          </label>
-          <input
-            className={inputClass}
+          <TextField
+            id="org-profile-university"
+            label="University"
             value={university}
             onChange={(e) => setUniversity(e.target.value)}
             required
@@ -256,37 +252,35 @@ export default function OrgPortalProfilePage() {
           />
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            TikTok handle{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
-          </label>
-          <input
-            className={inputClass}
-            value={tiktokHandle}
-            onChange={(e) => setTiktokHandle(e.target.value)}
-            placeholder="@yourclub"
-          />
-        </div>
+        <TextField
+          id="org-profile-tiktok"
+          label={
+            <>
+              TikTok handle{" "}
+              <span className="font-normal text-buzz-inkMuted">(optional)</span>
+            </>
+          }
+          value={tiktokHandle}
+          onChange={(e) => setTiktokHandle(e.target.value)}
+          placeholder="@yourclub"
+        />
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
+          <p className="mb-1 block text-sm font-semibold text-buzz-ink">
             Instagram followers{" "}
             <span className="font-normal text-buzz-inkMuted">(from Instagram)</span>
-          </label>
+          </p>
           <p className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3 text-sm font-medium text-buzz-ink">
             {followersDisplay}
           </p>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Number of members
-          </label>
-          <input
+          <TextField
+            id="org-profile-member-count"
             type="number"
             min="0"
-            className={inputClass}
+            label="Number of members"
             value={memberCount}
             onChange={(e) => setMemberCount(e.target.value)}
             required
@@ -301,31 +295,25 @@ export default function OrgPortalProfilePage() {
           />
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Organization type
-          </label>
-          <select
-            className={inputClass}
-            value={category}
-            onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
-            required
-          >
-            <option value="">Select a type…</option>
-            {ORG_CATEGORY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Select
+          id="org-profile-category"
+          label="Organization type"
+          value={category}
+          onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
+          required
+        >
+          <option value="">Select a type…</option>
+          {ORG_CATEGORY_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </Select>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Contact name
-          </label>
-          <input
-            className={inputClass}
+          <TextField
+            id="org-profile-contact-name"
+            label="Contact name"
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
             required
@@ -343,7 +331,6 @@ export default function OrgPortalProfilePage() {
         <ShippingAddressFields
           value={shipping}
           onChange={setShipping}
-          inputClass={inputClass}
           testIdPrefix="org-profile"
           error={fieldErrors.shipping}
           legacyHint={
@@ -351,13 +338,9 @@ export default function OrgPortalProfilePage() {
           }
         />
 
-        <button
-          type="submit"
-          disabled={update.isPending}
-          className="w-full rounded-lg bg-buzz-coral py-3 text-sm font-bold text-buzz-paper shadow-md transition enabled:hover:bg-buzz-coralDark disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        <Button type="submit" disabled={update.isPending} className="w-full">
           {update.isPending ? "Saving…" : "Save profile"}
-        </button>
+        </Button>
 
         {saved && !error && Object.keys(fieldErrors).length === 0 ? (
           <p className="rounded-lg bg-green-50 p-3 text-sm font-medium text-green-700">
@@ -365,6 +348,6 @@ export default function OrgPortalProfilePage() {
           </p>
         ) : null}
       </form>
-    </div>
+    </AuthShell>
   );
 }

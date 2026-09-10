@@ -12,6 +12,7 @@ import {
 } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
 import FieldError from "../forms/FieldError";
+import { TextField } from "../forms/controls";
 
 export type ShippingAddressValue = {
   line1: string;
@@ -49,7 +50,8 @@ const SUGGEST_DEBOUNCE_MS = 750;
 type Props = {
   value: ShippingAddressValue;
   onChange: (next: ShippingAddressValue) => void;
-  inputClass: string;
+  /** Extra classes for unmigrated callers still passing a local field string. */
+  inputClass?: string;
   testIdPrefix: string;
   required?: boolean;
   legacyHint?: string | null;
@@ -165,15 +167,10 @@ export default function ShippingAddressFields({
       ) : null}
 
       <div className="relative">
-        <label
-          htmlFor={`${testIdPrefix}-shipping-line1`}
-          className="mb-1 block text-sm font-semibold text-buzz-ink"
-        >
-          Street
-        </label>
-        <input
+        <TextField
           id={`${testIdPrefix}-shipping-line1`}
           data-testid={`${testIdPrefix}-shipping-line1`}
+          label="Street"
           className={inputClass}
           value={value.line1}
           onChange={(e) => {
@@ -220,89 +217,65 @@ export default function ShippingAddressFields({
         ) : null}
       </div>
 
-      <div>
-        <label
-          htmlFor={`${testIdPrefix}-shipping-line2`}
-          className="mb-1 block text-sm font-semibold text-buzz-ink"
-        >
-          Apt, CPO, or PO Box{" "}
-          <span className="font-normal text-buzz-inkMuted">(optional)</span>
-        </label>
-        <input
-          id={`${testIdPrefix}-shipping-line2`}
-          data-testid={`${testIdPrefix}-shipping-line2`}
-          className={inputClass}
-          value={value.line2}
-          onChange={(e) => patch({ line2: e.target.value })}
-          autoComplete="address-line2"
-        />
-      </div>
+      <TextField
+        id={`${testIdPrefix}-shipping-line2`}
+        data-testid={`${testIdPrefix}-shipping-line2`}
+        label={
+          <>
+            Apt, CPO, or PO Box{" "}
+            <span className="font-normal text-buzz-inkMuted">(optional)</span>
+          </>
+        }
+        className={inputClass}
+        value={value.line2}
+        onChange={(e) => patch({ line2: e.target.value })}
+        autoComplete="address-line2"
+      />
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="col-span-1">
-          <label
-            htmlFor={`${testIdPrefix}-shipping-city`}
-            className="mb-1 block text-sm font-semibold text-buzz-ink"
-          >
-            City
-          </label>
-          <input
-            id={`${testIdPrefix}-shipping-city`}
-            data-testid={`${testIdPrefix}-shipping-city`}
-            className={inputClass}
-            value={value.city}
-            onChange={(e) => patch({ city: e.target.value })}
-            autoComplete="address-level2"
-            required={required}
-            aria-invalid={Boolean(error)}
-            aria-describedby={
-              error ? `${testIdPrefix}-shipping-error` : undefined
-            }
-          />
-        </div>
-        <div>
-          <label
-            htmlFor={`${testIdPrefix}-shipping-state`}
-            className="mb-1 block text-sm font-semibold text-buzz-ink"
-          >
-            State
-          </label>
-          <input
-            id={`${testIdPrefix}-shipping-state`}
-            data-testid={`${testIdPrefix}-shipping-state`}
-            className={inputClass}
-            value={value.state}
-            onChange={(e) => patch({ state: e.target.value })}
-            autoComplete="address-level1"
-            maxLength={2}
-            required={required}
-            aria-invalid={Boolean(error)}
-            aria-describedby={
-              error ? `${testIdPrefix}-shipping-error` : undefined
-            }
-          />
-        </div>
-        <div>
-          <label
-            htmlFor={`${testIdPrefix}-shipping-postal`}
-            className="mb-1 block text-sm font-semibold text-buzz-ink"
-          >
-            ZIP
-          </label>
-          <input
-            id={`${testIdPrefix}-shipping-postal`}
-            data-testid={`${testIdPrefix}-shipping-postal`}
-            className={inputClass}
-            value={value.postalCode}
-            onChange={(e) => patch({ postalCode: e.target.value })}
-            autoComplete="postal-code"
-            required={required}
-            aria-invalid={Boolean(error)}
-            aria-describedby={
-              error ? `${testIdPrefix}-shipping-error` : undefined
-            }
-          />
-        </div>
+        <TextField
+          id={`${testIdPrefix}-shipping-city`}
+          data-testid={`${testIdPrefix}-shipping-city`}
+          label="City"
+          className={inputClass}
+          value={value.city}
+          onChange={(e) => patch({ city: e.target.value })}
+          autoComplete="address-level2"
+          required={required}
+          aria-invalid={Boolean(error)}
+          aria-describedby={
+            error ? `${testIdPrefix}-shipping-error` : undefined
+          }
+        />
+        <TextField
+          id={`${testIdPrefix}-shipping-state`}
+          data-testid={`${testIdPrefix}-shipping-state`}
+          label="State"
+          className={inputClass}
+          value={value.state}
+          onChange={(e) => patch({ state: e.target.value })}
+          autoComplete="address-level1"
+          maxLength={2}
+          required={required}
+          aria-invalid={Boolean(error)}
+          aria-describedby={
+            error ? `${testIdPrefix}-shipping-error` : undefined
+          }
+        />
+        <TextField
+          id={`${testIdPrefix}-shipping-postal`}
+          data-testid={`${testIdPrefix}-shipping-postal`}
+          label="ZIP"
+          className={inputClass}
+          value={value.postalCode}
+          onChange={(e) => patch({ postalCode: e.target.value })}
+          autoComplete="postal-code"
+          required={required}
+          aria-invalid={Boolean(error)}
+          aria-describedby={
+            error ? `${testIdPrefix}-shipping-error` : undefined
+          }
+        />
       </div>
 
       {lookupError ? (

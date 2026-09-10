@@ -88,14 +88,21 @@ echo "==> [backend 6/6] Pytest"
 )
 
 echo
-echo "==> [frontend 1/3] TypeScript"
+echo "==> [frontend 0/4] UI primitives leftover hunter"
+(
+  cd frontend
+  bash scripts/check-ui-primitives.sh
+)
+
+echo
+echo "==> [frontend 1/4] TypeScript"
 (
   cd frontend
   npx tsc --noEmit
 )
 
 echo
-echo "==> [frontend 2/3] Generated API types in sync"
+echo "==> [frontend 2/4] Generated API types in sync"
 (
   cd frontend
   npm run gen:api
@@ -104,7 +111,7 @@ echo "==> [frontend 2/3] Generated API types in sync"
 )
 
 echo
-echo "==> [frontend 3/3] Production build"
+echo "==> [frontend 3/4] Production build"
 (
   cd frontend
   CI=true npm run build

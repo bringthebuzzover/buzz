@@ -15,6 +15,14 @@ import { useSubmitOnboarding } from "../../api/hooks/useOnboardingHooks";
 import { userFacingApiError } from "../../api/userFacingError";
 import { pathForUser } from "../../utils/landing";
 import FieldError from "../../components/forms/FieldError";
+import {
+  Button,
+  ErrorBanner,
+  Select,
+  TextField,
+  fieldClass,
+} from "../../components/forms/controls";
+import AuthShell from "../../components/site/AuthShell";
 import ShippingAddressFields, {
   EMPTY_SHIPPING,
   shippingToApi,
@@ -30,9 +38,6 @@ import {
   requireNonBlank,
   unwrapParsed,
 } from "../../utils/formValidation";
-
-const inputClass =
-  "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
 
 export default function OrgProfilePage() {
   const { user, refreshUser } = useAuth();
@@ -123,7 +128,7 @@ export default function OrgProfilePage() {
   };
 
   return (
-    <div className="mx-auto max-w-md px-8 py-16">
+    <AuthShell align="stack">
       <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
         Set Up Your <span className="text-buzz-coral">Org Profile</span>
       </h1>
@@ -134,11 +139,7 @@ export default function OrgProfilePage() {
       </p>
 
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
-        {error && (
-          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-            {error}
-          </p>
-        )}
+        {error && <ErrorBanner>{error}</ErrorBanner>}
         {signedInAs && (
           <div className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
@@ -152,11 +153,8 @@ export default function OrgProfilePage() {
         )}
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Organization name
-          </label>
-          <input
-            className={inputClass}
+          <TextField
+            label="Organization name"
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             required
@@ -167,11 +165,8 @@ export default function OrgProfilePage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            University
-          </label>
-          <input
-            className={inputClass}
+          <TextField
+            label="University"
             value={university}
             onChange={(e) => setUniversity(e.target.value)}
             required
@@ -187,12 +182,9 @@ export default function OrgProfilePage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            School (.edu) email
-          </label>
-          <input
+          <TextField
             type="email"
-            className={inputClass}
+            label="School (.edu) email"
             value={eduEmail}
             onChange={(e) => setEduEmail(e.target.value)}
             placeholder="you@university.edu"
@@ -212,13 +204,10 @@ export default function OrgProfilePage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Number of members
-          </label>
-          <input
+          <TextField
             type="number"
             min="0"
-            className={inputClass}
+            label="Number of members"
             value={memberCount}
             onChange={(e) => setMemberCount(e.target.value)}
             required
@@ -233,31 +222,23 @@ export default function OrgProfilePage() {
           />
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Organization type
-          </label>
-          <select
-            className={inputClass}
-            value={category}
-            onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
-            required
-          >
-            <option value="">Select a type…</option>
-            {ORG_CATEGORY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Select
+          label="Organization type"
+          value={category}
+          onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
+          required
+        >
+          <option value="">Select a type…</option>
+          {ORG_CATEGORY_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </Select>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Contact name
-          </label>
-          <input
-            className={inputClass}
+          <TextField
+            label="Contact name"
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
             required
@@ -275,19 +256,19 @@ export default function OrgProfilePage() {
         <ShippingAddressFields
           value={shipping}
           onChange={setShipping}
-          inputClass={inputClass}
+          inputClass={fieldClass.default}
           testIdPrefix="org-onboarding"
           error={fieldErrors.shipping}
         />
 
-        <button
+        <Button
           type="submit"
           disabled={submit.isPending}
-          className="w-full rounded-lg bg-buzz-coral py-3 text-sm font-bold text-buzz-paper shadow-md transition enabled:hover:bg-buzz-coralDark disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full"
         >
           {submit.isPending ? "Submitting…" : "Continue"}
-        </button>
+        </Button>
       </form>
-    </div>
+    </AuthShell>
   );
 }

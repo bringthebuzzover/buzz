@@ -16,6 +16,14 @@ import {
 import { ApiError } from "../../api/client";
 import { userFacingApiError } from "../../api/userFacingError";
 import FieldError from "../../components/forms/FieldError";
+import {
+  Button,
+  ErrorBanner,
+  Select,
+  TextField,
+  fieldClass,
+} from "../../components/forms/controls";
+import AuthShell from "../../components/site/AuthShell";
 import ShippingAddressFields, {
   EMPTY_SHIPPING,
   shippingToApi,
@@ -31,9 +39,6 @@ import {
   requireNonBlank,
   unwrapParsed,
 } from "../../utils/formValidation";
-
-const inputClass =
-  "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
 
 const LOOKUP_DEBOUNCE_MS = 500;
 const META_PROFESSIONAL_HELP =
@@ -254,7 +259,7 @@ export default function OrgApplyPage() {
   };
 
   return (
-    <div className="mx-auto max-w-md px-8 py-16">
+    <AuthShell align="stack">
       <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
         Apply as a <span className="text-buzz-coral">Student Org</span>
       </h1>
@@ -278,18 +283,11 @@ export default function OrgApplyPage() {
       </p>
 
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
-        {error && (
-          <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-            {error}
-          </p>
-        )}
+        {error && <ErrorBanner>{error}</ErrorBanner>}
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Organization name
-          </label>
-          <input
+          <TextField
             data-testid="org-apply-org-name"
-            className={inputClass}
+            label="Organization name"
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             required
@@ -300,12 +298,9 @@ export default function OrgApplyPage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            University
-          </label>
-          <input
+          <TextField
             data-testid="org-apply-university"
-            className={inputClass}
+            label="University"
             value={university}
             onChange={(e) => setUniversity(e.target.value)}
             required
@@ -321,13 +316,10 @@ export default function OrgApplyPage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            School (.edu) email
-          </label>
-          <input
+          <TextField
             data-testid="org-apply-edu-email"
             type="email"
-            className={inputClass}
+            label="School (.edu) email"
             value={eduEmail}
             onChange={(e) => setEduEmail(e.target.value)}
             placeholder="you@university.edu"
@@ -347,12 +339,9 @@ export default function OrgApplyPage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Instagram handle
-          </label>
-          <input
+          <TextField
             data-testid="org-apply-instagram"
-            className={inputClass}
+            label="Instagram handle"
             value={instagramHandle}
             onChange={(e) => setInstagramHandle(e.target.value)}
             placeholder="yourorg"
@@ -436,28 +425,24 @@ export default function OrgApplyPage() {
           )}
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            TikTok handle{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
-          </label>
-          <input
-            className={inputClass}
-            value={tiktokHandle}
-            onChange={(e) => setTiktokHandle(e.target.value)}
-            placeholder="yourorg"
-          />
-        </div>
+        <TextField
+          label={
+            <>
+              TikTok handle{" "}
+              <span className="font-normal text-buzz-inkMuted">(optional)</span>
+            </>
+          }
+          value={tiktokHandle}
+          onChange={(e) => setTiktokHandle(e.target.value)}
+          placeholder="yourorg"
+        />
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Number of members
-          </label>
-          <input
+          <TextField
             data-testid="org-apply-member-count"
             type="number"
             min="0"
-            className={inputClass}
+            label="Number of members"
             value={memberCount}
             onChange={(e) => setMemberCount(e.target.value)}
             required
@@ -472,33 +457,25 @@ export default function OrgApplyPage() {
           />
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Organization type
-          </label>
-          <select
-            data-testid="org-apply-category"
-            className={inputClass}
-            value={category}
-            onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
-            required
-          >
-            <option value="">Select a type…</option>
-            {ORG_CATEGORY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Select
+          data-testid="org-apply-category"
+          label="Organization type"
+          value={category}
+          onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
+          required
+        >
+          <option value="">Select a type…</option>
+          {ORG_CATEGORY_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </Select>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-buzz-ink">
-            Contact name
-          </label>
-          <input
+          <TextField
             data-testid="org-apply-contact-name"
-            className={inputClass}
+            label="Contact name"
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
             required
@@ -516,7 +493,7 @@ export default function OrgApplyPage() {
         <ShippingAddressFields
           value={shipping}
           onChange={setShipping}
-          inputClass={inputClass}
+          inputClass={fieldClass.default}
           testIdPrefix="org-apply"
           error={fieldErrors.shipping}
         />
@@ -529,14 +506,14 @@ export default function OrgApplyPage() {
           </p>
         )}
 
-        <button
+        <Button
           data-testid="org-apply-submit"
           type="submit"
           disabled={!canSubmit}
-          className="w-full rounded-lg bg-buzz-coral py-3 text-sm font-bold text-buzz-paper shadow-md transition enabled:hover:bg-buzz-coralDark disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full"
         >
           {apply.isPending ? "Submitting…" : "Submit application"}
-        </button>
+        </Button>
 
         <p className="text-center text-xs text-buzz-inkMuted">
           Already connected Instagram?{" "}
@@ -545,7 +522,7 @@ export default function OrgApplyPage() {
           </Link>
         </p>
       </form>
-    </div>
+    </AuthShell>
   );
 }
 
@@ -600,13 +577,13 @@ function InstagramConfirmCard({
             Confirmed as your organization&apos;s account.
           </p>
         ) : (
-          <button
+          <Button
             type="button"
             onClick={onConfirm}
-            className="mt-3 w-full rounded-lg bg-buzz-coral px-3 py-2 text-sm font-bold text-buzz-paper transition hover:bg-buzz-coralDark"
+            className="mt-3 w-full"
           >
             Confirm this is our organization&apos;s account.
-          </button>
+          </Button>
         )}
       </div>
     );
@@ -632,22 +609,24 @@ function InstagramConfirmCard({
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-left text-sm text-red-800">
-      <p className="font-medium">
-        {result.reason === "not_professional"
-          ? "That Instagram account is not a Business or Creator (professional) profile."
-          : "We couldn't find that Instagram username."}{" "}
-        Buzz needs your organization&apos;s professional account — not a personal
-        member profile.
-      </p>
-      <a
-        href={META_PROFESSIONAL_HELP}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-2 inline-block text-xs font-bold text-buzz-coral hover:underline"
-      >
-        How to switch to a professional account
-      </a>
+    <div className="mt-3">
+      <ErrorBanner>
+        <p>
+          {result.reason === "not_professional"
+            ? "That Instagram account is not a Business or Creator (professional) profile."
+            : "We couldn't find that Instagram username."}{" "}
+          Buzz needs your organization&apos;s professional account — not a personal
+          member profile.
+        </p>
+        <a
+          href={META_PROFESSIONAL_HELP}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-block text-xs font-bold text-buzz-coral hover:underline"
+        >
+          How to switch to a professional account
+        </a>
+      </ErrorBanner>
     </div>
   );
 }

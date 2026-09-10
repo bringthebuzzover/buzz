@@ -28,6 +28,14 @@ import {
 } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
 import {
+  Checkbox,
+  DateTimeField,
+  Select,
+  TextField,
+  fieldClass,
+} from "../../components/forms/controls";
+import { fieldLabelCompactClass } from "../../theme/controls";
+import {
   ActionButton,
   AdminTable,
   Cell,
@@ -65,12 +73,6 @@ const APPLICANT_HEADERS = [
   "Applied",
   "Ship to",
 ] as const;
-
-const fieldLabelClass =
-  "mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint";
-
-const inputClass =
-  "w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-2 text-sm outline-none focus:border-buzz-coral focus:ring-1 focus:ring-buzz-coral";
 
 function DecisionPill({ decision }: { decision: string }) {
   const tone =
@@ -196,141 +198,129 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
         )}
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block sm:col-span-2">
-            <span className={fieldLabelClass}>Title</span>
+            <span className={fieldLabelCompactClass}>Title</span>
             <input
               type="text"
-              className={inputClass}
+              className={fieldClass.compact}
               value={title}
               disabled={patch.isPending}
               onChange={(e) => setTitle(e.target.value)}
             />
           </label>
           <label className="block sm:col-span-2">
-            <span className={fieldLabelClass}>Description</span>
+            <span className={fieldLabelCompactClass}>Description</span>
             <textarea
               rows={3}
-              className={inputClass}
+              className={fieldClass.compact}
               value={description}
               disabled={patch.isPending}
               onChange={(e) => setDescription(e.target.value)}
             />
           </label>
           <label className="block sm:col-span-2">
-            <span className={fieldLabelClass}>Image (https)</span>
+            <span className={fieldLabelCompactClass}>Image (https)</span>
             <input
               type="url"
-              className={inputClass}
+              className={fieldClass.compact}
               value={image}
               disabled={patch.isPending}
               onChange={(e) => setImage(e.target.value)}
             />
           </label>
           <label className="block sm:col-span-2">
-            <span className={fieldLabelClass}>Location</span>
+            <span className={fieldLabelCompactClass}>Location</span>
             <input
               type="text"
-              className={inputClass}
+              className={fieldClass.compact}
               value={location}
               disabled={patch.isPending}
               onChange={(e) => setLocation(e.target.value)}
             />
           </label>
           <label className="block">
-            <span className={fieldLabelClass}>Capacity</span>
+            <span className={fieldLabelCompactClass}>Capacity</span>
             <input
               type="number"
               min={1}
-              className={inputClass}
+              className={fieldClass.compact}
               value={capacity}
               disabled={logisticsLocked || patch.isPending}
               onChange={(e) => setCapacity(e.target.value)}
             />
           </label>
-          <label className="block">
-            <span className={fieldLabelClass}>Unit budget</span>
+          <div className="block">
+            <span className={fieldLabelCompactClass}>Unit budget</span>
             <input
               type="number"
               min={1}
-              className={inputClass}
+              className={fieldClass.compact}
               value={units}
               disabled={logisticsLocked || clearUnits || patch.isPending}
               placeholder="Leave empty, then clear for spot-only"
               onChange={(e) => setUnits(e.target.value)}
             />
-            <label className="mt-1 flex items-center gap-2 text-xs font-medium text-buzz-inkMuted">
-              <input
-                type="checkbox"
-                checked={clearUnits}
-                disabled={logisticsLocked || patch.isPending}
-                onChange={(e) => setClearUnits(e.target.checked)}
-              />
-              Clear to spot-only
-            </label>
-          </label>
-          <label className="block">
-            <span className={fieldLabelClass}>Apply opens</span>
-            <input
-              type="datetime-local"
-              className={inputClass}
-              value={openAt}
+            <Checkbox
+              className="mt-1"
+              checked={clearUnits}
               disabled={logisticsLocked || patch.isPending}
-              onChange={(e) => setOpenAt(e.target.value)}
+              onChange={(e) => setClearUnits(e.target.checked)}
+              label={<span className="text-xs text-buzz-inkMuted">Clear to spot-only</span>}
             />
-          </label>
-          <label className="block">
-            <span className={fieldLabelClass}>Apply closes</span>
-            <input
-              type="datetime-local"
-              className={inputClass}
-              value={closeAt}
-              disabled={logisticsLocked || patch.isPending}
-              onChange={(e) => setCloseAt(e.target.value)}
-            />
-          </label>
-          <label className="block sm:col-span-2">
-            <span className={fieldLabelClass}>Campaign hashtag</span>
+          </div>
+          <DateTimeField
+            label="Apply opens"
+            size="compact"
+            value={openAt}
+            disabled={logisticsLocked || patch.isPending}
+            onChange={(e) => setOpenAt(e.target.value)}
+          />
+          <DateTimeField
+            label="Apply closes"
+            size="compact"
+            value={closeAt}
+            disabled={logisticsLocked || patch.isPending}
+            onChange={(e) => setCloseAt(e.target.value)}
+          />
+          <div className="block sm:col-span-2">
+            <span className={fieldLabelCompactClass}>Campaign hashtag</span>
             <input
               type="text"
-              className={inputClass}
+              className={fieldClass.compact}
               value={hashtag}
               disabled={clearHashtag || patch.isPending}
               placeholder="e.g. springdrop (no # required)"
               onChange={(e) => setHashtag(e.target.value)}
             />
-            <label className="mt-1 flex items-center gap-2 text-xs font-medium text-buzz-inkMuted">
-              <input
-                type="checkbox"
-                checked={clearHashtag}
-                disabled={patch.isPending}
-                onChange={(e) => setClearHashtag(e.target.checked)}
-              />
-              Clear hashtag
-            </label>
-          </label>
-          <label className="block sm:col-span-2">
-            <span className={fieldLabelClass}>Who can edit</span>
-            <span className="flex items-start gap-2 text-sm font-medium text-buzz-ink">
-              <input
-                id="brand-can-edit-creative"
-                type="checkbox"
-                data-testid="brand-can-edit-creative"
-                className="mt-0.5"
-                checked={brandCanEditCreative}
-                disabled={patch.isPending}
-                onChange={(e) => setBrandCanEditCreative(e.target.checked)}
-                aria-describedby="brand-can-edit-creative-help"
-              />
-              <span>
-                Brand can edit title, description, and image
-                <span
-                  id="brand-can-edit-creative-help"
-                  className="mt-0.5 block text-xs font-medium text-buzz-inkMuted"
-                >
-                  Brand cannot change dates, capacity, or publish.
+            <Checkbox
+              className="mt-1"
+              checked={clearHashtag}
+              disabled={patch.isPending}
+              onChange={(e) => setClearHashtag(e.target.checked)}
+              label={<span className="text-xs text-buzz-inkMuted">Clear hashtag</span>}
+            />
+          </div>
+          <div className="block sm:col-span-2">
+            <span className={fieldLabelCompactClass}>Who can edit</span>
+            <Checkbox
+              id="brand-can-edit-creative"
+              data-testid="brand-can-edit-creative"
+              checked={brandCanEditCreative}
+              disabled={patch.isPending}
+              onChange={(e) => setBrandCanEditCreative(e.target.checked)}
+              aria-describedby="brand-can-edit-creative-help"
+              label={
+                <span>
+                  Brand can edit title, description, and image
+                  <span
+                    id="brand-can-edit-creative-help"
+                    className="mt-0.5 block text-xs font-medium text-buzz-inkMuted"
+                  >
+                    Brand cannot change dates, capacity, or publish.
+                  </span>
                 </span>
-              </span>
-            </span>
-          </label>
+              }
+            />
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <ActionButton
@@ -476,23 +466,19 @@ function TrackerControls({
           </p>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
-                Advance to
-              </span>
-              <select
-                data-testid="tracker-stage"
-                className={inputClass}
-                value={stage}
-                onChange={(event) => setStage(event.target.value)}
-              >
-                {forwardStages.map((option) => (
-                  <option key={option} value={option}>
-                    {STAGE_LABELS[option]}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Select
+              data-testid="tracker-stage"
+              size="compact"
+              label="Advance to"
+              value={stage}
+              onChange={(event) => setStage(event.target.value)}
+            >
+              {forwardStages.map((option) => (
+                <option key={option} value={option}>
+                  {STAGE_LABELS[option]}
+                </option>
+              ))}
+            </Select>
 
             {needsTracking && (
               <label className="block">
@@ -501,7 +487,7 @@ function TrackerControls({
                 </span>
                 <input
                   data-testid="tracker-tracking-number"
-                  className={inputClass}
+                  className={fieldClass.compact}
                   value={trackingNumber}
                   onChange={(event) => setTrackingNumber(event.target.value)}
                   placeholder="Required for this transition"
@@ -515,7 +501,7 @@ function TrackerControls({
               </span>
               <input
                 data-testid="tracker-note"
-                className={inputClass}
+                className={fieldClass.compact}
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
               />
@@ -551,7 +537,7 @@ function TrackerControls({
               </span>
               <input
                 data-testid="repair-tracking-number"
-                className={inputClass}
+                className={fieldClass.compact}
                 value={repairTracking}
                 onChange={(event) => setRepairTracking(event.target.value)}
               />
@@ -714,27 +700,21 @@ function HideCampaignPanel({ drop }: { drop: AdminDropDetail }) {
     >
       {error && <ErrorNote>{error}</ErrorNote>}
       <div className="space-y-3 px-4 pb-4">
-        <label className="block">
-          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
-            Type the drop title to confirm
-          </span>
-          <input
-            data-testid="hide-drop-confirm"
-            value={confirmTitle}
-            onChange={(e) => setConfirmTitle(e.target.value)}
-            className="w-full rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-2 text-sm"
-            autoComplete="off"
-          />
-        </label>
-        <label className="flex items-center gap-2 text-sm font-medium text-buzz-inkMuted">
-          <input
-            type="checkbox"
-            data-testid="hide-drop-notify-brand"
-            checked={notifyBrand}
-            onChange={(e) => setNotifyBrand(e.target.checked)}
-          />
-          Email the brand that this campaign was withdrawn
-        </label>
+        <TextField
+          id="hide-drop-confirm"
+          data-testid="hide-drop-confirm"
+          label="Type the drop title to confirm"
+          size="compact"
+          value={confirmTitle}
+          autoComplete="off"
+          onChange={(e) => setConfirmTitle(e.target.value)}
+        />
+        <Checkbox
+          data-testid="hide-drop-notify-brand"
+          checked={notifyBrand}
+          onChange={(e) => setNotifyBrand(e.target.checked)}
+          label="Email the brand that this campaign was withdrawn"
+        />
         <ActionButton
           variant="danger"
           testId="hide-drop"

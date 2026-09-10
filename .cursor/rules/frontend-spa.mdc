@@ -11,5 +11,5 @@ alwaysApply: false
 - Server state: TanStack Query hooks under `src/api/hooks/`. Auth session: `AuthContext` (not Query cache).
 - Guards: `RequireAuth` → `RequireStatus` → `RequireRole` in `AppRoot` / routing components.
 - IG expiry → `INSTAGRAM_TOKEN_EXPIRED` / reconnect latch → `/reconnect-instagram` (public).
-- Styling: Tailwind + `src/theme/palette.ts`. No Firebase (legacy unused).
+- Styling: Tailwind + `src/theme/palette.ts` + `src/theme/shells.ts` / `controls.ts`. Forms: `src/components/forms/` primitives (`TextField`, `Select`, `Checkbox`, `Button`). Layout: `AuthShell` / `PageShell`. No Firebase (legacy unused).
 - Behavior: [`PRODUCT.md`](PRODUCT.md). As-built: [`ARCHITECTURE.md`](ARCHITECTURE.md). Agent map: [`AGENTS.md`](AGENTS.md).

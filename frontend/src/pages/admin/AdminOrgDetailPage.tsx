@@ -42,6 +42,15 @@ import {
   formatDateTime,
   formatElapsed,
 } from "../../components/admin/labels";
+import { Checkbox } from "../../components/forms/Checkbox";
+import { TextField } from "../../components/forms/controls";
+
+function confirmHandleMatches(typed: string, stored: string): boolean {
+  const normalize = (value: string) =>
+    value.trim().replace(/^@+/, "").toLowerCase();
+  const expected = normalize(stored);
+  return expected !== "" && normalize(typed) === expected;
+}
 
 export default function AdminOrgDetailPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -55,6 +64,8 @@ export default function AdminOrgDetailPage() {
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
   const [eraseNotice, setEraseNotice] = useState<string | null>(null);
   const [eraseError, setEraseError] = useState<string | null>(null);
+  const [eraseConfirmOpen, setEraseConfirmOpen] = useState(false);
+  const [eraseTyped, setEraseTyped] = useState("");
   const [testerInviteConfirmed, setTesterInviteConfirmed] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -116,21 +127,30 @@ export default function AdminOrgDetailPage() {
     }
   }
 
+  function openEraseConfirm() {
+    setEraseError(null);
+    setEraseNotice(null);
+    setEraseTyped("");
+    setEraseConfirmOpen(true);
+  }
+
+  function cancelEraseConfirm() {
+    setEraseConfirmOpen(false);
+    setEraseTyped("");
+    setEraseError(null);
+  }
+
   async function onErase() {
     if (!data?.instagramHandle) return;
     setEraseError(null);
     setEraseNotice(null);
-    const shown = `@${data.instagramHandle.replace(/^@/, "")}`;
-    const typed = window.prompt(
-      `Erase this organization account?\n\nType the Instagram handle exactly to confirm: ${shown}`,
-      "",
-    );
-    if (typed === null) return;
     try {
       const result = await erase.mutateAsync({
         userId: data.userId,
-        confirm: typed,
+        confirm: eraseTyped,
       });
+      setEraseConfirmOpen(false);
+      setEraseTyped("");
       if (result.emailSent) {
         setEraseNotice(
           result.emailToDomain
@@ -244,8 +264,8 @@ export default function AdminOrgDetailPage() {
                   <ActionButton
                     variant="danger"
                     testId="erase-org"
-                    disabled={busy}
-                    onClick={() => void onErase()}
+                    disabled={busy || eraseConfirmOpen}
+                    onClick={openEraseConfirm}
                   >
                     Erase
                   </ActionButton>
@@ -262,6 +282,46 @@ export default function AdminOrgDetailPage() {
               </div>
             }
           />
+
+          {eraseConfirmOpen && canErase && claimedHandle && (
+            <Panel
+              title="Erase this organization"
+              description="Removes login identity and contact details. Campaign KPIs stay. Type the Instagram handle to confirm."
+            >
+              <div className="space-y-3 px-4 pb-4">
+                <TextField
+                  id="erase-org-confirm"
+                  data-testid="erase-org-confirm"
+                  label={`Type ${claimedHandle} exactly`}
+                  size="compact"
+                  value={eraseTyped}
+                  autoComplete="off"
+                  spellCheck={false}
+                  onChange={(e) => setEraseTyped(e.target.value)}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <ActionButton
+                    testId="erase-org-cancel"
+                    disabled={erase.isPending}
+                    onClick={cancelEraseConfirm}
+                  >
+                    Cancel
+                  </ActionButton>
+                  <ActionButton
+                    variant="danger"
+                    testId="erase-org-submit"
+                    disabled={
+                      busy ||
+                      !confirmHandleMatches(eraseTyped, data.instagramHandle ?? "")
+                    }
+                    onClick={() => void onErase()}
+                  >
+                    {erase.isPending ? "Erasing…" : "Erase account"}
+                  </ActionButton>
+                </div>
+              </div>
+            </Panel>
+          )}
 
           {erased && (
             <ErrorNote>
@@ -285,19 +345,19 @@ export default function AdminOrgDetailPage() {
 
           {!erased && data.status === "pending_approval" && claimedHandle && (
             <Panel title="Before you approve">
-              <label className="flex cursor-pointer items-start gap-3 text-sm font-medium text-buzz-ink">
-                <input
-                  type="checkbox"
-                  className="mt-1"
+              <div className="px-4 py-4">
+                <Checkbox
                   checked={testerInviteConfirmed}
                   onChange={(e) => setTesterInviteConfirmed(e.target.checked)}
                   data-testid="tester-invite-confirmed"
+                  label={
+                    <>
+                      I added {claimedHandle} as an Instagram Tester in Meta App
+                      roles.
+                    </>
+                  }
                 />
-                <span>
-                  I added {claimedHandle} as an Instagram Tester in Meta App
-                  roles.
-                </span>
-              </label>
+              </div>
             </Panel>
           )}
 

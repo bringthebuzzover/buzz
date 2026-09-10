@@ -13,12 +13,15 @@ import { useAuth, type AuthUser } from "../../contexts/AuthContext";
 import {
   usePublicResendVerification,
   useResendVerification,
+  useResendVerificationFromToken,
   useVerifyEmail,
 } from "../../api/hooks/useOnboardingHooks";
 import { authUserFromWire, setAccessToken } from "../../api/auth";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
 import { stripTokenFromUrl } from "../../utils/stripTokenFromUrl";
+import AuthShell from "../../components/site/AuthShell";
+import { Button, ErrorBanner } from "../../components/forms/controls";
 import type { components } from "../../api/generated/schema";
 
 type UserWire = components["schemas"]["UserResponse"];
@@ -110,12 +113,15 @@ type VerifyState =
   | { kind: "idle" }
   | { kind: "verifying" }
   | { kind: "success"; user: AuthUser | null }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string; code?: string }
+  | { kind: "resending" }
+  | { kind: "resent"; email: string };
 
 function VerifyWithToken({ token }: { token: string }) {
   const { acceptSession, refreshUser } = useAuth();
   const navigate = useNavigate();
   const verify = useVerifyEmail();
+  const resendFromToken = useResendVerificationFromToken();
   const [state, setState] = useState<VerifyState>({ kind: "idle" });
   const inFlightRef = useRef(false);
 
@@ -165,61 +171,121 @@ function VerifyWithToken({ token }: { token: string }) {
           err instanceof ApiError
             ? err.message
             : "Could not verify your email. The link may have expired.",
+        code: err instanceof ApiError ? err.code : undefined,
+      });
+    } finally {
+      inFlightRef.current = false;
+    }
+  };
+
+  const onRequestNewLink = async () => {
+    setState({ kind: "resending" });
+    try {
+      const result = await resendFromToken.mutateAsync(token);
+      const sentTo = (result.emailSentTo ?? "").trim().toLowerCase();
+      if (sentTo) {
+        markEduEmail(sentTo);
+      }
+      markEmailSent(true);
+      stripTokenFromUrl();
+      setState({ kind: "resent", email: sentTo });
+    } catch (err) {
+      setState({
+        kind: "error",
+        message:
+          err instanceof ApiError
+            ? err.message
+            : "Could not send a new verification link. Please try again.",
+        code: err instanceof ApiError ? err.code : undefined,
       });
     }
   };
 
   if (state.kind === "idle") {
     return (
-      <div className="mx-auto max-w-md px-8 py-24 text-center">
+      <AuthShell align="center" className="text-center">
         <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
           Verify Your <span className="text-buzz-coral">Email</span>
         </h1>
         <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
           Confirm this is you to finish verifying your school email.
         </p>
-        <button
+        <Button
           type="button"
           onClick={() => void onConfirm()}
           disabled={verify.isPending}
-          className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper shadow-md transition enabled:hover:bg-buzz-coralDark disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full"
         >
           Verify email
-        </button>
-      </div>
+        </Button>
+      </AuthShell>
     );
   }
 
   if (state.kind === "verifying") {
     return (
-      <div className="mx-auto max-w-md px-8 py-24 text-center">
+      <AuthShell align="center" className="text-center">
         <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
           Verifying Your <span className="text-buzz-coral">Email</span>…
         </h1>
         <p className="text-sm font-medium text-buzz-inkMuted">
           One moment while we confirm your address.
         </p>
-      </div>
+      </AuthShell>
+    );
+  }
+
+  if (state.kind === "resending") {
+    return (
+      <AuthShell align="center" className="text-center">
+        <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+          Sending a <span className="text-buzz-coral">New Link</span>…
+        </h1>
+        <p className="text-sm font-medium text-buzz-inkMuted">
+          One moment while we email a fresh verification link.
+        </p>
+      </AuthShell>
+    );
+  }
+
+  if (state.kind === "resent") {
+    return (
+      <AuthShell align="center" className="text-center">
+        <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+          New Link <span className="text-buzz-coral">Sent</span>
+        </h1>
+        <p className="mb-2 text-sm font-medium text-buzz-inkMuted">
+          Check this school inbox (and Junk) for a fresh verification link.
+        </p>
+        {state.email ? <ListedEduEmail email={state.email} /> : null}
+        <p className="mt-6 text-sm font-medium text-buzz-inkMuted">{JUNK_HINT}</p>
+      </AuthShell>
     );
   }
 
   if (state.kind === "error") {
+    const canResendFromToken =
+      state.code === "VERIFICATION_TOKEN_EXPIRED" ||
+      state.code === "EMAIL_SEND_FAILED";
     return (
-      <div className="mx-auto max-w-md px-8 py-24 text-center">
+      <AuthShell align="center" className="text-center">
         <h1 className="mb-4 text-3xl font-bold text-buzz-coral">
           Verification Failed
         </h1>
         <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
           {state.message}
         </p>
-        <button
-          type="button"
-          onClick={() => navigate("/onboarding/verify-email", { replace: true })}
-          className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
-        >
-          Request a new link
-        </button>
-      </div>
+        {canResendFromToken ? (
+          <Button
+            type="button"
+            onClick={() => void onRequestNewLink()}
+            disabled={resendFromToken.isPending}
+            className="w-full"
+          >
+            Request a new link
+          </Button>
+        ) : null}
+      </AuthShell>
     );
   }
 
@@ -235,19 +301,19 @@ function VerifyWithToken({ token }: { token: string }) {
   const continueTo = state.user ? pathForUser(state.user) : "/login";
 
   return (
-    <div className="mx-auto max-w-md px-8 py-24 text-center">
+    <AuthShell align="center" className="text-center">
       <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
         Email <span className="text-buzz-coral">Verified</span>
       </h1>
       <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{successCopy}</p>
-      <button
+      <Button
         type="button"
         onClick={() => navigate(continueTo, { replace: true })}
-        className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark"
+        className="w-full"
       >
         Continue
-      </button>
-    </div>
+      </Button>
+    </AuthShell>
   );
 }
 
@@ -298,7 +364,7 @@ function AwaitVerification() {
   };
 
   return (
-    <div className="mx-auto max-w-md px-8 py-24 text-center">
+    <AuthShell align="center" className="text-center">
       <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
         Verify Your <span className="text-buzz-coral">Email</span>
       </h1>
@@ -318,21 +384,22 @@ function AwaitVerification() {
         </p>
       )}
 
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => void onResend()}
         disabled={resend.isPending}
-        className="rounded-lg border-2 border-buzz-coral px-6 py-3 text-sm font-bold text-buzz-coral transition enabled:hover:bg-buzz-coral enabled:hover:text-buzz-paper disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full"
       >
         {resend.isPending ? "Sending…" : "Resend email"}
-      </button>
+      </Button>
 
       {error && (
-        <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-          {error}
-        </p>
+        <div className="mt-4">
+          <ErrorBanner>{error}</ErrorBanner>
+        </div>
       )}
-    </div>
+    </AuthShell>
   );
 }
 
@@ -379,7 +446,7 @@ function PublicAwaitVerification() {
   };
 
   return (
-    <div className="mx-auto max-w-md px-8 py-24 text-center">
+    <AuthShell align="center" className="text-center">
       <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
         Verify Your <span className="text-buzz-coral">Email</span>
       </h1>
@@ -399,20 +466,21 @@ function PublicAwaitVerification() {
         </p>
       )}
 
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => void onResend()}
         disabled={publicResend.isPending || !eduEmail}
-        className="rounded-lg border-2 border-buzz-coral px-6 py-3 text-sm font-bold text-buzz-coral transition enabled:hover:bg-buzz-coral enabled:hover:text-buzz-paper disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full"
       >
         {publicResend.isPending ? "Sending…" : "Resend email"}
-      </button>
+      </Button>
 
       {error && (
-        <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-          {error}
-        </p>
+        <div className="mt-4">
+          <ErrorBanner>{error}</ErrorBanner>
+        </div>
       )}
-    </div>
+    </AuthShell>
   );
 }

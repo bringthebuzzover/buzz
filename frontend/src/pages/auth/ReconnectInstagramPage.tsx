@@ -6,12 +6,13 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import instagramIcon from "../../assets/insta-icon.png";
+import AuthShell from "../../components/site/AuthShell";
 
 export default function ReconnectInstagramPage() {
   const { login, status } = useAuth();
 
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-8 py-24 text-center">
+    <AuthShell align="center" className="items-center text-center">
       <h1 className="mb-4 text-3xl font-black text-buzz-ink">
         Reconnect <span className="text-buzz-coral">Instagram</span>
       </h1>
@@ -46,6 +47,6 @@ export default function ReconnectInstagramPage() {
           Brand login
         </Link>
       </p>
-    </div>
+    </AuthShell>
   );
 }
