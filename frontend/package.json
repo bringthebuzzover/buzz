@@ -20,7 +20,9 @@
     "test": "craco test",
     "gen:api": "npx -y openapi-typescript@7.13.0 ../openapi.json -o src/api/generated/schema.ts",
     "e2e": "playwright test",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "atlas": "playwright test --config=playwright.atlas.config.ts",
+    "atlas:diff": "node scripts/atlas-diff.mjs"
   },
   "eslintConfig": {
     "extends": [
