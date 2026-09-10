@@ -51,9 +51,12 @@ export default function AggregateTotalsCards({
   return (
     <div
       className={cn(
-        "grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-5",
+        "grid grid-cols-2 lg:grid-cols-5",
         GAP.default,
-        "[&>*:last-child]:col-span-2 sm:[&>*]:col-span-2 sm:[&>*:nth-child(4)]:col-span-3 sm:[&>*:nth-child(5)]:col-span-3 lg:[&>*]:col-span-1",
+        // Five tiles: on two columns the last one spans the row; at lg they
+        // sit as five equal columns. Do not add sm spans — those overrode lg
+        // and stranded Orgs/Campuses as full-width slabs.
+        "[&>*:last-child]:col-span-2 lg:[&>*:last-child]:col-span-1",
       )}
     >
       {tiles.map(({ icon: Icon, label, value }) => (

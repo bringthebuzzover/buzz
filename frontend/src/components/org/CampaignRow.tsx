@@ -50,7 +50,7 @@ export default function CampaignRow({
             className="h-16 w-16 shrink-0 rounded-buzzControl border border-buzz-lineMid object-cover"
           />
           <div className="min-w-0">
-            <div className="mb-1 flex items-center gap-2 overflow-hidden">
+            <div className="mb-1 flex flex-wrap items-center gap-2">
               <Chip tone={STATUS_TONE[status]}>
                 {ORG_CAMPAIGN_STATUS_LABELS[status]}
               </Chip>

@@ -783,7 +783,7 @@ export default function AdminDropDetailPage() {
             currentTracking={data.trackingNumber}
           />
 
-          <div className="mb-4 flex gap-2 overflow-x-auto border-b border-buzz-lineMid">
+          <div className="mb-4 flex flex-wrap gap-x-2 border-b border-buzz-lineMid">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
