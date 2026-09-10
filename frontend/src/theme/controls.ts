@@ -52,7 +52,7 @@ export const fieldLabelCompactClass =
  * every existing test query keep working.
  */
 export const checkboxClass =
-  "peer h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-[0.3rem] border-2 border-buzz-lineMid bg-buzz-paper outline-none transition checked:border-buzz-coral checked:bg-buzz-coral focus-visible:ring-2 focus-visible:ring-buzz-coral/40 disabled:cursor-not-allowed disabled:opacity-60";
+  "peer h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-buzzCheck border-2 border-buzz-lineMid bg-buzz-paper outline-none transition checked:border-buzz-coral checked:bg-buzz-coral focus-visible:ring-2 focus-visible:ring-buzz-coral/40 disabled:cursor-not-allowed disabled:opacity-60";
 
 /** Tick mark shown over the box once checked. */
 export const checkboxTickClass =

@@ -16,8 +16,12 @@ export default function SiteLayout() {
         {/* Flex column all the way to the outlet so `AUTH_SHELL.center` can
             claim the space between header and footer with `flex-1` and center
             in it for real, instead of guessing with `min-h-[60vh]`. */}
-        <main className="flex flex-1 flex-col">
-          <div className="flex flex-1 flex-col animate-fade-in motion-reduce:animate-none motion-reduce:opacity-100">
+        {/* Page roots are given an explicit width because `mx-auto` sets auto
+            cross-axis margins, and an auto margin cancels flex stretch — the
+            page would otherwise shrink-wrap to its widest content and scroll
+            sideways on a phone. `min-w-0` lets it shrink below that content. */}
+        <main className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-w-0 flex-1 flex-col [&>*]:w-full [&>*]:min-w-0 animate-fade-in motion-reduce:animate-none motion-reduce:opacity-100">
             <Outlet />
           </div>
         </main>
