@@ -4,6 +4,8 @@
  */
 import { Activity, Eye, Heart } from "lucide-react";
 import type { BrandAggregateMetrics } from "../../types/metrics";
+import { TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 type RunningTotalsBarProps = {
   metrics: BrandAggregateMetrics;
@@ -28,20 +30,15 @@ export default function RunningTotalsBar({ metrics }: RunningTotalsBarProps) {
     },
   ];
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-buzz-lineMid bg-buzz-coral px-6 py-4 text-buzz-paper shadow-sm">
-      {items.map(({ icon: Icon, label, value }, idx) => (
-        <div
-          key={label}
-          className={`flex items-center gap-3 ${
-            idx > 0 ? "border-l border-buzz-paper/30 pl-4" : ""
-          }`}
-        >
-          <Icon size={18} />
+    <div className="grid grid-cols-3 divide-x divide-buzz-paper/30 rounded-buzzCard bg-buzz-coral px-2 py-4 text-buzz-paper shadow-buzz">
+      {items.map(({ icon: Icon, label, value }) => (
+        <div key={label} className="flex items-center justify-center gap-3 px-3">
+          <Icon size={18} className="shrink-0" />
           <div>
-            <div className="text-xl font-black tabular-nums">{value}</div>
-            <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">
-              {label}
+            <div className={cn(TEXT.metric, "text-xl text-buzz-paper")}>
+              {value}
             </div>
+            <div className={cn(TEXT.micro, "opacity-80")}>{label}</div>
           </div>
         </div>
       ))}

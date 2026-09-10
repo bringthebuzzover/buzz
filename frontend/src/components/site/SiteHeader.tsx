@@ -123,7 +123,7 @@ export default function SiteHeader() {
   return (
     <header
       ref={headerRef}
-      className={`relative w-full ${mobileNavOpen ? "z-[100]" : "z-50"}`}
+      className={`relative w-full ${mobileNavOpen ? "z-buzzBanner" : "z-50"}`}
     >
       {/* Top utility bar */}
       <div className="relative flex h-10 items-center justify-center border-b border-buzz-line bg-buzz-cream px-6 text-xs font-semibold tracking-wider">
@@ -188,7 +188,7 @@ export default function SiteHeader() {
 
       {/* Coral nav bar. Logo is in-flow (1fr / auto / 1fr) so it cannot cover
           the side clusters. Org uses lg; guest/brand keep 650px. */}
-      <nav className="relative bg-buzz-coral text-buzz-paper shadow-sm">
+      <nav className="relative bg-buzz-coral text-buzz-paper shadow-buzz">
         <div
           className={`relative hidden h-[6rem] grid-cols-[1fr_auto_1fr] items-center px-8 py-4 font-medium ${
             isOrgNav ? "lg:grid" : "min-[650px]:grid"
@@ -257,7 +257,7 @@ export default function SiteHeader() {
           <button
             type="button"
             onClick={() => setMobileNavOpen((o) => !o)}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/30 bg-white/10 text-buzz-paper transition hover:bg-white/20"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-buzzControl border border-buzz-paper/30 bg-buzz-paper/10 text-buzz-paper transition hover:bg-buzz-paper/20"
             aria-expanded={mobileNavOpen}
             aria-controls="mobile-nav-menu"
             aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
@@ -280,7 +280,7 @@ export default function SiteHeader() {
 
         {/* Mobile panel */}
         <div
-          className={`fixed inset-x-0 bottom-0 z-[55] transition-opacity duration-300 ${
+          className={`fixed inset-x-0 bottom-0 z-buzzDrawer transition-opacity duration-300 ${
             isOrgNav ? "lg:hidden" : "min-[650px]:hidden"
           } ${
             mobileNavOpen
@@ -299,12 +299,12 @@ export default function SiteHeader() {
           />
           <div
             id="mobile-nav-menu"
-            className={`absolute bottom-0 left-0 right-8 top-0 z-[1] flex flex-col border border-buzz-lineMid bg-buzz-paper shadow-buzzLg transition-transform duration-300 ease-out ${
+            className={`absolute bottom-0 left-0 right-8 top-0 z-10 flex flex-col border border-buzz-lineMid bg-buzz-paper shadow-buzzLg transition-transform duration-300 ease-out ${
               mobileNavOpen ? "translate-x-0" : "-translate-x-full"
             } rounded-tl-none rounded-br-3xl rounded-tr-3xl`}
           >
             <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-8 pt-5">
-              <ul className="flex flex-col gap-0 text-sm font-black uppercase tracking-wide text-buzz-ink">
+              <ul className="flex flex-col gap-0 text-sm font-semibold uppercase tracking-wide text-buzz-ink">
                 <li>
                   <Link
                     to="/"

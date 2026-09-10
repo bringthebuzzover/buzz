@@ -24,17 +24,7 @@ import {
 } from "../../components/admin/labels";
 
 function CountBadge({ signal }: { signal: AdminSignal }) {
-  return (
-    <span
-      className={`shrink-0 rounded px-2 py-0.5 text-xs font-bold ${
-        signal.ok
-          ? "bg-buzz-neutral text-buzz-inkMuted"
-          : "bg-red-50 text-red-700"
-      }`}
-    >
-      {signal.count}
-    </span>
-  );
+  return <Pill tone={signal.ok ? "neutral" : "bad"}>{signal.count}</Pill>;
 }
 
 /** One row: count, label, and the explanation of why the state is reachable. */

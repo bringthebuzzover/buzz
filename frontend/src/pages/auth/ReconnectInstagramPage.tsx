@@ -7,13 +7,16 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import instagramIcon from "../../assets/insta-icon.png";
 import AuthShell from "../../components/site/AuthShell";
+import { Button } from "../../components/forms/controls";
+import { STACK, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 export default function ReconnectInstagramPage() {
   const { login, status } = useAuth();
 
   return (
     <AuthShell align="center" className="items-center text-center">
-      <h1 className="mb-4 text-3xl font-black text-buzz-ink">
+      <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
         Reconnect <span className="text-buzz-coral">Instagram</span>
       </h1>
       <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
@@ -22,31 +25,33 @@ export default function ReconnectInstagramPage() {
         Instagram Business or Creator account to restore portal access.
       </p>
 
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="hero"
         data-testid="reconnect-instagram-cta"
         onClick={login}
         disabled={status === "authenticating"}
-        className="flex items-center gap-3 rounded-xl border-2 border-buzz-coral bg-buzz-paper px-8 py-4 text-base font-bold text-buzz-coral shadow-sm transition hover:bg-buzz-coral hover:text-buzz-paper disabled:cursor-not-allowed disabled:opacity-60"
       >
         <img src={instagramIcon} alt="" className="h-5 w-5" />
         {status === "authenticating"
           ? "Connecting…"
           : "Reconnect with Instagram"}
-      </button>
+      </Button>
 
-      <p className="mt-8 text-sm font-medium text-buzz-inkMuted">
-        <Link to="/" className="font-bold text-buzz-coral hover:underline">
-          Back to home
-        </Link>
-      </p>
-
-      <p className="mt-4 text-sm font-medium text-buzz-inkMuted">
-        Are you a brand?{" "}
-        <Link to="/brand/login" className="font-bold text-buzz-coral hover:underline">
-          Brand login
-        </Link>
-      </p>
+      <div className={cn("mt-8", STACK.default, "text-sm font-medium text-buzz-inkMuted")}>
+        <p>
+          <Link to="/" className="font-semibold text-buzz-coral hover:underline">
+            Back to home
+          </Link>
+        </p>
+        <p>
+          Are you a brand?{" "}
+          <Link to="/brand/login" className="font-semibold text-buzz-coral hover:underline">
+            Brand login
+          </Link>
+        </p>
+      </div>
     </AuthShell>
   );
 }

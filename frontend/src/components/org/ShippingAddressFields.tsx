@@ -12,7 +12,9 @@ import {
 } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
 import FieldError from "../forms/FieldError";
-import { TextField } from "../forms/controls";
+import { TextField, WarningBanner } from "../forms/controls";
+import { GAP, STACK, SURFACE, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 export type ShippingAddressValue = {
   line1: string;
@@ -151,19 +153,17 @@ export default function ShippingAddressFields({
   };
 
   return (
-    <fieldset className="space-y-3">
-      <legend className="text-sm font-semibold text-buzz-ink">
-        Shipping address (US)
-      </legend>
-      <p className="text-xs text-buzz-inkMuted">
+    <fieldset className={STACK.default}>
+      <legend className={TEXT.h3}>Shipping address (US)</legend>
+      <p className={TEXT.meta}>
         Where brands should ship product. PO Boxes and campus CPO/dorm lines
         are allowed.
       </p>
       {legacyHint ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+        <WarningBanner>
           Previously saved: {legacyHint}. Enter a US street (or PO Box), city,
           state, and ZIP to keep shipping.
-        </p>
+        </WarningBanner>
       ) : null}
 
       <div className="relative">
@@ -199,7 +199,10 @@ export default function ShippingAddressFields({
           <ul
             id={listId}
             role="listbox"
-            className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-buzz-lineMid bg-buzz-paper shadow-md"
+            className={cn(
+              SURFACE.card,
+              "absolute z-10 mt-1 max-h-48 w-full overflow-auto p-0",
+            )}
           >
             {suggestions.map((item) => (
               <li key={item.placeId} role="option" aria-selected={false}>
@@ -232,7 +235,7 @@ export default function ShippingAddressFields({
         autoComplete="address-line2"
       />
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className={cn("grid grid-cols-1 sm:grid-cols-3", GAP.default)}>
         <TextField
           id={`${testIdPrefix}-shipping-city`}
           data-testid={`${testIdPrefix}-shipping-city`}
@@ -278,9 +281,7 @@ export default function ShippingAddressFields({
         />
       </div>
 
-      {lookupError ? (
-        <p className="text-xs font-medium text-amber-900">{lookupError}</p>
-      ) : null}
+      {lookupError ? <WarningBanner>{lookupError}</WarningBanner> : null}
       <FieldError id={`${testIdPrefix}-shipping-error`} message={error} />
     </fieldset>
   );

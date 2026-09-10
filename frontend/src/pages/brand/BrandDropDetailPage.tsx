@@ -14,14 +14,19 @@ import { ApiError } from "../../api/errors";
 import { useMemo, useState } from "react";
 import { orgCategoryLabel } from "../../types/orgCategory";
 import PageShell from "../../components/site/PageShell";
+import { Card } from "../../components/ui/Card";
+import { StatePanel } from "../../components/ui/StatePanel";
 import {
   Button,
   Checkbox,
   ErrorBanner,
   Select,
+  SuccessBanner,
   TextArea,
   TextField,
 } from "../../components/forms/controls";
+import { STACK, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 /** Map backend drop detail to the shape components expect. */
 function mapDropToView(d: BrandDropDetail) {
@@ -119,11 +124,11 @@ function ApiApplicantTable({
     .reduce((s, a) => s + (allocations[a.orgId] ?? 0), 0);
 
   return (
-    <div className="mt-8 space-y-4">
+    <div className={STACK.default}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-buzz-ink">Applicants</h2>
-          <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
+          <h2 className={TEXT.h3}>Applicants</h2>
+          <p className={cn(TEXT.meta, "mt-1")}>
             Capacity: {acceptedCount} of {remainingCapacity} remaining spots
             {seatsTaken > 0 ? ` (${seatsTaken} already accepted)` : ""}
             {showUnits && remainingUnits != null
@@ -148,19 +153,19 @@ function ApiApplicantTable({
           </Select>
         ) : null}
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-buzz-lineMid bg-buzz-paper">
+      <Card kind="cardFlat" pad="none" className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-buzz-line bg-buzz-cream">
-              <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Accept</th>
-              <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Org</th>
-              <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">University</th>
-              <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Type</th>
-              <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Instagram</th>
-              <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Followers</th>
-              <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Pitch</th>
+              <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>Accept</th>
+              <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>Org</th>
+              <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>University</th>
+              <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>Type</th>
+              <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>Instagram</th>
+              <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>Followers</th>
+              <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>Pitch</th>
               {showUnits ? (
-                <th className="px-4 py-3 text-xs font-bold uppercase text-buzz-inkMuted">Units</th>
+                <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>Units</th>
               ) : null}
             </tr>
           </thead>
@@ -202,7 +207,7 @@ function ApiApplicantTable({
                           Ship to: {app.deliveryAddress}
                         </div>
                       ) : (
-                        <div className="mt-0.5 text-xs font-medium text-amber-700">
+                        <div className={cn(TEXT.meta, "mt-0.5 text-buzz-warn")}>
                           Ship to: Not set — nowhere to ship product
                         </div>
                       )}
@@ -240,7 +245,7 @@ function ApiApplicantTable({
             )}
           </tbody>
         </table>
-      </div>
+      </Card>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm font-medium text-buzz-inkMuted">
@@ -248,8 +253,10 @@ function ApiApplicantTable({
           {showUnits ? ` · ${totalAllocated} units allocated` : ""}
         </span>
         {finalizeConfirmOpen ? (
-          <div
-            className="w-full space-y-3 rounded-2xl border border-buzz-lineMid bg-buzz-cream p-4"
+          <Card
+            kind="inset"
+            pad="default"
+            className={cn("w-full", STACK.tight)}
             role="region"
             aria-label="Confirm finalize"
           >
@@ -282,7 +289,7 @@ function ApiApplicantTable({
                   : "Confirm finalize"}
               </Button>
             </div>
-          </div>
+          </Card>
         ) : (
           <Button
             type="button"
@@ -295,7 +302,7 @@ function ApiApplicantTable({
         )}
       </div>
       {finalizeMutation.isSuccess ? (
-        <p className="text-sm font-medium text-green-600">Selection finalized.</p>
+        <SuccessBanner>Selection finalized.</SuccessBanner>
       ) : null}
       {finalizeMutation.error ? (
         <ErrorBanner>
@@ -318,10 +325,10 @@ function FinalizedRoster({
 }) {
   const accepted = applicants.filter((a) => a.decision === "accepted");
   return (
-    <div className="mt-8 space-y-3">
+    <div className={STACK.tight}>
       <div>
-        <h2 className="text-lg font-bold text-buzz-ink">Selected organizations</h2>
-        <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
+        <h2 className={TEXT.h3}>Selected organizations</h2>
+        <p className={cn(TEXT.meta, "mt-1")}>
           {accepted.length} of {capacityTotal} capacity · selection finalized
         </p>
       </div>
@@ -371,15 +378,16 @@ function BrandCampaignEditor({ detail }: { detail: BrandDropDetail }) {
   };
 
   return (
-    <section
+    <Card
       data-testid="brand-campaign-editor"
-      className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-6 shadow-sm"
+      kind="card"
+      pad="card"
     >
-      <h2 className="text-lg font-bold text-buzz-ink">Campaign</h2>
-      <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
+      <h2 className={TEXT.h3}>Campaign</h2>
+      <p className={cn(TEXT.meta, "mt-1")}>
         Buzz can still change this.
       </p>
-      <div className="mt-4 space-y-3">
+      <div className={cn("mt-4", STACK.tight)}>
         <TextField
           type="text"
           label="Title"
@@ -408,7 +416,7 @@ function BrandCampaignEditor({ detail }: { detail: BrandDropDetail }) {
           <img
             src={image.trim()}
             alt=""
-            className="max-h-40 rounded-lg border border-buzz-lineMid object-cover"
+            className="max-h-40 rounded-buzzControl border border-buzz-lineMid object-cover"
           />
         ) : null}
         <Button
@@ -419,12 +427,10 @@ function BrandCampaignEditor({ detail }: { detail: BrandDropDetail }) {
         >
           {patch.isPending ? "Saving..." : "Save"}
         </Button>
-        {notice ? (
-          <p className="text-sm font-medium text-green-600">{notice}</p>
-        ) : null}
+        {notice ? <SuccessBanner>{notice}</SuccessBanner> : null}
         {error ? <ErrorBanner>{error}</ErrorBanner> : null}
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -435,8 +441,8 @@ function ApiDropDetail() {
 
   if (isLoading) {
     return (
-      <PageShell width="wide" className="text-center">
-        <p className="text-sm font-medium text-buzz-inkMuted">Loading...</p>
+      <PageShell width="wide">
+        <StatePanel>Loading...</StatePanel>
       </PageShell>
     );
   }
@@ -450,16 +456,16 @@ function ApiDropDetail() {
       <PageShell width="wide">
         <Link
           to="/brand/dashboard"
-          className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
+          className="mb-6 flex items-center text-sm font-semibold text-buzz-inkMuted transition hover:text-buzz-coral"
         >
           <ChevronLeft size={16} className="mr-1" />
           Back to dashboard
         </Link>
-        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-coral">
+        <StatePanel tone="danger">
           {error instanceof Error
             ? error.message
             : "Couldn’t load this drop. Please try again."}
-        </div>
+        </StatePanel>
       </PageShell>
     );
   }
@@ -494,65 +500,63 @@ function ApiDropDetail() {
     <PageShell width="wide">
       <Link
         to="/brand/dashboard"
-        className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
+        className="mb-6 flex items-center text-sm font-semibold text-buzz-inkMuted transition hover:text-buzz-coral"
       >
         <ChevronLeft size={16} className="mr-1" />
         Back to dashboard
       </Link>
 
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-buzz-ink">{detail.title}</h1>
-        <p className="mt-2 text-sm font-medium text-buzz-inkMuted">
+        <h1 className={TEXT.h1}>{detail.title}</h1>
+        <p className={cn(TEXT.body, "mt-2 text-buzz-inkMuted")}>
           {detail.description}
         </p>
       </header>
 
-      <BrandDropTrackerStepper
-        currentStage={drop.brandTrackerStage as any}
-        trackingNumber={drop.trackingNumber}
-      />
+      <div className={STACK.section}>
+        <BrandDropTrackerStepper
+          currentStage={drop.brandTrackerStage as any}
+          trackingNumber={drop.trackingNumber}
+        />
 
-      {detail.brandCanEditCreative ? (
-        <div className="mt-8">
+        {detail.brandCanEditCreative ? (
           <BrandCampaignEditor detail={detail} />
-        </div>
-      ) : null}
+        ) : null}
 
-      {canEditSelection ? (
-        <ApiApplicantTable
-          applicants={detail.applications ?? []}
-          dropId={detail.id}
-          capacityTotal={detail.capacityTotal}
-          totalProductUnits={detail.totalProductUnits}
-        />
-      ) : null}
+        {canEditSelection ? (
+          <ApiApplicantTable
+            applicants={detail.applications ?? []}
+            dropId={detail.id}
+            capacityTotal={detail.capacityTotal}
+            totalProductUnits={detail.totalProductUnits}
+          />
+        ) : null}
 
-      {showFinalizedRoster && !showResults ? (
-        <FinalizedRoster
-          applicants={detail.applications ?? []}
-          capacityTotal={detail.capacityTotal}
-        />
-      ) : null}
+        {showFinalizedRoster && !showResults ? (
+          <FinalizedRoster
+            applicants={detail.applications ?? []}
+            capacityTotal={detail.capacityTotal}
+          />
+        ) : null}
 
-      {showAwaitingRoster && !showFinalizedRoster && !showResults ? (
-        <div className="mt-8">
+        {showAwaitingRoster && !showFinalizedRoster && !showResults ? (
           <ApiDropOrgTable
             applicants={detail.applications ?? []}
             title="Accepted organizations"
           />
-        </div>
-      ) : null}
+        ) : null}
 
-      {showResults ? (
-        <div className="mt-8 space-y-6">
-          <DropKPISummary metrics={aggregateMetrics} />
-          <ApiDropOrgTable applicants={detail.applications ?? []} />
-        </div>
-      ) : !canEditSelection && !showFinalizedRoster && !showAwaitingRoster ? (
-        <div className="mt-8 rounded-2xl border border-dashed border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-inkMuted">
-          Posts and KPIs will appear here once your drop goes live.
-        </div>
-      ) : null}
+        {showResults ? (
+          <div className={STACK.group}>
+            <DropKPISummary metrics={aggregateMetrics} />
+            <ApiDropOrgTable applicants={detail.applications ?? []} />
+          </div>
+        ) : !canEditSelection && !showFinalizedRoster && !showAwaitingRoster ? (
+          <StatePanel>
+            Posts and KPIs will appear here once your drop goes live.
+          </StatePanel>
+        ) : null}
+      </div>
     </PageShell>
   );
 }

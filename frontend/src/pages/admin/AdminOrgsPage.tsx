@@ -21,6 +21,7 @@ import {
   PageHeading,
   Panel,
   Pill,
+  QueryState,
   Row,
   StatusPill,
 } from "../../components/admin/AdminPrimitives";
@@ -81,16 +82,11 @@ export default function AdminOrgsPage() {
       />
 
       <Panel>
-        {orgs.isPending && (
-          <p className="px-4 py-6 text-sm font-medium text-buzz-inkMuted">
-            Loading organizations…
-          </p>
-        )}
-        {orgs.isError && (
-          <p className="px-4 py-6 text-sm font-medium text-red-700">
-            Could not load organizations.
-          </p>
-        )}
+        <QueryState
+          isPending={orgs.isPending}
+          isError={orgs.isError}
+          label="organizations"
+        />
         {orgs.data && (
           <AdminTable
             headers={HEADERS}

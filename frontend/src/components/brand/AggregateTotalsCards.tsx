@@ -10,6 +10,9 @@ import {
   Users,
 } from "lucide-react";
 import type { BrandAggregateMetrics } from "../../types/metrics";
+import { Card } from "../ui/Card";
+import { GAP, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 type AggregateTotalsCardsProps = {
   metrics: BrandAggregateMetrics;
@@ -46,22 +49,21 @@ export default function AggregateTotalsCards({
     },
   ];
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+    <div
+      className={cn(
+        "grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-5",
+        GAP.default,
+        "[&>*:last-child]:col-span-2 sm:[&>*]:col-span-2 sm:[&>*:nth-child(4)]:col-span-3 sm:[&>*:nth-child(5)]:col-span-3 lg:[&>*]:col-span-1",
+      )}
+    >
       {tiles.map(({ icon: Icon, label, value }) => (
-        <div
-          key={label}
-          className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-5 text-center shadow-sm"
-        >
+        <Card key={label} kind="card" pad="default" className="text-center">
           <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-buzz-cream">
             <Icon size={20} className="text-buzz-coral" />
           </div>
-          <div className="text-2xl font-black tabular-nums text-buzz-ink">
-            {value}
-          </div>
-          <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-buzz-inkMuted">
-            {label}
-          </div>
-        </div>
+          <div className={TEXT.metric}>{value}</div>
+          <div className={cn(TEXT.micro, "mt-1 text-buzz-inkMuted")}>{label}</div>
+        </Card>
       ))}
     </div>
   );

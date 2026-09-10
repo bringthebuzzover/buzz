@@ -22,7 +22,7 @@ export default function SiteFooter() {
           <img
             src={siteIdentity.images.logoCoral}
             alt={siteIdentity.images.logoAlt}
-            className="-mb-4 w-36 h-auto -translate-x-2 -translate-y-3"
+            className="w-36 h-auto"
           />
           <p className="max-w-xs text-sm font-medium leading-relaxed text-buzz-inkMuted">
             Connecting brands with campus communities for authentic college

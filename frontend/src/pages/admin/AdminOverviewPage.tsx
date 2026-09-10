@@ -22,6 +22,8 @@ import {
   formatDateTime,
   humanizeKey,
 } from "../../components/admin/labels";
+import { PAD, SURFACE, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 function QueueCard({
   queueKey,
@@ -40,13 +42,18 @@ function QueueCard({
     <Link
       to={meta?.to ?? "/admin"}
       data-testid={`queue-${queueKey}`}
-      className="block rounded-lg border border-buzz-lineMid bg-buzz-paper p-4 transition hover:border-buzz-coral"
+      className={cn(
+        SURFACE.cardFlat,
+        PAD.default,
+        "block transition hover:border-buzz-coral",
+      )}
     >
-      <div className="flex items-baseline justify-between gap-2">
+      <div className="flex items-start justify-between gap-2">
         <span
-          className={`text-3xl font-black ${
-            clear ? "text-buzz-inkFaint" : "text-buzz-coral"
-          }`}
+          className={cn(
+            TEXT.metric,
+            clear ? "text-buzz-inkFaint" : "text-buzz-coral",
+          )}
         >
           {count}
         </span>
@@ -113,9 +120,7 @@ export default function AdminOverviewPage() {
                   const meta = SIGNAL_META[warning.key];
                   const body = (
                     <>
-                      <span className="mt-0.5 shrink-0 rounded bg-red-50 px-2 py-0.5 text-xs font-bold text-red-700">
-                        {warning.count}
-                      </span>
+                      <Pill tone="bad">{warning.count}</Pill>
                       <span>
                         <span className="block text-sm font-bold text-buzz-ink">
                           {meta?.label ?? humanizeKey(warning.key)}

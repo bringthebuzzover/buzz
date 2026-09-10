@@ -15,7 +15,7 @@ export default function SiteLayout() {
         <SiteHeader />
         {/* Flex column all the way to the outlet so `AUTH_SHELL.center` can
             claim the space between header and footer with `flex-1` and center
-            in it for real, instead of guessing with `min-h-[60vh]`. */}
+            in it for real, instead of a guessed min-height on the page. */}
         {/* Page roots are given an explicit width because `mx-auto` sets auto
             cross-axis margins, and an auto margin cancels flex stretch — the
             page would otherwise shrink-wrap to its widest content and scroll

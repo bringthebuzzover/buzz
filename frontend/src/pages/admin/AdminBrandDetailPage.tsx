@@ -215,7 +215,7 @@ export default function AdminBrandDetailPage() {
               </Field>
               <Field label="Invite expires">
                 {data.invite.expiresAt ? (
-                  <span className={inviteLapsed ? "text-red-700" : undefined}>
+                  <span className={inviteLapsed ? "text-buzz-danger" : undefined}>
                     {formatDateTime(data.invite.expiresAt)}
                   </span>
                 ) : (
@@ -229,7 +229,7 @@ export default function AdminBrandDetailPage() {
                 {data.instagramHandle ? (
                   `@${data.instagramHandle.replace(/^@/, "")}`
                 ) : (
-                  <span className="text-amber-700">
+                  <span className="text-buzz-warn">
                     Not set — auto-link can match nothing
                   </span>
                 )}

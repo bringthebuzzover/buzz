@@ -16,7 +16,9 @@ import {
   PageHeading,
   Panel,
   Pill,
+  QueryState,
   Row,
+  filterChipClass,
 } from "../../components/admin/AdminPrimitives";
 import {
   STAGE_LABELS,
@@ -118,11 +120,7 @@ export default function AdminDropsPage() {
                   }
                   setSearchParams(next, { replace: true });
                 }}
-                className={`rounded-full border px-3 py-1 text-xs font-bold transition ${
-                  selected
-                    ? "border-buzz-coral bg-buzz-coral text-buzz-paper"
-                    : "border-buzz-lineMid bg-buzz-paper text-buzz-inkMuted hover:border-buzz-coral hover:text-buzz-coral"
-                }`}
+                className={filterChipClass(selected)}
               >
                 {option.label}
               </button>
@@ -161,16 +159,11 @@ export default function AdminDropsPage() {
       </p>
 
       <Panel>
-        {drops.isPending && (
-          <p className="px-4 py-6 text-sm font-medium text-buzz-inkMuted">
-            Loading drops…
-          </p>
-        )}
-        {drops.isError && (
-          <p className="px-4 py-6 text-sm font-medium text-red-700">
-            Could not load drops.
-          </p>
-        )}
+        <QueryState
+          isPending={drops.isPending}
+          isError={drops.isError}
+          label="drops"
+        />
         {drops.data && (
           <AdminTable
             headers={HEADERS}

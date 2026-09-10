@@ -20,7 +20,12 @@ import {
 } from "../../api/hooks/useBrandHooks";
 import type { BrandAggregate, EngagementPoint } from "../../api/hooks/useBrandHooks";
 import PageShell from "../../components/site/PageShell";
-import { Button } from "../../components/forms/controls";
+import { Button, SuccessBanner } from "../../components/forms/controls";
+import { Card, CardHeader } from "../../components/ui/Card";
+import { Chip } from "../../components/ui/Chip";
+import { QueryStatePanel, StatePanel } from "../../components/ui/StatePanel";
+import { STACK, TEXT, type Tone } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 function DashboardHeader({
   onPlanCampaign,
@@ -30,10 +35,10 @@ function DashboardHeader({
   return (
     <header className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
       <div>
-        <h1 className="text-3xl font-bold text-buzz-ink">
+        <h1 className={TEXT.h1}>
           Brand <span className="text-buzz-coral">Dashboard</span>
         </h1>
-        <p className="mt-1 text-sm font-medium text-buzz-inkMuted">
+        <p className={cn(TEXT.body, "mt-1 text-buzz-inkMuted")}>
           Aggregate performance across every drop you've run with Buzz.
         </p>
       </div>
@@ -41,7 +46,6 @@ function DashboardHeader({
         type="button"
         onClick={onPlanCampaign}
         data-testid="plan-campaign"
-        className="flex items-center gap-2"
       >
         <Sparkles size={16} /> Plan your Campaign
       </Button>
@@ -49,43 +53,28 @@ function DashboardHeader({
   );
 }
 
-function statusTone(status: string): "good" | "warn" | "neutral" {
-  if (status === "converted") return "good";
+function statusTone(status: string): Tone {
+  if (status === "converted") return "success";
   if (status === "closed") return "neutral";
   return "warn";
 }
 
 function StatusPill({ status }: { status: string }) {
-  const tone = statusTone(status);
-  const toneClass =
-    tone === "good"
-      ? "border-green-200 bg-green-50 text-green-800"
-      : tone === "warn"
-        ? "border-amber-200 bg-amber-50 text-amber-800"
-        : "border-buzz-lineMid bg-buzz-cream text-buzz-inkMuted";
-  return (
-    <span
-      className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${toneClass}`}
-    >
-      {status.replace(/_/g, " ")}
-    </span>
-  );
+  return <Chip tone={statusTone(status)}>{status.replace(/_/g, " ")}</Chip>;
 }
 
 function RequestsPanel({ tickets }: { tickets: BrandDropRequest[] }) {
   return (
-    <section
-      id="tickets"
-      className="scroll-mt-8 overflow-hidden rounded-2xl border border-buzz-lineMid bg-buzz-paper shadow-sm"
-    >
+    <Card kind="card" pad="none" className="scroll-mt-8 overflow-hidden" id="tickets">
       <div className="border-b border-buzz-line bg-buzz-cream px-6 py-4">
-        <h3 className="text-lg font-bold text-buzz-ink">Requests</h3>
-        <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
-          Intake tickets — a representative will contact you.
-        </p>
+        <CardHeader
+          title="Requests"
+          description="Intake tickets — a representative will contact you."
+          className="mb-0"
+        />
       </div>
       {tickets.length === 0 ? (
-        <p className="px-6 py-8 text-sm font-medium text-buzz-inkMuted">
+        <p className={cn(TEXT.body, "px-6 py-8 text-buzz-inkMuted")}>
           No requests yet. Use Plan your Campaign to start a conversation.
         </p>
       ) : (
@@ -97,16 +86,16 @@ function RequestsPanel({ tickets }: { tickets: BrandDropRequest[] }) {
               data-testid="drop-request-row"
             >
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-buzz-ink line-clamp-2">
+                <p className={cn(TEXT.body, "line-clamp-2 font-semibold text-buzz-ink")}>
                   {ticket.message}
                 </p>
-                <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
+                <p className={cn(TEXT.meta, "mt-1")}>
                   A representative will contact you.
                 </p>
               </div>
               <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
                 <StatusPill status={ticket.status} />
-                <span className="text-xs font-medium text-buzz-inkMuted">
+                <span className={TEXT.meta}>
                   {new Date(ticket.createdAt).toLocaleDateString(undefined, {
                     year: "numeric",
                     month: "short",
@@ -118,7 +107,7 @@ function RequestsPanel({ tickets }: { tickets: BrandDropRequest[] }) {
           ))}
         </ul>
       )}
-    </section>
+    </Card>
   );
 }
 
@@ -167,24 +156,15 @@ function ApiDashboard() {
   const isLoading = aggLoading || dropsLoading || requestsLoading;
   const isError = aggError || dropsError || requestsError;
 
-  if (isLoading) {
+  if (isLoading || isError) {
     return (
       <PageShell width="wide">
         <DashboardHeader onPlanCampaign={planCampaign} />
-        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
-          Loading dashboard…
-        </div>
-      </PageShell>
-    );
-  }
-
-  if (isError) {
-    return (
-      <PageShell width="wide">
-        <DashboardHeader onPlanCampaign={planCampaign} />
-        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-coral">
-          Couldn’t load your dashboard. Please try again.
-        </div>
+        <QueryStatePanel
+          isPending={isLoading}
+          isError={isError}
+          label="dashboard"
+        />
       </PageShell>
     );
   }
@@ -207,34 +187,29 @@ function ApiDashboard() {
     <PageShell width="wide">
       <DashboardHeader onPlanCampaign={planCampaign} />
       {ticketSubmitted ? (
-        <div
-          className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800"
-          data-testid="ticket-submitted-toast"
-        >
-          Request submitted. A representative will contact you.
+        <div className="mb-6" data-testid="ticket-submitted-toast">
+          <SuccessBanner>
+            Request submitted. A representative will contact you.
+          </SuccessBanner>
         </div>
       ) : null}
-      <div className="space-y-8">
+      <div className={STACK.section}>
         <RequestsPanel tickets={tickets} />
         {items.length === 0 ? (
-          <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center">
-            <p className="text-sm font-medium text-buzz-inkMuted">
-              No drops yet. After a representative builds your campaign and
-              publishes it, performance will show up here.
-            </p>
-          </div>
+          <StatePanel>
+            No drops yet. After a representative builds your campaign and
+            publishes it, performance will show up here.
+          </StatePanel>
         ) : (
           <>
             <RunningTotalsBar metrics={mapAggregate(agg)} />
             <AggregateTotalsCards metrics={mapAggregate(agg)} />
             {seriesError ? (
-              <div className="rounded-2xl border border-dashed border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-inkMuted">
+              <StatePanel>
                 Engagement over time is temporarily unavailable.
-              </div>
+              </StatePanel>
             ) : seriesLoading ? (
-              <div className="rounded-2xl border border-dashed border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-inkMuted">
-                Loading engagement chart…
-              </div>
+              <StatePanel>Loading engagement chart…</StatePanel>
             ) : (
               <EngagementOverTimeChart points={mapEngagementSeries(pts)} />
             )}

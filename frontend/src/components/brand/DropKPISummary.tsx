@@ -5,6 +5,9 @@
  */
 import { DollarSign, Eye, Heart } from "lucide-react";
 import type { DropAggregateMetrics } from "../../types/metrics";
+import { Card } from "../ui/Card";
+import { GAP, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 type DropKPISummaryProps = {
   metrics: DropAggregateMetrics;
@@ -32,22 +35,15 @@ export default function DropKPISummary({ metrics }: DropKPISummaryProps) {
     },
   ];
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div className={cn("grid grid-cols-1 sm:grid-cols-3", GAP.default)}>
       {tiles.map(({ icon: Icon, label, value }) => (
-        <div
-          key={label}
-          className="rounded-2xl border border-buzz-lineMid bg-buzz-butter p-6 text-center shadow-sm"
-        >
+        <Card key={label} kind="cardWarm" pad="card" className="text-center">
           <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-buzz-paper">
             <Icon size={20} className="text-buzz-coral" />
           </div>
-          <div className="text-3xl font-black tabular-nums text-buzz-ink">
-            {value}
-          </div>
-          <div className="mt-2 text-[10px] font-bold uppercase tracking-wider text-buzz-inkMuted">
-            {label}
-          </div>
-        </div>
+          <div className={TEXT.metric}>{value}</div>
+          <div className={cn(TEXT.micro, "mt-2 text-buzz-inkMuted")}>{label}</div>
+        </Card>
       ))}
     </div>
   );

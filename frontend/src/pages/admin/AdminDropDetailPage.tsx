@@ -30,11 +30,13 @@ import { ApiError } from "../../api/client";
 import {
   Checkbox,
   DateTimeField,
+  ErrorBanner,
   Select,
+  SuccessBanner,
+  TextArea,
   TextField,
-  fieldClass,
+  WarningBanner,
 } from "../../components/forms/controls";
-import { fieldLabelCompactClass, textAreaClass } from "../../theme/controls";
 import {
   ActionButton,
   AdminTable,
@@ -197,70 +199,72 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
           </p>
         )}
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block sm:col-span-2">
-            <span className={fieldLabelCompactClass}>Title</span>
-            <input
-              type="text"
-              className={fieldClass.compact}
+          <div className="sm:col-span-2">
+            <TextField
+              id="drop-config-title"
+              label="Title"
+              size="compact"
               value={title}
               disabled={patch.isPending}
               onChange={(e) => setTitle(e.target.value)}
             />
-          </label>
-          <label className="block sm:col-span-2">
-            <span className={fieldLabelCompactClass}>Description</span>
-            <textarea
+          </div>
+          <div className="sm:col-span-2">
+            <TextArea
+              id="drop-config-description"
+              label="Description"
+              size="compact"
               rows={3}
-              className={textAreaClass.compact}
               value={description}
               disabled={patch.isPending}
               onChange={(e) => setDescription(e.target.value)}
             />
-          </label>
-          <label className="block sm:col-span-2">
-            <span className={fieldLabelCompactClass}>Image (https)</span>
-            <input
+          </div>
+          <div className="sm:col-span-2">
+            <TextField
+              id="drop-config-image"
+              label="Image (https)"
+              size="compact"
               type="url"
-              className={fieldClass.compact}
               value={image}
               disabled={patch.isPending}
               onChange={(e) => setImage(e.target.value)}
             />
-          </label>
-          <label className="block sm:col-span-2">
-            <span className={fieldLabelCompactClass}>Location</span>
-            <input
-              type="text"
-              className={fieldClass.compact}
+          </div>
+          <div className="sm:col-span-2">
+            <TextField
+              id="drop-config-location"
+              label="Location"
+              size="compact"
               value={location}
               disabled={patch.isPending}
               onChange={(e) => setLocation(e.target.value)}
             />
-          </label>
-          <label className="block">
-            <span className={fieldLabelCompactClass}>Capacity</span>
-            <input
+          </div>
+          <TextField
+            id="drop-config-capacity"
+            label="Capacity"
+            size="compact"
+            type="number"
+            min={1}
+            value={capacity}
+            disabled={logisticsLocked || patch.isPending}
+            onChange={(e) => setCapacity(e.target.value)}
+          />
+          <div>
+            <TextField
+              id="drop-config-units"
+              label="Unit budget"
+              size="compact"
               type="number"
               min={1}
-              className={fieldClass.compact}
-              value={capacity}
-              disabled={logisticsLocked || patch.isPending}
-              onChange={(e) => setCapacity(e.target.value)}
-            />
-          </label>
-          <div className="block">
-            <span className={fieldLabelCompactClass}>Unit budget</span>
-            <input
-              type="number"
-              min={1}
-              className={fieldClass.compact}
               value={units}
               disabled={logisticsLocked || clearUnits || patch.isPending}
               placeholder="Leave empty, then clear for spot-only"
               onChange={(e) => setUnits(e.target.value)}
             />
             <Checkbox
-              className="mt-1"
+              wrapperClassName="mt-1"
               checked={clearUnits}
               disabled={logisticsLocked || patch.isPending}
               onChange={(e) => setClearUnits(e.target.checked)}
@@ -268,6 +272,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
             />
           </div>
           <DateTimeField
+            id="drop-config-open-at"
             label="Apply opens"
             size="compact"
             value={openAt}
@@ -275,51 +280,53 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
             onChange={(e) => setOpenAt(e.target.value)}
           />
           <DateTimeField
+            id="drop-config-close-at"
             label="Apply closes"
             size="compact"
             value={closeAt}
             disabled={logisticsLocked || patch.isPending}
             onChange={(e) => setCloseAt(e.target.value)}
           />
-          <div className="block sm:col-span-2">
-            <span className={fieldLabelCompactClass}>Campaign hashtag</span>
-            <input
-              type="text"
-              className={fieldClass.compact}
+          <div className="sm:col-span-2">
+            <TextField
+              id="drop-config-hashtag"
+              label="Campaign hashtag"
+              size="compact"
               value={hashtag}
               disabled={clearHashtag || patch.isPending}
               placeholder="e.g. springdrop (no # required)"
               onChange={(e) => setHashtag(e.target.value)}
             />
             <Checkbox
-              className="mt-1"
+              wrapperClassName="mt-1"
               checked={clearHashtag}
               disabled={patch.isPending}
               onChange={(e) => setClearHashtag(e.target.checked)}
               label={<span className="text-xs text-buzz-inkMuted">Clear hashtag</span>}
             />
           </div>
-          <div className="block sm:col-span-2">
-            <span className={fieldLabelCompactClass}>Who can edit</span>
-            <Checkbox
+          <div className="sm:col-span-2">
+            <Select
               id="brand-can-edit-creative"
               data-testid="brand-can-edit-creative"
-              checked={brandCanEditCreative}
+              label="Who can edit"
+              size="compact"
+              value={brandCanEditCreative ? "brand" : "admin"}
               disabled={patch.isPending}
-              onChange={(e) => setBrandCanEditCreative(e.target.checked)}
+              onChange={(e) => setBrandCanEditCreative(e.target.value === "brand")}
               aria-describedby="brand-can-edit-creative-help"
-              label={
-                <span>
-                  Brand can edit title, description, and image
-                  <span
-                    id="brand-can-edit-creative-help"
-                    className="mt-0.5 block text-xs font-medium text-buzz-inkMuted"
-                  >
-                    Brand cannot change dates, capacity, or publish.
-                  </span>
-                </span>
-              }
-            />
+            >
+              <option value="admin">Admin only</option>
+              <option value="brand">
+                Brand can edit title, description, and image
+              </option>
+            </Select>
+            <p
+              id="brand-can-edit-creative-help"
+              className="mt-0.5 text-xs font-medium text-buzz-inkMuted"
+            >
+              Brand cannot change dates, capacity, or publish.
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -341,9 +348,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
             </ActionButton>
           )}
         </div>
-        {notice && (
-          <p className="text-sm font-medium text-green-700">{notice}</p>
-        )}
+        {notice && <SuccessBanner>{notice}</SuccessBanner>}
         {error && <ErrorNote>{error}</ErrorNote>}
       </div>
     </div>
@@ -467,6 +472,7 @@ function TrackerControls({
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Select
+              id="tracker-stage"
               data-testid="tracker-stage"
               size="compact"
               label="Advance to"
@@ -481,70 +487,64 @@ function TrackerControls({
             </Select>
 
             {needsTracking && (
-              <label className="block">
-                <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
-                  Tracking number (required)
-                </span>
-                <input
-                  data-testid="tracker-tracking-number"
-                  className={fieldClass.compact}
-                  value={trackingNumber}
-                  onChange={(event) => setTrackingNumber(event.target.value)}
-                  placeholder="Required for this transition"
-                />
-              </label>
+              <TextField
+                id="tracker-tracking-number"
+                data-testid="tracker-tracking-number"
+                label="Tracking number (required)"
+                size="compact"
+                value={trackingNumber}
+                onChange={(event) => setTrackingNumber(event.target.value)}
+                placeholder="Required for this transition"
+              />
             )}
 
-            <label className="block sm:col-span-2">
-              <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
-                Note (optional)
-              </span>
-              <input
+            <div className="sm:col-span-2">
+              <TextField
+                id="tracker-note"
                 data-testid="tracker-note"
-                className={fieldClass.compact}
+                label="Note (optional)"
+                size="compact"
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
               />
-            </label>
+            </div>
           </div>
         )}
 
         {needsTracking && !trackingNumber.trim() && (
-          <p className="text-xs font-bold text-amber-700">
+          <WarningBanner>
             Tracking is required on the move into this stage.
-          </p>
+          </WarningBanner>
         )}
 
         {blockedByFinalize && (
-          <p className="text-xs font-bold text-red-700">
+          <ErrorBanner>
             The brand has not finalized its applicant selection. Advancing past
             that stage would strand every applicant with no way to decide them.
-          </p>
+          </ErrorBanner>
         )}
 
         {blockedBySkipAwaiting && (
-          <p className="text-xs font-bold text-red-700">
+          <ErrorBanner>
             Advance to awaiting_products with a tracking number before
             drop_active.
-          </p>
+          </ErrorBanner>
         )}
 
         {canRepairTracking && (
           <div className="grid grid-cols-1 gap-3 border-t border-buzz-lineMid pt-4 sm:grid-cols-[1fr_auto]">
-            <label className="block">
-              <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
-                Repair tracking number
-              </span>
-              <input
-                data-testid="repair-tracking-number"
-                className={fieldClass.compact}
-                value={repairTracking}
-                onChange={(event) => setRepairTracking(event.target.value)}
-              />
-            </label>
+            <TextField
+              id="repair-tracking-number"
+              data-testid="repair-tracking-number"
+              label="Repair tracking number"
+              size="compact"
+              value={repairTracking}
+              onChange={(event) => setRepairTracking(event.target.value)}
+            />
             <div className="flex items-end">
               <ActionButton
                 testId="repair-tracking"
+                className="self-end"
                 disabled={setTracking.isPending || !repairTracking.trim()}
                 onClick={() => void doRepairTracking()}
               >
@@ -678,8 +678,8 @@ function HideCampaignPanel({ drop }: { drop: AdminDropDetail }) {
         title="Hidden campaign"
         description="Org and brand portals cannot see this drop. Unhide restores the same URLs."
       >
-        {error && <ErrorNote>{error}</ErrorNote>}
-        <div className="px-4 pb-4">
+        <div className="px-4 py-4">
+          {error && <ErrorNote>{error}</ErrorNote>}
           <ActionButton
             variant="primary"
             testId="drop-unhide"
@@ -698,8 +698,8 @@ function HideCampaignPanel({ drop }: { drop: AdminDropDetail }) {
       title="Hide campaign"
       description="Removes this published drop from every org and brand portal. Confirm by typing the exact title. No email unless you opt in."
     >
-      {error && <ErrorNote>{error}</ErrorNote>}
-      <div className="space-y-3 px-4 pb-4">
+      <div className="space-y-3 px-4 py-4">
+        {error && <ErrorNote>{error}</ErrorNote>}
         <TextField
           id="hide-drop-confirm"
           data-testid="hide-drop-confirm"
@@ -783,14 +783,14 @@ export default function AdminDropDetailPage() {
             currentTracking={data.trackingNumber}
           />
 
-          <div className="mb-4 flex gap-2 border-b border-buzz-lineMid">
+          <div className="mb-4 flex gap-2 overflow-x-auto border-b border-buzz-lineMid">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 data-testid={`tab-${tab.id}`}
                 onClick={() => setSearchParams({ tab: tab.id })}
-                className={`-mb-px border-b-2 px-3 py-2 text-sm font-bold transition ${
+                className={`-mb-px shrink-0 border-b-2 px-3 py-2 text-sm font-semibold transition ${
                   activeTab === tab.id
                     ? "border-buzz-coral text-buzz-coral"
                     : "border-transparent text-buzz-inkMuted hover:text-buzz-ink"
@@ -895,7 +895,7 @@ export default function AdminDropDetailPage() {
                 <Field label="Unconfirmed suggestions">
                   {data.pendingSuggestionCount}
                   {data.pendingSuggestionCount > 0 && (
-                    <span className="ml-2 text-xs font-medium text-amber-700">
+                    <span className="ml-2 text-xs font-medium text-buzz-warn">
                       metrics understate reality until orgs confirm these
                     </span>
                   )}

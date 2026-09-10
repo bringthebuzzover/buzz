@@ -101,15 +101,15 @@ export default function BrandSetupPage() {
           required
         />
 
+        {error && <ErrorBanner>{error}</ErrorBanner>}
+
         <Button
           type="submit"
           disabled={setPassword.isPending}
-          className="w-full"
+          fullWidth
         >
           {setPassword.isPending ? "Saving…" : "Activate account"}
         </Button>
-
-        {error && <ErrorBanner>{error}</ErrorBanner>}
       </form>
     </AuthShell>
   );

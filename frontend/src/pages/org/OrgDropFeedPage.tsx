@@ -13,6 +13,15 @@ import { useWallClockNow } from "../../utils/wallClock";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
 import { useApplyToDrop } from "../../api/hooks/useDropHooks";
 import PageShell from "../../components/site/PageShell";
+import { Card } from "../../components/ui/Card";
+import { QueryStatePanel, StatePanel } from "../../components/ui/StatePanel";
+import {
+  Button,
+  ErrorBanner,
+  TextArea,
+} from "../../components/forms/controls";
+import { GAP, STACK, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 type FilterId = "all" | "upcoming" | "open" | "closed";
 
@@ -31,10 +40,10 @@ function matchesFilter(filter: FilterId, status: DropFeedStatus): boolean {
 function FeedHeader() {
   return (
     <header className="mb-8 text-center">
-      <h1 className="text-3xl font-bold text-buzz-ink">
+      <h1 className={TEXT.h1}>
         Browse <span className="text-buzz-coral">Campaigns</span>
       </h1>
-      <p className="mt-2 text-sm font-medium text-buzz-inkMuted">
+      <p className={cn(TEXT.body, "mt-2 text-buzz-inkMuted")}>
         Browse open and upcoming drops from the brands in our network.
       </p>
     </header>
@@ -82,17 +91,18 @@ function FeedContent({
     <PageShell width="wide">
       <FeedHeader />
 
-      <div className="mb-8 flex flex-wrap justify-center gap-2">
+      <div className={cn("mb-8 flex flex-wrap justify-center", GAP.tight)}>
         {FILTERS.map((f) => (
           <button
             key={f.id}
             type="button"
             onClick={() => setFilter(f.id)}
-            className={`rounded-full px-4 py-2 text-sm font-bold shadow-sm transition ${
+            className={cn(
+              "rounded-full px-4 py-2 text-sm font-semibold transition",
               filter === f.id
                 ? "bg-buzz-coral text-buzz-paper"
-                : "border border-buzz-lineMid bg-buzz-paper text-buzz-inkMuted hover:bg-buzz-cream"
-            }`}
+                : "border border-buzz-lineMid bg-buzz-paper text-buzz-inkMuted hover:bg-buzz-cream",
+            )}
           >
             {f.label}
           </button>
@@ -100,38 +110,33 @@ function FeedContent({
       </div>
 
       {visibleDrops.length === 0 ? (
-        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
-          No drops match this filter right now.
-        </div>
+        <StatePanel>No drops match this filter right now.</StatePanel>
       ) : (
-        <div className="flex flex-wrap justify-center gap-8">
-          {visibleDrops.map(({ row, status }) => {
-            return (
-              <div key={row.id} className="w-full max-w-sm">
-                <DropFeedCard
-                  drop={row}
-                  acceptedCount={row.acceptedCount}
-                  feedStatus={status}
-                  alreadyApplied={row.alreadyApplied}
-                  disableApply={disableApply}
-                  onApply={() => onApply(row.id)}
-                />
-              </div>
-            );
-          })}
+        <div className={cn("grid sm:grid-cols-2 lg:grid-cols-3", GAP.section)}>
+          {visibleDrops.map(({ row, status }) => (
+            <DropFeedCard
+              key={row.id}
+              drop={row}
+              acceptedCount={row.acceptedCount}
+              feedStatus={status}
+              alreadyApplied={row.alreadyApplied}
+              disableApply={disableApply}
+              onApply={() => onApply(row.id)}
+            />
+          ))}
         </div>
       )}
 
       {hasMore ? (
         <div className="mt-10 flex justify-center">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={onLoadMore}
             disabled={isLoadingMore}
-            className="rounded-full border border-buzz-lineMid bg-buzz-paper px-6 py-3 text-sm font-bold text-buzz-inkMuted shadow-sm transition hover:bg-buzz-cream disabled:opacity-60"
           >
             {isLoadingMore ? "Loading…" : "Load more drops"}
-          </button>
+          </Button>
         </div>
       ) : null}
     </PageShell>
@@ -173,24 +178,15 @@ function ApiDropFeed() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || error) {
     return (
       <PageShell width="wide">
         <FeedHeader />
-        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
-          Loading drops…
-        </div>
-      </PageShell>
-    );
-  }
-
-  if (error) {
-    return (
-      <PageShell width="wide">
-        <FeedHeader />
-        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-coral">
-          Couldn’t load drops. Please try again.
-        </div>
+        <QueryStatePanel
+          isPending={isLoading}
+          isError={Boolean(error)}
+          label="drops"
+        />
       </PageShell>
     );
   }
@@ -231,39 +227,43 @@ function ApiApplyForm({
   return (
     <PageShell width="wide">
       <FeedHeader />
-      <div className="mx-auto max-w-md rounded-2xl border border-buzz-lineMid bg-buzz-paper p-8 shadow-sm">
-        <h2 className="mb-4 text-xl font-bold text-buzz-ink">Apply to Drop</h2>
-        <textarea
-          placeholder="Optional pitch message..."
-          value={pitch}
-          onChange={(e) => setPitch(e.target.value)}
-          rows={4}
-          className="mb-4 w-full rounded-lg border border-buzz-lineMid bg-buzz-cream p-3 text-sm outline-none focus:border-buzz-coral"
-        />
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 rounded-lg border border-buzz-lineMid px-4 py-2 text-sm font-bold text-buzz-inkMuted hover:bg-buzz-cream"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            data-testid="apply-submit"
-            onClick={handleSubmit}
-            disabled={mutation.isPending}
-            className="flex-1 rounded-lg bg-buzz-coral px-4 py-2 text-sm font-bold text-buzz-paper hover:bg-buzz-coralDark disabled:opacity-60"
-          >
-            {mutation.isPending ? "Submitting..." : "Submit"}
-          </button>
+      <Card kind="card" pad="roomy" className="mx-auto max-w-md">
+        <h2 className={cn(TEXT.h2, "mb-4")}>Apply to Drop</h2>
+        <div className={STACK.default}>
+          <TextArea
+            placeholder="Optional pitch message..."
+            value={pitch}
+            onChange={(e) => setPitch(e.target.value)}
+            rows={4}
+          />
+          <div className={cn("flex", GAP.tight)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              data-testid="apply-submit"
+              onClick={handleSubmit}
+              disabled={mutation.isPending}
+              className="flex-1"
+            >
+              {mutation.isPending ? "Submitting..." : "Submit"}
+            </Button>
+          </div>
+          {mutation.error ? (
+            <ErrorBanner>
+              {mutation.error instanceof Error
+                ? mutation.error.message
+                : "Failed to apply."}
+            </ErrorBanner>
+          ) : null}
         </div>
-        {mutation.error ? (
-          <p className="mt-3 text-sm font-medium text-buzz-coral">
-            {mutation.error instanceof Error ? mutation.error.message : "Failed to apply."}
-          </p>
-        ) : null}
-      </div>
+      </Card>
     </PageShell>
   );
 }

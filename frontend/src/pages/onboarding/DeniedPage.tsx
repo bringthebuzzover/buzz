@@ -5,17 +5,15 @@
  * here on ACCOUNT_DENIED.
  */
 import AuthShell from "../../components/site/AuthShell";
+import { StatePanel } from "../../components/ui/StatePanel";
 
 export default function DeniedPage() {
   return (
-    <AuthShell align="center" className="text-center">
-      <h1 className="mb-4 text-3xl font-bold text-buzz-coral">
-        Application Denied
-      </h1>
-      <p className="text-sm font-medium text-buzz-inkMuted">
-        Your organization's application was not approved. Contact Buzz support
-        if you have questions.
-      </p>
+    <AuthShell align="center">
+      <StatePanel tone="danger" title="Application Denied">
+        Your organization&apos;s application was not approved. Contact Buzz
+        support if you have questions.
+      </StatePanel>
     </AuthShell>
   );
 }

@@ -13,7 +13,7 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
 
   if (status === "authenticating" || status === "idle") {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <p className="text-sm font-medium text-buzz-inkMuted">
           Restoring your session…
         </p>
