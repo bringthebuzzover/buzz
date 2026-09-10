@@ -260,13 +260,16 @@ export function AnchorButton({
   size,
   fullWidth,
   className,
+  children,
   ...props
 }: React.AnchorHTMLAttributes<HTMLAnchorElement> & ButtonVariants) {
   return (
     <a
       className={cn(buttonVariants({ variant, size, fullWidth }), className)}
       {...props}
-    />
+    >
+      {children}
+    </a>
   );
 }
 
