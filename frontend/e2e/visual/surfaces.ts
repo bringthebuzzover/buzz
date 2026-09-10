@@ -9,6 +9,11 @@
  * bounce), `/onboarding/profile` and `/onboarding/pending-approval` (only
  * reachable mid-onboarding; the seeded org is already active, so they redirect),
  * and every `kind: redirect` alias in `AppRoot`.
+ *
+ * Not covered because they need credentials the seed does not mint, tracked in
+ * `frontend/docs/ui-defect-map.md` as coverage holes: `/brand/setup` (redirects
+ * to `/` without a valid `?token`) and `/onboarding/connect-instagram`'s connect
+ * CTA (needs a `pending_instagram` session; only the bad-token state is shot).
  */
 import type { Page } from "@playwright/test";
 import type { Persona } from "./personas";
@@ -62,7 +67,6 @@ export const SURFACES: Surface[] = [
   { id: "admin-login", route: "/admin/login", persona: "public", area: "auth" },
   { id: "org-apply", route: "/org/apply", persona: "public", area: "auth" },
   { id: "brand-apply", route: "/brand/apply", persona: "public", area: "auth" },
-  { id: "brand-setup", route: "/brand/setup", persona: "public", area: "auth" },
   { id: "brand-forgot-password", route: "/brand/forgot-password", persona: "public", area: "auth" },
   { id: "admin-forgot-password", route: "/admin/forgot-password", persona: "public", area: "auth" },
   { id: "brand-reset-password", route: "/brand/reset-password", persona: "public", area: "auth" },
@@ -76,8 +80,13 @@ export const SURFACES: Surface[] = [
     route: "/onboarding/verify-email?token=atlas-not-a-real-token",
     persona: "public",
     area: "onboarding",
+    // The failure branch only renders after the confirm POST fails, so the
+    // token alone lands on the idle "Confirm this is you" screen.
+    prep: async (page) => {
+      await page.getByRole("button", { name: /verify email/i }).click();
+      await page.getByText(/verification failed/i).waitFor({ timeout: 10_000 });
+    },
   },
-  { id: "connect-instagram", route: "/onboarding/connect-instagram", persona: "public", area: "onboarding" },
   {
     id: "connect-instagram-bad-token",
     route: "/onboarding/connect-instagram?token=atlas-not-a-real-token",

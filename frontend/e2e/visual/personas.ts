@@ -34,6 +34,19 @@ export async function openPersona(
 
   switch (persona) {
     case "public":
+      // In development the SPA bootstrap auto-mints a seeded org session on any
+      // route that is neither an auth route nor public marketing (see
+      // `onAuthRoute` / `onPublicMarketingRoute` in AuthContext.tsx). That
+      // cookie then leaks into every later navigation in this context, so
+      // `/login` would redirect to `/org/browse`. Off-dev the endpoint 404s —
+      // mirror that here so public shots are genuinely anonymous.
+      await context.route("**/api/auth/dev-login", (route) =>
+        route.fulfill({
+          status: 404,
+          contentType: "application/json",
+          body: JSON.stringify({ data: null, error: { code: "NOT_FOUND" } }),
+        }),
+      );
       break;
     case "org":
       await page.goto("/org/browse");
