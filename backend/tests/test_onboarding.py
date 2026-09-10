@@ -401,6 +401,88 @@ async def test_resend_from_used_token_is_already_verified(
     assert user.status == OrgUserStatus.PENDING_APPROVAL.value
 
 
+async def test_resend_from_expired_rotate_token_mints_to_pending(
+    app_client: AsyncClient, db_session
+) -> None:
+    user = await _seed_verified_org(db_session, email="live-rft@test.edu", suffix="rft3")
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    rotate = await app_client.post(
+        "/api/auth/verify-email/rotate",
+        json={"eduEmail": "pending-rft@test.edu"},
+        headers=headers,
+    )
+    assert rotate.status_code == 200, rotate.text
+
+    tokens = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(
+                EmailVerificationToken.user_id == user.id,
+                EmailVerificationToken.used_at.is_(None),
+            )
+        )
+    )
+    assert len(tokens) == 1
+    raw = uuid.uuid4().hex
+    tokens[0].token_hash = hash_token(raw)
+    tokens[0].expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
+    await db_session.flush()
+
+    resp = await app_client.post(
+        "/api/auth/verify-email/resend-from-token",
+        json={"token": raw},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["data"]["emailSentTo"] == "pending-rft@test.edu"
+    assert resp.json()["data"]["emailSentTo"] != user.edu_email
+
+    all_tokens = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
+        )
+    )
+    assert len(all_tokens) == 2
+    assert any(row.expires_at > datetime.now(timezone.utc) for row in all_tokens)
+
+
+async def test_resend_from_token_rotate_email_mismatch(app_client: AsyncClient, db_session) -> None:
+    user = await _seed_verified_org(db_session, email="live-mm@test.edu", suffix="rft4")
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    rotate = await app_client.post(
+        "/api/auth/verify-email/rotate",
+        json={"eduEmail": "pending-mm@test.edu"},
+        headers=headers,
+    )
+    assert rotate.status_code == 200, rotate.text
+
+    tokens = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(
+                EmailVerificationToken.user_id == user.id,
+                EmailVerificationToken.used_at.is_(None),
+            )
+        )
+    )
+    assert len(tokens) == 1
+    raw = uuid.uuid4().hex
+    tokens[0].token_hash = hash_token(raw)
+    tokens[0].email = "live-mm@test.edu"
+    tokens[0].expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
+    await db_session.flush()
+
+    resp = await app_client.post(
+        "/api/auth/verify-email/resend-from-token",
+        json={"token": raw},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "INVALID_ONBOARDING_STATE"
+    leftover = list(
+        await db_session.scalars(
+            select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
+        )
+    )
+    assert len(leftover) == 1
+
+
 # --- Org onboarding: resend --------------------------------------------------
 
 

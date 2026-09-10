@@ -206,6 +206,32 @@ describe("VerifyEmailPage confirm-before-verify", () => {
     expect(container.textContent).toContain("Sent");
     expect(container.textContent).toContain("club@test.edu");
   });
+
+  it("double-click Request a new link POSTs resend-from-token once", async () => {
+    mockMutateAsync.mockRejectedValue(
+      new ApiError(
+        "VERIFICATION_TOKEN_EXPIRED",
+        "Verification token has expired. Request a new one.",
+        400,
+      ),
+    );
+    mockResendFromToken.mockResolvedValue({ emailSentTo: "club@test.edu" });
+    renderWithToken("expired-tok");
+    await clickVerify();
+
+    const requestNew = Array.from(container.querySelectorAll("button")).find((b) =>
+      /request a new link/i.test(b.textContent ?? ""),
+    );
+    expect(requestNew).toBeTruthy();
+
+    await act(async () => {
+      requestNew!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      requestNew!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+
+    expect(mockResendFromToken).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("VerifyEmailPage public wait", () => {
