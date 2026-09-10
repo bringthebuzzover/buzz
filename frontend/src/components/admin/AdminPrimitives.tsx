@@ -6,10 +6,14 @@
  * reads as calm. Same `buzz-*` palette as the rest of the app — no new colors.
  */
 import {
+  Children,
+  cloneElement,
+  isValidElement,
   useEffect,
   useId,
   useRef,
   useState,
+  type ReactElement,
   type ReactNode,
 } from "react";
 import { Link } from "react-router-dom";
@@ -121,6 +125,34 @@ export function Panel({
   );
 }
 
+/**
+ * Below `md`, rows become hybrid cards (title + 2-col labeled facts + actions).
+ * Desktop stays a table. Labels come from `headers` so pages do not duplicate copy.
+ */
+function withHybridCellMeta(
+  headers: readonly string[],
+  children: ReactNode,
+): ReactNode {
+  const last = headers.length - 1;
+  return Children.map(children, (row) => {
+    if (!isValidElement<{ children?: ReactNode }>(row)) return row;
+    // JSX whitespace between <Cell>s is a child. Index only real cells or
+    // labels attach to the wrong column (title would show "University", etc.).
+    let cellIndex = 0;
+    const cells = Children.map(row.props.children, (cell) => {
+      if (!isValidElement(cell) || cell.type !== Cell) return cell;
+      const i = cellIndex++;
+      const header = headers[i] ?? "";
+      return cloneElement(cell as ReactElement<CellProps>, {
+        label: header || undefined,
+        isTitle: i === 0,
+        isActions: i === last && header === "",
+      });
+    });
+    return cloneElement(row, { children: cells });
+  });
+}
+
 export function AdminTable({
   headers,
   children,
@@ -133,22 +165,25 @@ export function AdminTable({
   isEmpty: boolean;
 }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-buzz-cream text-xs uppercase tracking-wide text-buzz-inkMuted">
+    <div className="md:overflow-x-auto">
+      <table className="w-full text-left text-sm max-md:block">
+        <thead className="bg-buzz-cream text-xs uppercase tracking-wide text-buzz-inkMuted max-md:hidden">
           <tr>
-            {headers.map((header) => (
-              <th key={header} className="px-4 py-2.5 font-semibold">
+            {headers.map((header, i) => (
+              <th
+                key={header || `actions-${i}`}
+                className="px-4 py-2.5 font-semibold"
+              >
                 {/* A blank header is a deliberate spacer for an actions column. */}
                 {header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
-          {children}
+        <tbody className="max-md:flex max-md:flex-col max-md:gap-3 max-md:p-3">
+          {withHybridCellMeta(headers, children)}
           {isEmpty && (
-            <tr>
+            <tr className="max-md:block">
               <td
                 colSpan={headers.length}
                 className="px-4 py-10 text-center text-sm font-medium text-buzz-inkMuted"
@@ -165,27 +200,53 @@ export function AdminTable({
 
 export function Row({ children }: { children: ReactNode }) {
   return (
-    <tr className="border-t border-buzz-lineMid align-middle hover:bg-buzz-neutralWash">
+    <tr
+      className={cn(
+        "border-t border-buzz-lineMid align-middle hover:bg-buzz-neutralWash",
+        "max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:gap-y-3 max-md:rounded-buzzCard max-md:border max-md:border-buzz-lineMid max-md:bg-buzz-paper max-md:p-4 max-md:hover:bg-buzz-paper",
+      )}
+    >
       {children}
     </tr>
   );
 }
 
+type CellProps = {
+  children: ReactNode;
+  muted?: boolean;
+  align?: "left" | "right";
+  /** Injected by AdminTable from `headers`. */
+  label?: string;
+  isTitle?: boolean;
+  isActions?: boolean;
+};
+
 export function Cell({
   children,
   muted = false,
   align = "left",
-}: {
-  children: ReactNode;
-  muted?: boolean;
-  align?: "left" | "right";
-}) {
+  label,
+  isTitle = false,
+  isActions = false,
+}: CellProps) {
+  const showLabel = Boolean(label) && !isTitle && !isActions;
   return (
     <td
-      className={`px-4 py-2.5 ${muted ? "text-buzz-inkMuted" : "text-buzz-ink"} ${
-        align === "right" ? "text-right" : ""
-      }`}
+      className={cn(
+        "px-4 py-2.5",
+        muted ? "text-buzz-inkMuted" : "text-buzz-ink",
+        align === "right" && "text-right",
+        // Grid items default to min-width:auto and will blow out the 375px
+        // card; wrap long emails / handles instead of clipping in the Panel.
+        "max-md:flex max-md:min-w-0 max-md:flex-col max-md:gap-0.5 max-md:break-words max-md:px-0 max-md:py-0",
+        isTitle && "max-md:col-span-2 max-md:text-base max-md:font-semibold",
+        isActions &&
+          "max-md:col-span-2 max-md:flex-row max-md:flex-wrap max-md:justify-end",
+      )}
     >
+      {showLabel ? (
+        <span className={cn(TEXT.micro, "hidden max-md:block")}>{label}</span>
+      ) : null}
       {children}
     </td>
   );

@@ -27,6 +27,7 @@ import {
 } from "../../components/forms/controls";
 import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+import { useMdUp } from "../../hooks/useMdUp";
 
 /** Map backend drop detail to the shape components expect. */
 function mapDropToView(d: BrandDropDetail) {
@@ -62,6 +63,7 @@ function ApiApplicantTable({
   capacityTotal: number;
   totalProductUnits: number | null | undefined;
 }) {
+  const mdUp = useMdUp();
   const finalizeMutation = useFinalizeApplicants(dropId);
   const showUnits = totalProductUnits != null;
   // Explicit accept selection: finalize ACCEPTS the checked orgs and DENIES every
@@ -123,6 +125,21 @@ function ApiApplicantTable({
     .filter((a) => accepted[a.orgId])
     .reduce((s, a) => s + (allocations[a.orgId] ?? 0), 0);
 
+  const shipToLine = (app: BrandDropApplicant) =>
+    app.accountErased ? (
+      <p className={cn(TEXT.meta, "mt-0.5")}>
+        Account deleted · Shipping details removed
+      </p>
+    ) : app.deliveryAddress ? (
+      <p className={cn(TEXT.meta, "mt-0.5")}>
+        Ship to: {app.deliveryAddress}
+      </p>
+    ) : (
+      <p className={cn(TEXT.meta, "mt-0.5 text-buzz-warn")}>
+        Ship to: Not set — nowhere to ship product
+      </p>
+    );
+
   return (
     <div className={STACK.default}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -153,6 +170,81 @@ function ApiApplicantTable({
           </Select>
         ) : null}
       </div>
+      {!mdUp ? (
+      <div className="flex flex-col gap-3">
+        {visible.length === 0 ? (
+          <Card kind="cardFlat" pad="default">
+            <p className={cn(TEXT.body, "text-center text-buzz-inkMuted")}>
+              No pending applicants.
+            </p>
+          </Card>
+        ) : (
+          visible.map((app) => {
+            const isAccepted = !!accepted[app.orgId];
+            return (
+              <Card
+                key={app.id}
+                kind="cardFlat"
+                pad="default"
+                className={STACK.tight}
+              >
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    aria-label={`Accept ${app.orgName}`}
+                    checked={isAccepted}
+                    wrapperClassName="mt-0.5"
+                    onChange={(e) =>
+                      setAccepted((prev) => ({
+                        ...prev,
+                        [app.orgId]: e.target.checked,
+                      }))
+                    }
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className={cn(TEXT.body, "font-semibold text-buzz-ink")}>
+                      {app.orgName}
+                    </p>
+                    <p className={TEXT.meta}>
+                      {app.university}
+                      {app.category
+                        ? ` · ${orgCategoryLabel(app.category)}`
+                        : ""}
+                      {` · ${app.followerCount ?? "-"} followers`}
+                    </p>
+                    <p className={cn(TEXT.meta, "mt-1")}>{app.instagramHandle}</p>
+                    <p className={cn(TEXT.body, "mt-2 text-buzz-ink")}>
+                      {app.pitch ?? "—"}
+                    </p>
+                    {shipToLine(app)}
+                    {showUnits ? (
+                      <TextField
+                        id={`units-${app.orgId}`}
+                        type="number"
+                        min={0}
+                        size="compact"
+                        label="Units"
+                        disabled={!isAccepted}
+                        className="mt-2 w-24"
+                        value={isAccepted ? allocations[app.orgId] ?? 0 : 0}
+                        onChange={(e) =>
+                          setAllocations((prev) => ({
+                            ...prev,
+                            [app.orgId]: Math.max(
+                              0,
+                              parseInt(e.target.value, 10) || 0,
+                            ),
+                          }))
+                        }
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              </Card>
+            );
+          })
+        )}
+      </div>
+      ) : (
       <Card kind="cardFlat" pad="none" className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
@@ -198,19 +290,7 @@ function ApiApplicantTable({
                     </td>
                     <td className="px-4 py-3 font-medium">
                       <div>{app.orgName}</div>
-                      {app.accountErased ? (
-                        <div className="mt-0.5 text-xs font-medium text-buzz-inkMuted">
-                          Account deleted · Shipping details removed
-                        </div>
-                      ) : app.deliveryAddress ? (
-                        <div className="mt-0.5 text-xs font-medium text-buzz-inkMuted">
-                          Ship to: {app.deliveryAddress}
-                        </div>
-                      ) : (
-                        <div className={cn(TEXT.meta, "mt-0.5 text-buzz-warn")}>
-                          Ship to: Not set — nowhere to ship product
-                        </div>
-                      )}
+                      {shipToLine(app)}
                     </td>
                     <td className="px-4 py-3 text-buzz-inkMuted">{app.university}</td>
                     <td className="px-4 py-3 text-buzz-inkMuted">
@@ -233,7 +313,10 @@ function ApiApplicantTable({
                           onChange={(e) =>
                             setAllocations((prev) => ({
                               ...prev,
-                              [app.orgId]: Math.max(0, parseInt(e.target.value, 10) || 0),
+                              [app.orgId]: Math.max(
+                                0,
+                                parseInt(e.target.value, 10) || 0,
+                              ),
                             }))
                           }
                         />
@@ -246,6 +329,7 @@ function ApiApplicantTable({
           </tbody>
         </table>
       </Card>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm font-medium text-buzz-inkMuted">

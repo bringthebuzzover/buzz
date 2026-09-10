@@ -230,7 +230,7 @@ export default function AdminBrandsPage() {
                 <Cell muted>{row.companyEmail}</Cell>
                 <Cell muted>{formatElapsed(row.createdAt)}</Cell>
                 <Cell align="right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
                     {row.status === "pending_review" && (
                       <>
                         <ActionButton

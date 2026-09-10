@@ -1,5 +1,5 @@
 /**
- * /admin/drops/:dropId — one drop, with the tracker controls.
+ * /admin/drops/:dropId — one drop, with tracker / config / roster facets.
  *
  * Tabs rather than a sidebar section here: the record is fixed and these are
  * facets of it. The tab lives in `?tab=` so a specific view is still a shareable
@@ -10,8 +10,9 @@
  * "awaiting products", and skipping past "finalizing agreements" before the brand
  * has picked applicants would strand every applicant permanently.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import {
   useAdminDrop,
   useAdvanceTracker,
@@ -28,6 +29,7 @@ import {
 } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
 import {
+  Button,
   Checkbox,
   DateTimeField,
   ErrorBanner,
@@ -37,6 +39,9 @@ import {
   TextField,
   WarningBanner,
 } from "../../components/forms/controls";
+import { Modal } from "../../components/ui/Modal";
+import { STACK, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 import {
   ActionButton,
   AdminTable,
@@ -56,16 +61,91 @@ import {
   adminApplicantShipTo,
   formatDate,
   formatDateTime,
-  formatElapsed,
   toDatetimeLocalValue,
 } from "../../components/admin/labels";
 
 const TABS = [
+  { id: "tracker", label: "Tracker" },
   { id: "config", label: "Config" },
   { id: "applicants", label: "Applicants" },
   { id: "timeline", label: "Timeline" },
   { id: "attribution", label: "Attribution" },
 ] as const;
+
+type DropTabId = (typeof TABS)[number]["id"];
+
+function isDropTabId(value: string): value is DropTabId {
+  return TABS.some((tab) => tab.id === value);
+}
+
+function DropTabs({
+  active,
+  onChange,
+}: {
+  active: DropTabId;
+  onChange: (id: DropTabId) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Drop sections"
+      className="mb-4 inline-flex max-w-full flex-wrap gap-1 rounded-buzzControl border border-buzz-lineMid bg-buzz-cream p-1"
+    >
+      {TABS.map((tab) => {
+        const selected = tab.id === active;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            data-testid={`tab-${tab.id}`}
+            onClick={() => onChange(tab.id)}
+            className={cn(
+              "rounded-buzzCheck px-3 py-1.5 text-sm font-semibold transition",
+              selected
+                ? "bg-buzz-paper text-buzz-ink"
+                : "text-buzz-inkMuted hover:bg-buzz-paper/70 hover:text-buzz-ink",
+            )}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ConfigSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={cn(STACK.tight, "border-t border-buzz-lineMid px-4 py-4")}>
+      <div>
+        <h3 className={TEXT.h3}>{title}</h3>
+        {description ? (
+          <p className={cn(TEXT.meta, "mt-1")}>{description}</p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function httpsImageSrc(value: string): string | null {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "https:" ? value.trim() : null;
+  } catch {
+    return null;
+  }
+}
 
 const APPLICANT_HEADERS = [
   "Organization",
@@ -186,51 +266,58 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
     }
   };
 
+  const previewSrc = httpsImageSrc(image);
+
   return (
-    <div className="mt-4 border-t border-buzz-lineMid">
-      <div className="space-y-3 px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
-          Edit configuration
-        </p>
-        {logisticsLocked && (
-          <p className="text-xs font-medium text-buzz-inkMuted">
-            Capacity, window, and unit budget are locked while the drop is live or
-            finished. Hashtag can still be updated.
-          </p>
-        )}
+    <div>
+      <ConfigSection
+        title="Campaign"
+        description="What orgs see on the drop: title, story, and hero image."
+      >
+        {previewSrc ? (
+          <img
+            src={previewSrc}
+            alt=""
+            className="max-h-48 w-full rounded-buzzCard border border-buzz-lineMid object-cover"
+          />
+        ) : null}
+        <TextField
+          id="drop-config-title"
+          label="Title"
+          size="compact"
+          value={title}
+          disabled={patch.isPending}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <TextArea
+          id="drop-config-description"
+          label="Description"
+          size="compact"
+          rows={5}
+          value={description}
+          disabled={patch.isPending}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <TextField
+          id="drop-config-image"
+          label="Image (https)"
+          size="compact"
+          type="url"
+          value={image}
+          disabled={patch.isPending}
+          onChange={(e) => setImage(e.target.value)}
+        />
+      </ConfigSection>
+
+      <ConfigSection
+        title="Logistics"
+        description={
+          logisticsLocked
+            ? "Capacity, window, and unit budget are locked while the drop is live or finished."
+            : "Where it runs, how many seats, and the apply window."
+        }
+      >
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <TextField
-              id="drop-config-title"
-              label="Title"
-              size="compact"
-              value={title}
-              disabled={patch.isPending}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <TextArea
-              id="drop-config-description"
-              label="Description"
-              size="compact"
-              rows={3}
-              value={description}
-              disabled={patch.isPending}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <TextField
-              id="drop-config-image"
-              label="Image (https)"
-              size="compact"
-              type="url"
-              value={image}
-              disabled={patch.isPending}
-              onChange={(e) => setImage(e.target.value)}
-            />
-          </div>
           <div className="sm:col-span-2">
             <TextField
               id="drop-config-location"
@@ -268,7 +355,11 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
               checked={clearUnits}
               disabled={logisticsLocked || patch.isPending}
               onChange={(e) => setClearUnits(e.target.checked)}
-              label={<span className="text-xs text-buzz-inkMuted">Clear to spot-only</span>}
+              label={
+                <span className="text-xs text-buzz-inkMuted">
+                  Clear to spot-only
+                </span>
+              }
             />
           </div>
           <DateTimeField
@@ -287,48 +378,55 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
             disabled={logisticsLocked || patch.isPending}
             onChange={(e) => setCloseAt(e.target.value)}
           />
-          <div className="sm:col-span-2">
-            <TextField
-              id="drop-config-hashtag"
-              label="Campaign hashtag"
-              size="compact"
-              value={hashtag}
-              disabled={clearHashtag || patch.isPending}
-              placeholder="e.g. springdrop (no # required)"
-              onChange={(e) => setHashtag(e.target.value)}
-            />
-            <Checkbox
-              wrapperClassName="mt-1"
-              checked={clearHashtag}
-              disabled={patch.isPending}
-              onChange={(e) => setClearHashtag(e.target.checked)}
-              label={<span className="text-xs text-buzz-inkMuted">Clear hashtag</span>}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <Select
-              id="brand-can-edit-creative"
-              data-testid="brand-can-edit-creative"
-              label="Who can edit"
-              size="compact"
-              value={brandCanEditCreative ? "brand" : "admin"}
-              disabled={patch.isPending}
-              onChange={(e) => setBrandCanEditCreative(e.target.value === "brand")}
-              aria-describedby="brand-can-edit-creative-help"
-            >
-              <option value="admin">Admin only</option>
-              <option value="brand">
-                Brand can edit title, description, and image
-              </option>
-            </Select>
-            <p
-              id="brand-can-edit-creative-help"
-              className="mt-0.5 text-xs font-medium text-buzz-inkMuted"
-            >
-              Brand cannot change dates, capacity, or publish.
-            </p>
-          </div>
         </div>
+      </ConfigSection>
+
+      <ConfigSection
+        title="Settings"
+        description="Hashtag matching and who may edit creative after publish."
+      >
+        <TextField
+          id="drop-config-hashtag"
+          label="Campaign hashtag"
+          size="compact"
+          value={hashtag}
+          disabled={clearHashtag || patch.isPending}
+          placeholder="e.g. springdrop (no # required)"
+          onChange={(e) => setHashtag(e.target.value)}
+        />
+        <Checkbox
+          wrapperClassName="mt-1"
+          checked={clearHashtag}
+          disabled={patch.isPending}
+          onChange={(e) => setClearHashtag(e.target.checked)}
+          label={
+            <span className="text-xs text-buzz-inkMuted">Clear hashtag</span>
+          }
+        />
+        <Select
+          id="brand-can-edit-creative"
+          data-testid="brand-can-edit-creative"
+          label="Who can edit"
+          size="compact"
+          value={brandCanEditCreative ? "brand" : "admin"}
+          disabled={patch.isPending}
+          onChange={(e) => setBrandCanEditCreative(e.target.value === "brand")}
+          aria-describedby="brand-can-edit-creative-help"
+        >
+          <option value="admin">Admin only</option>
+          <option value="brand">
+            Brand can edit title, description, and image
+          </option>
+        </Select>
+        <p
+          id="brand-can-edit-creative-help"
+          className="mt-0.5 text-xs font-medium text-buzz-inkMuted"
+        >
+          Brand cannot change dates, capacity, or publish.
+        </p>
+      </ConfigSection>
+
+      <div className={cn(STACK.tight, "px-4 py-4")}>
         <div className="flex flex-wrap gap-2">
           <ActionButton
             testId="save-drop-config"
@@ -635,10 +733,11 @@ function Applicants({ applicants }: { applicants: AdminApplicant[] }) {
   );
 }
 
-function HideCampaignPanel({ drop }: { drop: AdminDropDetail }) {
+function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
   const hide = useHideDrop(drop.id);
   const unhide = useUnhideDrop(drop.id);
-  const [confirmTitle, setConfirmTitle] = useState("");
+  const [open, setOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
   const [notifyBrand, setNotifyBrand] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -646,14 +745,20 @@ function HideCampaignPanel({ drop }: { drop: AdminDropDetail }) {
     return null;
   }
 
-  const titleMatches = confirmTitle === drop.title;
+  const confirmMatches = confirmText.trim().toLowerCase() === "hide";
+
+  function closeDialog() {
+    setOpen(false);
+    setConfirmText("");
+    setNotifyBrand(false);
+    setError(null);
+  }
 
   async function doHide() {
     setError(null);
     try {
-      await hide.mutateAsync({ confirm: confirmTitle, notifyBrand });
-      setConfirmTitle("");
-      setNotifyBrand(false);
+      await hide.mutateAsync({ confirm: drop.title, notifyBrand });
+      closeDialog();
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "Could not hide this drop.",
@@ -665,6 +770,7 @@ function HideCampaignPanel({ drop }: { drop: AdminDropDetail }) {
     setError(null);
     try {
       await unhide.mutateAsync(undefined);
+      closeDialog();
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "Could not unhide this drop.",
@@ -672,59 +778,94 @@ function HideCampaignPanel({ drop }: { drop: AdminDropDetail }) {
     }
   }
 
-  if (drop.hiddenAt != null) {
-    return (
-      <Panel
-        title="Hidden campaign"
-        description="Org and brand portals cannot see this drop. Unhide restores the same URLs."
-      >
-        <div className="px-4 py-4">
-          {error && <ErrorNote>{error}</ErrorNote>}
-          <ActionButton
-            variant="primary"
-            testId="drop-unhide"
-            disabled={unhide.isPending}
-            onClick={() => void doUnhide()}
-          >
-            {unhide.isPending ? "Unhiding…" : "Unhide campaign"}
-          </ActionButton>
-        </div>
-      </Panel>
-    );
-  }
+  const hidden = drop.hiddenAt != null;
 
   return (
-    <Panel
-      title="Hide campaign"
-      description="Removes this published drop from every org and brand portal. Confirm by typing the exact title. No email unless you opt in."
-    >
-      <div className="space-y-3 px-4 py-4">
-        {error && <ErrorNote>{error}</ErrorNote>}
-        <TextField
-          id="hide-drop-confirm"
-          data-testid="hide-drop-confirm"
-          label="Type the drop title to confirm"
-          size="compact"
-          value={confirmTitle}
-          autoComplete="off"
-          onChange={(e) => setConfirmTitle(e.target.value)}
-        />
-        <Checkbox
-          data-testid="hide-drop-notify-brand"
-          checked={notifyBrand}
-          onChange={(e) => setNotifyBrand(e.target.checked)}
-          label="Email the brand that this campaign was withdrawn"
-        />
-        <ActionButton
-          variant="danger"
-          testId="hide-drop"
-          disabled={!titleMatches || hide.isPending}
-          onClick={() => void doHide()}
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="compact"
+        className="px-2"
+        data-testid={hidden ? "drop-unhide" : "hide-drop"}
+        aria-label={hidden ? "Unhide campaign" : "Hide campaign"}
+        disabled={hidden ? unhide.isPending : false}
+        onClick={() => setOpen(true)}
+      >
+        {hidden ? <Eye size={16} aria-hidden /> : <EyeOff size={16} aria-hidden />}
+      </Button>
+      {open && (
+        <Modal
+          onClose={closeDialog}
+          title={hidden ? "Unhide campaign" : "Hide campaign"}
+          description={
+            hidden
+              ? "Org and brand portals will see this drop again at the same URLs."
+              : "Removes this published drop from every org and brand portal. Type hide to confirm. No email unless you opt in."
+          }
         >
-          {hide.isPending ? "Hiding…" : "Hide campaign"}
-        </ActionButton>
-      </div>
-    </Panel>
+          <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
+            {error && <ErrorNote>{error}</ErrorNote>}
+            {hidden ? (
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="compact"
+                  onClick={closeDialog}
+                >
+                  Cancel
+                </Button>
+                <ActionButton
+                  variant="primary"
+                  testId="drop-unhide-submit"
+                  disabled={unhide.isPending}
+                  onClick={() => void doUnhide()}
+                >
+                  {unhide.isPending ? "Unhiding…" : "Unhide"}
+                </ActionButton>
+              </div>
+            ) : (
+              <>
+                <TextField
+                  id="hide-drop-confirm"
+                  data-testid="hide-drop-confirm"
+                  label='Type "hide" to confirm'
+                  size="compact"
+                  value={confirmText}
+                  autoComplete="off"
+                  onChange={(e) => setConfirmText(e.target.value)}
+                />
+                <Checkbox
+                  data-testid="hide-drop-notify-brand"
+                  checked={notifyBrand}
+                  onChange={(e) => setNotifyBrand(e.target.checked)}
+                  label="Email the brand that this campaign was withdrawn"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="compact"
+                    onClick={closeDialog}
+                  >
+                    Cancel
+                  </Button>
+                  <ActionButton
+                    variant="danger"
+                    testId="hide-drop-submit"
+                    disabled={!confirmMatches || hide.isPending}
+                    onClick={() => void doHide()}
+                  >
+                    {hide.isPending ? "Hiding…" : "Hide campaign"}
+                  </ActionButton>
+                </div>
+              </>
+            )}
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }
 
@@ -733,8 +874,10 @@ export default function AdminDropDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const drop = useAdminDrop(dropId);
   const data = drop.data;
-  const defaultTab = data?.publishedAt == null ? "config" : "applicants";
-  const activeTab = searchParams.get("tab") ?? defaultTab;
+  const defaultTab: DropTabId = data?.publishedAt == null ? "config" : "applicants";
+  const tabParam = searchParams.get("tab");
+  const activeTab: DropTabId =
+    tabParam && isDropTabId(tabParam) ? tabParam : defaultTab;
   const acceptedCount =
     data?.applicants.filter((a) => a.decision === "accepted").length ?? 0;
 
@@ -771,38 +914,28 @@ export default function AdminDropDetailPage() {
                 {acceptedCount > data.capacityTotal && (
                   <Pill tone="bad">Over capacity</Pill>
                 )}
+                <HideCampaignButton drop={data} />
               </div>
             }
           />
 
-          <TrackerControls
-            dropId={data.id}
-            currentStage={data.stage}
-            finalized={data.finalizedAt !== null}
-            manualReopen={data.manualReopen}
-            currentTracking={data.trackingNumber}
+          <DropTabs
+            active={activeTab}
+            onChange={(id) => setSearchParams({ tab: id })}
           />
 
-          <div className="mb-4 flex flex-wrap gap-x-2 border-b border-buzz-lineMid">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                data-testid={`tab-${tab.id}`}
-                onClick={() => setSearchParams({ tab: tab.id })}
-                className={`-mb-px shrink-0 border-b-2 px-3 py-2 text-sm font-semibold transition ${
-                  activeTab === tab.id
-                    ? "border-buzz-coral text-buzz-coral"
-                    : "border-transparent text-buzz-inkMuted hover:text-buzz-ink"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          {activeTab === "tracker" && (
+            <TrackerControls
+              dropId={data.id}
+              currentStage={data.stage}
+              finalized={data.finalizedAt !== null}
+              manualReopen={data.manualReopen}
+              currentTracking={data.trackingNumber}
+            />
+          )}
 
           {activeTab === "config" && (
-            <Panel title="Configuration">
+            <Panel>
               <FieldGrid>
                 <Field label="Capacity">
                   {acceptedCount} accepted of {data.capacityTotal}
@@ -811,14 +944,6 @@ export default function AdminDropDetailPage() {
                   {data.totalProductUnits === null
                     ? "Spot-only (no units)"
                     : `${data.allocatedUnits} of ${data.totalProductUnits} allocated`}
-                </Field>
-                <Field label="Apply window">
-                  {formatDate(data.applyOpenAt)} – {formatDate(data.applyCloseAt)}
-                  {data.applyCloseAt <= Date.now() && (
-                    <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
-                      closed {formatElapsed(data.applyCloseAt)} ago
-                    </span>
-                  )}
                 </Field>
                 <Field label="Selection finalized">
                   {data.finalizedAt ? (
@@ -829,13 +954,6 @@ export default function AdminDropDetailPage() {
                 </Field>
                 <Field label="Tracking number">
                   {data.trackingNumber ?? "—"}
-                </Field>
-                <Field label="Campaign hashtag">
-                  {data.campaignHashtag ?? (
-                    <span className="text-buzz-inkMuted">
-                      None — auto-link matches on the brand handle only
-                    </span>
-                  )}
                 </Field>
                 <Field label="Published">
                   {data.publishedAt != null ? (
@@ -848,7 +966,7 @@ export default function AdminDropDetailPage() {
                   <Field label="Drop request">
                     <Link
                       to={`/admin/requests/${data.dropRequestId}`}
-                      className="font-bold text-buzz-coral hover:underline"
+                      className="font-semibold text-buzz-coral hover:underline"
                     >
                       View ticket
                     </Link>
@@ -908,8 +1026,6 @@ export default function AdminDropDetailPage() {
               </FieldGrid>
             </Panel>
           )}
-
-          <HideCampaignPanel drop={data} />
         </>
       )}
     </div>

@@ -14,6 +14,7 @@ import {
 import { Card, CardHeader } from "../ui/Card";
 import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+import { useMdUp } from "../../hooks/useMdUp";
 
 type Props = {
   drops: BrandDropItem[];
@@ -28,6 +29,7 @@ function stageLabel(stage: string): string {
 const cellPad = "px-4 py-3 sm:px-6";
 
 export default function ApiCompareDropsTable({ drops }: Props) {
+  const mdUp = useMdUp();
   if (drops.length === 0) return null;
 
   // Highest-engagement first so the strongest drops surface at the top.
@@ -38,6 +40,28 @@ export default function ApiCompareDropsTable({ drops }: Props) {
       <div className="border-b border-buzz-line bg-buzz-cream px-6 py-4">
         <CardHeader title="Compare drops" className="mb-0" />
       </div>
+      {!mdUp ? (
+      <div className="flex flex-col gap-3 p-4">
+        {rows.map((d) => (
+          <div
+            key={d.id}
+            className="rounded-buzzControl border border-buzz-lineMid bg-buzz-cream p-4"
+          >
+            <Link
+              to={`/brand/drops/${d.id}`}
+              className="font-semibold text-buzz-coral hover:underline"
+            >
+              {d.title}
+            </Link>
+            <p className={cn(TEXT.meta, "mt-1")}>{stageLabel(d.brandTrackerStage)}</p>
+            <p className={cn(TEXT.body, "mt-2 text-buzz-ink")}>
+              {d.totalPosts} posts · {d.totalEngagement} engagement ·{" "}
+              {d.totalReach} reach
+            </p>
+          </div>
+        ))}
+      </div>
+      ) : (
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
@@ -77,6 +101,7 @@ export default function ApiCompareDropsTable({ drops }: Props) {
           </tbody>
         </table>
       </div>
+      )}
     </Card>
   );
 }
