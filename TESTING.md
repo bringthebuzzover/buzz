@@ -89,8 +89,8 @@ From the repo root, after Postgres is up and deps are installed:
 ```
 
 Runs the same gate as [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
-backend format/lint/types/openapi/alembic/pytest → frontend tsc/gen:api/build →
-Playwright E2E with `CI=true`. Use this before merging or after a gap-cluster
+backend format/lint/types/openapi/alembic/pytest → frontend leftover hunter /
+tsc/gen:api/build → Playwright E2E with `CI=true`. Use this before merging or after a gap-cluster
 fix; backend-only `./backend/scripts/check.sh` is fine for a quick loop but
 does **not** replace full CI.
 

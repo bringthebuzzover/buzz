@@ -25,7 +25,7 @@ Agent map: [`AGENTS.md`](../../../AGENTS.md). Gap: [`gaps/spa.form-shells-and-co
 4. **Code inventory** — remaining `inputClass`, native checkbox/select, shells not in the atlas.
 5. **Serial SOT** — only parent/one agent edits `theme/`, `components/forms/`, `AuthShell`, `PageShell`, `tailwind.config.js`.
 6. **Parallel apply** — auth-onboarding / org-brand / admin. Must not edit theme or form primitives. Primitive API change → bounce to parent.
-7. **Leftover hunter** — `frontend/scripts/check-ui-primitives.sh` (wired in `ci-local.sh`).
+7. **Leftover hunter** — `frontend/scripts/check-ui-primitives.sh` (wired in `ci-local.sh` and `.github/workflows/ci.yml`).
 8. **Visual QA** — 3 agents re-shot fail rows; do not “improve” `ok` rows.
 9. **simplify-pass** then `./scripts/ci-local.sh`. **Stop** — no commit unless asked.
 

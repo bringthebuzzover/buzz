@@ -71,6 +71,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: UI primitives leftover hunter
+        run: bash scripts/check-ui-primitives.sh
+
       - name: Type-check
         run: npx tsc --noEmit
 

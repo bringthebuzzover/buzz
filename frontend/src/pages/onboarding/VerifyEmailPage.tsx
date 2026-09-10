@@ -179,6 +179,8 @@ function VerifyWithToken({ token }: { token: string }) {
   };
 
   const onRequestNewLink = async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setState({ kind: "resending" });
     try {
       const result = await resendFromToken.mutateAsync(token);
@@ -198,6 +200,8 @@ function VerifyWithToken({ token }: { token: string }) {
             : "Could not send a new verification link. Please try again.",
         code: err instanceof ApiError ? err.code : undefined,
       });
+    } finally {
+      inFlightRef.current = false;
     }
   };
 
