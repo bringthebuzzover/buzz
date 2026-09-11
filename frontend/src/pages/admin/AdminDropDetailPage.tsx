@@ -149,6 +149,7 @@ function httpsImageSrc(value: string): string | null {
 
 const APPLICANT_HEADERS = [
   "Organization",
+  "Followers",
   "Decision",
   "Units",
   "Posts",
@@ -276,11 +277,11 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
           {previewSrc ? (
-            <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-buzzCard border border-buzz-lineMid sm:h-48 sm:w-auto">
+            <div className="relative aspect-video min-h-48 w-full shrink-0 overflow-hidden rounded-buzzCard border border-buzz-lineMid sm:w-auto">
               <img
                 src={previewSrc}
                 alt=""
-                className="h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover"
               />
             </div>
           ) : null}
@@ -723,6 +724,9 @@ function Applicants({ applicants }: { applicants: AdminApplicant[] }) {
               {applicant.accountErased ? " · Account deleted" : ""}
             </span>
           </Cell>
+          <Cell muted>
+            {applicant.followerCount?.toLocaleString() ?? "—"}
+          </Cell>
           <Cell>
             <DecisionPill decision={applicant.decision} />
           </Cell>
@@ -732,7 +736,8 @@ function Applicants({ applicants }: { applicants: AdminApplicant[] }) {
           <Cell muted>
             {adminApplicantShipTo(
               applicant.decision,
-              applicant.deliveryAddress,
+              applicant.shippingCity,
+              applicant.shippingState,
             )}
           </Cell>
         </Row>

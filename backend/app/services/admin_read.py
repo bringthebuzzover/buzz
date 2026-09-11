@@ -906,6 +906,8 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
             "instagram_handle": org_user.instagram_username,
             "follower_count": org.follower_count,
             "delivery_address": org.delivery_address,
+            "shipping_city": org.shipping_city,
+            "shipping_state": org.shipping_state,
             "account_erased": org_user.status == OrgUserStatus.ERASED.value,
             "decision": application.decision,
             "allocated_units": application.allocated_units,

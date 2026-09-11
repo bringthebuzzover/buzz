@@ -175,6 +175,44 @@ describe("AdminDropDetailPage", () => {
     ).toBeTruthy();
   });
 
+  it("shows follower count and city/state ship-to on Applicants", () => {
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({
+        publishedAt: now,
+        applicants: [
+          {
+            id: "app-1",
+            orgId: "org-1",
+            userId: "user-1",
+            orgName: "Theta",
+            university: "Berkeley",
+            instagramHandle: "theta",
+            followerCount: 1262,
+            deliveryAddress: "2301 Bancroft Way, Berkeley, CA 94720",
+            shippingCity: "Berkeley",
+            shippingState: "CA",
+            accountErased: false,
+            decision: "accepted",
+            allocatedUnits: 2,
+            pitch: null,
+            trackingNumber: null,
+            linkedPostCount: 0,
+            appliedAt: now,
+            decisionAt: now,
+          },
+        ],
+      }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1");
+
+    expect(container.textContent).toContain("Followers");
+    expect(container.textContent).toContain("1,262");
+    expect(container.textContent).toContain("Berkeley, CA");
+    expect(container.textContent).not.toContain("2301 Bancroft Way");
+  });
+
   it("opens a hide dialog that asks the admin to type hide", () => {
     mockUseAdminDrop.mockReturnValue({
       data: adminDrop({ publishedAt: now }),

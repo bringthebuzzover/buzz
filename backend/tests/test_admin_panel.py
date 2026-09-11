@@ -379,6 +379,10 @@ class TestDropDetail:
         drop = await make_drop(db_session, brand, title="Detail Drop", total_product_units=10)
         user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, user, org_name="Applicant Org")
+        org.follower_count = 1262
+        org.shipping_city = "Berkeley"
+        org.shipping_state = "CA"
+        org.delivery_address = "2301 Bancroft Way, Berkeley, CA 94720"
         application = await make_application(
             db_session, drop, org, decision=ApplicationDecision.ACCEPTED
         )
@@ -398,6 +402,9 @@ class TestDropDetail:
         assert data["pendingSuggestionCount"] == 1
         assert len(data["applicants"]) == 1
         assert data["applicants"][0]["orgName"] == "Applicant Org"
+        assert data["applicants"][0]["followerCount"] == 1262
+        assert data["applicants"][0]["shippingCity"] == "Berkeley"
+        assert data["applicants"][0]["shippingState"] == "CA"
         assert [e["note"] for e in data["trackerEvents"]] == ["kickoff"]
 
     async def test_unknown_drop(self, app_client: AsyncClient, db_session):

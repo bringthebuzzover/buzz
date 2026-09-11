@@ -497,6 +497,8 @@ class AdminApplicantItem(CamelModel):
     instagram_handle: str | None
     follower_count: int | None
     delivery_address: str | None
+    shipping_city: str | None
+    shipping_state: str | None
     account_erased: bool = False
     decision: str
     allocated_units: int | None

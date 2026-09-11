@@ -23,18 +23,20 @@ describe("toDatetimeLocalValue", () => {
 });
 
 describe("adminApplicantShipTo", () => {
-  it("shows address for applied and accepted", () => {
-    expect(adminApplicantShipTo("applied", "1 Main St")).toBe("1 Main St");
-    expect(adminApplicantShipTo("accepted", "2 Oak Ave")).toBe("2 Oak Ave");
+  it("shows city, state for applied and accepted", () => {
+    expect(adminApplicantShipTo("applied", "Berkeley", "CA")).toBe(
+      "Berkeley, CA",
+    );
+    expect(adminApplicantShipTo("accepted", "Ithaca", "NY")).toBe("Ithaca, NY");
   });
 
-  it("shows Not set when address missing for applied/accepted", () => {
-    expect(adminApplicantShipTo("applied", null)).toBe("Not set");
-    expect(adminApplicantShipTo("accepted", "   ")).toBe("Not set");
+  it("shows Not set when city and state are missing for applied/accepted", () => {
+    expect(adminApplicantShipTo("applied", null, null)).toBe("Not set");
+    expect(adminApplicantShipTo("accepted", "  ", "  ")).toBe("Not set");
   });
 
   it("shows em dash for other decisions", () => {
-    expect(adminApplicantShipTo("denied", "1 Main St")).toBe("—");
-    expect(adminApplicantShipTo("withdrawn", null)).toBe("—");
+    expect(adminApplicantShipTo("denied", "Berkeley", "CA")).toBe("—");
+    expect(adminApplicantShipTo("withdrawn", null, null)).toBe("—");
   });
 });
