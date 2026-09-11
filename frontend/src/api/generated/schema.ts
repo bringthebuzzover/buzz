@@ -1829,6 +1829,10 @@ export interface components {
             orgName: string;
             /** Pitch */
             pitch: string | null;
+            /** Shippingcity */
+            shippingCity: string | null;
+            /** Shippingstate */
+            shippingState: string | null;
             /** Trackingnumber */
             trackingNumber: string | null;
             /** University */

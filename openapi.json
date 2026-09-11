@@ -210,6 +210,28 @@
             ],
             "title": "Pitch"
           },
+          "shippingCity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingcity"
+          },
+          "shippingState": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingstate"
+          },
           "trackingNumber": {
             "anyOf": [
               {
@@ -240,6 +262,8 @@
           "instagramHandle",
           "followerCount",
           "deliveryAddress",
+          "shippingCity",
+          "shippingState",
           "decision",
           "allocatedUnits",
           "pitch",

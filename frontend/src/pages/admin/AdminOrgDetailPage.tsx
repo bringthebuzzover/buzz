@@ -26,6 +26,7 @@ import {
   useViewAs,
 } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
+import { instagramProfileUrl } from "../../utils/instagramProfileUrl";
 import {
   ActionButton,
   ErrorNote,
@@ -93,9 +94,7 @@ export default function AdminOrgDetailPage() {
   const canErase = Boolean(data?.instagramHandle) && !erased;
   const igUsername = data?.instagramHandle?.replace(/^@/, "") || null;
   const claimedHandle = igUsername ? `@${igUsername}` : null;
-  const instagramProfileUrl = igUsername
-    ? `https://www.instagram.com/${encodeURIComponent(igUsername)}/`
-    : null;
+  const igProfileUrl = instagramProfileUrl(igUsername);
 
   async function onApprove() {
     if (!data?.orgId) return;
@@ -374,10 +373,10 @@ export default function AdminOrgDetailPage() {
           <Panel title="Profile">
             <FieldGrid>
               <Field label="Claimed Instagram">
-                {claimedHandle && instagramProfileUrl ? (
+                {claimedHandle && igProfileUrl ? (
                   <span className="inline-flex flex-wrap items-center gap-2 font-semibold text-buzz-ink">
                     <a
-                      href={instagramProfileUrl}
+                      href={igProfileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:text-buzz-coral hover:underline"

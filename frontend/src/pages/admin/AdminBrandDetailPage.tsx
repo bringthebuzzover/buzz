@@ -38,6 +38,7 @@ import {
   formatDateTime,
 } from "../../components/admin/labels";
 import { ApiError } from "../../api/errors";
+import { instagramProfileUrl } from "../../utils/instagramProfileUrl";
 
 const DROP_HEADERS = ["Drop", "Stage", "Applied", "Accepted", "Closes"] as const;
 
@@ -64,6 +65,8 @@ export default function AdminBrandDetailPage() {
     !data.passwordSet &&
     (data.invite.expiresAt === null || data.invite.expiresAt <= Date.now());
   const canResendInvite = data?.status === "approved" && !data.passwordSet;
+  const igHandle = data?.instagramHandle?.replace(/^@/, "") ?? "";
+  const igProfileUrl = instagramProfileUrl(igHandle);
 
   const onApprove = async () => {
     if (!data) return;
@@ -226,8 +229,15 @@ export default function AdminBrandDetailPage() {
                 {data.invite.usedAt ? formatDateTime(data.invite.usedAt) : "—"}
               </Field>
               <Field label="Instagram">
-                {data.instagramHandle ? (
-                  `@${data.instagramHandle.replace(/^@/, "")}`
+                {igHandle && igProfileUrl ? (
+                  <a
+                    href={igProfileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
+                  >
+                    @{igHandle}
+                  </a>
                 ) : (
                   <span className="text-buzz-warn">
                     Not set — auto-link can match nothing
