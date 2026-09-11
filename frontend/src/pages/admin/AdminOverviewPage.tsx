@@ -10,6 +10,7 @@
 import { Link } from "react-router-dom";
 import { useAdminOverview } from "../../api/hooks/useAdminHooks";
 import {
+  CountMark,
   PageHeading,
   Panel,
   Pill,
@@ -120,7 +121,7 @@ export default function AdminOverviewPage() {
                   const meta = SIGNAL_META[warning.key];
                   const body = (
                     <>
-                      <Pill tone="bad">{warning.count}</Pill>
+                      <CountMark tone="bad">{warning.count}</CountMark>
                       <span>
                         <span className="block text-sm font-bold text-buzz-ink">
                           {meta?.label ?? humanizeKey(warning.key)}
@@ -138,12 +139,12 @@ export default function AdminOverviewPage() {
                       {meta?.to ? (
                         <Link
                           to={meta.to}
-                          className="flex gap-3 px-4 py-3 transition hover:bg-buzz-neutralWash"
+                          className="flex items-start gap-3 px-4 py-3 transition hover:bg-buzz-neutralWash"
                         >
                           {body}
                         </Link>
                       ) : (
-                        <div className="flex gap-3 px-4 py-3">{body}</div>
+                        <div className="flex items-start gap-3 px-4 py-3">{body}</div>
                       )}
                     </li>
                   );

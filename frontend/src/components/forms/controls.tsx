@@ -201,7 +201,7 @@ const buttonVariants = cva(
         ghost:
           "bg-transparent font-medium text-buzz-inkMuted underline-offset-2 hover:text-buzz-coral hover:underline disabled:text-buzz-inkFaint",
         danger:
-          "bg-buzz-danger text-buzz-paper hover:opacity-90 disabled:bg-buzz-neutralHover disabled:text-buzz-inkFaint",
+          "border-2 border-buzz-dangerLine bg-buzz-dangerWash text-buzz-danger hover:border-buzz-danger hover:bg-buzz-danger hover:text-buzz-paper disabled:border-buzz-neutralHover disabled:bg-transparent disabled:text-buzz-inkFaint",
       },
       size: {
         default: `${CONTROL_HEIGHT.default} px-5 text-sm`,

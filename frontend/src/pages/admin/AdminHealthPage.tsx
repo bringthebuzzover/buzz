@@ -10,6 +10,7 @@
 import { Link } from "react-router-dom";
 import { useAdminHealth, type AdminSignal } from "../../api/hooks/useAdminHooks";
 import {
+  CountMark,
   PageHeading,
   Panel,
   Pill,
@@ -24,7 +25,9 @@ import {
 } from "../../components/admin/labels";
 
 function CountBadge({ signal }: { signal: AdminSignal }) {
-  return <Pill tone={signal.ok ? "neutral" : "bad"}>{signal.count}</Pill>;
+  return (
+    <CountMark tone={signal.ok ? "neutral" : "bad"}>{signal.count}</CountMark>
+  );
 }
 
 /** One row: count, label, and the explanation of why the state is reachable. */
@@ -55,12 +58,12 @@ function SignalRow({
       {to && !signal.ok ? (
         <Link
           to={to}
-          className="flex gap-3 px-4 py-3 transition hover:bg-buzz-neutralWash"
+          className="flex items-start gap-3 px-4 py-3 transition hover:bg-buzz-neutralWash"
         >
           {body}
         </Link>
       ) : (
-        <div className="flex gap-3 px-4 py-3">{body}</div>
+        <div className="flex items-start gap-3 px-4 py-3">{body}</div>
       )}
     </li>
   );
@@ -120,7 +123,7 @@ export default function AdminHealthPage() {
                   <li
                     key={signal.key}
                     data-testid={`signal-${signal.key}`}
-                    className="flex gap-3 px-4 py-3"
+                    className="flex items-start gap-3 px-4 py-3"
                   >
                     <CountBadge signal={signal} />
                     <div>

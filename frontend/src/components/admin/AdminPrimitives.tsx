@@ -43,11 +43,10 @@ function toneForStatus(status: string): Tone {
   return "neutral";
 }
 
-/** Chip classes for FilterChips (links) and the drops All/Draft/Published/Hidden buttons. */
+/** Filter / tab chips. Sentence case — not TEXT.micro, which is all-caps for status tags. */
 export function filterChipClass(selected: boolean) {
   return cn(
-    "inline-flex items-center whitespace-nowrap rounded-full border px-3 py-1 transition",
-    TEXT.micro,
+    "inline-flex items-center whitespace-nowrap rounded-full border px-3 py-1 text-sm transition",
     selected
       ? "border-buzz-coral bg-buzz-coral text-buzz-paper"
       : cn(TONE.neutral, "hover:border-buzz-coral hover:text-buzz-coral"),
@@ -56,7 +55,7 @@ export function filterChipClass(selected: boolean) {
 
 export function StatusPill({ status }: { status: string }) {
   return (
-    <Chip tone={ADMIN_TONE[toneForStatus(status)]} className="min-h-9">
+    <Chip tone={ADMIN_TONE[toneForStatus(status)]}>
       {STATUS_LABELS[status] ?? status.replace(/_/g, " ")}
     </Chip>
   );
@@ -69,10 +68,31 @@ export function Pill({
   children: ReactNode;
   tone?: Tone;
 }) {
+  return <Chip tone={ADMIN_TONE[tone]}>{children}</Chip>;
+}
+
+/** Claimed IG handle that Graph has not confirmed — sits with status, not the name. */
+export function UnconfirmedIgChip() {
+  return <Pill tone="bad">Unconfirmed IG</Pill>;
+}
+
+/** Fixed circle for a count. Do not reuse Pill — rounded-full + stretch becomes an ellipse. */
+export function CountMark({
+  children,
+  tone = "neutral",
+}: {
+  children: ReactNode;
+  tone?: Tone;
+}) {
   return (
-    <Chip tone={ADMIN_TONE[tone]} className="min-h-9">
+    <span
+      className={cn(
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold tabular-nums",
+        TONE[ADMIN_TONE[tone]],
+      )}
+    >
       {children}
-    </Chip>
+    </span>
   );
 }
 

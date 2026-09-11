@@ -75,8 +75,8 @@ export const TEXT = {
   bodyLong: "text-base leading-relaxed",
   /** Secondary / supporting text. Always quieter than body. */
   meta: "text-xs text-buzz-inkMuted",
-  /** Eyebrow and chip label. Uses the `buzzMicro` font-size token. */
-  micro: "text-buzzMicro uppercase tracking-wider",
+  /** Eyebrow and chip label. 12px (`text-xs`); all-caps. Do not use `text-buzzMicro` here — see `cn.ts`. */
+  micro: "text-xs uppercase",
   /** Metric numerals. Tabular so columns of numbers line up. */
   metric: "text-2xl font-semibold tabular-nums",
 } as const;

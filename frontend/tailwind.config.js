@@ -10,7 +10,7 @@ module.exports = {
       boxShadow: tailwindThemeExtend.boxShadow,
       dropShadow: tailwindThemeExtend.dropShadow,
       fontSize: {
-        buzzMicro: ["0.625rem", { lineHeight: "0.875rem", fontWeight: "700" }],
+        buzzMicro: ["0.75rem", { lineHeight: "1rem" }],
       },
       borderRadius: {
         // Small controls (the checkbox) need a tighter corner than a text

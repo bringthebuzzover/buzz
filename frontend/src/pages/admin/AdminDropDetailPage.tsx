@@ -786,7 +786,7 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
         type="button"
         variant="outline"
         size="compact"
-        className="px-2"
+        className="h-9 w-9 rounded-full p-0"
         data-testid={hidden ? "drop-unhide" : "hide-drop"}
         aria-label={hidden ? "Unhide campaign" : "Hide campaign"}
         disabled={hidden ? unhide.isPending : false}

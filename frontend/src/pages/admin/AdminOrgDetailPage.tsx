@@ -36,6 +36,7 @@ import {
   Pill,
   QueryState,
   StatusPill,
+  UnconfirmedIgChip,
 } from "../../components/admin/AdminPrimitives";
 import {
   formatDate,
@@ -43,7 +44,10 @@ import {
   formatElapsed,
 } from "../../components/admin/labels";
 import { Checkbox } from "../../components/forms/Checkbox";
-import { SuccessBanner, TextField } from "../../components/forms/controls";
+import { Button, SuccessBanner, TextField } from "../../components/forms/controls";
+import { Modal } from "../../components/ui/Modal";
+import { STACK } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 function confirmHandleMatches(typed: string, stored: string): boolean {
   const normalize = (value: string) =>
@@ -191,7 +195,6 @@ export default function AdminOrgDetailPage() {
           That recovery action did not go through. Reload and try again.
         </ErrorNote>
       )}
-      {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
       {eraseNotice && (
         <div className="mb-4">
           <SuccessBanner>{eraseNotice}</SuccessBanner>
@@ -264,7 +267,7 @@ export default function AdminOrgDetailPage() {
                   <ActionButton
                     variant="danger"
                     testId="erase-org"
-                    disabled={busy || eraseConfirmOpen}
+                    disabled={busy}
                     onClick={openEraseConfirm}
                   >
                     Erase
@@ -284,11 +287,13 @@ export default function AdminOrgDetailPage() {
           />
 
           {eraseConfirmOpen && canErase && claimedHandle && (
-            <Panel
+            <Modal
+              onClose={cancelEraseConfirm}
               title="Erase this organization"
               description="Removes login identity and contact details. Campaign KPIs stay. Type the Instagram handle to confirm."
             >
-              <div className="space-y-3 px-4 py-4">
+              <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
+                {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
                 <TextField
                   id="erase-org-confirm"
                   data-testid="erase-org-confirm"
@@ -300,13 +305,16 @@ export default function AdminOrgDetailPage() {
                   onChange={(e) => setEraseTyped(e.target.value)}
                 />
                 <div className="flex flex-wrap gap-2">
-                  <ActionButton
-                    testId="erase-org-cancel"
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="compact"
+                    data-testid="erase-org-cancel"
                     disabled={erase.isPending}
                     onClick={cancelEraseConfirm}
                   >
                     Cancel
-                  </ActionButton>
+                  </Button>
                   <ActionButton
                     variant="danger"
                     testId="erase-org-submit"
@@ -320,7 +328,7 @@ export default function AdminOrgDetailPage() {
                   </ActionButton>
                 </div>
               </div>
-            </Panel>
+            </Modal>
           )}
 
           {erased && (
@@ -367,9 +375,7 @@ export default function AdminOrgDetailPage() {
                 {claimedHandle ? (
                   <span className="inline-flex flex-wrap items-center gap-2 font-semibold text-buzz-ink">
                     {claimedHandle}
-                    {!data.instagramHandleConfirmed && (
-                      <Pill tone="warn">Unconfirmed lookup</Pill>
-                    )}
+                    {!data.instagramHandleConfirmed && <UnconfirmedIgChip />}
                   </span>
                 ) : (
                   "—"

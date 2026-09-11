@@ -41,7 +41,7 @@ export const fieldLabelClass = "mb-1 block text-sm font-semibold text-buzz-ink";
  * three different label greys the audit found colliding on one admin screen.
  */
 export const fieldLabelCompactClass =
-  "mb-1 block text-buzzMicro uppercase tracking-wider text-buzz-inkMuted";
+  "mb-1 block text-xs uppercase text-buzz-inkMuted";
 
 /**
  * A native checkbox drawn by the OS could never match a Buzz card: no control
