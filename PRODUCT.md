@@ -171,7 +171,7 @@ The owning brand **monitors** applicants and KPIs and **batch-finalizes** after 
 
 #### 5.2.2 Hide campaign
 
-A Buzz **admin** may **hide** a **published** drop that should never have gone live (wrong window, test campaign, bad creative). Hide is allowed at **any** tracker stage after publish. Confirm by typing the **exact drop title**. **Unhide** restores the same drop and URLs.
+A Buzz **admin** may **hide** a **published** drop that should never have gone live (wrong window, test campaign, bad creative). Hide is allowed at **any** tracker stage after publish. An eye control on the drop heading opens a dialog; confirm by typing **hide**. **Unhide** (same control, now an open eye) restores the same drop and URLs.
 
 - Hide sets `hidden_at` and **keeps** `published_at`. It is not **Drop finished** and not a return to unpublished draft.
 - While hidden: org and brand portals (including admin **View as** those portals) have **no in-app trace**. Feed, apply, Notify Me, drop deep links, My Campaigns, brand drop list/detail, compare table, and brand aggregate KPIs omit the drop. Consumer APIs use existing codes (`DROP_NOT_OPEN` on feed/apply/notify; **404** on brand drop and org campaign, same as unknown/denied). There is **no** “withdrawn” copy.

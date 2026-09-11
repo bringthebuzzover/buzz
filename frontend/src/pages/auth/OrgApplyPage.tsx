@@ -20,10 +20,14 @@ import {
   Button,
   ErrorBanner,
   Select,
+  SuccessBanner,
   TextField,
+  WarningBanner,
   fieldClass,
 } from "../../components/forms/controls";
-import AuthShell from "../../components/site/AuthShell";
+import PageShell from "../../components/site/PageShell";
+import { SURFACE, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 import ShippingAddressFields, {
   EMPTY_SHIPPING,
   shippingToApi,
@@ -259,8 +263,8 @@ export default function OrgApplyPage() {
   };
 
   return (
-    <AuthShell align="stack">
-      <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
+    <PageShell width="form">
+      <h1 className={cn(TEXT.h1, "mb-2 text-center text-buzz-ink")}>
         Apply as a <span className="text-buzz-coral">Student Org</span>
       </h1>
       <p className="mb-4 text-center text-sm font-medium text-buzz-inkMuted">
@@ -268,14 +272,11 @@ export default function OrgApplyPage() {
         review your application, then invite you to connect Instagram.
       </p>
       {prefillError && (
-        <p
-          data-testid="org-apply-prefill-error"
-          className="mb-4 rounded-lg bg-amber-50 p-3 text-sm font-medium text-amber-900"
-        >
-          {prefillError}
-        </p>
+        <div className="mb-4" data-testid="org-apply-prefill-error">
+          <WarningBanner>{prefillError}</WarningBanner>
+        </div>
       )}
-      <p className="mb-8 rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3 text-xs font-medium text-buzz-inkMuted">
+      <p className={cn(SURFACE.inset, "mb-8 px-3 py-3 text-xs font-medium text-buzz-inkMuted")}>
         Your Instagram must be the organization&apos;s{" "}
         <span className="font-semibold text-buzz-ink">Business or Creator</span>{" "}
         account — not a personal member profile. Personal accounts cannot be
@@ -370,34 +371,36 @@ export default function OrgApplyPage() {
           )}
 
           {lookupError && (
-            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-900">
-              <p className="font-medium">
-                Lookup is temporarily unavailable. You can still submit — we&apos;ll
-                verify the handle during review.
-              </p>
-              <button
-                type="button"
-                className="mt-2 text-xs font-bold text-buzz-coral hover:underline"
-                onClick={() => {
-                  setLookupError(null);
-                  lookupGen.current += 1;
-                  void lookup.mutateAsync(handleNorm).then(
-                    (data) => {
-                      setLookupResult(data);
-                      setLookupError(null);
-                    },
-                    (err: unknown) => {
-                      setLookupError(
-                        err instanceof ApiError
-                          ? err.message
-                          : "Could not look up that Instagram handle.",
-                      );
-                    },
-                  );
-                }}
-              >
-                Retry lookup
-              </button>
+            <div className="mt-3 text-left">
+              <WarningBanner>
+                <p>
+                  Lookup is temporarily unavailable. You can still submit — we&apos;ll
+                  verify the handle during review.
+                </p>
+                <button
+                  type="button"
+                  className="mt-2 text-xs font-semibold text-buzz-coral hover:underline"
+                  onClick={() => {
+                    setLookupError(null);
+                    lookupGen.current += 1;
+                    void lookup.mutateAsync(handleNorm).then(
+                      (data) => {
+                        setLookupResult(data);
+                        setLookupError(null);
+                      },
+                      (err: unknown) => {
+                        setLookupError(
+                          err instanceof ApiError
+                            ? err.message
+                            : "Could not look up that Instagram handle.",
+                        );
+                      },
+                    );
+                  }}
+                >
+                  Retry lookup
+                </button>
+              </WarningBanner>
             </div>
           )}
 
@@ -510,19 +513,19 @@ export default function OrgApplyPage() {
           data-testid="org-apply-submit"
           type="submit"
           disabled={!canSubmit}
-          className="w-full"
+          fullWidth
         >
           {apply.isPending ? "Submitting…" : "Submit application"}
         </Button>
 
         <p className="text-center text-xs text-buzz-inkMuted">
           Already connected Instagram?{" "}
-          <Link to="/login" className="font-bold text-buzz-coral hover:underline">
+          <Link to="/login" className="font-semibold text-buzz-coral hover:underline">
             Org login
           </Link>
         </p>
       </form>
-    </AuthShell>
+    </PageShell>
   );
 }
 
@@ -540,7 +543,7 @@ function InstagramConfirmCard({
   if (result.available && result.username) {
     const handle = normalizeHandle(result.username);
     return (
-      <div className="mt-3 rounded-lg border border-buzz-lineMid bg-buzz-paper p-3 text-left">
+      <div className={cn(SURFACE.inset, "mt-3 p-3 text-left")}>
         <div className="flex gap-3">
           {result.profilePictureUrl ? (
             <img
@@ -549,12 +552,12 @@ function InstagramConfirmCard({
               className="h-14 w-14 shrink-0 rounded-full object-cover"
             />
           ) : (
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-buzz-cream text-xs font-bold text-buzz-inkMuted">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-buzz-cream text-xs font-semibold text-buzz-inkMuted">
               IG
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-buzz-ink">@{handle}</p>
+            <p className="text-sm font-semibold text-buzz-ink">@{handle}</p>
             {result.name && (
               <p className="truncate text-sm font-medium text-buzz-inkMuted">
                 {result.name}
@@ -573,14 +576,17 @@ function InstagramConfirmCard({
           </p>
         )}
         {confirmed ? (
-          <p className="mt-3 text-sm font-semibold text-green-700">
-            Confirmed as your organization&apos;s account.
-          </p>
+          <div className="mt-3">
+            <SuccessBanner>
+              Confirmed as your organization&apos;s account.
+            </SuccessBanner>
+          </div>
         ) : (
           <Button
             type="button"
             onClick={onConfirm}
-            className="mt-3 w-full"
+            fullWidth
+            className="mt-3"
           >
             Confirm this is our organization&apos;s account.
           </Button>
@@ -591,19 +597,21 @@ function InstagramConfirmCard({
 
   if (isSoftFailReason(result.reason)) {
     return (
-      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-900">
-        <p className="font-medium">
-          We couldn&apos;t verify that handle right now
-          {result.reason === "throttled" ? " (rate limited)" : ""}. You can still
-          submit — we&apos;ll confirm it during review.
-        </p>
-        <button
-          type="button"
-          className="mt-2 text-xs font-bold text-buzz-coral hover:underline"
-          onClick={onRetry}
-        >
-          Retry lookup
-        </button>
+      <div className="mt-3 text-left">
+        <WarningBanner>
+          <p>
+            We couldn&apos;t verify that handle right now
+            {result.reason === "throttled" ? " (rate limited)" : ""}. You can still
+            submit — we&apos;ll confirm it during review.
+          </p>
+          <button
+            type="button"
+            className="mt-2 text-xs font-semibold text-buzz-coral hover:underline"
+            onClick={onRetry}
+          >
+            Retry lookup
+          </button>
+        </WarningBanner>
       </div>
     );
   }

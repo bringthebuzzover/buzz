@@ -28,6 +28,7 @@ import {
   PageHeading,
   Panel,
   Pill,
+  QueryState,
   Row,
   StatusPill,
 } from "../../components/admin/AdminPrimitives";
@@ -194,16 +195,11 @@ export default function AdminBrandsPage() {
       />
 
       <Panel>
-        {brands.isPending && (
-          <p className="px-4 py-6 text-sm font-medium text-buzz-inkMuted">
-            Loading brands…
-          </p>
-        )}
-        {brands.isError && (
-          <p className="px-4 py-6 text-sm font-medium text-red-700">
-            Could not load brands.
-          </p>
-        )}
+        <QueryState
+          isPending={brands.isPending}
+          isError={brands.isError}
+          label="brands"
+        />
         {brands.data && (
           <AdminTable
             headers={HEADERS}
@@ -234,7 +230,7 @@ export default function AdminBrandsPage() {
                 <Cell muted>{row.companyEmail}</Cell>
                 <Cell muted>{formatElapsed(row.createdAt)}</Cell>
                 <Cell align="right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
                     {row.status === "pending_review" && (
                       <>
                         <ActionButton

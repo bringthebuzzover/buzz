@@ -9,6 +9,7 @@ import AuthShell from "../../components/site/AuthShell";
 import {
   Button,
   ErrorBanner,
+  SuccessBanner,
   TextField,
 } from "../../components/forms/controls";
 
@@ -52,12 +53,12 @@ export default function ForgotPasswordPage({ portal, loginPath, title }: Props) 
 
       {done ? (
         <div className="space-y-4 text-center">
-          <p className="rounded-lg bg-green-50 p-3 text-sm font-medium text-green-700">
+          <SuccessBanner>
             If an account exists for that email, a reset link is on its way.
-          </p>
+          </SuccessBanner>
           <Link
             to={loginPath}
-            className="inline-block text-sm font-bold text-buzz-coral hover:underline"
+            className="inline-block text-sm font-semibold text-buzz-coral hover:underline"
           >
             Back to login
           </Link>
@@ -71,16 +72,16 @@ export default function ForgotPasswordPage({ portal, loginPath, title }: Props) 
             onChange={(e) => setEmail(e.target.value)}
             required
           />
+          {error && <ErrorBanner>{error}</ErrorBanner>}
           <Button
             type="submit"
             disabled={forgot.isPending}
-            className="w-full"
+            fullWidth
           >
             {forgot.isPending ? "Sending…" : "Send reset link"}
           </Button>
-          {error && <ErrorBanner>{error}</ErrorBanner>}
-          <p className="text-center text-xs text-buzz-inkMuted">
-            <Link to={loginPath} className="font-bold text-buzz-coral hover:underline">
+          <p className="text-center text-sm text-buzz-inkMuted">
+            <Link to={loginPath} className="font-semibold text-buzz-coral hover:underline">
               Back to login
             </Link>
           </p>

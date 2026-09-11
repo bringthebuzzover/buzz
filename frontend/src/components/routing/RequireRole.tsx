@@ -8,6 +8,9 @@ import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import type { PortalRole } from "../../types/auth";
+import AuthShell from "../site/AuthShell";
+import { TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 type Props = {
   children: ReactNode;
@@ -22,12 +25,12 @@ export default function RequireRole({ children, role }: Props) {
       return <Navigate to="/admin" replace />;
     }
     return (
-      <div className="mx-auto max-w-lg px-8 py-24 text-center">
-        <h1 className="mb-4 text-4xl font-black text-buzz-coral">403</h1>
+      <AuthShell align="center" className="text-center">
+        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-danger")}>403</h1>
         <p className="text-sm font-medium text-buzz-inkMuted">
           You don't have access to this page with your current account.
         </p>
-      </div>
+      </AuthShell>
     );
   }
 

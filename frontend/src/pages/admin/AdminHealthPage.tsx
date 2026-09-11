@@ -10,6 +10,7 @@
 import { Link } from "react-router-dom";
 import { useAdminHealth, type AdminSignal } from "../../api/hooks/useAdminHooks";
 import {
+  CountMark,
   PageHeading,
   Panel,
   Pill,
@@ -25,15 +26,7 @@ import {
 
 function CountBadge({ signal }: { signal: AdminSignal }) {
   return (
-    <span
-      className={`shrink-0 rounded px-2 py-0.5 text-xs font-bold ${
-        signal.ok
-          ? "bg-buzz-neutral text-buzz-inkMuted"
-          : "bg-red-50 text-red-700"
-      }`}
-    >
-      {signal.count}
-    </span>
+    <CountMark tone={signal.ok ? "neutral" : "bad"}>{signal.count}</CountMark>
   );
 }
 
@@ -65,12 +58,12 @@ function SignalRow({
       {to && !signal.ok ? (
         <Link
           to={to}
-          className="flex gap-3 px-4 py-3 transition hover:bg-buzz-neutralWash"
+          className="flex items-start gap-3 px-4 py-3 transition hover:bg-buzz-neutralWash"
         >
           {body}
         </Link>
       ) : (
-        <div className="flex gap-3 px-4 py-3">{body}</div>
+        <div className="flex items-start gap-3 px-4 py-3">{body}</div>
       )}
     </li>
   );
@@ -130,7 +123,7 @@ export default function AdminHealthPage() {
                   <li
                     key={signal.key}
                     data-testid={`signal-${signal.key}`}
-                    className="flex gap-3 px-4 py-3"
+                    className="flex items-start gap-3 px-4 py-3"
                   >
                     <CountBadge signal={signal} />
                     <div>
@@ -178,8 +171,7 @@ export default function AdminHealthPage() {
           </Panel>
 
           <p className="text-xs font-medium text-buzz-inkFaint">
-            Counted {formatDateTime(health.data.generatedAt)}. Full detail and the
-            underlying queries live in gaps/.
+            Counted {formatDateTime(health.data.generatedAt)}.
           </p>
         </>
       )}

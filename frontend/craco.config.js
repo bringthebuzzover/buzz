@@ -44,6 +44,14 @@ module.exports = {
           __dirname,
           "node_modules/react-router/dist/development/dom-export.js",
         ),
+        // Same class of problem: `@radix-ui/primitive` publishes
+        // `./is-development` only through `exports` (with development/
+        // production conditions), so the jest resolver cannot find it and
+        // every Radix import fails. Tests run in development.
+        "^@radix-ui/primitive/is-development$": path.resolve(
+          __dirname,
+          "node_modules/@radix-ui/primitive/dist/internal/is-development.true.js",
+        ),
       };
       return config;
     },

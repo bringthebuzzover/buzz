@@ -11,6 +11,7 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAdminOverview } from "../../api/hooks/useAdminHooks";
+import { cn } from "../../theme/cn";
 
 type NavItem = {
   to: string;
@@ -43,10 +44,23 @@ const NAV: readonly NavItem[] = [
   { to: "/admin/health", label: "Health" },
 ];
 
-function Badge({ count }: { count: number }) {
+function AdminWordmark({ className }: { className?: string }) {
+  return (
+    <p className={cn("text-lg font-semibold text-buzz-ink", className)}>
+      Buzz <span className="text-buzz-coral">admin</span>
+    </p>
+  );
+}
+
+function Badge({ count, className }: { count: number; className?: string }) {
   if (count === 0) return null;
   return (
-    <span className="ml-auto rounded-full bg-buzz-coral px-2 py-0.5 text-xs font-bold text-buzz-paper">
+    <span
+      className={cn(
+        "rounded-full bg-buzz-coral px-2 py-0.5 text-xs font-bold text-buzz-paper",
+        className,
+      )}
+    >
       {count}
     </span>
   );
@@ -74,7 +88,7 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
             end={item.to === "/admin"}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold transition ${
+              `flex items-center gap-2 rounded-buzzControl px-3 py-2 text-sm font-semibold transition ${
                 isActive
                   ? "bg-buzz-butter text-buzz-ink"
                   : "text-buzz-inkMuted hover:bg-buzz-cream hover:text-buzz-ink"
@@ -82,7 +96,7 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
             }
           >
             {item.label}
-            <Badge count={badge} />
+            <Badge count={badge} className="ml-auto" />
           </NavLink>
         );
       })}
@@ -93,7 +107,7 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
 function SignedInAs() {
   const { user, logout } = useAuth();
   return (
-    <div className="border-t border-buzz-lineMid pt-4">
+    <div className="border-t border-buzz-lineMid px-3 pt-4">
       <p className="truncate text-xs font-medium text-buzz-inkFaint">
         Signed in as admin
       </p>
@@ -124,28 +138,22 @@ export default function AdminSidebar() {
   return (
     <>
       {/* Mobile trigger. */}
-      <div className="flex items-center gap-3 border-b border-buzz-lineMid bg-buzz-paper px-4 py-3 lg:hidden">
+      <div className="flex items-center gap-3 border-b border-buzz-lineMid bg-buzz-paper px-6 py-3 sm:px-8 lg:hidden">
         <button
           type="button"
           data-testid="admin-nav-toggle"
           aria-expanded={open}
           onClick={() => setOpen((prev) => !prev)}
-          className="rounded-lg border-2 border-buzz-lineMid px-3 py-1.5 text-xs font-bold text-buzz-ink"
+          className="rounded-buzzControl border-2 border-buzz-lineMid px-3 py-1.5 text-xs font-semibold text-buzz-ink"
         >
           Menu
-          {total > 0 && (
-            <span className="ml-2 rounded-full bg-buzz-coral px-1.5 text-xs text-buzz-paper">
-              {total}
-            </span>
-          )}
+          <Badge count={total} className="ml-2" />
         </button>
-        <span className="text-sm font-bold text-buzz-ink">
-          Buzz <span className="text-buzz-coral">admin</span>
-        </span>
+        <AdminWordmark />
       </div>
 
       {open && (
-        <div className="border-b border-buzz-lineMid bg-buzz-paper px-4 py-3 lg:hidden">
+        <div className="border-b border-buzz-lineMid bg-buzz-paper px-6 py-3 sm:px-8 lg:hidden">
           {/* `key` remounts the drawer contents on navigation so the active
               state can't go stale while it's open. */}
           <NavItems key={location.pathname} onNavigate={() => setOpen(false)} />
@@ -158,9 +166,7 @@ export default function AdminSidebar() {
       {/* Desktop rail. */}
       <aside className="hidden w-56 shrink-0 flex-col justify-between border-r border-buzz-lineMid bg-buzz-paper p-4 lg:flex">
         <div>
-          <p className="mb-5 px-3 text-sm font-bold text-buzz-ink">
-            Buzz <span className="text-buzz-coral">admin</span>
-          </p>
+          <AdminWordmark className="mb-5 px-3" />
           <NavItems />
         </div>
         <SignedInAs />

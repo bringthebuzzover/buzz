@@ -141,7 +141,7 @@ export default function OrgProfilePage() {
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
         {error && <ErrorBanner>{error}</ErrorBanner>}
         {signedInAs && (
-          <div className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3">
+          <div className="rounded-buzzControl border border-buzz-lineMid bg-buzz-paper px-3 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
               Signed in as
             </p>
@@ -264,7 +264,7 @@ export default function OrgProfilePage() {
         <Button
           type="submit"
           disabled={submit.isPending}
-          className="w-full"
+          fullWidth
         >
           {submit.isPending ? "Submitting…" : "Continue"}
         </Button>

@@ -20,3 +20,6 @@ __pycache__/
 # Playwright
 playwright-report/
 test-results/
+
+# UI revamp screenshot atlas (review input; regenerate with `npm run atlas`).
+frontend/ui-atlas/

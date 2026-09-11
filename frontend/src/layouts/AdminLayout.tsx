@@ -8,12 +8,14 @@
  */
 import { Outlet } from "react-router-dom";
 import AdminSidebar from "../components/admin/AdminSidebar";
+import { PAGE_SHELL, PAGE_WIDTH } from "../theme/shells";
+import { cn } from "../theme/cn";
 
 export default function AdminLayout() {
   return (
     <div className="min-h-screen bg-buzz-neutralWash lg:flex">
       <AdminSidebar />
-      <main className="min-w-0 flex-1 px-5 py-6 sm:px-8">
+      <main className={cn(PAGE_SHELL, PAGE_WIDTH.wide, "min-w-0 flex-1")}>
         <Outlet />
       </main>
     </div>

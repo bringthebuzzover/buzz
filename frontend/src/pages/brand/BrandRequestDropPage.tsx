@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { useCreateBrandDropRequest } from "../../api/hooks/useBrandHooks";
 import PageShell from "../../components/site/PageShell";
+import { Card } from "../../components/ui/Card";
 import {
   Button,
   ErrorBanner,
@@ -50,7 +51,7 @@ function RequestForm({
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
-        <div className="space-y-6 rounded-xl border border-buzz-lineMid bg-buzz-paper p-8 shadow-sm">
+        <Card kind="card" pad="roomy" className="space-y-6">
           <TextArea
             id="message"
             name="message"
@@ -72,13 +73,13 @@ function RequestForm({
           />
           <Button
             type="submit"
-            size="hero"
+            fullWidth
             disabled={submitting}
             data-testid="submit-drop-request"
           >
             {submitting ? "Submitting..." : "Submit Request"}
           </Button>
-        </div>
+        </Card>
       </form>
     </>
   );

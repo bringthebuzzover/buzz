@@ -15,6 +15,9 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
   testDir: "./e2e",
+  // `e2e/visual/` is the UI-revamp atlas + geometry suite; it has its own
+  // config (playwright.atlas.config.ts) and must not slow the correctness gate.
+  testIgnore: "visual/**",
   globalSetup: "./e2e/global-setup.ts",
   timeout: 30_000,
   expect: { timeout: 10_000 },

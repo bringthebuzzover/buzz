@@ -18,9 +18,12 @@ import AuthShell from "../../components/site/AuthShell";
 import {
   Button,
   ErrorBanner,
+  LinkButton,
   TextArea,
   TextField,
 } from "../../components/forms/controls";
+import { TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 export default function BrandApplyPage() {
   const config = usePublicConfig();
@@ -58,7 +61,7 @@ export default function BrandApplyPage() {
 
   if (config.isLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <p className="text-sm font-medium text-buzz-inkMuted">Loading...</p>
       </div>
     );
@@ -67,19 +70,14 @@ export default function BrandApplyPage() {
   if (submitted) {
     return (
       <AuthShell align="center" className="text-center">
-        <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
           Application <span className="text-buzz-coral">Received</span>
         </h1>
         <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
           Thanks! Our team will review your brand. Once approved, you'll get an
           email with a link to set your password and sign in.
         </p>
-        <Link
-          to="/"
-          className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper transition hover:bg-buzz-coralDark"
-        >
-          Back home
-        </Link>
+        <LinkButton to="/">Back home</LinkButton>
       </AuthShell>
     );
   }
@@ -87,7 +85,7 @@ export default function BrandApplyPage() {
   if (disabled) {
     return (
       <AuthShell align="center" className="text-center">
-        <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
           Brand <span className="text-buzz-coral">Sign-Up</span>
         </h1>
         <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
@@ -107,8 +105,8 @@ export default function BrandApplyPage() {
   }
 
   return (
-    <AuthShell align="center">
-      <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
+    <AuthShell align="stack">
+      <h1 className={cn(TEXT.h1, "mb-2 text-center text-buzz-ink")}>
         Apply as a <span className="text-buzz-coral">Brand</span>
       </h1>
       <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
@@ -157,15 +155,15 @@ export default function BrandApplyPage() {
           onChange={(e) => setIntentMessage(e.target.value)}
         />
 
+        {error && <ErrorBanner>{error}</ErrorBanner>}
+
         <Button
           type="submit"
           disabled={apply.isPending}
-          className="w-full"
+          fullWidth
         >
           {apply.isPending ? "Submitting…" : "Submit application"}
         </Button>
-
-        {error && <ErrorBanner>{error}</ErrorBanner>}
 
         <p className="text-center text-xs text-buzz-inkMuted">
           <Link to="/for-brands" className="font-bold text-buzz-coral hover:underline">

@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
-import { Bell, CalendarPlus, Check, X } from "lucide-react";
+import { CalendarPlus, Check } from "lucide-react";
 import { REMINDER_CHOICES } from "../../../api/hooks/useDropHooks";
+import { Modal } from "../../ui/Modal";
+import { Button } from "../../forms/controls";
+import { STACK, TEXT } from "../../../theme/tokens";
+import { cn } from "../../../theme/cn";
 
 type NotifyMeModalProps = {
   dropTitle: string;
@@ -44,81 +48,58 @@ export default function NotifyMeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-buzz-overlay/70 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border-2 border-buzz-lineMid bg-buzz-paper shadow-buzzLg">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-full bg-buzz-cream p-1 text-buzz-inkFaint transition hover:text-buzz-coral"
-          aria-label="Close"
-        >
-          <X size={18} />
-        </button>
+    <Modal
+      onClose={onClose}
+      title={dropTitle}
+      description="Pick one reminder before the drop opens, or confirm with none to opt out."
+      size="wide"
+    >
+      <div className={cn("px-6 pb-6 pt-4", STACK.default)}>
+        <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Reminder timing</p>
 
-        <div className="border-b border-buzz-lineMid bg-buzz-cream px-6 py-4">
-          <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-buzz-coral">
-            <Bell size={14} />
-            Notify Me
-          </div>
-          <h2 className="text-2xl font-black text-buzz-coral">{dropTitle}</h2>
-          <p className="mt-1 text-sm font-medium text-buzz-inkMuted">
-            Pick one reminder before the drop opens, or confirm with none to
-            opt out.
-          </p>
+        <div className={STACK.tight} role="radiogroup" aria-label="Reminder timing">
+          {REMINDER_OPTIONS.map((option) => {
+            const selected = selectedMinutes === option.minutes;
+            return (
+              <button
+                key={option.minutes}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() =>
+                  setSelectedMinutes((prev) =>
+                    prev === option.minutes ? null : option.minutes,
+                  )
+                }
+                className={cn(
+                  "flex w-full items-center justify-between rounded-buzzControl border px-4 py-3 text-left transition",
+                  selected
+                    ? "border-buzz-coral bg-buzz-paper text-buzz-ink"
+                    : "border-buzz-lineMid bg-buzz-paper text-buzz-ink hover:bg-buzz-cream",
+                )}
+              >
+                <span className={cn(TEXT.body, "font-semibold")}>{option.label}</span>
+                {selected ? (
+                  <span className="rounded-full bg-buzz-coral p-1 text-buzz-paper">
+                    <Check size={14} />
+                  </span>
+                ) : (
+                  <span className="h-5 w-5 rounded-full border border-buzz-inkFaint" />
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="space-y-4 bg-buzz-butter/60 px-6 py-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-buzz-inkMuted">
-            Reminder timing
-          </p>
+        <Button type="button" fullWidth onClick={handleConfirm}>
+          {selectedMinutes == null ? "Confirm — no reminder" : "Confirm reminder"}
+        </Button>
 
-          <div className="space-y-2" role="radiogroup" aria-label="Reminder timing">
-            {REMINDER_OPTIONS.map((option) => {
-              const selected = selectedMinutes === option.minutes;
-              return (
-                <button
-                  key={option.minutes}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() =>
-                    setSelectedMinutes((prev) =>
-                      prev === option.minutes ? null : option.minutes,
-                    )
-                  }
-                  className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
-                    selected
-                      ? "border-buzz-coral bg-buzz-paper text-buzz-ink"
-                      : "border-buzz-lineMid bg-buzz-paper text-buzz-ink hover:bg-buzz-cream"
-                  }`}
-                >
-                  <span className="text-base font-bold">{option.label}</span>
-                  {selected ? (
-                    <span className="rounded-full bg-buzz-coral p-1 text-buzz-paper">
-                      <Check size={14} />
-                    </span>
-                  ) : (
-                    <span className="h-5 w-5 rounded-full border border-buzz-inkFaint" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <button
-            type="button"
-            onClick={handleConfirm}
-            className="w-full rounded-xl bg-buzz-coral py-3 text-sm font-black uppercase tracking-wide text-buzz-paper transition hover:bg-buzz-coralDark"
-          >
-            {selectedMinutes == null ? "Confirm — no reminder" : "Confirm reminder"}
-          </button>
-
-          <div className="flex items-center justify-center gap-2 text-xs font-medium text-buzz-inkMuted">
-            <CalendarPlus size={14} />
-            <span>{summary}</span>
-          </div>
+        <div className={cn(TEXT.meta, "flex items-center justify-center gap-2")}>
+          <CalendarPlus size={14} />
+          <span>{summary}</span>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

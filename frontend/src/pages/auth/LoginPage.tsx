@@ -7,6 +7,9 @@ import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
 import instagramIcon from "../../assets/insta-icon.png";
 import { pathForUser } from "../../utils/landing";
 import AuthShell from "../../components/site/AuthShell";
+import { Button } from "../../components/forms/controls";
+import { STACK, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 export default function LoginPage() {
   const { status, user, login } = useAuth();
@@ -27,7 +30,7 @@ export default function LoginPage() {
 
   return (
     <AuthShell align="center" className="items-center text-center">
-      <h1 className="mb-4 text-3xl font-black text-buzz-ink">
+      <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
         Join or sign in to <span className="text-buzz-coral">Buzz</span>
       </h1>
       <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
@@ -35,36 +38,38 @@ export default function LoginPage() {
         Business or Creator account (not a personal member account).
       </p>
 
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="hero"
         onClick={login}
         disabled={status === "authenticating"}
-        className="flex items-center gap-3 rounded-xl border-2 border-buzz-coral bg-buzz-paper px-8 py-4 text-base font-bold text-buzz-coral shadow-sm transition hover:bg-buzz-coral hover:text-buzz-paper disabled:cursor-not-allowed disabled:opacity-60"
       >
         <img src={instagramIcon} alt="" className="h-5 w-5" />
         {status === "authenticating"
           ? "Logging in..."
           : "Continue with Instagram"}
-      </button>
+      </Button>
 
-      <p className="mt-8 text-sm font-medium text-buzz-inkMuted">
-        New org?{" "}
-        <Link to="/org/apply" className="font-bold text-buzz-coral hover:underline">
-          Apply here.
-        </Link>
-      </p>
-      <p className="mt-3 text-sm font-medium text-buzz-inkMuted">
-        <Link to="/for-orgs" className="font-bold text-buzz-coral hover:underline">
-          See how it works
-        </Link>
-      </p>
-
-      <p className="mt-4 text-sm font-medium text-buzz-inkMuted">
-        Are you a brand?{" "}
-        <Link to="/brand/login" className="font-bold text-buzz-coral hover:underline">
-          Brand login
-        </Link>
-      </p>
+      <div className={cn("mt-8", STACK.default, "text-sm font-medium text-buzz-inkMuted")}>
+        <p>
+          New org?{" "}
+          <Link to="/org/apply" className="font-semibold text-buzz-coral hover:underline">
+            Apply here.
+          </Link>
+        </p>
+        <p>
+          <Link to="/for-orgs" className="font-semibold text-buzz-coral hover:underline">
+            See how it works
+          </Link>
+        </p>
+        <p>
+          Are you a brand?{" "}
+          <Link to="/brand/login" className="font-semibold text-buzz-coral hover:underline">
+            Brand login
+          </Link>
+        </p>
+      </div>
     </AuthShell>
   );
 }

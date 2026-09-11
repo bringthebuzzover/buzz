@@ -13,14 +13,17 @@ import {
   type OrgCampaignStatus,
 } from "../../utils/orgCampaignStatus";
 import PageShell from "../../components/site/PageShell";
+import { QueryStatePanel } from "../../components/ui/StatePanel";
+import { STACK, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 function CampaignsHeader() {
   return (
     <header className="mb-8 text-center">
-      <h1 className="text-3xl font-bold text-buzz-ink">
+      <h1 className={TEXT.h1}>
         My <span className="text-buzz-coral">Campaigns</span>
       </h1>
-      <p className="mt-2 text-sm font-medium text-buzz-inkMuted">
+      <p className={cn(TEXT.body, "mt-2 text-buzz-inkMuted")}>
         Track every drop you have applied to or been part of.
       </p>
     </header>
@@ -47,24 +50,17 @@ function ApiCampaigns() {
     return mapped;
   }, [items]);
 
-  if (isLoading) {
+  if (isLoading || error || rows.length === 0) {
     return (
       <PageShell width="portal">
         <CampaignsHeader />
-        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
-          Loading campaigns…
-        </div>
-      </PageShell>
-    );
-  }
-
-  if (error) {
-    return (
-      <PageShell width="portal">
-        <CampaignsHeader />
-        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-coral">
-          Couldn't load campaigns. Please try again.
-        </div>
+        <QueryStatePanel
+          isPending={isLoading}
+          isError={Boolean(error)}
+          isEmpty={!isLoading && !error && rows.length === 0}
+          label="campaigns"
+          empty="You have no campaigns yet. Browse Campaigns to apply to one."
+        />
       </PageShell>
     );
   }
@@ -72,25 +68,19 @@ function ApiCampaigns() {
   return (
     <PageShell width="portal">
       <CampaignsHeader />
-      {rows.length === 0 ? (
-        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-12 text-center text-sm font-medium text-buzz-inkMuted">
-          You have no campaigns yet. Browse Campaigns to apply to one.
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {rows.map(({ item, status }) => (
-            <CampaignRow
-              key={item.id}
-              applicationId={item.id}
-              brandName={item.brandName}
-              title={item.title}
-              image={item.image}
-              status={status}
-              trackingNumber={item.trackingNumber}
-            />
-          ))}
-        </div>
-      )}
+      <div className={STACK.default}>
+        {rows.map(({ item, status }) => (
+          <CampaignRow
+            key={item.id}
+            applicationId={item.id}
+            brandName={item.brandName}
+            title={item.title}
+            image={item.image}
+            status={status}
+            trackingNumber={item.trackingNumber}
+          />
+        ))}
+      </div>
     </PageShell>
   );
 }

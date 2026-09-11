@@ -3,6 +3,7 @@
  */
 import { Link, useSearchParams } from "react-router-dom";
 import { useAdminDropRequests } from "../../api/hooks/useAdminHooks";
+import { LinkButton } from "../../components/forms/controls";
 import {
   AdminTable,
   Cell,
@@ -10,6 +11,7 @@ import {
   PageHeading,
   Panel,
   Pill,
+  QueryState,
   Row,
 } from "../../components/admin/AdminPrimitives";
 import { formatDate } from "../../components/admin/labels";
@@ -51,16 +53,11 @@ export default function AdminDropRequestsPage() {
       />
 
       <Panel>
-        {requests.isPending && (
-          <p className="px-4 py-6 text-sm font-medium text-buzz-inkMuted">
-            Loading requests…
-          </p>
-        )}
-        {requests.isError && (
-          <p className="px-4 py-6 text-sm font-medium text-red-700">
-            Could not load drop requests.
-          </p>
-        )}
+        <QueryState
+          isPending={requests.isPending}
+          isError={requests.isError}
+          label="drop requests"
+        />
         {requests.data && (
           <AdminTable
             headers={HEADERS}
@@ -84,13 +81,14 @@ export default function AdminDropRequestsPage() {
                   <Pill tone={statusTone(ticket.status)}>{ticket.status}</Pill>
                 </Cell>
                 <Cell muted>{formatDate(ticket.createdAt)}</Cell>
-                <Cell>
-                  <Link
+                <Cell align="right">
+                  <LinkButton
                     to={`/admin/requests/${ticket.id}`}
-                    className="text-xs font-bold text-buzz-coral hover:underline"
+                    size="compact"
+                    variant="outline"
                   >
                     Open
-                  </Link>
+                  </LinkButton>
                 </Cell>
               </Row>
             ))}

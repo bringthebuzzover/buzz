@@ -4,13 +4,16 @@
   "private": true,
   "homepage": "https://www.bringthebuzzover.com",
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.23",
     "@tanstack/react-query": "^5.100.14",
+    "class-variance-authority": "^0.7.1",
     "lucide-react": "^1.14.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.12.0",
     "react-scripts": "5.0.1",
-    "serve": "^14.2.6"
+    "serve": "^14.2.6",
+    "tailwind-merge": "^2.6.1"
   },
   "scripts": {
     "start": "craco start",
@@ -20,7 +23,9 @@
     "test": "craco test",
     "gen:api": "npx -y openapi-typescript@7.13.0 ../openapi.json -o src/api/generated/schema.ts",
     "e2e": "playwright test",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "atlas": "playwright test --config=playwright.atlas.config.ts",
+    "atlas:diff": "node scripts/atlas-diff.mjs"
   },
   "eslintConfig": {
     "extends": [

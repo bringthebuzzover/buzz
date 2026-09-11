@@ -85,16 +85,16 @@ export default function ResetPasswordPage({ portal, loginPath, title }: Props) {
           onChange={(e) => setConfirm(e.target.value)}
           required
         />
+        {error && <ErrorBanner>{error}</ErrorBanner>}
         <Button
           type="submit"
           disabled={reset.isPending}
-          className="w-full"
+          fullWidth
         >
           {reset.isPending ? "Saving…" : "Reset password"}
         </Button>
-        {error && <ErrorBanner>{error}</ErrorBanner>}
-        <p className="text-center text-xs text-buzz-inkMuted">
-          <Link to={loginPath} className="font-bold text-buzz-coral hover:underline">
+        <p className="text-center text-sm text-buzz-inkMuted">
+          <Link to={loginPath} className="font-semibold text-buzz-coral hover:underline">
             Back to login
           </Link>
         </p>

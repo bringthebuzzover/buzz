@@ -6,6 +6,9 @@
 import { useMemo, useState } from "react";
 import type { EngagementTimeSeriesPoint } from "../../types/metrics";
 import { tailwindThemeExtend } from "../../theme/palette";
+import { Card, CardHeader } from "../ui/Card";
+import { StatePanel } from "../ui/StatePanel";
+import { TEXT } from "../../theme/tokens";
 
 type EngagementOverTimeChartProps = {
   points: readonly EngagementTimeSeriesPoint[];
@@ -81,23 +84,25 @@ export default function EngagementOverTimeChart({
 
   if (!chart || points.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-inkMuted">
+      <StatePanel>
         No engagement data yet — once posts are linked, you'll see the trend
         here.
-      </div>
+      </StatePanel>
     );
   }
 
   const yTicks = [0, chart.yMax / 2, chart.yMax];
 
   return (
-    <div className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-6 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-bold text-buzz-ink">Engagement over time</h3>
-        <span className="text-xs font-medium text-buzz-inkMuted">
-          {formatDate(chart.minTs)} → {formatDate(chart.maxTs)}
-        </span>
-      </div>
+    <Card kind="card" pad="card">
+      <CardHeader
+        title="Engagement over time"
+        actions={
+          <span className={TEXT.meta}>
+            {formatDate(chart.minTs)} → {formatDate(chart.maxTs)}
+          </span>
+        }
+      />
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="h-64 w-full"
@@ -124,7 +129,7 @@ export default function EngagementOverTimeChart({
                 y={y}
                 textAnchor="end"
                 dominantBaseline="middle"
-                className="fill-buzz-inkMuted text-[10px] font-bold"
+                className="fill-buzz-inkMuted text-buzzMicro font-semibold"
               >
                 {Math.round(tick).toLocaleString()}
               </text>
@@ -190,14 +195,14 @@ export default function EngagementOverTimeChart({
               <text
                 x={12}
                 y={20}
-                className="fill-white text-[10px] font-bold"
+                className="fill-white text-buzzMicro font-semibold"
               >
                 {formatDate(points[hoverIdx].timestamp)}
               </text>
               <text
                 x={12}
                 y={36}
-                className="fill-white text-xs font-black tabular-nums"
+                className="fill-white text-xs font-semibold tabular-nums"
               >
                 {points[hoverIdx].engagement.toLocaleString()} engagement
               </text>
@@ -205,6 +210,6 @@ export default function EngagementOverTimeChart({
           </g>
         ) : null}
       </svg>
-    </div>
+    </Card>
   );
 }

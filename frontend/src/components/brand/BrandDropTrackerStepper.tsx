@@ -9,6 +9,10 @@ import {
   BRAND_DROP_TRACKER_ORDER,
   type BrandDropTrackerStage,
 } from "../../types/brandPortal";
+import { Card } from "../ui/Card";
+import { Chip } from "../ui/Chip";
+import { GAP, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 type BrandDropTrackerStepperProps = {
   currentStage: BrandDropTrackerStage;
@@ -25,15 +29,15 @@ export default function BrandDropTrackerStepper({
     BRAND_DROP_TRACKER_ORDER.indexOf("awaiting_products") <= currentIdx;
 
   return (
-    <div className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-6 shadow-sm">
+    <Card kind="card" pad="card">
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-buzz-ink">Drop status</h2>
-        <span className="rounded-full border border-buzz-lineMid bg-buzz-cream px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-buzz-coral">
+        <h2 className={TEXT.h3}>Drop status</h2>
+        <Chip accent>
           {BRAND_DROP_TRACKER_COPY[currentStage]?.label ?? currentStage}
-        </span>
+        </Chip>
       </div>
 
-      <ol className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <ol className={cn("grid grid-cols-1 md:grid-cols-3", GAP.default)}>
         {BRAND_DROP_TRACKER_ORDER.map((stage, idx) => {
           // Legacy pre-publish stages are not in the stepper order (idx -1).
           const reached = currentIdx >= 0 && idx <= currentIdx;
@@ -42,15 +46,16 @@ export default function BrandDropTrackerStepper({
           return (
             <li
               key={stage}
-              className={`relative flex min-h-[3.25rem] items-center justify-center rounded-xl border px-3 py-3 text-center transition ${
+              className={cn(
+                "relative flex min-h-[3.25rem] items-center justify-center rounded-buzzControl border px-3 py-3 text-center transition",
                 isCurrent
-                  ? "border-buzz-coral bg-buzz-butter shadow-sm"
+                  ? "border-buzz-coral bg-buzz-butter shadow-buzz"
                   : reached
                     ? "border-buzz-lineMid bg-buzz-cream"
-                    : "border-buzz-lineMid bg-buzz-paper opacity-60"
-              }`}
+                    : "border-buzz-lineMid bg-buzz-paper opacity-60",
+              )}
             >
-              <span className="text-sm font-bold leading-snug text-buzz-ink">
+              <span className={cn(TEXT.body, "font-semibold leading-snug text-buzz-ink")}>
                 {copy.label}
               </span>
             </li>
@@ -59,18 +64,16 @@ export default function BrandDropTrackerStepper({
       </ol>
 
       {trackingVisible ? (
-        <div className="mt-6 flex items-center gap-3 rounded-xl border border-buzz-lineMid bg-buzz-butter p-4">
+        <div className="mt-6 flex items-center gap-3 rounded-buzzControl border border-buzz-lineMid bg-buzz-butter p-4">
           <Truck size={20} className="text-buzz-coral" />
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-buzz-inkMuted">
+            <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>
               Shipment tracking
             </p>
-            <p className="text-sm font-bold text-buzz-ink">
-              #{trackingNumber}
-            </p>
+            <p className={TEXT.body}>#{trackingNumber}</p>
           </div>
         </div>
       ) : null}
-    </div>
+    </Card>
   );
 }

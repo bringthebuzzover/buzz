@@ -36,6 +36,7 @@ import {
   Pill,
   QueryState,
   StatusPill,
+  UnconfirmedIgChip,
 } from "../../components/admin/AdminPrimitives";
 import {
   formatDate,
@@ -43,7 +44,10 @@ import {
   formatElapsed,
 } from "../../components/admin/labels";
 import { Checkbox } from "../../components/forms/Checkbox";
-import { TextField } from "../../components/forms/controls";
+import { Button, SuccessBanner, TextField } from "../../components/forms/controls";
+import { Modal } from "../../components/ui/Modal";
+import { STACK } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 function confirmHandleMatches(typed: string, stored: string): boolean {
   const normalize = (value: string) =>
@@ -191,17 +195,16 @@ export default function AdminOrgDetailPage() {
           That recovery action did not go through. Reload and try again.
         </ErrorNote>
       )}
-      {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
       {eraseNotice && (
-        <p className="mb-4 rounded border border-buzz-lineMid bg-buzz-cream px-3 py-2 text-sm font-medium text-buzz-ink">
-          {eraseNotice}
-        </p>
+        <div className="mb-4">
+          <SuccessBanner>{eraseNotice}</SuccessBanner>
+        </div>
       )}
       {actionError && <ErrorNote>{actionError}</ErrorNote>}
       {actionNotice && (
-        <p className="mb-4 rounded border border-buzz-lineMid bg-buzz-cream px-3 py-2 text-sm font-medium text-buzz-ink">
-          {actionNotice}
-        </p>
+        <div className="mb-4">
+          <SuccessBanner>{actionNotice}</SuccessBanner>
+        </div>
       )}
 
       {data && (
@@ -264,7 +267,7 @@ export default function AdminOrgDetailPage() {
                   <ActionButton
                     variant="danger"
                     testId="erase-org"
-                    disabled={busy || eraseConfirmOpen}
+                    disabled={busy}
                     onClick={openEraseConfirm}
                   >
                     Erase
@@ -284,11 +287,13 @@ export default function AdminOrgDetailPage() {
           />
 
           {eraseConfirmOpen && canErase && claimedHandle && (
-            <Panel
+            <Modal
+              onClose={cancelEraseConfirm}
               title="Erase this organization"
               description="Removes login identity and contact details. Campaign KPIs stay. Type the Instagram handle to confirm."
             >
-              <div className="space-y-3 px-4 pb-4">
+              <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
+                {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
                 <TextField
                   id="erase-org-confirm"
                   data-testid="erase-org-confirm"
@@ -300,13 +305,16 @@ export default function AdminOrgDetailPage() {
                   onChange={(e) => setEraseTyped(e.target.value)}
                 />
                 <div className="flex flex-wrap gap-2">
-                  <ActionButton
-                    testId="erase-org-cancel"
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="compact"
+                    data-testid="erase-org-cancel"
                     disabled={erase.isPending}
                     onClick={cancelEraseConfirm}
                   >
                     Cancel
-                  </ActionButton>
+                  </Button>
                   <ActionButton
                     variant="danger"
                     testId="erase-org-submit"
@@ -320,7 +328,7 @@ export default function AdminOrgDetailPage() {
                   </ActionButton>
                 </div>
               </div>
-            </Panel>
+            </Modal>
           )}
 
           {erased && (
@@ -367,9 +375,7 @@ export default function AdminOrgDetailPage() {
                 {claimedHandle ? (
                   <span className="inline-flex flex-wrap items-center gap-2 font-semibold text-buzz-ink">
                     {claimedHandle}
-                    {!data.instagramHandleConfirmed && (
-                      <Pill tone="warn">Unconfirmed lookup</Pill>
-                    )}
+                    {!data.instagramHandleConfirmed && <UnconfirmedIgChip />}
                   </span>
                 ) : (
                   "—"
@@ -394,7 +400,7 @@ export default function AdminOrgDetailPage() {
                   </span>
                 ) : (
                   data.deliveryAddress ?? (
-                    <span className="text-amber-700">
+                    <span className="text-buzz-warn">
                       Not set — nowhere to ship product
                     </span>
                   )
@@ -425,14 +431,14 @@ export default function AdminOrgDetailPage() {
                 {data.verification.liveTokenCount}
                 {data.verification.liveTokenCount === 0 &&
                   data.status === "pending_email_verification" && (
-                    <span className="ml-2 text-xs font-medium text-amber-700">
+                    <span className="ml-2 text-xs font-medium text-buzz-warn">
                       none valid — they must request a new one
                     </span>
                   )}
               </Field>
               <Field label="Instagram token expires">
                 {data.instagramTokenExpiresAt ? (
-                  <span className={tokenExpired ? "text-red-700" : undefined}>
+                  <span className={tokenExpired ? "text-buzz-danger" : undefined}>
                     {formatDate(data.instagramTokenExpiresAt)}
                   </span>
                 ) : (
