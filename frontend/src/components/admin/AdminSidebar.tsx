@@ -44,6 +44,14 @@ const NAV: readonly NavItem[] = [
   { to: "/admin/health", label: "Health" },
 ];
 
+function AdminWordmark({ className }: { className?: string }) {
+  return (
+    <p className={cn("text-lg font-semibold text-buzz-ink", className)}>
+      Buzz <span className="text-buzz-coral">admin</span>
+    </p>
+  );
+}
+
 function Badge({ count, className }: { count: number; className?: string }) {
   if (count === 0) return null;
   return (
@@ -141,9 +149,7 @@ export default function AdminSidebar() {
           Menu
           <Badge count={total} className="ml-2" />
         </button>
-        <span className="text-sm font-bold text-buzz-ink">
-          Buzz <span className="text-buzz-coral">admin</span>
-        </span>
+        <AdminWordmark />
       </div>
 
       {open && (
@@ -160,9 +166,7 @@ export default function AdminSidebar() {
       {/* Desktop rail. */}
       <aside className="hidden w-56 shrink-0 flex-col justify-between border-r border-buzz-lineMid bg-buzz-paper p-4 lg:flex">
         <div>
-          <p className="mb-5 px-3 text-sm font-bold text-buzz-ink">
-            Buzz <span className="text-buzz-coral">admin</span>
-          </p>
+          <AdminWordmark className="mb-5 px-3" />
           <NavItems />
         </div>
         <SignedInAs />

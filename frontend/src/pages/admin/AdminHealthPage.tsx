@@ -171,8 +171,7 @@ export default function AdminHealthPage() {
           </Panel>
 
           <p className="text-xs font-medium text-buzz-inkFaint">
-            Counted {formatDateTime(health.data.generatedAt)}. Full detail and the
-            underlying queries live in gaps/.
+            Counted {formatDateTime(health.data.generatedAt)}.
           </p>
         </>
       )}
