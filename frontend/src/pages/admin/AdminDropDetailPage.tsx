@@ -274,30 +274,38 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
         title="Campaign"
         description="What orgs see on the drop: title, story, and hero image."
       >
-        {previewSrc ? (
-          <img
-            src={previewSrc}
-            alt=""
-            className="max-h-48 w-full rounded-buzzCard border border-buzz-lineMid object-cover"
-          />
-        ) : null}
-        <TextField
-          id="drop-config-title"
-          label="Title"
-          size="compact"
-          value={title}
-          disabled={patch.isPending}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <TextArea
-          id="drop-config-description"
-          label="Description"
-          size="compact"
-          rows={5}
-          value={description}
-          disabled={patch.isPending}
-          onChange={(e) => setDescription(e.target.value)}
-        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+          {previewSrc ? (
+            <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-buzzCard border border-buzz-lineMid sm:h-48 sm:w-auto">
+              <img
+                src={previewSrc}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ) : null}
+          <div className="flex min-w-0 flex-1 flex-col gap-3">
+            <TextField
+              id="drop-config-title"
+              label="Title"
+              size="compact"
+              value={title}
+              disabled={patch.isPending}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <TextArea
+              id="drop-config-description"
+              label="Description"
+              size="compact"
+              rows={5}
+              value={description}
+              disabled={patch.isPending}
+              wrapperClassName="flex min-h-0 flex-1 flex-col"
+              className="min-h-[7.5rem] flex-1"
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+        </div>
         <TextField
           id="drop-config-image"
           label="Image (https)"
