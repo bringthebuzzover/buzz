@@ -127,9 +127,7 @@ function ApiApplicantTable({
 
   const shipToLine = (app: BrandDropApplicant) =>
     app.accountErased ? (
-      <p className={cn(TEXT.meta, "mt-0.5")}>
-        Account deleted · Shipping details removed
-      </p>
+      <p className={cn(TEXT.meta, "mt-0.5")}>Shipping details removed</p>
     ) : app.deliveryAddress ? (
       <p className={cn(TEXT.meta, "mt-0.5")}>
         Ship to: {app.deliveryAddress}

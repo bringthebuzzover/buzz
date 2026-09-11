@@ -721,7 +721,6 @@ function Applicants({ applicants }: { applicants: AdminApplicant[] }) {
             </Link>
             <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
               {applicant.university}
-              {applicant.accountErased ? " · Account deleted" : ""}
             </span>
           </Cell>
           <Cell muted>

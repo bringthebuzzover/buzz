@@ -213,6 +213,43 @@ describe("AdminDropDetailPage", () => {
     expect(container.textContent).not.toContain("2301 Bancroft Way");
   });
 
+  it("does not restamp Account deleted next to a tombstone org name", () => {
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({
+        publishedAt: now,
+        applicants: [
+          {
+            id: "app-2",
+            orgId: "org-2",
+            userId: "user-2",
+            orgName: "Deleted organization",
+            university: "Cornell University",
+            instagramHandle: null,
+            followerCount: 100,
+            deliveryAddress: null,
+            shippingCity: null,
+            shippingState: null,
+            accountErased: true,
+            decision: "denied",
+            allocatedUnits: null,
+            pitch: null,
+            trackingNumber: null,
+            linkedPostCount: 0,
+            appliedAt: now,
+            decisionAt: now,
+          },
+        ],
+      }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1");
+
+    expect(container.textContent).toContain("Deleted organization");
+    expect(container.textContent).toContain("Cornell University");
+    expect(container.textContent).not.toContain("Account deleted");
+  });
+
   it("opens a hide dialog that asks the admin to type hide", () => {
     mockUseAdminDrop.mockReturnValue({
       data: adminDrop({ publishedAt: now }),
