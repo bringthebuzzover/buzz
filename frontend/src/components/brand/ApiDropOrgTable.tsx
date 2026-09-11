@@ -88,9 +88,6 @@ export default function ApiDropOrgTable({
                   {a.category ? (
                     <Chip>{orgCategoryLabel(a.category)}</Chip>
                   ) : null}
-                  {a.accountErased ? (
-                    <span>· Account deleted</span>
-                  ) : null}
                 </p>
                 {a.accountErased ? (
                   <p className={cn(TEXT.meta, "mt-1")}>

@@ -255,4 +255,48 @@ describe("BrandDropDetailPage", () => {
     expect(mockFinalizeMutate).toHaveBeenCalledTimes(1);
     confirmSpy.mockRestore();
   });
+
+  it("does not restamp Account deleted on an erased applicant card", () => {
+    mockUseBrandDropDetail.mockReturnValue({
+      data: {
+        ...brandDrop(false),
+        brandTrackerStage: "finalizing_agreements",
+        applyCloseAt: now - 1000,
+        applications: [
+          {
+            id: "app-1",
+            dropId: "drop-1",
+            orgId: "org-1",
+            orgName: "Deleted organization",
+            university: "Cornell University",
+            instagramHandle: "",
+            category: "fraternity",
+            followerCount: 100,
+            memberCount: 40,
+            pitch: null,
+            decision: "applied",
+            decisionAt: null,
+            appliedAt: now,
+            allocatedUnits: null,
+            deliveryAddress: null,
+            accountErased: true,
+            trackingNumber: null,
+            attributedComments: 0,
+            attributedEngagement: 0,
+            attributedLikes: 0,
+            attributedPostCount: 0,
+            posts: [],
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+
+    expect(container.textContent).toContain("Deleted organization");
+    expect(container.textContent).toContain("Cornell University");
+    expect(container.textContent).toContain("Shipping details removed");
+    expect(container.textContent).not.toContain("Account deleted");
+  });
 });
