@@ -69,10 +69,12 @@ export function TextArea({
   size = "default",
   resizable = false,
   className,
+  wrapperClassName,
   ...props
 }: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "size"> & {
   label?: ReactNode;
   size?: ControlSize;
+  wrapperClassName?: string;
   /**
    * Off by default: the OS resize grabber was the last piece of native chrome
    * left on the auth surfaces. Opt in where a user genuinely needs more room.
@@ -80,7 +82,7 @@ export function TextArea({
   resizable?: boolean;
 }) {
   return (
-    <div>
+    <div className={wrapperClassName}>
       {label && (
         <FieldLabel htmlFor={id} size={size}>
           {label}

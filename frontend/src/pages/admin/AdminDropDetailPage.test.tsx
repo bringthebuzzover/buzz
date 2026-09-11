@@ -128,6 +128,11 @@ describe("AdminDropDetailPage", () => {
       container.querySelector('[data-testid="save-drop-config"]'),
     ).toBeTruthy();
     expect(container.querySelector('[data-testid="hide-drop"]')).toBeFalsy();
+    const hero = container.querySelector(
+      'img[src="https://cdn.example.test/hero.png"]',
+    );
+    expect(hero?.parentElement?.className).toContain("aspect-video");
+    expect(container.querySelector("#drop-config-description")).toBeTruthy();
   });
 
   it("defaults to Applicants for a published drop; Config holds the checkbox", () => {
