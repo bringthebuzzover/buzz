@@ -165,6 +165,11 @@ describe("AdminOrgDetailPage erase confirm", () => {
     const erase = container.querySelector(
       '[data-testid="erase-org"]',
     ) as HTMLButtonElement;
+    expect(erase.getAttribute("aria-label")).toBe("Erase organization");
+    const viewAs = container.querySelector(
+      '[data-testid="view-as"]',
+    ) as HTMLButtonElement;
+    expect(viewAs.nextElementSibling).toBe(erase);
     act(() => {
       erase.click();
     });

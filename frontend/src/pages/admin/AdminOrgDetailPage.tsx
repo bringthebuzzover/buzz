@@ -15,6 +15,7 @@
  */
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Trash2 } from "lucide-react";
 import {
   useAdminOrg,
   useApproveOrg,
@@ -264,16 +265,6 @@ export default function AdminOrgDetailPage() {
                     Clear IG token
                   </ActionButton>
                 )}
-                {canErase && (
-                  <ActionButton
-                    variant="danger"
-                    testId="erase-org"
-                    disabled={busy}
-                    onClick={openEraseConfirm}
-                  >
-                    Erase
-                  </ActionButton>
-                )}
                 {!erased && (
                   <ActionButton
                     testId="view-as"
@@ -282,6 +273,20 @@ export default function AdminOrgDetailPage() {
                   >
                     View as
                   </ActionButton>
+                )}
+                {canErase && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="compact"
+                    className="h-9 w-9 rounded-full p-0"
+                    data-testid="erase-org"
+                    aria-label="Erase organization"
+                    disabled={busy}
+                    onClick={openEraseConfirm}
+                  >
+                    <Trash2 size={16} aria-hidden />
+                  </Button>
                 )}
               </div>
             }
