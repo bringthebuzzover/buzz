@@ -25,7 +25,7 @@ import {
   StatusPill,
   UnconfirmedIgChip,
 } from "../../components/admin/AdminPrimitives";
-import { formatElapsed } from "../../components/admin/labels";
+import { formatCompactCount, formatElapsed } from "../../components/admin/labels";
 
 const FILTERS = [
   { value: null, label: "All" },
@@ -40,6 +40,7 @@ const FILTERS = [
 
 const HEADERS = [
   "Organization",
+  "Followers",
   "University",
   "Status",
   "Contact",
@@ -107,6 +108,11 @@ export default function AdminOrgsPage() {
                       @{row.instagramHandle.replace(/^@/, "")}
                     </span>
                   )}
+                </Cell>
+                <Cell muted>
+                  <span className="tabular-nums">
+                    {formatCompactCount(row.followerCount)}
+                  </span>
                 </Cell>
                 <Cell muted>{row.university ?? "—"}</Cell>
                 <Cell>

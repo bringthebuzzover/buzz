@@ -60,6 +60,7 @@ import {
   STAGE_LABELS,
   STAGE_ORDER,
   adminApplicantShipTo,
+  formatCompactCount,
   formatDate,
   formatDateTime,
   toDatetimeLocalValue,
@@ -725,7 +726,7 @@ function Applicants({ applicants }: { applicants: AdminApplicant[] }) {
             </span>
           </Cell>
           <Cell muted>
-            {applicant.followerCount?.toLocaleString() ?? "—"}
+            {formatCompactCount(applicant.followerCount)}
           </Cell>
           <Cell>
             <DecisionPill decision={applicant.decision} />

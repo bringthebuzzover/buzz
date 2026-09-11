@@ -208,7 +208,7 @@ describe("AdminDropDetailPage", () => {
     renderAt("/admin/drops/drop-1");
 
     expect(container.textContent).toContain("Followers");
-    expect(container.textContent).toContain("1,262");
+    expect(container.textContent).toContain("1.3K");
     expect(container.textContent).toContain("Berkeley, CA");
     expect(container.textContent).not.toContain("2301 Bancroft Way");
   });
