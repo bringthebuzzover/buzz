@@ -1,4 +1,8 @@
-import { adminApplicantShipTo, toDatetimeLocalValue } from "./labels";
+import {
+  adminApplicantShipTo,
+  formatCompactCount,
+  toDatetimeLocalValue,
+} from "./labels";
 
 describe("toDatetimeLocalValue", () => {
   it("formats local wall-clock YYYY-MM-DDTHH:mm (not UTC ISO slice)", () => {
@@ -38,5 +42,22 @@ describe("adminApplicantShipTo", () => {
   it("shows em dash for other decisions", () => {
     expect(adminApplicantShipTo("denied", "Berkeley", "CA")).toBe("—");
     expect(adminApplicantShipTo("withdrawn", null, null)).toBe("—");
+  });
+});
+
+describe("formatCompactCount", () => {
+  it("keeps small integers as digits", () => {
+    expect(formatCompactCount(0)).toBe("0");
+    expect(formatCompactCount(999)).toBe("999");
+  });
+
+  it("abbreviates thousands and millions", () => {
+    expect(formatCompactCount(1500)).toBe("1.5K");
+    expect(formatCompactCount(1_200_000)).toBe("1.2M");
+  });
+
+  it("shows an em dash when the count is missing", () => {
+    expect(formatCompactCount(null)).toBe("—");
+    expect(formatCompactCount(undefined)).toBe("—");
   });
 });

@@ -201,6 +201,19 @@ export function humanizeKey(key: string): string {
   return key.replace(/_/g, " ");
 }
 
+/**
+ * Dense table counts (followers, etc.). Uses compact notation so 1500 → 1.5K
+ * and 1_200_000 → 1.2M. Full digits stay on detail fields via toLocaleString.
+ * Not for elapsed time — that is {@link formatElapsed}.
+ */
+export function formatCompactCount(n: number | null | undefined): string {
+  if (n == null || !Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(n);
+}
+
 /** "3 days", "4h", "12m" — the elapsed side of a timestamp. */
 export function formatElapsed(epochMs: number | null): string {
   if (epochMs === null) return "—";
