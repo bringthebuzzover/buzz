@@ -501,3 +501,39 @@ export function ActionButton({
     </Button>
   );
 }
+
+/** Heading chrome (hide, erase): icon only, no circle; fill on hover. */
+export function HeadingIconButton({
+  children,
+  onClick,
+  disabled,
+  testId,
+  className,
+  "aria-label": ariaLabel,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  testId?: string;
+  className?: string;
+  "aria-label": string;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="compact"
+      data-testid={testId}
+      aria-label={ariaLabel}
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "h-9 w-9 p-0 text-buzz-coral hover:no-underline",
+        "[&>svg]:fill-transparent hover:[&>svg]:fill-current",
+        className,
+      )}
+    >
+      {children}
+    </Button>
+  );
+}

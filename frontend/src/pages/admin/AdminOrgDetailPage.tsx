@@ -33,6 +33,7 @@ import {
   ErrorNote,
   Field,
   FieldGrid,
+  HeadingIconButton,
   PageHeading,
   Panel,
   Pill,
@@ -275,18 +276,14 @@ export default function AdminOrgDetailPage() {
                   </ActionButton>
                 )}
                 {canErase && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="compact"
-                    className="h-9 w-9 rounded-full p-0"
-                    data-testid="erase-org"
+                  <HeadingIconButton
+                    testId="erase-org"
                     aria-label="Erase organization"
                     disabled={busy}
                     onClick={openEraseConfirm}
                   >
                     <Trash2 size={16} aria-hidden />
-                  </Button>
+                  </HeadingIconButton>
                 )}
               </div>
             }

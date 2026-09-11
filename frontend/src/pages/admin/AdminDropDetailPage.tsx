@@ -49,6 +49,7 @@ import {
   ErrorNote,
   Field,
   FieldGrid,
+  HeadingIconButton,
   PageHeading,
   Panel,
   Pill,
@@ -794,18 +795,14 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        size="compact"
-        className="h-9 w-9 rounded-full p-0"
-        data-testid={hidden ? "drop-unhide" : "hide-drop"}
+      <HeadingIconButton
+        testId={hidden ? "drop-unhide" : "hide-drop"}
         aria-label={hidden ? "Unhide campaign" : "Hide campaign"}
         disabled={hidden ? unhide.isPending : false}
         onClick={() => setOpen(true)}
       >
         {hidden ? <Eye size={16} aria-hidden /> : <EyeOff size={16} aria-hidden />}
-      </Button>
+      </HeadingIconButton>
       {open && (
         <Modal
           onClose={closeDialog}
