@@ -91,8 +91,10 @@ export default function AdminOrgDetailPage() {
     data?.instagramTokenExpiresAt !== null &&
     data?.instagramTokenExpiresAt !== undefined;
   const canErase = Boolean(data?.instagramHandle) && !erased;
-  const claimedHandle = data?.instagramHandle
-    ? `@${data.instagramHandle.replace(/^@/, "")}`
+  const igUsername = data?.instagramHandle?.replace(/^@/, "") || null;
+  const claimedHandle = igUsername ? `@${igUsername}` : null;
+  const instagramProfileUrl = igUsername
+    ? `https://www.instagram.com/${encodeURIComponent(igUsername)}/`
     : null;
 
   async function onApprove() {
@@ -372,9 +374,16 @@ export default function AdminOrgDetailPage() {
           <Panel title="Profile">
             <FieldGrid>
               <Field label="Claimed Instagram">
-                {claimedHandle ? (
+                {claimedHandle && instagramProfileUrl ? (
                   <span className="inline-flex flex-wrap items-center gap-2 font-semibold text-buzz-ink">
-                    {claimedHandle}
+                    <a
+                      href={instagramProfileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-buzz-coral hover:underline"
+                    >
+                      {claimedHandle}
+                    </a>
                     {!data.instagramHandleConfirmed && <UnconfirmedIgChip />}
                   </span>
                 ) : (

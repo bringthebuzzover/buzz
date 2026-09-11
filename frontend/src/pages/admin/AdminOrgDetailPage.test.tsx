@@ -134,6 +134,25 @@ describe("AdminOrgDetailPage erase confirm", () => {
     });
   }
 
+  it("links claimed Instagram to the public profile", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: orgDetail(),
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    const link = Array.from(container.querySelectorAll("a")).find(
+      (el) => el.textContent === "@lawrence_granda",
+    );
+    expect(link).toBeTruthy();
+    expect(link?.getAttribute("href")).toBe(
+      "https://www.instagram.com/lawrence_granda/",
+    );
+    expect(link?.getAttribute("target")).toBe("_blank");
+    expect(link?.getAttribute("rel")).toContain("noopener");
+  });
+
   it("opens an in-app confirm and does not POST until the handle matches", async () => {
     const promptSpy = jest.spyOn(window, "prompt");
     mockUseAdminOrg.mockReturnValue({
