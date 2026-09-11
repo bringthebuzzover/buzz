@@ -6,7 +6,7 @@
  * live cookie; then they start bind OAuth via bind-start.
  */
 import { useEffect, useRef, useState } from "react";
-import { Link, Navigate, useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   useInstagramBindStart,
@@ -17,7 +17,9 @@ import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
 import instagramIcon from "../../assets/insta-icon.png";
 import AuthShell from "../../components/site/AuthShell";
-import { ErrorBanner } from "../../components/forms/controls";
+import { Button, ErrorBanner, LinkButton } from "../../components/forms/controls";
+import { TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 import type { components } from "../../api/generated/schema";
 
 type UserWire = components["schemas"]["UserResponse"];
@@ -62,7 +64,7 @@ export default function ConnectInstagramPage() {
 
   if (status === "idle" || status === "authenticating" || redeemState.kind === "redeeming") {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <p className="text-sm font-medium text-buzz-inkMuted">
           {redeemState.kind === "redeeming"
             ? "Opening your connect session…"
@@ -75,18 +77,13 @@ export default function ConnectInstagramPage() {
   if (redeemState.kind === "error") {
     return (
       <AuthShell align="center" className="text-center">
-        <h1 className="mb-4 text-3xl font-bold text-buzz-coral">
+        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-danger")}>
           Connect Link Failed
         </h1>
         <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
           {redeemState.message}
         </p>
-        <Link
-          to="/login"
-          className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper transition hover:bg-buzz-coralDark"
-        >
-          Org login
-        </Link>
+        <LinkButton to="/login">Org login</LinkButton>
       </AuthShell>
     );
   }
@@ -111,7 +108,7 @@ export default function ConnectInstagramPage() {
 
   return (
     <AuthShell align="center" className="items-center text-center">
-      <h1 className="mb-4 text-3xl font-black text-buzz-ink">
+      <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
         Connect <span className="text-buzz-coral">Instagram</span>
       </h1>
       <p className="mb-4 text-sm font-medium text-buzz-inkMuted">
@@ -133,15 +130,16 @@ export default function ConnectInstagramPage() {
         , then continue below.
       </p>
 
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="hero"
         onClick={() => void onConnect()}
         disabled={bindStart.isPending}
-        className="flex items-center gap-3 rounded-xl border-2 border-buzz-coral bg-buzz-paper px-8 py-4 text-base font-bold text-buzz-coral shadow-sm transition hover:bg-buzz-coral hover:text-buzz-paper disabled:cursor-not-allowed disabled:opacity-60"
       >
         <img src={instagramIcon} alt="" className="h-5 w-5" />
         {bindStart.isPending ? "Starting…" : "Connect with Instagram"}
-      </button>
+      </Button>
 
       {connectError && (
         <div className="mt-4 w-full">

@@ -16,6 +16,8 @@ import {
   ErrorBanner,
   TextField,
 } from "../../components/forms/controls";
+import { TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 import { pathForUser } from "../../utils/landing";
 import type { PortalRole } from "../../types/auth";
 import type { TokenResponse } from "../../api/hooks/useAdminHooks";
@@ -42,7 +44,7 @@ export default function AdminLoginPage() {
   // (E2E fill→click race; same window is rare but real for humans).
   if (status === "idle" || status === "authenticating") {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <p className="text-sm font-medium text-buzz-inkMuted">
           Restoring your session…
         </p>
@@ -81,7 +83,7 @@ export default function AdminLoginPage() {
 
   return (
     <AuthShell align="center">
-      <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
+      <h1 className={cn(TEXT.h1, "mb-2 text-center text-buzz-ink")}>
         Admin <span className="text-buzz-coral">Login</span>
       </h1>
       <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
@@ -105,25 +107,25 @@ export default function AdminLoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+        {error && <ErrorBanner>{error}</ErrorBanner>}
+
         <Button
           type="submit"
           data-testid="admin-login-submit"
           disabled={adminLogin.isPending}
-          className="w-full"
+          fullWidth
         >
           {adminLogin.isPending ? "Signing in…" : "Sign in"}
         </Button>
 
-        <p className="text-center text-xs text-buzz-inkMuted">
+        <p className="text-center text-sm text-buzz-inkMuted">
           <Link
             to="/admin/forgot-password"
-            className="font-bold text-buzz-coral hover:underline"
+            className="font-semibold text-buzz-coral hover:underline"
           >
             Forgot password?
           </Link>
         </p>
-
-        {error && <ErrorBanner>{error}</ErrorBanner>}
       </form>
     </AuthShell>
   );

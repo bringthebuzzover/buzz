@@ -14,4 +14,35 @@
   body {
     @apply m-0 bg-buzz-cream font-sans text-base text-buzz-ink;
   }
+
+  /**
+   * Native number spinners are the last OS-drawn chrome inside a Buzz field.
+   * Hidden with CSS rather than by switching to `type="text"`, which would
+   * lose `min`/`max` validation and the numeric keypad on mobile.
+   */
+  input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+@layer components {
+  /**
+   * `datetime-local` renders a browser calendar glyph that sat next to our own
+   * Select chevron in the same admin grid row. Recolor it to match instead of
+   * abandoning the input type, which E2E depends on.
+   */
+  .buzz-datetime::-webkit-calendar-picker-indicator {
+    @apply cursor-pointer opacity-60 transition;
+  }
+
+  .buzz-datetime::-webkit-calendar-picker-indicator:hover {
+    @apply opacity-100;
+  }
 }

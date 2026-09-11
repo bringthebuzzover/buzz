@@ -231,7 +231,7 @@ export function formatDateTime(epochMs: number | null): string {
 }
 
 /**
- * Seed `<input type="datetime-local">` from epoch ms using the admin's
+ * Seed a datetime-local field from epoch ms using the admin's
  * local wall clock (not UTC from `toISOString().slice`).
  */
 export function toDatetimeLocalValue(epochMs: number): string {

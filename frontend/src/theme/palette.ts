@@ -38,13 +38,18 @@ export const tailwindThemeExtend = {
       darkDeep: "#0a0a0a",
       overlay: "#000000",
 
-      // Semantic status (mapped from the stock Tailwind red/green/amber we used)
+      // Semantic status (mapped from the stock Tailwind red/green/amber we used).
+      // Each tone is a triple: `X` = text/icon, `XWash` = fill, `XLine` = border.
+      // The Line steps exist so status panels stop reaching for `*-300`.
       danger: "#b91c1c",
       dangerWash: "#fef2f2",
+      dangerLine: "#fca5a5",
       success: "#166534",
       successWash: "#f0fdf4",
+      successLine: "#86efac",
       warn: "#b45309",
       warnWash: "#fffbeb",
+      warnLine: "#fcd34d",
 
       // Links & verified badge (2) — reserved; prefer ink/coral in product UI
       blue: "#3b82f6",

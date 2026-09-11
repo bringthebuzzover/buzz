@@ -6,7 +6,7 @@
  * On failure: shows error message with retry link.
  */
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { setAccessToken, clearInstagramReconnectLatch } from "../../api/auth";
 import { API_BASE_URL } from "../../api/config";
 import {
@@ -15,6 +15,9 @@ import {
   instagramCallbackFailureCopy,
 } from "../../utils/instagramCallbackCopy";
 import AuthShell from "../../components/site/AuthShell";
+import { LinkButton } from "../../components/forms/controls";
+import { TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 type CallbackState =
   | { kind: "exchanging" }
@@ -99,7 +102,7 @@ export default function InstagramCallbackPage() {
 
   if (state.kind === "exchanging") {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <p className="text-sm font-medium text-buzz-inkMuted">
           Completing login...
         </p>
@@ -109,26 +112,18 @@ export default function InstagramCallbackPage() {
 
   return (
     <AuthShell align="center" className="items-center text-center">
-      <h1 className="mb-4 text-2xl font-black text-buzz-coral">
+      <h1 className={cn(TEXT.h1, "mb-4 text-buzz-danger")}>
         Login failed
       </h1>
       <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
         {state.message}
       </p>
       {state.applyRequired ? (
-        <Link
-          to="/org/apply"
-          className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper transition hover:bg-buzz-coralDark"
-        >
+        <LinkButton to="/org/apply">
           Apply as a student organization
-        </Link>
+        </LinkButton>
       ) : (
-        <Link
-          to="/login"
-          className="rounded-lg bg-buzz-coral px-6 py-3 text-sm font-bold text-buzz-paper transition hover:bg-buzz-coralDark"
-        >
-          Try Again
-        </Link>
+        <LinkButton to="/login">Try Again</LinkButton>
       )}
     </AuthShell>
   );

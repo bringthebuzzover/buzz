@@ -20,6 +20,12 @@ import {
   type PostItem,
   type Suggestion,
 } from "../../api/hooks/useOrgHooks";
+import { Button, ErrorBanner } from "../forms/controls";
+import { Card, CardHeader } from "../ui/Card";
+import { Chip } from "../ui/Chip";
+import { StatePanel } from "../ui/StatePanel";
+import { PAD, STACK, SURFACE, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 type Props = {
   applicationId: string;
@@ -57,85 +63,85 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
     dismiss.error) as Error | null;
 
   return (
-    <div className="space-y-6">
+    <div className={STACK.group}>
       {mutationError ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm font-medium text-red-700">
+        <ErrorBanner>
           {mutationError.message || "Something went wrong. Please try again."}
-        </p>
+        </ErrorBanner>
       ) : null}
       {!readOnly && suggestions && suggestions.length > 0 ? (
-        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-6 shadow-sm">
-          <h3 className="mb-1 text-lg font-bold text-buzz-ink">Suggested posts</h3>
-          <p className="mb-4 text-xs font-medium text-buzz-inkMuted">
-            We spotted these posts that look like they belong to this campaign.
-          </p>
-          <ul className="space-y-3">
+        <Card kind="card" pad="card">
+          <CardHeader
+            title="Suggested posts"
+            description="We spotted these posts that look like they belong to this campaign."
+          />
+          <ul className={STACK.tight}>
             {suggestions.map((s: Suggestion) => (
               <li
                 key={s.postId}
-                className="flex items-center justify-between gap-3 rounded-xl border border-buzz-lineMid bg-buzz-cream p-3"
+                className={cn(
+                  SURFACE.inset,
+                  PAD.tight,
+                  "flex items-center justify-between gap-3",
+                )}
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-buzz-ink">
+                  <p className={cn(TEXT.body, "truncate font-medium text-buzz-ink")}>
                     {s.caption || "(no caption)"}
                   </p>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-buzz-inkMuted">
+                  <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>
                     {s.matchReason.replace(/_/g, " ")} · {s.likes} likes
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <button
+                  <Button
                     type="button"
+                    size="compact"
                     disabled={busy}
                     onClick={() => accept.mutate(s.postId)}
-                    className="rounded-lg bg-buzz-coral px-3 py-1.5 text-xs font-bold text-buzz-paper transition hover:bg-buzz-coralDark disabled:opacity-60"
                   >
                     Confirm
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    size="compact"
+                    variant="outline"
                     disabled={busy}
                     onClick={() => dismiss.mutate(s.postId)}
-                    className="rounded-lg border border-buzz-lineMid px-3 py-1.5 text-xs font-bold text-buzz-inkMuted transition hover:bg-buzz-paper disabled:opacity-60"
                   >
                     Dismiss
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       ) : null}
 
-      <div className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-6 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-bold text-buzz-ink">Linked posts</h3>
-            <p className="text-xs font-medium text-buzz-inkMuted">
-              One post can only belong to one campaign.
-            </p>
-          </div>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => refreshPosts.mutate()}
-            title="Reload the posts Buzz already synced — does not fetch from Instagram"
-            className="rounded-lg border border-buzz-lineMid px-3 py-1.5 text-xs font-bold text-buzz-inkMuted transition hover:bg-buzz-cream disabled:opacity-60"
-          >
-            {refreshPosts.isPending ? "Reloading…" : "Show latest synced posts"}
-          </button>
-        </div>
+      <Card kind="card" pad="card">
+        <CardHeader
+          title="Linked posts"
+          description="One post can only belong to one campaign."
+          actions={
+            <Button
+              type="button"
+              size="compact"
+              variant="outline"
+              disabled={busy}
+              onClick={() => refreshPosts.mutate()}
+              title="Reload the posts Buzz already synced — does not fetch from Instagram"
+            >
+              {refreshPosts.isPending ? "Reloading…" : "Show latest synced posts"}
+            </Button>
+          }
+        />
 
         {isLoading ? (
-          <p className="rounded-xl border border-dashed border-buzz-lineMid bg-buzz-cream p-6 text-center text-sm font-medium text-buzz-inkMuted">
-            Loading your posts…
-          </p>
+          <StatePanel>Loading your posts…</StatePanel>
         ) : !posts || posts.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-buzz-lineMid bg-buzz-cream p-6 text-center text-sm font-medium text-buzz-inkMuted">
-            No posts found for your account yet.
-          </p>
+          <StatePanel>No posts found for your account yet.</StatePanel>
         ) : (
-          <ul className="space-y-3">
+          <ul className={STACK.tight}>
             {posts.map((post: PostItem) => {
               const linkedHere = post.linkedApplicationId === applicationId;
               const conflict =
@@ -143,53 +149,52 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
               return (
                 <li
                   key={post.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-buzz-lineMid bg-buzz-cream p-3"
+                  className={cn(
+                    SURFACE.inset,
+                    PAD.tight,
+                    "flex items-center justify-between gap-3",
+                  )}
                 >
                   <div className="flex min-w-0 items-center gap-2">
                     <PlatformIcon platform={post.platform} />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-buzz-ink">
+                      <p className={cn(TEXT.body, "truncate font-medium text-buzz-ink")}>
                         {post.caption || "(no caption)"}
                       </p>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-buzz-inkMuted">
+                      <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>
                         {post.likes} likes · {post.comments} comments
                       </p>
                     </div>
                   </div>
                   {readOnly ? (
                     linkedHere ? (
-                      <span className="shrink-0 text-xs font-bold text-buzz-coral">
+                      <span className={cn(TEXT.meta, "shrink-0 font-semibold text-buzz-coral")}>
                         Linked
                       </span>
                     ) : null
                   ) : conflict ? (
-                    <span className="shrink-0 rounded-lg border border-buzz-lineMid px-3 py-1.5 text-[11px] font-bold text-buzz-inkMuted">
-                      Linked to another campaign
-                    </span>
+                    <Chip>Linked to another campaign</Chip>
                   ) : (
-                    <button
+                    <Button
                       type="button"
+                      size="compact"
+                      variant={linkedHere ? "outline" : "primary"}
                       disabled={busy}
                       onClick={() =>
                         linkedHere
                           ? unlink.mutate(post.id)
                           : link.mutate(post.id)
                       }
-                      className={
-                        linkedHere
-                          ? "shrink-0 rounded-lg border border-buzz-coral px-3 py-1.5 text-xs font-bold text-buzz-coral transition hover:bg-buzz-cream disabled:opacity-60"
-                          : "shrink-0 rounded-lg bg-buzz-coral px-3 py-1.5 text-xs font-bold text-buzz-paper transition hover:bg-buzz-coralDark disabled:opacity-60"
-                      }
                     >
                       {linkedHere ? "Unlink" : "Link"}
-                    </button>
+                    </Button>
                   )}
                 </li>
               );
             })}
           </ul>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

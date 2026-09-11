@@ -11,6 +11,10 @@ import {
   BRAND_DROP_TRACKER_COPY,
   type BrandDropTrackerStage,
 } from "../../types/brandPortal";
+import { Card, CardHeader } from "../ui/Card";
+import { TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
+import { useMdUp } from "../../hooks/useMdUp";
 
 type Props = {
   drops: BrandDropItem[];
@@ -22,49 +26,74 @@ function stageLabel(stage: string): string {
   );
 }
 
+const cellPad = "px-4 py-3 sm:px-6";
+
 export default function ApiCompareDropsTable({ drops }: Props) {
+  const mdUp = useMdUp();
   if (drops.length === 0) return null;
 
   // Highest-engagement first so the strongest drops surface at the top.
   const rows = [...drops].sort((a, b) => b.totalEngagement - a.totalEngagement);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-buzz-lineMid bg-buzz-paper shadow-sm">
+    <Card kind="card" pad="none" className="overflow-hidden">
       <div className="border-b border-buzz-line bg-buzz-cream px-6 py-4">
-        <h3 className="text-lg font-bold text-buzz-ink">Compare drops</h3>
+        <CardHeader title="Compare drops" className="mb-0" />
       </div>
+      {!mdUp ? (
+      <div className="flex flex-col gap-3 p-4">
+        {rows.map((d) => (
+          <div
+            key={d.id}
+            className="rounded-buzzControl border border-buzz-lineMid bg-buzz-cream p-4"
+          >
+            <Link
+              to={`/brand/drops/${d.id}`}
+              className="font-semibold text-buzz-coral hover:underline"
+            >
+              {d.title}
+            </Link>
+            <p className={cn(TEXT.meta, "mt-1")}>{stageLabel(d.brandTrackerStage)}</p>
+            <p className={cn(TEXT.body, "mt-2 text-buzz-ink")}>
+              {d.totalPosts} posts · {d.totalEngagement} engagement ·{" "}
+              {d.totalReach} reach
+            </p>
+          </div>
+        ))}
+      </div>
+      ) : (
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-buzz-line text-[11px] font-bold uppercase tracking-wider text-buzz-inkMuted">
-              <th className="px-6 py-3">Drop</th>
-              <th className="px-6 py-3">Stage</th>
-              <th className="px-6 py-3 text-right">Posts</th>
-              <th className="px-6 py-3 text-right">Engagement</th>
-              <th className="px-6 py-3 text-right">Reach</th>
+            <tr className={cn("border-b border-buzz-line", TEXT.micro, "text-buzz-inkMuted")}>
+              <th className={cellPad}>Drop</th>
+              <th className={cellPad}>Stage</th>
+              <th className={cn(cellPad, "text-right")}>Posts</th>
+              <th className={cn(cellPad, "text-right")}>Engagement</th>
+              <th className={cn(cellPad, "text-right")}>Reach</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((d) => (
               <tr key={d.id} className="border-b border-buzz-line last:border-0">
-                <td className="px-6 py-3">
+                <td className={cellPad}>
                   <Link
                     to={`/brand/drops/${d.id}`}
-                    className="font-bold text-buzz-coral hover:underline"
+                    className="font-semibold text-buzz-coral hover:underline"
                   >
                     {d.title}
                   </Link>
                 </td>
-                <td className="px-6 py-3 text-buzz-inkMuted">
+                <td className={cn(cellPad, "text-buzz-inkMuted")}>
                   {stageLabel(d.brandTrackerStage)}
                 </td>
-                <td className="px-6 py-3 text-right font-semibold text-buzz-ink">
+                <td className={cn(cellPad, "text-right font-semibold text-buzz-ink")}>
                   {d.totalPosts}
                 </td>
-                <td className="px-6 py-3 text-right font-semibold text-buzz-coral">
+                <td className={cn(cellPad, "text-right font-semibold text-buzz-coral")}>
                   {d.totalEngagement}
                 </td>
-                <td className="px-6 py-3 text-right text-buzz-ink">
+                <td className={cn(cellPad, "text-right text-buzz-ink")}>
                   {d.totalReach}
                 </td>
               </tr>
@@ -72,6 +101,7 @@ export default function ApiCompareDropsTable({ drops }: Props) {
           </tbody>
         </table>
       </div>
-    </div>
+      )}
+    </Card>
   );
 }

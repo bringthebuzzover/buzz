@@ -117,6 +117,11 @@ describe("AdminDropDetailPage", () => {
       container.querySelector('[data-testid="tab-config"]'),
     ).toBeTruthy();
     expect(
+      container.querySelector('[data-testid="tab-tracker"]'),
+    ).toBeTruthy();
+    expect(container.querySelector('[data-testid="tracker-advance"]')).toBeNull();
+    expect(container.textContent).toContain("Campaign");
+    expect(
       container.querySelector('[data-testid="brand-can-edit-creative"]'),
     ).toBeTruthy();
     expect(
@@ -151,7 +156,79 @@ describe("AdminDropDetailPage", () => {
       container.querySelector('[data-testid="brand-can-edit-creative"]'),
     ).toBeTruthy();
     expect(container.querySelector('[data-testid="hide-drop"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hide-drop-confirm"]')).toBeNull();
     expect(container.querySelector('[data-testid="drop-unhide"]')).toBeFalsy();
+
+    const trackerTab = container.querySelector(
+      '[data-testid="tab-tracker"]',
+    ) as HTMLButtonElement;
+    act(() => {
+      trackerTab.click();
+    });
+    expect(
+      container.querySelector('[data-testid="tracker-advance"]'),
+    ).toBeTruthy();
+  });
+
+  it("opens a hide dialog that asks the admin to type hide", () => {
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({ publishedAt: now }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1");
+
+    const trigger = container.querySelector(
+      '[data-testid="hide-drop"]',
+    ) as HTMLButtonElement;
+    act(() => {
+      trigger.click();
+    });
+    expect(
+      document.querySelector('[data-testid="hide-drop-confirm"]'),
+    ).toBeTruthy();
+    expect(document.body.textContent).toContain('Type "hide" to confirm');
+    const submit = document.querySelector(
+      '[data-testid="hide-drop-submit"]',
+    ) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+  });
+
+  it("clears the brand-email checkbox when the hide dialog is dismissed", () => {
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({ publishedAt: now }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1");
+
+    const trigger = container.querySelector(
+      '[data-testid="hide-drop"]',
+    ) as HTMLButtonElement;
+    act(() => {
+      trigger.click();
+    });
+    const box = document.querySelector(
+      '[data-testid="hide-drop-notify-brand"]',
+    ) as HTMLInputElement;
+    expect(box.checked).toBe(false);
+    act(() => {
+      box.click();
+    });
+    expect(box.checked).toBe(true);
+    const cancel = Array.from(document.querySelectorAll("button")).find(
+      (el) => el.textContent === "Cancel",
+    ) as HTMLButtonElement;
+    act(() => {
+      cancel.click();
+    });
+    act(() => {
+      trigger.click();
+    });
+    const reopened = document.querySelector(
+      '[data-testid="hide-drop-notify-brand"]',
+    ) as HTMLInputElement;
+    expect(reopened.checked).toBe(false);
   });
 
   it("shows unhide when the drop is hidden", () => {

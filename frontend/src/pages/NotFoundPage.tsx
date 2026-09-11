@@ -3,11 +3,14 @@
  * Mirror RequireRole 403 chrome; do not wrap in auth guards.
  */
 import { Link } from "react-router-dom";
+import AuthShell from "../components/site/AuthShell";
+import { TEXT } from "../theme/tokens";
+import { cn } from "../theme/cn";
 
 export default function NotFoundPage() {
   return (
-    <div className="mx-auto max-w-lg px-8 py-24 text-center">
-      <h1 className="mb-4 text-4xl font-black text-buzz-coral">404</h1>
+    <AuthShell align="center" className="text-center">
+      <h1 className={cn(TEXT.h1, "mb-4")}>404</h1>
       <p className="text-sm font-medium text-buzz-inkMuted">
         This page does not exist.
       </p>
@@ -19,6 +22,6 @@ export default function NotFoundPage() {
           Log in
         </Link>
       </p>
-    </div>
+    </AuthShell>
   );
 }

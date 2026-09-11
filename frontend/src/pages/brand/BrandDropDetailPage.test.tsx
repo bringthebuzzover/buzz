@@ -60,6 +60,7 @@ function brandDrop(brandCanEditCreative: boolean) {
 describe("BrandDropDetailPage", () => {
   let container: HTMLDivElement;
   let root: Root;
+  const originalMatchMedia = window.matchMedia;
 
   beforeEach(() => {
     mockUseBrandDropDetail.mockReset();
@@ -74,6 +75,11 @@ describe("BrandDropDetailPage", () => {
       root.unmount();
     });
     container.remove();
+    if (originalMatchMedia) {
+      window.matchMedia = originalMatchMedia;
+    } else {
+      delete (window as { matchMedia?: typeof window.matchMedia }).matchMedia;
+    }
   });
 
   function renderPage() {
@@ -127,6 +133,68 @@ describe("BrandDropDetailPage", () => {
     expect(
       container.querySelector('[data-testid="brand-save-creative"]'),
     ).toBeTruthy();
+  });
+
+  it("renders one Accept control as a stacked card below md", () => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      configurable: true,
+      value: (query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        dispatchEvent: () => false,
+        onchange: null,
+      }),
+    });
+
+    mockUseBrandDropDetail.mockReturnValue({
+      data: {
+        ...brandDrop(false),
+        brandTrackerStage: "finalizing_agreements",
+        applyCloseAt: now - 1000,
+        applications: [
+          {
+            id: "app-1",
+            dropId: "drop-1",
+            orgId: "org-1",
+            orgName: "Campus Greeks",
+            university: "Cornell",
+            instagramHandle: "campusgreeks",
+            category: "fraternity",
+            followerCount: 100,
+            memberCount: 40,
+            pitch: "We host weekly mixers.",
+            decision: "applied",
+            decisionAt: null,
+            appliedAt: now,
+            allocatedUnits: null,
+            deliveryAddress: "Ithaca, NY",
+            accountErased: false,
+            trackingNumber: null,
+            attributedComments: 0,
+            attributedEngagement: 0,
+            attributedLikes: 0,
+            attributedPostCount: 0,
+            posts: [],
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+
+    const accept = container.querySelectorAll(
+      'input[aria-label="Accept Campus Greeks"]',
+    );
+    expect(accept).toHaveLength(1);
+    expect(container.querySelector("table")).toBeNull();
+    expect(container.textContent).toContain("We host weekly mixers.");
+    expect(container.textContent).toContain("Ship to: Ithaca, NY");
   });
 
   it("asks for in-app finalize confirm instead of window.confirm", () => {

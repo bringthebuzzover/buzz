@@ -20,9 +20,10 @@ import {
   FilterChips,
   PageHeading,
   Panel,
-  Pill,
+  QueryState,
   Row,
   StatusPill,
+  UnconfirmedIgChip,
 } from "../../components/admin/AdminPrimitives";
 import { formatElapsed } from "../../components/admin/labels";
 
@@ -81,16 +82,11 @@ export default function AdminOrgsPage() {
       />
 
       <Panel>
-        {orgs.isPending && (
-          <p className="px-4 py-6 text-sm font-medium text-buzz-inkMuted">
-            Loading organizations…
-          </p>
-        )}
-        {orgs.isError && (
-          <p className="px-4 py-6 text-sm font-medium text-red-700">
-            Could not load organizations.
-          </p>
-        )}
+        <QueryState
+          isPending={orgs.isPending}
+          isError={orgs.isError}
+          label="organizations"
+        />
         {orgs.data && (
           <AdminTable
             headers={HEADERS}
@@ -107,22 +103,24 @@ export default function AdminOrgsPage() {
                     {row.orgName ?? "Profile not submitted"}
                   </Link>
                   {row.instagramHandle && (
-                    <span className="ml-2 inline-flex flex-wrap items-center gap-1 text-xs font-medium text-buzz-inkMuted">
+                    <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
                       @{row.instagramHandle.replace(/^@/, "")}
-                      {!row.instagramHandleConfirmed && (
-                        <Pill tone="warn">Unconfirmed</Pill>
-                      )}
                     </span>
                   )}
                 </Cell>
                 <Cell muted>{row.university ?? "—"}</Cell>
                 <Cell>
-                  <StatusPill status={row.status} />
+                  <div className="flex flex-col items-start gap-1">
+                    <StatusPill status={row.status} />
+                    {row.instagramHandle && !row.instagramHandleConfirmed && (
+                      <UnconfirmedIgChip />
+                    )}
+                  </div>
                 </Cell>
                 <Cell muted>{row.eduEmail ?? "—"}</Cell>
                 <Cell muted>{formatElapsed(row.createdAt)}</Cell>
                 <Cell align="right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
                     {decidable(row) && (
                       <ActionButton
                         variant="danger"

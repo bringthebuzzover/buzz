@@ -158,6 +158,56 @@ test("admin views as an org from a row and can exit", async ({ page }) => {
   await expect(page.getByTestId("impersonation-banner")).toHaveCount(0);
 });
 
+async function horizontalOverflowPx(page: Page): Promise<number> {
+  return page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+}
+
+test("admin list tables fit 375px as hybrid cards", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await loginAsAdmin(page);
+
+  await page.goto("/admin/orgs");
+  await expect(page.getByText(TEST_ORG)).toBeVisible();
+  const viewAs = page.getByRole("button", { name: /view as/i }).first();
+  await viewAs.scrollIntoViewIfNeeded();
+  const viewBox = await viewAs.boundingBox();
+  expect(viewBox).toBeTruthy();
+  expect(viewBox!.x).toBeGreaterThanOrEqual(-1);
+  expect(viewBox!.x + viewBox!.width).toBeLessThanOrEqual(376);
+  expect(
+    await horizontalOverflowPx(page),
+    "/admin/orgs overflows horizontally",
+  ).toBeLessThanOrEqual(1);
+
+  await page.goto("/admin/brands");
+  await expect(page.getByText(TEST_BRAND)).toBeVisible();
+  expect(
+    await horizontalOverflowPx(page),
+    "/admin/brands overflows horizontally",
+  ).toBeLessThanOrEqual(1);
+
+  await page.goto("/admin/requests");
+  await expect(page.getByText("E2E Drop Request")).toBeVisible();
+  const open = page.getByRole("link", { name: /^open$/i }).first();
+  await open.scrollIntoViewIfNeeded();
+  const openBox = await open.boundingBox();
+  expect(openBox).toBeTruthy();
+  expect(openBox!.x + openBox!.width).toBeLessThanOrEqual(376);
+  expect(
+    await horizontalOverflowPx(page),
+    "/admin/requests overflows horizontally",
+  ).toBeLessThanOrEqual(1);
+
+  await page.goto("/admin/drops");
+  await expect(page.getByRole("heading", { name: "Drops" })).toBeVisible();
+  expect(
+    await horizontalOverflowPx(page),
+    "/admin/drops overflows horizontally",
+  ).toBeLessThanOrEqual(1);
+});
+
 test("unauthenticated /admin redirects to the admin login", async ({ page }) => {
   await page.goto("/admin");
   await waitForAuthSettled(page);
@@ -229,13 +279,14 @@ test("admin saves a draft from a ticket and publishes it", async ({ page }) => {
   await expect(page.getByTestId("save-drop-config")).toBeVisible();
   await expect(page.getByLabel(/^title$/i).first()).toHaveValue("E2E Config Title");
 
-  await page.getByTestId("hide-drop-confirm").fill("E2E Config Title");
+  await page.getByTestId("hide-drop").click();
+  await page.getByTestId("hide-drop-confirm").fill("hide");
   const hideResp = page.waitForResponse(
     (r) =>
       r.url().includes(`/api/admin/drops/${dropId}/hide`) &&
       r.request().method() === "POST",
   );
-  await page.getByTestId("hide-drop").click();
+  await page.getByTestId("hide-drop-submit").click();
   const hidden = await hideResp;
   expect(hidden.ok(), await hidden.text()).toBeTruthy();
   await expect(page.getByText(/^Hidden$/).first()).toBeVisible();

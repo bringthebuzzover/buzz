@@ -7,7 +7,9 @@ import { useState } from "react";
 import { ApiError } from "../../api/client";
 import { userFacingApiError } from "../../api/userFacingError";
 import FieldError from "../forms/FieldError";
-import { Button, ErrorBanner, TextField } from "../forms/controls";
+import { Button, ErrorBanner, SuccessBanner, TextField } from "../forms/controls";
+import { Card } from "../ui/Card";
+import { fieldLabelClass } from "../../theme/controls";
 import {
   useCancelPendingEduEmail,
   useResendVerification,
@@ -95,10 +97,8 @@ export default function EduEmailRotatePanel({
   };
 
   return (
-    <div className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3 text-left">
-      <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
-        School email
-      </p>
+    <Card kind="inset" pad="tight" className="text-left">
+      <p className={fieldLabelClass}>School email</p>
       <p className="mt-2 text-sm font-semibold text-buzz-ink">
         {liveEmail || "No .edu email on file"}
       </p>
@@ -176,15 +176,15 @@ export default function EduEmailRotatePanel({
       )}
 
       {notice ? (
-        <p className="mt-3 rounded-lg bg-green-50 p-2 text-sm font-medium text-green-700">
-          {notice}
-        </p>
+        <div className="mt-3">
+          <SuccessBanner>{notice}</SuccessBanner>
+        </div>
       ) : null}
       {error ? (
         <div className="mt-3">
           <ErrorBanner>{error}</ErrorBanner>
         </div>
       ) : null}
-    </div>
+    </Card>
   );
 }

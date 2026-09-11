@@ -10,6 +10,11 @@ import type { BrandDropApplicant } from "../../api/hooks/useBrandHooks";
 import { orgCategoryLabel } from "../../types/orgCategory";
 import { safeHttpUrl } from "../../utils/safeHttpUrl";
 import { Select } from "../forms/controls";
+import { Card } from "../ui/Card";
+import { Chip } from "../ui/Chip";
+import { StatePanel } from "../ui/StatePanel";
+import { SURFACE, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 type Props = {
   applicants: BrandDropApplicant[];
@@ -41,17 +46,13 @@ export default function ApiDropOrgTable({
       : accepted.filter((a) => a.category === category);
 
   if (accepted.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-inkMuted">
-        No participating organizations yet.
-      </div>
-    );
+    return <StatePanel>No participating organizations yet.</StatePanel>;
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-buzz-lineMid bg-buzz-paper shadow-sm">
+    <Card kind="card" pad="none" className="overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-buzz-line bg-buzz-cream px-6 py-4">
-        <h3 className="text-lg font-bold text-buzz-ink">{title}</h3>
+        <h3 className={TEXT.h3}>{title}</h3>
         <div className="flex items-center gap-3">
           {categories.length > 0 ? (
             <Select
@@ -68,7 +69,7 @@ export default function ApiDropOrgTable({
               ))}
             </Select>
           ) : null}
-          <span className="text-xs font-bold text-buzz-inkMuted">
+          <span className={TEXT.meta}>
             {rows.length} {rows.length === 1 ? "org" : "orgs"}
           </span>
         </div>
@@ -79,35 +80,33 @@ export default function ApiDropOrgTable({
           <div key={a.id} className="px-6 py-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="font-bold text-buzz-ink">{a.orgName}</p>
-                <p className="text-xs font-medium text-buzz-inkMuted">
+                <p className={cn(TEXT.body, "font-semibold text-buzz-ink")}>
+                  {a.orgName}
+                </p>
+                <p className={cn(TEXT.meta, "flex flex-wrap items-center gap-2")}>
                   {a.university}
                   {a.category ? (
-                    <span className="ml-2 rounded-full bg-buzz-butter px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-buzz-ink">
-                      {orgCategoryLabel(a.category)}
-                    </span>
+                    <Chip>{orgCategoryLabel(a.category)}</Chip>
                   ) : null}
                   {a.accountErased ? (
-                    <span className="ml-2 text-buzz-inkMuted">
-                      · Account deleted
-                    </span>
+                    <span>· Account deleted</span>
                   ) : null}
                 </p>
                 {a.accountErased ? (
-                  <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
+                  <p className={cn(TEXT.meta, "mt-1")}>
                     Shipping details removed
                   </p>
                 ) : a.deliveryAddress ? (
-                  <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
+                  <p className={cn(TEXT.meta, "mt-1")}>
                     Ship to: {a.deliveryAddress}
                   </p>
                 ) : (
-                  <p className="mt-1 text-xs font-medium text-amber-700">
+                  <p className={cn(TEXT.meta, "mt-1 text-buzz-warn")}>
                     Ship to: Not set — nowhere to ship product
                   </p>
                 )}
               </div>
-              <div className="text-right text-xs font-semibold text-buzz-inkMuted">
+              <div className={cn(TEXT.meta, "text-right font-semibold")}>
                 <span className="text-buzz-ink">{a.attributedPostCount}</span> posts ·{" "}
                 <span className="text-buzz-ink">{a.attributedLikes}</span> likes ·{" "}
                 <span className="text-buzz-ink">{a.attributedComments}</span> comments ·{" "}
@@ -123,14 +122,17 @@ export default function ApiDropOrgTable({
                   return (
                     <li
                       key={p.id}
-                      className="flex items-center justify-between gap-4 rounded-lg border border-buzz-line bg-buzz-cream px-4 py-2"
+                      className={cn(
+                        SURFACE.inset,
+                        "flex items-center justify-between gap-4 px-4 py-2",
+                      )}
                     >
                       <div className="flex min-w-0 items-center gap-3">
                         {thumb ? (
                           <img
                             src={thumb}
                             alt=""
-                            className="h-12 w-12 shrink-0 rounded-md object-cover"
+                            className="h-12 w-12 shrink-0 rounded-buzzControl object-cover"
                           />
                         ) : null}
                         {postHref ? (
@@ -152,7 +154,7 @@ export default function ApiDropOrgTable({
                           </span>
                         )}
                       </div>
-                      <span className="shrink-0 text-[11px] font-bold text-buzz-inkMuted">
+                      <span className={cn(TEXT.meta, "shrink-0")}>
                         {p.likes} likes · {p.comments} comments
                       </span>
                     </li>
@@ -160,13 +162,11 @@ export default function ApiDropOrgTable({
                 })}
               </ul>
             ) : (
-              <p className="mt-2 text-xs font-medium text-buzz-inkMuted">
-                No linked posts yet.
-              </p>
+              <p className={cn(TEXT.meta, "mt-2")}>No linked posts yet.</p>
             )}
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

@@ -3,36 +3,43 @@
  * apply at `/org/apply`, brands submit a self-registration application
  * (`/brand/apply`). Returning orgs use `/login`.
  */
-import { Link } from "react-router-dom";
+import { LinkButton } from "../forms/controls";
+import { GAP, SECTION_Y, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 export default function HomeJoinSection() {
   return (
     <section
       id="home-join"
-      className="scroll-mt-28 border-t border-buzz-lineMid bg-buzz-butter px-8 py-16"
+      className={cn("scroll-mt-28 border-t border-buzz-lineMid bg-buzz-butter px-8", SECTION_Y)}
     >
       <div className="mx-auto max-w-2xl text-center">
-        <h2 className="mb-3 text-3xl font-bold text-buzz-ink md:text-4xl">
+        <h2 className={cn(TEXT.h2, "mb-3 text-buzz-ink md:text-4xl")}>
           Want to <span className="text-buzz-coral">join?</span>
         </h2>
-        <p className="mx-auto mb-10 max-w-md text-sm font-medium text-buzz-inkMuted md:text-base">
+        <p className={cn(TEXT.body, "mx-auto mb-10 max-w-md font-medium text-buzz-inkMuted md:text-base")}>
           Pick the path that fits — apply as a student organization, or apply
           as a brand.
         </p>
 
-        <div className="mx-auto flex max-w-md flex-col gap-4 sm:max-w-none sm:flex-row sm:justify-center">
-          <Link
+        <div className={cn("mx-auto flex max-w-md flex-col sm:max-w-none sm:flex-row sm:justify-center", GAP.default)}>
+          <LinkButton
             to="/org/apply"
-            className="inline-flex flex-1 items-center justify-center rounded-lg bg-buzz-coral px-6 py-4 text-sm font-bold text-buzz-paper shadow-md transition hover:bg-buzz-coralDark sm:max-w-xs"
+            size="hero"
+            fullWidth
+            className="sm:max-w-xs"
           >
             Join as Student Organization
-          </Link>
-          <Link
+          </LinkButton>
+          <LinkButton
             to="/brand/apply"
-            className="inline-flex flex-1 items-center justify-center rounded-lg border-2 border-buzz-coral bg-buzz-paper px-6 py-4 text-sm font-bold text-buzz-coral shadow-sm transition hover:bg-buzz-coral hover:text-buzz-paper sm:max-w-xs"
+            variant="outline"
+            size="hero"
+            fullWidth
+            className="sm:max-w-xs"
           >
             Apply as Brand
-          </Link>
+          </LinkButton>
         </div>
       </div>
     </section>

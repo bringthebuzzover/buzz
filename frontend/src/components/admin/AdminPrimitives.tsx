@@ -6,23 +6,33 @@
  * reads as calm. Same `buzz-*` palette as the rest of the app — no new colors.
  */
 import {
+  Children,
+  cloneElement,
+  isValidElement,
   useEffect,
   useId,
   useRef,
   useState,
+  type ReactElement,
   type ReactNode,
 } from "react";
 import { Link } from "react-router-dom";
 import { STATUS_LABELS } from "./labels";
-import { Checkbox } from "../forms/Checkbox";
+import { Button, Checkbox, ErrorBanner } from "../forms/controls";
+import { Card, CardHeader } from "../ui/Card";
+import { Chip } from "../ui/Chip";
+import { StatePanel } from "../ui/StatePanel";
+import { TEXT, TONE, type Tone as TokenTone } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
+/** Admin call sites keep `good`/`bad`; map onto the token tone names. */
 type Tone = "neutral" | "good" | "warn" | "bad";
 
-const TONE_CLASS: Record<Tone, string> = {
-  neutral: "border-buzz-lineMid bg-buzz-cream text-buzz-inkMuted",
-  good: "border-green-300 bg-green-50 text-green-800",
-  warn: "border-amber-300 bg-amber-50 text-amber-800",
-  bad: "border-red-300 bg-red-50 text-red-700",
+const ADMIN_TONE: Record<Tone, TokenTone> = {
+  neutral: "neutral",
+  good: "success",
+  warn: "warn",
+  bad: "danger",
 };
 
 /** Terminal states read as bad, waiting states as warn, live states as good. */
@@ -33,15 +43,21 @@ function toneForStatus(status: string): Tone {
   return "neutral";
 }
 
+/** Filter / tab chips. Sentence case — not TEXT.micro, which is all-caps for status tags. */
+export function filterChipClass(selected: boolean) {
+  return cn(
+    "inline-flex items-center whitespace-nowrap rounded-full border px-3 py-1 text-sm transition",
+    selected
+      ? "border-buzz-coral bg-buzz-coral text-buzz-paper"
+      : cn(TONE.neutral, "hover:border-buzz-coral hover:text-buzz-coral"),
+  );
+}
+
 export function StatusPill({ status }: { status: string }) {
   return (
-    <span
-      className={`inline-block whitespace-nowrap rounded border px-2 py-0.5 text-xs font-semibold ${
-        TONE_CLASS[toneForStatus(status)]
-      }`}
-    >
+    <Chip tone={ADMIN_TONE[toneForStatus(status)]}>
       {STATUS_LABELS[status] ?? status.replace(/_/g, " ")}
-    </span>
+    </Chip>
   );
 }
 
@@ -52,9 +68,28 @@ export function Pill({
   children: ReactNode;
   tone?: Tone;
 }) {
+  return <Chip tone={ADMIN_TONE[tone]}>{children}</Chip>;
+}
+
+/** Claimed IG handle that Graph has not confirmed — sits with status, not the name. */
+export function UnconfirmedIgChip() {
+  return <Pill tone="bad">Unconfirmed IG</Pill>;
+}
+
+/** Fixed circle for a count. Do not reuse Pill — rounded-full + stretch becomes an ellipse. */
+export function CountMark({
+  children,
+  tone = "neutral",
+}: {
+  children: ReactNode;
+  tone?: Tone;
+}) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded border px-2 py-0.5 text-xs font-semibold ${TONE_CLASS[tone]}`}
+      className={cn(
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold tabular-nums",
+        TONE[ADMIN_TONE[tone]],
+      )}
     >
       {children}
     </span>
@@ -73,9 +108,9 @@ export function PageHeading({
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-bold text-buzz-ink">{title}</h1>
+        <h1 className={TEXT.h1}>{title}</h1>
         {subtitle && (
-          <p className="mt-1 max-w-2xl text-sm font-medium text-buzz-inkMuted">
+          <p className={cn(TEXT.meta, "mt-1 max-w-2xl font-medium")}>
             {subtitle}
           </p>
         )}
@@ -95,22 +130,47 @@ export function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className="mb-8 overflow-hidden rounded-lg border border-buzz-lineMid bg-buzz-paper">
+    <Card kind="panel" pad="none" className="mb-8 overflow-hidden">
       {title && (
         <header className="border-b border-buzz-lineMid px-4 py-3">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-buzz-ink">
-            {title}
-          </h2>
-          {description && (
-            <p className="mt-1 text-xs font-medium text-buzz-inkMuted">
-              {description}
-            </p>
-          )}
+          <CardHeader
+            title={title}
+            description={description}
+            className="mb-0"
+          />
         </header>
       )}
       {children}
-    </section>
+    </Card>
   );
+}
+
+/**
+ * Below `md`, rows become hybrid cards (title + 2-col labeled facts + actions).
+ * Desktop stays a table. Labels come from `headers` so pages do not duplicate copy.
+ */
+function withHybridCellMeta(
+  headers: readonly string[],
+  children: ReactNode,
+): ReactNode {
+  const last = headers.length - 1;
+  return Children.map(children, (row) => {
+    if (!isValidElement<{ children?: ReactNode }>(row)) return row;
+    // JSX whitespace between <Cell>s is a child. Index only real cells or
+    // labels attach to the wrong column (title would show "University", etc.).
+    let cellIndex = 0;
+    const cells = Children.map(row.props.children, (cell) => {
+      if (!isValidElement(cell) || cell.type !== Cell) return cell;
+      const i = cellIndex++;
+      const header = headers[i] ?? "";
+      return cloneElement(cell as ReactElement<CellProps>, {
+        label: header || undefined,
+        isTitle: i === 0,
+        isActions: i === last && header === "",
+      });
+    });
+    return cloneElement(row, { children: cells });
+  });
 }
 
 export function AdminTable({
@@ -125,22 +185,25 @@ export function AdminTable({
   isEmpty: boolean;
 }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-buzz-cream text-xs uppercase tracking-wide text-buzz-inkMuted">
+    <div className="md:overflow-x-auto">
+      <table className="w-full text-left text-sm max-md:block">
+        <thead className="bg-buzz-cream text-xs uppercase tracking-wide text-buzz-inkMuted max-md:hidden">
           <tr>
-            {headers.map((header) => (
-              <th key={header} className="px-4 py-2.5 font-bold">
+            {headers.map((header, i) => (
+              <th
+                key={header || `actions-${i}`}
+                className="px-4 py-2.5 font-semibold"
+              >
                 {/* A blank header is a deliberate spacer for an actions column. */}
                 {header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
-          {children}
+        <tbody className="max-md:flex max-md:flex-col max-md:gap-3 max-md:p-3">
+          {withHybridCellMeta(headers, children)}
           {isEmpty && (
-            <tr>
+            <tr className="max-md:block">
               <td
                 colSpan={headers.length}
                 className="px-4 py-10 text-center text-sm font-medium text-buzz-inkMuted"
@@ -157,27 +220,53 @@ export function AdminTable({
 
 export function Row({ children }: { children: ReactNode }) {
   return (
-    <tr className="border-t border-buzz-lineMid align-middle hover:bg-buzz-neutralWash">
+    <tr
+      className={cn(
+        "border-t border-buzz-lineMid align-middle hover:bg-buzz-neutralWash",
+        "max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:gap-y-3 max-md:rounded-buzzCard max-md:border max-md:border-buzz-lineMid max-md:bg-buzz-paper max-md:p-4 max-md:hover:bg-buzz-paper",
+      )}
+    >
       {children}
     </tr>
   );
 }
 
+type CellProps = {
+  children: ReactNode;
+  muted?: boolean;
+  align?: "left" | "right";
+  /** Injected by AdminTable from `headers`. */
+  label?: string;
+  isTitle?: boolean;
+  isActions?: boolean;
+};
+
 export function Cell({
   children,
   muted = false,
   align = "left",
-}: {
-  children: ReactNode;
-  muted?: boolean;
-  align?: "left" | "right";
-}) {
+  label,
+  isTitle = false,
+  isActions = false,
+}: CellProps) {
+  const showLabel = Boolean(label) && !isTitle && !isActions;
   return (
     <td
-      className={`px-4 py-2.5 ${muted ? "text-buzz-inkMuted" : "text-buzz-ink"} ${
-        align === "right" ? "text-right" : ""
-      }`}
+      className={cn(
+        "px-4 py-2.5",
+        muted ? "text-buzz-inkMuted" : "text-buzz-ink",
+        align === "right" && "text-right",
+        // Grid items default to min-width:auto and will blow out the 375px
+        // card; wrap long emails / handles instead of clipping in the Panel.
+        "max-md:flex max-md:min-w-0 max-md:flex-col max-md:gap-0.5 max-md:break-words max-md:px-0 max-md:py-0",
+        isTitle && "max-md:col-span-2 max-md:text-base max-md:font-semibold",
+        isActions &&
+          "max-md:col-span-2 max-md:flex-row max-md:flex-wrap max-md:justify-end",
+      )}
     >
+      {showLabel ? (
+        <span className={cn(TEXT.micro, "hidden max-md:block")}>{label}</span>
+      ) : null}
       {children}
     </td>
   );
@@ -206,11 +295,7 @@ export function FilterChips({
           <Link
             key={option.label}
             to={to}
-            className={`rounded-full border px-3 py-1 text-xs font-bold transition ${
-              selected
-                ? "border-buzz-coral bg-buzz-coral text-buzz-paper"
-                : "border-buzz-lineMid bg-buzz-paper text-buzz-inkMuted hover:border-buzz-coral hover:text-buzz-coral"
-            }`}
+            className={filterChipClass(selected)}
           >
             {option.label}
           </Link>
@@ -279,11 +364,7 @@ export function FilterMultiSelect({
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => setOpen((prev) => !prev)}
-        className={`rounded-full border px-3 py-1 text-xs font-bold transition ${
-          selected.length > 0
-            ? "border-buzz-coral bg-buzz-coral text-buzz-paper"
-            : "border-buzz-lineMid bg-buzz-paper text-buzz-inkMuted hover:border-buzz-coral hover:text-buzz-coral"
-        }`}
+        className={filterChipClass(selected.length > 0)}
       >
         {summary}
       </button>
@@ -293,7 +374,7 @@ export function FilterMultiSelect({
           role="listbox"
           aria-multiselectable="true"
           aria-label={label}
-          className="absolute left-0 z-20 mt-2 min-w-[14rem] rounded-lg border border-buzz-lineMid bg-buzz-paper py-1 shadow-md"
+          className="absolute left-0 z-buzzDrawer mt-2 min-w-[14rem] rounded-buzzControl border border-buzz-lineMid bg-buzz-paper py-1 shadow-buzz"
         >
           {options.map((option) => {
             const checked = selectedSet.has(option.value);
@@ -333,9 +414,7 @@ export function Field({
 }) {
   return (
     <div>
-      <dt className="text-xs font-bold uppercase tracking-wide text-buzz-inkFaint">
-        {label}
-      </dt>
+      <dt className={cn(TEXT.micro, "text-buzz-inkMuted")}>{label}</dt>
       <dd className="mt-0.5 break-words text-sm font-medium text-buzz-ink">
         {children}
       </dd>
@@ -343,9 +422,20 @@ export function Field({
   );
 }
 
-export function FieldGrid({ children }: { children: ReactNode }) {
+export function FieldGrid({
+  children,
+  columns = 3,
+}: {
+  children: ReactNode;
+  columns?: 2 | 3;
+}) {
   return (
-    <dl className="grid grid-cols-1 gap-4 px-4 py-4 sm:grid-cols-2 lg:grid-cols-3">
+    <dl
+      className={cn(
+        "grid grid-cols-1 gap-4 px-4 py-4 sm:grid-cols-2",
+        columns === 3 && "lg:grid-cols-3",
+      )}
+    >
       {children}
     </dl>
   );
@@ -361,25 +451,19 @@ export function QueryState({
   label: string;
 }) {
   if (isPending) {
-    return (
-      <p className="text-sm font-medium text-buzz-inkMuted">Loading {label}…</p>
-    );
+    return <StatePanel>Loading {label}…</StatePanel>;
   }
   if (isError) {
-    return (
-      <p className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-        Could not load {label}.
-      </p>
-    );
+    return <StatePanel tone="danger">Could not load {label}.</StatePanel>;
   }
   return null;
 }
 
 export function ErrorNote({ children }: { children: ReactNode }) {
   return (
-    <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700">
-      {children}
-    </p>
+    <div className="mb-4">
+      <ErrorBanner>{children}</ErrorBanner>
+    </div>
   );
 }
 
@@ -389,29 +473,31 @@ export function ActionButton({
   disabled,
   variant = "secondary",
   testId,
+  className,
 }: {
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
   variant?: "primary" | "secondary" | "danger";
   testId?: string;
+  className?: string;
 }) {
   const variants = {
-    primary:
-      "border-buzz-coral bg-buzz-coral text-buzz-paper enabled:hover:bg-buzz-coralDark",
-    secondary:
-      "border-buzz-coral text-buzz-coral enabled:hover:bg-buzz-coral enabled:hover:text-buzz-paper",
-    danger: "border-red-300 text-red-700 enabled:hover:bg-red-50",
-  };
+    primary: "primary",
+    secondary: "outline",
+    danger: "danger",
+  } as const;
   return (
-    <button
+    <Button
       type="button"
+      variant={variants[variant]}
+      size="compact"
       data-testid={testId}
       onClick={onClick}
       disabled={disabled}
-      className={`whitespace-nowrap rounded-lg border-2 px-3 py-1.5 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${variants[variant]}`}
+      className={className}
     >
       {children}
-    </button>
+    </Button>
   );
 }

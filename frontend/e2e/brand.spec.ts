@@ -23,6 +23,39 @@ test("brand can log in and reach the dashboard", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /brand dashboard/i })).toBeVisible();
 });
 
+test("brand dashboard compare-drops fits 375px", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/brand/login");
+  await page.getByTestId("brand-email").fill("partnerships@acme.coffee");
+  await page.getByTestId("brand-password").fill("buzzdev123");
+  await expect(page.getByTestId("brand-email")).toHaveValue(
+    "partnerships@acme.coffee",
+  );
+  await expect(page.getByTestId("brand-password")).toHaveValue("buzzdev123");
+
+  const loginResp = page.waitForResponse(
+    (r) =>
+      r.url().includes("/api/auth/brand/login") &&
+      r.request().method() === "POST",
+  );
+  await page.getByTestId("brand-login-submit").click();
+  const resp = await loginResp;
+  expect(resp.ok(), await resp.text()).toBeTruthy();
+
+  await expect(page).toHaveURL(/\/brand\/dashboard/);
+  await expect(
+    page.getByRole("heading", { name: /brand dashboard/i }),
+  ).toBeVisible();
+  const overflow = await page.evaluate(
+    () =>
+      document.documentElement.scrollWidth -
+      document.documentElement.clientWidth,
+  );
+  expect(overflow, `dashboard overflows horizontally by ${overflow}px`).toBeLessThanOrEqual(
+    1,
+  );
+});
+
 test("brand login rejects bad credentials", async ({ page }) => {
   await page.goto("/brand/login");
   await page.getByTestId("brand-email").fill("partnerships@acme.coffee");

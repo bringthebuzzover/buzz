@@ -3,18 +3,23 @@
  * (image, title, subtitle each).
  */
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
+import { Card } from "../ui/Card";
+import { GAP, SECTION_Y, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 export default function FeaturedCollaborations() {
   return (
-    <section className="mx-auto max-w-6xl px-8 py-7">
-      <h2 className="mb-12 text-center text-3xl font-bold">
+    <section className={cn("mx-auto max-w-6xl px-8", SECTION_Y)}>
+      <h2 className={cn(TEXT.h2, "mb-12 text-center")}>
         Featured Campus <span className="text-buzz-coral">Collaborations</span>
       </h2>
-      <div className="relative grid grid-cols-1 gap-8 md:grid-cols-2">
-        {FEATURED_COLLABS.map(collab => (
-          <div
+      <div className={cn("relative grid grid-cols-1 md:grid-cols-2", GAP.section)}>
+        {FEATURED_COLLABS.map((collab) => (
+          <Card
             key={collab.id}
-            className="overflow-hidden rounded-xl border border-buzz-lineMid bg-buzz-butter shadow-sm transition hover:shadow-md"
+            kind="cardWarm"
+            pad="none"
+            className="overflow-hidden"
           >
             <div className="h-64 overflow-hidden border-b border-buzz-lineMid">
               <img
@@ -24,12 +29,14 @@ export default function FeaturedCollaborations() {
               />
             </div>
             <div className="bg-buzz-butter p-6 text-center">
-              <h3 className="mb-1 text-xl font-bold italic text-buzz-coral">
+              <h3 className={cn(TEXT.h3, "mb-1 italic text-buzz-coral")}>
                 {collab.title}
               </h3>
-              <p className="text-sm font-medium text-buzz-inkMuted">{collab.subtitle}</p>
+              <p className={cn(TEXT.body, "font-medium text-buzz-inkMuted")}>
+                {collab.subtitle}
+              </p>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </section>

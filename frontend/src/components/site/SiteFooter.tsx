@@ -13,13 +13,16 @@ export default function SiteFooter() {
   const { openContactModal } = useSiteChrome();
 
   return (
-    <footer className="mt-16 border-t border-buzz-line bg-buzz-paper px-8 py-12">
+    // No top margin: it used to sit outside <main>, so a vertically centered
+    // auth page was centered in a box that stopped 64px short of the footer
+    // and read as sitting high. Separation is the border plus this padding.
+    <footer className="border-t border-buzz-line bg-buzz-paper px-6 py-12 sm:px-8">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <img
             src={siteIdentity.images.logoCoral}
             alt={siteIdentity.images.logoAlt}
-            className="-mb-4 w-36 h-auto -translate-x-2 -translate-y-3"
+            className="w-36 h-auto"
           />
           <p className="max-w-xs text-sm font-medium leading-relaxed text-buzz-inkMuted">
             Connecting brands with campus communities for authentic college

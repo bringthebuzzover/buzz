@@ -21,7 +21,9 @@ import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
 import { stripTokenFromUrl } from "../../utils/stripTokenFromUrl";
 import AuthShell from "../../components/site/AuthShell";
-import { Button, ErrorBanner } from "../../components/forms/controls";
+import { Button, ErrorBanner, SuccessBanner } from "../../components/forms/controls";
+import { TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 import type { components } from "../../api/generated/schema";
 
 type UserWire = components["schemas"]["UserResponse"];
@@ -92,7 +94,7 @@ export default function VerifyEmailPage() {
   // deciding — otherwise the redirect fires while user is still null.
   if (status === "idle" || status === "authenticating") {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex flex-1 items-center justify-center">
         <p className="text-sm font-medium text-buzz-inkMuted">Loading...</p>
       </div>
     );
@@ -208,7 +210,7 @@ function VerifyWithToken({ token }: { token: string }) {
   if (state.kind === "idle") {
     return (
       <AuthShell align="center" className="text-center">
-        <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
           Verify Your <span className="text-buzz-coral">Email</span>
         </h1>
         <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
@@ -218,7 +220,7 @@ function VerifyWithToken({ token }: { token: string }) {
           type="button"
           onClick={() => void onConfirm()}
           disabled={verify.isPending}
-          className="w-full"
+          fullWidth
         >
           Verify email
         </Button>
@@ -229,7 +231,7 @@ function VerifyWithToken({ token }: { token: string }) {
   if (state.kind === "verifying") {
     return (
       <AuthShell align="center" className="text-center">
-        <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
           Verifying Your <span className="text-buzz-coral">Email</span>…
         </h1>
         <p className="text-sm font-medium text-buzz-inkMuted">
@@ -242,7 +244,7 @@ function VerifyWithToken({ token }: { token: string }) {
   if (state.kind === "resending") {
     return (
       <AuthShell align="center" className="text-center">
-        <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
           Sending a <span className="text-buzz-coral">New Link</span>…
         </h1>
         <p className="text-sm font-medium text-buzz-inkMuted">
@@ -255,7 +257,7 @@ function VerifyWithToken({ token }: { token: string }) {
   if (state.kind === "resent") {
     return (
       <AuthShell align="center" className="text-center">
-        <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
           New Link <span className="text-buzz-coral">Sent</span>
         </h1>
         <p className="mb-2 text-sm font-medium text-buzz-inkMuted">
@@ -273,7 +275,7 @@ function VerifyWithToken({ token }: { token: string }) {
       state.code === "EMAIL_SEND_FAILED";
     return (
       <AuthShell align="center" className="text-center">
-        <h1 className="mb-4 text-3xl font-bold text-buzz-coral">
+        <h1 className="mb-4 text-3xl font-semibold text-buzz-danger">
           Verification Failed
         </h1>
         <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
@@ -284,7 +286,7 @@ function VerifyWithToken({ token }: { token: string }) {
             type="button"
             onClick={() => void onRequestNewLink()}
             disabled={resendFromToken.isPending}
-            className="w-full"
+            fullWidth
           >
             Request a new link
           </Button>
@@ -306,14 +308,14 @@ function VerifyWithToken({ token }: { token: string }) {
 
   return (
     <AuthShell align="center" className="text-center">
-      <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+      <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
         Email <span className="text-buzz-coral">Verified</span>
       </h1>
       <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{successCopy}</p>
       <Button
         type="button"
         onClick={() => navigate(continueTo, { replace: true })}
-        className="w-full"
+          fullWidth
       >
         Continue
       </Button>
@@ -369,7 +371,7 @@ function AwaitVerification() {
 
   return (
     <AuthShell align="center" className="text-center">
-      <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+      <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
         Verify Your <span className="text-buzz-coral">Email</span>
       </h1>
       <p className="mb-2 text-sm font-medium text-buzz-inkMuted">
@@ -383,9 +385,9 @@ function AwaitVerification() {
       <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{JUNK_HINT}</p>
 
       {notice && (
-        <p className="mb-4 rounded-lg bg-green-50 p-3 text-sm font-medium text-green-700">
-          {notice}
-        </p>
+        <div className="mb-4">
+          <SuccessBanner>{notice}</SuccessBanner>
+        </div>
       )}
 
       <Button
@@ -393,7 +395,7 @@ function AwaitVerification() {
         variant="outline"
         onClick={() => void onResend()}
         disabled={resend.isPending}
-        className="w-full"
+          fullWidth
       >
         {resend.isPending ? "Sending…" : "Resend email"}
       </Button>
@@ -451,7 +453,7 @@ function PublicAwaitVerification() {
 
   return (
     <AuthShell align="center" className="text-center">
-      <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
+      <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
         Verify Your <span className="text-buzz-coral">Email</span>
       </h1>
       <p className="mb-2 text-sm font-medium text-buzz-inkMuted">
@@ -465,20 +467,22 @@ function PublicAwaitVerification() {
       <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{JUNK_HINT}</p>
 
       {notice && (
-        <p className="mb-4 rounded-lg bg-green-50 p-3 text-sm font-medium text-green-700">
-          {notice}
-        </p>
+        <div className="mb-4">
+          <SuccessBanner>{notice}</SuccessBanner>
+        </div>
       )}
 
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => void onResend()}
-        disabled={publicResend.isPending || !eduEmail}
-        className="w-full"
-      >
-        {publicResend.isPending ? "Sending…" : "Resend email"}
-      </Button>
+      {eduEmail ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void onResend()}
+          disabled={publicResend.isPending}
+          fullWidth
+        >
+          {publicResend.isPending ? "Sending…" : "Resend email"}
+        </Button>
+      ) : null}
 
       {error && (
         <div className="mt-4">

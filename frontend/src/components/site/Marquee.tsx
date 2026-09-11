@@ -4,6 +4,8 @@
  * Images use `logoSrcFor` (local asset or Clearbit); `onError` falls back to icon.horse.
  */
 import type { CollegeMarqueeItem } from "../../types/campaign";
+import { SECTION_Y, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 type MarqueeProps = {
   /** Schools to render (array is doubled internally for seamless scroll). */
@@ -32,33 +34,36 @@ export default function Marquee({
 }: MarqueeProps) {
   return (
     <div
-      className={`w-full overflow-hidden bg-buzz-cream py-16 ${
-        hideBottomBorder ? "" : "border-b border-buzz-line"
-      }`}
+      className={cn(
+        "w-full overflow-hidden bg-buzz-cream",
+        SECTION_Y,
+        !hideBottomBorder && "border-b border-buzz-line",
+      )}
     >
       <div className="mb-8 text-center">
-        <h2 className="text-2xl font-bold text-buzz-ink">{title}</h2>
+        <h2 className={cn(TEXT.h2, "text-buzz-ink")}>{title}</h2>
         {subtitle ? (
-          <p className="mt-1 text-sm text-buzz-inkMuted">{subtitle}</p>
+          <p className={cn(TEXT.body, "mt-1 text-buzz-inkMuted")}>{subtitle}</p>
         ) : null}
       </div>
       <div className="relative flex w-full flex-nowrap items-center">
         <div
-          className={`flex w-max shrink-0 items-center justify-center space-x-16 px-8 ${
-            reverse ? "animate-marquee-reverse" : "animate-marquee"
-          }`}
+          className={cn(
+            "flex w-max shrink-0 items-center justify-center space-x-8 px-4 sm:space-x-16 sm:px-8",
+            reverse ? "animate-marquee-reverse" : "animate-marquee",
+          )}
         >
           {[...items, ...items].map((item, i) => (
             <div
               key={`${item.domain}-${i}`}
-              className="group flex h-32 w-32 flex-col items-center justify-center opacity-80 transition duration-300 hover:opacity-100"
+              className="group flex h-20 w-20 flex-col items-center justify-center opacity-80 transition duration-300 hover:opacity-100 sm:h-32 sm:w-32"
             >
-              <div className="mb-3 flex h-20 w-20 items-center justify-center">
+              <div className="mb-2 flex h-12 w-12 items-center justify-center sm:mb-3 sm:h-20 sm:w-20">
                 <img
                   src={logoSrcFor(item)}
                   alt={item.name}
                   className="h-full w-full object-contain drop-shadow-buzz grayscale transition duration-300 group-hover:grayscale-0"
-                  onError={e => {
+                  onError={(e) => {
                     const target = e.currentTarget;
                     const fallback = `https://icon.horse/icon/${item.domain}`;
                     if (target.src !== fallback) {
@@ -67,7 +72,7 @@ export default function Marquee({
                   }}
                 />
               </div>
-              <span className="block whitespace-nowrap text-center text-[10px] font-medium text-buzz-inkMuted">
+              <span className="block whitespace-nowrap text-center text-buzzMicro font-medium text-buzz-inkMuted">
                 {item.name}
               </span>
             </div>

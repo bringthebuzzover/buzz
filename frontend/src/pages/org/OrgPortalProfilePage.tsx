@@ -14,9 +14,12 @@ import {
   Button,
   ErrorBanner,
   Select,
+  SuccessBanner,
   TextField,
 } from "../../components/forms/controls";
+import { Card } from "../../components/ui/Card";
 import AuthShell from "../../components/site/AuthShell";
+import { fieldLabelClass } from "../../theme/controls";
 import {
   useOrgProfile,
   useUpdateOrgProfile,
@@ -204,12 +207,10 @@ export default function OrgPortalProfilePage() {
 
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
         {error ? <ErrorBanner>{error}</ErrorBanner> : null}
-        <div className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
-            Instagram identity (read-only)
-          </p>
+        <Card kind="inset" pad="tight">
+          <p className={fieldLabelClass}>Instagram identity (read-only)</p>
           <p className="mt-2 text-sm font-semibold text-buzz-ink">{igHandle}</p>
-        </div>
+        </Card>
 
         <EduEmailRotatePanel
           liveEmail={data.eduEmail}
@@ -266,11 +267,11 @@ export default function OrgPortalProfilePage() {
         />
 
         <div>
-          <p className="mb-1 block text-sm font-semibold text-buzz-ink">
+          <p className={fieldLabelClass}>
             Instagram followers{" "}
             <span className="font-normal text-buzz-inkMuted">(from Instagram)</span>
           </p>
-          <p className="rounded-lg border border-buzz-lineMid bg-buzz-paper px-3 py-3 text-sm font-medium text-buzz-ink">
+          <p className="rounded-buzzControl border border-buzz-lineMid bg-buzz-paper px-3 py-3 text-sm font-medium text-buzz-ink">
             {followersDisplay}
           </p>
         </div>
@@ -338,14 +339,12 @@ export default function OrgPortalProfilePage() {
           }
         />
 
-        <Button type="submit" disabled={update.isPending} className="w-full">
+        <Button type="submit" disabled={update.isPending} fullWidth>
           {update.isPending ? "Saving…" : "Save profile"}
         </Button>
 
         {saved && !error && Object.keys(fieldErrors).length === 0 ? (
-          <p className="rounded-lg bg-green-50 p-3 text-sm font-medium text-green-700">
-            Profile saved.
-          </p>
+          <SuccessBanner>Profile saved.</SuccessBanner>
         ) : null}
       </form>
     </AuthShell>

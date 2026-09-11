@@ -34,10 +34,12 @@ import {
 } from "../../components/admin/labels";
 import {
   DateTimeField,
+  SuccessBanner,
   TextArea,
   TextField,
-  fieldLabelCompactClass,
 } from "../../components/forms/controls";
+import { TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 function isValidHeroImage(url: string): boolean {
   const trimmed = url.trim();
@@ -117,7 +119,7 @@ function requiredReady(form: DraftFormState): boolean {
 function TicketPanel({ ticket }: { ticket: AdminDropRequest }) {
   return (
     <Panel title="Ticket" description="Reference only — do not paste as title/description.">
-      <FieldGrid>
+      <FieldGrid columns={2}>
         <Field label="Brand">
           <Link
             to={`/admin/brands/${ticket.brandId}`}
@@ -144,13 +146,13 @@ function TicketPanel({ ticket }: { ticket: AdminDropRequest }) {
       </FieldGrid>
       <div className="space-y-3 border-t border-buzz-lineMid px-4 py-4">
         <div>
-          <p className={fieldLabelCompactClass}>Message</p>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Message</p>
           <p className="whitespace-pre-wrap text-sm font-medium text-buzz-ink">
             {ticket.message}
           </p>
         </div>
         <div>
-          <p className={fieldLabelCompactClass}>Notes</p>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Notes</p>
           <p className="whitespace-pre-wrap text-sm font-medium text-buzz-inkMuted">
             {ticket.notes?.trim() ? ticket.notes : "—"}
           </p>
@@ -177,7 +179,7 @@ function PublishedDropSummary({ drop }: { drop: AdminDropDetail }) {
       title="Published drop"
       description="Creative and logistics live on drop detail. This ticket stays the intake record."
     >
-      <FieldGrid>
+      <FieldGrid columns={2}>
         <Field label="Title">{drop.title}</Field>
         <Field label="Location">{drop.location}</Field>
         <Field label="Published">
@@ -380,7 +382,7 @@ function DraftEditor({
               <img
                 src={form.image.trim()}
                 alt=""
-                className="mt-2 max-h-40 rounded-lg border border-buzz-lineMid object-cover"
+                className="mt-2 max-h-40 rounded-buzzCard border border-buzz-lineMid object-cover"
               />
             ) : null}
           </div>
@@ -479,9 +481,7 @@ function DraftEditor({
             window to enable Save draft / Publish.
           </p>
         )}
-        {notice && (
-          <p className="text-sm font-medium text-green-700">{notice}</p>
-        )}
+        {notice && <SuccessBanner>{notice}</SuccessBanner>}
         {error && <ErrorNote>{error}</ErrorNote>}
       </div>
     </Panel>
@@ -517,15 +517,17 @@ export default function AdminDropRequestDetailPage() {
           />
 
           {linkedId && linked.isPending && (
-            <p className="mb-4 text-sm font-medium text-buzz-inkMuted">
-              Loading linked draft…
-            </p>
+            <QueryState
+              isPending={linked.isPending}
+              isError={false}
+              label="the linked draft"
+            />
           )}
           {linkedId && linked.isError && (
             <ErrorNote>Could not load the linked drop.</ErrorNote>
           )}
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid items-start gap-6 lg:grid-cols-2">
             <TicketPanel ticket={ticket.data} />
             <DraftEditor
               ticket={ticket.data}

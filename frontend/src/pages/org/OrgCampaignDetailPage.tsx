@@ -14,14 +14,11 @@ import {
   ORG_CAMPAIGN_STATUS_LABELS,
 } from "../../utils/orgCampaignStatus";
 import PageShell from "../../components/site/PageShell";
-
-function StatusPanel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-buzz-lineMid bg-buzz-paper p-8 shadow-sm">
-      {children}
-    </div>
-  );
-}
+import { Card } from "../../components/ui/Card";
+import { Chip } from "../../components/ui/Chip";
+import { StatePanel } from "../../components/ui/StatePanel";
+import { GAP, STACK, SURFACE, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 function shipmentOnTheWay(detail: {
   trackingNumber: string | null;
@@ -42,8 +39,8 @@ function ApiCampaignDetail() {
 
   if (isLoading) {
     return (
-      <PageShell width="portal" className="text-center">
-        <p className="text-sm font-medium text-buzz-inkMuted">Loading...</p>
+      <PageShell width="portal">
+        <StatePanel>Loading...</StatePanel>
       </PageShell>
     );
   }
@@ -57,16 +54,16 @@ function ApiCampaignDetail() {
       <PageShell width="portal">
         <Link
           to="/org/campaigns"
-          className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
+          className="mb-6 flex items-center text-sm font-semibold text-buzz-inkMuted transition hover:text-buzz-coral"
         >
           <ChevronLeft size={16} className="mr-1" />
           Back to My Campaigns
         </Link>
-        <div className="rounded-2xl border border-buzz-lineMid bg-buzz-cream p-8 text-center text-sm font-medium text-buzz-coral">
+        <StatePanel tone="danger">
           {error instanceof Error
             ? error.message
             : "Couldn’t load this campaign. Please try again."}
-        </div>
+        </StatePanel>
       </PageShell>
     );
   }
@@ -89,36 +86,32 @@ function ApiCampaignDetail() {
     <PageShell width="portal">
       <Link
         to="/org/campaigns"
-        className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
+        className="mb-6 flex items-center text-sm font-semibold text-buzz-inkMuted transition hover:text-buzz-coral"
       >
         <ChevronLeft size={16} className="mr-1" />
         Back to My Campaigns
       </Link>
 
       <header className="mb-8">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="rounded-full bg-buzz-coral px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-buzz-paper">
-            {detail.brandName}
-          </span>
-          <span className="rounded-full border border-buzz-lineMid bg-buzz-paper px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-buzz-inkMuted">
-            {ORG_CAMPAIGN_STATUS_LABELS[status]}
-          </span>
+        <div className={cn("mb-3 flex items-center", GAP.tight)}>
+          <Chip accent>{detail.brandName}</Chip>
+          <Chip>{ORG_CAMPAIGN_STATUS_LABELS[status]}</Chip>
         </div>
-        <h1 className="text-3xl font-bold text-buzz-ink">{detail.title}</h1>
-        <p className="mt-2 text-sm font-medium text-buzz-inkMuted">
+        <h1 className={TEXT.h1}>{detail.title}</h1>
+        <p className={cn(TEXT.body, "mt-2 text-buzz-inkMuted")}>
           {detail.description ?? ""}
         </p>
       </header>
 
       {status === "applied" ? (
-        <StatusPanel>
+        <Card kind="card" pad="roomy">
           <div className="flex items-start gap-4">
             <ClipboardList size={28} className="mt-1 text-buzz-coral" />
             <div>
-              <h2 className="mb-1 text-xl font-bold text-buzz-ink">
+              <h2 className={cn(TEXT.h2, "mb-1")}>
                 {detail.brandName} is reviewing your application
               </h2>
-              <p className="text-sm font-medium text-buzz-inkMuted">
+              <p className={cn(TEXT.body, "text-buzz-inkMuted")}>
                 Submitted on{" "}
                 {new Date(detail.appliedAt).toLocaleDateString()}. We will
                 let you know once a decision has been made.
@@ -130,69 +123,72 @@ function ApiCampaignDetail() {
               ) : null}
             </div>
           </div>
-        </StatusPanel>
+        </Card>
       ) : null}
 
       {status === "accepted" ? (
-        <StatusPanel>
+        <Card kind="card" pad="roomy">
           <div className="flex items-start gap-4">
             <Truck size={28} className="mt-1 text-buzz-coral" />
             <div>
-              <h2 className="mb-1 text-xl font-bold text-buzz-ink">
+              <h2 className={cn(TEXT.h2, "mb-1")}>
                 {onTheWay ? "Awaiting product" : "Accepted"}
               </h2>
-              <p className="text-sm font-medium text-buzz-inkMuted">
+              <p className={cn(TEXT.body, "text-buzz-inkMuted")}>
                 {onTheWay
                   ? "You are accepted! Your shipment is on the way."
                   : "Accepted — awaiting shipping."}
               </p>
               {detail.trackingNumber ? (
-                <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-buzz-lineMid bg-buzz-cream px-4 py-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-buzz-inkMuted">
+                <div
+                  className={cn(
+                    SURFACE.inset,
+                    "mt-4 inline-flex items-center gap-2 px-4 py-2",
+                  )}
+                >
+                  <span className={cn(TEXT.micro, "text-buzz-inkMuted")}>
                     Tracking
                   </span>
-                  <span className="text-sm font-bold text-buzz-ink">
+                  <span className={cn(TEXT.body, "font-semibold text-buzz-ink")}>
                     #{detail.trackingNumber}
                   </span>
                 </div>
               ) : null}
             </div>
           </div>
-        </StatusPanel>
+        </Card>
       ) : null}
 
       {status === "active" || status === "finished" ? (
-        <div className="space-y-6">
-          <StatusPanel>
+        <div className={STACK.group}>
+          <Card kind="card" pad="roomy">
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               <div className="text-center">
-                <p className="text-2xl font-black text-buzz-coral">{agg.postCount}</p>
-                <p className="text-xs font-bold text-buzz-inkMuted">Posts</p>
+                <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.postCount}</p>
+                <p className={TEXT.meta}>Posts</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-black text-buzz-coral">{agg.likes}</p>
-                <p className="text-xs font-bold text-buzz-inkMuted">Likes</p>
+                <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.likes}</p>
+                <p className={TEXT.meta}>Likes</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-black text-buzz-coral">{agg.comments}</p>
-                <p className="text-xs font-bold text-buzz-inkMuted">Comments</p>
+                <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.comments}</p>
+                <p className={TEXT.meta}>Comments</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-black text-buzz-coral">{agg.estimatedReach}</p>
-                <p className="text-xs font-bold text-buzz-inkMuted">Est. Reach</p>
+                <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.estimatedReach}</p>
+                <p className={TEXT.meta}>Est. Reach</p>
               </div>
             </div>
-          </StatusPanel>
+          </Card>
           {status === "finished" ? (
-            <StatusPanel>
-              <h2 className="mb-2 text-xl font-bold text-buzz-ink">
-                Final results
-              </h2>
-              <p className="text-sm font-medium text-buzz-inkMuted">
+            <Card kind="card" pad="roomy">
+              <h2 className={cn(TEXT.h2, "mb-2")}>Final results</h2>
+              <p className={cn(TEXT.body, "text-buzz-inkMuted")}>
                 This campaign has ended. Your linked posts are read-only — final
                 metrics are shown above.
               </p>
-            </StatusPanel>
+            </Card>
           ) : null}
           <ApiPostSelector
             applicationId={detail.id}

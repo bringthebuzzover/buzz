@@ -1,5 +1,5 @@
 /**
- * Admin org erase uses an in-app type-to-confirm, not window.prompt.
+ * Admin org erase uses an in-app type-to-confirm dialog, not window.prompt.
  */
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -152,14 +152,15 @@ describe("AdminOrgDetailPage erase confirm", () => {
 
     expect(promptSpy).not.toHaveBeenCalled();
     expect(mockEraseMutateAsync).not.toHaveBeenCalled();
-    expect(container.textContent).toContain("Erase this organization");
+    expect(document.body.textContent).toContain("Erase this organization");
+    expect(document.querySelector('[role="dialog"]')).toBeTruthy();
 
-    const submit = container.querySelector(
+    const submit = document.querySelector(
       '[data-testid="erase-org-submit"]',
     ) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
 
-    const input = container.querySelector(
+    const input = document.querySelector(
       '[data-testid="erase-org-confirm"]',
     ) as HTMLInputElement;
     act(() => {
@@ -175,5 +176,44 @@ describe("AdminOrgDetailPage erase confirm", () => {
       confirm: "@lawrence_granda",
     });
     promptSpy.mockRestore();
+  });
+
+  it("clears the typed handle when the erase dialog is dismissed", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: orgDetail(),
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    const erase = container.querySelector(
+      '[data-testid="erase-org"]',
+    ) as HTMLButtonElement;
+    act(() => {
+      erase.click();
+    });
+    const input = document.querySelector(
+      '[data-testid="erase-org-confirm"]',
+    ) as HTMLInputElement;
+    act(() => {
+      setInputValue(input, "@lawrence_granda");
+    });
+    expect(input.value).toBe("@lawrence_granda");
+
+    const cancel = document.querySelector(
+      '[data-testid="erase-org-cancel"]',
+    ) as HTMLButtonElement;
+    act(() => {
+      cancel.click();
+    });
+    expect(document.querySelector('[data-testid="erase-org-confirm"]')).toBeNull();
+
+    act(() => {
+      erase.click();
+    });
+    const reopened = document.querySelector(
+      '[data-testid="erase-org-confirm"]',
+    ) as HTMLInputElement;
+    expect(reopened.value).toBe("");
   });
 });
