@@ -10,6 +10,8 @@ evidence:
     note: v1 closes false-success/one-shot burns only; explicitly leaves ledger and denial org-visible loss open
   - path: backend/app/services/email.py
     note: _dispatch is best-effort; no email_sends table
+  - path: backend/app/jobs/notify_reminders.py
+    note: sent_at stamped after Resend 2xx; crash/rollback before commit can re-send the same opening reminder (2026-09-12 Bugbot)
 repro: |
   After email-honesty v1: denial still has no org-visible channel; invite/reset
   can still report success without delivery; ops cannot query send history.
@@ -48,6 +50,8 @@ Shipped without archiving this gap:
    (wontfix with PRODUCT note).
 3. **Optional later:** Resend webhooks, outbox/retry worker (not required to
    start this gap). Org approve/deny/undeny honesty still fire-and-forget.
+   Notify Me reminders stamp `sent_at` only after provider accept — a crash
+   before commit can duplicate the opening email (same outbox class).
 
 ### Dependency
 

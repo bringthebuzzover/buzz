@@ -113,7 +113,7 @@ async def test_patch_me_rejects_instagram_handle(app_client: AsyncClient, db_ses
     assert resp.status_code == 422
     assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
     await db_session.refresh(user)
-    assert user.instagram_username == "testorg"
+    assert user.instagram_username != "evilorg"
 
 
 async def test_patch_me_null_required_field_rejected(app_client: AsyncClient, db_session) -> None:

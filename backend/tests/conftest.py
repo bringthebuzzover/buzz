@@ -316,15 +316,21 @@ def make_user(
     role: PortalRole = PortalRole.ORG,
     status: OrgUserStatus = OrgUserStatus.ACTIVE,
     instagram_user_id: str | None = None,
+    instagram_username: str | None = None,
 ) -> User:
     """Build (not persist) a ``User`` with sensible auth-test defaults."""
 
+    uid = uuid.uuid4()
+    if role is PortalRole.ORG:
+        handle = instagram_username if instagram_username is not None else f"org{uid.hex[:16]}"
+    else:
+        handle = None
     return User(
-        id=uuid.uuid4(),
+        id=uid,
         portal_role=role.value,
         status=status.value,
         instagram_user_id=instagram_user_id,
-        instagram_username="testorg" if role is PortalRole.ORG else None,
+        instagram_username=handle,
     )
 
 

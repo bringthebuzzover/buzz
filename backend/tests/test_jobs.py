@@ -655,7 +655,18 @@ async def test_metric_sync_skips_orgs_without_live_campaign(db_session) -> None:
 # ===========================================================================
 
 
-def _raw_post(org_id, *, caption, posted_at, product_type="FEED", likes=10, comments=0, ext=None):
+def _raw_post(
+    org_id,
+    *,
+    caption,
+    posted_at,
+    product_type="FEED",
+    likes=10,
+    comments=0,
+    ext=None,
+    media_url=None,
+    thumbnail_url=None,
+):
     """Build (not persist) a SocialPost with an explicit posted_at / product type."""
     return SocialPost(
         id=uuid.uuid4(),
@@ -663,6 +674,8 @@ def _raw_post(org_id, *, caption, posted_at, product_type="FEED", likes=10, comm
         platform="instagram",
         external_id=ext or uuid.uuid4().hex[:12],
         url="https://instagram.test/p/x",
+        media_url=media_url,
+        thumbnail_url=thumbnail_url,
         caption=caption,
         media_type="IMAGE",
         media_product_type=product_type,
@@ -677,7 +690,11 @@ def _media_fields(
     *,
     like_count: int | None = 10,
     comments_count: int | None = 2,
-    caption: str = "updated",
+    caption: str | None = "updated",
+    media_url: str | None = None,
+    thumbnail_url: str | None = None,
+    media_url_omitted: bool = False,
+    thumbnail_url_omitted: bool = False,
 ) -> MediaFields:
     return MediaFields(
         id=media_id,
@@ -685,11 +702,13 @@ def _media_fields(
         media_type="IMAGE",
         media_product_type="FEED",
         permalink=f"https://instagram.com/p/{media_id}",
-        thumbnail_url=None,
-        media_url=None,
+        thumbnail_url=thumbnail_url,
+        media_url=media_url,
         timestamp="2030-01-01T00:00:00+0000",
         like_count=like_count,
         comments_count=comments_count,
+        media_url_omitted=media_url_omitted,
+        thumbnail_url_omitted=thumbnail_url_omitted,
     )
 
 
@@ -1107,6 +1126,9 @@ async def test_metric_sync_counts_per_post_failure(db_session) -> None:
     assert post.metrics_updated_at == pre  # not updated on failure
     assert result["likes_omitted"] == 0
     assert result["comments_omitted"] == 0
+    assert result["caption_omitted"] == 0
+    assert result["media_url_omitted"] == 0
+    assert result["thumbnail_url_omitted"] == 0
 
 
 async def test_metric_sync_carries_likes_when_graph_omits_like_count(db_session) -> None:
@@ -1131,6 +1153,7 @@ async def test_metric_sync_carries_likes_when_graph_omits_like_count(db_session)
     assert post.comments == 9
     assert result["likes_omitted"] == 1
     assert result["comments_omitted"] == 0
+    assert result["caption_omitted"] == 0
 
 
 async def test_metric_sync_carries_comments_when_graph_omits_comments_count(
@@ -1157,6 +1180,106 @@ async def test_metric_sync_carries_comments_when_graph_omits_comments_count(
     assert post.comments == 55
     assert result["likes_omitted"] == 0
     assert result["comments_omitted"] == 1
+    assert result["caption_omitted"] == 0
+
+
+async def test_metric_sync_carries_caption_when_graph_omits_caption(db_session) -> None:
+    _, org = await _eligible_sync_org(db_session, suffix="omitcap")
+    post = _raw_post(
+        org.id,
+        caption="@nike x #NikeBuzz",
+        posted_at=_now() - timedelta(hours=2),
+        likes=12,
+        comments=3,
+        ext="omitcap1",
+    )
+    db_session.add(post)
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.media_fields = {"omitcap1": _media_fields("omitcap1", caption=None)}
+    result = await sync_metrics(db_session, fake)
+    await db_session.refresh(post)
+    assert post.caption == "@nike x #NikeBuzz"
+    assert result["caption_omitted"] == 1
+    assert result["likes_omitted"] == 0
+    assert result["comments_omitted"] == 0
+
+
+async def test_metric_sync_applies_present_empty_caption(db_session) -> None:
+    _, org = await _eligible_sync_org(db_session, suffix="emptycap")
+    post = _raw_post(
+        org.id,
+        caption="@nike prior",
+        posted_at=_now() - timedelta(hours=2),
+        likes=12,
+        comments=3,
+        ext="emptycap1",
+    )
+    db_session.add(post)
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.media_fields = {"emptycap1": _media_fields("emptycap1", caption="")}
+    result = await sync_metrics(db_session, fake)
+    await db_session.refresh(post)
+    assert post.caption == ""
+    assert result["caption_omitted"] == 0
+
+
+async def test_metric_sync_carries_media_urls_when_graph_omits_them(db_session) -> None:
+    _, org = await _eligible_sync_org(db_session, suffix="omiturls")
+    post = _raw_post(
+        org.id,
+        caption="old",
+        posted_at=_now() - timedelta(hours=2),
+        likes=12,
+        comments=3,
+        ext="omiturls1",
+        media_url="https://cdn.test/prior.jpg",
+        thumbnail_url="https://cdn.test/prior-thumb.jpg",
+    )
+    db_session.add(post)
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.media_fields = {
+        "omiturls1": _media_fields(
+            "omiturls1",
+            media_url_omitted=True,
+            thumbnail_url_omitted=True,
+        )
+    }
+    result = await sync_metrics(db_session, fake)
+    await db_session.refresh(post)
+    assert post.media_url == "https://cdn.test/prior.jpg"
+    assert post.thumbnail_url == "https://cdn.test/prior-thumb.jpg"
+    assert result["media_url_omitted"] == 1
+    assert result["thumbnail_url_omitted"] == 1
+    assert result["caption_omitted"] == 0
+
+
+async def test_metric_sync_clears_media_urls_when_graph_sends_null(db_session) -> None:
+    _, org = await _eligible_sync_org(db_session, suffix="nullurls")
+    post = _raw_post(
+        org.id,
+        caption="old",
+        posted_at=_now() - timedelta(hours=2),
+        likes=12,
+        comments=3,
+        ext="nullurls1",
+        media_url="https://cdn.test/prior.jpg",
+        thumbnail_url="https://cdn.test/prior-thumb.jpg",
+    )
+    db_session.add(post)
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.media_fields = {
+        "nullurls1": _media_fields("nullurls1", media_url=None, thumbnail_url=None)
+    }
+    result = await sync_metrics(db_session, fake)
+    await db_session.refresh(post)
+    assert post.media_url is None
+    assert post.thumbnail_url is None
+    assert result["media_url_omitted"] == 0
+    assert result["thumbnail_url_omitted"] == 0
 
 
 async def test_metric_sync_refreshes_follower_count(db_session) -> None:

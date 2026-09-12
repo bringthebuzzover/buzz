@@ -236,6 +236,73 @@ async def test_suggestion_unique_post_application(db_session: AsyncSession) -> N
 
 
 @pytest.mark.asyncio
+async def test_users_unique_org_instagram_username_case_insensitive(
+    db_session: AsyncSession,
+) -> None:
+    """Non-erased orgs cannot share a claimed handle, even with different case.
+
+    Enforced by the partial unique index on ``lower(instagram_username)``.
+    Sequential apply already 409s in ``test_org_apply``; this is the DB
+    invariant that concurrent applies cannot race past the SELECT.
+    """
+
+    db_session.add(
+        User(
+            portal_role=PortalRole.ORG.value,
+            status=OrgUserStatus.ACTIVE.value,
+            instagram_username="CampusGreeks",
+        )
+    )
+    await db_session.flush()
+
+    db_session.add(
+        User(
+            portal_role=PortalRole.ORG.value,
+            status=OrgUserStatus.PENDING_EMAIL_VERIFICATION.value,
+            instagram_username="campusgreeks",
+        )
+    )
+    with pytest.raises(IntegrityError):
+        await db_session.flush()
+
+
+@pytest.mark.asyncio
+async def test_users_erased_org_instagram_username_excluded_from_unique(
+    db_session: AsyncSession,
+) -> None:
+    """Erased org rows are outside the partial index (handle reuse).
+
+    Erase nulls ``instagram_username``, so a NULL erased row is not indexed.
+    An erased row that still has a username also must not block a new claim.
+    """
+
+    db_session.add(
+        User(
+            portal_role=PortalRole.ORG.value,
+            status=OrgUserStatus.ERASED.value,
+            instagram_username=None,
+        )
+    )
+    db_session.add(
+        User(
+            portal_role=PortalRole.ORG.value,
+            status=OrgUserStatus.ERASED.value,
+            instagram_username="freedhandle",
+        )
+    )
+    await db_session.flush()
+
+    db_session.add(
+        User(
+            portal_role=PortalRole.ORG.value,
+            status=OrgUserStatus.ACTIVE.value,
+            instagram_username="freedhandle",
+        )
+    )
+    await db_session.flush()  # no IntegrityError
+
+
+@pytest.mark.asyncio
 async def test_users_unique_instagram_user_id(db_session: AsyncSession) -> None:
     """One Buzz account per Instagram identity."""
 

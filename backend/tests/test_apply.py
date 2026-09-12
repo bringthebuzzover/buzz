@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ast
+import inspect
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -14,6 +16,7 @@ from app.models.enums import (
     OrgUserStatus,
     PortalRole,
 )
+from app.services.drops import apply_to_drop
 from tests.conftest import (
     make_application,
     make_brand,
@@ -139,6 +142,37 @@ async def test_apply_manual_reopen_past_close_allowed(app_client: AsyncClient, d
     assert resp.json()["data"]["decision"] == ApplicationDecision.APPLIED.value
 
 
+def _first_call_lineno(func: ast.AsyncFunctionDef, name: str) -> int | None:
+    found: int | None = None
+    for node in ast.walk(func):
+        if not isinstance(node, ast.Call):
+            continue
+        target = node.func
+        attr = target.id if isinstance(target, ast.Name) else getattr(target, "attr", None)
+        if attr == name and (found is None or node.lineno < found):
+            found = node.lineno
+    return found
+
+
+def test_apply_to_drop_locks_drop_before_eligibility() -> None:
+    """Apply serializes on ``drops.id`` before accepted_count / eligibility.
+
+    Sequential post-finalize rejection is ``test_apply_finalized_rejected_while_window_open``.
+    This contract blocks the unlocked-row TOCTOU vs concurrent last-seat finalize.
+    """
+
+    tree = ast.parse(inspect.getsource(apply_to_drop))
+    func = tree.body[0]
+    assert isinstance(func, ast.AsyncFunctionDef)
+    lock_at = _first_call_lineno(func, "with_for_update")
+    accepted_at = _first_call_lineno(func, "_accepted_counts")
+    eligibility_at = _first_call_lineno(func, "drop_apply_eligibility")
+    assert lock_at is not None
+    assert accepted_at is not None
+    assert eligibility_at is not None
+    assert lock_at < accepted_at < eligibility_at
+
+
 async def test_apply_finalized_rejected_while_window_open(
     app_client: AsyncClient, db_session
 ) -> None:
@@ -182,7 +216,9 @@ async def test_apply_capacity_exceeded(app_client: AsyncClient, db_session) -> N
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand, capacity_total=1)
     # Another org already accepted → no spots remain.
-    other_user = await persist(db_session, make_user())
+    other_user = make_user()
+    other_user.instagram_username = "otherorg"
+    other_user = await persist(db_session, other_user)
     other_org = await make_org(db_session, other_user, org_name="Other Org")
     await make_application(db_session, drop, other_org, decision=ApplicationDecision.ACCEPTED)
     resp = await app_client.post(f"/api/drops/{drop.id}/apply", headers=headers, json={})

@@ -316,13 +316,16 @@ async def apply_to_drop(
 ) -> DropApplication:
     """Create an ``applied`` application, enforcing the §7.1/§11.3 rules.
 
-    Order: drop exists → drop is browsable (approved brand, not finished) →
-    apply window open (``drop_apply_eligibility``, mirrors feed UX) → not
-    already applied (a prior ``denied`` does NOT block) → capacity remains.
+    Order: lock drop row (``FOR UPDATE``, serializes vs finalize) → drop
+    exists → drop is browsable (approved brand, not finished) → not already
+    applied (a prior ``denied`` does NOT block) → apply window open /
+    capacity remains (``drop_apply_eligibility``, mirrors feed UX).
     """
 
     org = await _require_org(db, org_user)
-    drop = await get_drop_or_404(db, drop_id)
+    drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
+    if drop is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
 
     # Deep links outlive the feed filter, so re-check visibility here.
     await _require_browsable_drop(db, drop)
