@@ -489,7 +489,13 @@ async def finalize_applicants(
     # Lock the drop row to serialize concurrent finalize attempts (avoid
     # TOCTOU between rule checks and the accept/deny writes).
     drop = await db.scalar(
-        select(Drop).where(Drop.id == drop_id, Drop.brand_id == brand.id).with_for_update()
+        select(Drop)
+        .where(
+            Drop.id == drop_id,
+            Drop.brand_id == brand.id,
+            Drop.hidden_at.is_(None),
+        )
+        .with_for_update()
     )
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)

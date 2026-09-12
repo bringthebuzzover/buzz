@@ -103,10 +103,12 @@ async def apply_org(
     )
     apply_to_org(org, addr)
     db.add(user)
-    await db.flush()
-    db.add(org)
 
     try:
+        # User flush first (no ORM relationship() to order inserts). Handle and
+        # edu unique races hit this flush; wrap it so they map to 409 not 500.
+        await db.flush()
+        db.add(org)
         await db.flush()
     except IntegrityError as exc:
         detail = str(exc.orig).lower()
@@ -114,6 +116,12 @@ async def apply_org(
             raise BuzzAPIException(
                 errors.EDU_EMAIL_TAKEN,
                 "This .edu email is already associated with another account.",
+                status_code=409,
+            ) from exc
+        if "instagram_username" in detail or "uq_users_org_instagram_username_lower" in detail:
+            raise BuzzAPIException(
+                errors.INSTAGRAM_HANDLE_TAKEN,
+                "That Instagram handle is already claimed by another organization.",
                 status_code=409,
             ) from exc
         raise

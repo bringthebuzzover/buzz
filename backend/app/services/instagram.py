@@ -95,12 +95,17 @@ class MediaRef:
 class MediaFields:
     """Basic fields for one media item (§10.1).
 
-    ``like_count`` / ``comments_count`` are ``None`` when Graph omits the key
-    (distinct from a present ``0``) so metric_sync can carry prior DB values.
+    ``like_count`` / ``comments_count`` / ``caption`` are ``None`` when Graph
+    omits the key (distinct from a present ``0`` / ``""``) so metric_sync can
+    carry prior DB values.
+
+    ``media_url`` / ``thumbnail_url`` use a separate omitted flag: ``None``
+    with the flag false means Graph sent null (clear the DB column). Existing
+    constructors that pass ``media_url=None`` without the flag still clear.
     """
 
     id: str
-    caption: str
+    caption: str | None
     media_type: str
     media_product_type: str
     permalink: str
@@ -109,6 +114,8 @@ class MediaFields:
     timestamp: str
     like_count: int | None
     comments_count: int | None
+    media_url_omitted: bool = False
+    thumbnail_url_omitted: bool = False
 
 
 def _optional_int_field(body: dict[str, object], key: str) -> int | None:
@@ -121,6 +128,17 @@ def _optional_int_field(body: dict[str, object], key: str) -> int | None:
         return None
     # Same cast style as ``_parse_insight_value`` (non-fractional).
     return int(float(raw))  # type: ignore[arg-type]
+
+
+def _optional_str_field(body: dict[str, object], key: str) -> str | None:
+    """Parse a string Graph field; ``None`` when the key is absent or null."""
+
+    if key not in body:
+        return None
+    raw = body[key]
+    if raw is None:
+        return None
+    return str(raw)
 
 
 @dataclass(frozen=True)
@@ -407,15 +425,17 @@ class HttpInstagramClient:
 
         return MediaFields(
             id=str(b.get("id", media_id)),
-            caption=str(b.get("caption", "")),
+            caption=_optional_str_field(b, "caption"),
             media_type=str(b.get("media_type", "IMAGE")),
             media_product_type=str(b.get("media_product_type", "FEED")),
             permalink=str(b.get("permalink", "")),
-            thumbnail_url=b.get("thumbnail_url"),
-            media_url=b.get("media_url"),
+            thumbnail_url=_optional_str_field(b, "thumbnail_url"),
+            media_url=_optional_str_field(b, "media_url"),
             timestamp=str(b.get("timestamp", "")),
             like_count=_optional_int_field(b, "like_count"),
             comments_count=_optional_int_field(b, "comments_count"),
+            media_url_omitted="media_url" not in b,
+            thumbnail_url_omitted="thumbnail_url" not in b,
         )
 
     async def fetch_media_insights(

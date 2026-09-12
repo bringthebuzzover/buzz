@@ -6,10 +6,12 @@ Daily. For each org with a live campaign and a valid long-lived token:
    window; new ones are inserted (``metrics_updated_at = NULL``).
 2. **Refresh** — for every refresh-eligible post (``posted_at >= now - 30d``,
    not a STORY), pull basic fields then insights separately. Basics
-   (likes/comments/media URLs) persist even when insights fail. If Graph omits
-   ``like_count`` / ``comments_count``, prior DB values are carried (not zeroed);
-   present ``0`` still overwrites. Counters ``likes_omitted`` /
-   ``comments_omitted`` land in the job summary.
+   (likes/comments/caption/media URLs) persist even when insights fail. If Graph
+   omits ``like_count`` / ``comments_count`` / ``caption`` / ``media_url`` /
+   ``thumbnail_url``, prior DB values are carried (not zeroed or wiped);
+   present ``0`` / ``""`` still overwrite, and a present-null URL still clears.
+   Counters ``likes_omitted`` / ``comments_omitted`` / ``caption_omitted`` /
+   ``media_url_omitted`` / ``thumbnail_url_omitted`` land in the job summary.
    ``metrics_updated_at`` is stamped when basics succeed (including after an
    insights failure) so charts can include the post; insight columns update
    only on insights success.
@@ -98,16 +100,51 @@ def _parse_ts(value: str) -> datetime | None:
             return None
 
 
-def _apply_basics(post: SocialPost, fields: MediaFields) -> tuple[bool, bool]:
+def _apply_basics(post: SocialPost, fields: MediaFields) -> tuple[bool, bool, bool, bool, bool]:
     """Apply caption/media URLs and engagement when present.
 
-    Returns ``(likes_omitted, comments_omitted)`` — omitted Graph keys keep the
-    prior DB value (real ``0`` still overwrites).
+    Returns ``(likes_omitted, comments_omitted, caption_omitted,
+    media_url_omitted, thumbnail_url_omitted)`` — omitted Graph keys keep the
+    prior DB value (real ``0`` / present ``""`` still overwrite; present-null
+    URL still clears).
     """
 
-    post.caption = fields.caption
-    post.media_url = fields.media_url
-    post.thumbnail_url = fields.thumbnail_url
+    caption_omitted = False
+    media_url_omitted = False
+    thumbnail_url_omitted = False
+    if fields.caption is None:
+        caption_omitted = True
+        logger.warning(
+            "metric sync omitted caption org_id=%s post_id=%s external_id=%s previous=%s",
+            post.org_id,
+            post.id,
+            post.external_id,
+            post.caption,
+        )
+    else:
+        post.caption = fields.caption
+    if fields.media_url_omitted:
+        media_url_omitted = True
+        logger.warning(
+            "metric sync omitted media_url org_id=%s post_id=%s external_id=%s previous=%s",
+            post.org_id,
+            post.id,
+            post.external_id,
+            post.media_url,
+        )
+    else:
+        post.media_url = fields.media_url
+    if fields.thumbnail_url_omitted:
+        thumbnail_url_omitted = True
+        logger.warning(
+            "metric sync omitted thumbnail_url org_id=%s post_id=%s external_id=%s previous=%s",
+            post.org_id,
+            post.id,
+            post.external_id,
+            post.thumbnail_url,
+        )
+    else:
+        post.thumbnail_url = fields.thumbnail_url
 
     likes_omitted = False
     comments_omitted = False
@@ -133,7 +170,13 @@ def _apply_basics(post: SocialPost, fields: MediaFields) -> tuple[bool, bool]:
         )
     else:
         post.comments = fields.comments_count
-    return likes_omitted, comments_omitted
+    return (
+        likes_omitted,
+        comments_omitted,
+        caption_omitted,
+        media_url_omitted,
+        thumbnail_url_omitted,
+    )
 
 
 def _apply_insights(post: SocialPost, insights: dict[str, int | float]) -> None:
@@ -267,6 +310,9 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
     skipped_story = 0
     likes_omitted = 0
     comments_omitted = 0
+    caption_omitted = 0
+    media_url_omitted = 0
+    thumbnail_url_omitted = 0
 
     for org in orgs:
         user = await db.get(User, org.user_id)
@@ -332,7 +378,8 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
                             url=fields.permalink,
                             media_url=fields.media_url,
                             thumbnail_url=fields.thumbnail_url,
-                            caption=fields.caption,
+                            # New rows have no prior caption; omitted Graph key → "".
+                            caption=fields.caption if fields.caption is not None else "",
                             media_type=fields.media_type,
                             media_product_type=fields.media_product_type,
                             posted_at=posted,
@@ -366,11 +413,19 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
             except Exception:  # noqa: BLE001
                 failed += 1
                 continue
-            omit_likes, omit_comments = _apply_basics(post, fields)
+            omit_likes, omit_comments, omit_caption, omit_media_url, omit_thumb = _apply_basics(
+                post, fields
+            )
             if omit_likes:
                 likes_omitted += 1
             if omit_comments:
                 comments_omitted += 1
+            if omit_caption:
+                caption_omitted += 1
+            if omit_media_url:
+                media_url_omitted += 1
+            if omit_thumb:
+                thumbnail_url_omitted += 1
 
             try:
                 insights = await ig.fetch_media_insights(token, post.external_id, is_reel=is_reel)
@@ -398,5 +453,8 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
         "skipped_story": skipped_story,
         "likes_omitted": likes_omitted,
         "comments_omitted": comments_omitted,
+        "caption_omitted": caption_omitted,
+        "media_url_omitted": media_url_omitted,
+        "thumbnail_url_omitted": thumbnail_url_omitted,
         **follower_stats,
     }

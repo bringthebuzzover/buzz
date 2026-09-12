@@ -31,6 +31,20 @@ from app.models.enums import OrgUserStatusEnum, PortalRoleEnum
 
 class User(Base):
     __tablename__ = "users"
+    # Claimed @handle is unique among non-erased orgs, case-insensitive.
+    # Apply pre-checks + catches IntegrityError; this index is the hard
+    # invariant that makes two concurrent applies safe. Erased rows are
+    # excluded so a freed handle can be claimed again.
+    __table_args__ = (
+        sa.Index(
+            "uq_users_org_instagram_username_lower",
+            sa.text("lower(instagram_username)"),
+            unique=True,
+            postgresql_where=sa.text(
+                "portal_role = 'org' AND status <> 'erased' AND instagram_username IS NOT NULL"
+            ),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
 

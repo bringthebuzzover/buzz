@@ -13,6 +13,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -29,6 +30,7 @@ from app.services.instagram import (
     canonical_instagram_handle,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.org_apply import assert_handle_available
 
 logger = logging.getLogger(__name__)
 
@@ -113,9 +115,6 @@ async def handle_instagram_callback(
                 claimed,
                 graph_handle,
             )
-        _apply_ig_credentials(target, profile, short.user_id, long.access_token, now, expires_at)
-        target.status = OrgUserStatus.ACTIVE.value
-        target.last_login_at = now
         user = target
     elif existing is None:
         raise BuzzAPIException(
@@ -127,13 +126,28 @@ async def handle_instagram_callback(
             status_code=400,
         )
     else:
-        _apply_ig_credentials(existing, profile, short.user_id, long.access_token, now, expires_at)
-        existing.last_login_at = now
-        if existing.status == OrgUserStatus.PENDING_INSTAGRAM.value:
-            existing.status = OrgUserStatus.ACTIVE.value
         user = existing
 
-    await db.flush()
+    graph_handle = canonical_instagram_handle(getattr(profile, "username", None) or "")
+    if graph_handle:
+        await assert_handle_available(db, graph_handle, exclude_user_id=user.id)
+
+    _apply_ig_credentials(user, profile, short.user_id, long.access_token, now, expires_at)
+    user.last_login_at = now
+    if bind_user_id is not None or user.status == OrgUserStatus.PENDING_INSTAGRAM.value:
+        user.status = OrgUserStatus.ACTIVE.value
+
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        detail = str(exc.orig).lower()
+        if "instagram_username" in detail or "uq_users_org_instagram_username_lower" in detail:
+            raise BuzzAPIException(
+                errors.INSTAGRAM_HANDLE_TAKEN,
+                "That Instagram handle is already claimed by another organization.",
+                status_code=409,
+            ) from exc
+        raise
     await db.refresh(user)
     return user
 

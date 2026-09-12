@@ -28,6 +28,14 @@ from tests.conftest import (
 )
 
 
+def _org_user(*, handle: str):
+    """Org fixture user with a unique claimed handle (partial unique index)."""
+
+    user = make_user(role=PortalRole.ORG)
+    user.instagram_username = handle
+    return user
+
+
 async def _brand_ctx(db_session):
     """Create an active brand user + brand profile, return (user, brand, headers)."""
     brand_user = await persist(db_session, make_user(role=PortalRole.BRAND))
@@ -213,7 +221,7 @@ class TestGetBrandDropDetail:
             ApplicationDecision.ACCEPTED,
             ApplicationDecision.DENIED,
         ):
-            org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+            org_user = await persist(db_session, _org_user(handle=f"addr_{decision.value}"))
             org = await make_org(db_session, org_user)
             org.delivery_address = address
             await db_session.flush()
@@ -292,8 +300,8 @@ class TestFinalizeApplicants:
         )
 
         orgs = []
-        for name in ["Org A", "Org B", "Org C"]:
-            org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        for i, name in enumerate(["Org A", "Org B", "Org C"]):
+            org_user = await persist(db_session, _org_user(handle=f"finalize_{i}"))
             org = await make_org(db_session, org_user, org_name=name)
             await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
             orgs.append(org)
@@ -415,7 +423,7 @@ class TestFinalizeApplicants:
     async def test_capacity_exceeded(self, app_client: AsyncClient, db_session):
         _, drop, orgs, headers = await self._setup_finalize(db_session)
         # Need a 4th org
-        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org_user = await persist(db_session, _org_user(handle="finalize_d"))
         org4 = await make_org(db_session, org_user, org_name="Org D")
         await make_application(db_session, drop, org4, decision=ApplicationDecision.APPLIED)
         res = await app_client.post(
@@ -432,6 +440,32 @@ class TestFinalizeApplicants:
         )
         assert res.status_code == 400
         assert res.json()["error"]["code"] == "CAPACITY_EXCEEDED"
+
+    async def test_hidden_drop_404s_until_unhide(self, app_client: AsyncClient, db_session):
+        _, drop, orgs, headers = await self._setup_finalize(db_session)
+        drop.hidden_at = datetime.now(timezone.utc)
+        await db_session.flush()
+
+        payload = {"allocations": [{"orgId": str(orgs[0].id), "units": 0}]}
+        hidden = await app_client.post(
+            f"/api/brands/me/drops/{drop.id}/finalize-applicants",
+            json=payload,
+            headers=headers,
+        )
+        assert hidden.status_code == 404
+        await db_session.refresh(drop)
+        assert drop.applicant_selection_finalized_at is None
+
+        drop.hidden_at = None
+        await db_session.flush()
+        shown = await app_client.post(
+            f"/api/brands/me/drops/{drop.id}/finalize-applicants",
+            json=payload,
+            headers=headers,
+        )
+        assert shown.status_code == 200
+        await db_session.refresh(drop)
+        assert drop.applicant_selection_finalized_at is not None
 
     async def test_already_finalized(self, app_client: AsyncClient, db_session):
         _, drop, orgs, headers = await self._setup_finalize(db_session)
@@ -529,7 +563,7 @@ class TestFinalizeApplicants:
     async def test_org_not_applied(self, app_client: AsyncClient, db_session):
         _, drop, orgs, headers = await self._setup_finalize(db_session)
         # Create an org that hasn't applied
-        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org_user = await persist(db_session, _org_user(handle="finalize_no_app"))
         no_app_org = await make_org(db_session, org_user, org_name="No App")
         res = await app_client.post(
             f"/api/brands/me/drops/{drop.id}/finalize-applicants",
@@ -602,13 +636,13 @@ class TestFinalizeApplicants:
             apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
         )
         # One seat already taken from a prior finalize round.
-        prior_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        prior_user = await persist(db_session, _org_user(handle="reopen_prior"))
         prior_org = await make_org(db_session, prior_user, org_name="Prior Accept")
         await make_application(db_session, drop, prior_org, decision=ApplicationDecision.ACCEPTED)
         # Two new applied orgs — accepting both would exceed remaining capacity (1).
         new_orgs = []
-        for name in ["New A", "New B"]:
-            ou = await persist(db_session, make_user(role=PortalRole.ORG))
+        for i, name in enumerate(["New A", "New B"]):
+            ou = await persist(db_session, _org_user(handle=f"reopen_new_{i}"))
             org = await make_org(db_session, ou, org_name=name)
             await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
             new_orgs.append(org)
@@ -641,7 +675,7 @@ class TestFinalizeApplicants:
             apply_open_at=datetime.now(timezone.utc) - timedelta(days=30),
             apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
         )
-        prior_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        prior_user = await persist(db_session, _org_user(handle="reopen_units_prior"))
         prior_org = await make_org(db_session, prior_user, org_name="Prior Units")
         prior_app = await make_application(
             db_session, drop, prior_org, decision=ApplicationDecision.ACCEPTED
@@ -649,7 +683,7 @@ class TestFinalizeApplicants:
         prior_app.allocated_units = 70
         await db_session.flush()
 
-        ou = await persist(db_session, make_user(role=PortalRole.ORG))
+        ou = await persist(db_session, _org_user(handle="reopen_units_new"))
         org = await make_org(db_session, ou, org_name="New Units")
         await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
 
@@ -675,13 +709,13 @@ class TestFinalizeApplicants:
             apply_open_at=datetime.now(timezone.utc) - timedelta(days=30),
             apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
         )
-        prior_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        prior_user = await persist(db_session, _org_user(handle="reopen_fill_prior"))
         prior_org = await make_org(db_session, prior_user, org_name="Prior Seat")
         await make_application(db_session, drop, prior_org, decision=ApplicationDecision.ACCEPTED)
-        ou = await persist(db_session, make_user(role=PortalRole.ORG))
+        ou = await persist(db_session, _org_user(handle="reopen_fill_new"))
         org = await make_org(db_session, ou, org_name="Fill Seat")
         await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
-        denied_ou = await persist(db_session, make_user(role=PortalRole.ORG))
+        denied_ou = await persist(db_session, _org_user(handle="reopen_fill_denied"))
         denied_org = await make_org(db_session, denied_ou, org_name="Denied Seat")
         await make_application(db_session, drop, denied_org, decision=ApplicationDecision.APPLIED)
 

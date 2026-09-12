@@ -731,6 +731,85 @@ stop_if:
 
 ---
 
+## drops-apply-finalize-gates
+
+status: done
+gaps:
+  - drops.apply-capacity-toctou
+  - brand.finalize-ignores-hidden
+approach: |
+  Touch `backend/app/services/drops.py` (`apply_to_drop`) +
+  `backend/app/services/brands.py` (`finalize_applicants`) +
+  `backend/tests/test_apply.py` / `test_drop_hide.py` (and brand finalize tests).
+
+  1. Apply vs last-seat finalize: In `apply_to_drop`, lock the drop row
+     (`SELECT … FOR UPDATE` on `drops.id`) **before** `_accepted_counts` and
+     `drop_apply_eligibility`, so a concurrent finalize that fills capacity or
+     stamps `applicant_selection_finalized_at` cannot insert a new APPLIED row.
+     Surface `CAPACITY_EXCEEDED` or `DROP_NOT_OPEN` as eligibility already does.
+     Do **not** change finalize's accepted-seat math.
+  2. Hidden finalize: `finalize_applicants` must 404 when `hidden_at` is set
+     (same existence-hiding as `resolve_brand_drop`). Prefer adding `hidden_at
+     IS NULL` to the lock query (or call the same gate). POST
+     `/api/brands/me/drops/{id}/finalize-applicants` must not succeed on a
+     hidden UUID.
+  3. Tests: apply+finalize lock-order (or equivalent contract); finalize POST
+     on hidden drop → 404; unhide restores finalize. Sequential capacity tests
+     stay green.
+
+stop_if:
+  - PRODUCT wants apply to remain open after finalize until an explicit Closed
+    feed flag — pause and ask (conflicts with §7.2).
+
+---
+
+## jobs-metric-caption-omit
+
+status: done
+gaps:
+  - jobs.metric-sync-omitted-caption
+approach: |
+  Touch `backend/app/services/instagram.py` (`fetch_media`) +
+  `backend/app/jobs/metric_sync.py` (`_apply_basics`) + `backend/tests/test_jobs.py`.
+
+  Mirror archive `jobs.metric-sync-omitted-engagement`:
+  1. `fetch_media` must distinguish omitted caption / media_url / thumbnail_url
+     keys from present empty/`null` (optional fields, not `b.get("caption", "")`).
+  2. `_apply_basics` assigns those fields only when present; omitted → keep
+     prior DB value + warning + job-summary counters. Present `""` caption
+     still overwrites; present `null` URL still clears.
+  3. Tests: omit-caption, omit-URLs, present-empty caption, likes/comments
+     omit still works. Do not invent Graph insight names.
+
+stop_if:
+  - Meta docs show caption is always present on `/{media-id}` for FEED/REELS
+    we sync — still ship carry-on-omit; do not skip the guard.
+
+---
+
+## org-apply-handle-unique
+
+status: done
+gaps:
+  - org.apply-handle-unique-race
+approach: |
+  Touch `backend/app/models/user.py` + a new Alembic revision +
+  `backend/app/services/org_apply.py` IntegrityError mapping +
+  `backend/tests/test_org_apply.py` / `test_constraints.py`.
+
+  1. Partial unique index on `lower(instagram_username)` for org rows that are
+     not erased and whose username is not null (erased handle reuse stays).
+  2. Concurrent `POST /api/orgs/apply` with the same handle maps IntegrityError
+     to `INSTAGRAM_HANDLE_TAKEN` (409), same as the SELECT pre-check.
+  3. Keep `assert_handle_available` for the friendly 409 before insert.
+     Do not unique `instagram_user_id` again (already unique).
+
+stop_if:
+  - Migration cannot express a case-insensitive partial unique on current PG
+    without a surprise table rewrite — pause and ask before a heavy lock.
+
+---
+
 ## parked
 
 status: parked

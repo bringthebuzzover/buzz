@@ -105,6 +105,10 @@ async def test_fetch_media_parses_fields() -> None:
     assert f.like_count == 42 and f.comments_count == 7
     assert f.media_product_type == "REELS"
     assert f.caption == "hello @nike"
+    assert f.thumbnail_url == "https://t/x.jpg"
+    assert f.thumbnail_url_omitted is False
+    assert f.media_url is None
+    assert f.media_url_omitted is True
 
 
 async def test_fetch_media_omitted_engagement_is_none_not_zero() -> None:
@@ -124,6 +128,9 @@ async def test_fetch_media_omitted_engagement_is_none_not_zero() -> None:
     f = await _client(handler).fetch_media("tok", "m1")
     assert f.like_count is None
     assert f.comments_count is None
+    assert f.caption == "no counts"
+    assert f.media_url_omitted is True
+    assert f.thumbnail_url_omitted is True
 
 
 async def test_fetch_media_present_zero_engagement() -> None:
@@ -145,6 +152,87 @@ async def test_fetch_media_present_zero_engagement() -> None:
     f = await _client(handler).fetch_media("tok", "m1")
     assert f.like_count == 0
     assert f.comments_count == 0
+
+
+async def test_fetch_media_omitted_caption_is_none() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "id": "m1",
+                "like_count": 1,
+                "comments_count": 0,
+                "media_type": "IMAGE",
+                "media_product_type": "FEED",
+                "permalink": "https://instagram.com/p/m1",
+                "timestamp": "2030-01-01T00:00:00+0000",
+            },
+        )
+
+    f = await _client(handler).fetch_media("tok", "m1")
+    assert f.caption is None
+
+
+async def test_fetch_media_present_empty_caption() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "id": "m1",
+                "caption": "",
+                "like_count": 1,
+                "comments_count": 0,
+                "media_type": "IMAGE",
+                "media_product_type": "FEED",
+                "permalink": "https://instagram.com/p/m1",
+                "timestamp": "2030-01-01T00:00:00+0000",
+            },
+        )
+
+    f = await _client(handler).fetch_media("tok", "m1")
+    assert f.caption == ""
+
+
+async def test_fetch_media_url_omit_vs_present_null() -> None:
+    def omitted(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "id": "m1",
+                "caption": "x",
+                "media_type": "IMAGE",
+                "media_product_type": "FEED",
+                "permalink": "https://instagram.com/p/m1",
+                "timestamp": "2030-01-01T00:00:00+0000",
+            },
+        )
+
+    omitted_fields = await _client(omitted).fetch_media("tok", "m1")
+    assert omitted_fields.media_url is None
+    assert omitted_fields.thumbnail_url is None
+    assert omitted_fields.media_url_omitted is True
+    assert omitted_fields.thumbnail_url_omitted is True
+
+    def present_null(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "id": "m1",
+                "caption": "x",
+                "media_type": "IMAGE",
+                "media_product_type": "FEED",
+                "permalink": "https://instagram.com/p/m1",
+                "media_url": None,
+                "thumbnail_url": None,
+                "timestamp": "2030-01-01T00:00:00+0000",
+            },
+        )
+
+    cleared = await _client(present_null).fetch_media("tok", "m1")
+    assert cleared.media_url is None
+    assert cleared.thumbnail_url is None
+    assert cleared.media_url_omitted is False
+    assert cleared.thumbnail_url_omitted is False
 
 
 async def test_fetch_media_insights_feed_includes_profile_metrics() -> None:

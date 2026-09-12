@@ -204,6 +204,46 @@ async def test_relogin_syncs_instagram_username(
     assert user.instagram_username == "newchapter"
 
 
+async def test_relogin_taken_handle_409(
+    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
+) -> None:
+    """Graph rename onto another org's claimed handle must 409, not 500."""
+    from app.models.enums import OrgUserStatus
+    from tests.conftest import make_org, make_user, persist
+
+    peer = await persist(
+        db_session,
+        make_user(
+            status=OrgUserStatus.PENDING_EMAIL_VERIFICATION,
+            instagram_username="newchapter",
+        ),
+    )
+    await make_org(db_session, peer, org_name="Peer Org")
+
+    fake_instagram.user_id = "ig_rename_taken"
+    fake_instagram.username = "newchapter"
+    user = await persist(
+        db_session,
+        make_user(
+            status=OrgUserStatus.ACTIVE,
+            instagram_user_id="ig_rename_taken",
+            instagram_username="oldchapter",
+        ),
+    )
+    await make_org(db_session, user)
+    await db_session.commit()
+
+    state = await _begin_login(app_client)
+    resp = await app_client.post(
+        "/api/auth/instagram/callback",
+        json={"code": "c", "state": state},
+    )
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == errors.INSTAGRAM_HANDLE_TAKEN
+    await db_session.refresh(user)
+    assert user.instagram_username == "oldchapter"
+
+
 async def test_callback_expired_state_unauthorized(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient
 ) -> None:
