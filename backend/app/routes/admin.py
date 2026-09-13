@@ -48,6 +48,8 @@ from app.schemas.admin import (
     AdminDropItem,
     AdminDropRequestItem,
     AdminHealthResponse,
+    AdminIgChangeApproveRequest,
+    AdminIgChangeRequestItem,
     AdminOrgApproveRequest,
     AdminOrgDetail,
     AdminOrgItem,
@@ -111,6 +113,18 @@ from app.services.admin_tables import (
     query_table,
 )
 from app.services.drop_requests import get_admin_drop_request, list_admin_drop_requests
+from app.services.ig_change_requests import (
+    approve_request as approve_ig_change_request,
+)
+from app.services.ig_change_requests import (
+    deny_request as deny_ig_change_request,
+)
+from app.services.ig_change_requests import (
+    get_request as get_ig_change_request,
+)
+from app.services.ig_change_requests import (
+    list_requests as list_ig_change_requests,
+)
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.shipments import add_shipment, delete_shipment
 
@@ -259,6 +273,66 @@ async def undeny_org_endpoint(
 ) -> APIResponse:
     result = await undeny_org(db, org_id)
     return api_response(data=AdminOrgStatusResponse.model_validate(result))
+
+
+@router.get(
+    "/ig-change-requests",
+    response_model=DataResponse[list[AdminIgChangeRequestItem]],
+)
+async def list_ig_change_requests_endpoint(
+    _user: CurrentAdmin,
+    status: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    rows = await list_ig_change_requests(db, status=status)
+    return api_response(data=[AdminIgChangeRequestItem.model_validate(row) for row in rows])
+
+
+@router.get(
+    "/ig-change-requests/{request_id}",
+    response_model=DataResponse[AdminIgChangeRequestItem],
+)
+async def get_ig_change_request_endpoint(
+    request_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(
+        data=AdminIgChangeRequestItem.model_validate(await get_ig_change_request(db, request_id))
+    )
+
+
+@router.post(
+    "/ig-change-requests/{request_id}/approve",
+    response_model=DataResponse[AdminIgChangeRequestItem],
+)
+async def approve_ig_change_request_endpoint(
+    request_id: uuid.UUID,
+    body: AdminIgChangeApproveRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await approve_ig_change_request(
+        db,
+        request_id,
+        kind=body.kind,
+        tester_invite_confirmed=body.tester_invite_confirmed,
+    )
+    return api_response(data=AdminIgChangeRequestItem.model_validate(result))
+
+
+@router.post(
+    "/ig-change-requests/{request_id}/deny",
+    response_model=DataResponse[AdminIgChangeRequestItem],
+)
+async def deny_ig_change_request_endpoint(
+    request_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(
+        data=AdminIgChangeRequestItem.model_validate(await deny_ig_change_request(db, request_id))
+    )
 
 
 # ── Brands ──────────────────────────────────────────────────────────────────

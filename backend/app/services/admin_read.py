@@ -41,6 +41,7 @@ from app.models.enums import (
 )
 from app.models.job_run import JobRun
 from app.models.notify_me import NotifyMe
+from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
@@ -395,12 +396,19 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
             Drop.hidden_at.is_(None),
         ),
     )
+    ig_changes_pending = await _count_and_oldest(
+        db,
+        select(func.count(OrgIgChangeRequest.id), func.min(OrgIgChangeRequest.created_at)).where(
+            OrgIgChangeRequest.status == "pending"
+        ),
+    )
 
     counts = await _signal_counts(db, now)
     return {
         "generated_at": now,
         "queues": [
             {"key": "orgs_pending_approval", **orgs_pending},
+            {"key": "orgs_ig_change_pending", **ig_changes_pending},
             {"key": "brands_pending_review", **brands_pending},
             {"key": "drops_awaiting_finalization", **awaiting_finalization},
             {"key": "drops_ready_to_advance", **ready_to_advance},
@@ -623,6 +631,15 @@ async def get_org_detail(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
             .where(SocialPost.org_id == org.id),
         )
 
+    pending_ig_change_id = None
+    if org is not None:
+        pending_ig_change_id = await db.scalar(
+            select(OrgIgChangeRequest.id).where(
+                OrgIgChangeRequest.org_id == org.id,
+                OrgIgChangeRequest.status == "pending",
+            )
+        )
+
     now = _now()
     latest_token = (
         await db.scalars(
@@ -675,6 +692,7 @@ async def get_org_detail(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
         },
         "post_count": posts,
         "linked_post_count": linked_posts,
+        "pending_ig_change_request_id": pending_ig_change_id,
         "verification": {
             "live_token_count": live_tokens,
             "latest_expires_at": latest_token.expires_at if latest_token else None,

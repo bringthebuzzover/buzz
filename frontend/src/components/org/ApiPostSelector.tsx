@@ -9,6 +9,7 @@
  * `readOnly` (finished campaigns) hides all mutating affordances.
  */
 import { Camera, Music2 } from "lucide-react";
+import IgPreviousAccountBanner from "./IgPreviousAccountBanner";
 import {
   useAcceptSuggestion,
   useDismissSuggestion,
@@ -118,6 +119,7 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
         </Card>
       ) : null}
 
+      <IgPreviousAccountBanner />
       <Card kind="card" pad="card">
         <CardHeader
           title="Linked posts"

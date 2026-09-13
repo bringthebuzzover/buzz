@@ -368,6 +368,18 @@ export default function AdminOrgDetailPage() {
             />
           )}
 
+          {data.pendingIgChangeRequestId && !erased && (
+            <ErrorNote>
+              Pending Instagram identity request.{" "}
+              <Link
+                to={`/admin/ig-changes/${data.pendingIgChangeRequestId}`}
+                className="font-bold text-buzz-coral hover:underline"
+              >
+                Review
+              </Link>
+            </ErrorNote>
+          )}
+
           {erased && (
             <ErrorNote>
               This account has been erased. Identity and contact PII were

@@ -42,8 +42,48 @@ class OrgProfileResponse(CamelModel):
     shipping_postal_code: str | None = None
     approved_at: datetime | None
     created_at: datetime
+    ig_switched_at: datetime | None = None
+    previous_instagram_handle: str | None = None
 
-    @field_serializer("approved_at", "created_at")
+    @field_serializer("approved_at", "created_at", "ig_switched_at")
+    def _epoch(self, value: datetime | None) -> int | None:
+        return to_epoch_ms(value)
+
+
+class OrgIgChangeRequestCreate(CamelModel):
+    kind: str
+    current_handle: str
+    requested_handle: str
+    reason: str
+
+
+class OrgIgChangeRequestResponse(CamelModel):
+    id: uuid.UUID
+    org_id: uuid.UUID
+    user_id: uuid.UUID
+    kind: str
+    current_handle: str
+    requested_handle: str
+    reason: str
+    status: str
+    decided_kind: str | None = None
+    decided_at: datetime | None = None
+    created_at: datetime
+    email_sent: bool | None = None
+    user_status: str | None = None
+
+    @field_serializer("decided_at", "created_at")
+    def _epoch(self, value: datetime | None) -> int | None:
+        return to_epoch_ms(value)
+
+
+class OrgIgChangeRequestState(CamelModel):
+    pending: OrgIgChangeRequestResponse | None = None
+    latest: OrgIgChangeRequestResponse | None = None
+    ig_switched_at: datetime | None = None
+    previous_instagram_handle: str | None = None
+
+    @field_serializer("ig_switched_at")
     def _epoch(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 

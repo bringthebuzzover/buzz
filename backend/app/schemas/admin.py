@@ -369,6 +369,40 @@ class AdminOrgApproveRequest(CamelModel):
     tester_invite_confirmed: bool = False
 
 
+class AdminIgChangeApproveRequest(CamelModel):
+    """Admin chooses rename vs switch. Switch also requires tester confirm."""
+
+    kind: str
+    tester_invite_confirmed: bool = False
+
+
+class AdminIgChangeRequestItem(CamelModel):
+    id: uuid.UUID
+    org_id: uuid.UUID
+    user_id: uuid.UUID
+    org_name: str | None = None
+    university: str | None = None
+    edu_email: str | None = None
+    user_status: str | None = None
+    kind: str
+    current_handle: str
+    requested_handle: str
+    reason: str
+    status: str
+    decided_kind: str | None = None
+    decided_at: datetime | None = None
+    created_at: datetime
+    accepted_count: int | None = None
+    linked_post_count: int | None = None
+    live_drop_count: int | None = None
+    finished_drop_count: int | None = None
+    email_sent: bool | None = None
+
+    @field_serializer("decided_at", "created_at")
+    def _epoch(self, value: datetime | None) -> int | None:
+        return to_epoch_ms(value)
+
+
 class AdminOrgDetail(CamelModel):
     user_id: uuid.UUID
     org_id: uuid.UUID | None
@@ -397,6 +431,7 @@ class AdminOrgDetail(CamelModel):
     applications: AdminApplicationTally
     post_count: int
     linked_post_count: int
+    pending_ig_change_request_id: uuid.UUID | None = None
     verification: AdminVerificationState
 
     @field_serializer(

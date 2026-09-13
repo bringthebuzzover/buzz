@@ -94,6 +94,16 @@ After a verified data-deletion request, a Buzz **admin** may **erase** a brand f
 - Compose email, late-add, and sync+autolink **refuse** an erased brand (409).
 - When a company email is on file before erase, Buzz may send a **confirmation email** to that address after a successful erase (best-effort; failure does not undo erase).
 
+### 3.1.4 Org Instagram identity change (request + admin review)
+
+An **active** org may request an Instagram identity change from the org profile. The handle field stays **read-only** — there is no self-serve `PATCH` of `instagramHandle`. The request requires a kind hint (`rename` vs **account switch**), the current `@` (must match the handle on file), the requested `@`, and a reason. One pending request at a time. A requested `@` already claimed by another non-erased org is refused.
+
+Admin reviews previous vs requested `@`, the reason, and risk context (accepted seats, linked posts, live vs finished drops). **Admin chooses** rename vs switch at approve (the org kind is a hint). Deny writes nothing.
+
+- **Approve rename** (same Graph account): org stays `active`. Buzz does **not** write the typed `@`. Email tells them to log in with Instagram again so Graph overwrites the handle.
+- **Approve account switch** (new Graph account): only after ops confirms they added the requested handle as an Instagram Tester. Buzz **releases** the old Graph id and token, sets the claimed handle to the requested `@` (tester target), demotes to **`pending_instagram`**, bumps `token_version`, and emails a **new** Connect link (not the first-approval copy). The portal and View-as stay closed until they Connect the new Business/Creator account. Allowed even with live drops or past linked posts — admin can delay; Buzz does not refuse solely because a campaign is in progress. Rotate `.edu` while still `active` if the officer is also changing (connect mail goes to the current `.edu`).
+- After Connect of account B: Graph ids/handle overwrite from OAuth. Old `social_posts` and `post_campaign_links` **stay**. Refresh of A’s media with B’s token leaves last-known likes/comments/insights (**not** 0, **not** deleted — same as inaccessible media today). `follower_count` becomes B on the next successful `/me` refresh; estimated reach follows B. Org library / campaign surfaces may show that some posts are from a previous Instagram account.
+
 ### 3.2 Demo / internal preview
 
 Production users cannot switch portals. Internal operators use admin **View as** (impersonation) to open an org or brand session; see [`TESTING.md`](TESTING.md) / [`DEPLOYMENT.md`](DEPLOYMENT.md).
@@ -126,7 +136,7 @@ For v1, drops expose two timestamps:
 - **Estimated reach (v1 definition):** Derived from **follower counts** of the participating student org(s) (and/or connected accounts as implemented), combined with product rules for display. Connected org follower counts are **Graph-owned**: best-effort seed from Instagram **at Instagram bind**, then **refreshed daily** when a usable token is on file (same cadence as post metric sync). Manual follower edits on onboarding/profile are not allowed.
 - **Aggregate likes:** Show **aggregate likes** across the campaign’s linked posts (in addition to or alongside estimated reach, per product copy).
 - Brand-facing layout (per-org, UGC, roll-ups): **§5.3**.
-- **KPI preservation (hard rule):** Attributed campaign contribution — linked post counts, likes, comments, engagement series, estimated reach from retained follower counts, and campus counts from retained university — **must not disappear** when an org or brand account is erased (**§3.1.2**, **§3.1.3**). Identity, contact PII, IG credentials, and identifiable post content (permalinks, captions, media) may be scrubbed or anonymized; **numeric campaign stats stay**. Brand dashboards may show a tombstone participant label; org My Campaigns may show a tombstone brand name.
+- **KPI preservation (hard rule):** Attributed campaign contribution — linked post counts, likes, comments, engagement series, estimated reach from retained follower counts, and campus counts from retained university — **must not disappear** when an org or brand account is erased (**§3.1.2**, **§3.1.3**) or when an org **switches Instagram accounts** (**§3.1.4**). Identity, contact PII, IG credentials, and identifiable post content (permalinks, captions, media) may be scrubbed or anonymized; **numeric campaign stats stay**. After an account switch, last-known metrics on posts from the previous Graph account stay frozen when refresh fails; `follower_count` / estimated reach follow the newly bound account. Brand dashboards may show a tombstone participant label; org My Campaigns may show a tombstone brand name.
 
 ---
 
@@ -236,7 +246,7 @@ A separate **high-level** view across **all** the brand’s drops:
 2. Buzz sends a **verification** to that **.edu** address; the user completes verification (confirm on the verify page).
 3. After **verified .edu**, the org enters **pending Buzz review**. A Buzz admin reviews the org. During review, Buzz adds the claimed handle as an Instagram Tester (Meta; Standard Access), then **approves** or **denies**.
 4. After **approval**, the org **Connects Instagram** on the organization Business/Creator account. OAuth **binds** Graph identity to this user (token, ids, handle from Graph). Follower seed runs at bind (**§4.3**).
-5. After bind, the user is **`active`** and is granted the Organization portal (Drop Feed, My Campaigns). **Returning** sign-in is Login with Instagram. Denied applicants are notified by **email** and do not Connect or gain portal access.
+5. After bind, the user is **`active`** and is granted the Organization portal (Drop Feed, My Campaigns). **Returning** sign-in is Login with Instagram. Denied applicants are notified by **email** and do not Connect or gain portal access. Changing the bound Instagram account after that is **§3.1.4** (request + admin review) — not a profile-field edit.
 
 **Access gate:** Portal features are unavailable until step 5 completes. Apply, post library, and Graph follower counts require the Instagram bind. `.edu` verification or admin approval alone does not open the feed.
 
@@ -421,7 +431,7 @@ Aggregated all drops →  Brand aggregate dashboard
 | Org   | Onboarding          | Public apply (profile + **§6.1.1** Instagram confirm card + **.edu**); verify; Buzz review; accept Instagram Tester invite; Connect Instagram; then portal |
 | Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts when Active                                                                                           |
-| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment; **late-add** an org onto a published unhidden unfinished drop (**§7.1**); on an **Active** drop, **sync Instagram then autolink** for that drop's accepted orgs (suggestions stay unconfirmed); erase org or brand account after a verified data-deletion request (**§3.1.2**, **§3.1.3**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); integrations (see §5.2.1 TODO) |
+| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment; **late-add** an org onto a published unhidden unfinished drop (**§7.1**); on an **Active** drop, **sync Instagram then autolink** for that drop's accepted orgs (suggestions stay unconfirmed); erase org or brand account after a verified data-deletion request (**§3.1.2**, **§3.1.3**); review org Instagram identity-change requests (**§3.1.4**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); integrations (see §5.2.1 TODO) |
 
 ---
 

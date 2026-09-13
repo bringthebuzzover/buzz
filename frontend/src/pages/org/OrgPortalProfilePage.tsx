@@ -26,6 +26,8 @@ import {
   type OrgProfileUpdate,
 } from "../../api/hooks/useOrgHooks";
 import EduEmailRotatePanel from "../../components/org/EduEmailRotatePanel";
+import IgChangeRequestPanel from "../../components/org/IgChangeRequestPanel";
+import IgPreviousAccountBanner from "../../components/org/IgPreviousAccountBanner";
 import ShippingAddressFields, {
   EMPTY_SHIPPING,
   shippingToApi,
@@ -211,6 +213,8 @@ export default function OrgPortalProfilePage() {
           <p className={fieldLabelClass}>Instagram identity (read-only)</p>
           <p className="mt-2 text-sm font-semibold text-buzz-ink">{igHandle}</p>
         </Card>
+        <IgPreviousAccountBanner />
+        <IgChangeRequestPanel currentHandle={igHandle.replace(/^@/, "")} />
 
         <EduEmailRotatePanel
           liveEmail={data.eduEmail}

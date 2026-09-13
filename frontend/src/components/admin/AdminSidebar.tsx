@@ -25,7 +25,7 @@ const NAV: readonly NavItem[] = [
   {
     to: "/admin/orgs",
     label: "Organizations",
-    badgeKeys: ["orgs_pending_approval"],
+    badgeKeys: ["orgs_pending_approval", "orgs_ig_change_pending"],
   },
   {
     to: "/admin/brands",

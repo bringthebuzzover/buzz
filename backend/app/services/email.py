@@ -152,6 +152,95 @@ async def send_org_approved_email(
     return await _dispatch(to_email, subject, text, html=html)
 
 
+async def send_org_ig_switch_connect_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+    connect_token: str,
+    requested_handle: str = "",
+) -> bool:
+    """Connect link after an approved Instagram account switch (PRODUCT §3.1.4)."""
+    name = org_name or "your organization"
+    handle = f"@{requested_handle}" if requested_handle else "the new account"
+    connect_url = f"{settings.FRONTEND_URL}/onboarding/connect-instagram?token={connect_token}"
+    subject = "Connect the new Instagram account for your Buzz organization"
+    text = (
+        f"Buzz approved an Instagram account change for {name}.\n\n"
+        f"Accept the Instagram Tester invite for {handle} at "
+        "instagram.com/accounts/manage_access/ (Tester Invites), then connect "
+        f"that Business or Creator account:\n{connect_url}\n\n"
+        "Your Buzz portal is closed until you connect. Campaign history stays."
+    )
+    html = _cta_html(
+        connect_url,
+        subject=subject,
+        button="Connect Instagram",
+        paragraphs=[
+            f"Buzz approved an Instagram account change for {name}.",
+            f"First, accept the Instagram Tester invite for {handle} at "
+            "instagram.com/accounts/manage_access/ (Tester Invites).",
+            "Then connect that organization's Business or Creator Instagram "
+            "account. The portal stays closed until you finish. Campaign "
+            "history for your organization stays on file.",
+        ],
+    )
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Org IG switch connect:                         ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            f"║  URL: {connect_url:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+    return await _dispatch(to_email, subject, text, html=html)
+
+
+async def send_org_ig_rename_approved_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+    requested_handle: str = "",
+) -> bool:
+    """Tell an org to log in with Instagram again after a rename request."""
+    name = org_name or "your organization"
+    handle = f"@{requested_handle}" if requested_handle else "the new handle"
+    login_url = f"{settings.FRONTEND_URL}/login"
+    subject = "Log in with Instagram to finish your Buzz handle change"
+    text = (
+        f"Buzz approved the Instagram handle change for {name}.\n\n"
+        f"Rename the account on Instagram to {handle} if you have not already, "
+        f"then log in with Instagram:\n{login_url}\n\n"
+        "Buzz will pick up the new @ from Instagram. Do not type it in the profile."
+    )
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "DEV EMAIL — Org IG rename approved to=%s handle=%s",
+            to_email,
+            handle,
+        )
+        return True
+    return await _dispatch(to_email, subject, text)
+
+
+async def send_org_ig_change_denied_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+) -> bool:
+    """Tell an org their Instagram identity change request was denied."""
+    name = org_name or "your organization"
+    subject = "Your Buzz Instagram change request was not approved"
+    text = (
+        f"Buzz did not approve the Instagram identity change for {name}.\n\n"
+        "Your current Instagram login is unchanged. Reply if you have questions."
+    )
+    if settings.ENVIRONMENT == "development":
+        logger.info("DEV EMAIL — Org IG change denied to=%s", to_email)
+        return True
+    return await _dispatch(to_email, subject, text)
+
+
 async def send_org_apply_prefill_email(
     to_email: str,
     raw_token: str,

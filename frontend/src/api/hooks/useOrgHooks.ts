@@ -7,6 +7,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import type { components } from "../generated/schema";
 
 export type OrgProfile = components["schemas"]["OrgProfileResponse"];
+export type OrgIgChangeRequest =
+  components["schemas"]["OrgIgChangeRequestResponse"];
+export type OrgIgChangeRequestState =
+  components["schemas"]["OrgIgChangeRequestState"];
 /** Editable PATCH body for `PATCH /api/orgs/me` (omit unchanged fields). */
 export type OrgProfileUpdate = components["schemas"]["OrgProfileUpdate"];
 export type PostItem = components["schemas"]["PostResponse"];
@@ -26,6 +30,46 @@ export function useOrgProfile() {
       return data;
     },
     enabled: status === "authenticated",
+  });
+}
+
+export function useOrgIgChangeRequestState() {
+  const { status } = useAuth();
+  return useQuery({
+    queryKey: ["org-ig-change"],
+    queryFn: async () => {
+      const { data } = await apiFetch<OrgIgChangeRequestState>(
+        "/api/orgs/me/ig-change-request",
+      );
+      return data;
+    },
+    enabled: status === "authenticated",
+  });
+}
+
+export function useSubmitIgChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      kind: "rename" | "account_switch";
+      currentHandle: string;
+      requestedHandle: string;
+      reason: string;
+    }) => {
+      const { data } = await apiFetch<OrgIgChangeRequest>(
+        "/api/orgs/me/ig-change-requests",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["org-ig-change"] });
+      void queryClient.invalidateQueries({ queryKey: ["org-profile"] });
+    },
   });
 }
 

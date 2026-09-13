@@ -17,6 +17,7 @@ from app.models.job_run import JobRun
 from app.models.notify_me import NotifyMe
 from app.models.org_apply_prefill import OrgApplyPrefill
 from app.models.org_connect_token import OrgConnectToken
+from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
 from app.models.post_link import PostCampaignLink
@@ -41,6 +42,7 @@ __all__ = [
     "NotifyMe",
     "OrgApplyPrefill",
     "OrgConnectToken",
+    "OrgIgChangeRequest",
     "Organization",
     "PasswordResetToken",
     "PostCampaignLink",

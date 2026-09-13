@@ -83,6 +83,7 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | `drops` | Campaign instance; capacity; apply window; tracker stage; units; leftover `tracking_number` (unused); `published_at`; `hidden_at`; optional `drop_request_id`; `brand_can_edit_creative` (default false) |
 | `drop_application_shipments` | 0–N tracking numbers per accepted `drop_applications` seat (carrier + unique TN) |
 | `drop_requests` | Brand intake tickets (not live campaigns); converted to a draft drop by admin |
+| `org_ig_change_requests` | Org Instagram identity-change tickets (PRODUCT §3.1.4); approve is the identity write |
 | `drop_applications` | Org ↔ drop; decision applied/accepted/denied |
 | `social_posts` | Cached IG media + metrics; unique `(org_id, platform, external_id)`. **Stories unsupported** — `metric_sync` does not catalog `STORY`; refresh/autolink/link skip them |
 | `post_campaign_links` | Confirmed post → application (one post → one campaign) |
@@ -106,11 +107,11 @@ Mounted in `backend/app/main.py`:
 | ------ | ------ | ------- |
 | `/api/health`, `/api/config` | `routes/health.py` | Liveness + public flags |
 | `/api/auth/*` | `routes/auth.py` | IG OAuth, refresh/logout/me, brand/admin login, verify-email, password reset, deauthorize |
-| `/api/orgs/*` | `routes/orgs.py` | Apply/onboarding, address suggest/preview, org profile, post library |
+| `/api/orgs/*` | `routes/orgs.py` | Apply/onboarding, address suggest/preview, org profile, IG identity-change request, post library |
 | `/api/drops/*` | `routes/drops.py` | Org feed, detail, apply, Notify Me |
 | `/api/campaigns/*` | `routes/campaigns.py` | My campaigns, link/unlink, suggestions, aggregate |
 | `/api/brands/*` | `routes/brands.py` | Apply, brand profile, drops, finalize, aggregates |
-| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org/brand erase, compose email, late-add org, sync+autolink on an Active drop, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |
+| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org/brand erase, org IG identity-change review, compose email, late-add org, sync+autolink on an Active drop, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |
 
 Thin routes; business logic in `backend/app/services/`. Admin table inspect (`/api/admin/tables`) redacts secrets; generic PATCH is allowlisted — see [`ideas/admin-mcp.md`](ideas/admin-mcp.md). Operator stdio MCP: [`tools/buzz-admin-mcp/`](tools/buzz-admin-mcp/).
 
