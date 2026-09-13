@@ -23,6 +23,7 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
   useApproveBrand: () => idleMutation(),
   useDenyBrand: () => idleMutation(),
   useResendBrandInvite: () => idleMutation(),
+  useSendBrandEmail: () => idleMutation(),
   useUndenyBrand: () => idleMutation(),
   useViewAs: () => ({
     viewAs: jest.fn(),
@@ -40,6 +41,7 @@ function brandDetail() {
     brandName: "Acme",
     companyEmail: "acme@example.test",
     status: "approved",
+    userStatus: "active",
     instagramHandle: "acme_brand",
     passwordSet: true,
     impersonatable: true,

@@ -36,6 +36,8 @@ from app.security.session import bump_token_version, commit_revocation
 from app.services.drop_image import validate_https_image
 from app.services.drop_requests import touch_updated_at
 from app.services.email import (
+    _ops_cc,
+    send_admin_compose_email,
     send_brand_denied_email,
     send_brand_invite_email,
     send_brand_undenied_email,
@@ -452,6 +454,68 @@ async def resend_brand_invite(db: AsyncSession, brand_id: UUID) -> dict[str, Any
         "status": brand.status,
         "email_sent": True,
     }
+
+
+def _require_compose_fields(subject: str, body: str) -> tuple[str, str]:
+    subj = subject.strip()
+    text = body.strip()
+    if not subj or not text:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Subject and body are required.",
+            status_code=400,
+        )
+    return subj, text
+
+
+async def compose_org_email(
+    db: AsyncSession, user_id: UUID, subject: str, body: str
+) -> dict[str, Any]:
+    """Send a freeform email to an org's .edu (PRODUCT admin compose)."""
+    subj, text = _require_compose_fields(subject, body)
+    user = await db.get(User, user_id)
+    if user is None or user.portal_role != PortalRole.ORG.value:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+    to_email = (user.edu_email or "").strip()
+    if not to_email:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "This organization has no email on file.",
+            status_code=400,
+        )
+    sent = await send_admin_compose_email(to_email, subj, text)
+    if not sent:
+        raise BuzzAPIException(
+            errors.EMAIL_SEND_FAILED,
+            "Could not send the email. Try again.",
+            status_code=502,
+        )
+    return {"ok": True, "to": to_email, "cc": _ops_cc(exclude=to_email)}
+
+
+async def compose_brand_email(
+    db: AsyncSession, brand_id: UUID, subject: str, body: str
+) -> dict[str, Any]:
+    """Send a freeform email to a brand's company email (PRODUCT admin compose)."""
+    subj, text = _require_compose_fields(subject, body)
+    brand = await db.get(Brand, brand_id)
+    if brand is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
+    to_email = (brand.company_email or "").strip()
+    if not to_email:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "This brand has no email on file.",
+            status_code=400,
+        )
+    sent = await send_admin_compose_email(to_email, subj, text)
+    if not sent:
+        raise BuzzAPIException(
+            errors.EMAIL_SEND_FAILED,
+            "Could not send the email. Try again.",
+            status_code=502,
+        )
+    return {"ok": True, "to": to_email, "cc": _ops_cc(exclude=to_email)}
 
 
 async def clear_manual_reopen(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:

@@ -143,3 +143,16 @@ class DropTrackingResponse(CamelModel):
 class DropReopenResponse(CamelModel):
     drop_id: uuid.UUID
     manual_reopen: bool
+
+
+class AdminComposeEmailRequest(CamelModel):
+    """Subject + body only — To is the profile email, never client-supplied."""
+
+    subject: str
+    body: str
+
+
+class AdminComposeEmailResponse(CamelModel):
+    ok: bool = True
+    to: str
+    cc: list[str]

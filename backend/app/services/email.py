@@ -582,6 +582,22 @@ def _ops_cc(*, exclude: str) -> list[str]:
     return out
 
 
+async def send_admin_compose_email(to_email: str, subject: str, body: str) -> bool:
+    """Freeform admin compose: From/Reply-To as usual, CC ops, HTML wrapper."""
+    cc = _ops_cc(exclude=to_email)
+    html = _message_html(subject=subject, body=body)
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Admin compose:                                 ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            f"║  Subject: {subject[:48]:<48s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+    return await _dispatch(to_email, subject, body, html=html, cc=cc or None)
+
+
 async def _dispatch(
     to_email: str,
     subject: str,
@@ -686,27 +702,30 @@ def _verification_html(verify_url: str, *, heading: str, paragraphs: list[str]) 
     )
 
 
-def _cta_html(
-    url: str,
-    *,
-    subject: str,
-    button: str,
-    paragraphs: list[str],
-    footer_paragraphs: list[str] | None = None,
-) -> str:
-    paras = "".join(
-        f'<p style="margin:0 0 16px;color:{_INK};font-size:16px;line-height:1.5;">'
-        f"{_escape(p)}</p>"
-        for p in paragraphs
+def _message_html(*, subject: str, body: str) -> str:
+    """Cream/coral card with no CTA — admin-typed body, HTML-escaped."""
+    body_html = _escape(body).replace("\n", "<br/>")
+    dark_lock = _mail_dark_lock()
+    return (
+        f'<!DOCTYPE html><html lang="en" style="color-scheme:light only;">'
+        f'<head><meta charset="utf-8"/>'
+        f'<meta name="color-scheme" content="light only"/>'
+        f'<meta name="supported-color-schemes" content="light"/>'
+        f"{dark_lock}</head>"
+        f'<body class="buzz-mail" bgcolor="{_CREAM}" style="margin:0;padding:24px;'
+        f"background-color:{_CREAM};color:{_INK};"
+        f'font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;">'
+        f'<div class="buzz-mail-card" bgcolor="#ffffff" style="max-width:520px;'
+        f"margin:0 auto;background-color:#ffffff;padding:32px;border-radius:12px;"
+        f'color:{_INK};">'
+        f'<h1 style="margin:0 0 20px;font-size:22px;color:{_INK};">{_escape(subject)}</h1>'
+        f'<p style="margin:0;color:{_INK};font-size:16px;line-height:1.5;">{body_html}</p>'
+        f"</div></body></html>"
     )
-    footer = "".join(
-        f'<p style="margin:16px 0 0;color:{_INK};font-size:16px;line-height:1.5;">'
-        f"{_escape(p)}</p>"
-        for p in (footer_paragraphs or [])
-    )
-    # Force the light Buzz palette in clients that invert for dark mode
-    # (Apple Mail / some Gmail). Exact hexes match the light template.
-    dark_lock = (
+
+
+def _mail_dark_lock() -> str:
+    return (
         f"<style>:root{{color-scheme:light only;supported-color-schemes:light}}"
         f"@media (prefers-color-scheme:dark){{"
         f".buzz-mail{{background-color:{_CREAM}!important;color:{_INK}!important}}"
@@ -719,6 +738,27 @@ def _cta_html(
         f".buzz-mail-muted{{color:#666666!important}}"
         f"}}</style>"
     )
+
+
+def _cta_html(
+    url: str,
+    *,
+    subject: str,
+    button: str,
+    paragraphs: list[str],
+    footer_paragraphs: list[str] | None = None,
+) -> str:
+    paras = "".join(
+        f'<p style="margin:0 0 16px;color:{_INK};font-size:16px;line-height:1.5;">{_escape(p)}</p>'
+        for p in paragraphs
+    )
+    footer = "".join(
+        f'<p style="margin:16px 0 0;color:{_INK};font-size:16px;line-height:1.5;">{_escape(p)}</p>'
+        for p in (footer_paragraphs or [])
+    )
+    # Force the light Buzz palette in clients that invert for dark mode
+    # (Apple Mail / some Gmail). Exact hexes match the light template.
+    dark_lock = _mail_dark_lock()
     return (
         f'<!DOCTYPE html><html lang="en" style="color-scheme:light only;">'
         f'<head><meta charset="utf-8"/>'
@@ -746,9 +786,7 @@ def _cta_html(
 
 def _inline_a(href: str, label: str | None = None) -> str:
     lab = _escape(label if label is not None else href)
-    return (
-        f'<a href="{_escape(href)}" style="color:{_CORAL};text-decoration:underline;">' f"{lab}</a>"
-    )
+    return f'<a href="{_escape(href)}" style="color:{_CORAL};text-decoration:underline;">{lab}</a>'
 
 
 def _escape(value: str) -> str:

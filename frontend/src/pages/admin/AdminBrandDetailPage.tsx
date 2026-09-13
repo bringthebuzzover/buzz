@@ -8,11 +8,13 @@
  */
 import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
+import { Mail } from "lucide-react";
 import {
   useAdminBrand,
   useApproveBrand,
   useDenyBrand,
   useResendBrandInvite,
+  useSendBrandEmail,
   useUndenyBrand,
   useViewAs,
   INVITE_EMAIL_FAILED_COPY,
@@ -39,6 +41,8 @@ import {
 } from "../../components/admin/labels";
 import { ApiError } from "../../api/errors";
 import { instagramProfileUrl } from "../../utils/instagramProfileUrl";
+import ComposeEmailModal from "../../components/admin/ComposeEmailModal";
+import { SuccessBanner } from "../../components/forms/controls";
 
 const DROP_HEADERS = ["Drop", "Stage", "Applied", "Accepted", "Closes"] as const;
 
@@ -49,8 +53,11 @@ export default function AdminBrandDetailPage() {
   const deny = useDenyBrand();
   const undeny = useUndenyBrand();
   const resend = useResendBrandInvite();
+  const sendEmail = useSendBrandEmail();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
   const [inviteNotice, setInviteNotice] = useState<string | null>(null);
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeNotice, setComposeNotice] = useState<string | null>(null);
 
   const data = brand.data;
   const busy =
@@ -115,6 +122,11 @@ export default function AdminBrandDetailPage() {
       />
       {viewAsError && <ErrorNote>{viewAsError}</ErrorNote>}
       {inviteNotice && <ErrorNote>{inviteNotice}</ErrorNote>}
+      {composeNotice && (
+        <div className="mb-4">
+          <SuccessBanner>{composeNotice}</SuccessBanner>
+        </div>
+      )}
       {(undeny.isError || (resend.isError && !inviteNotice)) && (
         <ErrorNote>
           That recovery action did not go through. Reload and try again.
@@ -176,9 +188,38 @@ export default function AdminBrandDetailPage() {
                 >
                   View as
                 </ActionButton>
+                {Boolean(data.companyEmail) && (
+                  <ActionButton
+                    testId="write-email"
+                    disabled={busy || sendEmail.isPending}
+                    onClick={() => setComposeOpen(true)}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      <Mail size={14} aria-hidden />
+                      Write email
+                    </span>
+                  </ActionButton>
+                )}
               </div>
             }
           />
+
+          {composeOpen && data.companyEmail && (
+            <ComposeEmailModal
+              toEmail={data.companyEmail}
+              recipientName={data.brandName}
+              sending={sendEmail.isPending}
+              onClose={() => setComposeOpen(false)}
+              onSend={async ({ subject, body }) => {
+                await sendEmail.mutateAsync({
+                  brandId: data.id,
+                  subject,
+                  body,
+                });
+                setComposeNotice("Email sent.");
+              }}
+            />
+          )}
 
           {inviteLapsed && (
             <ErrorNote>

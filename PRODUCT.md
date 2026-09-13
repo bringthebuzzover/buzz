@@ -410,7 +410,7 @@ Aggregated all drops →  Brand aggregate dashboard
 | Org   | Onboarding          | Public apply (profile + **§6.1.1** Instagram confirm card + **.edu**); verify; Buzz review; accept Instagram Tester invite; Connect Instagram; then portal |
 | Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts when Active                                                                                           |
-| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment coordination; erase org account after verified data-deletion request (**§3.1.2**); integrations (see §5.2.1 TODO) |
+| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment coordination; erase org account after verified data-deletion request (**§3.1.2**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); integrations (see §5.2.1 TODO) |
 
 ---
 
@@ -420,6 +420,7 @@ Aggregated all drops →  Brand aggregate dashboard
 - **In-app denial UI for orgs:** Out of scope — channel is **email**; rules **§7.1** (drop applicant denials).
 - **Rich drop scheduling beyond apply window:** Only `apply_open_at` and `apply_close_at` specified for v1; other timestamps may be implicit inside Buzz ops.
 - **TikTok OAuth / dual-platform metrics:** Out of v1. Org profile may store an optional typed TikTok handle. Connecting TikTok as a login or metrics source is later.
+- **In-app admin inbox / threads:** Out of scope. Admin may **compose and send** one email from an org or brand profile (**§10**); replies stay in Gmail (Reply-To / CC from `brand_emails.json`).
 
 ---
 
