@@ -29,6 +29,7 @@ from app.schemas.acks import (
     AdminOrgEraseRequest,
     AdminOrgEraseResponse,
     AdminOrgStatusResponse,
+    AdminSyncAutolinkResponse,
     ClearInstagramTokenResponse,
     DropReopenResponse,
     OkResponse,
@@ -85,6 +86,7 @@ from app.services.admin import (
     reopen_drop,
     resend_brand_invite,
     resend_org_connect,
+    sync_and_autolink_drop,
     undeny_brand,
     undeny_org,
     unhide_drop,
@@ -107,6 +109,7 @@ from app.services.admin_tables import (
     query_table,
 )
 from app.services.drop_requests import get_admin_drop_request, list_admin_drop_requests
+from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.shipments import add_shipment, delete_shipment
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -520,6 +523,21 @@ async def add_org_to_drop_endpoint(
         email_brand=payload.email_brand,
     )
     return api_response(data=AdminAddOrgResponse.model_validate(result))
+
+
+@router.post(
+    "/drops/{drop_id}/sync-and-autolink",
+    response_model=DataResponse[AdminSyncAutolinkResponse],
+)
+async def sync_and_autolink_drop_endpoint(
+    drop_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+    ig: InstagramClient = Depends(get_instagram_client),
+) -> APIResponse:
+    """Pull Graph for this drop's accepted orgs, then mint autolink suggestions."""
+    result = await sync_and_autolink_drop(db, drop_id, ig)
+    return api_response(data=AdminSyncAutolinkResponse.model_validate(result))
 
 
 @router.patch("/drops/{drop_id}", response_model=DataResponse[AdminDropDetail])

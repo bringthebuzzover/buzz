@@ -355,6 +355,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/drops/{drop_id}/sync-and-autolink": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync And Autolink Drop Endpoint
+         * @description Pull Graph for this drop's accepted orgs, then mint autolink suggestions.
+         */
+        post: operations["sync_and_autolink_drop_endpoint_api_admin_drops__drop_id__sync_and_autolink_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/drops/{drop_id}/tracker": {
         parameters: {
             query?: never;
@@ -2685,6 +2705,29 @@ export interface components {
             /** Ok */
             ok: boolean;
         };
+        /** AdminSyncAutolinkResponse */
+        AdminSyncAutolinkResponse: {
+            /** Applicationsscanned */
+            applicationsScanned: number;
+            /** Failures */
+            failures: number;
+            /** Orgs */
+            orgs: number;
+            /** Postsdiscovered */
+            postsDiscovered: number;
+            /** Postsrefreshed */
+            postsRefreshed: number;
+            /** Postsscanned */
+            postsScanned: number;
+            /** Skippedstory */
+            skippedStory: number;
+            /** Skippedtoken */
+            skippedToken: number;
+            /** Suggestionscreated */
+            suggestionsCreated: number;
+            /** Suggestionshealed */
+            suggestionsHealed: number;
+        };
         /** AdminTableColumn */
         AdminTableColumn: {
             /** Hidden */
@@ -3469,6 +3512,15 @@ export interface components {
         /** DataResponse[AdminOverviewResponse] */
         DataResponse_AdminOverviewResponse_: {
             data?: components["schemas"]["AdminOverviewResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminSyncAutolinkResponse] */
+        DataResponse_AdminSyncAutolinkResponse_: {
+            data?: components["schemas"]["AdminSyncAutolinkResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -5497,6 +5549,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_DropReopenResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    sync_and_autolink_drop_endpoint_api_admin_drops__drop_id__sync_and_autolink_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminSyncAutolinkResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

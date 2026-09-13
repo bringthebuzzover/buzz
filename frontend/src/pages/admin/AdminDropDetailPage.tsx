@@ -22,6 +22,7 @@ import {
   usePatchAdminDropConfig,
   usePublishDrop,
   useReopenDrop,
+  useSyncAndAutolink,
   useUnhideDrop,
   type AdminApplicant,
   type AdminDropConfigPatch,
@@ -918,6 +919,72 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
   );
 }
 
+function AttributionPanel({ drop }: { drop: AdminDropDetail }) {
+  const sync = useSyncAndAutolink(drop.id);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const canRun =
+    drop.publishedAt != null &&
+    drop.hiddenAt == null &&
+    drop.stage === "drop_active";
+
+  async function run() {
+    setError(null);
+    setNotice(null);
+    try {
+      await sync.mutateAsync(undefined);
+      setNotice(
+        "Pulled Instagram for accepted orgs and scanned captions. Suggestions stay unconfirmed until the org taps Confirm.",
+      );
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not sync this drop.",
+      );
+    }
+  }
+
+  return (
+    <Panel description="Posts the orgs have linked to this campaign, and suggestions the scan found that nobody has confirmed.">
+      <FieldGrid>
+        <Field label="Attributed posts">{drop.linkedPostCount}</Field>
+        <Field label="Unconfirmed suggestions">
+          {drop.pendingSuggestionCount}
+          {drop.pendingSuggestionCount > 0 && (
+            <span className="ml-2 text-xs font-medium text-buzz-warn">
+              metrics understate reality until orgs confirm these
+            </span>
+          )}
+        </Field>
+        <Field label="Brand handle">
+          {drop.brandInstagramHandle
+            ? `@${drop.brandInstagramHandle.replace(/^@/, "")}`
+            : "Not set — nothing to match on"}
+        </Field>
+      </FieldGrid>
+      {canRun && (
+        <div className={cn(STACK.tight, "border-t border-buzz-lineMid px-4 py-4")}>
+          {error && <ErrorNote>{error}</ErrorNote>}
+          {notice && <SuccessBanner>{notice}</SuccessBanner>}
+          <p className={TEXT.meta}>
+            This can take a minute. Only this drop&apos;s accepted orgs are
+            pulled. Follower counts are not refreshed.
+          </p>
+          <ActionButton
+            variant="primary"
+            testId="sync-and-autolink"
+            disabled={sync.isPending}
+            onClick={() => void run()}
+          >
+            {sync.isPending ? "Syncing…" : "Sync and autolink"}
+          </ActionButton>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
 export default function AdminDropDetailPage() {
   const { dropId } = useParams<{ dropId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1073,24 +1140,7 @@ export default function AdminDropDetailPage() {
           )}
 
           {activeTab === "attribution" && (
-            <Panel description="Posts the orgs have linked to this campaign, and suggestions the scan job found that nobody has confirmed.">
-              <FieldGrid>
-                <Field label="Attributed posts">{data.linkedPostCount}</Field>
-                <Field label="Unconfirmed suggestions">
-                  {data.pendingSuggestionCount}
-                  {data.pendingSuggestionCount > 0 && (
-                    <span className="ml-2 text-xs font-medium text-buzz-warn">
-                      metrics understate reality until orgs confirm these
-                    </span>
-                  )}
-                </Field>
-                <Field label="Brand handle">
-                  {data.brandInstagramHandle
-                    ? `@${data.brandInstagramHandle.replace(/^@/, "")}`
-                    : "Not set — nothing to match on"}
-                </Field>
-              </FieldGrid>
-            </Panel>
+            <AttributionPanel drop={data} />
           )}
         </>
       )}

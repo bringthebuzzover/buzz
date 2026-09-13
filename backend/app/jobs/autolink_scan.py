@@ -23,6 +23,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
@@ -121,23 +122,24 @@ async def _heal_dangling(db: AsyncSession, now: datetime) -> int:
     return getattr(result, "rowcount", 0) or 0
 
 
-async def scan_autolink(db: AsyncSession) -> dict[str, Any]:
+async def scan_autolink(db: AsyncSession, *, drop_id: UUID | None = None) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
 
     # Accepted applications on live drops whose brand has a handle to match on.
-    rows = list(
-        await db.execute(
-            select(DropApplication, Drop, Brand)
-            .join(Drop, Drop.id == DropApplication.drop_id)
-            .join(Brand, Brand.id == Drop.brand_id)
-            .where(
-                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-                Drop.brand_tracker_stage.in_(_MINT_STAGES),
-                Drop.hidden_at.is_(None),
-                Brand.instagram_handle.isnot(None),
-            )
+    stmt = (
+        select(DropApplication, Drop, Brand)
+        .join(Drop, Drop.id == DropApplication.drop_id)
+        .join(Brand, Brand.id == Drop.brand_id)
+        .where(
+            DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+            Drop.brand_tracker_stage.in_(_MINT_STAGES),
+            Drop.hidden_at.is_(None),
+            Brand.instagram_handle.isnot(None),
         )
     )
+    if drop_id is not None:
+        stmt = stmt.where(Drop.id == drop_id)
+    rows = list(await db.execute(stmt))
 
     created = 0
     scanned = 0
