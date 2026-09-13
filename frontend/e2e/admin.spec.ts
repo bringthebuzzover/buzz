@@ -308,17 +308,42 @@ test("admin can add two tracking numbers on an accepted applicant", async ({
   await page.goto("/admin/drops");
   await page.getByRole("link", { name: "Game Day Hoodies" }).click();
   await page.getByTestId("tab-applicants").click();
-  await expect(page.getByText("Berkeley Rowing Club")).toBeVisible();
-  const tn = page.locator('[data-testid^="add-shipment-tn-"]').first();
-  const add = page.locator('[data-testid^="add-shipment-"]').filter({
-    hasText: "Add tracking",
-  }).first();
+  const row = page.getByRole("row", { name: /Berkeley Rowing Club/ });
+  await expect(row).toBeVisible();
+  const tn = row.getByLabel("Tracking number");
+  const add = row.getByRole("button", { name: "Add tracking" });
+
   await tn.fill("1ZE2EADD001");
+  await expect(tn).toHaveValue("1ZE2EADD001");
+  await expect(add).toBeEnabled();
+  const firstAdd = page.waitForResponse(
+    (r) =>
+      r.url().includes("/shipments") &&
+      r.request().method() === "POST" &&
+      r.request().postDataJSON()?.trackingNumber === "1ZE2EADD001",
+  );
   await add.click();
-  await expect(page.getByText("#1ZE2EADD001")).toBeVisible();
+  const first = await firstAdd;
+  expect(first.ok(), await first.text()).toBeTruthy();
+  await expect(row.getByText("#1ZE2EADD001")).toBeVisible();
+  // Add tracking disables on empty input; wait until the first POST cleared
+  // the field so a late setState cannot wipe the second number.
+  await expect(tn).toHaveValue("");
+  await expect(add).toBeDisabled();
+
   await tn.fill("999999999999");
+  await expect(tn).toHaveValue("999999999999");
+  await expect(add).toBeEnabled();
+  const secondAdd = page.waitForResponse(
+    (r) =>
+      r.url().includes("/shipments") &&
+      r.request().method() === "POST" &&
+      r.request().postDataJSON()?.trackingNumber === "999999999999",
+  );
   await add.click();
-  await expect(page.getByText("#999999999999")).toBeVisible();
+  const second = await secondAdd;
+  expect(second.ok(), await second.text()).toBeTruthy();
+  await expect(row.getByText("#999999999999")).toBeVisible();
 });
 
 test("admin can late-add an org that never applied", async ({ page }) => {

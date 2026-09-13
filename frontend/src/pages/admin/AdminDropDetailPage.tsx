@@ -642,27 +642,34 @@ function TrackerControls({
 }
 
 function ApplicantShipmentEditor({
+  dropId,
   applicant,
 }: {
+  dropId: string;
   applicant: AdminApplicant;
 }) {
-  const add = useAddApplicantShipment(applicant.id);
-  const remove = useDeleteApplicantShipment(applicant.id);
+  const add = useAddApplicantShipment(dropId, applicant.id);
+  const remove = useDeleteApplicantShipment(dropId, applicant.id);
   const [tn, setTn] = useState("");
   const [carrier, setCarrier] = useState("");
   const [error, setError] = useState<string | null>(null);
   const shipments = (applicant.shipments ?? []) as Shipment[];
 
   const onAdd = async () => {
+    const trackingNumber = tn.trim();
+    if (!trackingNumber) return;
+    const pickedCarrier = carrier;
     setError(null);
+    setTn("");
+    setCarrier("");
     try {
       await add.mutateAsync({
-        trackingNumber: tn.trim(),
-        carrier: carrier || undefined,
+        trackingNumber,
+        carrier: pickedCarrier || undefined,
       });
-      setTn("");
-      setCarrier("");
     } catch (err) {
+      setTn(trackingNumber);
+      setCarrier(pickedCarrier);
       setError(
         err instanceof ApiError ? err.message : "Could not add tracking.",
       );
@@ -738,7 +745,13 @@ function canLateAdd(drop: AdminDropDetail): boolean {
   );
 }
 
-function Applicants({ applicants }: { applicants: AdminApplicant[] }) {
+function Applicants({
+  dropId,
+  applicants,
+}: {
+  dropId: string;
+  applicants: AdminApplicant[];
+}) {
   return (
     <AdminTable
       headers={APPLICANT_HEADERS}
@@ -776,7 +789,7 @@ function Applicants({ applicants }: { applicants: AdminApplicant[] }) {
           </Cell>
           <Cell>
             {applicant.decision === "accepted" ? (
-              <ApplicantShipmentEditor applicant={applicant} />
+              <ApplicantShipmentEditor dropId={dropId} applicant={applicant} />
             ) : (
               <span className="text-xs font-medium text-buzz-inkMuted">—</span>
             )}
@@ -1102,7 +1115,7 @@ export default function AdminDropDetailPage() {
                   </ActionButton>
                 </div>
               )}
-              <Applicants applicants={data.applicants} />
+              <Applicants dropId={data.id} applicants={data.applicants} />
               {addOrgOpen && (
                 <AddOrgToDropModal
                   dropId={data.id}
