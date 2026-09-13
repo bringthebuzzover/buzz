@@ -213,8 +213,7 @@ export default function AdminDropsPage() {
                       {drop.brandStatus !== "approved" && (
                         <Pill tone="bad">Brand {drop.brandStatus}</Pill>
                       )}
-                      {drop.stage === "awaiting_products" &&
-                        drop.trackingNumber === null && (
+                      {drop.needsTracking && (
                           <Pill tone="bad">No tracking</Pill>
                         )}
                     </div>

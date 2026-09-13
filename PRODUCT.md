@@ -70,7 +70,7 @@ Each fact is stored once; APIs may still expose familiar field names by joining 
 | Org `.edu` email | `users.edu_email` | Unique login/verification identity; not editable via `PATCH /orgs/me`. Post-verify rotate uses pending-swap (`users.pending_edu_email`) via dedicated verify-email APIs |
 | Org pending `.edu` rotate | `users.pending_edu_email` | Unique when set; cleared on verify, cancel, or erase |
 | Brand display name | `brands.brand_name` | Drop/campaign responses join brand for `brandName` |
-| Campaign tracking number | `drops.tracking_number` | One TN per drop; org/brand/admin surfaces read the drop |
+| Campaign shipments | `drop_application_shipments` | 0–N tracking numbers **per accepted seat** (carrier + outbound track URL). `drops.tracking_number` is leftover and unused on product paths |
 | Post↔campaign membership | `drop_applications.drop_id` | Links/suggestions reference `application_id` only |
 | Org shipping address | `organizations.shipping_line1` (+ `shipping_line2`, `shipping_city`, `shipping_state`, `shipping_postal_code`) | `delivery_address` is the formatted blob brands/admin print as Ship to. Campus `city`/`state` columns are leftover, not collected. |
 
@@ -149,19 +149,19 @@ The owning brand **monitors** applicants and KPIs and **batch-finalizes** after 
 
 **Brand-facing drop tracker stages (after publish, canonical order):**
 
-1. **Awaiting Products** — _Shipped — tracking number shown_ (when applicable)
+1. **Awaiting Products** — _Shipped — that org's tracking numbers shown_ (when any exist)
 2. **Drop Active** — _Campaign is live_
 3. **Drop Finished** — _Campaign complete_
 
 **Interactions:**
 
 - Brand users **cannot** advance these tracker stages themselves.
-- Tracking number appears when relevant at **Awaiting Products** (and may remain visible where product copy dictates).
+- Each accepted org's **shipment list** (0–N numbers, UPS/FedEx/unknown, carrier track links) appears at **Awaiting Products** on the brand tracker and stays visible on later stages. Admin CRUD is per accepted seat; empty is valid. Advance to this stage does **not** require a number.
 - Unpublished drafts are **not** on the org feed; the brand may still see them on brand surfaces.
 
 #### 5.2.1 Logistics integrations (e.g. EasyPost)
 
-**Today (MVP):** Buzz admins enter tracking numbers on the drop tracker; there is **no** EasyPost (or other carrier) integration in the shipped product.
+**Today (MVP):** Buzz admins enter 0–N tracking numbers **per accepted organization** (infer UPS from `1Z…`, FedEx from 12–22 digits, else pick a carrier). Org campaign detail and brand per-org cards show that org's list with outbound UPS/FedEx links. There is **no** EasyPost (or other carrier) live-status integration.
 
 **Future:** Buzz may integrate shipping and tracking with external providers (for example **EasyPost**) so brands can enter or sync tracking numbers, and eventually generate labels and receive webhook-driven carrier events (e.g. in transit, delivered) where the implementation supports it.
 
@@ -320,7 +320,7 @@ Each **drop card** shows:
 Each campaign shows a **status** in this progression:
 
 1. **Applied**
-2. **Accepted** — _Awaiting product_ (tracking number shown when available)
+2. **Accepted** — _Awaiting product_ (that org's tracking numbers and track links when any exist)
 3. **Active** — _Drop is live_
 4. **Finished**
 
@@ -429,5 +429,4 @@ Aggregated all drops →  Brand aggregate dashboard
 - Future **policy limits** on how many concurrent drops an org may hold.
 - Exact **cost per engagement** inputs and formulas.
 - Admin tooling UX for **reopen**, exception handling, and Buzz override paths (if any) when a brand is unresponsive.
-- Whether **tracking numbers** surface in multiple places simultaneously (brand tracker vs. org campaign).
 - Shipping (**§5.2.1** TODO) and **UGC** policy (**§5.3.1** TODO): detail lives in those subsections, not duplicated here.

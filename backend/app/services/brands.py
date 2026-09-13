@@ -36,6 +36,7 @@ from app.schemas.brands import (
 )
 from app.services.drop_image import validate_https_image
 from app.services.email import send_application_denied_email
+from app.services.shipments import shipments_by_application_ids
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +93,7 @@ async def build_brand_drop_detail(
         )
     )
 
+    shipment_map = await shipments_by_application_ids(db, [app.id for app, _, _ in rows])
     applicants: list[BrandDropDetailApplicant] = []
     for app, org, org_user in rows:
         attr = await _org_attributed_totals(db, app.id)
@@ -103,7 +105,7 @@ async def build_brand_drop_detail(
                 org_id=app.org_id,
                 decision=app.decision,
                 pitch=app.pitch,
-                tracking_number=drop.tracking_number,
+                shipments=shipment_map.get(app.id, []),
                 allocated_units=app.allocated_units,
                 applied_at=app.applied_at,
                 decision_at=app.decision_at,
@@ -151,7 +153,6 @@ async def build_brand_drop_detail(
         brand_can_edit_creative=drop.brand_can_edit_creative,
         applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
         created_at=drop.created_at,
-        tracking_number=drop.tracking_number,
         applications=applicants,
         total_posts=agg["total_posts"],
         total_likes=agg["total_likes"],

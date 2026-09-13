@@ -47,7 +47,6 @@ function mapDropToView(d: BrandDropDetail) {
     totalProductUnits: d.totalProductUnits ?? undefined,
     applicantSelectionFinalizedAt: d.applicantSelectionFinalizedAt ?? undefined,
     createdAt: d.createdAt,
-    trackingNumber: d.trackingNumber ?? undefined,
   };
 }
 
@@ -598,7 +597,6 @@ function ApiDropDetail() {
       <div className={STACK.section}>
         <BrandDropTrackerStepper
           currentStage={drop.brandTrackerStage as any}
-          trackingNumber={drop.trackingNumber}
         />
 
         {detail.brandCanEditCreative ? (

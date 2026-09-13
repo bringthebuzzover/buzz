@@ -9,9 +9,11 @@ project-specific bits:
   being read from ``alembic.ini`` so a single source of truth (the ``.env``
   file via pydantic-settings) drives both the FastAPI app and the migration
   runner.
-* Online Postgres runs take ``pg_advisory_xact_lock`` inside the migration
-  transaction so api + cron pre-deploys cannot apply the same revision in
-  parallel.
+* Online Postgres runs take a **session** ``pg_advisory_lock`` around the
+  whole upgrade so api + cron pre-deploys cannot apply the same revision in
+  parallel. A transaction-scoped lock is released by ``autocommit_block``
+  (used in ``f7a8b9c0d1e2``), which would otherwise let a second process
+  stamp the same revision.
 """
 
 import asyncio
@@ -34,8 +36,7 @@ config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 target_metadata = Base.metadata
 
-# Transaction-scoped Postgres lock so api + cron pre-deploys cannot apply the
-# same revision in parallel (ADD COLUMN would otherwise fail on the loser).
+# Session-scoped (same key as f7a8b9c0d1e2) so the lock survives autocommit.
 _ALEMBIC_ADVISORY_LOCK_KEY = 737841
 
 
@@ -65,13 +66,20 @@ def run_migrations_offline() -> None:
 
 def do_run_migrations(connection: Connection) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
-
-    with context.begin_transaction():
+    locked = False
+    try:
         if connection.dialect.name == "postgresql":
             connection.execute(
-                text("SELECT pg_advisory_xact_lock(:k)"), {"k": _ALEMBIC_ADVISORY_LOCK_KEY}
+                text("SELECT pg_advisory_lock(:k)"), {"k": _ALEMBIC_ADVISORY_LOCK_KEY}
             )
-        context.run_migrations()
+            locked = True
+        with context.begin_transaction():
+            context.run_migrations()
+    finally:
+        if locked:
+            connection.execute(
+                text("SELECT pg_advisory_unlock(:k)"), {"k": _ALEMBIC_ADVISORY_LOCK_KEY}
+            )
 
 
 async def run_async_migrations() -> None:

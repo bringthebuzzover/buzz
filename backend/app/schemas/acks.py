@@ -135,11 +135,6 @@ class TrackerAdvanceResponse(CamelModel):
     stage: str
 
 
-class DropTrackingResponse(CamelModel):
-    drop_id: uuid.UUID
-    tracking_number: str | None
-
-
 class DropReopenResponse(CamelModel):
     drop_id: uuid.UUID
     manual_reopen: bool

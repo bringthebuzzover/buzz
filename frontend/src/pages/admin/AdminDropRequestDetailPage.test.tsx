@@ -64,7 +64,7 @@ function linkedDrop(publishedAt: number | null) {
     applyCloseAt: now + 8 * 86400000,
     manualReopen: false,
     stage: "request_received",
-    trackingNumber: null,
+    needsTracking: false,
     totalProductUnits: null,
     campaignHashtag: null,
     finalizedAt: null,

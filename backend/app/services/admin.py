@@ -547,41 +547,11 @@ async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str
     return {"user_id": str(user.id), "instagram_token_cleared": True}
 
 
-async def set_drop_tracking_number(
-    db: AsyncSession, drop_id: UUID, tracking_number: str
-) -> dict[str, Any]:
-    """Repair tracking on a drop already at or past awaiting_products."""
-    drop = await db.get(Drop, drop_id)
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-
-    awaiting_idx = _STAGE_ORDER.index(BrandTrackerStage.AWAITING_PRODUCTS.value)
-    if _STAGE_ORDER.index(drop.brand_tracker_stage) < awaiting_idx:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Tracking can only be set once the drop has reached awaiting_products.",
-            status_code=400,
-        )
-
-    cleaned = tracking_number.strip()
-    if not cleaned:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "tracking_number must be non-empty.",
-            status_code=400,
-        )
-
-    drop.tracking_number = cleaned
-    await db.flush()
-    return {"drop_id": str(drop.id), "tracking_number": drop.tracking_number}
-
-
 async def advance_tracker(
     db: AsyncSession,
     drop_id: UUID,
     stage: str,
     *,
-    tracking_number: str | None = None,
     note: str | None = None,
 ) -> dict[str, Any]:
     """Advance a drop's tracker stage (forward-only state machine, §8.5)."""
@@ -622,26 +592,14 @@ async def advance_tracker(
             status_code=400,
         )
 
-    awaiting = BrandTrackerStage.AWAITING_PRODUCTS.value
-    awaiting_idx = _STAGE_ORDER.index(awaiting)
-    # Tracking is only writable on the transition *into* awaiting_products, so
-    # jumping over that stage (or entering it without a number) permanently
-    # strands accepted orgs without a shipment reference.
+    awaiting_idx = _STAGE_ORDER.index(BrandTrackerStage.AWAITING_PRODUCTS.value)
+    # Jumping over awaiting_products skips the fulfillment stage brands see.
     if requested_idx > awaiting_idx and current_idx < awaiting_idx:
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,
-            "Advance to awaiting_products with a tracking number before drop_active.",
+            "Advance to awaiting_products before drop_active.",
             status_code=400,
         )
-    if requested == awaiting:
-        cleaned = (tracking_number or "").strip()
-        if not cleaned:
-            raise BuzzAPIException(
-                errors.VALIDATION_ERROR,
-                "tracking_number is required when advancing to awaiting_products.",
-                status_code=400,
-            )
-        tracking_number = cleaned
 
     drop.brand_tracker_stage = requested
     event = DropTrackerEvent(
@@ -650,11 +608,6 @@ async def advance_tracker(
         note=note,
     )
     db.add(event)
-
-    # At awaiting_products, store the tracking number on the drop (the brand's
-    # read-only tracker and org campaign views both read drops.tracking_number).
-    if requested == awaiting and tracking_number:
-        drop.tracking_number = tracking_number
 
     await db.flush()
     return {"drop_id": str(drop.id), "stage": drop.brand_tracker_stage}

@@ -16,6 +16,7 @@ from datetime import datetime
 from pydantic import field_serializer, field_validator
 
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
+from app.schemas.shipments import ShipmentItem
 
 _REMINDER_CHOICES = (5, 15, 60)
 
@@ -102,7 +103,7 @@ class ApplicationResponse(CamelModel):
     org_id: uuid.UUID
     decision: str
     pitch: str | None
-    tracking_number: str | None
+    shipments: list[ShipmentItem]
     allocated_units: int | None
     applied_at: datetime
     decision_at: datetime | None

@@ -553,7 +553,7 @@ async def scenario_admin_tracker(api: Api) -> None:
         "PATCH",
         f"/api/admin/drops/{did}/tracker",
         token=admin_tok,
-        json={"stage": "awaiting_products", "trackingNumber": "BASH-TRK-1"},
+        json={"stage": "awaiting_products"},
     )
     api.report.check(
         _err_code(r) == "DROP_NOT_IN_SELECTION_STAGE",
@@ -566,7 +566,7 @@ async def scenario_admin_tracker(api: Api) -> None:
         "PATCH",
         f"/api/admin/drops/{did}/tracker",
         token=admin_tok,
-        json={"stage": "awaiting_products", "trackingNumber": "BASH-TRK-1"},
+        json={"stage": "awaiting_products"},
     )
     api.report.check(
         _ok(r, 200), "tracker -> awaiting_products 200 (finalized)", str(r.status_code)

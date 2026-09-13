@@ -299,3 +299,23 @@ test("admin saves a draft from a ticket and publishes it", async ({ page }) => {
   await expect(page).toHaveURL(/hidden=1/);
   await expect(page.getByRole("link", { name: "E2E Config Title" })).toBeVisible();
 });
+
+test("admin can add two tracking numbers on an accepted applicant", async ({
+  page,
+}) => {
+  await loginAsAdmin(page);
+  await page.goto("/admin/drops");
+  await page.getByRole("link", { name: "Game Day Hoodies" }).click();
+  await page.getByTestId("tab-applicants").click();
+  await expect(page.getByText("Berkeley Rowing Club")).toBeVisible();
+  const tn = page.locator('[data-testid^="add-shipment-tn-"]').first();
+  const add = page.locator('[data-testid^="add-shipment-"]').filter({
+    hasText: "Add tracking",
+  }).first();
+  await tn.fill("1ZE2EADD001");
+  await add.click();
+  await expect(page.getByText("#1ZE2EADD001")).toBeVisible();
+  await tn.fill("999999999999");
+  await add.click();
+  await expect(page.getByText("#999999999999")).toBeVisible();
+});

@@ -5,23 +5,23 @@
  * facets of it. The tab lives in `?tab=` so a specific view is still a shareable
  * URL.
  *
- * The tracker is forward-only and two of its transitions are one-shot, which the
- * form has to make obvious: a tracking number is only writable on the move into
- * "awaiting products", and skipping past "finalizing agreements" before the brand
- * has picked applicants would strand every applicant permanently.
+ * The tracker is forward-only. Skipping past "finalizing agreements" before the
+ * brand has picked applicants would strand every applicant permanently.
+ * Tracking numbers live on accepted applicant seats, not on this advance.
  */
 import { useState, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import {
   useAdminDrop,
+  useAddApplicantShipment,
   useAdvanceTracker,
   useClearReopen,
+  useDeleteApplicantShipment,
   useHideDrop,
   usePatchAdminDropConfig,
   usePublishDrop,
   useReopenDrop,
-  useSetDropTracking,
   useUnhideDrop,
   type AdminApplicant,
   type AdminDropConfigPatch,
@@ -37,7 +37,6 @@ import {
   SuccessBanner,
   TextArea,
   TextField,
-  WarningBanner,
 } from "../../components/forms/controls";
 import { Modal } from "../../components/ui/Modal";
 import { STACK, TEXT } from "../../theme/tokens";
@@ -65,6 +64,7 @@ import {
   formatDateTime,
   toDatetimeLocalValue,
 } from "../../components/admin/labels";
+import { carrierLabel, type Shipment } from "../../utils/shipments";
 
 const TABS = [
   { id: "tracker", label: "Tracker" },
@@ -157,6 +157,7 @@ const APPLICANT_HEADERS = [
   "Posts",
   "Applied",
   "Ship to",
+  "Shipments",
 ] as const;
 
 function DecisionPill({ decision }: { decision: string }) {
@@ -469,30 +470,24 @@ function TrackerControls({
   currentStage,
   finalized,
   manualReopen,
-  currentTracking,
 }: {
   dropId: string;
   currentStage: string;
   finalized: boolean;
   manualReopen: boolean;
-  currentTracking: string | null;
 }) {
   const advance = useAdvanceTracker(dropId);
   const reopen = useReopenDrop(dropId);
   const clearReopen = useClearReopen(dropId);
-  const setTracking = useSetDropTracking(dropId);
   const [error, setError] = useState<string | null>(null);
-  const [repairTracking, setRepairTracking] = useState(currentTracking ?? "");
 
   const currentIndex = STAGE_ORDER.indexOf(
     currentStage as (typeof STAGE_ORDER)[number],
   );
   const forwardStages = STAGE_ORDER.slice(currentIndex + 1);
   const [stage, setStage] = useState<string>(forwardStages[0] ?? "");
-  const [trackingNumber, setTrackingNumber] = useState("");
   const [note, setNote] = useState("");
 
-  const needsTracking = stage === "awaiting_products";
   const awaitingIdx = STAGE_ORDER.indexOf("awaiting_products");
   const stageIdx = STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]);
   // The backend refuses any jump past selection while the brand has not decided
@@ -501,26 +496,20 @@ function TrackerControls({
   const blockedByFinalize =
     !finalized &&
     stageIdx > STAGE_ORDER.indexOf("finalizing_agreements");
-  // Jumping over awaiting_products would strand accepted orgs without tracking.
   const blockedBySkipAwaiting =
     currentIndex < awaitingIdx && stageIdx > awaitingIdx;
-  const canRepairTracking = currentIndex >= awaitingIdx;
   const liveOrFinished =
     currentStage === "drop_active" || currentStage === "drop_finished";
   // Live/finished + finalized: apply stays closed even with manual_reopen, so
   // do not offer a no-op "Reopen apply window" control.
   const canReopenApply = !(liveOrFinished && finalized);
   const advanceDisabled =
-    advance.isPending ||
-    blockedByFinalize ||
-    blockedBySkipAwaiting ||
-    (needsTracking && !trackingNumber.trim());
+    advance.isPending || blockedByFinalize || blockedBySkipAwaiting;
 
   const submit = async () => {
     setError(null);
     try {
-      await advance.mutateAsync({ stage, trackingNumber, note });
-      setTrackingNumber("");
+      await advance.mutateAsync({ stage, note });
       setNote("");
     } catch (err) {
       setError(
@@ -553,23 +542,10 @@ function TrackerControls({
     }
   };
 
-  const doRepairTracking = async () => {
-    setError(null);
-    try {
-      await setTracking.mutateAsync(repairTracking.trim());
-    } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Could not update the tracking number.",
-      );
-    }
-  };
-
   return (
     <Panel
       title="Tracker"
-      description="Stages only move forward. Tracking is required on the move into awaiting products. Pre-live reopen clears finalize for a new selection round; once a live or finished drop is finalized, apply stays closed."
+      description="Stages only move forward. Tracking numbers are added on accepted applicants. Pre-live reopen clears finalize for a new selection round; once a live or finished drop is finalized, apply stays closed."
     >
       <div className="space-y-4 px-4 py-4">
         {error && <ErrorNote>{error}</ErrorNote>}
@@ -595,18 +571,6 @@ function TrackerControls({
               ))}
             </Select>
 
-            {needsTracking && (
-              <TextField
-                id="tracker-tracking-number"
-                data-testid="tracker-tracking-number"
-                label="Tracking number (required)"
-                size="compact"
-                value={trackingNumber}
-                onChange={(event) => setTrackingNumber(event.target.value)}
-                placeholder="Required for this transition"
-              />
-            )}
-
             <div className="sm:col-span-2">
               <TextField
                 id="tracker-note"
@@ -620,12 +584,6 @@ function TrackerControls({
           </div>
         )}
 
-        {needsTracking && !trackingNumber.trim() && (
-          <WarningBanner>
-            Tracking is required on the move into this stage.
-          </WarningBanner>
-        )}
-
         {blockedByFinalize && (
           <ErrorBanner>
             The brand has not finalized its applicant selection. Advancing past
@@ -635,32 +593,8 @@ function TrackerControls({
 
         {blockedBySkipAwaiting && (
           <ErrorBanner>
-            Advance to awaiting_products with a tracking number before
-            drop_active.
+            Advance to awaiting_products before drop_active.
           </ErrorBanner>
-        )}
-
-        {canRepairTracking && (
-          <div className="grid grid-cols-1 gap-3 border-t border-buzz-lineMid pt-4 sm:grid-cols-[1fr_auto]">
-            <TextField
-              id="repair-tracking-number"
-              data-testid="repair-tracking-number"
-              label="Repair tracking number"
-              size="compact"
-              value={repairTracking}
-              onChange={(event) => setRepairTracking(event.target.value)}
-            />
-            <div className="flex items-end">
-              <ActionButton
-                testId="repair-tracking"
-                className="self-end"
-                disabled={setTracking.isPending || !repairTracking.trim()}
-                onClick={() => void doRepairTracking()}
-              >
-                {setTracking.isPending ? "Saving…" : "Save tracking"}
-              </ActionButton>
-            </div>
-          </div>
         )}
 
         {!canReopenApply && (
@@ -705,6 +639,95 @@ function TrackerControls({
   );
 }
 
+function ApplicantShipmentEditor({
+  applicant,
+}: {
+  applicant: AdminApplicant;
+}) {
+  const add = useAddApplicantShipment(applicant.id);
+  const remove = useDeleteApplicantShipment(applicant.id);
+  const [tn, setTn] = useState("");
+  const [carrier, setCarrier] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const shipments = (applicant.shipments ?? []) as Shipment[];
+
+  const onAdd = async () => {
+    setError(null);
+    try {
+      await add.mutateAsync({
+        trackingNumber: tn.trim(),
+        carrier: carrier || undefined,
+      });
+      setTn("");
+      setCarrier("");
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not add tracking.",
+      );
+    }
+  };
+
+  return (
+    <div
+      className="min-w-[14rem] space-y-2"
+      data-testid={`applicant-shipments-${applicant.id}`}
+    >
+      {error && <ErrorNote>{error}</ErrorNote>}
+      <ul className="space-y-1">
+        {shipments.map((s) => (
+          <li
+            key={s.id}
+            className="flex items-center justify-between gap-2 text-xs font-semibold"
+          >
+            <span>
+              {carrierLabel(s.carrier)} #{s.trackingNumber}
+            </span>
+            <button
+              type="button"
+              data-testid={`remove-shipment-${s.id}`}
+              className="text-buzz-coral hover:underline"
+              disabled={remove.isPending}
+              onClick={() => void remove.mutateAsync(s.id)}
+            >
+              Remove
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="flex flex-col gap-2">
+        <TextField
+          id={`add-tn-${applicant.id}`}
+          data-testid={`add-shipment-tn-${applicant.id}`}
+          label="Tracking number"
+          size="compact"
+          value={tn}
+          onChange={(e) => setTn(e.target.value)}
+        />
+        <Select
+          id={`add-carrier-${applicant.id}`}
+          data-testid={`add-shipment-carrier-${applicant.id}`}
+          size="compact"
+          label="Carrier (if not 1Z / FedEx digits)"
+          value={carrier}
+          onChange={(e) => setCarrier(e.target.value)}
+        >
+          <option value="">Infer</option>
+          <option value="ups">UPS</option>
+          <option value="fedex">FedEx</option>
+          <option value="unknown">Unknown</option>
+        </Select>
+        <ActionButton
+          testId={`add-shipment-${applicant.id}`}
+          disabled={add.isPending || !tn.trim()}
+          onClick={() => void onAdd()}
+        >
+          {add.isPending ? "Adding…" : "Add tracking"}
+        </ActionButton>
+      </div>
+    </div>
+  );
+}
+
 function Applicants({ applicants }: { applicants: AdminApplicant[] }) {
   return (
     <AdminTable
@@ -739,6 +762,13 @@ function Applicants({ applicants }: { applicants: AdminApplicant[] }) {
               applicant.decision,
               applicant.shippingCity,
               applicant.shippingState,
+            )}
+          </Cell>
+          <Cell>
+            {applicant.decision === "accepted" ? (
+              <ApplicantShipmentEditor applicant={applicant} />
+            ) : (
+              <span className="text-xs font-medium text-buzz-inkMuted">—</span>
             )}
           </Cell>
         </Row>
@@ -940,7 +970,6 @@ export default function AdminDropDetailPage() {
               currentStage={data.stage}
               finalized={data.finalizedAt !== null}
               manualReopen={data.manualReopen}
-              currentTracking={data.trackingNumber}
             />
           )}
 
@@ -961,9 +990,6 @@ export default function AdminDropDetailPage() {
                   ) : (
                     <Pill tone="warn">Not yet</Pill>
                   )}
-                </Field>
-                <Field label="Tracking number">
-                  {data.trackingNumber ?? "—"}
                 </Field>
                 <Field label="Published">
                   {data.publishedAt != null ? (

@@ -23,7 +23,7 @@ const erased: BrandDropApplicant = {
   allocatedUnits: null,
   deliveryAddress: null,
   accountErased: true,
-  trackingNumber: null,
+  shipments: [],
   attributedComments: 0,
   attributedEngagement: 0,
   attributedLikes: 0,

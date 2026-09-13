@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/api/admin/applications/{application_id}/shipments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Application Shipment */
+        post: operations["add_application_shipment_api_admin_applications__application_id__shipments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/applications/{application_id}/shipments/{shipment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Application Shipment */
+        delete: operations["delete_application_shipment_api_admin_applications__application_id__shipments__shipment_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/brands": {
         parameters: {
             query?: never;
@@ -318,23 +352,6 @@ export interface paths {
         patch: operations["advance_tracker_endpoint_api_admin_drops__drop_id__tracker_patch"];
         trace?: never;
     };
-    "/api/admin/drops/{drop_id}/tracking": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Set Drop Tracking Endpoint */
-        patch: operations["set_drop_tracking_endpoint_api_admin_drops__drop_id__tracking_patch"];
-        trace?: never;
-    };
     "/api/admin/drops/{drop_id}/unhide": {
         parameters: {
             query?: never;
@@ -594,6 +611,61 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/admin/tables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Admin Tables
+         * @description Allowlisted tables + column flags. Hidden columns never appear in row payloads.
+         */
+        get: operations["list_admin_tables_api_admin_tables_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/tables/{table}/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Query Admin Table */
+        post: operations["query_admin_table_api_admin_tables__table__query_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/tables/{table}/{row_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Table Row */
+        get: operations["get_admin_table_row_api_admin_tables__table___row_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Admin Table Row */
+        patch: operations["patch_admin_table_row_api_admin_tables__table___row_id__patch"];
         trace?: never;
     };
     "/api/admin/tools/cleanup-request-received": {
@@ -1832,6 +1904,13 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** AdminAddShipmentRequest */
+        AdminAddShipmentRequest: {
+            /** Carrier */
+            carrier?: string | null;
+            /** Trackingnumber */
+            trackingNumber: string;
+        };
         /** AdminApplicantItem */
         AdminApplicantItem: {
             /**
@@ -1869,12 +1948,12 @@ export interface components {
             orgName: string;
             /** Pitch */
             pitch: string | null;
+            /** Shipments */
+            shipments: components["schemas"]["ShipmentItem"][];
             /** Shippingcity */
             shippingCity: string | null;
             /** Shippingstate */
             shippingState: string | null;
-            /** Trackingnumber */
-            trackingNumber: string | null;
             /** University */
             university: string;
             /**
@@ -2156,6 +2235,8 @@ export interface components {
             location: string;
             /** Manualreopen */
             manualReopen: boolean;
+            /** Needstracking */
+            needsTracking: boolean;
             /** Pendingsuggestioncount */
             pendingSuggestionCount: number;
             /** Publishedat */
@@ -2168,8 +2249,6 @@ export interface components {
             totalProductUnits: number | null;
             /** Trackerevents */
             trackerEvents: components["schemas"]["AdminTrackerEventItem"][];
-            /** Trackingnumber */
-            trackingNumber: string | null;
         };
         /**
          * AdminDropHideRequest
@@ -2222,6 +2301,8 @@ export interface components {
             id: string;
             /** Manualreopen */
             manualReopen: boolean;
+            /** Needstracking */
+            needsTracking: boolean;
             /** Publishedat */
             publishedAt?: number | null;
             /** Stage */
@@ -2230,8 +2311,6 @@ export interface components {
             title: string;
             /** Totalproductunits */
             totalProductUnits: number | null;
-            /** Trackingnumber */
-            trackingNumber: string | null;
         };
         /** AdminDropRequestItem */
         AdminDropRequestItem: {
@@ -2542,6 +2621,72 @@ export interface components {
             /** Ok */
             ok: boolean;
         };
+        /** AdminTableColumn */
+        AdminTableColumn: {
+            /** Hidden */
+            hidden: boolean;
+            /** Name */
+            name: string;
+            /** Writable */
+            writable: boolean;
+        };
+        /** AdminTableInfo */
+        AdminTableInfo: {
+            /** Columns */
+            columns: components["schemas"]["AdminTableColumn"][];
+            /** Filterable */
+            filterable: string[];
+            /** Name */
+            name: string;
+            /** Writable */
+            writable: boolean;
+        };
+        /** AdminTablePatchRequest */
+        AdminTablePatchRequest: {
+            /** Fields */
+            fields: {
+                [key: string]: unknown;
+            };
+        };
+        /** AdminTableQueryRequest */
+        AdminTableQueryRequest: {
+            /** Filters */
+            filters?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Limit
+             * @default 25
+             */
+            limit: number;
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
+        };
+        /** AdminTableQueryResponse */
+        AdminTableQueryResponse: {
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+            /** Rows */
+            rows: {
+                [key: string]: unknown;
+            }[];
+            /** Table */
+            table: string;
+        };
+        /** AdminTableRowResponse */
+        AdminTableRowResponse: {
+            /** Row */
+            row: {
+                [key: string]: unknown;
+            };
+            /** Table */
+            table: string;
+        };
         /** AdminTrackerEventItem */
         AdminTrackerEventItem: {
             /**
@@ -2627,8 +2772,8 @@ export interface components {
             orgId: string;
             /** Pitch */
             pitch: string | null;
-            /** Trackingnumber */
-            trackingNumber: string | null;
+            /** Shipments */
+            shipments: components["schemas"]["ShipmentItem"][];
         };
         /** Body_instagram_deauthorize_api_auth_instagram_deauthorize_post */
         Body_instagram_deauthorize_api_auth_instagram_deauthorize_post: {
@@ -2753,8 +2898,8 @@ export interface components {
             pitch: string | null;
             /** Posts */
             posts: components["schemas"]["BrandDropPostItem"][];
-            /** Trackingnumber */
-            trackingNumber: string | null;
+            /** Shipments */
+            shipments: components["schemas"]["ShipmentItem"][];
             /** University */
             university: string;
         };
@@ -2815,8 +2960,6 @@ export interface components {
             totalProductUnits: number | null;
             /** Totalreach */
             totalReach: number;
-            /** Trackingnumber */
-            trackingNumber: string | null;
         };
         /**
          * BrandDropListItem
@@ -3050,12 +3193,12 @@ export interface components {
             orgId: string;
             /** Pitch */
             pitch: string | null;
+            /** Shipments */
+            shipments: components["schemas"]["ShipmentItem"][];
             /** Title */
             title: string;
             /** Totalproductunits */
             totalProductUnits: number | null;
-            /** Trackingnumber */
-            trackingNumber: string | null;
         };
         /**
          * CampaignListItem
@@ -3088,10 +3231,10 @@ export interface components {
             image: string;
             /** Pitch */
             pitch: string | null;
+            /** Shipments */
+            shipments: components["schemas"]["ShipmentItem"][];
             /** Title */
             title: string;
-            /** Trackingnumber */
-            trackingNumber: string | null;
         };
         /**
          * CancelPendingEduEmailRequest
@@ -3259,6 +3402,24 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[AdminTableQueryResponse] */
+        DataResponse_AdminTableQueryResponse_: {
+            data?: components["schemas"]["AdminTableQueryResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminTableRowResponse] */
+        DataResponse_AdminTableRowResponse_: {
+            data?: components["schemas"]["AdminTableRowResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[ApplicationResponse] */
         DataResponse_ApplicationResponse_: {
             data?: components["schemas"]["ApplicationResponse"] | null;
@@ -3370,15 +3531,6 @@ export interface components {
         /** DataResponse[DropReopenResponse] */
         DataResponse_DropReopenResponse_: {
             data?: components["schemas"]["DropReopenResponse"] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** DataResponse[DropTrackingResponse] */
-        DataResponse_DropTrackingResponse_: {
-            data?: components["schemas"]["DropTrackingResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -3520,6 +3672,15 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[ShipmentItem] */
+        DataResponse_ShipmentItem_: {
+            data?: components["schemas"]["ShipmentItem"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[TokenResponse] */
         DataResponse_TokenResponse_: {
             data?: components["schemas"]["TokenResponse"] | null;
@@ -3610,6 +3771,16 @@ export interface components {
         DataResponse_list_AdminPendingOrgItem__: {
             /** Data */
             data?: components["schemas"]["AdminPendingOrgItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[AdminTableInfo]] */
+        DataResponse_list_AdminTableInfo__: {
+            /** Data */
+            data?: components["schemas"]["AdminTableInfo"][] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -3822,16 +3993,6 @@ export interface components {
             dropId: string;
             /** Manualreopen */
             manualReopen: boolean;
-        };
-        /** DropTrackingResponse */
-        DropTrackingResponse: {
-            /**
-             * Dropid
-             * Format: uuid
-             */
-            dropId: string;
-            /** Trackingnumber */
-            trackingNumber: string | null;
         };
         /**
          * EngagementSeriesPoint
@@ -4387,6 +4548,20 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** ShipmentItem */
+        ShipmentItem: {
+            /** Carrier */
+            carrier: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Trackurl */
+            trackUrl: string | null;
+            /** Trackingnumber */
+            trackingNumber: string;
+        };
         /**
          * SuggestionResponse
          * @description A pending auto-link suggestion joined with its post (architecture §7.4.1).
@@ -4435,8 +4610,6 @@ export interface components {
             note?: string | null;
             /** Stage */
             stage: string;
-            /** Trackingnumber */
-            trackingNumber?: string | null;
         };
         /** TrackerAdvanceResponse */
         TrackerAdvanceResponse: {
@@ -4447,11 +4620,6 @@ export interface components {
             dropId: string;
             /** Stage */
             stage: string;
-        };
-        /** TrackingRepairRequest */
-        TrackingRepairRequest: {
-            /** Trackingnumber */
-            trackingNumber: string;
         };
         /**
          * UserResponse
@@ -4514,6 +4682,77 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    add_application_shipment_api_admin_applications__application_id__shipments_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminAddShipmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_ShipmentItem_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    delete_application_shipment_api_admin_applications__application_id__shipments__shipment_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     list_brands_endpoint_api_admin_brands_get: {
         parameters: {
             query?: {
@@ -5198,43 +5437,6 @@ export interface operations {
             };
         };
     };
-    set_drop_tracking_endpoint_api_admin_drops__drop_id__tracking_patch: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                drop_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TrackingRepairRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_DropTrackingResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
     unhide_drop_endpoint_api_admin_drops__drop_id__unhide_post: {
         parameters: {
             query?: never;
@@ -5690,6 +5892,146 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminOverviewResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    list_admin_tables_api_admin_tables_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_list_AdminTableInfo__"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    query_admin_table_api_admin_tables__table__query_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                table: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminTableQueryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminTableQueryResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    get_admin_table_row_api_admin_tables__table___row_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                table: string;
+                row_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminTableRowResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    patch_admin_table_row_api_admin_tables__table___row_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                table: string;
+                row_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminTablePatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminTableRowResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

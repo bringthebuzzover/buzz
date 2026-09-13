@@ -124,38 +124,46 @@ async def test_feed_notify_state_is_per_org(app_client: AsyncClient, db_session)
 # --- Gap 3: tracking number on the drop at awaiting_products (§5.2) -----------
 
 
-async def test_advance_to_awaiting_sets_drop_tracking_number(
+async def test_advance_to_awaiting_does_not_require_tracking(
     app_client: AsyncClient, db_session
 ) -> None:
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
-    # Advance into awaiting_products is forward-only; start one stage back, and
-    # mark selection finalized (required before advancing past finalizing_agreements).
     drop.brand_tracker_stage = BrandTrackerStage.FINALIZING_AGREEMENTS.value
     drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
     await db_session.flush()
 
     resp = await app_client.patch(
         f"/api/admin/drops/{drop.id}/tracker",
-        json={"stage": "awaiting_products", "trackingNumber": "1Z-TEST-999"},
+        json={"stage": "awaiting_products"},
         headers=await _admin_headers(db_session),
     )
     assert resp.status_code == 200, resp.text
     await db_session.refresh(drop)
-    assert drop.tracking_number == "1Z-TEST-999"
+    assert drop.tracking_number is None
 
 
-async def test_brand_drop_detail_exposes_tracking_number(
+async def test_brand_drop_detail_exposes_per_org_shipments(
     app_client: AsyncClient, db_session
 ) -> None:
     _, brand, headers = await _brand_ctx(db_session)
     drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
-    drop.tracking_number = "TRACK-123"
-    await db_session.flush()
+    org_user = await persist(db_session, make_user(instagram_user_id="ig_ship"))
+    org = await make_org(db_session, org_user)
+    application = await make_application(
+        db_session, drop, org, decision=ApplicationDecision.ACCEPTED
+    )
+    await app_client.post(
+        f"/api/admin/applications/{application.id}/shipments",
+        json={"trackingNumber": "1ZBRANDVIEW"},
+        headers=await _admin_headers(db_session),
+    )
 
     resp = await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=headers)
     assert resp.status_code == 200
-    assert resp.json()["data"]["trackingNumber"] == "TRACK-123"
+    assert "trackingNumber" not in resp.json()["data"]
+    seat = next(a for a in resp.json()["data"]["applications"] if a["id"] == str(application.id))
+    assert [s["trackingNumber"] for s in seat["shipments"]] == ["1ZBRANDVIEW"]
 
 
 # --- Gap 5: per-post listing grouped by org (§5.3.1) -------------------------
@@ -312,7 +320,7 @@ async def test_tracker_advance_allowed_after_finalized(app_client: AsyncClient, 
     # Must enter awaiting_products with tracking — cannot jump past it.
     resp = await app_client.patch(
         f"/api/admin/drops/{drop.id}/tracker",
-        json={"stage": "awaiting_products", "trackingNumber": "1Z-TEST"},
+        json={"stage": "awaiting_products"},
         headers=await _admin_headers(db_session),
     )
     assert resp.status_code == 200, resp.text

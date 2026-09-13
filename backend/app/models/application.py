@@ -46,7 +46,7 @@ class DropApplication(Base):
 
     decision: Mapped[str] = mapped_column(ApplicationDecisionEnum, nullable=False)
     pitch: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
-    # Shipment tracking lives on ``drops.tracking_number`` (one TN per drop).
+    # Shipment tracking lives on ``drop_application_shipments`` (0–N per seat).
     allocated_units: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
 
     applied_at: Mapped[datetime] = mapped_column(

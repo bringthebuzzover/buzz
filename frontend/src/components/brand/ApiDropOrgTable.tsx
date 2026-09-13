@@ -15,6 +15,8 @@ import { Chip } from "../ui/Chip";
 import { StatePanel } from "../ui/StatePanel";
 import { SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+import ShipmentList from "../shipments/ShipmentList";
+import type { Shipment } from "../../utils/shipments";
 
 type Props = {
   applicants: BrandDropApplicant[];
@@ -102,6 +104,16 @@ export default function ApiDropOrgTable({
                     Ship to: Not set — nowhere to ship product
                   </p>
                 )}
+                <div className="mt-3">
+                  <p className={cn(TEXT.micro, "mb-1 text-buzz-inkMuted")}>
+                    Shipments
+                  </p>
+                  <ShipmentList
+                    shipments={(a.shipments ?? []) as Shipment[]}
+                    empty="None yet"
+                    testId={`brand-org-shipments-${a.id}`}
+                  />
+                </div>
               </div>
               <div className={cn(TEXT.meta, "text-right font-semibold")}>
                 <span className="text-buzz-ink">{a.attributedPostCount}</span> posts ·{" "}

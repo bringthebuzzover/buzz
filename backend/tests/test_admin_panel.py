@@ -300,12 +300,19 @@ class TestDropList:
         tracked = await make_drop(
             db_session, brand, title="Tracked", stage=BrandTrackerStage.AWAITING_PRODUCTS
         )
-        tracked.tracking_number = "TRACK-1"
-        await db_session.flush()
-
-        res = await app_client.get(
-            "/api/admin/drops?attention=no_tracking", headers=await _admin_headers(db_session)
+        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, org_user)
+        app = await make_application(
+            db_session, tracked, org, decision=ApplicationDecision.ACCEPTED
         )
+        headers = await _admin_headers(db_session)
+        await app_client.post(
+            f"/api/admin/applications/{app.id}/shipments",
+            json={"trackingNumber": "1ZTRACKED"},
+            headers=headers,
+        )
+
+        res = await app_client.get("/api/admin/drops?attention=no_tracking", headers=headers)
         assert [r["title"] for r in res.json()["data"]] == ["No TN"]
 
     async def test_unknown_filters_rejected(self, app_client: AsyncClient, db_session):
@@ -362,13 +369,22 @@ class TestDropList:
         tracked = await make_drop(
             db_session, brand, title="Tracked", stage=BrandTrackerStage.AWAITING_PRODUCTS
         )
-        tracked.tracking_number = "TRACK-1"
+        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, org_user)
+        app = await make_application(
+            db_session, tracked, org, decision=ApplicationDecision.ACCEPTED
+        )
         await make_drop(db_session, brand, title="Active", stage=BrandTrackerStage.DROP_ACTIVE)
-        await db_session.flush()
+        headers = await _admin_headers(db_session)
+        await app_client.post(
+            f"/api/admin/applications/{app.id}/shipments",
+            json={"trackingNumber": "1ZTRACKED"},
+            headers=headers,
+        )
 
         res = await app_client.get(
             "/api/admin/drops?stage=awaiting_products&stage=drop_active&attention=no_tracking",
-            headers=await _admin_headers(db_session),
+            headers=headers,
         )
         assert [r["title"] for r in res.json()["data"]] == ["No TN"]
 

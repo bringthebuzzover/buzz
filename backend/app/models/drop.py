@@ -1,7 +1,8 @@
 """``drops`` table — a single brand campaign offered to student orgs.
 
 Brand display name lives on ``brands.brand_name`` (join via ``brand_id``).
-``tracking_number`` on this table is the campaign shipment SOT.
+``tracking_number`` is a leftover column — product paths read/write
+``drop_application_shipments`` instead (PRODUCT §3.1.1).
 
 ``total_product_units`` is nullable to distinguish two campaign modes
 (architecture §3.2 + PRODUCT.md §4.1):

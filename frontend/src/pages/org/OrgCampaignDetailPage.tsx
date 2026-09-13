@@ -19,12 +19,14 @@ import { Chip } from "../../components/ui/Chip";
 import { StatePanel } from "../../components/ui/StatePanel";
 import { GAP, STACK, SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+import ShipmentList from "../../components/shipments/ShipmentList";
+import type { Shipment } from "../../utils/shipments";
 
 function shipmentOnTheWay(detail: {
-  trackingNumber: string | null;
+  shipments?: Shipment[];
   brandTrackerStage: string;
 }): boolean {
-  if (detail.trackingNumber) return true;
+  if ((detail.shipments ?? []).length > 0) return true;
   const idx = BRAND_DROP_TRACKER_FULL_ORDER.indexOf(
     detail.brandTrackerStage as (typeof BRAND_DROP_TRACKER_FULL_ORDER)[number],
   );
@@ -139,19 +141,15 @@ function ApiCampaignDetail() {
                   ? "You are accepted! Your shipment is on the way."
                   : "Accepted — awaiting shipping."}
               </p>
-              {detail.trackingNumber ? (
-                <div
-                  className={cn(
-                    SURFACE.inset,
-                    "mt-4 inline-flex items-center gap-2 px-4 py-2",
-                  )}
-                >
-                  <span className={cn(TEXT.micro, "text-buzz-inkMuted")}>
+              {(detail.shipments ?? []).length > 0 ? (
+                <div className={cn(SURFACE.inset, "mt-4 px-4 py-3")}>
+                  <p className={cn(TEXT.micro, "mb-2 text-buzz-inkMuted")}>
                     Tracking
-                  </span>
-                  <span className={cn(TEXT.body, "font-semibold text-buzz-ink")}>
-                    #{detail.trackingNumber}
-                  </span>
+                  </p>
+                  <ShipmentList
+                    shipments={detail.shipments ?? []}
+                    testId="org-campaign-shipments"
+                  />
                 </div>
               ) : null}
             </div>
@@ -161,6 +159,15 @@ function ApiCampaignDetail() {
 
       {status === "active" || status === "finished" ? (
         <div className={STACK.group}>
+          {(detail.shipments ?? []).length > 0 ? (
+            <Card kind="card" pad="roomy">
+              <h2 className={cn(TEXT.h2, "mb-2")}>Shipments</h2>
+              <ShipmentList
+                shipments={detail.shipments ?? []}
+                testId="org-campaign-shipments"
+              />
+            </Card>
+          ) : null}
           <Card kind="card" pad="roomy">
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               <div className="text-center">

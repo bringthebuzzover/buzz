@@ -22,6 +22,7 @@ from pydantic.alias_generators import to_camel
 
 from app.schemas.auth import UserResponse
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
+from app.schemas.shipments import ShipmentItem
 
 
 def _epoch_ms_to_aware(value: Any) -> Any:
@@ -70,12 +71,7 @@ class AdminPendingBrandItem(CamelModel):
 
 class TrackerAdvanceRequest(CamelModel):
     stage: str
-    tracking_number: str | None = None
     note: str | None = None
-
-
-class TrackingRepairRequest(CamelModel):
-    tracking_number: str
 
 
 class AdminDropConfigPatch(CamelModel):
@@ -442,7 +438,7 @@ class AdminDropItem(CamelModel):
     apply_open_at: datetime
     apply_close_at: datetime
     manual_reopen: bool
-    tracking_number: str | None
+    needs_tracking: bool
     campaign_hashtag: str | None
     finalized_at: datetime | None
     published_at: datetime | None = None
@@ -503,7 +499,7 @@ class AdminApplicantItem(CamelModel):
     decision: str
     allocated_units: int | None
     pitch: str | None
-    tracking_number: str | None
+    shipments: list[ShipmentItem]
     linked_post_count: int
     applied_at: datetime
     decision_at: datetime | None
@@ -544,7 +540,7 @@ class AdminDropDetail(CamelModel):
     allocated_units: int
     campaign_hashtag: str | None
     brand_can_edit_creative: bool
-    tracking_number: str | None
+    needs_tracking: bool
     manual_reopen: bool
     apply_open_at: datetime
     apply_close_at: datetime
