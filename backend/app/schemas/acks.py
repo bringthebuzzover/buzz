@@ -113,6 +113,19 @@ class AdminOrgEraseResponse(CamelModel):
     email_to_domain: str | None = None
 
 
+class AdminBrandEraseRequest(CamelModel):
+    """Typed confirm payload — company email (PRODUCT §3.1.3)."""
+
+    confirm: str
+
+
+class AdminBrandEraseResponse(CamelModel):
+    brand_id: uuid.UUID
+    status: str
+    email_sent: bool
+    email_to_domain: str | None = None
+
+
 class AdminOrgStatusResponse(CamelModel):
     org_id: uuid.UUID
     status: str

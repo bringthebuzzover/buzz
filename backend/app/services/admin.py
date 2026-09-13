@@ -134,6 +134,15 @@ def _refuse_erased_org(user: User) -> None:
         )
 
 
+def _refuse_erased_brand(brand: Brand) -> None:
+    if brand.status == BrandStatus.ERASED.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Brand account has been erased.",
+            status_code=409,
+        )
+
+
 async def approve_org(
     db: AsyncSession,
     org_id: UUID,
@@ -262,6 +271,9 @@ async def list_brands(db: AsyncSession, *, status: str | None = None) -> list[di
     stmt = select(Brand, User).join(User, User.id == Brand.user_id).order_by(Brand.created_at.asc())
     if status is not None:
         stmt = stmt.where(Brand.status == status)
+    else:
+        # All filter excludes erased tombstones (PRODUCT §3.1.3); use ?status=erased.
+        stmt = stmt.where(Brand.status != BrandStatus.ERASED.value)
 
     rows = list(await db.execute(stmt))
     return [
@@ -506,6 +518,7 @@ async def compose_brand_email(
     brand = await db.get(Brand, brand_id)
     if brand is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
+    _refuse_erased_brand(brand)
     to_email = (brand.company_email or "").strip()
     if not to_email:
         raise BuzzAPIException(
@@ -551,6 +564,7 @@ async def add_org_to_drop(
     brand = await db.get(Brand, drop.brand_id)
     if brand is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
+    _refuse_erased_brand(brand)
 
     org = await db.get(Organization, org_id)
     if org is None:
@@ -665,6 +679,10 @@ async def sync_and_autolink_drop(
             "Sync and autolink only run on a published, visible, Active drop.",
             status_code=409,
         )
+    brand = await db.get(Brand, drop.brand_id)
+    if brand is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
+    _refuse_erased_brand(brand)
 
     orgs = list(
         await db.scalars(

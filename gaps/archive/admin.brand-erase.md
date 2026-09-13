@@ -3,7 +3,7 @@ id: admin.brand-erase
 title: Admin has no brand erase; only org hybrid erase exists
 kind: ops
 severity: P2
-status: open
+status: fixed
 surface: admin
 evidence:
   - path: backend/app/services/admin_erase.py

@@ -349,6 +349,30 @@ async def send_org_erased_email(to_email: str, *, org_name: str = "") -> bool:
     return await _dispatch(to_email, subject, body)
 
 
+async def send_brand_erased_email(to_email: str, *, brand_name: str = "") -> bool:
+    """Confirm a brand account was erased after a data-deletion request."""
+    subject = "Your Buzz account data has been deleted"
+    name = brand_name or "your brand"
+    body = (
+        f"We've completed your data deletion request for {name} on Buzz.\n\n"
+        "Your Buzz login identity and contact details on file have been removed "
+        "or anonymized. Campaign records orgs already participated in may stay "
+        "visible to those organizations as an anonymized brand name.\n\n"
+        "If you have questions, reply to this email."
+    )
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Brand erased (data deletion):                  ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+
+    return await _dispatch(to_email, subject, body)
+
+
 async def send_brand_denied_email(to_email: str, *, brand_name: str = "") -> bool:
     """Tell a brand their application was not approved."""
     subject = "Update on your Buzz application"

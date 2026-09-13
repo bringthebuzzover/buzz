@@ -403,6 +403,27 @@ export function useEraseOrg() {
   });
 }
 
+export type AdminBrandEraseResult =
+  components["schemas"]["AdminBrandEraseResponse"];
+
+export function useEraseBrand() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { brandId: string; confirm: string }) => {
+      const { data } = await apiFetch<AdminBrandEraseResult>(
+        `/api/admin/brands/${input.brandId}/erase`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ confirm: input.confirm }),
+        },
+      );
+      return data;
+    },
+    onSuccess: () => invalidateAdmin(queryClient),
+  });
+}
+
 export type AdminComposeEmailResult =
   components["schemas"]["AdminComposeEmailResponse"];
 
