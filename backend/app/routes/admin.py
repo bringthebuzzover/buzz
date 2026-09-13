@@ -21,6 +21,8 @@ from app.response import APIResponse, DataResponse, api_response
 from app.schemas.acks import (
     AdminBrandInviteResponse,
     AdminBrandStatusResponse,
+    AdminComposeEmailRequest,
+    AdminComposeEmailResponse,
     AdminDropHideRequest,
     AdminOrgEraseRequest,
     AdminOrgEraseResponse,
@@ -59,6 +61,8 @@ from app.services.admin import (
     cleanup_request_received_stubs,
     clear_manual_reopen,
     clear_org_instagram_token,
+    compose_brand_email,
+    compose_org_email,
     create_admin_drop,
     create_brand,
     deny_brand,
@@ -174,6 +178,21 @@ async def erase_org_endpoint(
     """Hybrid erase: scrub identity/PII; keep campaign KPIs (PRODUCT §3.1.2 / §4.3)."""
     result = await erase_org_user(db, user_id, body.confirm)
     return api_response(data=AdminOrgEraseResponse.model_validate(result))
+
+
+@router.post(
+    "/orgs/{user_id}/send-email",
+    response_model=DataResponse[AdminComposeEmailResponse],
+)
+async def compose_org_email_endpoint(
+    user_id: uuid.UUID,
+    body: AdminComposeEmailRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Freeform Resend to the org .edu. To is the profile email, not the body."""
+    result = await compose_org_email(db, user_id, body.subject, body.body)
+    return api_response(data=AdminComposeEmailResponse.model_validate(result))
 
 
 @router.post("/orgs/{org_id}/approve", response_model=DataResponse[AdminOrgStatusResponse])
@@ -309,6 +328,21 @@ async def resend_brand_invite_endpoint(
 ) -> APIResponse:
     result = await resend_brand_invite(db, brand_id)
     return api_response(data=AdminBrandInviteResponse.model_validate(result))
+
+
+@router.post(
+    "/brands/{brand_id}/send-email",
+    response_model=DataResponse[AdminComposeEmailResponse],
+)
+async def compose_brand_email_endpoint(
+    brand_id: uuid.UUID,
+    body: AdminComposeEmailRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Freeform Resend to the brand company email. To is not client-supplied."""
+    result = await compose_brand_email(db, brand_id, body.subject, body.body)
+    return api_response(data=AdminComposeEmailResponse.model_validate(result))
 
 
 # ── Drop requests (intake tickets) ───────────────────────────────────────────

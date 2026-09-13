@@ -403,6 +403,55 @@ export function useEraseOrg() {
   });
 }
 
+export type AdminComposeEmailResult =
+  components["schemas"]["AdminComposeEmailResponse"];
+
+export function useSendOrgEmail() {
+  return useMutation({
+    mutationFn: async (input: {
+      userId: string;
+      subject: string;
+      body: string;
+    }) => {
+      const { data } = await apiFetch<AdminComposeEmailResult>(
+        `/api/admin/orgs/${input.userId}/send-email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject: input.subject,
+            body: input.body,
+          }),
+        },
+      );
+      return data;
+    },
+  });
+}
+
+export function useSendBrandEmail() {
+  return useMutation({
+    mutationFn: async (input: {
+      brandId: string;
+      subject: string;
+      body: string;
+    }) => {
+      const { data } = await apiFetch<AdminComposeEmailResult>(
+        `/api/admin/brands/${input.brandId}/send-email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject: input.subject,
+            body: input.body,
+          }),
+        },
+      );
+      return data;
+    },
+  });
+}
+
 export function useClearReopen(dropId: string) {
   return useAdminMutation((_: void) =>
     apiFetch(`/api/admin/drops/${dropId}/clear-reopen`, { method: "POST" }),

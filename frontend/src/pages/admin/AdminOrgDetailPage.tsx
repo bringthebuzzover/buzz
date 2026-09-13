@@ -15,7 +15,7 @@
  */
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { Mail, Trash2 } from "lucide-react";
 import {
   useAdminOrg,
   useApproveOrg,
@@ -23,6 +23,7 @@ import {
   useDenyOrg,
   useEraseOrg,
   useResendOrgConnect,
+  useSendOrgEmail,
   useUndenyOrg,
   useViewAs,
 } from "../../api/hooks/useAdminHooks";
@@ -51,6 +52,7 @@ import { Button, SuccessBanner, TextField } from "../../components/forms/control
 import { Modal } from "../../components/ui/Modal";
 import { STACK } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+import ComposeEmailModal from "../../components/admin/ComposeEmailModal";
 
 function confirmHandleMatches(typed: string, stored: string): boolean {
   const normalize = (value: string) =>
@@ -68,6 +70,7 @@ export default function AdminOrgDetailPage() {
   const resendConnect = useResendOrgConnect();
   const clearIg = useClearOrgInstagramToken();
   const erase = useEraseOrg();
+  const sendEmail = useSendOrgEmail();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
   const [eraseNotice, setEraseNotice] = useState<string | null>(null);
   const [eraseError, setEraseError] = useState<string | null>(null);
@@ -76,6 +79,7 @@ export default function AdminOrgDetailPage() {
   const [testerInviteConfirmed, setTesterInviteConfirmed] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [composeOpen, setComposeOpen] = useState(false);
 
   const data = org.data;
   const erased = data?.status === "erased";
@@ -86,6 +90,7 @@ export default function AdminOrgDetailPage() {
     clearIg.isPending ||
     erase.isPending ||
     resendConnect.isPending;
+  const canWriteEmail = Boolean(data?.eduEmail) && !erased;
   const tokenExpired =
     data?.instagramTokenExpiresAt !== null &&
     data?.instagramTokenExpiresAt !== undefined &&
@@ -275,6 +280,18 @@ export default function AdminOrgDetailPage() {
                     View as
                   </ActionButton>
                 )}
+                {canWriteEmail && (
+                  <ActionButton
+                    testId="write-email"
+                    disabled={busy || sendEmail.isPending}
+                    onClick={() => setComposeOpen(true)}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      <Mail size={14} aria-hidden />
+                      Write email
+                    </span>
+                  </ActionButton>
+                )}
                 {canErase && (
                   <HeadingIconButton
                     testId="erase-org"
@@ -332,6 +349,23 @@ export default function AdminOrgDetailPage() {
                 </div>
               </div>
             </Modal>
+          )}
+
+          {composeOpen && canWriteEmail && data.eduEmail && (
+            <ComposeEmailModal
+              toEmail={data.eduEmail}
+              recipientName={data.orgName ?? "there"}
+              sending={sendEmail.isPending}
+              onClose={() => setComposeOpen(false)}
+              onSend={async ({ subject, body }) => {
+                await sendEmail.mutateAsync({
+                  userId: data.userId,
+                  subject,
+                  body,
+                });
+                setActionNotice("Email sent.");
+              }}
+            />
           )}
 
           {erased && (

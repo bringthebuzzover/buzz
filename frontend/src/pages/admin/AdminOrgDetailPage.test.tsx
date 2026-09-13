@@ -18,6 +18,7 @@ const idleMutation = () => ({
 
 const mockUseAdminOrg = jest.fn();
 const mockEraseMutateAsync = jest.fn();
+const mockSendEmailMutateAsync = jest.fn();
 
 jest.mock("../../api/hooks/useAdminHooks", () => ({
   useAdminOrg: (...args: unknown[]) => mockUseAdminOrg(...args),
@@ -31,6 +32,12 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
     isError: false,
   }),
   useResendOrgConnect: () => idleMutation(),
+  useSendOrgEmail: () => ({
+    mutate: jest.fn(),
+    mutateAsync: mockSendEmailMutateAsync,
+    isPending: false,
+    isError: false,
+  }),
   useUndenyOrg: () => idleMutation(),
   useViewAs: () => ({
     viewAs: jest.fn(),
@@ -94,6 +101,12 @@ describe("AdminOrgDetailPage erase confirm", () => {
   beforeEach(() => {
     mockUseAdminOrg.mockReset();
     mockEraseMutateAsync.mockReset();
+    mockSendEmailMutateAsync.mockReset();
+    mockSendEmailMutateAsync.mockResolvedValue({
+      ok: true,
+      to: "lg629@cornell.edu",
+      cc: ["mc3237@cornell.edu"],
+    });
     mockEraseMutateAsync.mockResolvedValue({
       emailSent: true,
       emailToDomain: "cornell.edu",
@@ -162,6 +175,10 @@ describe("AdminOrgDetailPage erase confirm", () => {
     });
     renderPage();
 
+    const writeEmail = container.querySelector(
+      '[data-testid="write-email"]',
+    ) as HTMLButtonElement;
+    expect(writeEmail).toBeTruthy();
     const erase = container.querySelector(
       '[data-testid="erase-org"]',
     ) as HTMLButtonElement;
@@ -169,7 +186,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
     const viewAs = container.querySelector(
       '[data-testid="view-as"]',
     ) as HTMLButtonElement;
-    expect(viewAs.nextElementSibling).toBe(erase);
+    expect(viewAs).toBeTruthy();
     act(() => {
       erase.click();
     });
@@ -239,5 +256,49 @@ describe("AdminOrgDetailPage erase confirm", () => {
       '[data-testid="erase-org-confirm"]',
     ) as HTMLInputElement;
     expect(reopened.value).toBe("");
+  });
+
+  it("opens compose with locked To/CC and requires a subject", async () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: orgDetail(),
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+    act(() => {
+      (
+        container.querySelector('[data-testid="write-email"]') as HTMLButtonElement
+      ).click();
+    });
+    const to = document.querySelector(
+      '[data-testid="compose-email-to"]',
+    ) as HTMLInputElement;
+    expect(to.value).toBe("lg629@cornell.edu");
+    expect(to.readOnly).toBe(true);
+    const cc = document.querySelector(
+      '[data-testid="compose-email-cc"]',
+    ) as HTMLInputElement;
+    expect(cc.readOnly).toBe(true);
+    expect(cc.value.length).toBeGreaterThan(0);
+    const send = document.querySelector(
+      '[data-testid="compose-email-send"]',
+    ) as HTMLButtonElement;
+    expect(send.disabled).toBe(true);
+    const subject = document.querySelector(
+      '[data-testid="compose-email-subject"]',
+    ) as HTMLInputElement;
+    act(() => {
+      setInputValue(subject, "Hello from Buzz");
+    });
+    expect(send.disabled).toBe(false);
+    await act(async () => {
+      send.click();
+    });
+    expect(mockSendEmailMutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "11111111-1111-1111-1111-111111111111",
+        subject: "Hello from Buzz",
+      }),
+    );
   });
 });

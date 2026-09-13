@@ -596,6 +596,51 @@
         "title": "AdminCleanupStubsResponse",
         "type": "object"
       },
+      "AdminComposeEmailRequest": {
+        "description": "Subject + body only \u2014 To is the profile email, never client-supplied.",
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "body"
+        ],
+        "title": "AdminComposeEmailRequest",
+        "type": "object"
+      },
+      "AdminComposeEmailResponse": {
+        "properties": {
+          "cc": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cc",
+            "type": "array"
+          },
+          "ok": {
+            "default": true,
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "to": {
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "to",
+          "cc"
+        ],
+        "title": "AdminComposeEmailResponse",
+        "type": "object"
+      },
       "AdminCreateBrandRequest": {
         "description": "Admin-provisioned brand (works when public self-reg is off).",
         "properties": {
@@ -3974,6 +4019,44 @@
           }
         },
         "title": "DataResponse[AdminCleanupStubsResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminComposeEmailResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminComposeEmailResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminComposeEmailResponse]",
         "type": "object"
       },
       "DataResponse_AdminDropDetail_": {
@@ -8791,6 +8874,76 @@
         ]
       }
     },
+    "/api/admin/brands/{brand_id}/send-email": {
+      "post": {
+        "description": "Freeform Resend to the brand company email. To is not client-supplied.",
+        "operationId": "compose_brand_email_endpoint_api_admin_brands__brand_id__send_email_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "brand_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Brand Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminComposeEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminComposeEmailResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Compose Brand Email Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/brands/{brand_id}/undeny": {
       "post": {
         "operationId": "undeny_brand_endpoint_api_admin_brands__brand_id__undeny_post",
@@ -10328,6 +10481,76 @@
           }
         },
         "summary": "Erase Org Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/orgs/{user_id}/send-email": {
+      "post": {
+        "description": "Freeform Resend to the org .edu. To is the profile email, not the body.",
+        "operationId": "compose_org_email_endpoint_api_admin_orgs__user_id__send_email_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminComposeEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminComposeEmailResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Compose Org Email Endpoint",
         "tags": [
           "admin"
         ]

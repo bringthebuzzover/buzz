@@ -109,7 +109,7 @@ Mounted in `backend/app/main.py`:
 | `/api/drops/*` | `routes/drops.py` | Org feed, detail, apply, Notify Me |
 | `/api/campaigns/*` | `routes/campaigns.py` | My campaigns, link/unlink, suggestions, aggregate |
 | `/api/brands/*` | `routes/brands.py` | Apply, brand profile, drops, finalize, aggregates |
-| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org erase (`POST …/orgs/{user_id}/erase` → `services/admin_erase.py`), drop config/tracker/hide/unhide, health, impersonate |
+| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org erase, compose email, drop config/tracker/hide/unhide, health, impersonate |
 
 Thin routes; business logic in `backend/app/services/`.
 
