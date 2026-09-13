@@ -405,7 +405,7 @@ async def patch_table_row(
     elif table == "drop_applications":
         _patch_application(row, updates)
     elif table == "drop_application_shipments":
-        _patch_shipment(row, updates)
+        await _patch_shipment(db, row, updates)
     elif table == "notify_me":
         _patch_notify(row, updates)
     elif table == "org_apply_prefills":
@@ -522,7 +522,9 @@ def _patch_application(row: DropApplication, updates: dict[str, Any]) -> None:
         row.pitch = None if pitch is None else str(pitch)
 
 
-def _patch_shipment(row: DropApplicationShipment, updates: dict[str, Any]) -> None:
+async def _patch_shipment(
+    db: AsyncSession, row: DropApplicationShipment, updates: dict[str, Any]
+) -> None:
     if "carrier" in updates:
         carrier = str(updates.pop("carrier") or "").strip().lower()
         if carrier not in CARRIERS:
@@ -538,12 +540,33 @@ def _patch_shipment(row: DropApplicationShipment, updates: dict[str, Any]) -> No
             raise BuzzAPIException(
                 errors.VALIDATION_ERROR, "tracking_number is required.", status_code=400
             )
+        taken = await db.scalar(
+            select(DropApplicationShipment.id).where(
+                DropApplicationShipment.application_id == row.application_id,
+                DropApplicationShipment.tracking_number == tn,
+                DropApplicationShipment.id != row.id,
+            )
+        )
+        if taken is not None:
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                "That tracking number is already on this organization.",
+                status_code=409,
+            )
         row.tracking_number = tn
 
 
 def _patch_notify(row: NotifyMe, updates: dict[str, Any]) -> None:
     if "reminder_minutes" in updates:
-        minutes = int(updates.pop("reminder_minutes"))
+        raw = updates.pop("reminder_minutes")
+        try:
+            minutes = int(raw)
+        except (TypeError, ValueError) as exc:
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                "reminder_minutes must be 5, 15, or 60.",
+                status_code=400,
+            ) from exc
         if minutes not in _NOTIFY_MINUTES:
             raise BuzzAPIException(
                 errors.VALIDATION_ERROR,
