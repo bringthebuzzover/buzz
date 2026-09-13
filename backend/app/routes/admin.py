@@ -19,6 +19,8 @@ from app.deps.db import get_db
 from app.models.enums import BrandStatus, OrgUserStatus
 from app.response import APIResponse, DataResponse, api_response
 from app.schemas.acks import (
+    AdminAddOrgRequest,
+    AdminAddOrgResponse,
     AdminBrandInviteResponse,
     AdminBrandStatusResponse,
     AdminComposeEmailRequest,
@@ -63,6 +65,7 @@ from app.schemas.admin_tables import (
 from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
 from app.services.address import AddressClient, get_address_client
 from app.services.admin import (
+    add_org_to_drop,
     advance_tracker,
     approve_brand,
     approve_org,
@@ -495,6 +498,28 @@ async def unhide_drop_endpoint(
 ) -> APIResponse:
     await unhide_drop(db, drop_id)
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
+
+
+@router.post(
+    "/drops/{drop_id}/add-org",
+    response_model=DataResponse[AdminAddOrgResponse],
+)
+async def add_org_to_drop_endpoint(
+    drop_id: uuid.UUID,
+    payload: AdminAddOrgRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Accept an org onto a published drop without reopening apply."""
+    result = await add_org_to_drop(
+        db,
+        drop_id,
+        payload.org_id,
+        allocated_units=payload.allocated_units,
+        email_org=payload.email_org,
+        email_brand=payload.email_brand,
+    )
+    return api_response(data=AdminAddOrgResponse.model_validate(result))
 
 
 @router.patch("/drops/{drop_id}", response_model=DataResponse[AdminDropDetail])

@@ -571,7 +571,9 @@ async def finalize_applicants(
     ).one()
     prior_accepted_count = int(prior_row[0] or 0)
     prior_allocated_units = int(prior_row[1] or 0)
-    remaining_capacity = drop.capacity_total - prior_accepted_count
+    # Admin late-add may overbook; do not let a negative remainder 400 an
+    # empty finalize that only denies leftover applied rows.
+    remaining_capacity = max(0, drop.capacity_total - prior_accepted_count)
 
     # Rule 5: selected count ≤ remaining capacity
     selected_count = len(allocations)
@@ -585,7 +587,7 @@ async def finalize_applicants(
     # Rule 6: unit budget (only when total_product_units is set)
     if drop.total_product_units is not None:
         sum_units = sum(item["units"] for item in allocations)
-        remaining_units = drop.total_product_units - prior_allocated_units
+        remaining_units = max(0, drop.total_product_units - prior_allocated_units)
         if sum_units > remaining_units:
             raise BuzzAPIException(
                 errors.UNIT_BUDGET_EXCEEDED,

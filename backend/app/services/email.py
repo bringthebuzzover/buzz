@@ -598,6 +598,86 @@ async def send_admin_compose_email(to_email: str, subject: str, body: str) -> bo
     return await _dispatch(to_email, subject, body, html=html, cc=cc or None)
 
 
+async def send_late_add_org_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+    drop_title: str = "",
+    brand_name: str = "",
+    campaign_url: str,
+) -> bool:
+    """Tell an org Buzz added them to a campaign (admin late-add)."""
+    name = org_name or "your organization"
+    title = drop_title or "a Buzz campaign"
+    brand = brand_name or "a brand"
+    subject = f"You've been added to {title}"
+    text = (
+        f"{name} was added to {title} ({brand}) by Buzz.\n\n"
+        "Open My Campaigns for next steps:\n\n"
+        f"{campaign_url}\n"
+    )
+    html = _cta_html(
+        campaign_url,
+        subject=subject,
+        button="Open campaign",
+        paragraphs=[
+            f"{name} was added to {title} ({brand}) by Buzz.",
+            "Open My Campaigns for next steps.",
+        ],
+    )
+    cc = _ops_cc(exclude=to_email)
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Late-add org:                                  ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            f"║  Drop: {title[:50]:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+    return await _dispatch(to_email, subject, text, html=html, cc=cc or None)
+
+
+async def send_late_add_brand_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+    drop_title: str = "",
+    brand_name: str = "",
+    drop_url: str,
+) -> bool:
+    """Tell a brand Buzz added an org to their campaign (admin late-add)."""
+    name = brand_name or "your brand"
+    title = drop_title or "your campaign"
+    org = org_name or "an organization"
+    subject = f"{org} was added to {title}"
+    text = (
+        f"Buzz added {org} to {title} for {name}.\n\n"
+        "This can put the campaign over the published spot count.\n\n"
+        f"{drop_url}\n"
+    )
+    html = _cta_html(
+        drop_url,
+        subject=subject,
+        button="View drop",
+        paragraphs=[
+            f"Buzz added {org} to {title} for {name}.",
+            "This can put the campaign over the published spot count.",
+        ],
+    )
+    cc = _ops_cc(exclude=to_email)
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Late-add brand:                                ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            f"║  Drop: {title[:50]:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+    return await _dispatch(to_email, subject, text, html=html, cc=cc or None)
+
+
 async def _dispatch(
     to_email: str,
     subject: str,

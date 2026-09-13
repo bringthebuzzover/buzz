@@ -43,7 +43,7 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 - **Campaign (org context):** An org’s participation in a specific drop (application through completion).
 - **Spot:** One org slot in a drop’s fixed capacity.
 - **Buzz / Admin:** Internal operators who onboard brands and orgs to the platform, manage **drop-request tickets** and **drop tracker** stages after publish (**§5.2**), agreements and exception handling, and operate behind the scenes where the product does not give the brand a direct control.
-- **Drop applicant decisions:** After the application window closes, the **brand** **batch-finalizes** applicants (approve or deny up to capacity). Rules: **§7.1**. No accept writes while the chronological Open window is still running.
+- **Drop applicant decisions:** After the application window closes, the **brand** **batch-finalizes** applicants (approve or deny up to remaining capacity). Rules: **§7.1**. Brands do not accept while the chronological Open window is still running. **Buzz admin** may late-add an accepted seat anytime on a published, unhidden, unfinished drop (**§7.1**).
 
 ---
 
@@ -95,7 +95,7 @@ Production users cannot switch portals. Internal operators use admin **View as**
 
 ### 4.1 Capacity & application window (timing)
 
-Each drop has a **fixed maximum number of organization spots** (e.g. 10). Drops may also carry an **optional total product unit budget** (`total_product_units` — **nullable** when units are unknown or not applicable at request time) that brands distribute across approved orgs during **batch finalize** after the window closes (**§7.1**). Multiple orgs may **apply** while the drop is **Open**. During Open, applications stay **pending review** — brands do **not** accept or deny while `now <= apply_close_at`.
+Each drop has a **fixed published number of organization spots** (e.g. 10). Admin late-add may **overbook** without raising that number. Drops may also carry an **optional total product unit budget** (`total_product_units` — **nullable** when units are unknown or not applicable at request time) that brands distribute across approved orgs during **batch finalize** after the window closes (**§7.1**); admin late-add may also allocate units and may exceed the budget. Multiple orgs may **apply** while the drop is **Open**. During Open, applications stay **pending review** — brands do **not** accept or deny while `now <= apply_close_at`. **Buzz** may still write an **accepted** seat via late-add on a published, unhidden, unfinished drop.
 
 For v1, drops expose two timestamps:
 
@@ -104,7 +104,7 @@ For v1, drops expose two timestamps:
 | `apply_open_at`  | When applications open; drives **Upcoming** → **Open** transition for org UX and countdown before open. |
 | `apply_close_at` | When the application window ends; after this, brands **batch-finalize** applicants (**§7.1**).          |
 
-**Timing outcomes:** When `apply_close_at` passes, the window **auto-closes** (no new applications under the open window). After auto-close or any other closure, **Buzz** may **manually reopen** (admin UX TBD). Capacity-**Closed** on the org feed (approved orgs fill all spots) is a **post-selection** outcome — or a **reopened** window with prior accepts already counting toward capacity — not a first-window Open path (**§7.2**). These timestamps also drive org feed states (**§6.3**).
+**Timing outcomes:** When `apply_close_at` passes, the window **auto-closes** (no new applications under the open window). After auto-close or any other closure, **Buzz** may **manually reopen**. Capacity-**Closed** on the org feed happens when `accepted_count >= capacity_total` (**§7.2**) — including admin late-add during a first Open window — or after brand finalize / a reopened window with prior accepts. These timestamps also drive org feed states (**§6.3**).
 
 ### 4.2 Post attribution (hard constraint)
 
@@ -188,7 +188,7 @@ Out-of-band traces (publish email already in Gmail) cannot be erased.
 When a drop is past the application window (post-window **selection** stage — after
 `apply_close_at`, while Buzz ops may still be coordinating shipment), the brand can open it and sees:
 
-- **Applicants and participants by organization:** Each applying org appears as its own row (or card). Brands **finalize** applicants **after `apply_close_at`**, approving or denying up to capacity (and allocating units when budgeted) — not as rolling mid-window decisions during Open (**§7.1**). Approved orgs remain visible for the lifecycle of the drop.
+- **Applicants and participants by organization:** Each applying org appears as its own row (or card). Brands **finalize** applicants **after `apply_close_at`**, approving or denying up to **remaining** capacity (and allocating remaining units when budgeted) — not as rolling mid-window decisions during Open (**§7.1**). Remaining capacity/units floor at zero if admin late-add already overbooked. Approved orgs remain visible for the lifecycle of the drop. Admin-added seats appear the same way.
 - **All social posts** linked or submitted for the drop, **grouped by org** where useful, plus roll-up summaries across the drop.
 - **Per-post metrics:** likes, comments, estimated reach (per implementation), aligned with platform analytics where applicable.
 - **Drop-level KPIs:** total engagement, total reach, **cost per engagement** (if cost inputs exist in the product; otherwise hide or N/A per implementation).
@@ -276,7 +276,7 @@ Orgs have **two separate** surfaces:
 Each **drop card** shows:
 
 - Drop details and **brand** identity (as permitted by product).
-- **Spots:** first Open window (_“Up to 10 spots”_); after finalize + reopen with prior accepts, depleting leftovers (_“4 of 10 spots remaining”_). Capacity full → **Closed** chip (**§7.2**).
+- **Spots:** first Open window (_“Up to 10 spots”_) while `acceptedCount === 0`; after finalize + reopen with prior accepts, or when admin late-add has already seated orgs, depleting leftovers (_“4 of 10 spots remaining”_). Capacity full → **Closed** chip (**§7.2**).
 - **Status** for org UX: **Upcoming**, **Open**, **Closed**.
 
 #### 6.3.1 Status: Upcoming
@@ -296,11 +296,11 @@ Each **drop card** shows:
 #### 6.3.2 Status: Open
 
 - After `apply_open_at` and before closure conditions, the drop is **Open** (subject to `apply_close_at` and not closed for other reasons — **§4.1**). Orgs may **Apply** while Open; applications stay pending until batch finalize (**§7.1**).
-- **Spots line:** first Open (`acceptedCount === 0`) shows capacity as _“Up to N spots”_ (accepts do not deplete during the first window). A **reopened** window with prior accepts may show _“M of N spots remaining”_. At capacity on the feed: **§7.2** (post-selection / reopen leftovers — not mid-window accepts).
+- **Spots line:** first Open (`acceptedCount === 0`) shows capacity as _“Up to N spots”_. If admin late-add writes accepts during that window, the line depletes and capacity full closes Apply (**§7.2**). A **reopened** window with prior accepts may show _“M of N spots remaining”_.
 
 #### 6.3.3 Status: Closed
 
-- **Closed** when: `apply_close_at` has passed (unless manually reopened), capacity is filled per **§7.2** (after selection, or reopen with prior accepts), Buzz manually closed the drop, or other admin actions. **Reopen:** **§4.1**. Capacity fill alone does **not** close a first-window Open drop before finalize.
+- **Closed** when: `apply_close_at` has passed (unless manually reopened), capacity is filled per **§7.2** (brand finalize, reopen leftovers, or admin late-add that fills or overfills spots), Buzz manually closed the drop, or other admin actions. **Reopen:** **§4.1**.
 
 **Interactions:**
 
@@ -349,19 +349,21 @@ Each drop has **fixed org capacity** and an **application window** (**§4.1**). 
 
 ### 7.1 Application flow (org → brand)
 
-**No waitlist** — each applicant is either pending review, approved, or denied. **Collect-all-then-pick:** there are **no accept writes while `now <= apply_close_at`** in v1.
+**No waitlist** — each applicant is either pending review, approved, or denied. **Collect-all-then-pick:** brands write no accepts while `now <= apply_close_at`.
 
 1. Org submits **Apply** on an **Open** drop (if allowed by time + state; **§4.1**, **§6.3**). Applications stay pending through the window.
-2. After `apply_close_at`, the **brand** **batch-finalizes** applicants for that drop (typically in the post-window selection stage).
+2. After `apply_close_at`, the **brand** **batch-finalizes** applicants for that drop (typically in the post-window selection stage). Remaining capacity and remaining units are `max(0, published − already accepted)` so an empty finalize still works after admin overbook.
 3. For each applicant the brand **approves** or **denies**:
-   - **Approved** — counts toward capacity; if the drop has a `total_product_units` budget (**§4.1**), the brand also **allocates units per approved org**, with the sum of allocations capped by the budget. Org moves to **Accepted** in **My Campaigns** when product rules expose that state (subject to fulfillment and activation).
+   - **Approved** — counts toward capacity; if the drop has a `total_product_units` budget (**§4.1**), the brand also **allocates units per approved org**, with the sum of allocations capped by **remaining** budget. Org moves to **Accepted** in **My Campaigns** when product rules expose that state (subject to fulfillment and activation).
    - **Denied** — **no** row in **My Campaigns** for that application; **email** only.
+
+**Admin late-add:** On a **published, unhidden, not-finished** drop (Open, selection, awaiting products, or Active), Buzz may accept any **non-erased** org row — including one that never applied. Overbook is allowed (`accepted_count` may exceed `capacity_total`; do not bump capacity). Units default to **0** on a budgeted drop and may exceed the budget. Confirm-dialog emails to the org and/or brand are optional and **default off**; a send failure does **not** roll back the seat. Already accepted → refuse. Draft, hidden, and finished → refuse. Does not reopen apply, clear finalize, or move the tracker. Late-add mail CC uses the same ops list as compose (**§10**).
 
 ### 7.2 Capacity exhaustion
 
-- When brand-**approved** orgs (via finalize) **fill** all spots:
+- When **accepted** seats (brand finalize **or** admin late-add) **fill** all published spots:
   - Drop shows as **Closed** on the **Drop Feed** (org cannot apply as Open; no waitlist).
-- That Closed state is **post-selection**, or on a **reopened** window with prior accepts already counting toward capacity — **not** a first-window Open path (accepts do not accumulate while the chronological window is still open).
+- That Closed state is `accepted_count >= capacity_total` — after selection, on a reopened window with prior accepts, **or** mid-window if admin late-add fills the roster.
 
 ### 7.3 Concurrent participation
 
@@ -395,7 +397,7 @@ Aggregated all drops →  Brand aggregate dashboard
 
 - **Brand:** Batch-finalize (approve/deny) drop applicants **after `apply_close_at`** (**§7.1**). Org moves **Applied → Accepted** after brand approval (labels may differ by surface).
 - **Buzz:** Brand **platform** onboarding; drop-request **tickets** and drop **tracker** stages after publish (**§5.2**); agreements and ops coordination; **§4.1** reopen; **org** lifecycle beyond applicant choice (e.g. **Active** / **Finished** when fulfillment and campaign rules are met — triggers TBD with brands). Org **portal access** is gated by **.edu** verification, Buzz admin approval, then **Instagram bind** (**§6.1**).
-- **Automation / rules:** Feed **Open/Closed** follows **§4.1**, **§6.3**, **§7.2** (capacity-Closed is post-selection / reopen leftovers, not mid-window accept).
+- **Automation / rules:** Feed **Open/Closed** follows **§4.1**, **§6.3**, **§7.2** (`accepted_count >= capacity_total` closes Apply, including admin late-add during Open).
 
 ---
 
@@ -410,7 +412,7 @@ Aggregated all drops →  Brand aggregate dashboard
 | Org   | Onboarding          | Public apply (profile + **§6.1.1** Instagram confirm card + **.edu**); verify; Buzz review; accept Instagram Tester invite; Connect Instagram; then portal |
 | Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts when Active                                                                                           |
-| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment coordination; erase org account after verified data-deletion request (**§3.1.2**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); integrations (see §5.2.1 TODO) |
+| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment; **late-add** an org onto a published unhidden unfinished drop (**§7.1**); erase org account after verified data-deletion request (**§3.1.2**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); integrations (see §5.2.1 TODO) |
 
 ---
 
@@ -428,5 +430,5 @@ Aggregated all drops →  Brand aggregate dashboard
 
 - Future **policy limits** on how many concurrent drops an org may hold.
 - Exact **cost per engagement** inputs and formulas.
-- Admin tooling UX for **reopen**, exception handling, and Buzz override paths (if any) when a brand is unresponsive.
+- Admin **reopen** UX polish and other exception paths when a brand is unresponsive (late-add itself is specified in **§7.1**).
 - Shipping (**§5.2.1** TODO) and **UGC** policy (**§5.3.1** TODO): detail lives in those subsections, not duplicated here.

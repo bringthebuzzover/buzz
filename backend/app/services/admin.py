@@ -43,6 +43,8 @@ from app.services.email import (
     send_brand_undenied_email,
     send_drop_hidden_email,
     send_drop_published_email,
+    send_late_add_brand_email,
+    send_late_add_org_email,
     send_org_approved_email,
     send_org_denied_email,
     send_org_undenied_email,
@@ -516,6 +518,128 @@ async def compose_brand_email(
             status_code=502,
         )
     return {"ok": True, "to": to_email, "cc": _ops_cc(exclude=to_email)}
+
+
+async def add_org_to_drop(
+    db: AsyncSession,
+    drop_id: UUID,
+    org_id: UUID,
+    *,
+    allocated_units: int | None,
+    email_org: bool,
+    email_brand: bool,
+) -> dict[str, Any]:
+    """Write an accepted seat without reopening apply or bumping capacity."""
+
+    drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
+    if drop is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    if (
+        drop.published_at is None
+        or drop.hidden_at is not None
+        or drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value
+    ):
+        raise BuzzAPIException(
+            errors.DROP_NOT_ELIGIBLE,
+            "This drop cannot accept a late-add (must be published, visible, and not finished).",
+            status_code=409,
+        )
+
+    brand = await db.get(Brand, drop.brand_id)
+    if brand is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
+
+    org = await db.get(Organization, org_id)
+    if org is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+    org_user = await db.get(User, org.user_id)
+    if org_user is None or org_user.portal_role != PortalRole.ORG.value:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+    _refuse_erased_org(org_user)
+
+    existing_rows = list(
+        await db.scalars(
+            select(DropApplication).where(
+                DropApplication.drop_id == drop.id,
+                DropApplication.org_id == org.id,
+            )
+        )
+    )
+    never_applied = len(existing_rows) == 0
+    active = next(
+        (row for row in existing_rows if row.decision != ApplicationDecision.DENIED.value),
+        None,
+    )
+    if active is not None and active.decision == ApplicationDecision.ACCEPTED.value:
+        raise BuzzAPIException(
+            errors.ALREADY_ACCEPTED,
+            "This organization is already accepted on this drop.",
+            status_code=409,
+        )
+
+    now = datetime.now(timezone.utc)
+    units: int | None
+    if drop.total_product_units is None:
+        units = None
+    else:
+        units = 0 if allocated_units is None else allocated_units
+
+    if active is not None:
+        application = active
+        application.decision = ApplicationDecision.ACCEPTED.value
+        application.decision_at = now
+        application.allocated_units = units
+    else:
+        application = DropApplication(
+            id=uuid4(),
+            drop_id=drop.id,
+            org_id=org.id,
+            decision=ApplicationDecision.ACCEPTED.value,
+            allocated_units=units,
+            applied_at=now,
+            decision_at=now,
+        )
+        db.add(application)
+
+    await db.flush()
+
+    portal_ready = org_user.status == OrgUserStatus.ACTIVE.value
+    org_name = org.org_name or "an organization"
+    email_org_sent: bool | None = None
+    email_brand_sent: bool | None = None
+    if email_org:
+        to_org = (org_user.edu_email or "").strip()
+        email_org_sent = bool(
+            to_org
+            and await send_late_add_org_email(
+                to_org,
+                org_name=org_name,
+                drop_title=drop.title,
+                brand_name=brand.brand_name,
+                campaign_url=f"{settings.FRONTEND_URL}/org/campaigns/{application.id}",
+            )
+        )
+    if email_brand:
+        to_brand = (brand.company_email or "").strip()
+        email_brand_sent = bool(
+            to_brand
+            and await send_late_add_brand_email(
+                to_brand,
+                org_name=org_name,
+                drop_title=drop.title,
+                brand_name=brand.brand_name,
+                drop_url=f"{settings.FRONTEND_URL}/brand/drops/{drop.id}",
+            )
+        )
+
+    return {
+        "application_id": application.id,
+        "org_id": org.id,
+        "never_applied": never_applied,
+        "portal_ready": portal_ready,
+        "email_org_sent": email_org_sent,
+        "email_brand_sent": email_brand_sent,
+    }
 
 
 async def clear_manual_reopen(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:

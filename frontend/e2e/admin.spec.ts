@@ -319,3 +319,24 @@ test("admin can add two tracking numbers on an accepted applicant", async ({
   await add.click();
   await expect(page.getByText("#999999999999")).toBeVisible();
 });
+
+test("admin can late-add an org that never applied", async ({ page }) => {
+  await loginAsAdmin(page);
+  await page.goto("/admin/drops");
+  await page.getByRole("link", { name: "Game Day Hoodies" }).click();
+  await page.getByTestId("tab-applicants").click();
+  await page.getByTestId("add-org-open").click();
+  await page.getByTestId("add-org-search").fill("Stanford Hackers");
+  await page.getByRole("button", { name: /Stanford Hackers/ }).click();
+  await expect(page.getByTestId("add-org-never-applied-warn")).toBeVisible();
+  await expect(page.getByTestId("add-org-portal-warn")).toBeVisible();
+  await expect(page.getByTestId("add-org-email-org")).not.toBeChecked();
+  await expect(page.getByTestId("add-org-email-brand")).not.toBeChecked();
+  const addResp = page.waitForResponse(
+    (r) => r.url().includes("/add-org") && r.request().method() === "POST",
+  );
+  await page.getByTestId("add-org-submit").click();
+  const added = await addResp;
+  expect(added.ok(), await added.text()).toBeTruthy();
+  await expect(page.getByText("Stanford Hackers")).toBeVisible();
+});
