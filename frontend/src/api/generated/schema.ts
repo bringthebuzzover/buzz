@@ -267,6 +267,26 @@ export interface paths {
         patch: operations["patch_drop_config_endpoint_api_admin_drops__drop_id__patch"];
         trace?: never;
     };
+    "/api/admin/drops/{drop_id}/add-org": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Org To Drop Endpoint
+         * @description Accept an org onto a published drop without reopening apply.
+         */
+        post: operations["add_org_to_drop_endpoint_api_admin_drops__drop_id__add_org_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/drops/{drop_id}/clear-reopen": {
         parameters: {
             query?: never;
@@ -1904,6 +1924,50 @@ export interface components {
             /** Text */
             text: string;
         };
+        /**
+         * AdminAddOrgRequest
+         * @description Late-add an org onto a published, unhidden, unfinished drop.
+         */
+        AdminAddOrgRequest: {
+            /** Allocatedunits */
+            allocatedUnits?: number | null;
+            /**
+             * Emailbrand
+             * @default false
+             */
+            emailBrand: boolean;
+            /**
+             * Emailorg
+             * @default false
+             */
+            emailOrg: boolean;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+        };
+        /** AdminAddOrgResponse */
+        AdminAddOrgResponse: {
+            /**
+             * Applicationid
+             * Format: uuid
+             */
+            applicationId: string;
+            /** Emailbrandsent */
+            emailBrandSent?: boolean | null;
+            /** Emailorgsent */
+            emailOrgSent?: boolean | null;
+            /** Neverapplied */
+            neverApplied: boolean;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Portalready */
+            portalReady: boolean;
+        };
         /** AdminAddShipmentRequest */
         AdminAddShipmentRequest: {
             /** Carrier */
@@ -3288,6 +3352,15 @@ export interface components {
         /** DataResponse[AddressSuggestResponse] */
         DataResponse_AddressSuggestResponse_: {
             data?: components["schemas"]["AddressSuggestResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminAddOrgResponse] */
+        DataResponse_AdminAddOrgResponse_: {
+            data?: components["schemas"]["AdminAddOrgResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -5251,6 +5324,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminDropDetail_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    add_org_to_drop_endpoint_api_admin_drops__drop_id__add_org_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminAddOrgRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminAddOrgResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

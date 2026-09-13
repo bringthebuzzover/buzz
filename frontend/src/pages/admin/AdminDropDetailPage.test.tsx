@@ -28,6 +28,8 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
   useDeleteApplicantShipment: () => idleMutation(),
   useHideDrop: () => idleMutation(),
   useUnhideDrop: () => idleMutation(),
+  useAdminOrgs: () => ({ data: [], isPending: false, isError: false }),
+  useAddOrgToDrop: () => idleMutation(),
 }));
 
 import AdminDropDetailPage from "./AdminDropDetailPage";
@@ -147,6 +149,7 @@ describe("AdminDropDetailPage", () => {
     expect(
       container.querySelector('[data-testid="tab-applicants"]'),
     ).toBeTruthy();
+    expect(container.querySelector('[data-testid="add-org-open"]')).toBeTruthy();
     expect(
       container.querySelector('[data-testid="brand-can-edit-creative"]'),
     ).toBeNull();
@@ -321,5 +324,16 @@ describe("AdminDropDetailPage", () => {
     renderAt("/admin/drops/drop-1");
     expect(container.querySelector('[data-testid="drop-unhide"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="hide-drop"]')).toBeFalsy();
+    expect(container.querySelector('[data-testid="add-org-open"]')).toBeFalsy();
+  });
+
+  it("hides late-add on a finished drop", () => {
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({ publishedAt: now, stage: "drop_finished" }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1");
+    expect(container.querySelector('[data-testid="add-org-open"]')).toBeFalsy();
   });
 });

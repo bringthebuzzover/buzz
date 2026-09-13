@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import uuid
 
+from pydantic import Field
+
 from app.schemas.common import CamelModel
 
 
@@ -151,3 +153,21 @@ class AdminComposeEmailResponse(CamelModel):
     ok: bool = True
     to: str
     cc: list[str]
+
+
+class AdminAddOrgRequest(CamelModel):
+    """Late-add an org onto a published, unhidden, unfinished drop."""
+
+    org_id: uuid.UUID
+    allocated_units: int | None = Field(default=None, ge=0)
+    email_org: bool = False
+    email_brand: bool = False
+
+
+class AdminAddOrgResponse(CamelModel):
+    application_id: uuid.UUID
+    org_id: uuid.UUID
+    never_applied: bool
+    portal_ready: bool
+    email_org_sent: bool | None = None
+    email_brand_sent: bool | None = None

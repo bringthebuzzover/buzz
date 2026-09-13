@@ -458,6 +458,27 @@ export function useClearReopen(dropId: string) {
   );
 }
 
+export function useAddOrgToDrop(dropId: string) {
+  return useAdminMutation(
+    (input: {
+      orgId: string;
+      allocatedUnits?: number | null;
+      emailOrg?: boolean;
+      emailBrand?: boolean;
+    }) =>
+      apiFetch(`/api/admin/drops/${dropId}/add-org`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgId: input.orgId,
+          allocatedUnits: input.allocatedUnits ?? null,
+          emailOrg: input.emailOrg ?? false,
+          emailBrand: input.emailBrand ?? false,
+        }),
+      }),
+  );
+}
+
 export function useAddApplicantShipment(applicationId: string) {
   return useAdminMutation((input: { trackingNumber: string; carrier?: string }) =>
     apiFetch(`/api/admin/applications/${applicationId}/shipments`, {

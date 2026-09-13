@@ -111,6 +111,95 @@
         "title": "AddressSuggestionItem",
         "type": "object"
       },
+      "AdminAddOrgRequest": {
+        "description": "Late-add an org onto a published, unhidden, unfinished drop.",
+        "properties": {
+          "allocatedUnits": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocatedunits"
+          },
+          "emailBrand": {
+            "default": false,
+            "title": "Emailbrand",
+            "type": "boolean"
+          },
+          "emailOrg": {
+            "default": false,
+            "title": "Emailorg",
+            "type": "boolean"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "orgId"
+        ],
+        "title": "AdminAddOrgRequest",
+        "type": "object"
+      },
+      "AdminAddOrgResponse": {
+        "properties": {
+          "applicationId": {
+            "format": "uuid",
+            "title": "Applicationid",
+            "type": "string"
+          },
+          "emailBrandSent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emailbrandsent"
+          },
+          "emailOrgSent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emailorgsent"
+          },
+          "neverApplied": {
+            "title": "Neverapplied",
+            "type": "boolean"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "portalReady": {
+            "title": "Portalready",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "applicationId",
+          "orgId",
+          "neverApplied",
+          "portalReady"
+        ],
+        "title": "AdminAddOrgResponse",
+        "type": "object"
+      },
       "AdminAddShipmentRequest": {
         "properties": {
           "carrier": {
@@ -3991,6 +4080,44 @@
           }
         },
         "title": "DataResponse[AddressSuggestResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminAddOrgResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminAddOrgResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminAddOrgResponse]",
         "type": "object"
       },
       "DataResponse_AdminBrandDetail_": {
@@ -9745,6 +9872,76 @@
           }
         },
         "summary": "Patch Drop Config Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/drops/{drop_id}/add-org": {
+      "post": {
+        "description": "Accept an org onto a published drop without reopening apply.",
+        "operationId": "add_org_to_drop_endpoint_api_admin_drops__drop_id__add_org_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAddOrgRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminAddOrgResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Add Org To Drop Endpoint",
         "tags": [
           "admin"
         ]

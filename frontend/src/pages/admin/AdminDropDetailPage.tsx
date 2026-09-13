@@ -64,6 +64,7 @@ import {
   formatDateTime,
   toDatetimeLocalValue,
 } from "../../components/admin/labels";
+import AddOrgToDropModal from "../../components/admin/AddOrgToDropModal";
 import { carrierLabel, type Shipment } from "../../utils/shipments";
 
 const TABS = [
@@ -728,6 +729,14 @@ function ApplicantShipmentEditor({
   );
 }
 
+function canLateAdd(drop: AdminDropDetail): boolean {
+  return (
+    drop.publishedAt != null &&
+    drop.hiddenAt == null &&
+    drop.stage !== "drop_finished"
+  );
+}
+
 function Applicants({ applicants }: { applicants: AdminApplicant[] }) {
   return (
     <AdminTable
@@ -920,6 +929,7 @@ export default function AdminDropDetailPage() {
     tabParam && isDropTabId(tabParam) ? tabParam : defaultTab;
   const acceptedCount =
     data?.applicants.filter((a) => a.decision === "accepted").length ?? 0;
+  const [addOrgOpen, setAddOrgOpen] = useState(false);
 
   return (
     <div>
@@ -1014,7 +1024,27 @@ export default function AdminDropDetailPage() {
           )}
           {activeTab === "applicants" && (
             <Panel>
+              {canLateAdd(data) && (
+                <div className="flex justify-end border-b border-buzz-lineMid px-4 py-3">
+                  <ActionButton
+                    variant="primary"
+                    testId="add-org-open"
+                    onClick={() => setAddOrgOpen(true)}
+                  >
+                    Add organization
+                  </ActionButton>
+                </div>
+              )}
               <Applicants applicants={data.applicants} />
+              {addOrgOpen && (
+                <AddOrgToDropModal
+                  dropId={data.id}
+                  dropTitle={data.title}
+                  totalProductUnits={data.totalProductUnits}
+                  applicants={data.applicants}
+                  onClose={() => setAddOrgOpen(false)}
+                />
+              )}
             </Panel>
           )}
 
