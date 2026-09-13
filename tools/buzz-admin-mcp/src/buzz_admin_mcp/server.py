@@ -203,6 +203,18 @@ def resend_brand_invite(brand_id: str) -> str:
 
 
 @mcp.tool()
+def erase_brand(brand_id: str, confirm: str) -> str:
+    """Erase a brand. confirm must be the company email."""
+    return _call(
+        lambda: _client.request(
+            "POST",
+            f"/api/admin/brands/{brand_id}/erase",
+            json_body={"confirm": confirm},
+        )
+    )
+
+
+@mcp.tool()
 def compose_brand_email(brand_id: str, subject: str, body: str) -> str:
     return _call(
         lambda: _client.request(
@@ -310,6 +322,69 @@ def delete_shipment(application_id: str, shipment_id: str) -> str:
             "DELETE",
             f"/api/admin/applications/{application_id}/shipments/{shipment_id}",
         )
+    )
+
+
+@mcp.tool()
+def add_org_to_drop(
+    drop_id: str,
+    org_id: str,
+    allocated_units: int | None = None,
+    email_org: bool = False,
+    email_brand: bool = False,
+) -> str:
+    """Late-add an org onto a published, unhidden, unfinished drop."""
+    body: dict[str, Any] = {
+        "orgId": org_id,
+        "emailOrg": email_org,
+        "emailBrand": email_brand,
+    }
+    if allocated_units is not None:
+        body["allocatedUnits"] = allocated_units
+    return _call(
+        lambda: _client.request("POST", f"/api/admin/drops/{drop_id}/add-org", json_body=body)
+    )
+
+
+@mcp.tool()
+def sync_and_autolink_drop(drop_id: str) -> str:
+    """Graph sync + autolink for accepted orgs on an Active drop."""
+    return _call(
+        lambda: _client.request("POST", f"/api/admin/drops/{drop_id}/sync-and-autolink")
+    )
+
+
+@mcp.tool()
+def list_ig_change_requests(status: str | None = None) -> str:
+    params = {"status": status} if status else None
+    return _call(
+        lambda: _client.request("GET", "/api/admin/ig-change-requests", params=params)
+    )
+
+
+@mcp.tool()
+def get_ig_change_request(request_id: str) -> str:
+    return _call(lambda: _client.request("GET", f"/api/admin/ig-change-requests/{request_id}"))
+
+
+@mcp.tool()
+def approve_ig_change_request(
+    request_id: str, kind: str, tester_invite_confirmed: bool = False
+) -> str:
+    """Approve an IG identity-change ticket. kind is rename or account_switch."""
+    return _call(
+        lambda: _client.request(
+            "POST",
+            f"/api/admin/ig-change-requests/{request_id}/approve",
+            json_body={"kind": kind, "testerInviteConfirmed": tester_invite_confirmed},
+        )
+    )
+
+
+@mcp.tool()
+def deny_ig_change_request(request_id: str) -> str:
+    return _call(
+        lambda: _client.request("POST", f"/api/admin/ig-change-requests/{request_id}/deny")
     )
 
 

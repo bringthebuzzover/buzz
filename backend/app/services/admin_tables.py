@@ -29,6 +29,7 @@ from app.models.job_run import JobRun
 from app.models.notify_me import NotifyMe
 from app.models.org_apply_prefill import OrgApplyPrefill
 from app.models.org_connect_token import OrgConnectToken
+from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
 from app.models.post_link import PostCampaignLink
@@ -201,6 +202,12 @@ TABLES: dict[str, TableSpec] = {
         hidden=frozenset({"token_hash"}),
         patchable=frozenset(),
         filterable=frozenset({"id", "user_id", "org_id", "email"}),
+    ),
+    "org_ig_change_requests": TableSpec(
+        OrgIgChangeRequest,
+        hidden=frozenset(),
+        patchable=frozenset(),
+        filterable=frozenset({"id", "org_id", "user_id", "status", "kind"}),
     ),
     "org_apply_prefills": TableSpec(
         OrgApplyPrefill,
