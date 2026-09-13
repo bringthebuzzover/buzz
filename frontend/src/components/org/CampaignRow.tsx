@@ -18,7 +18,7 @@ type CampaignRowProps = {
   title: string;
   image: string;
   status: OrgCampaignStatus;
-  trackingNumber?: string | null;
+  shipments?: { trackingNumber: string }[];
 };
 
 const STATUS_TONE: Record<OrgCampaignStatus, Tone> = {
@@ -34,7 +34,7 @@ export default function CampaignRow({
   title,
   image,
   status,
-  trackingNumber,
+  shipments,
 }: CampaignRowProps) {
   return (
     <Link to={`/org/campaigns/${applicationId}`} className="block">
@@ -57,10 +57,12 @@ export default function CampaignRow({
               <Chip accent>{brandName}</Chip>
             </div>
             <h3 className={TEXT.h3}>{title}</h3>
-            {status === "accepted" && trackingNumber ? (
+            {status === "accepted" && shipments && shipments.length > 0 ? (
               <p className={cn(TEXT.meta, "mt-1 flex items-center gap-1")}>
                 <Truck size={12} className="text-buzz-coral" />
-                Tracking #{trackingNumber}
+                {shipments.length === 1
+                  ? `Tracking #${shipments[0].trackingNumber}`
+                  : `${shipments.length} tracking numbers`}
               </p>
             ) : null}
           </div>

@@ -367,16 +367,17 @@ async def apply_to_drop(
 async def build_application_response(
     db: AsyncSession, application: DropApplication
 ) -> ApplicationResponse:
-    """Serialize a ``DropApplication`` with tracking from the parent drop."""
+    """Serialize a ``DropApplication`` with that seat's shipments."""
 
-    drop = await db.get(Drop, application.drop_id)
+    from app.services.shipments import shipments_by_application_ids
+
     return ApplicationResponse(
         id=application.id,
         drop_id=application.drop_id,
         org_id=application.org_id,
         decision=application.decision,
         pitch=application.pitch,
-        tracking_number=drop.tracking_number if drop is not None else None,
+        shipments=(await shipments_by_application_ids(db, [application.id]))[application.id],
         allocated_units=application.allocated_units,
         applied_at=application.applied_at,
         decision_at=application.decision_at,

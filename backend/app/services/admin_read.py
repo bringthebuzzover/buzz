@@ -50,6 +50,10 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.instagram_token import REFRESH_WINDOW_DAYS
+from app.services.shipments import (
+    awaiting_products_no_tracking_clause,
+    shipments_by_application_ids,
+)
 
 # ``metric_sync`` runs daily at 03:00 UTC; 36h leaves room for one missed run
 # plus clock skew before we call it stale.
@@ -188,8 +192,7 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
         "awaiting_products_no_tracking": await _scalar_int(
             db,
             select(func.count(Drop.id)).where(
-                Drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value,
-                Drop.tracking_number.is_(None),
+                *awaiting_products_no_tracking_clause(),
                 Drop.hidden_at.is_(None),
             ),
         ),
@@ -817,6 +820,25 @@ async def list_drops(
         now = _now()
         stmt = stmt.where(or_(*[and_(*_attention_clause(a, now)) for a in attentions]))
 
+    packed = [
+        (drop, brand_name, brand_status, applied_count, accepted_count)
+        for drop, brand_name, brand_status, applied_count, accepted_count in (
+            await db.execute(stmt)
+        ).all()
+    ]
+    drop_ids = [row[0].id for row in packed]
+    needs_ids: set[UUID] = set()
+    if drop_ids:
+        needs_ids = set(
+            (
+                await db.scalars(
+                    select(Drop.id).where(
+                        Drop.id.in_(drop_ids),
+                        *awaiting_products_no_tracking_clause(),
+                    )
+                )
+            ).all()
+        )
     return [
         {
             "id": drop.id,
@@ -832,7 +854,7 @@ async def list_drops(
             "apply_open_at": drop.apply_open_at,
             "apply_close_at": drop.apply_close_at,
             "manual_reopen": drop.manual_reopen,
-            "tracking_number": drop.tracking_number,
+            "needs_tracking": drop.id in needs_ids,
             "campaign_hashtag": drop.campaign_hashtag,
             "finalized_at": drop.applicant_selection_finalized_at,
             "published_at": drop.published_at,
@@ -840,9 +862,7 @@ async def list_drops(
             "drop_request_id": drop.drop_request_id,
             "created_at": drop.created_at,
         }
-        for drop, brand_name, brand_status, applied_count, accepted_count in (
-            await db.execute(stmt)
-        ).all()
+        for drop, brand_name, brand_status, applied_count, accepted_count in packed
     ]
 
 
@@ -870,11 +890,7 @@ def _attention_clause(attention: str, now: datetime) -> tuple[Any, ...]:
             Drop.manual_reopen.is_(True),
             Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
         )
-    # no_tracking
-    return (
-        Drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value,
-        Drop.tracking_number.is_(None),
-    )
+    return awaiting_products_no_tracking_clause()
 
 
 async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
@@ -896,6 +912,19 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
         .group_by(PostCampaignLink.application_id)
         .subquery()
     )
+    applicant_rows = (
+        await db.execute(
+            select(DropApplication, Organization, User, func.coalesce(links_sq.c.n, 0))
+            .join(Organization, Organization.id == DropApplication.org_id)
+            .join(User, User.id == Organization.user_id)
+            .outerjoin(links_sq, links_sq.c.application_id == DropApplication.id)
+            .where(DropApplication.drop_id == drop.id)
+            .order_by(DropApplication.applied_at.asc())
+        )
+    ).all()
+    shipment_map = await shipments_by_application_ids(
+        db, [application.id for application, _, _, _ in applicant_rows]
+    )
     applicants = [
         {
             "id": application.id,
@@ -912,21 +941,12 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
             "decision": application.decision,
             "allocated_units": application.allocated_units,
             "pitch": application.pitch,
-            "tracking_number": drop.tracking_number,
+            "shipments": shipment_map.get(application.id, []),
             "linked_post_count": int(linked or 0),
             "applied_at": application.applied_at,
             "decision_at": application.decision_at,
         }
-        for application, org, org_user, linked in (
-            await db.execute(
-                select(DropApplication, Organization, User, func.coalesce(links_sq.c.n, 0))
-                .join(Organization, Organization.id == DropApplication.org_id)
-                .join(User, User.id == Organization.user_id)
-                .outerjoin(links_sq, links_sq.c.application_id == DropApplication.id)
-                .where(DropApplication.drop_id == drop.id)
-                .order_by(DropApplication.applied_at.asc())
-            )
-        ).all()
+        for application, org, org_user, linked in applicant_rows
     ]
 
     events = [
@@ -980,7 +1000,16 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
         "allocated_units": allocated,
         "campaign_hashtag": drop.campaign_hashtag,
         "brand_can_edit_creative": drop.brand_can_edit_creative,
-        "tracking_number": drop.tracking_number,
+        "needs_tracking": drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value
+        and (
+            await db.scalar(
+                select(Drop.id).where(
+                    Drop.id == drop.id,
+                    *awaiting_products_no_tracking_clause(),
+                )
+            )
+        )
+        is not None,
         "manual_reopen": drop.manual_reopen,
         "apply_open_at": drop.apply_open_at,
         "apply_close_at": drop.apply_close_at,

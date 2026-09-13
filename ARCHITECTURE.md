@@ -80,7 +80,8 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | `users` | Identity for all portals; IG ids/tokens; `edu_email`; `password_hash`; `token_version` |
 | `organizations` | Org profile (1:1 `user_id`); structured US `shipping_*` plus formatted `delivery_address` |
 | `brands` | Brand profile (1:1 `user_id`); `instagram_handle` for autolink |
-| `drops` | Campaign instance; capacity; apply window; tracker stage; units; tracking #; `published_at`; `hidden_at`; optional `drop_request_id`; `brand_can_edit_creative` (default false) |
+| `drops` | Campaign instance; capacity; apply window; tracker stage; units; leftover `tracking_number` (unused); `published_at`; `hidden_at`; optional `drop_request_id`; `brand_can_edit_creative` (default false) |
+| `drop_application_shipments` | 0–N tracking numbers per accepted `drop_applications` seat (carrier + unique TN) |
 | `drop_requests` | Brand intake tickets (not live campaigns); converted to a draft drop by admin |
 | `drop_applications` | Org ↔ drop; decision applied/accepted/denied |
 | `social_posts` | Cached IG media + metrics; unique `(org_id, platform, external_id)`. **Stories unsupported** — `metric_sync` does not catalog `STORY`; refresh/autolink/link skip them |
@@ -109,9 +110,9 @@ Mounted in `backend/app/main.py`:
 | `/api/drops/*` | `routes/drops.py` | Org feed, detail, apply, Notify Me |
 | `/api/campaigns/*` | `routes/campaigns.py` | My campaigns, link/unlink, suggestions, aggregate |
 | `/api/brands/*` | `routes/brands.py` | Apply, brand profile, drops, finalize, aggregates |
-| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org erase, compose email, drop config/tracker/hide/unhide, health, impersonate |
+| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org erase, compose email, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |
 
-Thin routes; business logic in `backend/app/services/`.
+Thin routes; business logic in `backend/app/services/`. Admin table inspect (`/api/admin/tables`) redacts secrets; generic PATCH is allowlisted — see [`ideas/admin-mcp.md`](ideas/admin-mcp.md). Operator stdio MCP: [`tools/buzz-admin-mcp/`](tools/buzz-admin-mcp/).
 
 ---
 

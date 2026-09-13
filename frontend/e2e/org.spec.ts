@@ -122,3 +122,13 @@ test("org phone chrome lists portal links in the menu", async ({ page }) => {
   await expect(panel.getByRole("link", { name: "My Campaigns" })).toBeVisible();
   await expect(panel.getByRole("link", { name: "Profile" })).toBeVisible();
 });
+
+test("org campaign detail shows per-org tracking links", async ({ page }) => {
+  await page.goto("/org/campaigns");
+  await waitForAuthSettled(page, "org");
+  await page.getByRole("heading", { name: "Game Day Hoodies" }).click();
+  await expect(page).toHaveURL(/\/org\/campaigns\//);
+  const links = page.locator('[data-testid^="track-link-"]');
+  await expect(links.first()).toBeVisible();
+  await expect(links.first()).toHaveAttribute("href", /ups\.com|fedex\.com/);
+});

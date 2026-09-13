@@ -3,7 +3,7 @@ id: drops.tracking-not-per-org
 title: Tracking is one number per drop; ops ships many TNs per org–drop
 kind: ux_hole
 severity: P2
-status: open
+status: fixed
 surface: drops
 evidence:
   - path: PRODUCT.md

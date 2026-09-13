@@ -299,8 +299,9 @@ class TestTrackerAdvance:
         )
         assert res.status_code == 400
 
-    async def test_tracking_number_on_awaiting_products(self, app_client: AsyncClient, db_session):
-        """Tracking number is stored on the drop when advancing to awaiting_products."""
+    async def test_awaiting_products_does_not_write_drop_tracking(
+        self, app_client: AsyncClient, db_session
+    ):
         brand = await make_brand(db_session, brand_name="TN Brand")
         drop = await make_drop(
             db_session,
@@ -309,24 +310,21 @@ class TestTrackerAdvance:
             apply_open_at=datetime.now(timezone.utc) - timedelta(days=30),
             apply_close_at=datetime.now(timezone.utc) - timedelta(days=1),
         )
-        # Selection must be finalized before advancing past finalizing_agreements.
         drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, org_user)
         await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
         await db_session.flush()
 
-        # Advance to awaiting_products with tracking number
         res = await app_client.patch(
             f"/api/admin/drops/{drop.id}/tracker",
-            json={"stage": "awaiting_products", "tracking_number": "TRACK-123"},
+            json={"stage": "awaiting_products"},
             headers=await _admin_headers(db_session),
         )
         assert res.status_code == 200
-
-        # Verify tracking number stored on the drop (SOT)
         await db_session.refresh(drop)
-        assert drop.tracking_number == "TRACK-123"
+        assert drop.tracking_number is None
+        assert drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value
 
     async def test_drop_not_found(self, app_client: AsyncClient, db_session):
         res = await app_client.patch(
@@ -469,34 +467,19 @@ class TestAdminRecovery:
         assert user.instagram_token_expires_at is None
         assert user.token_version == 2
 
-    async def test_set_tracking_repair(self, app_client: AsyncClient, db_session):
+    async def test_drop_tracking_route_removed(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
-        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
-        org = await make_org(db_session, org_user)
-        await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
-        headers = await _admin_headers(db_session)
-
         res = await app_client.patch(
             f"/api/admin/drops/{drop.id}/tracking",
             json={"trackingNumber": "REPAIR-99"},
-            headers=headers,
-        )
-        assert res.status_code == 200
-        await db_session.refresh(drop)
-        assert drop.tracking_number == "REPAIR-99"
-
-    async def test_set_tracking_rejected_before_awaiting(self, app_client: AsyncClient, db_session):
-        brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
-        res = await app_client.patch(
-            f"/api/admin/drops/{drop.id}/tracking",
-            json={"trackingNumber": "TOO-EARLY"},
             headers=await _admin_headers(db_session),
         )
-        assert res.status_code == 400
+        assert res.status_code == 404
 
-    async def test_awaiting_products_requires_tracking(self, app_client: AsyncClient, db_session):
+    async def test_awaiting_products_allows_empty_tracking(
+        self, app_client: AsyncClient, db_session
+    ):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
         drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
@@ -507,7 +490,7 @@ class TestAdminRecovery:
             json={"stage": "awaiting_products"},
             headers=await _admin_headers(db_session),
         )
-        assert res.status_code == 400
+        assert res.status_code == 200
 
     async def test_non_admin_forbidden_on_recovery(self, app_client: AsyncClient, db_session):
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))

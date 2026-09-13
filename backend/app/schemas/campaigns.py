@@ -14,6 +14,7 @@ from datetime import datetime
 from pydantic import field_serializer
 
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
+from app.schemas.shipments import ShipmentItem
 
 
 class CampaignListItem(CamelModel):
@@ -23,7 +24,7 @@ class CampaignListItem(CamelModel):
     drop_id: uuid.UUID
     decision: str
     pitch: str | None
-    tracking_number: str | None
+    shipments: list[ShipmentItem]
     allocated_units: int | None
     applied_at: datetime
     decision_at: datetime | None
@@ -49,7 +50,7 @@ class CampaignDetailResponse(CamelModel):
     org_id: uuid.UUID
     decision: str
     pitch: str | None
-    tracking_number: str | None
+    shipments: list[ShipmentItem]
     allocated_units: int | None
     applied_at: datetime
     decision_at: datetime | None

@@ -458,13 +458,25 @@ export function useClearReopen(dropId: string) {
   );
 }
 
-export function useSetDropTracking(dropId: string) {
-  return useAdminMutation((trackingNumber: string) =>
-    apiFetch(`/api/admin/drops/${dropId}/tracking`, {
-      method: "PATCH",
+export function useAddApplicantShipment(applicationId: string) {
+  return useAdminMutation((input: { trackingNumber: string; carrier?: string }) =>
+    apiFetch(`/api/admin/applications/${applicationId}/shipments`, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ trackingNumber }),
+      body: JSON.stringify({
+        trackingNumber: input.trackingNumber,
+        carrier: input.carrier || null,
+      }),
     }),
+  );
+}
+
+export function useDeleteApplicantShipment(applicationId: string) {
+  return useAdminMutation((shipmentId: string) =>
+    apiFetch(
+      `/api/admin/applications/${applicationId}/shipments/${shipmentId}`,
+      { method: "DELETE" },
+    ),
   );
 }
 
@@ -569,13 +581,12 @@ export function usePatchAdminDropConfig(dropId: string) {
 
 export function useAdvanceTracker(dropId: string) {
   return useAdminMutation(
-    (input: { stage: string; trackingNumber?: string; note?: string }) =>
+    (input: { stage: string; note?: string }) =>
       apiFetch(`/api/admin/drops/${dropId}/tracker`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           stage: input.stage,
-          trackingNumber: input.trackingNumber || null,
           note: input.note || null,
         }),
       }),

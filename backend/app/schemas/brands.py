@@ -13,6 +13,7 @@ from pydantic import ConfigDict, field_serializer, field_validator
 from pydantic.alias_generators import to_camel
 
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
+from app.schemas.shipments import ShipmentItem
 
 
 class BrandApplyRequest(CamelModel):
@@ -126,7 +127,7 @@ class BrandDropDetailApplicant(CamelModel):
     org_id: uuid.UUID
     decision: str
     pitch: str | None
-    tracking_number: str | None
+    shipments: list[ShipmentItem]
     allocated_units: int | None
     applied_at: datetime
     decision_at: datetime | None
@@ -176,7 +177,6 @@ class BrandDropDetailResponse(CamelModel):
     brand_can_edit_creative: bool
     applicant_selection_finalized_at: datetime | None
     created_at: datetime
-    tracking_number: str | None
     applications: list[BrandDropDetailApplicant]
     # Same roll-up as the list endpoint so live-stage KPI cards don't crash.
     total_posts: int

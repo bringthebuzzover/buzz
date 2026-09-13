@@ -22,6 +22,7 @@ from app.models.enums import ApplicationDecision, BrandTrackerStage
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.campaigns import CampaignDetailResponse, CampaignListItem
+from app.services.shipments import shipments_by_application_ids
 
 # §7.2 group ordering. The stage constants use the *current* backend enum; the
 # D1 migration (Stage 5C) swaps these two values to the §8.5 vocabulary
@@ -78,13 +79,16 @@ async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignLi
         )
     )
 
+    shipment_map = await shipments_by_application_ids(
+        db, [application.id for application, _, _ in rows]
+    )
     return [
         CampaignListItem(
             id=application.id,
             drop_id=application.drop_id,
             decision=application.decision,
             pitch=application.pitch,
-            tracking_number=drop.tracking_number,
+            shipments=shipment_map.get(application.id, []),
             allocated_units=application.allocated_units,
             applied_at=application.applied_at,
             decision_at=application.decision_at,
@@ -172,7 +176,7 @@ async def get_my_campaign(
         org_id=application.org_id,
         decision=application.decision,
         pitch=application.pitch,
-        tracking_number=drop.tracking_number,
+        shipments=(await shipments_by_application_ids(db, [application.id]))[application.id],
         allocated_units=application.allocated_units,
         applied_at=application.applied_at,
         decision_at=application.decision_at,

@@ -1,9 +1,9 @@
 """Admin routes — ``/api/admin`` (architecture.md §5.1, §8.5).
 
 Reads are all ``GET`` and back the admin panel's sidebar sections. Mutations cover
-account approve/deny/recovery, drop tracker/reopen/tracking repair, and
-impersonation. Remaining stuck states without a product path stay in
-``gaps/``.
+account approve/deny/recovery, drop tracker/reopen, per-org shipments,
+allowlisted table inspect/patch, and impersonation. Remaining stuck states
+without a product path stay in ``gaps/``.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from app.schemas.acks import (
     AdminOrgStatusResponse,
     ClearInstagramTokenResponse,
     DropReopenResponse,
-    DropTrackingResponse,
+    OkResponse,
     TrackerAdvanceResponse,
 )
 from app.schemas.admin import (
@@ -52,8 +52,16 @@ from app.schemas.admin import (
     AdminUserItem,
     ImpersonateResponse,
     TrackerAdvanceRequest,
-    TrackingRepairRequest,
 )
+from app.schemas.admin_tables import (
+    AdminTableInfo,
+    AdminTablePatchRequest,
+    AdminTableQueryRequest,
+    AdminTableQueryResponse,
+    AdminTableRowResponse,
+)
+from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
+from app.services.address import AddressClient, get_address_client
 from app.services.admin import (
     advance_tracker,
     approve_brand,
@@ -74,7 +82,6 @@ from app.services.admin import (
     reopen_drop,
     resend_brand_invite,
     resend_org_connect,
-    set_drop_tracking_number,
     undeny_brand,
     undeny_org,
     unhide_drop,
@@ -90,7 +97,14 @@ from app.services.admin_read import (
     get_overview,
     list_drops,
 )
+from app.services.admin_tables import (
+    get_table_row,
+    list_table_catalog,
+    patch_table_row,
+    query_table,
+)
 from app.services.drop_requests import get_admin_drop_request, list_admin_drop_requests
+from app.services.shipments import add_shipment, delete_shipment
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -501,21 +515,36 @@ async def advance_tracker_endpoint(
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await advance_tracker(
-        db, drop_id, payload.stage, tracking_number=payload.tracking_number, note=payload.note
-    )
+    result = await advance_tracker(db, drop_id, payload.stage, note=payload.note)
     return api_response(data=TrackerAdvanceResponse.model_validate(result))
 
 
-@router.patch("/drops/{drop_id}/tracking", response_model=DataResponse[DropTrackingResponse])
-async def set_drop_tracking_endpoint(
-    drop_id: uuid.UUID,
-    payload: TrackingRepairRequest,
+@router.post(
+    "/applications/{application_id}/shipments",
+    response_model=DataResponse[ShipmentItem],
+)
+async def add_application_shipment(
+    application_id: uuid.UUID,
+    payload: AdminAddShipmentRequest,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await set_drop_tracking_number(db, drop_id, payload.tracking_number)
-    return api_response(data=DropTrackingResponse.model_validate(result))
+    result = await add_shipment(db, application_id, payload.tracking_number, payload.carrier)
+    return api_response(data=ShipmentItem.model_validate(result))
+
+
+@router.delete(
+    "/applications/{application_id}/shipments/{shipment_id}",
+    response_model=DataResponse[OkResponse],
+)
+async def delete_application_shipment(
+    application_id: uuid.UUID,
+    shipment_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await delete_shipment(db, application_id, shipment_id)
+    return api_response(data=OkResponse.model_validate(result))
 
 
 @router.post("/drops/{drop_id}/reopen", response_model=DataResponse[DropReopenResponse])
@@ -552,6 +581,51 @@ async def cleanup_request_received_endpoint(
     """
     result = await cleanup_request_received_stubs(db)
     return api_response(data=AdminCleanupStubsResponse(**result))
+
+
+# ── Table inspect (MCP / ops) ───────────────────────────────────────────────
+
+
+@router.get("/tables", response_model=DataResponse[list[AdminTableInfo]])
+async def list_admin_tables(_user: CurrentAdmin) -> APIResponse:
+    """Allowlisted tables + column flags. Hidden columns never appear in row payloads."""
+    return api_response(data=[AdminTableInfo(**item) for item in list_table_catalog()])
+
+
+@router.post("/tables/{table}/query", response_model=DataResponse[AdminTableQueryResponse])
+async def query_admin_table(
+    table: str,
+    payload: AdminTableQueryRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await query_table(
+        db, table, filters=payload.filters, limit=payload.limit, offset=payload.offset
+    )
+    return api_response(data=AdminTableQueryResponse(**result))
+
+
+@router.get("/tables/{table}/{row_id}", response_model=DataResponse[AdminTableRowResponse])
+async def get_admin_table_row(
+    table: str,
+    row_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(data=AdminTableRowResponse(**await get_table_row(db, table, row_id)))
+
+
+@router.patch("/tables/{table}/{row_id}", response_model=DataResponse[AdminTableRowResponse])
+async def patch_admin_table_row(
+    table: str,
+    row_id: uuid.UUID,
+    payload: AdminTablePatchRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+    addresses: AddressClient = Depends(get_address_client),
+) -> APIResponse:
+    result = await patch_table_row(db, table, row_id, payload.fields, addresses)
+    return api_response(data=AdminTableRowResponse(**result))
 
 
 # ── Impersonation ───────────────────────────────────────────────────────────

@@ -111,6 +111,30 @@
         "title": "AddressSuggestionItem",
         "type": "object"
       },
+      "AdminAddShipmentRequest": {
+        "properties": {
+          "carrier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Carrier"
+          },
+          "trackingNumber": {
+            "title": "Trackingnumber",
+            "type": "string"
+          }
+        },
+        "required": [
+          "trackingNumber"
+        ],
+        "title": "AdminAddShipmentRequest",
+        "type": "object"
+      },
       "AdminApplicantItem": {
         "properties": {
           "accountErased": {
@@ -210,6 +234,13 @@
             ],
             "title": "Pitch"
           },
+          "shipments": {
+            "items": {
+              "$ref": "#/components/schemas/ShipmentItem"
+            },
+            "title": "Shipments",
+            "type": "array"
+          },
           "shippingCity": {
             "anyOf": [
               {
@@ -231,17 +262,6 @@
               }
             ],
             "title": "Shippingstate"
-          },
-          "trackingNumber": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trackingnumber"
           },
           "university": {
             "title": "University",
@@ -267,7 +287,7 @@
           "decision",
           "allocatedUnits",
           "pitch",
-          "trackingNumber",
+          "shipments",
           "linkedPostCount",
           "appliedAt",
           "decisionAt"
@@ -1019,6 +1039,10 @@
             "title": "Manualreopen",
             "type": "boolean"
           },
+          "needsTracking": {
+            "title": "Needstracking",
+            "type": "boolean"
+          },
           "pendingSuggestionCount": {
             "title": "Pendingsuggestioncount",
             "type": "integer"
@@ -1059,17 +1083,6 @@
             },
             "title": "Trackerevents",
             "type": "array"
-          },
-          "trackingNumber": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trackingnumber"
           }
         },
         "required": [
@@ -1088,7 +1101,7 @@
           "allocatedUnits",
           "campaignHashtag",
           "brandCanEditCreative",
-          "trackingNumber",
+          "needsTracking",
           "manualReopen",
           "applyOpenAt",
           "applyCloseAt",
@@ -1214,6 +1227,10 @@
             "title": "Manualreopen",
             "type": "boolean"
           },
+          "needsTracking": {
+            "title": "Needstracking",
+            "type": "boolean"
+          },
           "publishedAt": {
             "anyOf": [
               {
@@ -1243,17 +1260,6 @@
               }
             ],
             "title": "Totalproductunits"
-          },
-          "trackingNumber": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trackingnumber"
           }
         },
         "required": [
@@ -1270,7 +1276,7 @@
           "applyOpenAt",
           "applyCloseAt",
           "manualReopen",
-          "trackingNumber",
+          "needsTracking",
           "campaignHashtag",
           "finalizedAt",
           "createdAt"
@@ -2272,6 +2278,152 @@
         "title": "AdminSignal",
         "type": "object"
       },
+      "AdminTableColumn": {
+        "properties": {
+          "hidden": {
+            "title": "Hidden",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "writable": {
+            "title": "Writable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "hidden",
+          "writable"
+        ],
+        "title": "AdminTableColumn",
+        "type": "object"
+      },
+      "AdminTableInfo": {
+        "properties": {
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/AdminTableColumn"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "filterable": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Filterable",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "writable": {
+            "title": "Writable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "writable",
+          "columns",
+          "filterable"
+        ],
+        "title": "AdminTableInfo",
+        "type": "object"
+      },
+      "AdminTablePatchRequest": {
+        "properties": {
+          "fields": {
+            "additionalProperties": true,
+            "title": "Fields",
+            "type": "object"
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "title": "AdminTablePatchRequest",
+        "type": "object"
+      },
+      "AdminTableQueryRequest": {
+        "properties": {
+          "filters": {
+            "additionalProperties": true,
+            "title": "Filters",
+            "type": "object"
+          },
+          "limit": {
+            "default": 25,
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "title": "AdminTableQueryRequest",
+        "type": "object"
+      },
+      "AdminTableQueryResponse": {
+        "properties": {
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "table": {
+            "title": "Table",
+            "type": "string"
+          }
+        },
+        "required": [
+          "table",
+          "rows",
+          "limit",
+          "offset"
+        ],
+        "title": "AdminTableQueryResponse",
+        "type": "object"
+      },
+      "AdminTableRowResponse": {
+        "properties": {
+          "row": {
+            "additionalProperties": true,
+            "title": "Row",
+            "type": "object"
+          },
+          "table": {
+            "title": "Table",
+            "type": "string"
+          }
+        },
+        "required": [
+          "table",
+          "row"
+        ],
+        "title": "AdminTableRowResponse",
+        "type": "object"
+      },
       "AdminTrackerEventItem": {
         "properties": {
           "id": {
@@ -2500,16 +2652,12 @@
             ],
             "title": "Pitch"
           },
-          "trackingNumber": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trackingnumber"
+          "shipments": {
+            "items": {
+              "$ref": "#/components/schemas/ShipmentItem"
+            },
+            "title": "Shipments",
+            "type": "array"
           }
         },
         "required": [
@@ -2518,7 +2666,7 @@
           "orgId",
           "decision",
           "pitch",
-          "trackingNumber",
+          "shipments",
           "allocatedUnits",
           "appliedAt",
           "decisionAt"
@@ -2826,16 +2974,12 @@
             "title": "Posts",
             "type": "array"
           },
-          "trackingNumber": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trackingnumber"
+          "shipments": {
+            "items": {
+              "$ref": "#/components/schemas/ShipmentItem"
+            },
+            "title": "Shipments",
+            "type": "array"
           },
           "university": {
             "title": "University",
@@ -2848,7 +2992,7 @@
           "orgId",
           "decision",
           "pitch",
-          "trackingNumber",
+          "shipments",
           "allocatedUnits",
           "appliedAt",
           "decisionAt",
@@ -2988,17 +3132,6 @@
           "totalReach": {
             "title": "Totalreach",
             "type": "integer"
-          },
-          "trackingNumber": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trackingnumber"
           }
         },
         "required": [
@@ -3019,7 +3152,6 @@
           "brandCanEditCreative",
           "applicantSelectionFinalizedAt",
           "createdAt",
-          "trackingNumber",
           "applications",
           "totalPosts",
           "totalLikes",
@@ -3569,6 +3701,13 @@
             ],
             "title": "Pitch"
           },
+          "shipments": {
+            "items": {
+              "$ref": "#/components/schemas/ShipmentItem"
+            },
+            "title": "Shipments",
+            "type": "array"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -3583,17 +3722,6 @@
               }
             ],
             "title": "Totalproductunits"
-          },
-          "trackingNumber": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trackingnumber"
           }
         },
         "required": [
@@ -3602,7 +3730,7 @@
           "orgId",
           "decision",
           "pitch",
-          "trackingNumber",
+          "shipments",
           "allocatedUnits",
           "appliedAt",
           "decisionAt",
@@ -3685,20 +3813,16 @@
             ],
             "title": "Pitch"
           },
+          "shipments": {
+            "items": {
+              "$ref": "#/components/schemas/ShipmentItem"
+            },
+            "title": "Shipments",
+            "type": "array"
+          },
           "title": {
             "title": "Title",
             "type": "string"
-          },
-          "trackingNumber": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trackingnumber"
           }
         },
         "required": [
@@ -3706,7 +3830,7 @@
           "dropId",
           "decision",
           "pitch",
-          "trackingNumber",
+          "shipments",
           "allocatedUnits",
           "appliedAt",
           "decisionAt",
@@ -4325,6 +4449,82 @@
         "title": "DataResponse[AdminOverviewResponse]",
         "type": "object"
       },
+      "DataResponse_AdminTableQueryResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminTableQueryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminTableQueryResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminTableRowResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminTableRowResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminTableRowResponse]",
+        "type": "object"
+      },
       "DataResponse_ApplicationResponse_": {
         "properties": {
           "data": {
@@ -4817,44 +5017,6 @@
           }
         },
         "title": "DataResponse[DropReopenResponse]",
-        "type": "object"
-      },
-      "DataResponse_DropTrackingResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DropTrackingResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[DropTrackingResponse]",
         "type": "object"
       },
       "DataResponse_FinalizeApplicantsResponse_": {
@@ -5427,6 +5589,44 @@
         "title": "DataResponse[RotateEduEmailResponse]",
         "type": "object"
       },
+      "DataResponse_ShipmentItem_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShipmentItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[ShipmentItem]",
+        "type": "object"
+      },
       "DataResponse_TokenResponse_": {
         "properties": {
           "data": {
@@ -5829,6 +6029,48 @@
           }
         },
         "title": "DataResponse[list[AdminPendingOrgItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_AdminTableInfo__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminTableInfo"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[AdminTableInfo]]",
         "type": "object"
       },
       "DataResponse_list_AdminUserItem__": {
@@ -6453,32 +6695,6 @@
           "manualReopen"
         ],
         "title": "DropReopenResponse",
-        "type": "object"
-      },
-      "DropTrackingResponse": {
-        "properties": {
-          "dropId": {
-            "format": "uuid",
-            "title": "Dropid",
-            "type": "string"
-          },
-          "trackingNumber": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trackingnumber"
-          }
-        },
-        "required": [
-          "dropId",
-          "trackingNumber"
-        ],
-        "title": "DropTrackingResponse",
         "type": "object"
       },
       "EngagementSeriesPoint": {
@@ -8086,6 +8302,42 @@
         "title": "RotateEduEmailResponse",
         "type": "object"
       },
+      "ShipmentItem": {
+        "properties": {
+          "carrier": {
+            "title": "Carrier",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "trackUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trackurl"
+          },
+          "trackingNumber": {
+            "title": "Trackingnumber",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "trackingNumber",
+          "carrier",
+          "trackUrl"
+        ],
+        "title": "ShipmentItem",
+        "type": "object"
+      },
       "SuggestionResponse": {
         "description": "A pending auto-link suggestion joined with its post (architecture \u00a77.4.1).",
         "properties": {
@@ -8195,17 +8447,6 @@
           "stage": {
             "title": "Stage",
             "type": "string"
-          },
-          "trackingNumber": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trackingnumber"
           }
         },
         "required": [
@@ -8231,19 +8472,6 @@
           "stage"
         ],
         "title": "TrackerAdvanceResponse",
-        "type": "object"
-      },
-      "TrackingRepairRequest": {
-        "properties": {
-          "trackingNumber": {
-            "title": "Trackingnumber",
-            "type": "string"
-          }
-        },
-        "required": [
-          "trackingNumber"
-        ],
-        "title": "TrackingRepairRequest",
         "type": "object"
       },
       "UserResponse": {
@@ -8397,6 +8625,144 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/admin/applications/{application_id}/shipments": {
+      "post": {
+        "operationId": "add_application_shipment_api_admin_applications__application_id__shipments_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAddShipmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_ShipmentItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Add Application Shipment",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/applications/{application_id}/shipments/{shipment_id}": {
+      "delete": {
+        "operationId": "delete_application_shipment_api_admin_applications__application_id__shipments__shipment_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shipment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Shipment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Delete Application Shipment",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/brands": {
       "get": {
         "operationId": "list_brands_endpoint_api_admin_brands_get",
@@ -9699,75 +10065,6 @@
         ]
       }
     },
-    "/api/admin/drops/{drop_id}/tracking": {
-      "patch": {
-        "operationId": "set_drop_tracking_endpoint_api_admin_drops__drop_id__tracking_patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "drop_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Drop Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TrackingRepairRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_DropTrackingResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Set Drop Tracking Endpoint",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
     "/api/admin/drops/{drop_id}/unhide": {
       "post": {
         "operationId": "unhide_drop_endpoint_api_admin_drops__drop_id__unhide_post",
@@ -10601,6 +10898,268 @@
           }
         },
         "summary": "Get Overview Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/tables": {
+      "get": {
+        "description": "Allowlisted tables + column flags. Hidden columns never appear in row payloads.",
+        "operationId": "list_admin_tables_api_admin_tables_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_list_AdminTableInfo__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Admin Tables",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/tables/{table}/query": {
+      "post": {
+        "operationId": "query_admin_table_api_admin_tables__table__query_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminTableQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminTableQueryResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Query Admin Table",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/tables/{table}/{row_id}": {
+      "get": {
+        "operationId": "get_admin_table_row_api_admin_tables__table___row_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "row_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Row Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminTableRowResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Admin Table Row",
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "patch_admin_table_row_api_admin_tables__table___row_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "table",
+            "required": true,
+            "schema": {
+              "title": "Table",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "row_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Row Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminTablePatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminTableRowResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Patch Admin Table Row",
         "tags": [
           "admin"
         ]

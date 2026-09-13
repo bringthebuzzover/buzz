@@ -21,6 +21,7 @@ from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
 from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
+from app.models.shipment import DropApplicationShipment
 from app.models.social_post import SocialPost
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
@@ -33,6 +34,7 @@ __all__ = [
     "Drop",
     "DropApplication",
     "DropRequest",
+    "DropApplicationShipment",
     "DropTrackerEvent",
     "EmailVerificationToken",
     "JobRun",

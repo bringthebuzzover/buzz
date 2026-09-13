@@ -77,7 +77,7 @@ function ApiCampaigns() {
             title={item.title}
             image={item.image}
             status={status}
-            trackingNumber={item.trackingNumber}
+            shipments={item.shipments}
           />
         ))}
       </div>
