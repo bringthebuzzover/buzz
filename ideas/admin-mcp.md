@@ -48,6 +48,7 @@ timestamps, publish/hide/finalize latches. Use named admin actions.
 | `brand_invite_tokens` | `token_hash` | id, user, brand, email, timestamps | — | — |
 | `password_reset_tokens` | `token_hash` | id, user, email, timestamps | — | — |
 | `org_connect_tokens` | `token_hash` | id, user, org, email, timestamps | — | — |
+| `org_ig_change_requests` | — | all | — | approve/deny (named tools) |
 | `org_apply_prefills` | `token_hash` | rest (incl. invite/edu/shipping) | draft profile/shipping/extras/source | `used_at`, `used_by_user_id` |
 
 # Admin MCP (Buzz operator agents)
@@ -134,7 +135,7 @@ tracking, reopen, clear-reopen, hide, unhide. Plus overview/health.
 - Impersonate (mints a user access token into the agent — easy to leak)
 - `cleanup-request-received` (already prod-blocked)
 - Raw SQL
-- Late-add org / on-demand autolink until those ideas are promoted
+- Late-add / sync-autolink / brand erase / IG-change review — now shipped as named tools (see MCP server)
 
 **Table writes (only if explicitly locked)**
 
