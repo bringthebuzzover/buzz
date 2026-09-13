@@ -29,16 +29,28 @@ from app.schemas.onboarding import (
     OrgApplyRequest,
     OrgOnboardingRequest,
 )
-from app.schemas.orgs import OrgProfileResponse, OrgProfileUpdate
+from app.schemas.orgs import (
+    OrgIgChangeRequestCreate,
+    OrgIgChangeRequestResponse,
+    OrgIgChangeRequestState,
+    OrgProfileResponse,
+    OrgProfileUpdate,
+)
 from app.schemas.posts import PostResponse
 from app.security.rate_limit import rate_limited
 from app.services.address import AddressClient, get_address_client
+from app.services.ig_change_requests import get_request_state, submit_request
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.instagram_lookup import lookup_instagram_handle
 from app.services.onboarding import submit_org_onboarding
 from app.services.org_apply import apply_org
 from app.services.org_apply_prefill import get_live_prefill, prefill_to_public
-from app.services.orgs import build_org_profile, get_org_for_user, update_org_profile
+from app.services.orgs import (
+    build_org_profile,
+    enrich_org_profile,
+    get_org_for_user,
+    update_org_profile,
+)
 from app.services.posts import list_org_posts
 
 router = APIRouter(prefix="/orgs", tags=["orgs"])
@@ -170,7 +182,7 @@ async def get_my_org(
     """Return the caller org's profile (JWT + ``org`` role + ``active``)."""
 
     org = await _require_org_profile(db, user)
-    return api_response(data=build_org_profile(org, user))
+    return api_response(data=await enrich_org_profile(db, org, build_org_profile(org, user)))
 
 
 @router.patch("/me", response_model=DataResponse[OrgProfileResponse])
@@ -184,7 +196,40 @@ async def update_my_org(
 
     org = await _require_org_profile(db, user)
     org = await update_org_profile(db, org, payload, addresses)
-    return api_response(data=build_org_profile(org, user))
+    return api_response(data=await enrich_org_profile(db, org, build_org_profile(org, user)))
+
+
+@router.get("/me/ig-change-request", response_model=DataResponse[OrgIgChangeRequestState])
+async def get_my_ig_change_request(
+    user: CurrentOrg,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Latest / pending Instagram identity change ticket for the caller."""
+    return api_response(
+        data=OrgIgChangeRequestState.model_validate(await get_request_state(db, user))
+    )
+
+
+@router.post(
+    "/me/ig-change-requests",
+    response_model=DataResponse[OrgIgChangeRequestResponse],
+    dependencies=[Depends(rate_limited("org_ig_change", limit=10, window=60))],
+)
+async def create_my_ig_change_request(
+    payload: OrgIgChangeRequestCreate,
+    user: CurrentOrg,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Request an Instagram rename or account switch (admin review)."""
+    result = await submit_request(
+        db,
+        user,
+        kind=payload.kind,
+        current_handle=payload.current_handle,
+        requested_handle=payload.requested_handle,
+        reason=payload.reason,
+    )
+    return api_response(data=OrgIgChangeRequestResponse.model_validate(result))
 
 
 @router.get("/me/posts", response_model=DataResponse[list[PostResponse]])

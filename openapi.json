@@ -1544,6 +1544,209 @@
         "title": "AdminHealthResponse",
         "type": "object"
       },
+      "AdminIgChangeApproveRequest": {
+        "description": "Admin chooses rename vs switch. Switch also requires tester confirm.",
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "testerInviteConfirmed": {
+            "default": false,
+            "title": "Testerinviteconfirmed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "AdminIgChangeApproveRequest",
+        "type": "object"
+      },
+      "AdminIgChangeRequestItem": {
+        "properties": {
+          "acceptedCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acceptedcount"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "currentHandle": {
+            "title": "Currenthandle",
+            "type": "string"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedat"
+          },
+          "decidedKind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedkind"
+          },
+          "eduEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eduemail"
+          },
+          "emailSent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emailsent"
+          },
+          "finishedDropCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finisheddropcount"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "linkedPostCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linkedpostcount"
+          },
+          "liveDropCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Livedropcount"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "orgName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgname"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "university": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "University"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          },
+          "userStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Userstatus"
+          }
+        },
+        "required": [
+          "id",
+          "orgId",
+          "userId",
+          "kind",
+          "currentHandle",
+          "requestedHandle",
+          "reason",
+          "status",
+          "createdAt"
+        ],
+        "title": "AdminIgChangeRequestItem",
+        "type": "object"
+      },
       "AdminInviteState": {
         "description": "Latest brand invite token. ``used_at`` is ambiguous between redeemed and\nsuperseded, so read it alongside ``password_set``.",
         "properties": {
@@ -1825,6 +2028,18 @@
               }
             ],
             "title": "Orgname"
+          },
+          "pendingIgChangeRequestId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pendingigchangerequestid"
           },
           "postCount": {
             "title": "Postcount",
@@ -4569,6 +4784,44 @@
         "title": "DataResponse[AdminHealthResponse]",
         "type": "object"
       },
+      "DataResponse_AdminIgChangeRequestItem_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminIgChangeRequestItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminIgChangeRequestItem]",
+        "type": "object"
+      },
       "DataResponse_AdminOrgDetail_": {
         "properties": {
           "data": {
@@ -5633,6 +5886,82 @@
         "title": "DataResponse[OrgApplyPrefillResponse]",
         "type": "object"
       },
+      "DataResponse_OrgIgChangeRequestResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgIgChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[OrgIgChangeRequestResponse]",
+        "type": "object"
+      },
+      "DataResponse_OrgIgChangeRequestState_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgIgChangeRequestState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[OrgIgChangeRequestState]",
+        "type": "object"
+      },
       "DataResponse_OrgOnboardingResponse_": {
         "properties": {
           "data": {
@@ -6213,6 +6542,48 @@
           }
         },
         "title": "DataResponse[list[AdminDropRequestItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_AdminIgChangeRequestItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminIgChangeRequestItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[AdminIgChangeRequestItem]]",
         "type": "object"
       },
       "DataResponse_list_AdminOrgItem__": {
@@ -7672,6 +8043,189 @@
         "title": "OrgConnectRedeemRequest",
         "type": "object"
       },
+      "OrgIgChangeRequestCreate": {
+        "properties": {
+          "currentHandle": {
+            "title": "Currenthandle",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "currentHandle",
+          "requestedHandle",
+          "reason"
+        ],
+        "title": "OrgIgChangeRequestCreate",
+        "type": "object"
+      },
+      "OrgIgChangeRequestResponse": {
+        "properties": {
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "currentHandle": {
+            "title": "Currenthandle",
+            "type": "string"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedat"
+          },
+          "decidedKind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedkind"
+          },
+          "emailSent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emailsent"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          },
+          "userStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Userstatus"
+          }
+        },
+        "required": [
+          "id",
+          "orgId",
+          "userId",
+          "kind",
+          "currentHandle",
+          "requestedHandle",
+          "reason",
+          "status",
+          "createdAt"
+        ],
+        "title": "OrgIgChangeRequestResponse",
+        "type": "object"
+      },
+      "OrgIgChangeRequestState": {
+        "properties": {
+          "igSwitchedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Igswitchedat"
+          },
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgIgChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pending": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgIgChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "previousInstagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previousinstagramhandle"
+          }
+        },
+        "title": "OrgIgChangeRequestState",
+        "type": "object"
+      },
       "OrgOnboardingRequest": {
         "additionalProperties": false,
         "description": "Phase 2: submit org profile after Instagram OAuth (legacy drain).",
@@ -7904,6 +8458,17 @@
             "title": "Id",
             "type": "string"
           },
+          "igSwitchedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Igswitchedat"
+          },
           "instagramHandle": {
             "title": "Instagramhandle",
             "type": "string"
@@ -7933,6 +8498,17 @@
               }
             ],
             "title": "Pendingeduemail"
+          },
+          "previousInstagramHandle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previousinstagramhandle"
           },
           "shippingCity": {
             "anyOf": [
@@ -10679,6 +11255,258 @@
           }
         },
         "summary": "Get Health Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/ig-change-requests": {
+      "get": {
+        "operationId": "list_ig_change_requests_endpoint_api_admin_ig_change_requests_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_list_AdminIgChangeRequestItem__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Ig Change Requests Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/ig-change-requests/{request_id}": {
+      "get": {
+        "operationId": "get_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminIgChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Ig Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/ig-change-requests/{request_id}/approve": {
+      "post": {
+        "operationId": "approve_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminIgChangeApproveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminIgChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Approve Ig Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/ig-change-requests/{request_id}/deny": {
+      "post": {
+        "operationId": "deny_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__deny_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminIgChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Deny Ig Change Request Endpoint",
         "tags": [
           "admin"
         ]
@@ -14647,6 +15475,116 @@
           }
         },
         "summary": "Update My Org",
+        "tags": [
+          "orgs"
+        ]
+      }
+    },
+    "/api/orgs/me/ig-change-request": {
+      "get": {
+        "description": "Latest / pending Instagram identity change ticket for the caller.",
+        "operationId": "get_my_ig_change_request_api_orgs_me_ig_change_request_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OrgIgChangeRequestState_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get My Ig Change Request",
+        "tags": [
+          "orgs"
+        ]
+      }
+    },
+    "/api/orgs/me/ig-change-requests": {
+      "post": {
+        "description": "Request an Instagram rename or account switch (admin review).",
+        "operationId": "create_my_ig_change_request_api_orgs_me_ig_change_requests_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgIgChangeRequestCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OrgIgChangeRequestResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Create My Ig Change Request",
         "tags": [
           "orgs"
         ]

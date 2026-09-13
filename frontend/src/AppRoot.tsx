@@ -48,6 +48,8 @@ import AdminDropsPage from "./pages/admin/AdminDropsPage";
 import AdminDropDetailPage from "./pages/admin/AdminDropDetailPage";
 import AdminDropRequestsPage from "./pages/admin/AdminDropRequestsPage";
 import AdminDropRequestDetailPage from "./pages/admin/AdminDropRequestDetailPage";
+import AdminIgChangeRequestsPage from "./pages/admin/AdminIgChangeRequestsPage";
+import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import UiKitPage from "./pages/dev/UiKitPage";
@@ -308,6 +310,8 @@ export default function AppRoot(): ReactElement {
         <Route path="brands/:brandId" element={<AdminBrandDetailPage />} />
         <Route path="requests" element={<AdminDropRequestsPage />} />
         <Route path="requests/:requestId" element={<AdminDropRequestDetailPage />} />
+        <Route path="ig-changes" element={<AdminIgChangeRequestsPage />} />
+        <Route path="ig-changes/:requestId" element={<AdminIgChangeRequestDetailPage />} />
         <Route path="drops" element={<AdminDropsPage />} />
         <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />

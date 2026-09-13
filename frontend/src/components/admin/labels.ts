@@ -26,6 +26,12 @@ export const QUEUE_META: Record<string, QueueMeta> = {
     to: "/admin/orgs?status=pending_approval",
     owner: "us",
   },
+  orgs_ig_change_pending: {
+    label: "Instagram identity requests",
+    note: "Org asked to rename or switch the bound Instagram account",
+    to: "/admin/ig-changes?status=pending",
+    owner: "us",
+  },
   brands_pending_review: {
     label: "Brands awaiting review",
     note: "Applied for a brand account and are waiting on a decision",
@@ -191,6 +197,7 @@ export const STATUS_LABELS: Record<string, string> = {
   pending_approval: "Awaiting approval",
   pending_instagram: "Awaiting Instagram connect",
   pending_review: "Awaiting review",
+  pending: "Pending",
   active: "Active",
   approved: "Approved",
   denied: "Denied",

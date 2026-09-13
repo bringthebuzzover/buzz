@@ -451,6 +451,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/ig-change-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Ig Change Requests Endpoint */
+        get: operations["list_ig_change_requests_endpoint_api_admin_ig_change_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ig-change-requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Ig Change Request Endpoint */
+        get: operations["get_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ig-change-requests/{request_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Ig Change Request Endpoint */
+        post: operations["approve_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ig-change-requests/{request_id}/deny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deny Ig Change Request Endpoint */
+        post: operations["deny_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__deny_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/impersonate/{user_id}": {
         parameters: {
             query?: never;
@@ -1850,6 +1918,46 @@ export interface paths {
         patch: operations["update_my_org_api_orgs_me_patch"];
         trace?: never;
     };
+    "/api/orgs/me/ig-change-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get My Ig Change Request
+         * @description Latest / pending Instagram identity change ticket for the caller.
+         */
+        get: operations["get_my_ig_change_request_api_orgs_me_ig_change_request_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orgs/me/ig-change-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create My Ig Change Request
+         * @description Request an Instagram rename or account switch (admin review).
+         */
+        post: operations["create_my_ig_change_request_api_orgs_me_ig_change_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orgs/me/posts": {
         parameters: {
             query?: never;
@@ -2479,6 +2587,71 @@ export interface components {
             silent: components["schemas"]["AdminSignal"][];
         };
         /**
+         * AdminIgChangeApproveRequest
+         * @description Admin chooses rename vs switch. Switch also requires tester confirm.
+         */
+        AdminIgChangeApproveRequest: {
+            /** Kind */
+            kind: string;
+            /**
+             * Testerinviteconfirmed
+             * @default false
+             */
+            testerInviteConfirmed: boolean;
+        };
+        /** AdminIgChangeRequestItem */
+        AdminIgChangeRequestItem: {
+            /** Acceptedcount */
+            acceptedCount?: number | null;
+            /** Createdat */
+            createdAt: number | null;
+            /** Currenthandle */
+            currentHandle: string;
+            /** Decidedat */
+            decidedAt?: number | null;
+            /** Decidedkind */
+            decidedKind?: string | null;
+            /** Eduemail */
+            eduEmail?: string | null;
+            /** Emailsent */
+            emailSent?: boolean | null;
+            /** Finisheddropcount */
+            finishedDropCount?: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Linkedpostcount */
+            linkedPostCount?: number | null;
+            /** Livedropcount */
+            liveDropCount?: number | null;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Orgname */
+            orgName?: string | null;
+            /** Reason */
+            reason: string;
+            /** Requestedhandle */
+            requestedHandle: string;
+            /** Status */
+            status: string;
+            /** University */
+            university?: string | null;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+            /** Userstatus */
+            userStatus?: string | null;
+        };
+        /**
          * AdminInviteState
          * @description Latest brand invite token. ``used_at`` is ambiguous between redeemed and
          *     superseded, so read it alongside ``password_set``.
@@ -2558,6 +2731,8 @@ export interface components {
             orgId: string | null;
             /** Orgname */
             orgName: string | null;
+            /** Pendingigchangerequestid */
+            pendingIgChangeRequestId?: string | null;
             /** Postcount */
             postCount: number;
             /** State */
@@ -3533,6 +3708,15 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[AdminIgChangeRequestItem] */
+        DataResponse_AdminIgChangeRequestItem_: {
+            data?: components["schemas"]["AdminIgChangeRequestItem"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[AdminOrgDetail] */
         DataResponse_AdminOrgDetail_: {
             data?: components["schemas"]["AdminOrgDetail"] | null;
@@ -3785,6 +3969,24 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[OrgIgChangeRequestResponse] */
+        DataResponse_OrgIgChangeRequestResponse_: {
+            data?: components["schemas"]["OrgIgChangeRequestResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[OrgIgChangeRequestState] */
+        DataResponse_OrgIgChangeRequestState_: {
+            data?: components["schemas"]["OrgIgChangeRequestState"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[OrgOnboardingResponse] */
         DataResponse_OrgOnboardingResponse_: {
             data?: components["schemas"]["OrgOnboardingResponse"] | null;
@@ -3917,6 +4119,16 @@ export interface components {
         DataResponse_list_AdminDropRequestItem__: {
             /** Data */
             data?: components["schemas"]["AdminDropRequestItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[AdminIgChangeRequestItem]] */
+        DataResponse_list_AdminIgChangeRequestItem__: {
+            /** Data */
+            data?: components["schemas"]["AdminIgChangeRequestItem"][] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -4435,6 +4647,64 @@ export interface components {
             /** Token */
             token: string;
         };
+        /** OrgIgChangeRequestCreate */
+        OrgIgChangeRequestCreate: {
+            /** Currenthandle */
+            currentHandle: string;
+            /** Kind */
+            kind: string;
+            /** Reason */
+            reason: string;
+            /** Requestedhandle */
+            requestedHandle: string;
+        };
+        /** OrgIgChangeRequestResponse */
+        OrgIgChangeRequestResponse: {
+            /** Createdat */
+            createdAt: number | null;
+            /** Currenthandle */
+            currentHandle: string;
+            /** Decidedat */
+            decidedAt?: number | null;
+            /** Decidedkind */
+            decidedKind?: string | null;
+            /** Emailsent */
+            emailSent?: boolean | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Reason */
+            reason: string;
+            /** Requestedhandle */
+            requestedHandle: string;
+            /** Status */
+            status: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+            /** Userstatus */
+            userStatus?: string | null;
+        };
+        /** OrgIgChangeRequestState */
+        OrgIgChangeRequestState: {
+            /** Igswitchedat */
+            igSwitchedAt?: number | null;
+            latest?: components["schemas"]["OrgIgChangeRequestResponse"] | null;
+            pending?: components["schemas"]["OrgIgChangeRequestResponse"] | null;
+            /** Previousinstagramhandle */
+            previousInstagramHandle?: string | null;
+        };
         /**
          * OrgOnboardingRequest
          * @description Phase 2: submit org profile after Instagram OAuth (legacy drain).
@@ -4510,6 +4780,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Igswitchedat */
+            igSwitchedAt?: number | null;
             /** Instagramhandle */
             instagramHandle: string;
             /** Membercount */
@@ -4518,6 +4790,8 @@ export interface components {
             orgName: string;
             /** Pendingeduemail */
             pendingEduEmail?: string | null;
+            /** Previousinstagramhandle */
+            previousInstagramHandle?: string | null;
             /** Shippingcity */
             shippingCity?: string | null;
             /** Shippingline1 */
@@ -5771,6 +6045,142 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminHealthResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    list_ig_change_requests_endpoint_api_admin_ig_change_requests_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_list_AdminIgChangeRequestItem__"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    get_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminIgChangeRequestItem_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    approve_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminIgChangeApproveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminIgChangeRequestItem_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    deny_ig_change_request_endpoint_api_admin_ig_change_requests__request_id__deny_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminIgChangeRequestItem_"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -8221,6 +8631,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_OrgProfileResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    get_my_ig_change_request_api_orgs_me_ig_change_request_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OrgIgChangeRequestState_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    create_my_ig_change_request_api_orgs_me_ig_change_requests_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgIgChangeRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OrgIgChangeRequestResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

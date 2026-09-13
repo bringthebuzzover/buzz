@@ -15,6 +15,7 @@ from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.orgs import OrgProfileResponse, OrgProfileUpdate
 from app.services.address import AddressClient, apply_to_org
+from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import canonical_instagram_handle
 
 _SHIPPING_KEYS = frozenset(
@@ -63,6 +64,21 @@ def build_org_profile(org: Organization, user: User) -> OrgProfileResponse:
         shipping_postal_code=org.shipping_postal_code,
         approved_at=org.approved_at,
         created_at=org.created_at,
+    )
+
+
+async def enrich_org_profile(
+    db: AsyncSession, org: Organization, profile: OrgProfileResponse
+) -> OrgProfileResponse:
+    """Attach last approved account-switch banner fields (PRODUCT §3.1.4)."""
+    switch = await latest_approved_switch(db, org.id)
+    if switch is None:
+        return profile
+    return profile.model_copy(
+        update={
+            "ig_switched_at": switch.decided_at,
+            "previous_instagram_handle": switch.current_handle,
+        }
     )
 
 

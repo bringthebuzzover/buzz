@@ -139,6 +139,78 @@ export function useAdminOrg(
   });
 }
 
+export type AdminIgChangeRequest =
+  components["schemas"]["AdminIgChangeRequestItem"];
+
+export function useAdminIgChangeRequests(
+  status?: string,
+): AdminQuery<AdminIgChangeRequest[]> {
+  return useQuery({
+    queryKey: ["admin", "ig-changes", status ?? "all"],
+    queryFn: async () => {
+      const query = status ? `?status=${encodeURIComponent(status)}` : "";
+      const { data } = await apiFetch<AdminIgChangeRequest[]>(
+        `/api/admin/ig-change-requests${query}`,
+      );
+      return data;
+    },
+  });
+}
+
+export function useAdminIgChangeRequest(
+  requestId: string | undefined,
+): AdminQuery<AdminIgChangeRequest> {
+  return useQuery({
+    queryKey: ["admin", "ig-change", requestId],
+    enabled: Boolean(requestId),
+    queryFn: async () => {
+      const { data } = await apiFetch<AdminIgChangeRequest>(
+        `/api/admin/ig-change-requests/${requestId}`,
+      );
+      return data;
+    },
+  });
+}
+
+export function useApproveIgChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      requestId: string;
+      kind: "rename" | "account_switch";
+      testerInviteConfirmed?: boolean;
+    }) => {
+      const { data } = await apiFetch<AdminIgChangeRequest>(
+        `/api/admin/ig-change-requests/${input.requestId}/approve`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind: input.kind,
+            testerInviteConfirmed: input.testerInviteConfirmed ?? false,
+          }),
+        },
+      );
+      return data;
+    },
+    onSuccess: () => invalidateAdmin(queryClient),
+  });
+}
+
+export function useDenyIgChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { data } = await apiFetch<AdminIgChangeRequest>(
+        `/api/admin/ig-change-requests/${requestId}/deny`,
+        { method: "POST" },
+      );
+      return data;
+    },
+    onSuccess: () => invalidateAdmin(queryClient),
+  });
+}
+
 // ── Brands ──────────────────────────────────────────────────────────────────
 
 /** `brands.status` disagrees with `userStatus` by design. */

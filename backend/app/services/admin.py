@@ -49,8 +49,10 @@ from app.services.email import (
     send_late_add_org_email,
     send_org_approved_email,
     send_org_denied_email,
+    send_org_ig_switch_connect_email,
     send_org_undenied_email,
 )
+from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.org_connect import create_org_connect_token
@@ -216,11 +218,20 @@ async def resend_org_connect(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
 
     raw = await create_org_connect_token(db, org, user)
     await db.flush()
-    email_sent = await send_org_approved_email(
-        user.edu_email or "",
-        org_name=org.org_name,
-        connect_token=raw,
-    )
+    switch = await latest_approved_switch(db, org.id)
+    if switch is not None:
+        email_sent = await send_org_ig_switch_connect_email(
+            user.edu_email or "",
+            org_name=org.org_name,
+            connect_token=raw,
+            requested_handle=switch.requested_handle,
+        )
+    else:
+        email_sent = await send_org_approved_email(
+            user.edu_email or "",
+            org_name=org.org_name,
+            connect_token=raw,
+        )
     return {"org_id": str(org.id), "status": user.status, "email_sent": email_sent}
 
 

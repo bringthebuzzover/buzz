@@ -55,6 +55,7 @@ test("admin lands on the overview with a card per queue", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
   // Each queue card is a deep link into its filtered list.
   await expect(page.getByTestId("queue-orgs_pending_approval")).toBeVisible();
+  await expect(page.getByTestId("queue-orgs_ig_change_pending")).toBeVisible();
   await expect(page.getByTestId("queue-brands_pending_review")).toBeVisible();
   await expect(page.getByTestId("queue-drops_ready_to_advance")).toBeVisible();
   await expect(
