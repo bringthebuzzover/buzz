@@ -4,9 +4,19 @@ from __future__ import annotations
 
 from httpx import AsyncClient
 
-from app.models.enums import PortalRole
+from app.models.enums import ApplicationDecision, PortalRole
+from app.models.shipment import DropApplicationShipment
 from app.security.password import hash_password
-from tests.conftest import make_brand, make_drop, make_org, make_user, mint_access_token, persist
+from tests.conftest import (
+    make_application,
+    make_brand,
+    make_drop,
+    make_notify,
+    make_org,
+    make_user,
+    mint_access_token,
+    persist,
+)
 
 
 async def _admin_headers(db_session) -> dict[str, str]:
@@ -143,3 +153,45 @@ class TestAdminTablesPatch:
         )
         assert res.status_code == 200
         assert res.json()["data"]["row"]["brandName"] == "Acme"
+
+    async def test_rejects_duplicate_shipment_tracking(
+        self, app_client: AsyncClient, db_session
+    ) -> None:
+        user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, user)
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        app = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+        first = DropApplicationShipment(
+            application_id=app.id, tracking_number="1ZAAAA", carrier="ups"
+        )
+        second = DropApplicationShipment(
+            application_id=app.id, tracking_number="1ZBBBB", carrier="ups"
+        )
+        db_session.add_all([first, second])
+        await db_session.flush()
+
+        res = await app_client.patch(
+            f"/api/admin/tables/drop_application_shipments/{second.id}",
+            json={"fields": {"trackingNumber": "1ZAAAA"}},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 409
+        assert res.json()["error"]["code"] == "VALIDATION_ERROR"
+
+    async def test_rejects_non_numeric_notify_minutes(
+        self, app_client: AsyncClient, db_session
+    ) -> None:
+        user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, user)
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        notify = await make_notify(db_session, org, drop)
+
+        res = await app_client.patch(
+            f"/api/admin/tables/notify_me/{notify.id}",
+            json={"fields": {"reminderMinutes": "soon"}},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 400
+        assert res.json()["error"]["code"] == "VALIDATION_ERROR"
