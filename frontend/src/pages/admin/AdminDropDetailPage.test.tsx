@@ -216,6 +216,11 @@ describe("AdminDropDetailPage", () => {
     expect(container.textContent).toContain("1.3K");
     expect(container.textContent).toContain("Berkeley, CA");
     expect(container.textContent).not.toContain("2301 Bancroft Way");
+    const addTracking = container.querySelector(
+      '[data-testid="add-shipment-app-1"]',
+    ) as HTMLButtonElement;
+    expect(addTracking).toBeTruthy();
+    expect(addTracking.disabled).toBe(true);
   });
 
   it("does not restamp Account deleted next to a tombstone org name", () => {

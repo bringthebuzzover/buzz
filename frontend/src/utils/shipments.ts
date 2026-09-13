@@ -17,3 +17,11 @@ export function shipmentSummary(shipments: Shipment[] | undefined): string | nul
   if (list.length === 1) return `#${list[0].trackingNumber}`;
   return `${list.length} tracking numbers`;
 }
+
+export function mergeShipment(list: Shipment[], next: Shipment): Shipment[] {
+  return list.some((row) => row.id === next.id) ? list : [...list, next];
+}
+
+export function omitShipment(list: Shipment[], shipmentId: string): Shipment[] {
+  return list.filter((row) => row.id !== shipmentId);
+}

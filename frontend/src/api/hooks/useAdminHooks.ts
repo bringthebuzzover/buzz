@@ -6,9 +6,10 @@
  * while every panel payload is camelCase with epoch-ms datetimes (serialized by
  * `CamelModel`), so nothing is remapped here.
  *
- * Every mutation invalidates the whole `["admin"]` key space. The sidebar badges
- * read from the overview query, so an approve that left a stale badge behind
- * would be worse than one extra refetch on a page only a few people open.
+ * Every mutation invalidates the whole `["admin"]` key space (fire-and-forget
+ * — do not await it from mutateAsync). The sidebar badges read from the
+ * overview query, so an approve that left a stale badge behind would be worse
+ * than one extra refetch on a page only a few people open.
  */
 import {
   useMutation,
@@ -22,6 +23,7 @@ import { apiFetch, ApiError } from "../client";
 import { authUserFromWire, setImpersonationToken, setViewAsLatch } from "../auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { pathForUser } from "../../utils/landing";
+import { mergeShipment, omitShipment, type Shipment } from "../../utils/shipments";
 import type { components } from "../generated/schema";
 
 export type TokenResponse = components["schemas"]["TokenResponse"];
@@ -193,7 +195,9 @@ export function useApproveIgChangeRequest() {
       );
       return data;
     },
-    onSuccess: () => invalidateAdmin(queryClient),
+    onSuccess: () => {
+      void invalidateAdmin(queryClient);
+    },
   });
 }
 
@@ -207,7 +211,9 @@ export function useDenyIgChangeRequest() {
       );
       return data;
     },
-    onSuccess: () => invalidateAdmin(queryClient),
+    onSuccess: () => {
+      void invalidateAdmin(queryClient);
+    },
   });
 }
 
@@ -348,7 +354,14 @@ function useAdminMutation<TInput>(
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: request,
-    onSuccess: () => invalidateAdmin(queryClient),
+    onSuccess: () => {
+      // Fire-and-forget. `mutateAsync` awaits onSuccess; awaiting this would
+      // block until every active ["admin"] query refetches (sidebar overview
+      // plus the page). That kept Publish disabled after Save draft and
+      // wiped a second tracking number after Add tracking once the drop
+      // detail refetch landed first. Same pattern as useCreateAdminDrop.
+      void invalidateAdmin(queryClient);
+    },
   });
 }
 
@@ -471,7 +484,9 @@ export function useEraseOrg() {
       );
       return data;
     },
-    onSuccess: () => invalidateAdmin(queryClient),
+    onSuccess: () => {
+      void invalidateAdmin(queryClient);
+    },
   });
 }
 
@@ -492,7 +507,9 @@ export function useEraseBrand() {
       );
       return data;
     },
-    onSuccess: () => invalidateAdmin(queryClient),
+    onSuccess: () => {
+      void invalidateAdmin(queryClient);
+    },
   });
 }
 
@@ -584,26 +601,72 @@ export function useAddOrgToDrop(dropId: string) {
   );
 }
 
-export function useAddApplicantShipment(applicationId: string) {
-  return useAdminMutation((input: { trackingNumber: string; carrier?: string }) =>
-    apiFetch(`/api/admin/applications/${applicationId}/shipments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        trackingNumber: input.trackingNumber,
-        carrier: input.carrier || null,
-      }),
-    }),
+function patchDropApplicantShipments(
+  queryClient: QueryClient,
+  dropId: string,
+  applicationId: string,
+  update: (shipments: Shipment[]) => Shipment[],
+) {
+  queryClient.setQueryData(
+    ["admin", "drop", dropId],
+    (old: AdminDropDetail | undefined) => {
+      if (!old) return old;
+      return {
+        ...old,
+        applicants: old.applicants.map((applicant) =>
+          applicant.id === applicationId
+            ? { ...applicant, shipments: update(applicant.shipments ?? []) }
+            : applicant,
+        ),
+      };
+    },
   );
 }
 
-export function useDeleteApplicantShipment(applicationId: string) {
-  return useAdminMutation((shipmentId: string) =>
-    apiFetch(
-      `/api/admin/applications/${applicationId}/shipments/${shipmentId}`,
-      { method: "DELETE" },
-    ),
-  );
+export function useAddApplicantShipment(dropId: string, applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { trackingNumber: string; carrier?: string }) => {
+      const { data } = await apiFetch<Shipment>(
+        `/api/admin/applications/${applicationId}/shipments`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            trackingNumber: input.trackingNumber,
+            carrier: input.carrier || null,
+          }),
+        },
+      );
+      return data;
+    },
+    onSuccess: (shipment) => {
+      patchDropApplicantShipments(queryClient, dropId, applicationId, (list) =>
+        mergeShipment(list, shipment),
+      );
+      void invalidateAdmin(queryClient);
+    },
+  });
+}
+
+export function useDeleteApplicantShipment(
+  dropId: string,
+  applicationId: string,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (shipmentId: string) =>
+      apiFetch(
+        `/api/admin/applications/${applicationId}/shipments/${shipmentId}`,
+        { method: "DELETE" },
+      ),
+    onSuccess: (_data, shipmentId) => {
+      patchDropApplicantShipments(queryClient, dropId, applicationId, (list) =>
+        omitShipment(list, shipmentId),
+      );
+      void invalidateAdmin(queryClient);
+    },
+  });
 }
 
 export type AdminDropConfigPatch = {
