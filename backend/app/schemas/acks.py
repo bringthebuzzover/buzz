@@ -171,3 +171,16 @@ class AdminAddOrgResponse(CamelModel):
     portal_ready: bool
     email_org_sent: bool | None = None
     email_brand_sent: bool | None = None
+
+
+class AdminSyncAutolinkResponse(CamelModel):
+    orgs: int
+    posts_discovered: int
+    posts_refreshed: int
+    failures: int
+    skipped_token: int
+    skipped_story: int
+    applications_scanned: int
+    posts_scanned: int
+    suggestions_created: int
+    suggestions_healed: int

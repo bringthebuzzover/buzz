@@ -30,6 +30,7 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
   useUnhideDrop: () => idleMutation(),
   useAdminOrgs: () => ({ data: [], isPending: false, isError: false }),
   useAddOrgToDrop: () => idleMutation(),
+  useSyncAndAutolink: () => idleMutation(),
 }));
 
 import AdminDropDetailPage from "./AdminDropDetailPage";
@@ -325,6 +326,18 @@ describe("AdminDropDetailPage", () => {
     expect(container.querySelector('[data-testid="drop-unhide"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="hide-drop"]')).toBeFalsy();
     expect(container.querySelector('[data-testid="add-org-open"]')).toBeFalsy();
+  });
+
+  it("shows sync-and-autolink only on an Active published drop", () => {
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({ publishedAt: now, stage: "drop_active" }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1?tab=attribution");
+    expect(
+      container.querySelector('[data-testid="sync-and-autolink"]'),
+    ).toBeTruthy();
   });
 
   it("hides late-add on a finished drop", () => {

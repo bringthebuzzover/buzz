@@ -298,11 +298,15 @@ async def _refresh_follower_counts(
     }
 
 
-async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
+async def sync_metrics_for_orgs(
+    db: AsyncSession,
+    ig: InstagramClient,
+    orgs: list[Organization],
+) -> dict[str, Any]:
+    """Discover + refresh media for these orgs. Does **not** walk followers."""
+
     now = datetime.now(timezone.utc)
     window_start = now - _WINDOW
-
-    orgs = await _eligible_orgs(db, now)
     discovered = 0
     refreshed = 0
     failed = 0
@@ -442,8 +446,6 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
             refreshed += 1
         await db.flush()
 
-    follower_stats = await _refresh_follower_counts(db, ig, now)
-
     return {
         "orgs": len(orgs),
         "posts_discovered": discovered,
@@ -456,5 +458,12 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
         "caption_omitted": caption_omitted,
         "media_url_omitted": media_url_omitted,
         "thumbnail_url_omitted": thumbnail_url_omitted,
-        **follower_stats,
     }
+
+
+async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    orgs = await _eligible_orgs(db, now)
+    media = await sync_metrics_for_orgs(db, ig, orgs)
+    follower_stats = await _refresh_follower_counts(db, ig, now)
+    return {**media, **follower_stats}

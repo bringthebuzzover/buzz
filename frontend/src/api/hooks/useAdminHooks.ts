@@ -458,6 +458,18 @@ export function useClearReopen(dropId: string) {
   );
 }
 
+export type AdminSyncAutolinkResult =
+  components["schemas"]["AdminSyncAutolinkResponse"];
+
+export function useSyncAndAutolink(dropId: string) {
+  return useAdminMutation((_: void) =>
+    apiFetch<AdminSyncAutolinkResult>(
+      `/api/admin/drops/${dropId}/sync-and-autolink`,
+      { method: "POST" },
+    ),
+  );
+}
+
 export function useAddOrgToDrop(dropId: string) {
   return useAdminMutation(
     (input: {

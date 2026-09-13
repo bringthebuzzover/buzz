@@ -16,6 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import errors
 from app.config import settings
 from app.exceptions import BuzzAPIException
+from app.jobs.autolink_scan import scan_autolink
+from app.jobs.metric_sync import sync_metrics_for_orgs
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
@@ -49,6 +51,7 @@ from app.services.email import (
     send_org_denied_email,
     send_org_undenied_email,
 )
+from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.org_connect import create_org_connect_token
 
@@ -640,6 +643,45 @@ async def add_org_to_drop(
         "email_org_sent": email_org_sent,
         "email_brand_sent": email_brand_sent,
     }
+
+
+async def sync_and_autolink_drop(
+    db: AsyncSession,
+    drop_id: UUID,
+    ig: InstagramClient,
+) -> dict[str, Any]:
+    """Graph-sync accepted orgs on this Active drop, then autolink suggestions."""
+
+    drop = await db.get(Drop, drop_id)
+    if drop is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    if (
+        drop.published_at is None
+        or drop.hidden_at is not None
+        or drop.brand_tracker_stage != BrandTrackerStage.DROP_ACTIVE.value
+    ):
+        raise BuzzAPIException(
+            errors.DROP_NOT_ELIGIBLE,
+            "Sync and autolink only run on a published, visible, Active drop.",
+            status_code=409,
+        )
+
+    orgs = list(
+        await db.scalars(
+            select(Organization)
+            .join(DropApplication, DropApplication.org_id == Organization.id)
+            .join(User, User.id == Organization.user_id)
+            .where(
+                DropApplication.drop_id == drop.id,
+                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+                User.status != OrgUserStatus.ERASED.value,
+            )
+            .distinct()
+        )
+    )
+    media = await sync_metrics_for_orgs(db, ig, orgs)
+    auto = await scan_autolink(db, drop_id=drop.id)
+    return {**media, **auto}
 
 
 async def clear_manual_reopen(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:

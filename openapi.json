@@ -2367,6 +2367,64 @@
         "title": "AdminSignal",
         "type": "object"
       },
+      "AdminSyncAutolinkResponse": {
+        "properties": {
+          "applicationsScanned": {
+            "title": "Applicationsscanned",
+            "type": "integer"
+          },
+          "failures": {
+            "title": "Failures",
+            "type": "integer"
+          },
+          "orgs": {
+            "title": "Orgs",
+            "type": "integer"
+          },
+          "postsDiscovered": {
+            "title": "Postsdiscovered",
+            "type": "integer"
+          },
+          "postsRefreshed": {
+            "title": "Postsrefreshed",
+            "type": "integer"
+          },
+          "postsScanned": {
+            "title": "Postsscanned",
+            "type": "integer"
+          },
+          "skippedStory": {
+            "title": "Skippedstory",
+            "type": "integer"
+          },
+          "skippedToken": {
+            "title": "Skippedtoken",
+            "type": "integer"
+          },
+          "suggestionsCreated": {
+            "title": "Suggestionscreated",
+            "type": "integer"
+          },
+          "suggestionsHealed": {
+            "title": "Suggestionshealed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "orgs",
+          "postsDiscovered",
+          "postsRefreshed",
+          "failures",
+          "skippedToken",
+          "skippedStory",
+          "applicationsScanned",
+          "postsScanned",
+          "suggestionsCreated",
+          "suggestionsHealed"
+        ],
+        "title": "AdminSyncAutolinkResponse",
+        "type": "object"
+      },
       "AdminTableColumn": {
         "properties": {
           "hidden": {
@@ -4574,6 +4632,44 @@
           }
         },
         "title": "DataResponse[AdminOverviewResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminSyncAutolinkResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminSyncAutolinkResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminSyncAutolinkResponse]",
         "type": "object"
       },
       "DataResponse_AdminTableQueryResponse_": {
@@ -10188,6 +10284,66 @@
           }
         },
         "summary": "Reopen Drop Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/drops/{drop_id}/sync-and-autolink": {
+      "post": {
+        "description": "Pull Graph for this drop's accepted orgs, then mint autolink suggestions.",
+        "operationId": "sync_and_autolink_drop_endpoint_api_admin_drops__drop_id__sync_and_autolink_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminSyncAutolinkResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Sync And Autolink Drop Endpoint",
         "tags": [
           "admin"
         ]

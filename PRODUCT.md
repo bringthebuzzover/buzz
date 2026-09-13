@@ -412,7 +412,7 @@ Aggregated all drops →  Brand aggregate dashboard
 | Org   | Onboarding          | Public apply (profile + **§6.1.1** Instagram confirm card + **.edu**); verify; Buzz review; accept Instagram Tester invite; Connect Instagram; then portal |
 | Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts when Active                                                                                           |
-| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment; **late-add** an org onto a published unhidden unfinished drop (**§7.1**); erase org account after verified data-deletion request (**§3.1.2**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); integrations (see §5.2.1 TODO) |
+| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment; **late-add** an org onto a published unhidden unfinished drop (**§7.1**); on an **Active** drop, **sync Instagram then autolink** for that drop's accepted orgs (suggestions stay unconfirmed); erase org account after verified data-deletion request (**§3.1.2**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); integrations (see §5.2.1 TODO) |
 
 ---
 
