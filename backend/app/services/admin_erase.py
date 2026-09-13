@@ -1,7 +1,6 @@
-"""Admin org hybrid erase (PRODUCT.md §3.1.2 / §4.3).
+"""Admin hybrid erase for orgs (PRODUCT §3.1.2) and brands (PRODUCT §3.1.3).
 
-Scrubs identity and identifiable post content; keeps campaign KPI contribution
-(posts, links, metrics, follower_count, university, accepted seats).
+Scrubs identity and contact PII; keeps campaign graph and numeric KPIs.
 """
 
 from __future__ import annotations
@@ -16,7 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
-from app.models.enums import ApplicationDecision, OrgUserStatus, PortalRole
+from app.models.brand import Brand
+from app.models.brand_invite_token import BrandInviteToken
+from app.models.enums import ApplicationDecision, BrandStatus, OrgUserStatus, PortalRole
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
@@ -24,14 +25,15 @@ from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
-from app.security.session import commit_revocation
-from app.services.email import send_org_erased_email
+from app.security.session import bump_token_version, commit_revocation
+from app.services.email import send_brand_erased_email, send_org_erased_email
 from app.services.instagram import canonical_instagram_handle
 from app.services.instagram_token import clear_unusable_instagram_token
 
 logger = logging.getLogger(__name__)
 
 _TOMBSTONE_ORG_NAME = "Deleted organization"
+_TOMBSTONE_BRAND_NAME = "Deleted brand"
 
 
 def _email_domain(email: str | None) -> str | None:
@@ -174,6 +176,73 @@ def _scrub_org_profile(org: Organization) -> None:
     org.shipping_postal_code = None
     org.approved_at = None
     # Keep follower_count and university for brand reach / campus KPIs.
+
+
+async def erase_brand(db: AsyncSession, brand_id: UUID, confirm: str) -> dict[str, object]:
+    """Erase a brand after company-email confirm. Does not hide drops."""
+
+    brand = await db.get(Brand, brand_id)
+    if brand is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
+
+    if brand.status == BrandStatus.ERASED.value:
+        return {
+            "brand_id": str(brand.id),
+            "status": BrandStatus.ERASED.value,
+            "email_sent": False,
+            "email_to_domain": None,
+        }
+
+    stored = (brand.company_email or "").strip()
+    if not stored:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Brand has no company email to confirm erase.",
+            status_code=400,
+        )
+    if stored.casefold() != confirm.strip().casefold():
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Confirmation does not match this brand's company email.",
+            status_code=400,
+        )
+
+    notify_email = stored
+    email_to_domain = _email_domain(notify_email)
+    display_name = brand.brand_name
+    user = await db.get(User, brand.user_id)
+    if user is None or user.portal_role != PortalRole.BRAND.value:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand user not found.", status_code=404)
+
+    await db.execute(delete(BrandInviteToken).where(BrandInviteToken.brand_id == brand.id))
+    await _delete_user_tokens(db, user.id)
+
+    brand.brand_name = _TOMBSTONE_BRAND_NAME
+    brand.company_email = f"erased+{brand.id.hex}@invalid.local"
+    brand.intent_message = None
+    brand.instagram_handle = None
+    brand.status = BrandStatus.ERASED.value
+    brand.approved_at = None
+
+    user.password_hash = None
+    user.status = OrgUserStatus.ERASED.value
+    bump_token_version(user)
+
+    await db.flush()
+    await commit_revocation(db)
+
+    email_sent = await send_brand_erased_email(notify_email, brand_name=display_name)
+    logger.info(
+        "brand_erase_completed brand_id=%s email_sent=%s",
+        brand.id,
+        email_sent,
+    )
+    return {
+        "brand_id": str(brand.id),
+        "status": BrandStatus.ERASED.value,
+        "email_sent": email_sent,
+        "email_to_domain": email_to_domain,
+    }
 
 
 async def _delete_user_tokens(db: AsyncSession, user_id: UUID) -> None:

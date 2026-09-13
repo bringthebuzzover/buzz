@@ -83,7 +83,16 @@ After a verified data-deletion request (mailto on `/data-deletion`), a Buzz **ad
 - Erase removes login identity and contact PII (IG ids/token/username, email on file, shipping/contact fields) and ends the session (`token_version` bump). The account status becomes **erased** (terminal — not the same as onboarding **denied**).
 - Erase **does not** remove attributed campaign KPIs (**§4.3**). Accepted seats, linked posts’ numeric metrics, follower-based reach inputs, and campus strings are retained; the org may appear as an anonymized tombstone (e.g. “Deleted organization”) on brand/admin surfaces.
 - When an email address is on file before erase, Buzz may send a **confirmation email** to that address after a successful erase (best-effort; failure does not undo erase).
-- **v1:** no brand-portal erase; no self-serve account delete; Meta Hosts continue to use the public instructions URL (not a data-deletion callback).
+- **v1:** no self-serve account delete; Meta Hosts continue to use the public instructions URL (not a data-deletion callback). Brand erase is **§3.1.3**.
+
+### 3.1.3 Brand account erase (data-deletion fulfillment)
+
+After a verified data-deletion request, a Buzz **admin** may **erase** a brand from the admin brand detail page (confirm by typing the **company email**).
+
+- Erase removes login identity and contact PII (`company_email` is freed for reuse via a sentinel, `instagram_handle` and intent wiped, password cleared) and ends the session (`token_version` bump). `brands.status` and the brand user’s `users.status` become **erased**.
+- Erase **does not** delete drops, applications, shipments, links, or numeric metrics. Org **My Campaigns** still lists those seats with a tombstone brand name (e.g. “Deleted brand”). Published drops are **not** hidden (`hidden_at` stays unset); the org **feed** already omits them because the brand is no longer `approved`.
+- Compose email, late-add, and sync+autolink **refuse** an erased brand (409).
+- When a company email is on file before erase, Buzz may send a **confirmation email** to that address after a successful erase (best-effort; failure does not undo erase).
 
 ### 3.2 Demo / internal preview
 
@@ -117,7 +126,7 @@ For v1, drops expose two timestamps:
 - **Estimated reach (v1 definition):** Derived from **follower counts** of the participating student org(s) (and/or connected accounts as implemented), combined with product rules for display. Connected org follower counts are **Graph-owned**: best-effort seed from Instagram **at Instagram bind**, then **refreshed daily** when a usable token is on file (same cadence as post metric sync). Manual follower edits on onboarding/profile are not allowed.
 - **Aggregate likes:** Show **aggregate likes** across the campaign’s linked posts (in addition to or alongside estimated reach, per product copy).
 - Brand-facing layout (per-org, UGC, roll-ups): **§5.3**.
-- **KPI preservation (hard rule):** Attributed campaign contribution — linked post counts, likes, comments, engagement series, estimated reach from retained follower counts, and campus counts from retained university — **must not disappear** when an org account is erased or identity is removed (**§3.1.2**). Identity, contact PII, IG credentials, and identifiable post content (permalinks, captions, media) may be scrubbed or anonymized; **numeric campaign stats stay**. Brand dashboards may show a tombstone participant label with prior metrics intact.
+- **KPI preservation (hard rule):** Attributed campaign contribution — linked post counts, likes, comments, engagement series, estimated reach from retained follower counts, and campus counts from retained university — **must not disappear** when an org or brand account is erased (**§3.1.2**, **§3.1.3**). Identity, contact PII, IG credentials, and identifiable post content (permalinks, captions, media) may be scrubbed or anonymized; **numeric campaign stats stay**. Brand dashboards may show a tombstone participant label; org My Campaigns may show a tombstone brand name.
 
 ---
 
@@ -412,7 +421,7 @@ Aggregated all drops →  Brand aggregate dashboard
 | Org   | Onboarding          | Public apply (profile + **§6.1.1** Instagram confirm card + **.edu**); verify; Buzz review; accept Instagram Tester invite; Connect Instagram; then portal |
 | Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts when Active                                                                                           |
-| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment; **late-add** an org onto a published unhidden unfinished drop (**§7.1**); on an **Active** drop, **sync Instagram then autolink** for that drop's accepted orgs (suggestions stay unconfirmed); erase org account after verified data-deletion request (**§3.1.2**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); integrations (see §5.2.1 TODO) |
+| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment; **late-add** an org onto a published unhidden unfinished drop (**§7.1**); on an **Active** drop, **sync Instagram then autolink** for that drop's accepted orgs (suggestions stay unconfirmed); erase org or brand account after a verified data-deletion request (**§3.1.2**, **§3.1.3**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); integrations (see §5.2.1 TODO) |
 
 ---
 

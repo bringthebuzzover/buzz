@@ -63,7 +63,7 @@ Commit both `openapi.json` and `frontend/src/api/generated/schema.ts` when route
 - Both access and refresh JWTs carry `ver`; API compares to `users.token_version` (revocation on logout, deny, password reset, re-login/refresh rotation, IG token clear/deauth, etc.). Refresh rotation is compare-and-swap: a superseded cookie 401s without bumping so it cannot revoke the winner.
 - Guards: `get_current_user` → `require_role` / `require_status` → aliases `CurrentOrg` / `CurrentBrand` / `CurrentAdmin`.
 - Impersonation: short-lived access token (default ~15m); admin refresh cookie untouched; default `IMPERSONATION_READONLY=true`. Same-tab reload remints via a `sessionStorage` View-as latch (Exit / logout clear it); access JWT stays memory-only.
-- Org portal access statuses on `users.status` (**as-built today**): `pending_org_profile` → `pending_email_verification` → `pending_approval` → `active` | `denied` | `erased`. `erased` is terminal after admin org erase (identity scrubbed; campaign KPIs retained — PRODUCT §4.3). Brand review lives on `brands.status` (`pending_review` / `approved` / `denied`).
+- Org portal access statuses on `users.status` (**as-built today**): `pending_org_profile` → `pending_email_verification` → `pending_approval` → `active` | `denied` | `erased`. `erased` is terminal after admin org erase (identity scrubbed; campaign KPIs retained — PRODUCT §4.3). Brand review lives on `brands.status` (`pending_review` / `approved` / `denied` / `erased`); brand hybrid erase also sets the brand user’s `users.status` to `erased` (PRODUCT §3.1.3).
 
 **Seeded-launch target** ([`LAUNCH.md`](LAUNCH.md) Phase A): after admin Approve → `pending_instagram` (until IG bind) → `active`; legacy rows with Graph already on file may skip to `active`. Public `/org/apply` creates the account without IG OAuth; returning login is Instagram on the bound account. Full status machine: LAUNCH §4.
 
@@ -110,7 +110,7 @@ Mounted in `backend/app/main.py`:
 | `/api/drops/*` | `routes/drops.py` | Org feed, detail, apply, Notify Me |
 | `/api/campaigns/*` | `routes/campaigns.py` | My campaigns, link/unlink, suggestions, aggregate |
 | `/api/brands/*` | `routes/brands.py` | Apply, brand profile, drops, finalize, aggregates |
-| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org erase, compose email, late-add org, sync+autolink on an Active drop, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |
+| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org/brand erase, compose email, late-add org, sync+autolink on an Active drop, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |
 
 Thin routes; business logic in `backend/app/services/`. Admin table inspect (`/api/admin/tables`) redacts secrets; generic PATCH is allowlisted — see [`ideas/admin-mcp.md`](ideas/admin-mcp.md). Operator stdio MCP: [`tools/buzz-admin-mcp/`](tools/buzz-admin-mcp/).
 

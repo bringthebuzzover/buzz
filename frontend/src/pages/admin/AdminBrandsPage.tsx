@@ -40,12 +40,16 @@ const FILTERS = [
   { value: "pending_review", label: "Awaiting review" },
   { value: "approved", label: "Approved" },
   { value: "denied", label: "Denied" },
+  { value: "erased", label: "Erased" },
 ] as const;
 
 const HEADERS = ["Brand", "Status", "Access", "Contact", "Waiting", ""] as const;
 
 /** Can this brand actually sign in, and if not, why not? */
 function AccessPill({ row }: { row: AdminBrandRow }) {
+  if (row.status === "erased") {
+    return <Pill tone="bad">Erased</Pill>;
+  }
   if (row.status === "approved" && !row.passwordSet) {
     return <Pill tone="bad">Never set a password</Pill>;
   }

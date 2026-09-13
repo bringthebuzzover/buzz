@@ -21,6 +21,8 @@ from app.response import APIResponse, DataResponse, api_response
 from app.schemas.acks import (
     AdminAddOrgRequest,
     AdminAddOrgResponse,
+    AdminBrandEraseRequest,
+    AdminBrandEraseResponse,
     AdminBrandInviteResponse,
     AdminBrandStatusResponse,
     AdminComposeEmailRequest,
@@ -93,7 +95,7 @@ from app.services.admin import (
     update_drop_config,
 )
 from app.services.admin_auth import list_impersonatable_users, mint_impersonation_token
-from app.services.admin_erase import erase_org_user
+from app.services.admin_erase import erase_brand, erase_org_user
 from app.services.admin_read import (
     get_brand_detail,
     get_drop_detail,
@@ -348,6 +350,21 @@ async def resend_brand_invite_endpoint(
 ) -> APIResponse:
     result = await resend_brand_invite(db, brand_id)
     return api_response(data=AdminBrandInviteResponse.model_validate(result))
+
+
+@router.post(
+    "/brands/{brand_id}/erase",
+    response_model=DataResponse[AdminBrandEraseResponse],
+)
+async def erase_brand_endpoint(
+    brand_id: uuid.UUID,
+    body: AdminBrandEraseRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Hybrid erase: scrub brand login/PII; keep drops and org campaign history."""
+    result = await erase_brand(db, brand_id, body.confirm)
+    return api_response(data=AdminBrandEraseResponse.model_validate(result))
 
 
 @router.post(

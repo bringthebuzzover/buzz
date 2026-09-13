@@ -59,6 +59,7 @@ class BrandStatus(StrEnum):
     PENDING_REVIEW = "pending_review"
     APPROVED = "approved"
     DENIED = "denied"
+    ERASED = "erased"
 
 
 class OrgCategory(StrEnum):

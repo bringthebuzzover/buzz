@@ -8,11 +8,12 @@
  */
 import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
-import { Mail } from "lucide-react";
+import { Mail, Trash2 } from "lucide-react";
 import {
   useAdminBrand,
   useApproveBrand,
   useDenyBrand,
+  useEraseBrand,
   useResendBrandInvite,
   useSendBrandEmail,
   useUndenyBrand,
@@ -27,6 +28,7 @@ import {
   ErrorNote,
   Field,
   FieldGrid,
+  HeadingIconButton,
   PageHeading,
   Panel,
   Pill,
@@ -42,7 +44,10 @@ import {
 import { ApiError } from "../../api/errors";
 import { instagramProfileUrl } from "../../utils/instagramProfileUrl";
 import ComposeEmailModal from "../../components/admin/ComposeEmailModal";
-import { SuccessBanner } from "../../components/forms/controls";
+import { Button, SuccessBanner, TextField } from "../../components/forms/controls";
+import { Modal } from "../../components/ui/Modal";
+import { STACK } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 const DROP_HEADERS = ["Drop", "Stage", "Applied", "Accepted", "Closes"] as const;
 
@@ -54,10 +59,15 @@ export default function AdminBrandDetailPage() {
   const undeny = useUndenyBrand();
   const resend = useResendBrandInvite();
   const sendEmail = useSendBrandEmail();
+  const erase = useEraseBrand();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
   const [inviteNotice, setInviteNotice] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeNotice, setComposeNotice] = useState<string | null>(null);
+  const [eraseOpen, setEraseOpen] = useState(false);
+  const [eraseTyped, setEraseTyped] = useState("");
+  const [eraseError, setEraseError] = useState<string | null>(null);
+  const [eraseNotice, setEraseNotice] = useState<string | null>(null);
 
   const data = brand.data;
   const busy =
@@ -71,6 +81,10 @@ export default function AdminBrandDetailPage() {
     data?.status === "approved" &&
     !data.passwordSet &&
     (data.invite.expiresAt === null || data.invite.expiresAt <= Date.now());
+  const erased = data?.status === "erased";
+  const canErase = Boolean(data?.companyEmail) && !erased;
+  const confirmEmailMatches =
+    eraseTyped.trim().toLowerCase() === (data?.companyEmail ?? "").trim().toLowerCase();
   const canResendInvite = data?.status === "approved" && !data.passwordSet;
   const igHandle = data?.instagramHandle?.replace(/^@/, "") ?? "";
   const igProfileUrl = instagramProfileUrl(igHandle);
@@ -127,6 +141,11 @@ export default function AdminBrandDetailPage() {
           <SuccessBanner>{composeNotice}</SuccessBanner>
         </div>
       )}
+      {eraseNotice && (
+        <div className="mb-4">
+          <SuccessBanner>{eraseNotice}</SuccessBanner>
+        </div>
+      )}
       {(undeny.isError || (resend.isError && !inviteNotice)) && (
         <ErrorNote>
           That recovery action did not go through. Reload and try again.
@@ -181,14 +200,16 @@ export default function AdminBrandDetailPage() {
                     Resend invite
                   </ActionButton>
                 )}
-                <ActionButton
-                  testId="view-as"
-                  disabled={!data.impersonatable || viewAsPending}
-                  onClick={() => void viewAs(data.userId)}
-                >
-                  View as
-                </ActionButton>
-                {Boolean(data.companyEmail) && (
+                {!erased && (
+                  <ActionButton
+                    testId="view-as"
+                    disabled={!data.impersonatable || viewAsPending}
+                    onClick={() => void viewAs(data.userId)}
+                  >
+                    View as
+                  </ActionButton>
+                )}
+                {Boolean(data.companyEmail) && !erased && (
                   <ActionButton
                     testId="write-email"
                     disabled={busy || sendEmail.isPending}
@@ -200,9 +221,94 @@ export default function AdminBrandDetailPage() {
                     </span>
                   </ActionButton>
                 )}
+                {canErase && (
+                  <HeadingIconButton
+                    testId="erase-brand"
+                    aria-label="Erase brand"
+                    disabled={busy || erase.isPending}
+                    onClick={() => {
+                      setEraseError(null);
+                      setEraseTyped("");
+                      setEraseOpen(true);
+                    }}
+                  >
+                    <Trash2 size={16} aria-hidden />
+                  </HeadingIconButton>
+                )}
               </div>
             }
           />
+
+          {eraseOpen && canErase && (
+            <Modal
+              onClose={() => {
+                setEraseOpen(false);
+                setEraseTyped("");
+                setEraseError(null);
+              }}
+              title="Erase this brand"
+              description="Removes login identity and contact details. Campaign history for orgs stays. Type the company email to confirm."
+            >
+              <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
+                {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
+                <TextField
+                  id="erase-brand-confirm"
+                  data-testid="erase-brand-confirm"
+                  label="Company email"
+                  size="compact"
+                  value={eraseTyped}
+                  autoComplete="off"
+                  onChange={(e) => setEraseTyped(e.target.value)}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="compact"
+                    data-testid="erase-brand-cancel"
+                    onClick={() => {
+                      setEraseOpen(false);
+                      setEraseTyped("");
+                      setEraseError(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <ActionButton
+                    variant="danger"
+                    testId="erase-brand-submit"
+                    disabled={!confirmEmailMatches || erase.isPending}
+                    onClick={() => {
+                      void (async () => {
+                        setEraseError(null);
+                        try {
+                          const result = await erase.mutateAsync({
+                            brandId: data.id,
+                            confirm: eraseTyped,
+                          });
+                          setEraseOpen(false);
+                          setEraseTyped("");
+                          setEraseNotice(
+                            result.emailSent
+                              ? `Account erased. Confirmation email sent (…@${result.emailToDomain}).`
+                              : "Account erased. No confirmation email was sent — notify the requester manually if needed.",
+                          );
+                        } catch (err) {
+                          setEraseError(
+                            err instanceof ApiError
+                              ? err.message
+                              : "Erase failed. Reload and try again.",
+                          );
+                        }
+                      })();
+                    }}
+                  >
+                    {erase.isPending ? "Erasing…" : "Erase account"}
+                  </ActionButton>
+                </div>
+              </div>
+            </Modal>
+          )}
 
           {composeOpen && data.companyEmail && (
             <ComposeEmailModal
@@ -219,6 +325,14 @@ export default function AdminBrandDetailPage() {
                 setComposeNotice("Email sent.");
               }}
             />
+          )}
+
+          {erased && (
+            <ErrorNote>
+              This account has been erased. Identity and contact PII were
+              scrubbed; campaign history for orgs stays under a tombstone
+              brand name.
+            </ErrorNote>
           )}
 
           {inviteLapsed && (

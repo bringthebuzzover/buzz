@@ -144,6 +144,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/brands/{brand_id}/erase": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Erase Brand Endpoint
+         * @description Hybrid erase: scrub brand login/PII; keep drops and org campaign history.
+         */
+        post: operations["erase_brand_endpoint_api_admin_brands__brand_id__erase_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/brands/{brand_id}/resend-invite": {
         parameters: {
             query?: never;
@@ -2094,6 +2114,28 @@ export interface components {
             userStatus: string;
         };
         /**
+         * AdminBrandEraseRequest
+         * @description Typed confirm payload — company email (PRODUCT §3.1.3).
+         */
+        AdminBrandEraseRequest: {
+            /** Confirm */
+            confirm: string;
+        };
+        /** AdminBrandEraseResponse */
+        AdminBrandEraseResponse: {
+            /**
+             * Brandid
+             * Format: uuid
+             */
+            brandId: string;
+            /** Emailsent */
+            emailSent: boolean;
+            /** Emailtodomain */
+            emailToDomain?: string | null;
+            /** Status */
+            status: string;
+        };
+        /**
          * AdminBrandInviteResponse
          * @description Approve / create-with-approve / resend-invite (may include email_sent).
          */
@@ -3413,6 +3455,15 @@ export interface components {
         /** DataResponse[AdminBrandDetail] */
         DataResponse_AdminBrandDetail_: {
             data?: components["schemas"]["AdminBrandDetail"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminBrandEraseResponse] */
+        DataResponse_AdminBrandEraseResponse_: {
+            data?: components["schemas"]["AdminBrandEraseResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -5100,6 +5151,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminDropDetail_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    erase_brand_endpoint_api_admin_brands__brand_id__erase_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                brand_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminBrandEraseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminBrandEraseResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

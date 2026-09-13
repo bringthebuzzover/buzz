@@ -522,6 +522,55 @@
         "title": "AdminBrandDetail",
         "type": "object"
       },
+      "AdminBrandEraseRequest": {
+        "description": "Typed confirm payload \u2014 company email (PRODUCT \u00a73.1.3).",
+        "properties": {
+          "confirm": {
+            "title": "Confirm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "title": "AdminBrandEraseRequest",
+        "type": "object"
+      },
+      "AdminBrandEraseResponse": {
+        "properties": {
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "emailSent": {
+            "title": "Emailsent",
+            "type": "boolean"
+          },
+          "emailToDomain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Emailtodomain"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "brandId",
+          "status",
+          "emailSent"
+        ],
+        "title": "AdminBrandEraseResponse",
+        "type": "object"
+      },
       "AdminBrandInviteResponse": {
         "description": "Approve / create-with-approve / resend-invite (may include email_sent).",
         "properties": {
@@ -4214,6 +4263,44 @@
           }
         },
         "title": "DataResponse[AdminBrandDetail]",
+        "type": "object"
+      },
+      "DataResponse_AdminBrandEraseResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminBrandEraseResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminBrandEraseResponse]",
         "type": "object"
       },
       "DataResponse_AdminBrandInviteResponse_": {
@@ -9399,6 +9486,76 @@
           }
         },
         "summary": "Create Admin Drop Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/brands/{brand_id}/erase": {
+      "post": {
+        "description": "Hybrid erase: scrub brand login/PII; keep drops and org campaign history.",
+        "operationId": "erase_brand_endpoint_api_admin_brands__brand_id__erase_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "brand_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Brand Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminBrandEraseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminBrandEraseResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Erase Brand Endpoint",
         "tags": [
           "admin"
         ]

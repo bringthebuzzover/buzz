@@ -17,11 +17,18 @@ const idleMutation = () => ({
 });
 
 const mockUseAdminBrand = jest.fn();
+const mockEraseMutateAsync = jest.fn();
 
 jest.mock("../../api/hooks/useAdminHooks", () => ({
   useAdminBrand: (...args: unknown[]) => mockUseAdminBrand(...args),
   useApproveBrand: () => idleMutation(),
   useDenyBrand: () => idleMutation(),
+  useEraseBrand: () => ({
+    mutate: jest.fn(),
+    mutateAsync: (...args: unknown[]) => mockEraseMutateAsync(...args),
+    isPending: false,
+    isError: false,
+  }),
   useResendBrandInvite: () => idleMutation(),
   useSendBrandEmail: () => idleMutation(),
   useUndenyBrand: () => idleMutation(),
@@ -33,6 +40,15 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
 }));
 
 import AdminBrandDetailPage from "./AdminBrandDetailPage";
+
+function setInputValue(el: HTMLInputElement, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(
+    window.HTMLInputElement.prototype,
+    "value",
+  )?.set;
+  setter?.call(el, value);
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+}
 
 function brandDetail() {
   return {
@@ -107,5 +123,61 @@ describe("AdminBrandDetailPage", () => {
     );
     expect(link?.getAttribute("target")).toBe("_blank");
     expect(link?.getAttribute("rel")).toContain("noopener");
+  });
+
+  it("confirms erase by typing the company email", async () => {
+    mockEraseMutateAsync.mockReset();
+    mockEraseMutateAsync.mockResolvedValue({
+      brandId: "brand-1",
+      status: "erased",
+      emailSent: true,
+      emailToDomain: "example.test",
+    });
+    mockUseAdminBrand.mockReturnValue({
+      data: brandDetail(),
+      isPending: false,
+      isError: false,
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    act(() => {
+      root.render(
+        <MemoryRouter initialEntries={["/admin/brands/brand-1"]}>
+          <QueryClientProvider client={queryClient}>
+            <Routes>
+              <Route
+                path="/admin/brands/:brandId"
+                element={<AdminBrandDetailPage />}
+              />
+            </Routes>
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+    });
+    const trigger = container.querySelector(
+      '[data-testid="erase-brand"]',
+    ) as HTMLButtonElement;
+    act(() => {
+      trigger.click();
+    });
+    const input = document.querySelector(
+      '[data-testid="erase-brand-confirm"]',
+    ) as HTMLInputElement;
+    const submit = document.querySelector(
+      '[data-testid="erase-brand-submit"]',
+    ) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    act(() => {
+      setInputValue(input, "acme@example.test");
+    });
+    expect(submit.disabled).toBe(false);
+    await act(async () => {
+      submit.click();
+    });
+    expect(mockEraseMutateAsync).toHaveBeenCalledWith({
+      brandId: "brand-1",
+      confirm: "acme@example.test",
+    });
   });
 });
