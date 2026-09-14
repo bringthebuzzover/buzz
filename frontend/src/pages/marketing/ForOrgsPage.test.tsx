@@ -41,6 +41,8 @@ describe("ForOrgsPage", () => {
     expect(text).toMatch(/Confirm this is our organization's account/);
     expect(text).toMatch(/Campus Kickoff 2026/);
     expect(text).not.toMatch(/placehold\.co/i);
+    const hero = container.querySelector('img[alt="Campus Kickoff 2026"]');
+    expect(hero?.getAttribute("src")).toContain("UPDATE_x_BUZZ_600_x_400_px");
     expect(text).not.toMatch(/Multiple Campuses/);
     expect(text).not.toMatch(/Continue with Instagram/);
 

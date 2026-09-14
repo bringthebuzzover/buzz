@@ -21,6 +21,9 @@ const STEPS = [
   "If you’re accepted, products ship to the address you gave; post from that org Instagram.",
 ] as const;
 
+const TOUR_DROP_IMAGE =
+  "https://res.cloudinary.com/wffcoxs0/image/upload/f_auto,q_auto/UPDATE_x_BUZZ_600_x_400_px";
+
 export default function ForOrgsPage() {
   return (
     <PageShell width="reading">
@@ -109,7 +112,12 @@ export default function ForOrgsPage() {
         caption="Drop Feed: only campaigns Buzz has published — not tickets or drafts."
       >
         <Card kind="cardWarm" pad="none" className="overflow-hidden">
-          <div className="relative h-28 bg-gradient-to-br from-buzz-coral/80 to-buzz-ink/70">
+          <div className="relative h-48 overflow-hidden border-b border-buzz-lineMid">
+            <img
+              src={TOUR_DROP_IMAGE}
+              alt="Campus Kickoff 2026"
+              className="h-full w-full object-cover"
+            />
             <div className="absolute left-3 top-3 flex items-center gap-2">
               <Chip accent>Northstar Athletics</Chip>
               <Chip tone="success">Open</Chip>
