@@ -96,9 +96,9 @@ After a verified data-deletion request, a Buzz **admin** may **erase** a brand f
 
 ### 3.1.4 Org Instagram identity change (request + admin review)
 
-An **active** org may request an Instagram identity change from the org profile. The handle field stays **read-only** — there is no self-serve `PATCH` of `instagramHandle`. The request requires a kind hint (`rename` vs **account switch**), the current `@` (must match the handle on file), the requested `@`, and a reason. One pending request at a time. A requested `@` already claimed by another non-erased org is refused.
+An **active** org may request an Instagram identity change from the org profile: a **Request a change** control under the current `@` opens a modal. The handle is not a self-serve `PATCH` of `instagramHandle`. The request is the requested `@` and a reason; Buzz stamps the current `@` from the account on file (the org does not re-type it). One pending request at a time; while it is open the profile shows current `@` → requested `@` (under review). A requested `@` already claimed by another non-erased org is refused.
 
-Admin reviews previous vs requested `@`, the reason, and risk context (accepted seats, linked posts, live vs finished drops). **Admin chooses** rename vs switch at approve (the org kind is a hint). Deny writes nothing.
+Admin reviews previous vs requested `@`, the reason, and risk context (accepted seats, linked posts, live vs finished drops). **Admin chooses** rename vs switch at approve. Deny writes nothing.
 
 - **Approve rename** (same Graph account): org stays `active`. Buzz does **not** write the typed `@`. Email tells them to log in with Instagram again so Graph overwrites the handle.
 - **Approve account switch** (new Graph account): only after ops confirms they added the requested handle as an Instagram Tester. Buzz **releases** the old Graph id and token, sets the claimed handle to the requested `@` (tester target), demotes to **`pending_instagram`**, bumps `token_version`, and emails a **new** Connect link (not the first-approval copy). The portal and View-as stay closed until they Connect the new Business/Creator account. Allowed even with live drops or past linked posts — admin can delay; Buzz does not refuse solely because a campaign is in progress. Rotate `.edu` while still `active` if the officer is also changing (connect mail goes to the current `.edu`).
@@ -272,7 +272,7 @@ On **`/org/apply`** (and illustrated on public **`/for-orgs`** — Phase C), the
 5. If the user **edits the handle** after confirming, clear confirmation and re-run lookup.
 6. **Lookup failure states** (inline on the card, same page):
    - **Not found** or **not a Business/Creator (professional) account** → explain they need a professional org account (not personal); link to Meta’s convert-to-professional help where useful. **Blocks submit.**
-   - **Transient API error**, **rate limit**, or **lookup unavailable** (token unset / Meta outage) → **soft-fail**: retry affordance; do **not** block typing; allow submit with the handle marked **unconfirmed**. Admin org detail surfaces the unconfirmed flag so ops can verify before Approve.
+   - **Transient API error**, **rate limit**, or **lookup unavailable** (token unset / Meta outage) → **soft-fail**: retry affordance; do **not** block typing; allow submit with the handle marked **unconfirmed**. Admin org list/detail surfaces the unconfirmed flag so ops can verify before Approve. After **Connect Instagram**, Graph bind confirms the account and the flag clears — Active orgs do not stay “Unconfirmed IG”.
 7. Confirming the card only latches the **claimed handle** for apply — it does **not** OAuth-bind or open the portal. Connect still happens after Buzz approval (**§6.1** step 4).
 
 **`/for-orgs`:** Requirements list and at least one stylized frame must show this handle field + confirm card pattern and the Business/Creator requirement (not only a bullet in prose).

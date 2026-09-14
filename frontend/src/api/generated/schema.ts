@@ -4649,9 +4649,10 @@ export interface components {
         };
         /** OrgIgChangeRequestCreate */
         OrgIgChangeRequestCreate: {
-            /** Currenthandle */
-            currentHandle: string;
-            /** Kind */
+            /**
+             * Kind
+             * @default account_switch
+             */
             kind: string;
             /** Reason */
             reason: string;

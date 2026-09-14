@@ -71,7 +71,7 @@ export function Pill({
   return <Chip tone={ADMIN_TONE[tone]}>{children}</Chip>;
 }
 
-/** Claimed IG handle that Graph has not confirmed — sits with status, not the name. */
+/** Apply-time claimed handle not confirmed yet. Hidden once Active — Graph bind confirms. */
 export function UnconfirmedIgChip() {
   return <Pill tone="bad">Unconfirmed IG</Pill>;
 }

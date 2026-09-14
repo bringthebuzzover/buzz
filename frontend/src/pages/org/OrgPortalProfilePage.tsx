@@ -2,9 +2,9 @@
  * `/org/profile` — view/edit org profile after onboarding (PRODUCT.md §3.1).
  *
  * Distinct from `/onboarding/profile`, which creates the org row. Instagram
- * handle is login identity (read-only); .edu rotates via pending-swap APIs
- * (not PATCH). Follower count is Graph-owned (read-only). Other fields PATCH
- * via `/api/orgs/me`.
+ * handle is login identity (request-change modal, not PATCH). .edu rotates via
+ * pending-swap APIs (not PATCH). Follower count is Graph-owned (read-only).
+ * Other fields PATCH via `/api/orgs/me`.
  */
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -17,7 +17,6 @@ import {
   SuccessBanner,
   TextField,
 } from "../../components/forms/controls";
-import { Card } from "../../components/ui/Card";
 import AuthShell from "../../components/site/AuthShell";
 import { fieldLabelClass } from "../../theme/controls";
 import {
@@ -209,12 +208,8 @@ export default function OrgPortalProfilePage() {
 
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
         {error ? <ErrorBanner>{error}</ErrorBanner> : null}
-        <Card kind="inset" pad="tight">
-          <p className={fieldLabelClass}>Instagram identity (read-only)</p>
-          <p className="mt-2 text-sm font-semibold text-buzz-ink">{igHandle}</p>
-        </Card>
-        <IgPreviousAccountBanner />
         <IgChangeRequestPanel currentHandle={igHandle.replace(/^@/, "")} />
+        <IgPreviousAccountBanner />
 
         <EduEmailRotatePanel
           liveEmail={data.eduEmail}

@@ -53,8 +53,6 @@ async def _active_org(db_session, *, handle: str = "campusgreeks", graph_id: str
 
 def _body(**overrides: object) -> dict:
     payload: dict[str, object] = {
-        "kind": "account_switch",
-        "currentHandle": "campusgreeks",
         "requestedHandle": "newcampusig",
         "reason": "We lost access to the old club account.",
     }
@@ -89,12 +87,6 @@ class TestOrgIgChangeRequest:
     async def test_submit_validates(self, app_client: AsyncClient, db_session):
         user, _org = await _active_org(db_session)
         headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
-        wrong = await app_client.post(
-            "/api/orgs/me/ig-change-requests",
-            json=_body(currentHandle="notus"),
-            headers=headers,
-        )
-        assert wrong.status_code == 400
         same = await app_client.post(
             "/api/orgs/me/ig-change-requests",
             json=_body(requestedHandle="campusgreeks"),
@@ -130,9 +122,10 @@ class TestOrgIgChangeRequest:
     async def test_approve_rename_does_not_write_handle(
         self, app_client: AsyncClient, db_session, monkeypatch
     ):
+        rename_mail = AsyncMock(return_value=True)
         monkeypatch.setattr(
             "app.services.ig_change_requests.send_org_ig_rename_approved_email",
-            AsyncMock(return_value=True),
+            rename_mail,
         )
         user, _org = await _active_org(db_session)
         org_headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
@@ -149,6 +142,9 @@ class TestOrgIgChangeRequest:
             headers=admin,
         )
         assert res.status_code == 200, res.text
+        assert res.json()["data"]["emailSent"] is True
+        rename_mail.assert_awaited_once()
+        assert rename_mail.await_args.args[0] == "officer@school.edu"
         await db_session.refresh(user)
         assert user.status == OrgUserStatus.ACTIVE.value
         assert user.instagram_username == "campusgreeks"
@@ -157,9 +153,10 @@ class TestOrgIgChangeRequest:
     async def test_switch_requires_tester_and_releases_graph(
         self, app_client: AsyncClient, db_session, monkeypatch
     ):
+        switch_mail = AsyncMock(return_value=True)
         monkeypatch.setattr(
             "app.services.ig_change_requests.send_org_ig_switch_connect_email",
-            AsyncMock(return_value=True),
+            switch_mail,
         )
         user, org = await _active_org(db_session)
         user.token_version = 1
@@ -203,6 +200,9 @@ class TestOrgIgChangeRequest:
             headers=admin,
         )
         assert approved.status_code == 200, approved.text
+        assert approved.json()["data"]["emailSent"] is True
+        switch_mail.assert_awaited_once()
+        assert switch_mail.await_args.args[0] == "officer@school.edu"
         await db_session.refresh(user)
         assert user.status == OrgUserStatus.PENDING_INSTAGRAM.value
         assert user.instagram_user_id is None
@@ -299,9 +299,10 @@ class TestOrgIgChangeRequest:
         assert profile.json()["data"]["igSwitchedAt"] is not None
 
     async def test_deny_writes_nothing(self, app_client: AsyncClient, db_session, monkeypatch):
+        deny_mail = AsyncMock(return_value=True)
         monkeypatch.setattr(
             "app.services.ig_change_requests.send_org_ig_change_denied_email",
-            AsyncMock(return_value=True),
+            deny_mail,
         )
         user, _org = await _active_org(db_session)
         created = await app_client.post(
@@ -315,6 +316,9 @@ class TestOrgIgChangeRequest:
             headers=admin,
         )
         assert denied.status_code == 200
+        assert denied.json()["data"]["emailSent"] is True
+        deny_mail.assert_awaited_once()
+        assert deny_mail.await_args.args[0] == "officer@school.edu"
         await db_session.refresh(user)
         assert user.instagram_user_id == "ig_a"
         assert user.status == OrgUserStatus.ACTIVE.value

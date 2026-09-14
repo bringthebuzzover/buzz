@@ -431,7 +431,8 @@ export default function AdminOrgDetailPage() {
                     >
                       {claimedHandle}
                     </a>
-                    {!data.instagramHandleConfirmed && <UnconfirmedIgChip />}
+                    {!data.instagramHandleConfirmed &&
+                      data.status !== "active" && <UnconfirmedIgChip />}
                   </span>
                 ) : (
                   "—"

@@ -119,10 +119,9 @@ async def submit_request(
     db: AsyncSession,
     user: User,
     *,
-    kind: str,
-    current_handle: str,
     requested_handle: str,
     reason: str,
+    kind: str = "account_switch",
 ) -> dict[str, Any]:
     if kind not in _KINDS:
         raise BuzzAPIException(
@@ -139,14 +138,7 @@ async def submit_request(
         )
 
     stored = normalize_claimed_handle(user.instagram_username or "")
-    typed_current = normalize_claimed_handle(current_handle)
     requested = normalize_claimed_handle(requested_handle)
-    if typed_current.casefold() != stored.casefold():
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Confirmation does not match this organization's Instagram handle.",
-            status_code=400,
-        )
     if requested.casefold() == stored.casefold():
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,

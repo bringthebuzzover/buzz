@@ -132,3 +132,25 @@ test("org campaign detail shows per-org tracking links", async ({ page }) => {
   await expect(links.first()).toBeVisible();
   await expect(links.first()).toHaveAttribute("href", /ups\.com|fedex\.com/);
 });
+
+test("org profile requests Instagram change via modal", async ({ page }) => {
+  await page.goto("/org/profile");
+  await waitForAuthSettled(page, "org");
+  await expect(page.getByText("Instagram identity", { exact: true })).toBeVisible();
+  await expect(page.getByText("Instagram identity (read-only)")).toHaveCount(0);
+  await expect(page.getByTestId("ig-change-requested")).toHaveCount(0);
+  await page.getByTestId("ig-change-open").click();
+  await expect(
+    page.getByRole("heading", { name: /request an instagram change/i }),
+  ).toBeVisible();
+  await page.getByTestId("ig-change-requested").fill("e2enewrowing");
+  await page
+    .getByTestId("ig-change-reason")
+    .fill("Switching to the new chapter Instagram.");
+  await page.getByTestId("ig-change-submit").click();
+  await expect(page.getByTestId("ig-change-pending")).toContainText(
+    "@berkeleyrowing → @e2enewrowing",
+  );
+  await expect(page.getByTestId("ig-change-pending")).toContainText(/under review/i);
+  await expect(page.getByTestId("ig-change-open")).toHaveCount(0);
+});

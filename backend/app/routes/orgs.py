@@ -224,10 +224,9 @@ async def create_my_ig_change_request(
     result = await submit_request(
         db,
         user,
-        kind=payload.kind,
-        current_handle=payload.current_handle,
         requested_handle=payload.requested_handle,
         reason=payload.reason,
+        kind=payload.kind,
     )
     return api_response(data=OrgIgChangeRequestResponse.model_validate(result))
 

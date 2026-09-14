@@ -51,8 +51,6 @@ export function useSubmitIgChangeRequest() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: {
-      kind: "rename" | "account_switch";
-      currentHandle: string;
       requestedHandle: string;
       reason: string;
     }) => {
