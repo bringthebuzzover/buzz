@@ -235,6 +235,49 @@ async def resend_org_connect(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     return {"org_id": str(org.id), "status": user.status, "email_sent": email_sent}
 
 
+async def resend_all_pending_instagram_connect(db: AsyncSession) -> dict[str, Any]:
+    """Email Connect Instagram to every org whose last step is that bind.
+
+    Selects ``pending_instagram`` only — not unverified, awaiting-approval,
+    or active orgs. Reuses :func:`resend_org_connect` so switch vs first
+    approve keeps the right template.
+    """
+
+    rows = await db.execute(
+        select(Organization.id, User.edu_email)
+        .join(User, User.id == Organization.user_id)
+        .where(
+            User.portal_role == PortalRole.ORG.value,
+            User.status == OrgUserStatus.PENDING_INSTAGRAM.value,
+        )
+    )
+    targeted = 0
+    sent = 0
+    failed = 0
+    skipped = 0
+    for org_id, edu_email in rows.all():
+        targeted += 1
+        if not (edu_email or "").strip():
+            skipped += 1
+            continue
+        try:
+            out = await resend_org_connect(db, org_id)
+        except BuzzAPIException:
+            logger.warning("Bulk connect email skipped failed org %s", org_id)
+            failed += 1
+            continue
+        if out.get("email_sent"):
+            sent += 1
+        else:
+            failed += 1
+    return {
+        "targeted": targeted,
+        "sent": sent,
+        "failed": failed,
+        "skipped": skipped,
+    }
+
+
 async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     """Deny a pending org: set user.status=denied."""
     org = await db.get(Organization, org_id)

@@ -576,6 +576,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/orgs/resend-connect-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend All Pending Instagram Connect Endpoint
+         * @description Email Connect Instagram to every ``pending_instagram`` org.
+         *
+         *     Does not email orgs still verifying school email or awaiting approval.
+         */
+        post: operations["resend_all_pending_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/orgs/{org_id}/approve": {
         parameters: {
             query?: never;
@@ -2908,6 +2930,20 @@ export interface components {
             oldestAt: number | null;
         };
         /**
+         * AdminResendConnectAllResponse
+         * @description Bulk Connect email for ``pending_instagram`` orgs only.
+         */
+        AdminResendConnectAllResponse: {
+            /** Failed */
+            failed: number;
+            /** Sent */
+            sent: number;
+            /** Skipped */
+            skipped: number;
+            /** Targeted */
+            targeted: number;
+        };
+        /**
          * AdminSignal
          * @description One health signal. ``ok`` means "nothing to act on", which for most
          *     signals is a zero count but not for the informational token buckets.
@@ -3747,6 +3783,15 @@ export interface components {
         /** DataResponse[AdminOverviewResponse] */
         DataResponse_AdminOverviewResponse_: {
             data?: components["schemas"]["AdminOverviewResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminResendConnectAllResponse] */
+        DataResponse_AdminResendConnectAllResponse_: {
+            data?: components["schemas"]["AdminResendConnectAllResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -6279,6 +6324,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_list_AdminPendingOrgItem__"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    resend_all_pending_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminResendConnectAllResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

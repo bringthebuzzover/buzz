@@ -132,6 +132,15 @@ class AdminOrgStatusResponse(CamelModel):
     email_sent: bool | None = None
 
 
+class AdminResendConnectAllResponse(CamelModel):
+    """Bulk Connect email for ``pending_instagram`` orgs only."""
+
+    targeted: int
+    sent: int
+    failed: int
+    skipped: int
+
+
 class AdminBrandStatusResponse(CamelModel):
     brand_id: uuid.UUID
     status: str

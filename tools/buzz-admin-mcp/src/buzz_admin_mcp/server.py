@@ -119,6 +119,12 @@ def resend_org_connect(org_id: str) -> str:
 
 
 @mcp.tool()
+def resend_all_pending_instagram_connect() -> str:
+    """Email Connect Instagram to every pending_instagram org (not unverified)."""
+    return _call(lambda: _client.request("POST", "/api/admin/orgs/resend-connect-all"))
+
+
+@mcp.tool()
 def clear_org_instagram_token(user_id: str) -> str:
     return _call(
         lambda: _client.request("POST", f"/api/admin/orgs/{user_id}/clear-instagram-token")
