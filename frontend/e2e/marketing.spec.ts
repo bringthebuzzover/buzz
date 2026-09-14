@@ -27,6 +27,9 @@ test("home how-to cards open role tours", async ({ page }) => {
     page.getByRole("heading", { name: /how orgs join/i }),
   ).toBeVisible();
   await expect(page.getByText(/business or creator/i).first()).toBeVisible();
+  await expect(
+    page.getByRole("img", { name: "Campus Kickoff 2026" }),
+  ).toHaveAttribute("src", /UPDATE_x_BUZZ_600_x_400_px/);
   await expect(page.locator("body")).not.toContainText("placehold.co");
   await expect(page.locator("body")).not.toContainText("Multiple Campuses");
   await page.getByRole("link", { name: /apply as a student organization/i }).click();
