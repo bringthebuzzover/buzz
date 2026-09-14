@@ -154,7 +154,8 @@ async def test_bind_pending_instagram(
         ),
     )
     user.instagram_username = "campusgreeks"
-    await make_org(db_session, user)
+    org = await make_org(db_session, user)
+    org.instagram_handle_confirmed = False
     await db_session.flush()
 
     token = mint_access_token(user)
@@ -175,6 +176,9 @@ async def test_bind_pending_instagram(
     await db_session.refresh(user)
     assert user.instagram_user_id == "ig_bind_1"
     assert user.status == OrgUserStatus.ACTIVE.value
+    org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
+    assert org is not None
+    assert org.instagram_handle_confirmed is True
 
 
 async def test_org_apply_rejects_garbage_shipping(app_client: AsyncClient) -> None:

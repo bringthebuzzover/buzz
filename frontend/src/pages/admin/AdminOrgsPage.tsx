@@ -118,9 +118,9 @@ export default function AdminOrgsPage() {
                 <Cell>
                   <div className="flex flex-col items-start gap-1">
                     <StatusPill status={row.status} />
-                    {row.instagramHandle && !row.instagramHandleConfirmed && (
-                      <UnconfirmedIgChip />
-                    )}
+                    {row.instagramHandle &&
+                      !row.instagramHandleConfirmed &&
+                      row.status !== "active" && <UnconfirmedIgChip />}
                   </div>
                 </Cell>
                 <Cell muted>{row.eduEmail ?? "—"}</Cell>

@@ -34,13 +34,22 @@ export default function AdminIgChangeRequestDetailPage() {
   const pending = data?.status === "pending";
   const busy = approve.isPending || deny.isPending;
 
-  const run = (fn: () => Promise<unknown>) => {
+  const run = (
+    fn: () => Promise<{ emailSent?: boolean | null }>,
+    mailFailed: string,
+  ) => {
     setError(null);
-    void fn().catch((err) => {
-      setError(
-        err instanceof ApiError ? err.message : "That action did not go through.",
-      );
-    });
+    void fn()
+      .then((result) => {
+        if (result.emailSent === false) {
+          setError(mailFailed);
+        }
+      })
+      .catch((err) => {
+        setError(
+          err instanceof ApiError ? err.message : "That action did not go through.",
+        );
+      });
   };
 
   return (
@@ -105,11 +114,13 @@ export default function AdminIgChangeRequestDetailPage() {
                     testId="ig-change-approve-rename"
                     disabled={busy}
                     onClick={() =>
-                      run(() =>
-                        approve.mutateAsync({
-                          requestId: data.id,
-                          kind: "rename",
-                        }),
+                      run(
+                        () =>
+                          approve.mutateAsync({
+                            requestId: data.id,
+                            kind: "rename",
+                          }),
+                        "Approved, but the email telling them to log in with Instagram again failed to send.",
                       )
                     }
                   >
@@ -120,12 +131,14 @@ export default function AdminIgChangeRequestDetailPage() {
                     testId="ig-change-approve-switch"
                     disabled={busy || !testerConfirmed}
                     onClick={() =>
-                      run(() =>
-                        approve.mutateAsync({
-                          requestId: data.id,
-                          kind: "account_switch",
-                          testerInviteConfirmed: true,
-                        }),
+                      run(
+                        () =>
+                          approve.mutateAsync({
+                            requestId: data.id,
+                            kind: "account_switch",
+                            testerInviteConfirmed: true,
+                          }),
+                        "Approved, but the Connect email failed to send. Open the org and use Resend connect email.",
                       )
                     }
                   >
@@ -135,7 +148,12 @@ export default function AdminIgChangeRequestDetailPage() {
                     variant="danger"
                     testId="ig-change-deny"
                     disabled={busy}
-                    onClick={() => run(() => deny.mutateAsync(data.id))}
+                    onClick={() =>
+                      run(
+                        () => deny.mutateAsync(data.id),
+                        "Denied, but the notification email failed to send.",
+                      )
+                    }
                   >
                     Deny
                   </ActionButton>

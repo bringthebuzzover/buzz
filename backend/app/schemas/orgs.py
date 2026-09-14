@@ -51,10 +51,9 @@ class OrgProfileResponse(CamelModel):
 
 
 class OrgIgChangeRequestCreate(CamelModel):
-    kind: str
-    current_handle: str
     requested_handle: str
     reason: str
+    kind: str = "account_switch"
 
 
 class OrgIgChangeRequestResponse(CamelModel):

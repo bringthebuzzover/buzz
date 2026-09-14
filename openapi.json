@@ -8045,11 +8045,8 @@
       },
       "OrgIgChangeRequestCreate": {
         "properties": {
-          "currentHandle": {
-            "title": "Currenthandle",
-            "type": "string"
-          },
           "kind": {
+            "default": "account_switch",
             "title": "Kind",
             "type": "string"
           },
@@ -8063,8 +8060,6 @@
           }
         },
         "required": [
-          "kind",
-          "currentHandle",
           "requestedHandle",
           "reason"
         ],

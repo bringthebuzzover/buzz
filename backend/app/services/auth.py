@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
+from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.security import jwt
@@ -136,6 +137,10 @@ async def handle_instagram_callback(
     user.last_login_at = now
     if bind_user_id is not None or user.status == OrgUserStatus.PENDING_INSTAGRAM.value:
         user.status = OrgUserStatus.ACTIVE.value
+    if user.portal_role == PortalRole.ORG.value:
+        org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+        if org is not None:
+            org.instagram_handle_confirmed = True
 
     try:
         await db.flush()
