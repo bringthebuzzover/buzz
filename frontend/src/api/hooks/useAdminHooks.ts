@@ -385,6 +385,20 @@ export function useResendOrgConnect() {
   );
 }
 
+export type ResendConnectAllResult =
+  components["schemas"]["AdminResendConnectAllResponse"];
+
+/** Emails every pending_instagram org; never unverified or awaiting-approval. */
+export function useResendAllPendingInstagramConnect() {
+  return useAdminMutation(async (_: void) => {
+    const { data } = await apiFetch<ResendConnectAllResult>(
+      "/api/admin/orgs/resend-connect-all",
+      { method: "POST" },
+    );
+    return data;
+  });
+}
+
 export function useDenyOrg() {
   return useAdminMutation((orgId: string) =>
     apiFetch(`/api/admin/orgs/${orgId}/deny`, { method: "POST" }),

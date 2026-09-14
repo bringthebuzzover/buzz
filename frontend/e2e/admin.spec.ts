@@ -109,6 +109,21 @@ test("queue cards deep-link into a filtered list", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("org list can confirm emailing orgs awaiting Instagram connect", async ({
+  page,
+}) => {
+  await loginAsAdmin(page);
+  await sidebar(page).getByRole("link", { name: /organizations/i }).click();
+  await expect(page).toHaveURL(/\/admin\/orgs$/);
+  await expect(page.getByTestId("resend-connect-all")).toBeVisible();
+  await page.getByTestId("resend-connect-all").click();
+  await expect(
+    page.getByText(/does not email orgs still verifying school email/i),
+  ).toBeVisible();
+  await page.getByTestId("resend-connect-all-cancel").click();
+  await expect(page.getByTestId("resend-connect-all-confirm")).toHaveCount(0);
+});
+
 test("org detail opens from the list", async ({ page }) => {
   await loginAsAdmin(page);
   // SPA nav keeps the in-memory access token; cold goto is covered by reload.

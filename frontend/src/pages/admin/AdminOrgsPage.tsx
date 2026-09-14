@@ -5,12 +5,16 @@
  * page, so the queue and the full list can never disagree about what a row looks
  * like. `?status=` drives the filter, which keeps every view shareable.
  */
+import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { ApiError } from "../../api/client";
 import {
   useAdminOrgs,
   useDenyOrg,
+  useResendAllPendingInstagramConnect,
   useViewAs,
   type AdminOrgRow,
+  type ResendConnectAllResult,
 } from "../../api/hooks/useAdminHooks";
 import {
   ActionButton,
@@ -26,6 +30,8 @@ import {
   UnconfirmedIgChip,
 } from "../../components/admin/AdminPrimitives";
 import { formatCompactCount, formatElapsed } from "../../components/admin/labels";
+import { Button, SuccessBanner } from "../../components/forms/controls";
+import { Modal } from "../../components/ui/Modal";
 
 const FILTERS = [
   { value: null, label: "All" },
@@ -53,10 +59,46 @@ export default function AdminOrgsPage() {
   const status = searchParams.get("status");
   const orgs = useAdminOrgs(status ?? undefined);
   const deny = useDenyOrg();
+  const resendAll = useResendAllPendingInstagramConnect();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [bulkNotice, setBulkNotice] = useState<string | null>(null);
+  const [bulkError, setBulkError] = useState<string | null>(null);
 
-  const busy = deny.isPending;
+  const busy = deny.isPending || resendAll.isPending;
   const actionError = deny.isError;
+
+  const onConfirmResendAll = async () => {
+    setBulkError(null);
+    setBulkNotice(null);
+    try {
+      const result = (await resendAll.mutateAsync(
+        undefined,
+      )) as ResendConnectAllResult;
+      setConfirmOpen(false);
+      if (result.targeted === 0) {
+        setBulkNotice("No organizations are waiting to connect Instagram.");
+        return;
+      }
+      const parts = [`Sent ${result.sent} of ${result.targeted}.`];
+      if (result.failed) parts.push(`${result.failed} failed to send.`);
+      if (result.skipped) {
+        parts.push(`${result.skipped} skipped (no school email).`);
+      }
+      setBulkNotice(parts.join(" "));
+      if (result.failed) {
+        setBulkError(
+          "Some Connect emails did not send. Open those orgs and use Resend connect email.",
+        );
+      }
+    } catch (err) {
+      setBulkError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not send Connect emails.",
+      );
+    }
+  };
 
   const decidable = (row: AdminOrgRow) =>
     row.status === "pending_approval" && row.id !== null;
@@ -66,13 +108,61 @@ export default function AdminOrgsPage() {
       <PageHeading
         title="Organizations"
         subtitle="Student orgs across every onboarding state. Open a row to Approve (tester invite confirm) or Deny from the awaiting-approval filter."
+        actions={
+          <ActionButton
+            testId="resend-connect-all"
+            disabled={resendAll.isPending}
+            onClick={() => {
+              setBulkError(null);
+              setConfirmOpen(true);
+            }}
+          >
+            Email awaiting Instagram
+          </ActionButton>
+        }
       />
 
+      {bulkNotice && (
+        <div className="mb-4">
+          <SuccessBanner>{bulkNotice}</SuccessBanner>
+        </div>
+      )}
+      {bulkError && <ErrorNote>{bulkError}</ErrorNote>}
       {viewAsError && <ErrorNote>{viewAsError}</ErrorNote>}
       {actionError && (
         <ErrorNote>
           That decision did not go through. Reload and try again.
         </ErrorNote>
+      )}
+
+      {confirmOpen && (
+        <Modal
+          onClose={() => setConfirmOpen(false)}
+          title="Email orgs awaiting Instagram"
+          description="Send the Connect Instagram email to every org whose last step is connecting Instagram. This does not email orgs still verifying school email or awaiting approval."
+        >
+          <div className="mt-6 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="compact"
+              data-testid="resend-connect-all-cancel"
+              onClick={() => setConfirmOpen(false)}
+              disabled={resendAll.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="compact"
+              data-testid="resend-connect-all-confirm"
+              onClick={() => void onConfirmResendAll()}
+              disabled={resendAll.isPending}
+            >
+              {resendAll.isPending ? "Sending…" : "Send emails"}
+            </Button>
+          </div>
+        </Modal>
       )}
 
       <FilterChips

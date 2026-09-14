@@ -111,7 +111,7 @@ Mounted in `backend/app/main.py`:
 | `/api/drops/*` | `routes/drops.py` | Org feed, detail, apply, Notify Me |
 | `/api/campaigns/*` | `routes/campaigns.py` | My campaigns, link/unlink, suggestions, aggregate |
 | `/api/brands/*` | `routes/brands.py` | Apply, brand profile, drops, finalize, aggregates |
-| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org/brand erase, org IG identity-change review, compose email, late-add org, sync+autolink on an Active drop, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |
+| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org/brand erase, org IG identity-change review, compose email, bulk Connect Instagram email, late-add org, sync+autolink on an Active drop, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |
 
 Thin routes; business logic in `backend/app/services/`. Admin table inspect (`/api/admin/tables`) redacts secrets; generic PATCH is allowlisted — see [`ideas/admin-mcp.md`](ideas/admin-mcp.md). Operator stdio MCP: [`tools/buzz-admin-mcp/`](tools/buzz-admin-mcp/).
 

@@ -31,6 +31,7 @@ from app.schemas.acks import (
     AdminOrgEraseRequest,
     AdminOrgEraseResponse,
     AdminOrgStatusResponse,
+    AdminResendConnectAllResponse,
     AdminSyncAutolinkResponse,
     ClearInstagramTokenResponse,
     DropReopenResponse,
@@ -88,6 +89,7 @@ from app.services.admin import (
     list_orgs,
     publish_drop,
     reopen_drop,
+    resend_all_pending_instagram_connect,
     resend_brand_invite,
     resend_org_connect,
     sync_and_autolink_drop,
@@ -240,6 +242,22 @@ async def approve_org_endpoint(
 ) -> APIResponse:
     result = await approve_org(db, org_id, tester_invite_confirmed=payload.tester_invite_confirmed)
     return api_response(data=AdminOrgStatusResponse.model_validate(result))
+
+
+@router.post(
+    "/orgs/resend-connect-all",
+    response_model=DataResponse[AdminResendConnectAllResponse],
+)
+async def resend_all_pending_instagram_connect_endpoint(
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Email Connect Instagram to every ``pending_instagram`` org.
+
+    Does not email orgs still verifying school email or awaiting approval.
+    """
+    result = await resend_all_pending_instagram_connect(db)
+    return api_response(data=AdminResendConnectAllResponse.model_validate(result))
 
 
 @router.post(

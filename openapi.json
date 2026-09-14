@@ -2596,6 +2596,35 @@
         "title": "AdminQueueItem",
         "type": "object"
       },
+      "AdminResendConnectAllResponse": {
+        "description": "Bulk Connect email for ``pending_instagram`` orgs only.",
+        "properties": {
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "sent": {
+            "title": "Sent",
+            "type": "integer"
+          },
+          "skipped": {
+            "title": "Skipped",
+            "type": "integer"
+          },
+          "targeted": {
+            "title": "Targeted",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "targeted",
+          "sent",
+          "failed",
+          "skipped"
+        ],
+        "title": "AdminResendConnectAllResponse",
+        "type": "object"
+      },
       "AdminSignal": {
         "description": "One health signal. ``ok`` means \"nothing to act on\", which for most\nsignals is a zero count but not for the informational token buckets.",
         "properties": {
@@ -4972,6 +5001,44 @@
           }
         },
         "title": "DataResponse[AdminOverviewResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminResendConnectAllResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminResendConnectAllResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminResendConnectAllResponse]",
         "type": "object"
       },
       "DataResponse_AdminSyncAutolinkResponse_": {
@@ -11676,6 +11743,56 @@
           }
         },
         "summary": "Get Pending Orgs",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/orgs/resend-connect-all": {
+      "post": {
+        "description": "Email Connect Instagram to every ``pending_instagram`` org.\n\nDoes not email orgs still verifying school email or awaiting approval.",
+        "operationId": "resend_all_pending_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminResendConnectAllResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Resend All Pending Instagram Connect Endpoint",
         "tags": [
           "admin"
         ]
