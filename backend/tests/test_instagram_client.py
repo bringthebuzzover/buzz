@@ -6,11 +6,25 @@ These parse live Instagram Graph responses, so they're tested against a stubbed
 
 from __future__ import annotations
 
+from urllib.parse import parse_qs, urlparse
+
 import httpx
 import pytest
 
+from app.config import settings
 from app.exceptions import BuzzAPIException
 from app.services.instagram import HttpInstagramClient
+
+
+def test_build_authorize_url_stays_in_browser() -> None:
+    url = HttpInstagramClient().build_authorize_url("oauth-state")
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    assert url.startswith(f"{settings.INSTAGRAM_AUTHORIZE_URL}?")
+    assert parsed.fragment == "weblink"
+    assert query["response_type"] == ["code"]
+    assert query["state"] == ["oauth-state"]
+    assert query["scope"] == [settings.INSTAGRAM_SCOPES]
 
 
 def _client(handler) -> HttpInstagramClient:

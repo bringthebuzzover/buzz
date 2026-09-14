@@ -177,6 +177,7 @@ class FakeInstagramClient:
         return (
             "https://www.instagram.com/oauth/authorize"
             f"?client_id=test&scope=instagram_business_basic&response_type=code&state={state}"
+            "#weblink"
         )
 
     async def exchange_code(self, code: str) -> ShortLivedToken:
