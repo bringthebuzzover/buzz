@@ -259,7 +259,9 @@ class HttpInstagramClient:
                 "state": state,
             }
         )
-        return f"{settings.INSTAGRAM_AUTHORIZE_URL}?{query}"
+        # Instagram's iOS AASA excludes fragment "weblink" from Universal Links
+        # so authorize → consent stays in Safari instead of the Instagram app.
+        return f"{settings.INSTAGRAM_AUTHORIZE_URL}?{query}#weblink"
 
     async def exchange_code(self, code: str) -> ShortLivedToken:
         client = await self._client()

@@ -27,7 +27,9 @@ async def test_login_redirects_with_state(
     resp = await app_client.get("/api/auth/instagram/login", follow_redirects=False)
     assert resp.status_code == 302
     location = resp.headers["location"]
-    query = parse_qs(urlparse(location).query)
+    parsed = urlparse(location)
+    query = parse_qs(parsed.query)
+    assert parsed.fragment == "weblink"
     assert query["response_type"] == ["code"]
     assert "client_id" in query
     assert "scope" in query
