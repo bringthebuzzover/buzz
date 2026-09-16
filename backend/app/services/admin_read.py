@@ -50,6 +50,7 @@ from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
+from app.services.drop_apply_intents import list_intents_for_drop
 from app.services.instagram_token import REFRESH_WINDOW_DAYS
 from app.services.shipments import (
     awaiting_products_no_tracking_clause,
@@ -967,6 +968,27 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
         for application, org, org_user, linked in applicant_rows
     ]
 
+    intent_rows = await list_intents_for_drop(db, drop)
+    intent_org_ids = [intent.org_id for intent in intent_rows]
+    orgs_by_id: dict[UUID, Organization] = {}
+    if intent_org_ids:
+        org_list = list(
+            await db.scalars(select(Organization).where(Organization.id.in_(intent_org_ids)))
+        )
+        orgs_by_id = {org.id: org for org in org_list}
+    intents = [
+        {
+            "id": intent.id,
+            "org_id": intent.org_id,
+            "org_name": orgs_by_id[intent.org_id].org_name if intent.org_id in orgs_by_id else "",
+            "status": intent.status,
+            "pitch": intent.pitch,
+            "created_at": intent.created_at,
+            "updated_at": intent.updated_at,
+        }
+        for intent in intent_rows
+    ]
+
     events = [
         {"id": event.id, "stage": event.stage, "note": event.note, "occurred_at": event.occurred_at}
         for event in (
@@ -1039,5 +1061,6 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
         "linked_post_count": linked_posts,
         "pending_suggestion_count": pending_suggestions,
         "applicants": applicants,
+        "intents": intents,
         "tracker_events": events,
     }

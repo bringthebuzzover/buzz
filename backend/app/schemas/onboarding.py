@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import uuid
+
 from pydantic import ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
@@ -32,6 +34,8 @@ class OrgApplyRequest(CamelModel):
     shipping_postal_code: str
     shipping_place_id: str | None = None
     prefill_token: str | None = None
+    drop_id: uuid.UUID | None = None
+    pitch: str | None = None
 
     @field_validator("edu_email")
     @classmethod
@@ -67,7 +71,7 @@ class OrgApplyRequest(CamelModel):
         v = v.strip()
         return v or None
 
-    @field_validator("shipping_line2", "shipping_place_id", "prefill_token")
+    @field_validator("shipping_line2", "shipping_place_id", "prefill_token", "pitch")
     @classmethod
     def _optional_blank(cls, v: str | None) -> str | None:
         if v is None:

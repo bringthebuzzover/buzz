@@ -15,6 +15,7 @@ presented as a bearer detectable.
 
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -27,6 +28,11 @@ from app.config import settings
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
 OAUTH_STATE_TOKEN_TYPE = "oauth_state"
+
+# Instagram OAuth ``state.next``: public drop page only (PRODUCT §6.3.4).
+_PUBLIC_DROP_NEXT = re.compile(
+    r"^/d/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"
+)
 
 
 class TokenError(Exception):
@@ -57,6 +63,7 @@ class TokenPayload(BaseModel):
     imp_ver: int | None = None  # admin token_version at impersonation mint
     imp_readonly: bool | None = None  # impersonation session may not mutate
     bind: str | None = None  # user id for Connect Instagram OAuth bind
+    next: str | None = None  # allowlisted post-OAuth SPA path (public drop)
 
 
 def _now() -> datetime:
@@ -132,11 +139,31 @@ def create_refresh_token(user_id: uuid.UUID | str, token_version: int = 0) -> st
     return _encode(claims)
 
 
-def create_oauth_state_token(*, bind_user_id: uuid.UUID | str | None = None) -> str:
+def allowlisted_oauth_next(raw: str | None) -> str | None:
+    """Return ``/d/<uuid>`` when ``raw`` is that path; otherwise ``None``."""
+
+    if not raw:
+        return None
+    match = _PUBLIC_DROP_NEXT.fullmatch(raw.strip())
+    if match is None:
+        return None
+    try:
+        uuid.UUID(match.group(1))
+    except ValueError:
+        return None
+    return f"/d/{match.group(1).lower()}"
+
+
+def create_oauth_state_token(
+    *,
+    bind_user_id: uuid.UUID | str | None = None,
+    next_path: str | None = None,
+) -> str:
     """Mint a signed, short-lived CSRF ``state`` for the OAuth round-trip.
 
     When ``bind_user_id`` is set, the callback binds Instagram to that existing
-    user instead of inserting (LAUNCH.md Phase A Connect).
+    user instead of inserting (LAUNCH.md Phase A Connect). ``next_path`` must
+    already be allowlisted (``/d/<uuid>``); other values are dropped.
     """
 
     issued = _now()
@@ -150,6 +177,9 @@ def create_oauth_state_token(*, bind_user_id: uuid.UUID | str | None = None) -> 
     }
     if bind_user_id is not None:
         claims["bind"] = str(bind_user_id)
+    allowed_next = allowlisted_oauth_next(next_path)
+    if allowed_next is not None:
+        claims["next"] = allowed_next
     return _encode(claims)
 
 

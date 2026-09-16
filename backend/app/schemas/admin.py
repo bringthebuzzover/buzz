@@ -548,6 +548,22 @@ class AdminApplicantItem(CamelModel):
         return to_epoch_ms(value)
 
 
+class AdminDropIntentItem(CamelModel):
+    """Signup intent on a drop — not a brand applicant (PRODUCT §7.1)."""
+
+    id: uuid.UUID
+    org_id: uuid.UUID
+    org_name: str
+    status: str
+    pitch: str | None
+    created_at: datetime
+    updated_at: datetime
+
+    @field_serializer("created_at", "updated_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+
 class AdminTrackerEventItem(CamelModel):
     id: uuid.UUID
     stage: str
@@ -587,6 +603,7 @@ class AdminDropDetail(CamelModel):
     linked_post_count: int
     pending_suggestion_count: int
     applicants: list[AdminApplicantItem]
+    intents: list[AdminDropIntentItem] = []
     tracker_events: list[AdminTrackerEventItem]
 
     @field_serializer("apply_open_at", "apply_close_at", "created_at")

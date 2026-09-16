@@ -22,6 +22,7 @@ from app.models.drop_apply_intent import DropApplyIntent
 from app.models.enums import ApplicationDecision, DropApplyIntentStatus
 from app.models.organization import Organization
 from app.models.user import User
+from app.schemas.drops import DropDetailResponse
 from app.services.drops import (
     _require_browsable_drop,
     apply_to_drop,
@@ -186,6 +187,58 @@ async def get_intent_for_org_drop(
         )
     )
     return row
+
+
+async def assert_intent_drop_public(db: AsyncSession, drop_id: uuid.UUID) -> Drop:
+    """Raise ``DROP_NOT_OPEN`` when the UUID is missing or not org-browsable."""
+
+    drop = await db.get(Drop, drop_id)
+    if drop is None:
+        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
+    await _require_browsable_drop(db, drop)
+    return drop
+
+
+async def build_public_drop_detail(
+    db: AsyncSession,
+    drop: Drop,
+    *,
+    org_id: uuid.UUID | None,
+) -> DropDetailResponse:
+    """Creative fields for anonymous / brand / pending org (PRODUCT §6.3.4)."""
+
+    brand = await _require_browsable_drop(db, drop)
+    await expire_stale_intents_for_drop(db, drop)
+    accepted = await _accepted_count(db, drop.id)
+    intent_status: str | None = None
+    intent_pitch: str | None = None
+    if org_id is not None:
+        intent = await get_intent_for_org_drop(db, org_id=org_id, drop_id=drop.id)
+        if intent is not None:
+            intent_status = intent.status
+            intent_pitch = intent.pitch
+    return DropDetailResponse(
+        id=drop.id,
+        brand_id=drop.brand_id,
+        brand_name=brand.brand_name,
+        title=drop.title,
+        description=drop.description,
+        image=drop.image,
+        location=drop.location,
+        capacity_total=drop.capacity_total,
+        apply_open_at=drop.apply_open_at,
+        apply_close_at=drop.apply_close_at,
+        manual_reopen=drop.manual_reopen,
+        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
+        total_product_units=None,
+        created_at=drop.created_at,
+        accepted_count=accepted,
+        already_applied=False,
+        notify_requested=False,
+        reminder_minutes=None,
+        intent_status=intent_status,
+        intent_pitch=intent_pitch,
+    )
 
 
 async def expire_open_intents_for_org(db: AsyncSession, org_id: uuid.UUID) -> None:

@@ -58,6 +58,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
     user: UserResponse
+    next: str | None = None
 
 
 class RefreshResponse(BaseModel):
