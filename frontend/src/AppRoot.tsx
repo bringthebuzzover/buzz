@@ -53,6 +53,9 @@ import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDe
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import UiKitPage from "./pages/dev/UiKitPage";
+import InspoLayout from "./layouts/InspoLayout";
+import InspoHomePage from "./pages/inspo/InspoHomePage";
+import InspoDropDetailPage from "./pages/inspo/InspoDropDetailPage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
 function PortalGuard({
@@ -89,6 +92,23 @@ function LegacyCampaignRedirect(): ReactElement {
 export default function AppRoot(): ReactElement {
   return (
     <Routes>
+      <Route element={<InspoLayout />}>
+        <Route path="inspo" element={<InspoHomePage />} />
+        <Route path="inspo/drop" element={<InspoDropDetailPage />} />
+        <Route path="inspo/opportunities" element={<Navigate to="/inspo#opportunities" replace />} />
+        <Route path="inspo/faqs" element={<Navigate to="/inspo#faqs" replace />} />
+        <Route path="inspo/map" element={<Navigate to="/inspo#map" replace />} />
+        <Route
+          path="inspo/how-it-works"
+          element={<Navigate to="/inspo#how-it-works" replace />}
+        />
+        <Route
+          path="inspo/getting-started"
+          element={<Navigate to="/inspo#getting-started" replace />}
+        />
+        <Route path="inspo/partner" element={<Navigate to="/inspo#partner" replace />} />
+      </Route>
+
       <Route element={<SiteLayout />}>
         <Route index element={<HomePage />} />
         <Route path="for-orgs" element={<ForOrgsPage />} />
