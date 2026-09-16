@@ -2,10 +2,11 @@
  * /login — Instagram OAuth entry point. Public page.
  */
 import { useAuth } from "../../contexts/AuthContext";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
 import instagramIcon from "../../assets/insta-icon.png";
 import { pathForUser } from "../../utils/landing";
+import { allowlistedOAuthNext } from "../../utils/oauthNext";
 import AuthShell from "../../components/site/AuthShell";
 import { Button } from "../../components/forms/controls";
 import { STACK, TEXT } from "../../theme/tokens";
@@ -13,15 +14,18 @@ import { cn } from "../../theme/cn";
 
 export default function LoginPage() {
   const { status, user, login } = useAuth();
+  const [searchParams] = useSearchParams();
+  const next = allowlistedOAuthNext(searchParams.get("next"));
 
   if (status === "authenticated") {
-    // Status-aware landing: an active org → feed, mid-onboarding org → their
-    // onboarding step, brand → dashboard (matches the OAuth-callback target).
-    return <Navigate to={pathForUser(user)} replace />;
+    return <Navigate to={next ?? pathForUser(user)} replace />;
   }
 
   if (status === "needs_instagram_reconnect") {
-    return <Navigate to="/reconnect-instagram" replace />;
+    const reconnect = next
+      ? `/reconnect-instagram?next=${encodeURIComponent(next)}`
+      : "/reconnect-instagram";
+    return <Navigate to={reconnect} replace />;
   }
 
   if (status === "restore_failed") {
@@ -42,7 +46,7 @@ export default function LoginPage() {
         type="button"
         variant="outline"
         size="hero"
-        onClick={login}
+        onClick={() => login(next)}
         disabled={status === "authenticating"}
       >
         <img src={instagramIcon} alt="" className="h-5 w-5" />

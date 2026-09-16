@@ -46,6 +46,7 @@ import {
   type MeResult,
 } from "../api/auth";
 import { API_BASE_URL } from "../api/config";
+import { allowlistedOAuthNext } from "../utils/oauthNext";
 import type { PortalRole } from "../types/auth";
 
 export type AuthStatus =
@@ -74,7 +75,7 @@ export type AuthUser = {
 type AuthContextValue = {
   status: AuthStatus;
   user: AuthUser | null;
-  login: () => void;
+  login: (next?: string | null) => void;
   logout: () => Promise<void>;
   /** Re-fetch the current user (e.g. after an onboarding status transition). */
   refreshUser: () => Promise<AuthUser | null>;
@@ -130,7 +131,8 @@ function onPublicMarketingRoute(): boolean {
     p.startsWith("/for-brands") ||
     p.startsWith("/privacy") ||
     p.startsWith("/terms") ||
-    p.startsWith("/data-deletion")
+    p.startsWith("/data-deletion") ||
+    p.startsWith("/d/")
   );
 }
 
@@ -345,12 +347,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [applyMeResult, enterInstagramReconnect, failHard, failSoft]);
 
-  const login = useCallback(() => {
-    // Redirect to Instagram OAuth login endpoint.
-    // The backend responds with a 302 to Instagram; the browser follows it.
-    // Single source of truth for the API base (so the prod-URL guard covers it).
+  const login = useCallback((next?: string | null) => {
     const apiBase = API_BASE_URL.replace(/\/$/, "");
-    window.location.href = `${apiBase}/api/auth/instagram/login`;
+    const allowed = allowlistedOAuthNext(next);
+    const qs = allowed ? `?next=${encodeURIComponent(allowed)}` : "";
+    window.location.href = `${apiBase}/api/auth/instagram/login${qs}`;
   }, []);
 
   const logout = useCallback(async () => {

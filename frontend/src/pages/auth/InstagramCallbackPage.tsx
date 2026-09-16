@@ -18,6 +18,7 @@ import AuthShell from "../../components/site/AuthShell";
 import { LinkButton } from "../../components/forms/controls";
 import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+import { allowlistedOAuthNext } from "../../utils/oauthNext";
 
 type CallbackState =
   | { kind: "exchanging" }
@@ -85,11 +86,10 @@ export default function InstagramCallbackPage() {
           setAccessToken(token);
         }
         clearInstagramReconnectLatch();
-        // Land on the org portal, not the public home: a full reload re-runs the
-        // AuthProvider bootstrap, and the guard chain (RequireAuth → RequireStatus
-        // → RequireRole) forwards a pending org to the right onboarding step and
-        // an active org to the feed — a status-aware landing per architecture §3.4.
-        window.location.href = "/org/browse";
+        const next = allowlistedOAuthNext(
+          typeof body.data?.next === "string" ? body.data.next : null,
+        );
+        window.location.href = next ?? "/org/browse";
       } catch {
         setState({
           kind: "error",

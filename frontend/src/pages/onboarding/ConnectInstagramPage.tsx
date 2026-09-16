@@ -15,6 +15,7 @@ import {
 import { authUserFromWire } from "../../api/auth";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
+import { allowlistedOAuthNext } from "../../utils/oauthNext";
 import instagramIcon from "../../assets/insta-icon.png";
 import AuthShell from "../../components/site/AuthShell";
 import { Button, ErrorBanner, LinkButton } from "../../components/forms/controls";
@@ -33,6 +34,7 @@ export default function ConnectInstagramPage() {
   const { status, user, acceptSession } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [token] = useState(() => searchParams.get("token"));
+  const next = allowlistedOAuthNext(searchParams.get("next"));
   const redeem = useRedeemOrgConnect();
   const bindStart = useInstagramBindStart();
   const [redeemState, setRedeemState] = useState<RedeemState>(() =>
@@ -48,7 +50,7 @@ export default function ConnectInstagramPage() {
       try {
         const data = await redeem.mutateAsync(token);
         acceptSession(authUserFromWire(data.user as UserWire), data.access_token);
-        setSearchParams({}, { replace: true });
+        setSearchParams(next ? { next } : {}, { replace: true });
         setRedeemState({ kind: "idle" });
       } catch (err) {
         setRedeemState({
@@ -60,7 +62,7 @@ export default function ConnectInstagramPage() {
         });
       }
     })();
-  }, [token, redeem, acceptSession, setSearchParams]);
+  }, [token, redeem, acceptSession, setSearchParams, next]);
 
   if (status === "idle" || status === "authenticating" || redeemState.kind === "redeeming") {
     return (
@@ -89,13 +91,16 @@ export default function ConnectInstagramPage() {
   }
 
   if (!user || user.status !== "pending_instagram") {
+    if (user?.status === "active" && next) {
+      return <Navigate to={next} replace />;
+    }
     return <Navigate to={pathForUser(user)} replace />;
   }
 
   const onConnect = async () => {
     setConnectError(null);
     try {
-      const { authorizeUrl } = await bindStart.mutateAsync();
+      const { authorizeUrl } = await bindStart.mutateAsync(next);
       window.location.href = authorizeUrl;
     } catch (err) {
       setConnectError(

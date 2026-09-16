@@ -53,6 +53,7 @@ function brandDrop(brandCanEditCreative: boolean) {
     totalEngagement: 0,
     totalReach: 0,
     brandCanEditCreative,
+    publishedAt: now,
   };
 }
 
@@ -115,6 +116,21 @@ describe("BrandDropDetailPage", () => {
     ).toBeNull();
     expect(
       container.querySelector('[data-testid="brand-save-creative"]'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-testid="copy-public-drop-url"]'),
+    ).toBeTruthy();
+  });
+
+  it("hides the public URL until the drop is published", () => {
+    mockUseBrandDropDetail.mockReturnValue({
+      data: { ...brandDrop(false), publishedAt: null },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    expect(
+      container.querySelector('[data-testid="copy-public-drop-url"]'),
     ).toBeNull();
   });
 

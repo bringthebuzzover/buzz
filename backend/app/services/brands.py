@@ -153,6 +153,7 @@ async def build_brand_drop_detail(
         brand_can_edit_creative=drop.brand_can_edit_creative,
         applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
         created_at=drop.created_at,
+        published_at=drop.published_at,
         applications=applicants,
         total_posts=agg["total_posts"],
         total_likes=agg["total_likes"],
