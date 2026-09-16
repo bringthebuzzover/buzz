@@ -46,6 +46,8 @@ class TestAdminTablesCatalog:
         assert "users" in by_name
         assert "drop_application_shipments" in by_name
         assert "org_ig_change_requests" in by_name
+        assert "drop_apply_intents" in by_name
+        assert by_name["drop_apply_intents"]["writable"] is False
         assert by_name["org_ig_change_requests"]["writable"] is False
         users_cols = {col["name"]: col for col in by_name["users"]["columns"]}
         assert users_cols["passwordHash"]["hidden"] is True

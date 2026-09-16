@@ -22,6 +22,7 @@ from app.models import (
     Brand,
     Drop,
     DropApplication,
+    DropApplyIntent,
     DropTrackerEvent,
     EmailVerificationToken,
     NotifyMe,
@@ -35,6 +36,7 @@ from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
     BrandTrackerStage,
+    DropApplyIntentStatus,
     OrgUserStatus,
     Platform,
     PortalRole,
@@ -328,6 +330,27 @@ async def test_notify_me_roundtrip(db_session: AsyncSession) -> None:
     assert fetched is not None
     assert fetched.reminder_minutes == 15
     assert fetched.enabled is True
+
+
+@pytest.mark.asyncio
+async def test_drop_apply_intent_roundtrip(db_session: AsyncSession) -> None:
+    drop = await _make_drop(db_session)
+    org = await _make_org(db_session, suffix="intent")
+    intent = DropApplyIntent(
+        org_id=org.id,
+        drop_id=drop.id,
+        pitch="We can pack a quad",
+        status=DropApplyIntentStatus.OPEN.value,
+    )
+    db_session.add(intent)
+    await db_session.flush()
+
+    fetched = await db_session.scalar(
+        select(DropApplyIntent).where(DropApplyIntent.id == intent.id)
+    )
+    assert fetched is not None
+    assert fetched.status == DropApplyIntentStatus.OPEN.value
+    assert fetched.pitch == "We can pack a quad"
 
 
 @pytest.mark.asyncio
