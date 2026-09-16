@@ -2,7 +2,7 @@
 id: drop-signup-apply
 title: Brand deep link — login or signup, then apply to a specific drop
 status: exploring
-updated: 2026-09-15
+updated: 2026-09-16
 ---
 
 # Drop deep link (existing org vs new org)
@@ -22,18 +22,34 @@ mid-review re-login possible. Keep promote-to-`applied` at `active` in both.
 
 ## Desired motion
 
-A brand promotes a drop on Instagram / socials / their site. An org clicks one
-URL:
+Each published, unhidden drop has a **public page** (brand-shareable URL).
+Drop info is always visible. Apply lives **on that same page**:
 
-- **Already has a Buzz account:** log in (Instagram) and land on **that** drop,
-  then Apply (optional pitch, same as the feed).
-- **Does not:** fill org apply **and** the drop pitch in one motion. The drop
-  application is **not** a real applicant yet. When account creation is
-  **finished**, Buzz auto-submits Apply (`decision=applied`) if the drop is
-  still Open.
+- **Logged in, `active`:** regular Apply (optional pitch). Immediate
+  `decision=applied`.
+- **Logged out / no account:** same §6.1 / §6.1.1 profile fields as
+  `/org/apply` plus optional pitch. Submit creates the org and stores
+  **intent** — not a real applicant. Honest CTA (not “you’re applied”).
+- **Logged in, still onboarding:** no second signup form. Copy: we’ll submit
+  when the account is live. Pitch editable on the intent.
+- **Already applied:** same as the feed.
 
-Admin can see orgs that **intend** to apply but have not finished onboarding
-(separate from brand finalize).
+When they become **`active`**, auto-submit Apply if the drop is still Open.
+Window closed during onboarding → **expire the intent** (no waitlist, §7.1)
+but **keep the row for admin**. Brands never see intent. Upcoming/Closed:
+show the drop, hide Apply (Upcoming Notify Me stays active-org only).
+Standalone `/org/apply` stays for join-without-a-drop.
+
+## Locks (2026-09-16)
+
+| Fork | Lock |
+| ---- | ---- |
+| Surface | One public drop page; form mode follows auth. |
+| Auto-submit | Only at `active`. |
+| Window closed while onboarding | Expire intent; still visible to admin. |
+| Brand visibility | Admin only (on the drop). |
+| Persistence | `drop_apply_intents`. |
+| Signup fields | Full `/org/apply` — do not shorten. |
 
 ## How it fits today
 
@@ -69,15 +85,22 @@ unless PRODUCT adds drop-specific questions.
 | Columns on `organizations` (`intent_drop_id`, `intent_pitch`) | No new table; one in-flight drop per org; still a migration + promote hook. |
 | New `drop_apply_intents` | Cleanest first-class org↔drop intent; admin queue; promote to `applied` on `active`. |
 
-## Unlocked forks (do not implement until locked)
+## Endpoints (if promoted)
 
-| Fork | Options |
-| ---- | ------- |
-| When auto-submit | Only at `active` (matches §6.1) vs earlier (brands see unfinished orgs). |
-| Window closed while onboarding | Expire intent (no waitlist) vs email vs other. §7.1 has **no waitlist**. |
-| Sequence | Existing-org deep link first vs both paths together. |
-| Persistence | `drop_apply_intents` vs org columns. |
-| Brand visibility | Admin-only intent queue (recommended) vs brand sees “pending signup”. |
+Reuse `apply_org`, `apply_to_drop`, browsable-drop checks, IG lookup, address
+suggest. **Do not** write `drop_applications` until promote. **Do not** stuff
+intent into `org_apply_prefills`.
 
-Ship existing-org login→drop first if we slice. New-org intent is the large
-piece (combined form, promote-on-active, expiry, admin list).
+| Need | Shape |
+| ---- | ----- |
+| Public drop read | Same `GET /api/drops/{id}` with optional auth (404/DROP_NOT_OPEN if hidden/draft/finished). Omit personal fields when anonymous. |
+| Logged-out submit | Extend `POST /api/orgs/apply` with optional `dropId` + `pitch` → `apply_org` + intent row. |
+| Logged-in apply | Existing `POST /api/drops/{id}/apply`. |
+| Mid-onboarding pitch | Small authenticated (not `CurrentOrg`) upsert on the intent. |
+| Promote | Internal: `apply_to_drop` from Connect→`active` (and Approve skip-Connect). If not Open, mark expired. |
+| Admin | Add intents (open + expired) on existing `GET /api/admin/drops/{id}`. |
+| Login return | OAuth `state` `next` back to the public drop URL (callback today hardcodes `/org/browse`). |
+
+Later [`org-bind-at-signup.md`](org-bind-at-signup.md): public GET + intent
+table + promote-on-`active` stay. Create path moves to draft→OAuth INSERT;
+promote hook also runs on Approve→`active`. `/login` still does not insert.
