@@ -28,6 +28,7 @@ import BrandSetupPage from "./pages/auth/BrandSetupPage";
 import BrandLoginPage from "./pages/auth/BrandLoginPage";
 import BrandApplyPage from "./pages/auth/BrandApplyPage";
 import OrgApplyPage from "./pages/auth/OrgApplyPage";
+import PublicDropPage from "./pages/public/PublicDropPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import OrgProfilePage from "./pages/onboarding/OrgProfilePage";
@@ -125,6 +126,7 @@ export default function AppRoot(): ReactElement {
         <Route path="brand/setup" element={<BrandSetupPage />} />
         <Route path="brand/apply" element={<BrandApplyPage />} />
         <Route path="org/apply" element={<OrgApplyPage />} />
+        <Route path="d/:dropId" element={<PublicDropPage />} />
 
         {/* Onboarding pages. These require an authenticated session
             (architecture §6.4) — RequireAuth standardizes the redirect to

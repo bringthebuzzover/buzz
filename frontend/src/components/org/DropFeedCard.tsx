@@ -88,6 +88,7 @@ export default function DropFeedCard({
       kind="cardWarm"
       pad="none"
       data-testid="drop-card"
+      data-drop-id={drop.id}
       className="flex h-full flex-col overflow-hidden shadow-buzz transition hover:shadow-buzzLg"
     >
       <div className="relative h-48 overflow-hidden border-b border-buzz-lineMid">

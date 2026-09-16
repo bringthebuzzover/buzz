@@ -25,6 +25,7 @@ const PUBLIC_ROUTES = [
   "/login",
   "/brand/login",
   "/org/apply",
+  "/d/00000000-0000-0000-0000-000000000063",
   "/brand/apply",
   "/privacy",
   "/terms",

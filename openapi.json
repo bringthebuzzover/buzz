@@ -3599,6 +3599,17 @@
             "title": "Manualreopen",
             "type": "boolean"
           },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
+          },
           "title": {
             "title": "Title",
             "type": "string"

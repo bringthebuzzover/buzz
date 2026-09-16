@@ -3357,6 +3357,8 @@ export interface components {
             location: string;
             /** Manualreopen */
             manualReopen: boolean;
+            /** Publishedat */
+            publishedAt?: number | null;
             /** Title */
             title: string;
             /** Totalcomments */
