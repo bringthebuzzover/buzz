@@ -25,6 +25,7 @@ from app.schemas.auth import UserResponse
 from app.security import jwt
 from app.security.session import bump_token_version, commit_revocation
 from app.security.token_crypto import encrypt_token
+from app.services.drop_apply_intents import promote_drop_apply_intents
 from app.services.instagram import (
     ALLOWED_ACCOUNT_TYPES,
     InstagramClient,
@@ -135,8 +136,10 @@ async def handle_instagram_callback(
 
     _apply_ig_credentials(user, profile, short.user_id, long.access_token, now, expires_at)
     user.last_login_at = now
+    became_active = False
     if bind_user_id is not None or user.status == OrgUserStatus.PENDING_INSTAGRAM.value:
         user.status = OrgUserStatus.ACTIVE.value
+        became_active = True
     if user.portal_role == PortalRole.ORG.value:
         org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
         if org is not None:
@@ -154,6 +157,8 @@ async def handle_instagram_callback(
             ) from exc
         raise
     await db.refresh(user)
+    if became_active:
+        await promote_drop_apply_intents(db, user)
     return user
 
 

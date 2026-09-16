@@ -12,6 +12,7 @@ from app.models.base import Base
 from app.models.brand import Brand
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.drop import Drop
+from app.models.drop_apply_intent import DropApplyIntent
 from app.models.drop_request import DropRequest
 from app.models.job_run import JobRun
 from app.models.notify_me import NotifyMe
@@ -34,6 +35,7 @@ __all__ = [
     "BrandInviteToken",
     "Drop",
     "DropApplication",
+    "DropApplyIntent",
     "DropRequest",
     "DropApplicationShipment",
     "DropTrackerEvent",
