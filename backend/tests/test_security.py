@@ -41,6 +41,20 @@ def test_oauth_state_round_trip() -> None:
     payload = buzz_jwt.decode_token(token, expected_type=buzz_jwt.OAUTH_STATE_TOKEN_TYPE)
     assert payload.type == "oauth_state"
     assert payload.nonce
+    assert payload.next is None
+
+
+def test_oauth_state_allowlists_public_drop_next() -> None:
+    drop_id = uuid.uuid4()
+    token = buzz_jwt.create_oauth_state_token(next_path=f"/d/{drop_id}")
+    payload = buzz_jwt.decode_token(token, expected_type=buzz_jwt.OAUTH_STATE_TOKEN_TYPE)
+    assert payload.next == f"/d/{drop_id}"
+    dropped = buzz_jwt.create_oauth_state_token(next_path="/org/browse")
+    assert (
+        buzz_jwt.decode_token(dropped, expected_type=buzz_jwt.OAUTH_STATE_TOKEN_TYPE).next is None
+    )
+    assert buzz_jwt.allowlisted_oauth_next("/login") is None
+    assert buzz_jwt.allowlisted_oauth_next(f"/d/{drop_id}/extra") is None
 
 
 def test_refresh_token_rejected_as_access() -> None:

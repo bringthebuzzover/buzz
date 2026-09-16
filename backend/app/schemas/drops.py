@@ -85,6 +85,8 @@ class DropDetailResponse(CamelModel):
     already_applied: bool
     notify_requested: bool
     reminder_minutes: int | None
+    intent_status: str | None = None
+    intent_pitch: str | None = None
 
     @field_serializer("apply_open_at", "apply_close_at", "created_at")
     def _epoch_required(self, value: datetime) -> int:
@@ -115,6 +117,12 @@ class ApplicationResponse(CamelModel):
 
 class DropApplyRequest(CamelModel):
     """Body for ``POST /api/drops/{id}/apply`` (architecture §7.1)."""
+
+    pitch: str | None = None
+
+
+class DropIntentPitchRequest(CamelModel):
+    """Body for ``PATCH /api/drops/{id}/intent`` (pending org pitch)."""
 
     pitch: str | None = None
 
