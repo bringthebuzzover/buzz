@@ -16,6 +16,11 @@ import {
   useResendVerificationFromToken,
   useVerifyEmail,
 } from "../../api/hooks/useOnboardingHooks";
+import {
+  VERIFY_DROP_INTENT_KEY,
+  VERIFY_EDU_EMAIL_KEY,
+  VERIFY_EMAIL_SENT_KEY,
+} from "../../components/org/OrgApplyForm";
 import { authUserFromWire, setAccessToken } from "../../api/auth";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
@@ -27,10 +32,6 @@ import { cn } from "../../theme/cn";
 import type { components } from "../../api/generated/schema";
 
 type UserWire = components["schemas"]["UserResponse"];
-
-const VERIFY_EMAIL_SENT_KEY = "buzz.verifyEmailSent";
-const VERIFY_EDU_EMAIL_KEY = "buzz.verifyEduEmail";
-const VERIFY_DROP_INTENT_KEY = "buzz.verifyDropIntent";
 
 const JUNK_HINT =
   "Campus inboxes often put first-time Buzz mail in Junk.";
