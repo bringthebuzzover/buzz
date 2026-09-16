@@ -46,10 +46,6 @@ export default function PublicDropPage() {
   const now = useWallClockNow();
   const navigate = useNavigate();
 
-  if (status === "restore_failed") {
-    return <SessionRestorePanel />;
-  }
-
   if (drop.isLoading || status === "authenticating" || status === "idle") {
     return (
       <PageShell width="form">
@@ -84,6 +80,16 @@ export default function PublicDropPage() {
   const feedStatus = getDropFeedStatus(data, data.acceptedCount, now);
   const loginHref = `/login?next=${encodeURIComponent(publicDropPath(dropId))}`;
   const nextPath = allowlistedOAuthNext(publicDropPath(dropId));
+
+  if (status === "restore_failed") {
+    return (
+      <PageShell width="form">
+        <PublicDropHero drop={data} feedStatus={feedStatus} />
+        <SessionRestorePanel embedded />
+      </PageShell>
+    );
+  }
+
   const anonymous = status === "error";
   const orgUser = status === "authenticated" && user?.portalRole === "org";
   const activeOrg = orgUser && user.status === "active";
@@ -127,7 +133,7 @@ export default function PublicDropPage() {
       ) : null}
 
       {pendingOrg ? (
-        <PendingOrgActions dropId={dropId} drop={data} feedStatus={feedStatus} />
+        <PendingOrgActions dropId={dropId} drop={data} />
       ) : null}
 
       {status === "authenticated" && user?.portalRole !== "org" && feedStatus === "open" ? (
@@ -277,11 +283,9 @@ function ActiveOrgActions({
 function PendingOrgActions({
   dropId,
   drop,
-  feedStatus,
 }: {
   dropId: string;
   drop: DropDetail;
-  feedStatus: "upcoming" | "open" | "closed";
 }) {
   const patch = usePatchDropIntent(dropId);
   const [pitch, setPitch] = useState(drop.intentPitch ?? "");
@@ -312,12 +316,6 @@ function PendingOrgActions({
           not applied yet.
         </SuccessBanner>
       )}
-      {feedStatus === "upcoming" && !expired ? (
-        <p className={cn(TEXT.meta, "text-center")}>
-          This drop is still upcoming — we&apos;ll submit when it opens and your
-          account is live.
-        </p>
-      ) : null}
       <TextArea
         data-testid="intent-pitch"
         label="Pitch (optional)"

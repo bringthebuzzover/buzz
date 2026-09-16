@@ -37,7 +37,6 @@ from app.services.drops import (
     build_application_response,
     build_drop_detail,
     clear_notify,
-    get_drop_or_404,
     list_org_drop_feed,
     set_notify,
 )
@@ -70,15 +69,14 @@ async def get_drop(
 ) -> APIResponse:
     """Org-facing drop detail, or public creative fields without a session."""
 
+    drop = await assert_intent_drop_public(db, drop_id)
     if (
         user is not None
         and user.portal_role == PortalRole.ORG.value
         and user.status == OrgUserStatus.ACTIVE.value
     ):
-        drop = await get_drop_or_404(db, drop_id)
         return api_response(data=await build_drop_detail(db, user, drop))
 
-    drop = await assert_intent_drop_public(db, drop_id)
     org_id = None
     if user is not None and user.portal_role == PortalRole.ORG.value:
         org = await get_org_for_user(db, user)

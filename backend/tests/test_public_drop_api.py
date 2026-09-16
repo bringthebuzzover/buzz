@@ -59,6 +59,19 @@ async def test_anon_unknown_uuid_is_drop_not_open(app_client: AsyncClient) -> No
     assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
 
 
+async def test_active_org_unknown_uuid_is_drop_not_open(
+    app_client: AsyncClient, db_session
+) -> None:
+    user = await persist(db_session, make_user())
+    await make_org(db_session, user)
+    resp = await app_client.get(
+        f"/api/drops/{uuid.uuid4()}",
+        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
+
+
 async def test_anon_hidden_drop_is_drop_not_open(app_client: AsyncClient, db_session) -> None:
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand)
