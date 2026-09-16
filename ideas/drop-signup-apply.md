@@ -1,15 +1,13 @@
 ---
 id: drop-signup-apply
 title: Brand deep link — login or signup, then apply to a specific drop
-status: exploring
+status: promoted
 updated: 2026-09-16
 ---
 
 # Drop deep link (existing org vs new org)
 
-Brainstorm (2026-09-14). **Not PRODUCT.** Promoting needs an explicit PRODUCT /
-UX decision ([`AGENTS.md`](../AGENTS.md) hard stop). Not a gap: apply and
-onboarding work as specified today; this is a new acquisition funnel.
+Brainstorm (2026-09-14). **Promoted 2026-09-16** — behavior lives in [`PRODUCT.md`](../PRODUCT.md) **§6.3.4** / **§7.1**. This file is provenance. Do not implement from here.
 
 Related: [`org-precreate.md`](org-precreate.md) (ops `/org/apply?prefill=` —
 not a brand campaign URL). [`org-bind-at-signup.md`](org-bind-at-signup.md)
