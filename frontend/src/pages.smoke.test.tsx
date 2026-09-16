@@ -53,6 +53,8 @@ import AdminDropRequestDetailPage from "./pages/admin/AdminDropRequestDetailPage
 import AdminIgChangeRequestsPage from "./pages/admin/AdminIgChangeRequestsPage";
 import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
+import InspoHomePage from "./pages/inspo/InspoHomePage";
+import InspoDropDetailPage from "./pages/inspo/InspoDropDetailPage";
 
 const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["HomePage", HomePage],
@@ -88,6 +90,8 @@ const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["AdminIgChangeRequestsPage", AdminIgChangeRequestsPage],
   ["AdminIgChangeRequestDetailPage", AdminIgChangeRequestDetailPage],
   ["AdminHealthPage", AdminHealthPage],
+  ["InspoHomePage", InspoHomePage],
+  ["InspoDropDetailPage", InspoDropDetailPage],
 ];
 
 describe("page render smoke (API tree)", () => {
