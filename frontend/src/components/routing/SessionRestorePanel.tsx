@@ -10,43 +10,53 @@ import { cn } from "../../theme/cn";
 
 export default function SessionRestorePanel({
   className = "",
+  embedded = false,
 }: {
   className?: string;
+  embedded?: boolean;
 }) {
   const { retryRestore, abandonRestore } = useAuth();
+
+  const body = (
+    <div data-testid="session-restore-panel">
+      <h1 className={cn(TEXT.h1, "mb-2 text-buzz-ink")}>
+        Couldn&apos;t restore your session
+      </h1>
+      <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
+        We couldn&apos;t reach the server. Your session may still be valid.
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <Button
+          type="button"
+          data-testid="session-restore-retry"
+          onClick={() => {
+            void retryRestore();
+          }}
+        >
+          Retry
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          data-testid="session-restore-signin"
+          onClick={() => abandonRestore()}
+        >
+          Sign in
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return <div className={cn("mb-6 text-center", className)}>{body}</div>;
+  }
 
   return (
     <AuthShell
       align="center"
       className={cn("items-center text-center", className)}
     >
-      <div data-testid="session-restore-panel">
-        <h1 className={cn(TEXT.h1, "mb-2 text-buzz-ink")}>
-          Couldn&apos;t restore your session
-        </h1>
-        <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
-          We couldn&apos;t reach the server. Your session may still be valid.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Button
-            type="button"
-            data-testid="session-restore-retry"
-            onClick={() => {
-              void retryRestore();
-            }}
-          >
-            Retry
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            data-testid="session-restore-signin"
-            onClick={() => abandonRestore()}
-          >
-            Sign in
-          </Button>
-        </div>
-      </div>
+      {body}
     </AuthShell>
   );
 }

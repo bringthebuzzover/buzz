@@ -60,11 +60,11 @@ async def test_detail_reflects_accepted_and_applied(app_client: AsyncClient, db_
     assert data["alreadyApplied"] is True
 
 
-async def test_detail_unknown_404(app_client: AsyncClient, db_session) -> None:
+async def test_detail_unknown_is_drop_not_open(app_client: AsyncClient, db_session) -> None:
     _, _, headers = await _org_ctx(db_session)
     resp = await app_client.get(f"/api/drops/{uuid.uuid4()}", headers=headers)
-    assert resp.status_code == 404
-    assert resp.json()["error"]["code"] == "NOT_FOUND"
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
 
 
 async def test_detail_anonymous_public_fields(app_client: AsyncClient, db_session) -> None:
