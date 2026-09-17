@@ -13,14 +13,14 @@ gap: apply-first + Connect-after-Approve works as specified today; this is a
 new signup motion.
 
 Related: [`org-precreate.md`](org-precreate.md) (opposite sequence: apply first,
-IG last — that **shipped** via LAUNCH Phase A). [`drop-signup-apply.md`](drop-signup-apply.md)
-(brand deep link → apply; “account creation finished” is still **admin Approve**,
-not the signup form). Meta: [`META.md`](../META.md),
+IG last — that **shipped** via LAUNCH Phase A). [`archive/drop-signup-apply.md`](archive/drop-signup-apply.md)
+(brand deep link → apply — **shipped**; “account creation finished” is still
+**admin Approve**, not the signup form). Meta: [`META.md`](../META.md),
 [`gaps/deploy.meta-business-verification.md`](../gaps/deploy.meta-business-verification.md).
 
-**Sequence (2026-09-15):** implement [`drop-signup-apply.md`](drop-signup-apply.md)
-**first**. This file is the later one-click identity change. Keep the deep-link
-intent table and promote-on-`active` rule so the two stay cohesive.
+**Sequence (2026-09-15):** implement [`archive/drop-signup-apply.md`](archive/drop-signup-apply.md)
+**first** (shipped). This file is the later one-click identity change. Keep the
+deep-link intent table and promote-on-`active` rule so the two stay cohesive.
 
 **Locks from brainstorm (2026-09-14):**
 
@@ -183,7 +183,7 @@ unused (or ops-only sidecar for tester add — see overlay).
 Evolve AuthShell `/onboarding/pending-approval` (poll `/me`, auto-forward on
 Approve/Deny). Working copy: **Waiting for review** — not “Waitlist.”
 
-`ideas/drop-signup-apply.md` uses “waitlist” for **drop apply-window**
+`ideas/archive/drop-signup-apply.md` uses “waitlist” for **drop apply-window**
 behavior PRODUCT §7.1 does not have. Do not reuse that word here.
 
 Not in v1 of this idea: org chrome with Feed/Apply visible-but-disabled.
@@ -220,7 +220,7 @@ explicitly wants two products on one page.
 Bind-at-signup **does not** make a brand deep link auto-Apply. `CurrentOrg`
 is still `active`. Review can take days; the drop window can still close.
 
-`drop-signup-apply.md` should keep: promote intent → `decision=applied` only
+`archive/drop-signup-apply.md` should keep: promote intent → `decision=applied` only
 at `active`. This idea only makes **re-login** possible during the wait, so
 an existing-org deep link can say “you’re still under review” instead of
 `ORG_APPLY_REQUIRED`.

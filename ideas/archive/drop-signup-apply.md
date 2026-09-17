@@ -1,18 +1,21 @@
 ---
 id: drop-signup-apply
 title: Brand deep link — login or signup, then apply to a specific drop
-status: promoted
-updated: 2026-09-16
+status: shipped
+updated: 2026-09-17
 ---
 
 # Drop deep link (existing org vs new org)
 
-Brainstorm (2026-09-14). **Promoted 2026-09-16** — behavior lives in [`PRODUCT.md`](../PRODUCT.md) **§6.3.4** / **§7.1**. This file is provenance. Do not implement from here.
+Brainstorm (2026-09-14). **Promoted 2026-09-16.** **Shipped 2026-09-17** on
+`feat/public-drop-signup` ([PR #6](https://github.com/bringthebuzzover/buzz/pull/6)).
+Behavior SOT is [`PRODUCT.md`](../../PRODUCT.md) **§6.3.4** / **§7.1**. This
+file is provenance. Do not implement from here.
 
-Related: [`org-precreate.md`](org-precreate.md) (ops `/org/apply?prefill=` —
-not a brand campaign URL). [`org-bind-at-signup.md`](org-bind-at-signup.md)
-(later one-click: Instagram is identity at create). PRODUCT today: **§6.1**
-access gate, **§6.3.2** / **§7.1** Apply only while Open, no waitlist.
+Related: [`../org-precreate.md`](../org-precreate.md) (ops `/org/apply?prefill=` —
+not a brand campaign URL). [`../org-bind-at-signup.md`](../org-bind-at-signup.md)
+(later one-click: Instagram is identity at create — **not** shipped). PRODUCT:
+**§6.1** access gate, **§6.3.2** / **§7.1** Apply only while Open, no waitlist.
 
 **Sequence (2026-09-15):** this funnel **first**, then bind-at-signup. Bind-at
 signup does not replace the brand URL and does not auto-Apply; it only makes
@@ -99,6 +102,6 @@ intent into `org_apply_prefills`.
 | Admin | Add intents (open + expired) on existing `GET /api/admin/drops/{id}`. |
 | Login return | OAuth `state` `next` back to the public drop URL (callback today hardcodes `/org/browse`). |
 
-Later [`org-bind-at-signup.md`](org-bind-at-signup.md): public GET + intent
+Later [`../org-bind-at-signup.md`](../org-bind-at-signup.md): public GET + intent
 table + promote-on-`active` stay. Create path moves to draft→OAuth INSERT;
 promote hook also runs on Approve→`active`. `/login` still does not insert.
