@@ -672,7 +672,7 @@ status: done
 gaps:
   - drops.unconfigured-request-on-org-feed
 approach: |
-  Full lock: [`LAUNCH.md`](../LAUNCH.md) Phase B + `ideas/admin-drops.md` option B.
+  Full lock: [`LAUNCH.md`](../LAUNCH.md) Phase B + `ideas/archive/admin-drops.md` option B.
   1. Ticket table (`drop_requests`); unpublished draft Drop; **Publish** (`published_at`).
   2. Brand POST must not insert a live `drops` row. Intake text is not title/description.
   3. Admin side-by-side ticket | draft editor; https image only.

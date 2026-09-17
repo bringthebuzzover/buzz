@@ -1,13 +1,18 @@
 ---
 id: org-precreate
 title: Pre-create org accounts and invite by email
-status: promoted
-updated: 2026-09-01
+status: shipped
+updated: 2026-09-17
 ---
 
 # Pre-create organization accounts (email claim + later Instagram)
 
-**Implementation locks live in [`LAUNCH.md`](../LAUNCH.md)** (public `/org/apply`, not admin CSV **accounts**). This file is brainstorm provenance. Do not implement from here.
+**Shipped** as the public `/org/apply` variant on `main` (`9bdbb52`, LAUNCH
+Phase A), plus ops apply prefills (`org_apply_prefills` + CLI). CSV account
+mint / `/org/claim` did **not** ship. Behavior SOT is [`PRODUCT.md`](../../PRODUCT.md)
+**§6.1**. This file is brainstorm provenance. Do not implement from here.
+
+**Implementation locks live in [`LAUNCH.md`](../../LAUNCH.md)** (public `/org/apply`, not admin CSV **accounts**).
 
 **Later intake aid (not this idea’s CSV users):** ops CLI **apply prefills** — hashed draft + local sidecar of `/org/apply?prefill=` URLs; email later from that file. Still not a `User` until they submit apply. See PRODUCT §6.1.
 
@@ -23,8 +28,8 @@ updated: 2026-09-01
 Everything below is **historical brainstorm** unless it matches LAUNCH §4 Target.
 
 Brainstorm (2026-08-25). **Not committed behavior.** Promoting this needs an
-explicit PRODUCT / UX lock ([`AGENTS.md`](../AGENTS.md) hard stop). Related
-ops: [`gaps/deploy.meta-business-verification.md`](../gaps/deploy.meta-business-verification.md)
+explicit PRODUCT / UX lock ([`AGENTS.md`](../../AGENTS.md) hard stop). Related
+ops: [`gaps/deploy.meta-business-verification.md`](../../gaps/deploy.meta-business-verification.md)
 (public Instagram login still blocked).
 
 ## Historical brainstorm — desired motion (superseded)
@@ -38,8 +43,8 @@ is **connect / sync Instagram**.
 ## Current-stage overlay (why IG must be last)
 
 Public Instagram OAuth is still **Standard Access**. Only Instagram Testers
-can complete login ([`META.md`](../META.md),
-[`gaps/deploy.meta-business-verification.md`](../gaps/deploy.meta-business-verification.md)).
+can complete login ([`META.md`](../../META.md),
+[`gaps/deploy.meta-business-verification.md`](../../gaps/deploy.meta-business-verification.md)).
 Adding a tester is a **human Meta dashboard** step, and the org must
 **accept** the tester invite on Instagram before Buzz OAuth works.
 
@@ -75,7 +80,7 @@ shipping, and inbox proof do not.
 
 ## What exists today
 
-Org onboarding is **PLG, Instagram-first** ([`PRODUCT.md`](../PRODUCT.md) §1,
+Org onboarding is **PLG, Instagram-first** ([`PRODUCT.md`](../../PRODUCT.md) §1,
 §3.1, §6.1):
 
 1. **Login with Instagram** (Business/Creator) **creates or signs into** the
@@ -107,14 +112,14 @@ is **product + OAuth bind**, not a NOT NULL column.
 An email click **cannot** attach Instagram. Meta OAuth needs the org to be
 logged into the **organization’s Business/Creator** account in a browser and
 grant Buzz. Follower counts and post library only exist after that token
-exists ([`PRODUCT.md`](../PRODUCT.md) §4.3; `metric_sync`).
+exists ([`PRODUCT.md`](../../PRODUCT.md) §4.3; `metric_sync`).
 
 So “fully set up and connected” after one click can mean **Buzz profile +
 session + verified inbox**, not Graph identity. Instagram remains a **second
 step**, same family as today’s `/reconnect-instagram`.
 
 **Ops overlay:** until Meta **Advanced Access**, only Instagram Testers can
-complete OAuth ([`META.md`](../META.md),
+complete OAuth ([`META.md`](../../META.md),
 `gaps/deploy.meta-business-verification.md`). Inviting a hundred public
 chapters to “just sync IG” will fail for anyone who is not a tester.
 

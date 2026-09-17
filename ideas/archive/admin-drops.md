@@ -1,19 +1,23 @@
 ---
 id: admin-drops
 title: Admin-minted drops; brand requests a sales call, then monitors
-status: promoted
-updated: 2026-08-25
+status: shipped
+updated: 2026-09-17
 ---
 
 # Admin-owned drop creation (sales call → Buzz builds → brand monitors)
 
-**Implementation locks live in [`LAUNCH.md`](../LAUNCH.md)** (option B + creative = admin at mint). Remaining forks in this file are **closed there**. Do not implement from here.
+**Shipped** on `main` (`c51d5a5`, LAUNCH Phase B). Behavior SOT is
+[`PRODUCT.md`](../../PRODUCT.md) **§5.2**. This file is provenance. Do not
+implement from here.
 
-Related: [`gaps/drops.unconfigured-request-on-org-feed.md`](../gaps/drops.unconfigured-request-on-org-feed.md)
+**Implementation locks live in [`LAUNCH.md`](../../LAUNCH.md)** (option B + creative = admin at mint). Remaining forks in this file are **closed there**.
+
+Related: [`gaps/archive/drops.unconfigured-request-on-org-feed.md`](../../gaps/archive/drops.unconfigured-request-on-org-feed.md)
 (this is now that gap’s locked fix),
-[`gaps/brand.drop-creative-uneditable.md`](../gaps/brand.drop-creative-uneditable.md),
-[`gaps/ops.brand-mailbox.md`](../gaps/ops.brand-mailbox.md),
-[`gaps/spa.for-orgs-for-brands.md`](../gaps/spa.for-orgs-for-brands.md)
+[`gaps/archive/brand.drop-creative-uneditable.md`](../../gaps/archive/brand.drop-creative-uneditable.md),
+[`gaps/ops.brand-mailbox.md`](../../gaps/ops.brand-mailbox.md),
+[`gaps/archive/spa.for-orgs-for-brands.md`](../../gaps/archive/spa.for-orgs-for-brands.md)
 (public `/for-brands` tour waits until B ships — do not teach stub-as-campaign).
 
 ## Desired motion
@@ -28,7 +32,7 @@ Drop **configuration** sits with Buzz, not with the brand.
    ticket (creative + logistics), then **Publish** (real apply window, real hero).
 4. On **Publish**, the brand gets a link to monitor applicants, KPIs, and tracker.
 5. After `apply_close_at`, the brand **batch-finalizes** applicants as today
-   ([`PRODUCT.md`](../PRODUCT.md) §7.1).
+   ([`PRODUCT.md`](../../PRODUCT.md) §7.1).
 
 **One-liner:** Buzz builds the campaign; the brand monitors and selects.
 
@@ -190,7 +194,7 @@ sentence, not a new pipeline.
 
 ## Locks closed (implement from LAUNCH.md only)
 
-All forks are closed in [`LAUNCH.md`](../LAUNCH.md) §2 (ticket vs drop, draft,
+All forks are closed in [`LAUNCH.md`](../../LAUNCH.md) §2 (ticket vs drop, draft,
 Publish, side-by-side editor, https image, admin creative, three tracker stages,
 ticket required, brand sees unpublished drafts). This file is provenance — do not
 implement from the ASCII flow or “what exists today” sections without checking LAUNCH.

@@ -24,7 +24,7 @@ repro: |
   4. After ~1 day the window is Open; orgs can Apply / Notify Me before admin PATCHes logistics or creative.
 fix_when: |
   Full lock: [`LAUNCH.md`](../../LAUNCH.md) Phase B + §2 Brand/drops. Do not implement from
-  `ideas/admin-drops.md` alone.
+  `ideas/archive/admin-drops.md` alone.
 
   1. Brand "Plan your Campaign" creates a `drop_requests` ticket only — not a `drops` row.
   2. Admin side-by-side ticket | draft editor; every `drops` row links to a ticket.

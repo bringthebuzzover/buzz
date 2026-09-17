@@ -10,7 +10,7 @@ updated: 2026-08-25
 Brainstorm (2026-08-25). **Not committed behavior.** Promoting this needs an
 explicit PRODUCT / UX lock ([`AGENTS.md`](../AGENTS.md) hard stop).
 
-Related: [`ideas/org-precreate.md`](org-precreate.md) (decouple account
+Related: [`archive/org-precreate.md`](archive/org-precreate.md) (decouple account
 creation from Instagram OAuth), [`META.md`](../META.md) +
 [`gaps/deploy.meta-business-verification.md`](../gaps/deploy.meta-business-verification.md)
 (public IG login still tester-only).
@@ -46,7 +46,7 @@ for **having an account**.
 | Option | Signup | Later login | TikTok-only org? |
 | --- | --- | --- | --- |
 | **A. IG login + connect TikTok** | Continue with Instagram (today) | IG | No — still need IG to exist |
-| **B. `.edu` / claim is identity; both socials are connects** | Email invite or magic link ([org-precreate](org-precreate.md)); then Connect IG and/or Connect TikTok | Email or “continue with whichever is linked” | Yes |
+| **B. `.edu` / claim is identity; both socials are connects** | Email invite or magic link ([org-precreate](archive/org-precreate.md)); then Connect IG and/or Connect TikTok | Email or “continue with whichever is linked” | Yes |
 | **C. Dual OAuth login** | Continue with IG **or** Continue with TikTok creates the user | Either linked provider | Yes, if they started on TT |
 
 **A** is the smallest PRODUCT change (already sketched in §6.1) and does **not**

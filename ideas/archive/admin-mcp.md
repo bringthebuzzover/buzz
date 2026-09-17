@@ -1,9 +1,14 @@
 ---
 id: admin-mcp
 title: Admin-only MCP server for Buzz operators
-status: exploring
-updated: 2026-09-13
+status: shipped
+updated: 2026-09-17
 ---
+
+**Shipped** on `main` (`06173c0` / `149e2bf`): local stdio MCP at
+[`tools/buzz-admin-mcp/`](../../tools/buzz-admin-mcp/). Column policy below
+is still the operator SOT. HTTP MCP on the API was explicitly out of v1.
+Do not implement from here.
 
 ## Locked (2026-09-13)
 
@@ -54,7 +59,7 @@ timestamps, publish/hide/finalize latches. Use named admin actions.
 # Admin MCP (Buzz operator agents)
 
 Brainstorm (2026-09-13). Not PRODUCT. Promoting needs an explicit PRODUCT / UX
-decision ([`AGENTS.md`](../AGENTS.md) hard stop) **if** tools can change
+decision ([`AGENTS.md`](../../AGENTS.md) hard stop) **if** tools can change
 user-visible state (approve, publish, hide, erase, mail). Internal read-only
 inspect is ops tooling (same class as Railway / Resend MCP), not a brand/org
 surface.
@@ -79,16 +84,16 @@ admin session.
 ## How it fits today
 
 The panel is **not** a table editor. Every mutation is a curated route in
-[`backend/app/routes/admin.py`](../backend/app/routes/admin.py) calling
+[`backend/app/routes/admin.py`](../../backend/app/routes/admin.py) calling
 `app.services.admin*` / `admin_auth` / `admin_erase` / `admin_read`. Auth is
 `CurrentAdmin` (active `portal_role=admin` JWT).
 
 There is **no** MCP package in the backend today (`pyproject.toml` has no
 `mcp` / `fastapi-mcp` dep). Cursor already uses **external** MCPs
 (Railway, GitHub, Resend, Meta) via **user** `.cursor/mcp.json` — never
-committed ([`AGENTS.md`](../AGENTS.md)).
+committed ([`AGENTS.md`](../../AGENTS.md)).
 
-Core tables: [`ARCHITECTURE.md`](../ARCHITECTURE.md) §4. Dangerous write
+Core tables: [`ARCHITECTURE.md`](../../ARCHITECTURE.md) §4. Dangerous write
 surfaces if an agent can `UPDATE` freely:
 
 | Surface | Why not generic write |
@@ -153,8 +158,8 @@ Status / tokens / hashes / links stay **named-action only**.
 
 ## Docs if promoted
 
-- [`AGENTS.md`](../AGENTS.md) MCP table row: Buzz Admin — mutate only with
+- [`AGENTS.md`](../../AGENTS.md) MCP table row: Buzz Admin — mutate only with
   explicit user OK (same bar as Railway/Resend).
-- [`ARCHITECTURE.md`](../ARCHITECTURE.md) as-built note (not PRODUCT).
+- [`ARCHITECTURE.md`](../../ARCHITECTURE.md) as-built note (not PRODUCT).
 - PRODUCT only if we treat MCP as a committed operator capability beyond
   “same as the panel.”

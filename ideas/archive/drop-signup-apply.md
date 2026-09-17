@@ -12,7 +12,7 @@ Brainstorm (2026-09-14). **Promoted 2026-09-16.** **Shipped 2026-09-17** on
 Behavior SOT is [`PRODUCT.md`](../../PRODUCT.md) **§6.3.4** / **§7.1**. This
 file is provenance. Do not implement from here.
 
-Related: [`../org-precreate.md`](../org-precreate.md) (ops `/org/apply?prefill=` —
+Related: [`org-precreate.md`](org-precreate.md) (ops `/org/apply?prefill=` —
 not a brand campaign URL). [`../org-bind-at-signup.md`](../org-bind-at-signup.md)
 (later one-click: Instagram is identity at create — **not** shipped). PRODUCT:
 **§6.1** access gate, **§6.3.2** / **§7.1** Apply only while Open, no waitlist.

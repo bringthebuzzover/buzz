@@ -95,10 +95,10 @@ All former “remaining questions” are closed. Implement from the locks above 
 | Id | Role | Phase |
 | -- | ---- | ----- |
 | [`org.signup-instagram-first`](gaps/org.signup-instagram-first.md) | New hole vs locked PRODUCT: signup is IG-first, non-testers bounce | A |
-| [`ideas/org-precreate.md`](ideas/org-precreate.md) | Motion (public-form variant). Locks live **here**, not in the idea file | A |
+| [`ideas/archive/org-precreate.md`](ideas/archive/org-precreate.md) | Motion (public-form variant). Locks live **here**, not in the idea file | A |
 | [`org.edu-verify-outlook-junk`](gaps/org.edu-verify-outlook-junk.md) | Verify mail must land in campus Outlook | A (same email.py pass) |
 | [`drops.unconfigured-request-on-org-feed`](gaps/drops.unconfigured-request-on-org-feed.md) | Stub campaigns on the org feed | B |
-| [`ideas/admin-drops.md`](ideas/admin-drops.md) | Option B. Remaining forks locked **here** | B |
+| [`ideas/archive/admin-drops.md`](ideas/archive/admin-drops.md) | Option B. Remaining forks locked **here** | B |
 | [`spa.for-orgs-for-brands`](gaps/spa.for-orgs-for-brands.md) | Honest tours of the **new** motions | C (after A+B) |
 | [`ops.brand-mailbox`](gaps/ops.brand-mailbox.md) | Company inbox; human Workspace | Ops-parallel |
 
