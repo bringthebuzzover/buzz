@@ -22,6 +22,7 @@ import BrandAggregateDashboardPage from "./pages/brand/BrandAggregateDashboardPa
 import BrandDropDetailPage from "./pages/brand/BrandDropDetailPage";
 import BrandRequestDropPage from "./pages/brand/BrandRequestDropPage";
 import LoginPage from "./pages/auth/LoginPage";
+import LogoutPage from "./pages/auth/LogoutPage";
 import InstagramCallbackPage from "./pages/auth/InstagramCallbackPage";
 import ReconnectInstagramPage from "./pages/auth/ReconnectInstagramPage";
 import BrandSetupPage from "./pages/auth/BrandSetupPage";
@@ -97,6 +98,7 @@ export default function AppRoot(): ReactElement {
 
         {/* Public auth pages. */}
         <Route path="login" element={<LoginPage />} />
+        <Route path="logout" element={<LogoutPage />} />
         <Route path="reconnect-instagram" element={<ReconnectInstagramPage />} />
         <Route
           path="auth/instagram/callback"

@@ -104,6 +104,7 @@ function onAuthRoute(): boolean {
   const p = window.location.pathname;
   return (
     p === "/login" ||
+    p === "/logout" ||
     p === "/reconnect-instagram" ||
     p.startsWith("/brand/login") ||
     p.startsWith("/brand/setup") ||

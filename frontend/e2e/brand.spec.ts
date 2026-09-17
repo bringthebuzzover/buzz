@@ -99,3 +99,23 @@ test("brand plan campaign creates a ticket receipt, not a drop", async ({
   );
   await expect(page.getByText("E2E plan campaign ticket")).toBeVisible();
 });
+
+test("GET /logout signs out like the header button", async ({ page }) => {
+  await page.goto("/brand/login");
+  await page.getByTestId("brand-email").fill("partnerships@acme.coffee");
+  await page.getByTestId("brand-password").fill("buzzdev123");
+  await page.getByTestId("brand-login-submit").click();
+  await expect(page).toHaveURL(/\/brand\/dashboard/);
+
+  const logoutResp = page.waitForResponse(
+    (r) =>
+      r.url().includes("/api/auth/logout") &&
+      r.request().method() === "POST" &&
+      r.ok(),
+  );
+  await page.goto("/logout");
+  await logoutResp;
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("button", { name: /log in/i })).toBeVisible();
+});

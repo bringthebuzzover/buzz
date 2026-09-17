@@ -126,6 +126,7 @@ Thin routes; business logic in `backend/app/services/`. Admin table inspect (`/a
 - Guards: `RequireAuth` → `RequireStatus` → `RequireRole`.
 - HTTP: hand-written `apiFetch` (`frontend/src/api/client.ts`) + TanStack Query hooks; OpenAPI types for typing (`schema.ts`), not a generated runtime SDK.
 - Access token in memory; refresh via cookie; IG reconnect latch → `/reconnect-instagram`.
+- `GET /logout` is a public SPA route that runs the same sign-out as the header Logout control (View-as exits impersonation; otherwise `POST /api/auth/logout` then home).
 
 ---
 
