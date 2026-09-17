@@ -26,6 +26,7 @@ from app.models.social_post import SocialPost
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.session import bump_token_version, commit_revocation
+from app.services.drop_apply_intents import expire_and_clear_intents_for_org
 from app.services.email import send_brand_erased_email, send_org_erased_email
 from app.services.instagram import canonical_instagram_handle
 from app.services.instagram_token import clear_unusable_instagram_token
@@ -82,6 +83,7 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
         await _auto_deny_applied(db, org.id, now)
         await _scrub_posts(db, org.id)
         await _delete_org_side_rows(db, org.id)
+        await expire_and_clear_intents_for_org(db, org.id)
         _scrub_org_profile(org)
         await _scrub_application_pitches(db, org.id)
 

@@ -72,6 +72,34 @@ test("the session survives a reload", async ({ page }) => {
   await waitForAuthSettled(page, "admin-overview");
 });
 
+test("the UI kit is admin-only and omitted from the public tree", async ({
+  page,
+}) => {
+  await page.route("**/api/auth/dev-login", (r) =>
+    r.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({ data: null, error: { code: "NOT_FOUND" } }),
+    }),
+  );
+
+  await page.goto("/dev/ui-kit");
+  await page
+    .getByText(/restoring your session/i)
+    .waitFor({ state: "hidden", timeout: 8_000 })
+    .catch(() => undefined);
+  await expect(page.getByRole("heading", { name: "UI kit" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+
+  await page.goto("/admin/ui-kit");
+  await expect(page).toHaveURL(/\/admin\/login/);
+  await expect(page.getByRole("heading", { name: "UI kit" })).toHaveCount(0);
+
+  await loginAsAdmin(page);
+  await page.goto("/admin/ui-kit");
+  await expect(page.getByRole("heading", { name: "UI kit" })).toBeVisible();
+});
+
 test("sidebar reaches every section", async ({ page }) => {
   await loginAsAdmin(page);
 

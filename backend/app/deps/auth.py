@@ -176,11 +176,16 @@ async def get_current_user_optional(
     authorization: Annotated[str | None, Header()] = None,
     db: AsyncSession = Depends(get_db),
 ) -> User | None:
-    """Like :func:`get_current_user` but returns ``None`` when unauthenticated."""
+    """Like :func:`get_current_user` but ``None`` when missing or invalid auth."""
 
     if not authorization:
         return None
-    return await _load_user_from_bearer(authorization, db, request.method)
+    try:
+        return await _load_user_from_bearer(authorization, db, request.method)
+    except BuzzAPIException as exc:
+        if exc.status_code == 401:
+            return None
+        raise
 
 
 def require_role(*allowed: PortalRole) -> Callable[[User], Awaitable[User]]:

@@ -28,6 +28,7 @@ import BrandSetupPage from "./pages/auth/BrandSetupPage";
 import BrandLoginPage from "./pages/auth/BrandLoginPage";
 import BrandApplyPage from "./pages/auth/BrandApplyPage";
 import OrgApplyPage from "./pages/auth/OrgApplyPage";
+import PublicDropPage from "./pages/public/PublicDropPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import OrgProfilePage from "./pages/onboarding/OrgProfilePage";
@@ -125,6 +126,7 @@ export default function AppRoot(): ReactElement {
         <Route path="brand/setup" element={<BrandSetupPage />} />
         <Route path="brand/apply" element={<BrandApplyPage />} />
         <Route path="org/apply" element={<OrgApplyPage />} />
+        <Route path="d/:dropId" element={<PublicDropPage />} />
 
         {/* Onboarding pages. These require an authenticated session
             (architecture §6.4) — RequireAuth standardizes the redirect to
@@ -287,10 +289,6 @@ export default function AppRoot(): ReactElement {
         <Route path="privacy" element={<PrivacyPolicyPage />} />
         <Route path="terms" element={<TermsPage />} />
         <Route path="data-deletion" element={<DataDeletionPage />} />
-        {/* Primitive gallery. Dev-only so it never ships to real users. */}
-        {process.env.NODE_ENV === "development" && (
-          <Route path="dev/ui-kit" element={<UiKitPage />} />
-        )}
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 
@@ -315,6 +313,12 @@ export default function AppRoot(): ReactElement {
         <Route path="drops" element={<AdminDropsPage />} />
         <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />
+        {/* Primitive gallery. CRA production builds omit this route
+            (`NODE_ENV !== "development"`), and the parent PortalGuard keeps
+            even local access admin-only. */}
+        {process.env.NODE_ENV === "development" && (
+          <Route path="ui-kit" element={<UiKitPage />} />
+        )}
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

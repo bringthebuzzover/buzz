@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, Form, Request, Response
+from fastapi import APIRouter, Depends, Form, Query, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -131,6 +131,7 @@ def _clear_state_cookie(response: Response) -> None:
 @router.get("/instagram/login")
 async def instagram_login(
     ig: InstagramClient = Depends(get_instagram_client),
+    next_path: str | None = Query(default=None, alias="next"),
 ) -> RedirectResponse:
     """Redirect (302) to the Instagram OAuth authorize URL (§3.4 Phase 1).
 
@@ -138,7 +139,7 @@ async def instagram_login(
     (authenticated) which returns an authorize URL with bind state.
     """
 
-    state = jwt.create_oauth_state_token()
+    state = jwt.create_oauth_state_token(next_path=next_path)
     redirect = RedirectResponse(ig.build_authorize_url(state), status_code=302)
     _set_state_cookie(redirect, state)
     return redirect
@@ -149,6 +150,7 @@ async def instagram_bind_start(
     response: Response,
     user: User = Depends(get_current_user),
     ig: InstagramClient = Depends(get_instagram_client),
+    next_path: str | None = Query(default=None, alias="next"),
 ) -> APIResponse:
     """Mint OAuth state with bind claim for ``pending_instagram`` orgs."""
 
@@ -161,7 +163,7 @@ async def instagram_bind_start(
             "Only orgs awaiting Instagram connect can start a bind login.",
             status_code=400,
         )
-    state = jwt.create_oauth_state_token(bind_user_id=user.id)
+    state = jwt.create_oauth_state_token(bind_user_id=user.id, next_path=next_path)
     _set_state_cookie(response, state)
     return api_response(
         data=InstagramBindStartResponse(authorize_url=ig.build_authorize_url(state))
@@ -188,11 +190,13 @@ async def instagram_callback(
     cookie_state = request.cookies.get(settings.OAUTH_STATE_COOKIE_NAME)
     state_ok = bool(cookie_state) and cookie_state == payload.state
     bind_user_id: uuid.UUID | None = None
+    oauth_next: str | None = None
     if state_ok:
         try:
             state_payload = jwt.decode_token(
                 payload.state, expected_type=jwt.OAUTH_STATE_TOKEN_TYPE
             )
+            oauth_next = jwt.allowlisted_oauth_next(state_payload.next)
             if state_payload.bind:
                 try:
                     bind_user_id = uuid.UUID(state_payload.bind)
@@ -203,7 +207,7 @@ async def instagram_callback(
     if not state_ok:
         _clear_state_cookie(response)
         raise BuzzAPIException(
-            code=errors.UNAUTHORIZED,
+            code=errors.OAUTH_STATE_INVALID,
             message="Invalid or expired OAuth state.",
             status_code=401,
         )
@@ -227,7 +231,9 @@ async def instagram_callback(
         )
     access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
-    return api_response(data=TokenResponse(access_token=access, user=build_user_response(user)))
+    return api_response(
+        data=TokenResponse(access_token=access, user=build_user_response(user), next=oauth_next)
+    )
 
 
 @router.post(

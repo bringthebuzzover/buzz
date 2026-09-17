@@ -114,7 +114,7 @@ async def test_callback_personal_account_rejected(
     assert resp.json()["error"]["code"] == "INSTAGRAM_PERSONAL_ACCOUNT"
 
 
-async def test_callback_bad_state_unauthorized(
+async def test_callback_bad_state_invalid(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient
 ) -> None:
     # Even with a started login (valid cookie), a garbage state must fail.
@@ -124,10 +124,10 @@ async def test_callback_bad_state_unauthorized(
         json={"code": "c", "state": "not-a-valid-token"},
     )
     assert resp.status_code == 401
-    assert resp.json()["error"]["code"] == "UNAUTHORIZED"
+    assert resp.json()["error"]["code"] == errors.OAUTH_STATE_INVALID
 
 
-async def test_callback_without_state_cookie_unauthorized(
+async def test_callback_without_state_cookie_invalid(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient
 ) -> None:
     # No /login first → no state cookie → CSRF binding fails even though the
@@ -138,10 +138,10 @@ async def test_callback_without_state_cookie_unauthorized(
         json={"code": "c", "state": state},
     )
     assert resp.status_code == 401
-    assert resp.json()["error"]["code"] == "UNAUTHORIZED"
+    assert resp.json()["error"]["code"] == errors.OAUTH_STATE_INVALID
 
 
-async def test_callback_state_cookie_mismatch_unauthorized(
+async def test_callback_state_cookie_mismatch_invalid(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient
 ) -> None:
     # Cookie from a real login, but a *different* valid state submitted →
@@ -153,7 +153,7 @@ async def test_callback_state_cookie_mismatch_unauthorized(
         json={"code": "c", "state": other_state},
     )
     assert resp.status_code == 401
-    assert resp.json()["error"]["code"] == "UNAUTHORIZED"
+    assert resp.json()["error"]["code"] == errors.OAUTH_STATE_INVALID
 
 
 async def test_returning_active_user_not_downgraded(
@@ -246,7 +246,7 @@ async def test_relogin_taken_handle_409(
     assert user.instagram_username == "oldchapter"
 
 
-async def test_callback_expired_state_unauthorized(
+async def test_callback_expired_state_invalid(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient
 ) -> None:
     # An expired (but correctly-signed) state token, with a matching cookie so
@@ -270,7 +270,7 @@ async def test_callback_expired_state_unauthorized(
         json={"code": "c", "state": expired},
     )
     assert resp.status_code == 401
-    assert resp.json()["error"]["code"] == "UNAUTHORIZED"
+    assert resp.json()["error"]["code"] == errors.OAUTH_STATE_INVALID
 
 
 async def test_callback_instagram_failure_returns_error(

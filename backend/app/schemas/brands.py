@@ -177,6 +177,7 @@ class BrandDropDetailResponse(CamelModel):
     brand_can_edit_creative: bool
     applicant_selection_finalized_at: datetime | None
     created_at: datetime
+    published_at: datetime | None = None
     applications: list[BrandDropDetailApplicant]
     # Same roll-up as the list endpoint so live-stage KPI cards don't crash.
     total_posts: int
@@ -189,7 +190,7 @@ class BrandDropDetailResponse(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("applicant_selection_finalized_at")
+    @field_serializer("applicant_selection_finalized_at", "published_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 

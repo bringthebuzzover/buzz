@@ -1738,7 +1738,7 @@ export interface paths {
         };
         /**
          * Get Drop
-         * @description Org-facing drop detail.
+         * @description Org-facing drop detail, or public creative fields without a session.
          */
         get: operations["get_drop_api_drops__drop_id__get"];
         put?: never;
@@ -1767,6 +1767,26 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/drops/{drop_id}/intent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Drop Intent
+         * @description Pending org upserts pitch on a signup intent (not a real apply).
+         */
+        patch: operations["patch_drop_intent_api_drops__drop_id__intent_patch"];
         trace?: never;
     };
     "/api/drops/{drop_id}/notify": {
@@ -2485,6 +2505,11 @@ export interface components {
             id: string;
             /** Image */
             image: string;
+            /**
+             * Intents
+             * @default []
+             */
+            intents: components["schemas"]["AdminDropIntentItem"][];
             /** Linkedpostcount */
             linkedPostCount: number;
             /** Location */
@@ -2518,6 +2543,32 @@ export interface components {
              * @default false
              */
             notifyBrand: boolean;
+        };
+        /**
+         * AdminDropIntentItem
+         * @description Signup intent on a drop — not a brand applicant (PRODUCT §7.1).
+         */
+        AdminDropIntentItem: {
+            /** Createdat */
+            createdAt: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Orgname */
+            orgName: string;
+            /** Pitch */
+            pitch: string | null;
+            /** Status */
+            status: string;
+            /** Updatedat */
+            updatedAt: number;
         };
         /** AdminDropItem */
         AdminDropItem: {
@@ -3306,6 +3357,8 @@ export interface components {
             location: string;
             /** Manualreopen */
             manualReopen: boolean;
+            /** Publishedat */
+            publishedAt?: number | null;
             /** Title */
             title: string;
             /** Totalcomments */
@@ -4361,6 +4414,10 @@ export interface components {
             id: string;
             /** Image */
             image: string;
+            /** Intentpitch */
+            intentPitch?: string | null;
+            /** Intentstatus */
+            intentStatus?: string | null;
             /** Location */
             location: string;
             /** Manualreopen */
@@ -4416,6 +4473,14 @@ export interface components {
             reminderMinutes: number | null;
             /** Title */
             title: string;
+        };
+        /**
+         * DropIntentPitchRequest
+         * @description Body for ``PATCH /api/drops/{id}/intent`` (pending org pitch).
+         */
+        DropIntentPitchRequest: {
+            /** Pitch */
+            pitch?: string | null;
         };
         /** DropReopenResponse */
         DropReopenResponse: {
@@ -4640,6 +4705,8 @@ export interface components {
             city?: string | null;
             /** Contactname */
             contactName: string;
+            /** Dropid */
+            dropId?: string | null;
             /** Eduemail */
             eduEmail: string;
             /**
@@ -4653,6 +4720,8 @@ export interface components {
             memberCount: number;
             /** Orgname */
             orgName: string;
+            /** Pitch */
+            pitch?: string | null;
             /** Prefilltoken */
             prefillToken?: string | null;
             /** Shippingcity */
@@ -5092,6 +5161,8 @@ export interface components {
         TokenResponse: {
             /** Access Token */
             access_token: string;
+            /** Next */
+            next?: string | null;
             /**
              * Token Type
              * @default bearer
@@ -7143,7 +7214,9 @@ export interface operations {
     };
     instagram_bind_start_api_auth_instagram_bind_start_post: {
         parameters: {
-            query?: never;
+            query?: {
+                next?: string | null;
+            };
             header?: {
                 authorization?: string | null;
             };
@@ -7240,7 +7313,9 @@ export interface operations {
     };
     instagram_login_api_auth_instagram_login_get: {
         parameters: {
-            query?: never;
+            query?: {
+                next?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -8386,6 +8461,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_ApplicationResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    patch_drop_intent_api_drops__drop_id__intent_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DropIntentPitchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_DropDetailResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

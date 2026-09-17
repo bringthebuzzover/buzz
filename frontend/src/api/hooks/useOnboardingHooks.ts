@@ -58,6 +58,8 @@ export type OrgApplyInput = OrgOnboardingInput & {
   instagramHandle: string;
   handleConfirmed: boolean;
   prefillToken?: string;
+  dropId?: string;
+  pitch?: string;
 };
 
 /** Public hashed apply draft. Does not consume the token. */
@@ -195,9 +197,12 @@ export type InstagramBindStartResponse = {
 /** Authenticated bind OAuth start for pending_instagram orgs. */
 export function useInstagramBindStart() {
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (nextPath?: string | null) => {
+      const q = nextPath
+        ? `?next=${encodeURIComponent(nextPath)}`
+        : "";
       const { data } = await apiFetch<InstagramBindStartResponse>(
-        "/api/auth/instagram/bind-start",
+        `/api/auth/instagram/bind-start${q}`,
         { method: "POST" },
       );
       const url = data.authorizeUrl ?? data.authorize_url;

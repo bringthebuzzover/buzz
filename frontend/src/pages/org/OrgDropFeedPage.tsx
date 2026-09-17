@@ -7,20 +7,15 @@
  */
 import { useMemo, useState } from "react";
 import DropFeedCard from "../../components/org/DropFeedCard";
+import DropApplyForm from "../../components/org/DropApplyForm";
 import { getDropFeedStatus } from "../../utils/dropStatus";
 import type { DropFeedRow, DropFeedStatus } from "../../types/drop";
 import { useWallClockNow } from "../../utils/wallClock";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
-import { useApplyToDrop } from "../../api/hooks/useDropHooks";
 import PageShell from "../../components/site/PageShell";
-import { Card } from "../../components/ui/Card";
 import { QueryStatePanel, StatePanel } from "../../components/ui/StatePanel";
-import {
-  Button,
-  ErrorBanner,
-  TextArea,
-} from "../../components/forms/controls";
-import { GAP, STACK, TEXT } from "../../theme/tokens";
+import { Button } from "../../components/forms/controls";
+import { GAP, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 type FilterId = "all" | "upcoming" | "open" | "closed";
@@ -168,13 +163,14 @@ function ApiDropFeed() {
   // Simple inline apply: call mutation directly, no modal for now.
   if (applyingId) {
     return (
-      <ApiApplyForm
-        dropId={applyingId}
-        onCancel={() => setApplyingId(null)}
-        onSuccess={() => {
-          setApplyingId(null);
-        }}
-      />
+      <PageShell width="wide">
+        <FeedHeader />
+        <DropApplyForm
+          dropId={applyingId}
+          onCancel={() => setApplyingId(null)}
+          onSuccess={() => setApplyingId(null)}
+        />
+      </PageShell>
     );
   }
 
@@ -200,71 +196,6 @@ function ApiDropFeed() {
       isLoadingMore={isFetchingNextPage}
       onLoadMore={() => void fetchNextPage()}
     />
-  );
-}
-
-/** Inline apply form shown when user clicks Apply on a drop card. */
-function ApiApplyForm({
-  dropId,
-  onCancel,
-  onSuccess,
-}: {
-  dropId: string;
-  onCancel: () => void;
-  onSuccess: () => void;
-}) {
-  const mutation = useApplyToDrop(dropId);
-  const [pitch, setPitch] = useState("");
-
-  const handleSubmit = () => {
-    // Only dismiss on success — on failure keep the form (and the typed pitch)
-    // open so the inline error shows and the user can retry. Await mutateAsync
-    // so the hook's optimistic alreadyApplied + invalidate finish before we
-    // remount the feed (otherwise E2E still sees "Apply").
-    void mutation.mutateAsync(pitch || undefined).then(() => onSuccess());
-  };
-
-  return (
-    <PageShell width="wide">
-      <FeedHeader />
-      <Card kind="card" pad="roomy" className="mx-auto max-w-md">
-        <h2 className={cn(TEXT.h2, "mb-4")}>Apply to Drop</h2>
-        <div className={STACK.default}>
-          <TextArea
-            placeholder="Optional pitch message..."
-            value={pitch}
-            onChange={(e) => setPitch(e.target.value)}
-            rows={4}
-          />
-          <div className={cn("flex", GAP.tight)}>
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={onCancel}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              data-testid="apply-submit"
-              onClick={handleSubmit}
-              disabled={mutation.isPending}
-              className="flex-1"
-            >
-              {mutation.isPending ? "Submitting..." : "Submit"}
-            </Button>
-          </div>
-          {mutation.error ? (
-            <ErrorBanner>
-              {mutation.error instanceof Error
-                ? mutation.error.message
-                : "Failed to apply."}
-            </ErrorBanner>
-          ) : null}
-        </div>
-      </Card>
-    </PageShell>
   );
 }
 

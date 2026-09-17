@@ -36,6 +36,8 @@ import ReconnectInstagramPage from "./pages/auth/ReconnectInstagramPage";
 import BrandLoginPage from "./pages/auth/BrandLoginPage";
 import BrandSetupPage from "./pages/auth/BrandSetupPage";
 import BrandApplyPage from "./pages/auth/BrandApplyPage";
+import OrgApplyPage from "./pages/auth/OrgApplyPage";
+import PublicDropPage from "./pages/public/PublicDropPage";
 import OrgProfilePage from "./pages/onboarding/OrgProfilePage";
 import VerifyEmailPage from "./pages/onboarding/VerifyEmailPage";
 import PendingApprovalPage from "./pages/onboarding/PendingApprovalPage";
@@ -71,6 +73,8 @@ const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["BrandLoginPage", BrandLoginPage],
   ["BrandSetupPage", BrandSetupPage],
   ["BrandApplyPage", BrandApplyPage],
+  ["OrgApplyPage", OrgApplyPage],
+  ["PublicDropPage", PublicDropPage],
   ["OrgProfilePage", OrgProfilePage],
   ["VerifyEmailPage", VerifyEmailPage],
   ["PendingApprovalPage", PendingApprovalPage],

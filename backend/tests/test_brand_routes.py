@@ -198,6 +198,7 @@ class TestGetBrandDropDetail:
         assert res.status_code == 200
         data = res.json()["data"]
         assert data["title"] == drop.title
+        assert data["publishedAt"] is not None
         assert len(data["applications"]) == 1
         app = data["applications"][0]
         assert app["orgName"] == org.org_name

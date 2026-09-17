@@ -3,16 +3,19 @@
  * long-lived token is past expiry. Must not call authenticated APIs (anti-loop
  * with apiFetch hard-nav). Usable under idle / error / needs_instagram_reconnect.
  */
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import instagramIcon from "../../assets/insta-icon.png";
 import AuthShell from "../../components/site/AuthShell";
 import { Button } from "../../components/forms/controls";
 import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+import { allowlistedOAuthNext } from "../../utils/oauthNext";
 
 export default function ReconnectInstagramPage() {
   const { login, status } = useAuth();
+  const [searchParams] = useSearchParams();
+  const next = allowlistedOAuthNext(searchParams.get("next"));
 
   return (
     <AuthShell align="center" className="items-center text-center">
@@ -30,7 +33,7 @@ export default function ReconnectInstagramPage() {
         variant="outline"
         size="hero"
         data-testid="reconnect-instagram-cta"
-        onClick={login}
+        onClick={() => login(next)}
         disabled={status === "authenticating"}
       >
         <img src={instagramIcon} alt="" className="h-5 w-5" />

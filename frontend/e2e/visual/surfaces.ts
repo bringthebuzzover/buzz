@@ -52,7 +52,7 @@ export const SURFACES: Surface[] = [
   { id: "not-found", route: "/no-such-page", persona: "public", area: "public" },
   // Not a product surface: the primitive gallery, so every control and state
   // is reviewable in one shot instead of hunting them across 40 routes.
-  { id: "ui-kit", route: "/dev/ui-kit", persona: "public", area: "public" },
+  { id: "ui-kit", route: "/admin/ui-kit", persona: "admin", area: "admin" },
   {
     id: "contact-modal",
     route: "/",
@@ -69,6 +69,12 @@ export const SURFACES: Surface[] = [
   { id: "brand-login", route: "/brand/login", persona: "public", area: "auth" },
   { id: "admin-login", route: "/admin/login", persona: "public", area: "auth" },
   { id: "org-apply", route: "/org/apply", persona: "public", area: "auth" },
+  {
+    id: "public-drop",
+    route: `/d/${"00000000-0000-0000-0000-000000000063"}`,
+    persona: "public",
+    area: "public",
+  },
   { id: "brand-apply", route: "/brand/apply", persona: "public", area: "auth" },
   { id: "brand-forgot-password", route: "/brand/forgot-password", persona: "public", area: "auth" },
   { id: "admin-forgot-password", route: "/admin/forgot-password", persona: "public", area: "auth" },

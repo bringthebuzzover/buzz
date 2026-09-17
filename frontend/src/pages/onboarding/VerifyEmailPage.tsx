@@ -16,6 +16,11 @@ import {
   useResendVerificationFromToken,
   useVerifyEmail,
 } from "../../api/hooks/useOnboardingHooks";
+import {
+  VERIFY_DROP_INTENT_KEY,
+  VERIFY_EDU_EMAIL_KEY,
+  VERIFY_EMAIL_SENT_KEY,
+} from "../../components/org/OrgApplyForm";
 import { authUserFromWire, setAccessToken } from "../../api/auth";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
@@ -27,9 +32,6 @@ import { cn } from "../../theme/cn";
 import type { components } from "../../api/generated/schema";
 
 type UserWire = components["schemas"]["UserResponse"];
-
-const VERIFY_EMAIL_SENT_KEY = "buzz.verifyEmailSent";
-const VERIFY_EDU_EMAIL_KEY = "buzz.verifyEduEmail";
 
 const JUNK_HINT =
   "Campus inboxes often put first-time Buzz mail in Junk.";
@@ -77,6 +79,17 @@ function markEmailSent(ok: boolean) {
 
 function markEduEmail(email: string) {
   sessionStorage.setItem(VERIFY_EDU_EMAIL_KEY, email.trim().toLowerCase());
+}
+
+function readDropIntent(locationState: unknown): boolean {
+  const fromState =
+    locationState &&
+    typeof locationState === "object" &&
+    "dropIntent" in locationState
+      ? (locationState as { dropIntent?: boolean }).dropIntent
+      : undefined;
+  if (fromState) return true;
+  return sessionStorage.getItem(VERIFY_DROP_INTENT_KEY) === "1";
 }
 
 export default function VerifyEmailPage() {
@@ -413,6 +426,7 @@ function AwaitVerification() {
 function PublicAwaitVerification() {
   const location = useLocation();
   const publicResend = usePublicResendVerification();
+  const dropIntent = readDropIntent(location.state);
   const [emailSent, setEmailSent] = useState(() =>
     readEmailSentFlag(location.state),
   );
@@ -464,6 +478,13 @@ function PublicAwaitVerification() {
           : "We sent a verification link to the school email on your application. Click it to continue."}
       </p>
       {eduEmail ? <ListedEduEmail email={eduEmail} /> : null}
+      {dropIntent ? (
+        <div className="mb-4">
+          <SuccessBanner>
+            We&apos;ll submit when your org is approved and connected.
+          </SuccessBanner>
+        </div>
+      ) : null}
       <p className="mb-6 text-sm font-medium text-buzz-inkMuted">{JUNK_HINT}</p>
 
       {notice && (

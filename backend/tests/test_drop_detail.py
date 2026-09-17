@@ -60,21 +60,28 @@ async def test_detail_reflects_accepted_and_applied(app_client: AsyncClient, db_
     assert data["alreadyApplied"] is True
 
 
-async def test_detail_unknown_404(app_client: AsyncClient, db_session) -> None:
+async def test_detail_unknown_is_drop_not_open(app_client: AsyncClient, db_session) -> None:
     _, _, headers = await _org_ctx(db_session)
     resp = await app_client.get(f"/api/drops/{uuid.uuid4()}", headers=headers)
-    assert resp.status_code == 404
-    assert resp.json()["error"]["code"] == "NOT_FOUND"
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
 
 
-async def test_detail_requires_auth(app_client: AsyncClient, db_session) -> None:
+async def test_detail_anonymous_public_fields(app_client: AsyncClient, db_session) -> None:
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand)
     resp = await app_client.get(f"/api/drops/{drop.id}")
-    assert resp.status_code == 401
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["title"] == drop.title
+    assert data["brandName"] == brand.brand_name
+    assert data["alreadyApplied"] is False
+    assert data["notifyRequested"] is False
+    assert data["intentStatus"] is None
+    assert data["totalProductUnits"] is None
 
 
-async def test_detail_forbidden_for_brand(app_client: AsyncClient, db_session) -> None:
+async def test_detail_brand_jwt_gets_public_fields(app_client: AsyncClient, db_session) -> None:
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand)
     brand_user = await persist(
@@ -84,7 +91,9 @@ async def test_detail_forbidden_for_brand(app_client: AsyncClient, db_session) -
         f"/api/drops/{drop.id}",
         headers={"Authorization": f"Bearer {mint_access_token(brand_user)}"},
     )
-    assert resp.status_code == 403
+    assert resp.status_code == 200
+    assert resp.json()["data"]["alreadyApplied"] is False
+    assert resp.json()["data"]["notifyRequested"] is False
 
 
 async def test_detail_rejects_finished_drop(app_client: AsyncClient, db_session) -> None:

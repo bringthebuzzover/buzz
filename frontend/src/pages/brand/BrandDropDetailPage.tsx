@@ -28,6 +28,7 @@ import {
 import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import { useMdUp } from "../../hooks/useMdUp";
+import CopyPublicDropUrl from "../../components/drop/CopyPublicDropUrl";
 
 /** Map backend drop detail to the shape components expect. */
 function mapDropToView(d: BrandDropDetail) {
@@ -592,6 +593,11 @@ function ApiDropDetail() {
         <p className={cn(TEXT.body, "mt-2 text-buzz-inkMuted")}>
           {detail.description}
         </p>
+        <div className="mt-4">
+          {detail.publishedAt != null ? (
+            <CopyPublicDropUrl dropId={detail.id} />
+          ) : null}
+        </div>
       </header>
 
       <div className={STACK.section}>

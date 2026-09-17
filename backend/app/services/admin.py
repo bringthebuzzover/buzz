@@ -35,6 +35,10 @@ from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.schemas.admin import AdminDropConfigPatch, AdminDropCreateRequest
 from app.security.session import bump_token_version, commit_revocation
+from app.services.drop_apply_intents import (
+    expire_open_intents_for_org,
+    promote_drop_apply_intents,
+)
 from app.services.drop_image import validate_https_image
 from app.services.drop_requests import touch_updated_at
 from app.services.email import (
@@ -184,6 +188,7 @@ async def approve_org(
     if already_bound:
         user.status = OrgUserStatus.ACTIVE.value
         await db.flush()
+        await promote_drop_apply_intents(db, user)
         await send_org_approved_email(user.edu_email or "", org_name=org.org_name)
     else:
         user.status = OrgUserStatus.PENDING_INSTAGRAM.value
@@ -298,6 +303,7 @@ async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
 
     user.status = OrgUserStatus.DENIED.value
     bump_token_version(user)  # revoke outstanding sessions
+    await expire_open_intents_for_org(db, org.id)
     await db.flush()
     await commit_revocation(db)
 
