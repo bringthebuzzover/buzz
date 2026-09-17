@@ -126,7 +126,7 @@ Copy constraints (not full blockers):
 - A combined FAQ / `/help` as the main fix.
 - One page with brand+org tabs.
 - Teaching today’s brand stub-as-campaign.
-- Teaching admin CSV org import (`ideas/org-precreate.md` — superseded by public apply).
+- Teaching admin CSV org import (`ideas/archive/org-precreate.md` — superseded by public apply).
 - Header nav items in v1.
 - Guest (logged-out) live portal demos.
 - PRODUCT edits in this gap beyond naming the two public routes when

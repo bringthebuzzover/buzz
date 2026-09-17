@@ -1,15 +1,17 @@
 ---
 id: admin-late-add-org
 title: Admin override — add orgs to a published, not-finished drop
-status: promoted
-updated: 2026-09-13
+status: shipped
+updated: 2026-09-17
 ---
 
 # Admin late-add org to a drop
 
-Brainstorm (2026-09-13). Not PRODUCT. Promoting needs an explicit PRODUCT / UX
-decision ([`AGENTS.md`](../AGENTS.md) hard stop). Related TBD already in
-[`PRODUCT.md`](../PRODUCT.md) §12: admin tooling for reopen, exception
+**Shipped** on `main` (`1e2cb36`). Behavior SOT is [`PRODUCT.md`](../../PRODUCT.md)
+**§7.1**. This file is provenance. Do not implement from here.
+
+Brainstorm (2026-09-13). Related TBD already in
+[`PRODUCT.md`](../../PRODUCT.md) §12: admin tooling for reopen, exception
 handling, and **Buzz override paths**.
 
 ## Desired motion
@@ -53,7 +55,7 @@ So late-add = **write an `accepted` application** (insert, or flip a pending
   (nice; not required if admin action log / email is enough)
 - Units: existing `allocated_units` if the drop has `total_product_units`
 - Per-org tracking: **separate** open gap
-  [`gaps/drops.tracking-not-per-org.md`](../gaps/drops.tracking-not-per-org.md)
+  [`gaps/archive/drops.tracking-not-per-org.md`](../../gaps/archive/drops.tracking-not-per-org.md)
   — late-add makes that hole louder (another org sharing one drop-level TN)
 
 Partial unique `uq_drop_application_active` already allows a new non-denied

@@ -1,14 +1,17 @@
 ---
 id: admin-autolink-on-demand
 title: Admin trigger — Graph sync then autolink on a drop
-status: promoted
-updated: 2026-09-13
+status: shipped
+updated: 2026-09-17
 ---
 
 # Admin on-demand sync + autolink
 
+**Shipped** on `main` (`492aa4c`). Behavior SOT is [`PRODUCT.md`](../../PRODUCT.md)
+(admin: sync Instagram then autolink on an Active drop). This file is
+provenance. Do not implement from here.
+
 Brainstorm (2026-09-13), next to [`admin-late-add-org.md`](admin-late-add-org.md).
-Not PRODUCT. Promoting needs an explicit PRODUCT / UX decision.
 
 ## Desired motion
 

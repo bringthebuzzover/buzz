@@ -1,4 +1,4 @@
-"""Admin table inspect + allowlisted patch (ideas/admin-mcp.md)."""
+"""Admin table inspect + allowlisted patch (ideas/archive/admin-mcp.md)."""
 
 from __future__ import annotations
 

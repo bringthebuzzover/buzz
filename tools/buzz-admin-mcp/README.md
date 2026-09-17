@@ -4,7 +4,7 @@ Local **stdio** MCP for operator agents. Talks to `/api/admin/*` (default
 production API). Credentials stay in **user** Cursor MCP config — never commit
 them ([`AGENTS.md`](../../AGENTS.md)).
 
-Column policy: [`ideas/admin-mcp.md`](../../ideas/admin-mcp.md).
+Column policy: [`ideas/archive/admin-mcp.md`](../../ideas/archive/admin-mcp.md).
 
 ## Setup
 

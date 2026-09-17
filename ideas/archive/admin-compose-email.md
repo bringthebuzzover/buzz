@@ -1,16 +1,18 @@
 ---
 id: admin-compose-email
 title: Admin compose-and-send email from org/brand profile
-status: promoted
-updated: 2026-09-13
+status: shipped
+updated: 2026-09-17
 ---
 
 # Admin compose email from a profile
 
-Brainstorm (2026-09-13). Not PRODUCT. Promoting needs an explicit PRODUCT / UX
-decision. Related ops: [`gaps/ops.brand-mailbox.md`](../gaps/ops.brand-mailbox.md)
+**Shipped** on `main` (`03323a3`). Behavior SOT is [`PRODUCT.md`](../../PRODUCT.md)
+**§10**. This file is provenance. Do not implement from here.
+
+Brainstorm (2026-09-13). Related ops: [`gaps/ops.brand-mailbox.md`](../../gaps/ops.brand-mailbox.md)
 (company inbox cutover; **in-app inbox still out of scope**),
-[`gaps/ops.email-ledger.md`](../gaps/ops.email-ledger.md) (no send history).
+[`gaps/ops.email-ledger.md`](../../gaps/ops.email-ledger.md) (no send history).
 
 ## Desired motion
 

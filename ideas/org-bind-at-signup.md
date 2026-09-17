@@ -12,7 +12,7 @@ explicit PRODUCT / UX decision ([`AGENTS.md`](../AGENTS.md) hard stop). Not a
 gap: apply-first + Connect-after-Approve works as specified today; this is a
 new signup motion.
 
-Related: [`org-precreate.md`](org-precreate.md) (opposite sequence: apply first,
+Related: [`archive/org-precreate.md`](archive/org-precreate.md) (opposite sequence: apply first,
 IG last — that **shipped** via LAUNCH Phase A). [`archive/drop-signup-apply.md`](archive/drop-signup-apply.md)
 (brand deep link → apply — **shipped**; “account creation finished” is still
 **admin Approve**, not the signup form). Meta: [`META.md`](../META.md),
