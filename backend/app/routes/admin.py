@@ -71,6 +71,7 @@ from app.schemas.admin_tables import (
 from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
 from app.services.address import AddressClient, get_address_client
 from app.services.admin import (
+    ack_ig_bind_mismatch,
     add_org_to_drop,
     advance_tracker,
     approve_brand,
@@ -163,9 +164,10 @@ async def get_health_endpoint(
 async def list_orgs_endpoint(
     _user: CurrentAdmin,
     status: str | None = Query(default=None),
+    attention: str | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    rows = await list_orgs(db, status=status)
+    rows = await list_orgs(db, status=status, attention=attention)
     return api_response(data=[AdminOrgItem(**r) for r in rows])
 
 
@@ -231,6 +233,20 @@ async def compose_org_email_endpoint(
     """Freeform Resend to the org .edu. To is the profile email, not the body."""
     result = await compose_org_email(db, user_id, body.subject, body.body)
     return api_response(data=AdminComposeEmailResponse.model_validate(result))
+
+
+@router.post(
+    "/orgs/{org_id}/ig-bind-mismatch/ack",
+    response_model=DataResponse[OkResponse],
+)
+async def ack_ig_bind_mismatch_endpoint(
+    org_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Dismiss an open Connect handle mismatch. Does not change Graph bind."""
+    result = await ack_ig_bind_mismatch(db, org_id)
+    return api_response(data=OkResponse(**result))
 
 
 @router.post("/orgs/{org_id}/approve", response_model=DataResponse[AdminOrgStatusResponse])

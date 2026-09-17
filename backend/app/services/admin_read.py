@@ -403,6 +403,69 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
             OrgIgChangeRequest.status == "pending"
         ),
     )
+    ig_bind_mismatch = await _count_and_oldest(
+        db,
+        select(func.count(Organization.id), func.min(Organization.ig_bind_mismatched_at))
+        .join(User, User.id == Organization.user_id)
+        .where(
+            Organization.ig_bind_mismatched_at.is_not(None),
+            Organization.ig_bind_mismatch_acked_at.is_(None),
+            User.portal_role == PortalRole.ORG.value,
+            User.status != OrgUserStatus.ERASED.value,
+        ),
+    )
+
+    items: list[dict[str, Any]] = []
+    change_rows = list(
+        await db.execute(
+            select(OrgIgChangeRequest, Organization, User)
+            .join(Organization, Organization.id == OrgIgChangeRequest.org_id)
+            .join(User, User.id == OrgIgChangeRequest.user_id)
+            .where(OrgIgChangeRequest.status == "pending")
+        )
+    )
+    for req, org, user in change_rows:
+        items.append(
+            {
+                "kind": "ig_change_pending",
+                "id": req.id,
+                "user_id": user.id,
+                "org_name": org.org_name,
+                "subtitle": (
+                    f"@{req.current_handle} → @{req.requested_handle} "
+                    f"({'rename' if req.kind == 'rename' else 'account switch'})"
+                ),
+                "href": f"/admin/ig-changes/{req.id}",
+                "created_at": req.created_at,
+            }
+        )
+    mismatch_rows = list(
+        await db.execute(
+            select(Organization, User)
+            .join(User, User.id == Organization.user_id)
+            .where(
+                Organization.ig_bind_mismatched_at.is_not(None),
+                Organization.ig_bind_mismatch_acked_at.is_(None),
+                User.portal_role == PortalRole.ORG.value,
+                User.status != OrgUserStatus.ERASED.value,
+            )
+        )
+    )
+    for org, user in mismatch_rows:
+        claimed = org.claimed_instagram_username or "—"
+        bound = org.ig_bind_graph_username or user.instagram_username or "—"
+        items.append(
+            {
+                "kind": "ig_bind_mismatch",
+                "id": org.id,
+                "user_id": user.id,
+                "org_name": org.org_name,
+                "subtitle": f"claimed @{claimed} connected as @{bound}",
+                "href": f"/admin/orgs/{user.id}",
+                "created_at": org.ig_bind_mismatched_at,
+            }
+        )
+    items.sort(key=lambda row: row["created_at"] or now)
 
     counts = await _signal_counts(db, now)
     return {
@@ -410,6 +473,7 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
         "queues": [
             {"key": "orgs_pending_approval", **orgs_pending},
             {"key": "orgs_ig_change_pending", **ig_changes_pending},
+            {"key": "orgs_ig_bind_mismatch", **ig_bind_mismatch},
             {"key": "brands_pending_review", **brands_pending},
             {"key": "drops_awaiting_finalization", **awaiting_finalization},
             {"key": "drops_ready_to_advance", **ready_to_advance},
@@ -417,6 +481,7 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
         "warnings": [
             {"key": key, "count": counts[key]} for key in _OVERVIEW_WARNING_KEYS if counts[key] > 0
         ],
+        "items": items,
     }
 
 
@@ -670,6 +735,10 @@ async def get_org_detail(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
         "instagram_handle_confirmed": (
             org.instagram_handle_confirmed if org is not None else False
         ),
+        "claimed_instagram_username": (org.claimed_instagram_username if org is not None else None),
+        "ig_bind_graph_username": org.ig_bind_graph_username if org is not None else None,
+        "ig_bind_mismatched_at": org.ig_bind_mismatched_at if org is not None else None,
+        "ig_bind_mismatch_acked_at": (org.ig_bind_mismatch_acked_at if org is not None else None),
         "instagram_username": user.instagram_username,
         "tiktok_handle": org.tiktok_handle if org is not None else None,
         "follower_count": org.follower_count if org is not None else None,

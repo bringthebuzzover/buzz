@@ -51,6 +51,7 @@ async def test_org_apply_creates_without_ig_token(app_client: AsyncClient, db_se
     org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
     assert org is not None
     assert org.instagram_handle_confirmed is True
+    assert org.claimed_instagram_username == "campusgreeks"
     assert org.shipping_line1 == "123 College Ave"
     assert org.shipping_city == "Ithaca"
     assert org.shipping_state == "NY"
@@ -176,9 +177,11 @@ async def test_bind_pending_instagram(
     await db_session.refresh(user)
     assert user.instagram_user_id == "ig_bind_1"
     assert user.status == OrgUserStatus.ACTIVE.value
-    org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
-    assert org is not None
-    assert org.instagram_handle_confirmed is True
+    bound = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
+    assert bound is not None
+    assert bound.instagram_handle_confirmed is True
+    assert bound.claimed_instagram_username == "campusgreeks"
+    assert bound.ig_bind_mismatched_at is None
 
 
 async def test_org_apply_rejects_garbage_shipping(app_client: AsyncClient) -> None:

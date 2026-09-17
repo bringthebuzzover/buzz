@@ -21,11 +21,21 @@ type NavItem = {
 };
 
 const NAV: readonly NavItem[] = [
-  { to: "/admin", label: "Overview" },
+  {
+    to: "/admin",
+    label: "Overview",
+    badgeKeys: [
+      "orgs_pending_approval",
+      "orgs_ig_change_pending",
+      "orgs_ig_bind_mismatch",
+      "brands_pending_review",
+      "drops_ready_to_advance",
+    ],
+  },
   {
     to: "/admin/orgs",
     label: "Organizations",
-    badgeKeys: ["orgs_pending_approval", "orgs_ig_change_pending"],
+    badgeKeys: ["orgs_pending_approval", "orgs_ig_bind_mismatch"],
   },
   {
     to: "/admin/brands",

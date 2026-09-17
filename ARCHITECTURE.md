@@ -78,7 +78,7 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | Table | Role |
 | ----- | ---- |
 | `users` | Identity for all portals; IG ids/tokens; `edu_email`; `password_hash`; `token_version` |
-| `organizations` | Org profile (1:1 `user_id`); structured US `shipping_*` plus formatted `delivery_address` |
+| `organizations` | Org profile (1:1 `user_id`); structured US `shipping_*` plus formatted `delivery_address`; claimed IG handle + Connect mismatch timestamps (PRODUCT §3.1) |
 | `brands` | Brand profile (1:1 `user_id`); `instagram_handle` for autolink |
 | `drops` | Campaign instance; capacity; apply window; tracker stage; units; leftover `tracking_number` (unused); `published_at`; `hidden_at`; optional `drop_request_id`; `brand_can_edit_creative` (default false) |
 | `drop_application_shipments` | 0–N tracking numbers per accepted `drop_applications` seat (carrier + unique TN) |
@@ -112,7 +112,7 @@ Mounted in `backend/app/main.py`:
 | `/api/drops/*` | `routes/drops.py` | Org feed, public/optional-auth detail, apply, Notify Me |
 | `/api/campaigns/*` | `routes/campaigns.py` | My campaigns, link/unlink, suggestions, aggregate |
 | `/api/brands/*` | `routes/brands.py` | Apply, brand profile, drops, finalize, aggregates |
-| `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org/brand erase, org IG identity-change review, compose email, bulk Connect Instagram email, late-add org, sync+autolink on an Active drop, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |
+| `/api/admin/*` | `routes/admin.py` | Queues + Overview `items` (IG identity work), lifecycle, org/brand erase, org IG identity-change review, bind-mismatch ack, compose email, bulk Connect Instagram email, late-add org, sync+autolink on an Active drop, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |
 
 Thin routes; business logic in `backend/app/services/`. Admin table inspect (`/api/admin/tables`) redacts secrets; generic PATCH is allowlisted — see [`ideas/archive/admin-mcp.md`](ideas/archive/admin-mcp.md). Operator stdio MCP: [`tools/buzz-admin-mcp/`](tools/buzz-admin-mcp/).
 

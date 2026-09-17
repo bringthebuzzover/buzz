@@ -27,7 +27,11 @@ from app.security.one_shot_tokens import hash_token
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.address import AddressClient, apply_to_org
 from app.services.email import send_verification_email
-from app.services.instagram import InstagramClient, require_instagram_handle
+from app.services.instagram import (
+    InstagramClient,
+    canonical_instagram_handle,
+    require_instagram_handle,
+)
 from app.services.instagram_token import clear_unusable_instagram_token
 
 logger = logging.getLogger(__name__)
@@ -292,6 +296,7 @@ async def submit_org_onboarding(
         city=payload.city,
         state=payload.state,
         contact_name=payload.contact_name,
+        claimed_instagram_username=canonical_instagram_handle(user.instagram_username),
     )
     apply_to_org(org, addr)
     db.add(org)

@@ -448,6 +448,8 @@ class TestOverview:
         assert orgs["count"] == 1
         assert orgs["oldestAt"] is not None
         assert _queue(data, "brands_pending_review")["count"] == 1
+        assert _queue(data, "orgs_ig_bind_mismatch")["count"] == 0
+        assert data["items"] == []
 
     async def test_awaiting_finalization_queue(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)

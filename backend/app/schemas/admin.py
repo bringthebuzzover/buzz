@@ -247,10 +247,27 @@ class AdminWarningItem(CamelModel):
     count: int
 
 
+class AdminAttentionItem(CamelModel):
+    """One Instagram identity row on Overview Needs a look."""
+
+    kind: str
+    id: uuid.UUID
+    user_id: uuid.UUID
+    org_name: str | None = None
+    subtitle: str
+    href: str
+    created_at: datetime
+
+    @field_serializer("created_at")
+    def _epoch(self, value: datetime) -> int | None:
+        return to_epoch_ms(value)
+
+
 class AdminOverviewResponse(CamelModel):
     generated_at: datetime
     queues: list[AdminQueueItem]
     warnings: list[AdminWarningItem]
+    items: list[AdminAttentionItem] = []
 
     @field_serializer("generated_at")
     def _epoch(self, value: datetime) -> int | None:
@@ -298,6 +315,10 @@ class AdminOrgItem(CamelModel):
     university: str | None
     instagram_handle: str | None
     instagram_handle_confirmed: bool = False
+    claimed_instagram_username: str | None = None
+    ig_bind_graph_username: str | None = None
+    ig_bind_mismatched_at: datetime | None = None
+    ig_bind_mismatch_acked_at: datetime | None = None
     follower_count: int | None
     member_count: int | None
     category: str | None
@@ -315,6 +336,8 @@ class AdminOrgItem(CamelModel):
         "approved_at",
         "last_login_at",
         "instagram_token_expires_at",
+        "ig_bind_mismatched_at",
+        "ig_bind_mismatch_acked_at",
         "created_at",
     )
     def _epoch(self, value: datetime | None) -> int | None:
@@ -412,6 +435,10 @@ class AdminOrgDetail(CamelModel):
     category: str | None
     instagram_handle: str | None
     instagram_handle_confirmed: bool = False
+    claimed_instagram_username: str | None = None
+    ig_bind_graph_username: str | None = None
+    ig_bind_mismatched_at: datetime | None = None
+    ig_bind_mismatch_acked_at: datetime | None = None
     instagram_username: str | None
     tiktok_handle: str | None
     follower_count: int | None
@@ -441,6 +468,8 @@ class AdminOrgDetail(CamelModel):
         "last_login_at",
         "instagram_token_expires_at",
         "instagram_token_refreshed_at",
+        "ig_bind_mismatched_at",
+        "ig_bind_mismatch_acked_at",
     )
     def _epoch(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)

@@ -48,7 +48,7 @@ Public contact mailbox (`ops.brand-mailbox`) is **ops-parallel**, not a code gat
 | OAuth bind | Callback **updates** this user. Graph id already owned → 409. **No session / unknown IG → do not insert** (`ORG_APPLY_REQUIRED`). |
 | Returning login after bind | **Continue with Instagram only** (`/login`). No org password. No magic-link as ongoing login. |
 | Claimed handle | Unique among non-erased orgs (case-insensitive, `@` stripped). **Denied** orgs keep the handle until **erase**. **Apply UX:** same-page inline **confirm card** after exact-username lookup (§6.1.1) — not a separate route; not an IG-app typeahead. |
-| Graph `@` ≠ claimed `@` at Connect | **Allow** bind; overwrite `instagram_username` from Graph; **log** for ops. |
+| Graph `@` ≠ claimed `@` at Connect | **Allow** bind; overwrite `users.instagram_username` from Graph; keep apply-time `@` on `organizations.claimed_instagram_username`; Overview **Needs a look** until admin Ack. No email. Portal `active`. |
 | `.edu` rotate while `pending_instagram` | **Yes** (same pending-swap as `pending_approval` / `active`). |
 | View-as while `pending_instagram` | **No** — nothing to impersonate until bind. |
 | Legacy IG at Approve | If Graph ids/token already on file → **`active`** (skip Connect). Else → `pending_instagram`. |

@@ -59,6 +59,7 @@ from app.services.email import (
 from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.org_apply import ig_bind_mismatch_open
 from app.services.org_connect import create_org_connect_token
 
 logger = logging.getLogger(__name__)
@@ -73,9 +74,12 @@ _STAGE_ORDER = [
 
 _ORG_STATUSES = frozenset(member.value for member in OrgUserStatus)
 _BRAND_STATUSES = frozenset(member.value for member in BrandStatus)
+_ORG_ATTENTIONS = frozenset({"ig_bind_mismatch"})
 
 
-async def list_orgs(db: AsyncSession, *, status: str | None = None) -> list[dict[str, Any]]:
+async def list_orgs(
+    db: AsyncSession, *, status: str | None = None, attention: str | None = None
+) -> list[dict[str, Any]]:
     """Org users joined to their profile, oldest first.
 
     ``Organization`` is **outer**-joined so ``pending_org_profile`` users — who
@@ -91,6 +95,12 @@ async def list_orgs(db: AsyncSession, *, status: str | None = None) -> list[dict
             f"Unknown org status: {status}.",
             status_code=400,
         )
+    if attention is not None and attention not in _ORG_ATTENTIONS:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            f"Unknown attention filter: {attention}.",
+            status_code=400,
+        )
 
     stmt = (
         select(User, Organization)
@@ -103,6 +113,11 @@ async def list_orgs(db: AsyncSession, *, status: str | None = None) -> list[dict
     else:
         # All filter excludes erased tombstones (PRODUCT §3.1.2); use ?status=erased.
         stmt = stmt.where(User.status != OrgUserStatus.ERASED.value)
+    if attention == "ig_bind_mismatch":
+        stmt = stmt.where(
+            Organization.ig_bind_mismatched_at.is_not(None),
+            Organization.ig_bind_mismatch_acked_at.is_(None),
+        )
 
     rows = list(await db.execute(stmt))
     return [
@@ -114,6 +129,14 @@ async def list_orgs(db: AsyncSession, *, status: str | None = None) -> list[dict
             "instagram_handle": user.instagram_username,
             "instagram_handle_confirmed": (
                 org.instagram_handle_confirmed if org is not None else False
+            ),
+            "claimed_instagram_username": (
+                org.claimed_instagram_username if org is not None else None
+            ),
+            "ig_bind_graph_username": org.ig_bind_graph_username if org is not None else None,
+            "ig_bind_mismatched_at": org.ig_bind_mismatched_at if org is not None else None,
+            "ig_bind_mismatch_acked_at": (
+                org.ig_bind_mismatch_acked_at if org is not None else None
             ),
             "follower_count": org.follower_count if org is not None else None,
             "member_count": org.member_count if org is not None else None,
@@ -147,6 +170,27 @@ def _refuse_erased_brand(brand: Brand) -> None:
             "Brand account has been erased.",
             status_code=409,
         )
+
+
+async def ack_ig_bind_mismatch(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
+    """Dismiss an open Connect handle mismatch. Does not change Graph bind."""
+
+    org = await db.get(Organization, org_id)
+    if org is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+    user = await db.get(User, org.user_id)
+    if user is None or user.portal_role != PortalRole.ORG.value:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+    _refuse_erased_org(user)
+    if not ig_bind_mismatch_open(org):
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "There is no open Instagram bind mismatch to acknowledge.",
+            status_code=400,
+        )
+    org.ig_bind_mismatch_acked_at = datetime.now(timezone.utc)
+    await db.flush()
+    return {"ok": True}
 
 
 async def approve_org(

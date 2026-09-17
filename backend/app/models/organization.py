@@ -21,6 +21,15 @@ from app.models.enums import OrgCategoryEnum
 
 class Organization(Base):
     __tablename__ = "organizations"
+    __table_args__ = (
+        sa.Index(
+            "ix_organizations_ig_bind_mismatch_open",
+            "ig_bind_mismatched_at",
+            postgresql_where=sa.text(
+                "ig_bind_mismatched_at IS NOT NULL AND ig_bind_mismatch_acked_at IS NULL"
+            ),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -55,6 +64,16 @@ class Organization(Base):
     # (lookup unavailable) or legacy rows; True when the applicant confirmed.
     instagram_handle_confirmed: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=False, server_default=sa.text("false")
+    )
+    # Frozen tester target from apply (or the requested @ after an approved
+    # account switch). Live Graph @ lives on users.instagram_username.
+    claimed_instagram_username: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    ig_bind_mismatched_at: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True), nullable=True
+    )
+    ig_bind_graph_username: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    ig_bind_mismatch_acked_at: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True), nullable=True
     )
 
     approved_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)

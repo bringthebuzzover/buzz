@@ -632,6 +632,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/orgs/{org_id}/ig-bind-mismatch/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ack Ig Bind Mismatch Endpoint
+         * @description Dismiss an open Connect handle mismatch. Does not change Graph bind.
+         */
+        post: operations["ack_ig_bind_mismatch_endpoint_api_admin_orgs__org_id__ig_bind_mismatch_ack_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/orgs/{org_id}/resend-connect": {
         parameters: {
             query?: never;
@@ -2225,6 +2245,32 @@ export interface components {
             /** Denied */
             denied: number;
         };
+        /**
+         * AdminAttentionItem
+         * @description One Instagram identity row on Overview Needs a look.
+         */
+        AdminAttentionItem: {
+            /** Createdat */
+            createdAt: number | null;
+            /** Href */
+            href: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Orgname */
+            orgName?: string | null;
+            /** Subtitle */
+            subtitle: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+        };
         /** AdminBrandDetail */
         AdminBrandDetail: {
             /** Approvedat */
@@ -2767,6 +2813,8 @@ export interface components {
             category: string | null;
             /** City */
             city: string | null;
+            /** Claimedinstagramusername */
+            claimedInstagramUsername?: string | null;
             /** Contactname */
             contactName: string | null;
             /** Createdat */
@@ -2779,6 +2827,12 @@ export interface components {
             emailVerifiedAt: number | null;
             /** Followercount */
             followerCount: number | null;
+            /** Igbindgraphusername */
+            igBindGraphUsername?: string | null;
+            /** Igbindmismatchackedat */
+            igBindMismatchAckedAt?: number | null;
+            /** Igbindmismatchedat */
+            igBindMismatchedAt?: number | null;
             /** Impersonatable */
             impersonatable: boolean;
             /** Instagramhandle */
@@ -2857,6 +2911,8 @@ export interface components {
             approvedAt: number | null;
             /** Category */
             category: string | null;
+            /** Claimedinstagramusername */
+            claimedInstagramUsername?: string | null;
             /** Createdat */
             createdAt: number | null;
             /** Eduemail */
@@ -2867,6 +2923,12 @@ export interface components {
             followerCount: number | null;
             /** Id */
             id: string | null;
+            /** Igbindgraphusername */
+            igBindGraphUsername?: string | null;
+            /** Igbindmismatchackedat */
+            igBindMismatchAckedAt?: number | null;
+            /** Igbindmismatchedat */
+            igBindMismatchedAt?: number | null;
             /** Impersonatable */
             impersonatable: boolean;
             /** Instagramhandle */
@@ -2910,6 +2972,11 @@ export interface components {
         AdminOverviewResponse: {
             /** Generatedat */
             generatedAt: number | null;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["AdminAttentionItem"][];
             /** Queues */
             queues: components["schemas"]["AdminQueueItem"][];
             /** Warnings */
@@ -6348,6 +6415,7 @@ export interface operations {
         parameters: {
             query?: {
                 status?: string | null;
+                attention?: string | null;
             };
             header?: {
                 authorization?: string | null;
@@ -6496,6 +6564,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminOrgStatusResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    ack_ig_bind_mismatch_endpoint_api_admin_orgs__org_id__ig_bind_mismatch_ack_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

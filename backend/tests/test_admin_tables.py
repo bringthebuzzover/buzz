@@ -116,6 +116,18 @@ class TestAdminTablesPatch:
         )
         assert res.status_code == 400
 
+    async def test_rejects_org_bind_mismatch_columns(
+        self, app_client: AsyncClient, db_session
+    ) -> None:
+        user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, user)
+        res = await app_client.patch(
+            f"/api/admin/tables/organizations/{org.id}",
+            json={"fields": {"claimedInstagramUsername": "spoofed"}},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 400
+
     async def test_patches_org_shipping(self, app_client: AsyncClient, db_session) -> None:
         user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, user, org_name="Ship Club")

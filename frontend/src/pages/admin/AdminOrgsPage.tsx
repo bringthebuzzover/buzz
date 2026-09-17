@@ -28,6 +28,7 @@ import {
   Row,
   StatusPill,
   UnconfirmedIgChip,
+  IgBindMismatchChip,
 } from "../../components/admin/AdminPrimitives";
 import { formatCompactCount, formatElapsed } from "../../components/admin/labels";
 import { Button, SuccessBanner } from "../../components/forms/controls";
@@ -44,6 +45,11 @@ const FILTERS = [
   { value: "erased", label: "Erased" },
 ] as const;
 
+const ATTENTION_FILTERS = [
+  { value: null, label: "Any attention" },
+  { value: "ig_bind_mismatch", label: "IG bind mismatch" },
+] as const;
+
 const HEADERS = [
   "Organization",
   "Followers",
@@ -57,7 +63,8 @@ const HEADERS = [
 export default function AdminOrgsPage() {
   const [searchParams] = useSearchParams();
   const status = searchParams.get("status");
-  const orgs = useAdminOrgs(status ?? undefined);
+  const attention = searchParams.get("attention");
+  const orgs = useAdminOrgs(status ?? undefined, attention ?? undefined);
   const deny = useDenyOrg();
   const resendAll = useResendAllPendingInstagramConnect();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
@@ -166,10 +173,16 @@ export default function AdminOrgsPage() {
       )}
 
       <FilterChips
-        options={FILTERS}
+        options={[...FILTERS]}
         active={status}
         basePath="/admin/orgs"
         param="status"
+      />
+      <FilterChips
+        options={[...ATTENTION_FILTERS]}
+        active={attention}
+        basePath="/admin/orgs"
+        param="attention"
       />
 
       <Panel>
@@ -211,6 +224,8 @@ export default function AdminOrgsPage() {
                     {row.instagramHandle &&
                       !row.instagramHandleConfirmed &&
                       row.status !== "active" && <UnconfirmedIgChip />}
+                    {row.igBindMismatchedAt &&
+                      !row.igBindMismatchAckedAt && <IgBindMismatchChip />}
                   </div>
                 </Cell>
                 <Cell muted>{row.eduEmail ?? "—"}</Cell>

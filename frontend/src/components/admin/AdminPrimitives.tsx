@@ -16,7 +16,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { STATUS_LABELS } from "./labels";
 import { Button, Checkbox, ErrorBanner } from "../forms/controls";
 import { Card, CardHeader } from "../ui/Card";
@@ -74,6 +74,10 @@ export function Pill({
 /** Apply-time claimed handle not confirmed yet. Hidden once Active — Graph bind confirms. */
 export function UnconfirmedIgChip() {
   return <Pill tone="bad">Unconfirmed IG</Pill>;
+}
+
+export function IgBindMismatchChip() {
+  return <Pill tone="warn">IG bind mismatch</Pill>;
 }
 
 /** Fixed circle for a count. Do not reuse Pill — rounded-full + stretch becomes an ellipse. */
@@ -284,13 +288,16 @@ export function FilterChips({
   basePath: string;
   param: string;
 }) {
+  const [searchParams] = useSearchParams();
   return (
     <div className="mb-4 flex flex-wrap gap-2">
       {options.map((option) => {
         const selected = option.value === active;
-        const to = option.value
-          ? `${basePath}?${param}=${encodeURIComponent(option.value)}`
-          : basePath;
+        const next = new URLSearchParams(searchParams);
+        if (option.value) next.set(param, option.value);
+        else next.delete(param);
+        const qs = next.toString();
+        const to = qs ? `${basePath}?${qs}` : basePath;
         return (
           <Link
             key={option.label}

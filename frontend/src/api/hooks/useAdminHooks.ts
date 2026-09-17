@@ -114,11 +114,17 @@ export function useAdminHealth(): AdminQuery<AdminHealth> {
 export type AdminOrgRow = components["schemas"]["AdminOrgItem"];
 export type AdminOrgDetail = components["schemas"]["AdminOrgDetail"];
 
-export function useAdminOrgs(status?: string): AdminQuery<AdminOrgRow[]> {
+export function useAdminOrgs(
+  status?: string,
+  attention?: string,
+): AdminQuery<AdminOrgRow[]> {
   return useQuery({
-    queryKey: ["admin", "orgs", status ?? "all"],
+    queryKey: ["admin", "orgs", status ?? "all", attention ?? "any"],
     queryFn: async () => {
-      const query = status ? `?status=${encodeURIComponent(status)}` : "";
+      const params = new URLSearchParams();
+      if (status) params.set("status", status);
+      if (attention) params.set("attention", attention);
+      const query = params.toString() ? `?${params.toString()}` : "";
       const { data } = await apiFetch<AdminOrgRow[]>(`/api/admin/orgs${query}`);
       return data;
     },
@@ -382,6 +388,14 @@ export function useApproveOrg() {
 export function useResendOrgConnect() {
   return useAdminMutation((orgId: string) =>
     apiFetch(`/api/admin/orgs/${orgId}/resend-connect`, { method: "POST" }),
+  );
+}
+
+export function useAckIgBindMismatch() {
+  return useAdminMutation((orgId: string) =>
+    apiFetch(`/api/admin/orgs/${orgId}/ig-bind-mismatch/ack`, {
+      method: "POST",
+    }),
   );
 }
 

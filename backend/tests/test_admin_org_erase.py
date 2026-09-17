@@ -120,6 +120,10 @@ class TestAdminOrgErase:
         assert user.instagram_access_token is None
         assert user.token_version == 2
         assert org.org_name == "Deleted organization"
+        assert org.claimed_instagram_username is None
+        assert org.ig_bind_mismatched_at is None
+        assert org.ig_bind_graph_username is None
+        assert org.ig_bind_mismatch_acked_at is None
         assert org.follower_count == 1500
         assert org.university == "State U"
         assert org.delivery_address is None
