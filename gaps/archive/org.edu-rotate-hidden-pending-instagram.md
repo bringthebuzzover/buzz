@@ -4,6 +4,7 @@ title: .edu rotate has no UI after Instagram switch demotes the org
 kind: ux_hole
 severity: P2
 status: fixed
+closed_in: 78f85d2
 surface: org
 evidence:
   - path: PRODUCT.md
