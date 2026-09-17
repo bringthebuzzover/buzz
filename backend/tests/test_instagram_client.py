@@ -86,6 +86,62 @@ async def test_exchange_code_http_error_logs_meta_not_secrets(
     assert "IGQVJ" not in caplog.text
 
 
+async def test_exchange_for_long_lived_gets_query() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path.endswith("/access_token")
+        assert request.url.params["grant_type"] == "ig_exchange_token"
+        assert request.url.params["access_token"] == "IGQVJ-short"
+        assert request.url.params["client_secret"] == settings.INSTAGRAM_CLIENT_SECRET
+        return httpx.Response(
+            200,
+            json={"access_token": "IGQVJ-long", "token_type": "bearer", "expires_in": 5184000},
+        )
+
+    out = await _client(handler).exchange_for_long_lived("IGQVJ-short")
+    assert out.access_token == "IGQVJ-long"
+    assert out.expires_in == 5184000
+
+
+async def test_exchange_for_long_lived_parses_data_array() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        return httpx.Response(
+            200,
+            json={
+                "data": [{"access_token": "wrapped-long", "token_type": "bearer", "expires_in": 60}]
+            },
+        )
+
+    out = await _client(handler).exchange_for_long_lived("short")
+    assert out.access_token == "wrapped-long"
+    assert out.expires_in == 60
+
+
+async def test_exchange_for_long_lived_http_error_logs_meta_not_secrets(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            400,
+            json={
+                "error": {
+                    "message": "Unsupported request - method type: get",
+                    "type": "IGApiException",
+                    "code": 100,
+                }
+            },
+        )
+
+    with caplog.at_level("WARNING", logger="app.services.instagram"):
+        with pytest.raises(BuzzAPIException) as exc:
+            await _client(handler).exchange_for_long_lived("IGQVJ-secret-short")
+    assert exc.value.status_code == 401
+    assert "client_secret" not in exc.value.message
+    assert "Unsupported request - method type: get" in caplog.text
+    assert "IGQVJ-secret-short" not in caplog.text
+
+
 async def test_fetch_profile_parses_data_array_user_id() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert "user_id" in request.url.params["fields"]
