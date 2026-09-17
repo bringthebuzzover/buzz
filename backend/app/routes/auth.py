@@ -207,7 +207,7 @@ async def instagram_callback(
     if not state_ok:
         _clear_state_cookie(response)
         raise BuzzAPIException(
-            code=errors.UNAUTHORIZED,
+            code=errors.OAUTH_STATE_INVALID,
             message="Invalid or expired OAuth state.",
             status_code=401,
         )

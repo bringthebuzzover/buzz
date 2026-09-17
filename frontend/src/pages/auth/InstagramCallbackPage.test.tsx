@@ -37,7 +37,8 @@ describe("InstagramCallbackPage", () => {
       );
     });
     expect(container.textContent).toContain(INSTAGRAM_CALLBACK_MISSING_PARAMS);
-    expect(container.textContent).toMatch(/Login failed/);
+    expect(container.textContent).toMatch(/Couldn't finish sign-in/);
+    expect(container.textContent).not.toMatch(/Login failed/);
     expect(container.textContent).not.toMatch(/state parameter/i);
   });
 
@@ -65,8 +66,9 @@ describe("InstagramCallbackPage", () => {
       await Promise.resolve();
     });
 
-    expect(container.textContent).toMatch(/didn't complete/i);
+    expect(container.textContent).toMatch(/Instagram didn't connect/);
     expect(container.textContent).not.toMatch(/401/);
     expect(container.textContent).not.toMatch(/code exchange/i);
+    expect(container.textContent).not.toMatch(/Login failed/);
   });
 });

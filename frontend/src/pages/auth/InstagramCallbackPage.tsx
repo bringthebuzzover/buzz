@@ -10,9 +10,10 @@ import { useSearchParams } from "react-router-dom";
 import { setAccessToken, clearInstagramReconnectLatch } from "../../api/auth";
 import { API_BASE_URL } from "../../api/config";
 import {
-  INSTAGRAM_CALLBACK_MISSING_PARAMS,
-  INSTAGRAM_CALLBACK_NETWORK,
+  INSTAGRAM_CALLBACK_MISSING,
+  INSTAGRAM_CALLBACK_OFFLINE,
   instagramCallbackFailureCopy,
+  type InstagramCallbackCopy,
 } from "../../utils/instagramCallbackCopy";
 import AuthShell from "../../components/site/AuthShell";
 import { LinkButton } from "../../components/forms/controls";
@@ -22,7 +23,7 @@ import { allowlistedOAuthNext } from "../../utils/oauthNext";
 
 type CallbackState =
   | { kind: "exchanging" }
-  | { kind: "error"; message: string; applyRequired?: boolean };
+  | ({ kind: "error" } & InstagramCallbackCopy);
 
 export default function InstagramCallbackPage() {
   const [searchParams] = useSearchParams();
@@ -37,10 +38,7 @@ export default function InstagramCallbackPage() {
     const st = searchParams.get("state");
 
     if (!code || !st) {
-      setState({
-        kind: "error",
-        message: INSTAGRAM_CALLBACK_MISSING_PARAMS,
-      });
+      setState({ kind: "error", ...INSTAGRAM_CALLBACK_MISSING });
       return;
     }
 
@@ -54,28 +52,21 @@ export default function InstagramCallbackPage() {
         });
         if (!resp.ok) {
           const body = await resp.json().catch(() => null);
-          const code = body?.error?.code as string | undefined;
+          const errCode = body?.error?.code as string | undefined;
           // Denied orgs must reach the denial screen even without a session.
-          if (code === "ACCOUNT_DENIED") {
+          if (errCode === "ACCOUNT_DENIED") {
             window.location.href = "/onboarding/denied";
             return;
           }
-          if (code === "ORG_APPLY_REQUIRED") {
-            setState({
-              kind: "error",
-              message:
-                "Buzz doesn't create accounts from Instagram login anymore. Apply as a student organization first, then connect Instagram after approval.",
-              applyRequired: true,
-            });
-            return;
-          }
-          const msg = instagramCallbackFailureCopy(
-            code,
-            typeof body?.error?.message === "string"
-              ? body.error.message
-              : undefined,
-          );
-          setState({ kind: "error", message: msg });
+          setState({
+            kind: "error",
+            ...instagramCallbackFailureCopy(
+              errCode,
+              typeof body?.error?.message === "string"
+                ? body.error.message
+                : undefined,
+            ),
+          });
           return;
         }
         const body = await resp.json();
@@ -91,10 +82,7 @@ export default function InstagramCallbackPage() {
         );
         window.location.href = next ?? "/org/browse";
       } catch {
-        setState({
-          kind: "error",
-          message: INSTAGRAM_CALLBACK_NETWORK,
-        });
+        setState({ kind: "error", ...INSTAGRAM_CALLBACK_OFFLINE });
       }
     };
     void exchange();
@@ -113,10 +101,10 @@ export default function InstagramCallbackPage() {
   return (
     <AuthShell align="center" className="items-center text-center">
       <h1 className={cn(TEXT.h1, "mb-4 text-buzz-danger")}>
-        Login failed
+        {state.title}
       </h1>
       <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
-        {state.message}
+        {state.body}
       </p>
       {state.applyRequired ? (
         <LinkButton to="/org/apply">
