@@ -21,7 +21,14 @@ const page = await browser.newPage({
 await page.route("**/api/auth/dev-login", (r) =>
   r.fulfill({ status: 404, contentType: "application/json", body: "{}" }),
 );
-await page.goto("http://localhost:3000/dev/ui-kit", {
+await page.goto("http://localhost:3000/admin/login", {
+  waitUntil: "domcontentloaded",
+});
+await page.getByTestId("admin-email").fill("admin@bringthebuzzover.com");
+await page.getByTestId("admin-password").fill("buzzdev123");
+await page.getByTestId("admin-login-submit").click();
+await page.waitForURL("**/admin");
+await page.goto("http://localhost:3000/admin/ui-kit", {
   waitUntil: "domcontentloaded",
 });
 await page.getByRole("heading", { name: "UI kit" }).waitFor();
