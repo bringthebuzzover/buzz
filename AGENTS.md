@@ -28,7 +28,7 @@ Rules and skills **point** here; they must not copy PRODUCT §§.
 
 **Shortcomings:** discover with `gaps/*.md` (exclude `README.md`, `CLUSTERS.md`, `gaps/archive/`). Do not invent a second mega-list.
 
-**Ideas:** brainstorm lives in `ideas/*.md`. Ideas are not gaps and are not PRODUCT — promoting one into shipped behavior needs an explicit PRODUCT/UX decision (hard stop below).
+**Ideas:** brainstorm lives in `ideas/*.md` (exclude `README.md` and `ideas/archive/`). Ideas are not gaps and are not PRODUCT — promoting one into shipped behavior needs an explicit PRODUCT/UX decision (hard stop below). When an idea ships, **move** it to `ideas/archive/<id>.md` with `status: shipped` (do not file a gap).
 
 ---
 

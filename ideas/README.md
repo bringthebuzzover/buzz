@@ -20,8 +20,10 @@ file alone. The seeded-launch revamp is specified in [`LAUNCH.md`](../LAUNCH.md)
 not in this folder.
 - Prefer updating an existing theme file over creating near-duplicates.
 - Status in frontmatter is advisory only (`seed` | `exploring` | `parked` |
-  `promoted` | `discarded`). `promoted` means it earned PRODUCT/gap follow-up,
-  not that it shipped.
+  `promoted` | `shipped` | `discarded`). `promoted` means it earned PRODUCT
+  follow-up, not that it shipped. **Shipped** ideas **move** to
+  [`archive/`](archive/) (same close motion as [`gaps/archive/`](../gaps/archive/))
+  and keep `status: shipped`. Do not file a gap for a completed idea.
 
 ## Suggested frontmatter
 
@@ -29,7 +31,7 @@ not in this folder.
 ---
 id: theme-slug
 title: Short title
-status: seed | exploring | parked | promoted | discarded
+status: seed | exploring | parked | promoted | shipped | discarded
 updated: YYYY-MM-DD
 ---
 ```
