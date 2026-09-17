@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlparse
 
+import httpx
 import jwt as pyjwt
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -294,3 +295,69 @@ async def test_callback_instagram_failure_returns_error(
     )
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"
+
+
+async def test_callback_accepts_documented_meta_token_wrap(
+    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
+) -> None:
+    """Replay the production 401: Meta 200 with ``data[{access_token}]``.
+
+    SPA POST /api/auth/instagram/callback used to map that body to UNAUTHORIZED
+    ("Instagram didn't hand Buzz a session"). The real HTTP client must mint
+    a session instead.
+    """
+
+    from app.main import app
+    from app.models.enums import OrgUserStatus
+    from app.services.instagram import HttpInstagramClient, get_instagram_client
+    from tests.conftest import make_user, persist
+
+    await persist(
+        db_session,
+        make_user(status=OrgUserStatus.ACTIVE, instagram_user_id="1020"),
+    )
+    await db_session.commit()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST":
+            return httpx.Response(
+                200,
+                json={
+                    "data": [
+                        {
+                            "access_token": "EAAC-short",
+                            "user_id": "1020",
+                            "permissions": "instagram_business_basic",
+                        }
+                    ]
+                },
+            )
+        if request.url.path.endswith("/access_token"):
+            return httpx.Response(
+                200,
+                json={
+                    "access_token": "EAAC-long",
+                    "token_type": "bearer",
+                    "expires_in": 5183944,
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "id": "1020",
+                "username": "campus",
+                "account_type": "BUSINESS",
+                "followers_count": 10,
+            },
+        )
+
+    real = HttpInstagramClient(http=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    app.dependency_overrides[get_instagram_client] = lambda: real
+    state = await _begin_login(app_client)
+    resp = await app_client.post(
+        "/api/auth/instagram/callback",
+        json={"code": "AQBx-hBsH3", "state": state},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["error"] is None
+    assert resp.json()["data"]["user"]["status"] == "active"
