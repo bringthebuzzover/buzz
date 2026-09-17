@@ -4,8 +4,9 @@
  * (disabled, error, empty, loading).
  *
  * It exists so the revamp can be reviewed and regression-shot in a single
- * screenshot instead of hunting states across 40 routes. Dev-only: `AppRoot`
- * mounts it just for `ENVIRONMENT=development` builds, so it never ships.
+ * screenshot instead of hunting states across 40 routes. Local `npm start`
+ * only: `AppRoot` mounts it at `/admin/ui-kit` when `NODE_ENV === "development"`,
+ * behind the admin PortalGuard. Production builds do not register the route.
  */
 import { useState } from "react";
 import PageShell from "../../components/site/PageShell";
@@ -50,7 +51,8 @@ export default function UiKitPage() {
       <header>
         <h1 className={TEXT.h1}>UI kit</h1>
         <p className={cx(TEXT.meta, "mt-1")}>
-          Every shared primitive and state. Dev-only route.
+          Every shared primitive and state. Local admin only — omitted from
+          production builds.
         </p>
       </header>
 
@@ -101,8 +103,8 @@ export default function UiKitPage() {
             </Button>
           </div>
           <div className={cx("flex flex-wrap items-center", GAP.tight)}>
-            <LinkButton to="/dev/ui-kit">Link button</LinkButton>
-            <LinkButton to="/dev/ui-kit" variant="outline">
+            <LinkButton to="/admin/ui-kit">Link button</LinkButton>
+            <LinkButton to="/admin/ui-kit" variant="outline">
               Link outline
             </LinkButton>
           </div>
@@ -219,9 +221,25 @@ export default function UiKitPage() {
             title="Modal title"
             description="Escape closes, focus is trapped, the page behind cannot scroll."
           >
-            <div className={cx(PAD.card, STACK.default)}>
+            <div className="px-6 pb-4 pt-4">
               <p className={TEXT.body}>Modal body content.</p>
-              <Button onClick={() => setModalOpen(false)}>Done</Button>
+              <div className="mt-4 flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="compact"
+                  onClick={() => setModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="compact"
+                  onClick={() => setModalOpen(false)}
+                >
+                  Done
+                </Button>
+              </div>
             </div>
           </Modal>
         )}

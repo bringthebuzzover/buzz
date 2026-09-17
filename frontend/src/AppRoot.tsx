@@ -289,10 +289,6 @@ export default function AppRoot(): ReactElement {
         <Route path="privacy" element={<PrivacyPolicyPage />} />
         <Route path="terms" element={<TermsPage />} />
         <Route path="data-deletion" element={<DataDeletionPage />} />
-        {/* Primitive gallery. Dev-only so it never ships to real users. */}
-        {process.env.NODE_ENV === "development" && (
-          <Route path="dev/ui-kit" element={<UiKitPage />} />
-        )}
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 
@@ -317,6 +313,12 @@ export default function AppRoot(): ReactElement {
         <Route path="drops" element={<AdminDropsPage />} />
         <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />
+        {/* Primitive gallery. CRA production builds omit this route
+            (`NODE_ENV !== "development"`), and the parent PortalGuard keeps
+            even local access admin-only. */}
+        {process.env.NODE_ENV === "development" && (
+          <Route path="ui-kit" element={<UiKitPage />} />
+        )}
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
