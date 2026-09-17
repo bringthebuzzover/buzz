@@ -407,6 +407,65 @@
         "title": "AdminApplicationTally",
         "type": "object"
       },
+      "AdminAttentionItem": {
+        "description": "One Instagram identity row on Overview Needs a look.",
+        "properties": {
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "href": {
+            "title": "Href",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "orgName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgname"
+          },
+          "subtitle": {
+            "title": "Subtitle",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "userId",
+          "subtitle",
+          "href",
+          "createdAt"
+        ],
+        "title": "AdminAttentionItem",
+        "type": "object"
+      },
       "AdminBrandDetail": {
         "properties": {
           "approvedAt": {
@@ -1922,6 +1981,17 @@
             ],
             "title": "City"
           },
+          "claimedInstagramUsername": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimedinstagramusername"
+          },
           "contactName": {
             "anyOf": [
               {
@@ -1987,6 +2057,39 @@
               }
             ],
             "title": "Followercount"
+          },
+          "igBindGraphUsername": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Igbindgraphusername"
+          },
+          "igBindMismatchAckedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Igbindmismatchackedat"
+          },
+          "igBindMismatchedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Igbindmismatchedat"
           },
           "impersonatable": {
             "title": "Impersonatable",
@@ -2258,6 +2361,17 @@
             ],
             "title": "Category"
           },
+          "claimedInstagramUsername": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimedinstagramusername"
+          },
           "createdAt": {
             "anyOf": [
               {
@@ -2313,6 +2427,39 @@
               }
             ],
             "title": "Id"
+          },
+          "igBindGraphUsername": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Igbindgraphusername"
+          },
+          "igBindMismatchAckedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Igbindmismatchackedat"
+          },
+          "igBindMismatchedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Igbindmismatchedat"
           },
           "impersonatable": {
             "title": "Impersonatable",
@@ -2462,6 +2609,14 @@
               }
             ],
             "title": "Generatedat"
+          },
+          "items": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AdminAttentionItem"
+            },
+            "title": "Items",
+            "type": "array"
           },
           "queues": {
             "items": {
@@ -11801,6 +11956,22 @@
             }
           },
           {
+            "in": "query",
+            "name": "attention",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Attention"
+            }
+          },
+          {
             "in": "header",
             "name": "authorization",
             "required": false,
@@ -12067,6 +12238,66 @@
           }
         },
         "summary": "Deny Org Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/orgs/{org_id}/ig-bind-mismatch/ack": {
+      "post": {
+        "description": "Dismiss an open Connect handle mismatch. Does not change Graph bind.",
+        "operationId": "ack_ig_bind_mismatch_endpoint_api_admin_orgs__org_id__ig_bind_mismatch_ack_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Ack Ig Bind Mismatch Endpoint",
         "tags": [
           "admin"
         ]

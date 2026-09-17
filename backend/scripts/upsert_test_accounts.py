@@ -157,6 +157,7 @@ async def _upsert_org(session: AsyncSession) -> User:
     org.state = "NY"
     org.contact_name = "Buzz QA"
     org.approved_at = org.approved_at or _now()
+    org.claimed_instagram_username = "buzztestorg"
     return user
 
 

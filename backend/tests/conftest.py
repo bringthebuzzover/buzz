@@ -70,6 +70,7 @@ from app.services.instagram import (
     MediaFields,
     MediaRef,
     ShortLivedToken,
+    canonical_instagram_handle,
     get_instagram_client,
 )
 
@@ -357,6 +358,7 @@ async def make_org(
         user_id=user.id,
         org_name=org_name,
         university="Test University",
+        claimed_instagram_username=canonical_instagram_handle(user.instagram_username) or None,
     )
     db.add(org)
     await db.flush()

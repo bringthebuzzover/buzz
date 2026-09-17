@@ -203,6 +203,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         shipping_state="CA",
         shipping_postal_code="94720",
         approved_at=now,
+        claimed_instagram_username="berkeleyrowing",
     )
     org_pending = Organization(
         id=_uuid(11),
@@ -214,6 +215,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         category=OrgCategory.ACADEMIC.value,
         city="Stanford",
         state="CA",
+        claimed_instagram_username="stanfordhackers",
     )
 
     # --- Brands ------------------------------------------------------------

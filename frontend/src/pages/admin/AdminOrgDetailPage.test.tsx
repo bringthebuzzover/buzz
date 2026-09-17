@@ -19,9 +19,16 @@ const idleMutation = () => ({
 const mockUseAdminOrg = jest.fn();
 const mockEraseMutateAsync = jest.fn();
 const mockSendEmailMutateAsync = jest.fn();
+const mockAckMutateAsync = jest.fn();
 
 jest.mock("../../api/hooks/useAdminHooks", () => ({
   useAdminOrg: (...args: unknown[]) => mockUseAdminOrg(...args),
+  useAckIgBindMismatch: () => ({
+    mutate: jest.fn(),
+    mutateAsync: mockAckMutateAsync,
+    isPending: false,
+    isError: false,
+  }),
   useApproveOrg: () => idleMutation(),
   useClearOrgInstagramToken: () => idleMutation(),
   useDenyOrg: () => idleMutation(),
@@ -57,6 +64,10 @@ function orgDetail() {
     university: "Cornell University",
     instagramHandle: "lawrence_granda",
     instagramHandleConfirmed: false,
+    claimedInstagramUsername: "lawrence_granda",
+    igBindGraphUsername: null,
+    igBindMismatchedAt: null,
+    igBindMismatchAckedAt: null,
     instagramUsername: "lawrence_granda",
     instagramTokenExpiresAt: Date.now() + 86400000,
     instagramTokenRefreshedAt: Date.now(),
@@ -101,6 +112,8 @@ describe("AdminOrgDetailPage erase confirm", () => {
   beforeEach(() => {
     mockUseAdminOrg.mockReset();
     mockEraseMutateAsync.mockReset();
+    mockAckMutateAsync.mockReset();
+    mockAckMutateAsync.mockResolvedValue({});
     mockSendEmailMutateAsync.mockReset();
     mockSendEmailMutateAsync.mockResolvedValue({
       ok: true,
@@ -155,6 +168,8 @@ describe("AdminOrgDetailPage erase confirm", () => {
     });
     renderPage();
 
+    expect(document.body.textContent).toContain("Claimed handle");
+    expect(document.body.textContent).toContain("Connected Instagram");
     const link = Array.from(container.querySelectorAll("a")).find(
       (el) => el.textContent === "@lawrence_granda",
     );
@@ -164,6 +179,94 @@ describe("AdminOrgDetailPage erase confirm", () => {
     );
     expect(link?.getAttribute("target")).toBe("_blank");
     expect(link?.getAttribute("rel")).toContain("noopener");
+  });
+
+  it("acks an open bind mismatch without changing the connected handle", async () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: {
+        ...orgDetail(),
+        instagramHandle: "otherclub",
+        instagramUsername: "otherclub",
+        claimedInstagramUsername: "lawrence_granda",
+        igBindGraphUsername: "otherclub",
+        igBindMismatchedAt: Date.now(),
+        igBindMismatchAckedAt: null,
+      },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    expect(document.body.textContent).toContain("IG bind mismatch");
+    expect(document.body.textContent).toContain(
+      "This organization connected @otherclub after applying as @lawrence_granda.",
+    );
+    expect(document.body.textContent).not.toContain("Live handle is now");
+    const ack = container.querySelector(
+      '[data-testid="ack-ig-bind-mismatch"]',
+    ) as HTMLButtonElement;
+    expect(ack).toBeTruthy();
+    await act(async () => {
+      ack.click();
+    });
+    expect(mockAckMutateAsync).toHaveBeenCalledWith(
+      "22222222-2222-2222-2222-222222222222",
+    );
+  });
+
+  it("keeps the Connect snapshot in the mismatch panel after a later Graph rename", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: {
+        ...orgDetail(),
+        instagramHandle: "renamedclub",
+        instagramUsername: "renamedclub",
+        claimedInstagramUsername: "lawrence_granda",
+        igBindGraphUsername: "otherclub",
+        igBindMismatchedAt: Date.now(),
+        igBindMismatchAckedAt: null,
+      },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    expect(document.body.textContent).toContain(
+      "This organization connected @otherclub after applying as @lawrence_granda. Live handle is now @renamedclub.",
+    );
+  });
+
+  it("asks for the connected handle on erase when claimed differs", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: {
+        ...orgDetail(),
+        instagramHandle: "otherclub",
+        instagramUsername: "otherclub",
+        claimedInstagramUsername: "lawrence_granda",
+        igBindGraphUsername: "otherclub",
+        igBindMismatchedAt: Date.now(),
+        igBindMismatchAckedAt: null,
+      },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+    act(() => {
+      (
+        container.querySelector('[data-testid="erase-org"]') as HTMLButtonElement
+      ).click();
+    });
+    expect(document.body.textContent).toContain("Type @otherclub exactly");
+    const submit = document.querySelector(
+      '[data-testid="erase-org-submit"]',
+    ) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    const input = document.querySelector(
+      '[data-testid="erase-org-confirm"]',
+    ) as HTMLInputElement;
+    act(() => {
+      setInputValue(input, "@otherclub");
+    });
+    expect(submit.disabled).toBe(false);
   });
 
   it("opens an in-app confirm and does not POST until the handle matches", async () => {

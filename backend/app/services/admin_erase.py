@@ -30,6 +30,7 @@ from app.services.drop_apply_intents import expire_and_clear_intents_for_org
 from app.services.email import send_brand_erased_email, send_org_erased_email
 from app.services.instagram import canonical_instagram_handle
 from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.org_apply import clear_ig_bind_mismatch
 
 logger = logging.getLogger(__name__)
 
@@ -177,6 +178,9 @@ def _scrub_org_profile(org: Organization) -> None:
     org.shipping_state = None
     org.shipping_postal_code = None
     org.approved_at = None
+    org.claimed_instagram_username = None
+    org.instagram_handle_confirmed = False
+    clear_ig_bind_mismatch(org)
     # Keep follower_count and university for brand reach / campus KPIs.
 
 

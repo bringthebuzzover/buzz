@@ -146,9 +146,11 @@ class TestOrgIgChangeRequest:
         rename_mail.assert_awaited_once()
         assert rename_mail.await_args.args[0] == "officer@school.edu"
         await db_session.refresh(user)
+        await db_session.refresh(_org)
         assert user.status == OrgUserStatus.ACTIVE.value
         assert user.instagram_username == "campusgreeks"
         assert user.instagram_user_id == "ig_a"
+        assert _org.claimed_instagram_username == "campusgreeks"
 
     async def test_switch_requires_tester_and_releases_graph(
         self, app_client: AsyncClient, db_session, monkeypatch
@@ -209,6 +211,10 @@ class TestOrgIgChangeRequest:
         assert user.instagram_token_user_id is None
         assert user.instagram_access_token is None
         assert user.instagram_username == "newcampusig"
+        await db_session.refresh(org)
+        assert org.claimed_instagram_username == "newcampusig"
+        assert org.ig_bind_mismatched_at is None
+        assert org.ig_bind_mismatch_acked_at is None
         assert user.token_version == 2
         resend_mail = AsyncMock(return_value=True)
         monkeypatch.setattr(

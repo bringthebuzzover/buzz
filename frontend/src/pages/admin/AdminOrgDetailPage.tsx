@@ -18,6 +18,7 @@ import { Link, useParams } from "react-router-dom";
 import { Mail, Trash2 } from "lucide-react";
 import {
   useAdminOrg,
+  useAckIgBindMismatch,
   useApproveOrg,
   useClearOrgInstagramToken,
   useDenyOrg,
@@ -41,6 +42,7 @@ import {
   QueryState,
   StatusPill,
   UnconfirmedIgChip,
+  IgBindMismatchChip,
 } from "../../components/admin/AdminPrimitives";
 import {
   formatDate,
@@ -68,6 +70,7 @@ export default function AdminOrgDetailPage() {
   const deny = useDenyOrg();
   const undeny = useUndenyOrg();
   const resendConnect = useResendOrgConnect();
+  const ackMismatch = useAckIgBindMismatch();
   const clearIg = useClearOrgInstagramToken();
   const erase = useEraseOrg();
   const sendEmail = useSendOrgEmail();
@@ -89,7 +92,8 @@ export default function AdminOrgDetailPage() {
     undeny.isPending ||
     clearIg.isPending ||
     erase.isPending ||
-    resendConnect.isPending;
+    resendConnect.isPending ||
+    ackMismatch.isPending;
   const canWriteEmail = Boolean(data?.eduEmail) && !erased;
   const tokenExpired =
     data?.instagramTokenExpiresAt !== null &&
@@ -99,9 +103,31 @@ export default function AdminOrgDetailPage() {
     data?.instagramTokenExpiresAt !== null &&
     data?.instagramTokenExpiresAt !== undefined;
   const canErase = Boolean(data?.instagramHandle) && !erased;
-  const igUsername = data?.instagramHandle?.replace(/^@/, "") || null;
-  const claimedHandle = igUsername ? `@${igUsername}` : null;
-  const igProfileUrl = instagramProfileUrl(igUsername);
+  const liveHandle =
+    data?.instagramUsername?.replace(/^@/, "") ||
+    data?.instagramHandle?.replace(/^@/, "") ||
+    null;
+  const claimedBare = data?.claimedInstagramUsername?.replace(/^@/, "") || null;
+  const graphAtMismatch = data?.igBindGraphUsername?.replace(/^@/, "") || null;
+  const claimedHandle = claimedBare
+    ? `@${claimedBare}`
+    : liveHandle
+      ? `@${liveHandle}`
+      : null;
+  const connectedHandle = liveHandle ? `@${liveHandle}` : null;
+  const mismatchConnected = graphAtMismatch
+    ? `@${graphAtMismatch}`
+    : connectedHandle;
+  const igProfileUrl = instagramProfileUrl(liveHandle ?? claimedBare);
+  const mismatchOpen = Boolean(
+    data?.igBindMismatchedAt && !data.igBindMismatchAckedAt,
+  );
+  const liveRenamedSinceMismatch = Boolean(
+    mismatchOpen &&
+      graphAtMismatch &&
+      liveHandle &&
+      graphAtMismatch.toLowerCase() !== liveHandle.toLowerCase(),
+  );
 
   async function onApprove() {
     if (!data?.orgId) return;
@@ -135,6 +161,22 @@ export default function AdminOrgDetailPage() {
         err instanceof ApiError
           ? err.message
           : "Could not resend the connect email.",
+      );
+    }
+  }
+
+  async function onAckMismatch() {
+    if (!data?.orgId) return;
+    setActionError(null);
+    setActionNotice(null);
+    try {
+      await ackMismatch.mutateAsync(data.orgId);
+      setActionNotice("Instagram bind mismatch acknowledged.");
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not acknowledge the Instagram bind mismatch.",
       );
     }
   }
@@ -306,7 +348,7 @@ export default function AdminOrgDetailPage() {
             }
           />
 
-          {eraseConfirmOpen && canErase && claimedHandle && (
+          {eraseConfirmOpen && canErase && connectedHandle && (
             <Modal
               onClose={cancelEraseConfirm}
               title="Erase this organization"
@@ -317,7 +359,7 @@ export default function AdminOrgDetailPage() {
                 <TextField
                   id="erase-org-confirm"
                   data-testid="erase-org-confirm"
-                  label={`Type ${claimedHandle} exactly`}
+                  label={`Type ${connectedHandle} exactly`}
                   size="compact"
                   value={eraseTyped}
                   autoComplete="off"
@@ -418,22 +460,53 @@ export default function AdminOrgDetailPage() {
             </Panel>
           )}
 
+          {!erased && mismatchOpen && (
+            <Panel title="Instagram bind mismatch">
+              <div className="space-y-3 px-4 py-4">
+                <p className="text-sm font-medium text-buzz-inkMuted">
+                  This organization connected{" "}
+                  {mismatchConnected ?? "a different @"} after applying as{" "}
+                  {claimedHandle ?? "another handle"}
+                  {liveRenamedSinceMismatch
+                    ? `. Live handle is now ${connectedHandle}.`
+                    : "."}{" "}
+                  Portal access is already open. Ack once you have looked.
+                </p>
+                <ActionButton
+                  testId="ack-ig-bind-mismatch"
+                  disabled={busy}
+                  onClick={() => void onAckMismatch()}
+                >
+                  Ack mismatch
+                </ActionButton>
+              </div>
+            </Panel>
+          )}
+
           <Panel title="Profile">
             <FieldGrid>
-              <Field label="Claimed Instagram">
-                {claimedHandle && igProfileUrl ? (
+              <Field label="Claimed handle">
+                {claimedBare ? (
                   <span className="inline-flex flex-wrap items-center gap-2 font-semibold text-buzz-ink">
-                    <a
-                      href={igProfileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-buzz-coral hover:underline"
-                    >
-                      {claimedHandle}
-                    </a>
+                    @{claimedBare}
+                    {mismatchOpen && <IgBindMismatchChip />}
                     {!data.instagramHandleConfirmed &&
                       data.status !== "active" && <UnconfirmedIgChip />}
                   </span>
+                ) : (
+                  "—"
+                )}
+              </Field>
+              <Field label="Connected Instagram">
+                {connectedHandle && igProfileUrl ? (
+                  <a
+                    href={igProfileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
+                  >
+                    {connectedHandle}
+                  </a>
                 ) : (
                   "—"
                 )}

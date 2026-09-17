@@ -10,12 +10,16 @@
 import { Link } from "react-router-dom";
 import { useAdminOverview } from "../../api/hooks/useAdminHooks";
 import {
+  AdminTable,
+  Cell,
   CountMark,
   PageHeading,
   Panel,
   Pill,
   QueryState,
+  Row,
 } from "../../components/admin/AdminPrimitives";
+import { LinkButton } from "../../components/forms/controls";
 import {
   QUEUE_META,
   SIGNAL_META,
@@ -103,6 +107,46 @@ export default function AdminOverviewPage() {
               />
             ))}
           </div>
+
+          <Panel
+            title="Needs a look"
+            description="Instagram identity tickets and Connect handle mismatches. Approve or deny a ticket; Ack a mismatch on the org."
+          >
+            <div data-testid="needs-a-look">
+              <AdminTable
+                headers={["Org", "Why", "Waiting", ""]}
+                isEmpty={(overview.data.items ?? []).length === 0}
+                empty="No Instagram identity items."
+              >
+                {(overview.data.items ?? []).map((item) => (
+                  <Row key={`${item.kind}-${item.id}`}>
+                    <Cell>
+                      <span className="font-semibold text-buzz-ink">
+                        {item.orgName ?? "Organization"}
+                      </span>
+                      <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
+                        {item.kind === "ig_change_pending"
+                          ? "Identity request"
+                          : "Bind mismatch"}
+                      </span>
+                    </Cell>
+                    <Cell muted>{item.subtitle}</Cell>
+                    <Cell muted>{formatElapsed(item.createdAt ?? null)}</Cell>
+                    <Cell align="right">
+                      <LinkButton
+                        to={item.href}
+                        size="compact"
+                        variant="outline"
+                        data-testid={`attention-${item.kind}-${item.id}`}
+                      >
+                        Open
+                      </LinkButton>
+                    </Cell>
+                  </Row>
+                ))}
+              </AdminTable>
+            </div>
+          </Panel>
 
           <Panel
             title="Warnings"

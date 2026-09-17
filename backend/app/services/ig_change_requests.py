@@ -32,7 +32,11 @@ from app.services.email import (
     send_org_ig_switch_connect_email,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
-from app.services.org_apply import assert_handle_available, normalize_claimed_handle
+from app.services.org_apply import (
+    assert_handle_available,
+    clear_ig_bind_mismatch,
+    normalize_claimed_handle,
+)
 from app.services.org_connect import create_org_connect_token
 
 logger = logging.getLogger(__name__)
@@ -339,6 +343,8 @@ async def approve_request(
         user.instagram_token_user_id = None
         user.instagram_username = req.requested_handle
         user.status = OrgUserStatus.PENDING_INSTAGRAM.value
+        org.claimed_instagram_username = req.requested_handle
+        clear_ig_bind_mismatch(org)
         bump_token_version(user)
         connect_token = await create_org_connect_token(db, org, user)
         await db.flush()

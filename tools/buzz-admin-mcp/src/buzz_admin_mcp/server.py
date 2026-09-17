@@ -395,6 +395,16 @@ def deny_ig_change_request(request_id: str) -> str:
 
 
 @mcp.tool()
+def ack_ig_bind_mismatch(org_id: str) -> str:
+    """Dismiss an open Connect handle mismatch. Does not change Graph bind."""
+    return _call(
+        lambda: _client.request(
+            "POST", f"/api/admin/orgs/{org_id}/ig-bind-mismatch/ack"
+        )
+    )
+
+
+@mcp.tool()
 def list_drop_requests(status: str | None = None, brand_id: str | None = None) -> str:
     params: dict[str, Any] = {}
     if status:

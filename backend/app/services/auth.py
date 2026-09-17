@@ -32,7 +32,7 @@ from app.services.instagram import (
     canonical_instagram_handle,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
-from app.services.org_apply import assert_handle_available
+from app.services.org_apply import assert_handle_available, flag_ig_bind_mismatch
 
 logger = logging.getLogger(__name__)
 
@@ -108,15 +108,6 @@ async def handle_instagram_callback(
                 "This Instagram account is already linked to another Buzz user.",
                 status_code=409,
             )
-        claimed = canonical_instagram_handle(target.instagram_username)
-        graph_handle = canonical_instagram_handle(profile.username)
-        if claimed and graph_handle and claimed.lower() != graph_handle.lower():
-            logger.info(
-                "instagram bind handle overwrite user_id=%s claimed=%s graph=%s",
-                target.id,
-                claimed,
-                graph_handle,
-            )
         user = target
     elif existing is None:
         raise BuzzAPIException(
@@ -134,16 +125,28 @@ async def handle_instagram_callback(
     if graph_handle:
         await assert_handle_available(db, graph_handle, exclude_user_id=user.id)
 
+    org = None
+    if user.portal_role == PortalRole.ORG.value:
+        org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+        if bind_user_id is not None and org is not None:
+            claimed = canonical_instagram_handle(org.claimed_instagram_username)
+            if claimed and graph_handle and claimed.lower() != graph_handle.lower():
+                logger.info(
+                    "instagram bind handle overwrite user_id=%s claimed=%s graph=%s",
+                    user.id,
+                    claimed,
+                    graph_handle,
+                )
+                flag_ig_bind_mismatch(org, graph_handle, now)
+
     _apply_ig_credentials(user, profile, short.user_id, long.access_token, now, expires_at)
     user.last_login_at = now
     became_active = False
     if bind_user_id is not None or user.status == OrgUserStatus.PENDING_INSTAGRAM.value:
         user.status = OrgUserStatus.ACTIVE.value
         became_active = True
-    if user.portal_role == PortalRole.ORG.value:
-        org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
-        if org is not None:
-            org.instagram_handle_confirmed = True
+    if org is not None:
+        org.instagram_handle_confirmed = True
 
     try:
         await db.flush()

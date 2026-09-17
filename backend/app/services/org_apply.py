@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 import uuid
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import func, select
@@ -37,6 +38,28 @@ def normalize_claimed_handle(raw: str) -> str:
             status_code=400,
         )
     return handle
+
+
+def clear_ig_bind_mismatch(org: Organization) -> None:
+    """Drop an open or historical Connect mismatch flag (switch / erase)."""
+
+    org.ig_bind_mismatched_at = None
+    org.ig_bind_graph_username = None
+    org.ig_bind_mismatch_acked_at = None
+
+
+def flag_ig_bind_mismatch(org: Organization, graph_handle: str, now: datetime) -> None:
+    """Record that Connect bound a different @ than the claimed tester target."""
+
+    org.ig_bind_mismatched_at = now
+    org.ig_bind_graph_username = graph_handle
+    org.ig_bind_mismatch_acked_at = None
+
+
+def ig_bind_mismatch_open(org: Organization | None) -> bool:
+    if org is None or org.ig_bind_mismatched_at is None:
+        return False
+    return org.ig_bind_mismatch_acked_at is None
 
 
 async def assert_handle_available(
@@ -100,6 +123,7 @@ async def apply_org(
         state=payload.state,
         contact_name=payload.contact_name,
         instagram_handle_confirmed=payload.handle_confirmed,
+        claimed_instagram_username=handle,
     )
     apply_to_org(org, addr)
     db.add(user)

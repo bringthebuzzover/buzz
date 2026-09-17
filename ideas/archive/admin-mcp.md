@@ -37,7 +37,7 @@ timestamps, publish/hide/finalize latches. Use named admin actions.
 | Table | Hidden | Read | Patch | Action-only |
 | ----- | ------ | ---- | ----- | ----------- |
 | `users` | hash, IG token, Graph user ids, `token_version` | role, status, emails, handle, token *timestamps*, login/created | `edu_email`, `instagram_username` | `status` (approve/deny/erase/clear-token) |
-| `organizations` | — | all | name, university, tiktok, members, category, contact, campus city/state, shipping_* (recomputes `delivery_address`) | `approved_at`, `user_id`, `follower_count`, `instagram_handle_confirmed` |
+| `organizations` | — | all | name, university, tiktok, members, category, contact, campus city/state, shipping_* (recomputes `delivery_address`) | `approved_at`, `user_id`, `follower_count`, `instagram_handle_confirmed`, claimed IG / bind-mismatch timestamps (ack is named action) |
 | `brands` | — | all | `brand_name`, `company_email`, `instagram_handle`, `intent_message` | `status`, `approved_at`, `user_id` |
 | `drops` | — | all | same as `AdminDropConfigPatch` (title/desc/image/location/capacity/window/units/hashtag/`brand_can_edit_creative`) | tracker, publish, hide, reopen, finalize, FKs, leftover `tracking_number` |
 | `drop_requests` | — | all | `message`, `notes` | `status`, `converted_drop_id`, `brand_id` |
