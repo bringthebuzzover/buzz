@@ -10,6 +10,7 @@
  * Runs in the normal suite (`npm run e2e`); the heavy atlas does not.
  */
 import { test, expect, type Page } from "@playwright/test";
+import { waitForAuthSettled } from "./authSettled";
 
 const MOBILE = { width: 375, height: 812 };
 const DESKTOP = { width: 1440, height: 900 };
@@ -25,6 +26,7 @@ const PUBLIC_ROUTES = [
   "/login",
   "/brand/login",
   "/org/apply",
+  "/d/00000000-0000-0000-0000-000000000063",
   "/brand/apply",
   "/privacy",
   "/terms",
@@ -46,6 +48,20 @@ async function gotoAnonymous(page: Page, route: string) {
     .getByText(/restoring your session/i)
     .waitFor({ state: "hidden", timeout: 8_000 })
     .catch(() => undefined);
+}
+
+async function gotoUiKit(page: Page) {
+  await page.goto("/admin/login");
+  await page.getByTestId("admin-email").fill("admin@bringthebuzzover.com");
+  await page.getByTestId("admin-password").fill("buzzdev123");
+  await expect(page.getByTestId("admin-email")).toHaveValue(
+    "admin@bringthebuzzover.com",
+  );
+  await expect(page.getByTestId("admin-password")).toHaveValue("buzzdev123");
+  await page.getByTestId("admin-login-submit").click();
+  await waitForAuthSettled(page, "admin-overview");
+  await page.goto("/admin/ui-kit");
+  await expect(page.getByRole("heading", { name: "UI kit" })).toBeVisible();
 }
 
 test.describe("no horizontal overflow", () => {
@@ -107,7 +123,7 @@ test("the auth shell spans the space between header and footer", async ({ page }
 
 test("controls on one row share a height", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
-  await gotoAnonymous(page, "/dev/ui-kit");
+  await gotoUiKit(page);
 
   const field = await page.locator("#k-inline").boundingBox();
   const button = await page.getByRole("button", { name: "Save" }).boundingBox();
@@ -122,7 +138,7 @@ test("controls on one row share a height", async ({ page }) => {
 
 test("every corner radius comes from a token", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
-  await gotoAnonymous(page, "/dev/ui-kit");
+  await gotoUiKit(page);
 
   const strays = await page.evaluate((allowed) => {
     const out: string[] = [];
@@ -140,7 +156,7 @@ test("every corner radius comes from a token", async ({ page }) => {
 
 test("the checkbox is drawn by us, not the OS", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
-  await gotoAnonymous(page, "/dev/ui-kit");
+  await gotoUiKit(page);
 
   const box = page.locator('input[type="checkbox"]').first();
   const appearance = await box.evaluate(
@@ -156,7 +172,7 @@ test("the checkbox is drawn by us, not the OS", async ({ page }) => {
 
 test("the modal traps focus, closes on Escape, and locks the page", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
-  await gotoAnonymous(page, "/dev/ui-kit");
+  await gotoUiKit(page);
 
   await page.getByRole("button", { name: "Open modal" }).click();
   const dialog = page.getByRole("dialog");

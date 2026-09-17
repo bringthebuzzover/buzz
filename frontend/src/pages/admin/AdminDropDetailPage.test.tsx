@@ -65,6 +65,7 @@ function adminDrop(overrides: Record<string, unknown> = {}) {
     linkedPostCount: 0,
     pendingSuggestionCount: 0,
     applicants: [],
+    intents: [],
     trackerEvents: [],
     brandCanEditCreative: false,
     ...overrides,
@@ -151,6 +152,8 @@ describe("AdminDropDetailPage", () => {
       container.querySelector('[data-testid="tab-applicants"]'),
     ).toBeTruthy();
     expect(container.querySelector('[data-testid="add-org-open"]')).toBeTruthy();
+    expect(container.textContent).toContain("Signup intents (not applicants)");
+    expect(container.querySelector('[data-testid="copy-public-drop-url"]')).toBeTruthy();
     expect(
       container.querySelector('[data-testid="brand-can-edit-creative"]'),
     ).toBeNull();

@@ -146,6 +146,14 @@ class SuggestionMatchReason(StrEnum):
     BOTH = "both"
 
 
+class DropApplyIntentStatus(StrEnum):
+    """Lifecycle for ``drop_apply_intents.status`` (PRODUCT §6.3.4 / §7.1)."""
+
+    OPEN = "open"
+    EXPIRED = "expired"
+    PROMOTED = "promoted"
+
+
 # --- Reusable SQLAlchemy `sa.Enum` instances ---------------------------------
 #
 # Declared once at module level so the same Python object is referenced by
@@ -210,6 +218,12 @@ SuggestionMatchReasonEnum = sa.Enum(
     native_enum=True,
     values_callable=_enum_values,
 )
+DropApplyIntentStatusEnum = sa.Enum(
+    DropApplyIntentStatus,
+    name="drop_apply_intent_status",
+    native_enum=True,
+    values_callable=_enum_values,
+)
 
 
 ALL_ENUM_TYPES: tuple[sa.Enum, ...] = (
@@ -224,6 +238,7 @@ ALL_ENUM_TYPES: tuple[sa.Enum, ...] = (
     SocialMediaProductTypeEnum,
     PostLinkSourceEnum,
     SuggestionMatchReasonEnum,
+    DropApplyIntentStatusEnum,
 )
 """Ordered tuple of every native ENUM type, used by the initial migration's
 ``downgrade()`` to drop the corresponding PG types after the tables are gone.

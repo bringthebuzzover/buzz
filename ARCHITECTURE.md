@@ -85,6 +85,7 @@ ORM modules under `backend/app/models/`. Services use explicit joins (no SQLAlch
 | `drop_requests` | Brand intake tickets (not live campaigns); converted to a draft drop by admin |
 | `org_ig_change_requests` | Org Instagram identity-change tickets (PRODUCT §3.1.4); approve is the identity write |
 | `drop_applications` | Org ↔ drop; decision applied/accepted/denied |
+| `drop_apply_intents` | Org ↔ drop **intent** before `active` (open / expired / promoted); not a brand applicant |
 | `social_posts` | Cached IG media + metrics; unique `(org_id, platform, external_id)`. **Stories unsupported** — `metric_sync` does not catalog `STORY`; refresh/autolink/link skip them |
 | `post_campaign_links` | Confirmed post → application (one post → one campaign) |
 | `post_campaign_suggestions` | Autolink pending accept/dismiss |
@@ -108,7 +109,7 @@ Mounted in `backend/app/main.py`:
 | `/api/health`, `/api/config` | `routes/health.py` | Liveness + public flags |
 | `/api/auth/*` | `routes/auth.py` | IG OAuth, refresh/logout/me, brand/admin login, verify-email, password reset, deauthorize |
 | `/api/orgs/*` | `routes/orgs.py` | Apply/onboarding, address suggest/preview, org profile, IG identity-change request, post library |
-| `/api/drops/*` | `routes/drops.py` | Org feed, detail, apply, Notify Me |
+| `/api/drops/*` | `routes/drops.py` | Org feed, public/optional-auth detail, apply, Notify Me |
 | `/api/campaigns/*` | `routes/campaigns.py` | My campaigns, link/unlink, suggestions, aggregate |
 | `/api/brands/*` | `routes/brands.py` | Apply, brand profile, drops, finalize, aggregates |
 | `/api/admin/*` | `routes/admin.py` | Queues, lifecycle, org/brand erase, org IG identity-change review, compose email, bulk Connect Instagram email, late-add org, sync+autolink on an Active drop, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |

@@ -45,16 +45,20 @@ export function Modal({
             className,
           )}
         >
-          <Dialog.Title className={hideTitle ? "sr-only" : cn(TEXT.h2, "px-6 pt-6")}>
+          <Dialog.Title
+            className={hideTitle ? "sr-only" : cn(TEXT.h2, "px-6 pr-14 pt-6")}
+          >
             {title}
           </Dialog.Title>
           {description && (
-            <Dialog.Description className={cn(TEXT.meta, "px-6 pt-1")}>
+            <Dialog.Description
+              className={cn(TEXT.meta, "px-6 pr-6 pt-3 leading-relaxed")}
+            >
               {description}
             </Dialog.Description>
           )}
           <Dialog.Close
-            className="absolute right-4 top-4 z-10 rounded-full p-1 text-buzz-inkMuted transition hover:bg-buzz-neutral hover:text-buzz-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-coral/40"
+            className="absolute right-6 top-6 z-10 rounded-full p-1 text-buzz-inkMuted transition hover:bg-buzz-neutral hover:text-buzz-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-coral/40"
             aria-label="Close"
           >
             <X size={20} />

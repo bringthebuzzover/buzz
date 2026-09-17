@@ -23,6 +23,7 @@ from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.drop import Drop
+from app.models.drop_apply_intent import DropApplyIntent
 from app.models.drop_request import DropRequest
 from app.models.enums import OrgCategory
 from app.models.job_run import JobRun
@@ -136,6 +137,12 @@ TABLES: dict[str, TableSpec] = {
         hidden=frozenset(),
         patchable=frozenset({"pitch", "allocated_units"}),
         filterable=frozenset({"id", "drop_id", "org_id", "decision"}),
+    ),
+    "drop_apply_intents": TableSpec(
+        DropApplyIntent,
+        hidden=frozenset(),
+        patchable=frozenset(),
+        filterable=frozenset({"id", "org_id", "drop_id", "status"}),
     ),
     "drop_application_shipments": TableSpec(
         DropApplicationShipment,

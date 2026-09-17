@@ -141,7 +141,7 @@ export default function AdminOrgsPage() {
           title="Email orgs awaiting Instagram"
           description="Send the Connect Instagram email to every org whose last step is connecting Instagram. This does not email orgs still verifying school email or awaiting approval."
         >
-          <div className="mt-6 flex justify-end gap-2">
+          <div className="mt-6 flex justify-end gap-2 px-6 pb-4">
             <Button
               type="button"
               variant="ghost"

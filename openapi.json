@@ -1165,6 +1165,14 @@
             "title": "Image",
             "type": "string"
           },
+          "intents": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AdminDropIntentItem"
+            },
+            "title": "Intents",
+            "type": "array"
+          },
           "linkedPostCount": {
             "title": "Linkedpostcount",
             "type": "integer"
@@ -1270,6 +1278,59 @@
           "confirm"
         ],
         "title": "AdminDropHideRequest",
+        "type": "object"
+      },
+      "AdminDropIntentItem": {
+        "description": "Signup intent on a drop \u2014 not a brand applicant (PRODUCT \u00a77.1).",
+        "properties": {
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "orgName": {
+            "title": "Orgname",
+            "type": "string"
+          },
+          "pitch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "updatedAt": {
+            "title": "Updatedat",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "orgId",
+          "orgName",
+          "status",
+          "pitch",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "AdminDropIntentItem",
         "type": "object"
       },
       "AdminDropItem": {
@@ -3537,6 +3598,17 @@
           "manualReopen": {
             "title": "Manualreopen",
             "type": "boolean"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
           },
           "title": {
             "title": "Title",
@@ -7265,6 +7337,28 @@
             "title": "Image",
             "type": "string"
           },
+          "intentPitch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intentpitch"
+          },
+          "intentStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intentstatus"
+          },
           "location": {
             "title": "Location",
             "type": "string"
@@ -7424,6 +7518,24 @@
           "reminderMinutes"
         ],
         "title": "DropFeedItem",
+        "type": "object"
+      },
+      "DropIntentPitchRequest": {
+        "description": "Body for ``PATCH /api/drops/{id}/intent`` (pending org pitch).",
+        "properties": {
+          "pitch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch"
+          }
+        },
+        "title": "DropIntentPitchRequest",
         "type": "object"
       },
       "DropReopenResponse": {
@@ -7970,6 +8082,18 @@
             "title": "Contactname",
             "type": "string"
           },
+          "dropId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dropid"
+          },
           "eduEmail": {
             "title": "Eduemail",
             "type": "string"
@@ -7990,6 +8114,17 @@
           "orgName": {
             "title": "Orgname",
             "type": "string"
+          },
+          "pitch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch"
           },
           "prefillToken": {
             "anyOf": [
@@ -9361,6 +9496,17 @@
           "access_token": {
             "title": "Access Token",
             "type": "string"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next"
           },
           "token_type": {
             "const": "bearer",
@@ -13057,6 +13203,22 @@
         "operationId": "instagram_bind_start_api_auth_instagram_bind_start_post",
         "parameters": [
           {
+            "in": "query",
+            "name": "next",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Next"
+            }
+          },
+          {
             "in": "header",
             "name": "authorization",
             "required": false,
@@ -13188,6 +13350,24 @@
       "get": {
         "description": "Redirect (302) to the Instagram OAuth authorize URL (\u00a73.4 Phase 1).\n\nFor Connect-after-Approve, use ``POST /api/auth/instagram/bind-start`` first\n(authenticated) which returns an authorize URL with bind state.",
         "operationId": "instagram_login_api_auth_instagram_login_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "next",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Next"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -14974,7 +15154,7 @@
     },
     "/api/drops/{drop_id}": {
       "get": {
-        "description": "Org-facing drop detail.",
+        "description": "Org-facing drop detail, or public creative fields without a session.",
         "operationId": "get_drop_api_drops__drop_id__get",
         "parameters": [
           {
@@ -15097,6 +15277,76 @@
           }
         },
         "summary": "Apply Drop",
+        "tags": [
+          "drops"
+        ]
+      }
+    },
+    "/api/drops/{drop_id}/intent": {
+      "patch": {
+        "description": "Pending org upserts pitch on a signup intent (not a real apply).",
+        "operationId": "patch_drop_intent_api_drops__drop_id__intent_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DropIntentPitchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_DropDetailResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Patch Drop Intent",
         "tags": [
           "drops"
         ]

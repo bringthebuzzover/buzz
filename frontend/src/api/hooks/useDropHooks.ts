@@ -8,7 +8,7 @@ import {
   useQueryClient,
   type InfiniteData,
 } from "@tanstack/react-query";
-import { apiFetch, type ApiResult } from "../client";
+import { apiFetch, ApiError, type ApiResult } from "../client";
 import { useAuth } from "../../contexts/AuthContext";
 import type { components } from "../generated/schema";
 
@@ -60,14 +60,36 @@ export function useOrgDropFeed() {
 }
 
 export function useDropDetail(dropId: string | undefined) {
-  const { status } = useAuth();
   return useQuery({
     queryKey: ["drop-detail", dropId],
     queryFn: async () => {
       const { data } = await apiFetch<DropDetail>(`/api/drops/${dropId}`);
       return data;
     },
-    enabled: status === "authenticated" && !!dropId,
+    enabled: Boolean(dropId),
+    retry: (count, err) => {
+      if (err instanceof ApiError && err.code === "DROP_NOT_OPEN") {
+        return false;
+      }
+      return count < 2;
+    },
+  });
+}
+
+export function usePatchDropIntent(dropId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (pitch: string | null) => {
+      const { data } = await apiFetch<DropDetail>(`/api/drops/${dropId}/intent`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pitch }),
+      });
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["drop-detail", dropId], data);
+    },
   });
 }
 
@@ -75,15 +97,22 @@ export function useApplyToDrop(dropId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (pitch?: string) => {
-      const { data } = await apiFetch<DropApplication>(
-        `/api/drops/${dropId}/apply`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pitch: pitch ?? null }),
-        },
-      );
-      return data;
+      try {
+        const { data } = await apiFetch<DropApplication>(
+          `/api/drops/${dropId}/apply`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pitch: pitch ?? null }),
+          },
+        );
+        return data;
+      } catch (err) {
+        if (err instanceof ApiError && err.code === "ALREADY_APPLIED") {
+          return null;
+        }
+        throw err;
+      }
     },
     onSuccess: async () => {
       // Optimistic flip so the feed card shows "Already applied" before the
@@ -102,6 +131,11 @@ export function useApplyToDrop(dropId: string) {
         DROP_FEED_KEY,
         markApplied,
       );
+      queryClient.setQueryData<DropDetail>(
+        ["drop-detail", dropId],
+        (old: DropDetail | undefined) =>
+          old ? { ...old, alreadyApplied: true } : old,
+      );
       await queryClient.invalidateQueries({ queryKey: DROP_FEED_KEY });
       // Re-assert after refetch: a stale/incorrect alreadyApplied=false from the
       // server must not wipe the successful apply state in the UI.
@@ -110,6 +144,11 @@ export function useApplyToDrop(dropId: string) {
         markApplied,
       );
       await queryClient.invalidateQueries({ queryKey: ["drop-detail", dropId] });
+      queryClient.setQueryData<DropDetail>(
+        ["drop-detail", dropId],
+        (old: DropDetail | undefined) =>
+          old ? { ...old, alreadyApplied: true } : old,
+      );
       await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
     },
   });

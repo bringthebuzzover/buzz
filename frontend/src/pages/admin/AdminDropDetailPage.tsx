@@ -66,6 +66,7 @@ import {
   toDatetimeLocalValue,
 } from "../../components/admin/labels";
 import AddOrgToDropModal from "../../components/admin/AddOrgToDropModal";
+import CopyPublicDropUrl from "../../components/drop/CopyPublicDropUrl";
 import { carrierLabel, type Shipment } from "../../utils/shipments";
 
 const TABS = [
@@ -150,6 +151,8 @@ function httpsImageSrc(value: string): string | null {
     return null;
   }
 }
+
+const INTENT_HEADERS = ["Organization", "Status", "Pitch", "Created"] as const;
 
 const APPLICANT_HEADERS = [
   "Organization",
@@ -737,6 +740,44 @@ function ApplicantShipmentEditor({
   );
 }
 
+function SignupIntents({
+  intents,
+}: {
+  intents: AdminDropDetail["intents"];
+}) {
+  return (
+    <div className="border-b border-buzz-lineMid">
+      <div className="px-4 py-3">
+        <h3 className={TEXT.h3}>Signup intents (not applicants)</h3>
+        <p className={cn(TEXT.meta, "mt-1")}>
+          Orgs who asked to apply before they were approved and connected.
+          Brands never see these rows.
+        </p>
+      </div>
+      <AdminTable
+        headers={INTENT_HEADERS}
+        isEmpty={intents.length === 0}
+        empty="No signup intents on this drop."
+      >
+        {intents.map((intent) => (
+          <Row key={intent.id}>
+            <Cell>
+              <span className="font-semibold text-buzz-ink">{intent.orgName}</span>
+            </Cell>
+            <Cell>
+              <Pill tone={intent.status === "expired" ? "warn" : "neutral"}>
+                {intent.status}
+              </Pill>
+            </Cell>
+            <Cell muted>{intent.pitch ?? "—"}</Cell>
+            <Cell muted>{formatDateTime(intent.createdAt)}</Cell>
+          </Row>
+        ))}
+      </AdminTable>
+    </div>
+  );
+}
+
 function canLateAdd(drop: AdminDropDetail): boolean {
   return (
     drop.publishedAt != null &&
@@ -1049,6 +1090,12 @@ export default function AdminDropDetailPage() {
             }
           />
 
+          {data.publishedAt != null ? (
+            <div className="mb-4">
+              <CopyPublicDropUrl dropId={data.id} />
+            </div>
+          ) : null}
+
           <DropTabs
             active={activeTab}
             onChange={(id) => setSearchParams({ tab: id })}
@@ -1104,6 +1151,7 @@ export default function AdminDropDetailPage() {
           )}
           {activeTab === "applicants" && (
             <Panel>
+              <SignupIntents intents={data.intents ?? []} />
               {canLateAdd(data) && (
                 <div className="flex justify-end border-b border-buzz-lineMid px-4 py-3">
                   <ActionButton
