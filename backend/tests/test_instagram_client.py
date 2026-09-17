@@ -32,6 +32,99 @@ def _client(handler) -> HttpInstagramClient:
     return HttpInstagramClient(http=httpx.AsyncClient(transport=transport))
 
 
+async def test_exchange_code_parses_documented_data_array() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "access_token": "IGQVJ-short",
+                        "user_id": "1020",
+                        "permissions": "instagram_business_basic",
+                    }
+                ]
+            },
+        )
+
+    out = await _client(handler).exchange_code("the-code")
+    assert out.access_token == "IGQVJ-short"
+    assert out.user_id == "1020"
+
+
+async def test_exchange_code_parses_legacy_flat_payload() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"access_token": "flat-short", "user_id": 7788},
+        )
+
+    out = await _client(handler).exchange_code("c")
+    assert out.access_token == "flat-short"
+    assert out.user_id == "7788"
+
+
+async def test_exchange_code_http_error_logs_meta_not_secrets(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            400,
+            json={
+                "error_type": "OAuthException",
+                "code": 400,
+                "error_message": "Matching code was not found or was already used",
+            },
+        )
+
+    with caplog.at_level("WARNING", logger="app.services.instagram"):
+        with pytest.raises(BuzzAPIException) as exc:
+            await _client(handler).exchange_code("c")
+    assert exc.value.status_code == 401
+    assert "client_secret" not in exc.value.message
+    assert "Matching code was not found" in caplog.text
+    assert "IGQVJ" not in caplog.text
+
+
+async def test_fetch_profile_parses_data_array_user_id() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "user_id" in request.url.params["fields"]
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "user_id": "ig1",
+                        "username": "campus",
+                        "account_type": "BUSINESS",
+                        "followers_count": 9,
+                    }
+                ]
+            },
+        )
+
+    profile = await _client(handler).fetch_profile("tok")
+    assert profile.id == "ig1"
+    assert profile.username == "campus"
+    assert profile.followers_count == 9
+
+
+async def test_fetch_profile_prefers_id_over_user_id() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "id": "app-scoped",
+                "user_id": "ig-pro",
+                "username": "campus",
+                "account_type": "MEDIA_CREATOR",
+            },
+        )
+
+    profile = await _client(handler).fetch_profile("tok")
+    assert profile.id == "app-scoped"
+
+
 async def test_fetch_profile_includes_followers_count() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert "followers_count" in request.url.params["fields"]

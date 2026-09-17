@@ -13,9 +13,11 @@ Only the long-lived token is persisted (encrypted) by the caller.
 
 from __future__ import annotations
 
+import logging
+from collections.abc import Awaitable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Protocol, runtime_checkable
+from typing import Any, NoReturn, Protocol, runtime_checkable
 from urllib.parse import urlencode
 
 import httpx
@@ -23,6 +25,8 @@ import httpx
 from app import errors
 from app.config import settings
 from app.exceptions import BuzzAPIException
+
+logger = logging.getLogger(__name__)
 
 # Instagram Login Graph ``account_type`` (Meta get-started: Business | Media_Creator).
 ACCOUNT_TYPE_BUSINESS = "BUSINESS"
@@ -185,6 +189,69 @@ def _ig_error(message: str) -> BuzzAPIException:
     return BuzzAPIException(code=errors.UNAUTHORIZED, message=message, status_code=401)
 
 
+def _unwrap_ig_payload(body: dict[str, Any]) -> dict[str, Any]:
+    """Flat object, or Meta's documented ``{"data": [{...}]}`` token/profile body."""
+
+    data = body.get("data")
+    if isinstance(data, list) and data and isinstance(data[0], dict):
+        return data[0]
+    return body
+
+
+def _safe_ig_failure_detail(body: object | None) -> str:
+    """Log Meta error fields or JSON keys — never token/secret values."""
+
+    if not isinstance(body, dict):
+        return "empty" if body is None else "non_object"
+    err = body["error"] if isinstance(body.get("error"), dict) else body
+    typ = err.get("error_type") or err.get("type")
+    msg = err.get("error_message") or err.get("message")
+    if typ or msg:
+        return f"type={typ} message={msg} code={err.get('code')}"
+    return "keys=" + ",".join(sorted(str(k) for k in body))
+
+
+def _fail_ig(
+    op: str,
+    message: str,
+    *,
+    body: object | None = None,
+    exc: BaseException | None = None,
+) -> NoReturn:
+    if isinstance(exc, httpx.HTTPStatusError):
+        try:
+            body = exc.response.json()
+        except ValueError:
+            body = None
+        logger.warning(
+            "instagram %s failed status=%s detail=%s",
+            op,
+            exc.response.status_code,
+            _safe_ig_failure_detail(body),
+        )
+    elif isinstance(exc, httpx.HTTPError):
+        logger.warning("instagram %s transport error type=%s", op, type(exc).__name__)
+    else:
+        logger.warning("instagram %s failed detail=%s", op, _safe_ig_failure_detail(body))
+    raise _ig_error(message) from None
+
+
+async def _ig_json(resp_coro: Awaitable[httpx.Response], op: str, message: str) -> dict[str, Any]:
+    """Await an IG HTTP call, unwrap ``data[]`` if present, map failures to 401."""
+
+    try:
+        resp = await resp_coro
+        resp.raise_for_status()
+        body = resp.json()
+    except httpx.HTTPError as exc:
+        _fail_ig(op, message, exc=exc)
+    except ValueError:
+        _fail_ig(op, message)
+    if not isinstance(body, dict):
+        _fail_ig(op, message, body=body)
+    return _unwrap_ig_payload(body)
+
+
 # FEED (and non-reel) insights — profile_* / follows are FEED/STORY-only on Graph.
 _FEED_INSIGHT_METRICS = (
     "reach,views,saved,shares,reposts,total_interactions," "profile_visits,profile_activity,follows"
@@ -265,8 +332,8 @@ class HttpInstagramClient:
 
     async def exchange_code(self, code: str) -> ShortLivedToken:
         client = await self._client()
-        try:
-            resp = await client.post(
+        payload = await _ig_json(
+            client.post(
                 settings.INSTAGRAM_TOKEN_URL,
                 data={
                     "client_id": settings.INSTAGRAM_CLIENT_ID,
@@ -275,62 +342,68 @@ class HttpInstagramClient:
                     "redirect_uri": settings.INSTAGRAM_REDIRECT_URI,
                     "code": code,
                 },
+            ),
+            "code exchange",
+            "Instagram code exchange failed.",
+        )
+        token, user_id = payload.get("access_token"), payload.get("user_id")
+        if not token or user_id is None:
+            _fail_ig(
+                "code exchange",
+                "Instagram code exchange returned no token.",
+                body=payload,
             )
-            resp.raise_for_status()
-            body = resp.json()
-        except httpx.HTTPError:
-            raise _ig_error("Instagram code exchange failed.") from None
-
-        access_token = body.get("access_token")
-        user_id = body.get("user_id")
-        if not access_token or user_id is None:
-            raise _ig_error("Instagram code exchange returned no token.")
-        return ShortLivedToken(access_token=str(access_token), user_id=str(user_id))
+        return ShortLivedToken(access_token=str(token), user_id=str(user_id))
 
     async def exchange_for_long_lived(self, short_token: str) -> LongLivedToken:
         client = await self._client()
-        try:
-            resp = await client.get(
+        payload = await _ig_json(
+            client.get(
                 f"{settings.INSTAGRAM_GRAPH_BASE}/access_token",
                 params={
                     "grant_type": "ig_exchange_token",
                     "client_secret": settings.INSTAGRAM_CLIENT_SECRET,
                     "access_token": short_token,
                 },
+            ),
+            "long-lived token exchange",
+            "Instagram long-lived token exchange failed.",
+        )
+        token, expires_in = payload.get("access_token"), payload.get("expires_in")
+        if not token or expires_in is None:
+            _fail_ig(
+                "long-lived token exchange",
+                "Instagram long-lived exchange returned no token.",
+                body=payload,
             )
-            resp.raise_for_status()
-            body = resp.json()
-        except httpx.HTTPError:
-            raise _ig_error("Instagram long-lived token exchange failed.") from None
-
-        access_token = body.get("access_token")
-        expires_in = body.get("expires_in")
-        if not access_token or expires_in is None:
-            raise _ig_error("Instagram long-lived exchange returned no token.")
-        return LongLivedToken(access_token=str(access_token), expires_in=int(expires_in))
+        return LongLivedToken(access_token=str(token), expires_in=int(expires_in))
 
     async def fetch_profile(self, long_token: str) -> InstagramProfile:
         client = await self._client()
-        try:
-            resp = await client.get(
+        payload = await _ig_json(
+            client.get(
                 f"{settings.INSTAGRAM_GRAPH_BASE}/me",
                 params={
-                    "fields": "id,username,account_type,followers_count",
+                    "fields": "id,user_id,username,account_type,followers_count",
                     "access_token": long_token,
                 },
+            ),
+            "profile lookup",
+            "Instagram profile lookup failed.",
+        )
+        ig_id = payload.get("id") or payload.get("user_id")
+        account_type = payload.get("account_type")
+        if not ig_id or not account_type:
+            _fail_ig(
+                "profile lookup",
+                "Instagram profile lookup returned no account.",
+                body=payload,
             )
-            resp.raise_for_status()
-            body = resp.json()
-        except httpx.HTTPError:
-            raise _ig_error("Instagram profile lookup failed.") from None
-
-        if not body.get("id") or not body.get("account_type"):
-            raise _ig_error("Instagram profile lookup returned no account.")
         return InstagramProfile(
-            id=str(body["id"]),
-            username=str(body.get("username", "")),
-            account_type=str(body["account_type"]),
-            followers_count=_optional_int_field(body, "followers_count"),
+            id=str(ig_id),
+            username=str(payload.get("username", "")),
+            account_type=str(account_type),
+            followers_count=_optional_int_field(payload, "followers_count"),
         )
 
     # --- Stage 8: media sync (§10.1) + token refresh (§10.5) -----------------
