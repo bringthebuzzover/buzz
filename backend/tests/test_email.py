@@ -195,3 +195,64 @@ def test_applied_on_from_source_row_key() -> None:
     )
     assert email.applied_on_from_source_row_key("not-a-date|x@y.edu") is None
     assert email.applied_on_from_source_row_key(None) is None
+
+
+async def test_org_approved_email_links_tester_invite_tab(monkeypatch, _resend_key) -> None:
+    monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"id": "email_connect"})
+
+    _stub_transport(monkeypatch, handler)
+    assert (
+        await email.send_org_approved_email(
+            "org@campus.edu",
+            org_name="Campus Greeks",
+            connect_token="tok-connect",
+        )
+        is True
+    )
+    html = seen["body"]["html"]
+    text = seen["body"]["text"]
+    href = 'href="https://www.instagram.com/accounts/manage_access/"'
+    assert href in html
+    assert "Tester Invites tab" in html
+    assert "invitation from BUZZ" in html
+    assert "instagram.com/accounts/manage_access" in html
+    assert "https://www.instagram.com/accounts/manage_access/" in text
+    assert "Tester Invites tab" in text
+    assert "invitation from BUZZ" in text
+    assert "(Tester Invites)" not in text
+    assert "(Tester Invites)" not in html
+
+
+async def test_org_ig_switch_email_tester_invite_copy(monkeypatch, _resend_key) -> None:
+    monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"id": "email_switch"})
+
+    _stub_transport(monkeypatch, handler)
+    assert (
+        await email.send_org_ig_switch_connect_email(
+            "org@campus.edu",
+            org_name="Campus Greeks",
+            connect_token="tok-switch",
+            requested_handle="newcampusig",
+        )
+        is True
+    )
+    html = seen["body"]["html"]
+    text = seen["body"]["text"]
+    assert 'href="https://www.instagram.com/accounts/manage_access/"' in html
+    assert "Tester Invites tab" in html and "Tester Invites tab" in text
+    assert "invitation from BUZZ for @newcampusig" in html
+    assert "invitation from BUZZ for @newcampusig" in text

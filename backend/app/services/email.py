@@ -15,6 +15,7 @@ success; ``False`` on unset key / HTTP error / exception.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import datetime
 
 import httpx
@@ -125,8 +126,7 @@ async def send_org_approved_email(
             button="Connect Instagram",
             paragraphs=[
                 f"Good news — {name} has been approved on Buzz.",
-                "First, accept the Instagram Tester invite at "
-                "instagram.com/accounts/manage_access/ (Tester Invites).",
+                _tester_invite_html(),
                 "Then connect the organization's Business or Creator Instagram "
                 "account to finish setup.",
             ],
@@ -166,9 +166,8 @@ async def send_org_ig_switch_connect_email(
     subject = "Connect the new Instagram account for your Buzz organization"
     text = (
         f"Buzz approved an Instagram account change for {name}.\n\n"
-        f"Accept the Instagram Tester invite for {handle} at "
-        "instagram.com/accounts/manage_access/ (Tester Invites), then connect "
-        f"that Business or Creator account:\n{connect_url}\n\n"
+        f"{_tester_invite_text(handle=handle)} Then connect that Business or "
+        f"Creator account:\n{connect_url}\n\n"
         "Your Buzz portal is closed until you connect. Campaign history stays."
     )
     html = _cta_html(
@@ -177,8 +176,7 @@ async def send_org_ig_switch_connect_email(
         button="Connect Instagram",
         paragraphs=[
             f"Buzz approved an Instagram account change for {name}.",
-            f"First, accept the Instagram Tester invite for {handle} at "
-            "instagram.com/accounts/manage_access/ (Tester Invites).",
+            _tester_invite_html(handle=handle),
             "Then connect that organization's Business or Creator Instagram "
             "account. The portal stays closed until you finish. Campaign "
             "history for your organization stays on file.",
@@ -873,8 +871,7 @@ def _verification_body(verify_url: str, org_name: str) -> str:
 def _org_connect_text(connect_url: str, org_name: str) -> str:
     return (
         f"Good news — {org_name} has been approved on Buzz.\n\n"
-        "1. Accept the Instagram Tester invite at "
-        "https://www.instagram.com/accounts/manage_access/ (Tester Invites).\n"
+        f"1. {_tester_invite_text()}\n"
         "2. Connect your organization's Business or Creator Instagram:\n\n"
         f"{connect_url}\n\n"
         "This link expires in 7 days."
@@ -933,16 +930,26 @@ def _mail_dark_lock() -> str:
     )
 
 
+class _HtmlP:
+    """CTA paragraph inner HTML that is already escaped (may include ``<a>``)."""
+
+    __slots__ = ("inner",)
+
+    def __init__(self, inner: str) -> None:
+        self.inner = inner
+
+
 def _cta_html(
     url: str,
     *,
     subject: str,
     button: str,
-    paragraphs: list[str],
+    paragraphs: Sequence[str | _HtmlP],
     footer_paragraphs: list[str] | None = None,
 ) -> str:
     paras = "".join(
-        f'<p style="margin:0 0 16px;color:{_INK};font-size:16px;line-height:1.5;">{_escape(p)}</p>'
+        f'<p style="margin:0 0 16px;color:{_INK};font-size:16px;line-height:1.5;">'
+        f"{p.inner if isinstance(p, _HtmlP) else _escape(p)}</p>"
         for p in paragraphs
     )
     footer = "".join(
@@ -974,6 +981,30 @@ def _cta_html(
         f'line-height:1.5;">Or paste this link:<br/>{_inline_a(url)}</p>'
         f"{footer}"
         f"</div></body></html>"
+    )
+
+
+_INSTAGRAM_MANAGE_ACCESS_URL = "https://www.instagram.com/accounts/manage_access/"
+
+
+def _tester_invite_text(*, handle: str | None = None) -> str:
+    for_handle = f" for {handle}" if handle else ""
+    return (
+        "Open https://www.instagram.com/accounts/manage_access/, go to the "
+        "Tester Invites tab, and accept the invitation from BUZZ"
+        f"{for_handle}."
+    )
+
+
+def _tester_invite_html(*, handle: str | None = None) -> _HtmlP:
+    link = _inline_a(
+        _INSTAGRAM_MANAGE_ACCESS_URL,
+        "instagram.com/accounts/manage_access",
+    )
+    for_handle = f" for {_escape(handle)}" if handle else ""
+    return _HtmlP(
+        f"First, open {link}, go to the Tester Invites tab, and accept "
+        f"the invitation from BUZZ{for_handle}."
     )
 
 
