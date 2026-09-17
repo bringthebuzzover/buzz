@@ -208,7 +208,10 @@ export default function OrgPortalProfilePage() {
 
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
         {error ? <ErrorBanner>{error}</ErrorBanner> : null}
-        <IgChangeRequestPanel currentHandle={igHandle.replace(/^@/, "")} />
+        <IgChangeRequestPanel
+          currentHandle={igHandle.replace(/^@/, "")}
+          connectEmail={data.eduEmail}
+        />
         <IgPreviousAccountBanner />
 
         <EduEmailRotatePanel
