@@ -68,7 +68,12 @@ describe("IgChangeRequestPanel", () => {
 
   function render(handle = "bringthebuzzover") {
     act(() => {
-      root.render(<IgChangeRequestPanel currentHandle={handle} />);
+      root.render(
+        <IgChangeRequestPanel
+          currentHandle={handle}
+          connectEmail="maya@cornell.edu"
+        />,
+      );
     });
   }
 
@@ -131,11 +136,67 @@ describe("IgChangeRequestPanel", () => {
       ).click();
       await Promise.resolve();
     });
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(
+      document.querySelector('[data-testid="ig-change-connect-email"]')
+        ?.textContent,
+    ).toBe("maya@cornell.edu");
+    await act(async () => {
+      (
+        document.querySelector(
+          '[data-testid="ig-change-confirm"]',
+        ) as HTMLButtonElement
+      ).click();
+      await Promise.resolve();
+    });
     expect(mockSubmit).toHaveBeenCalledWith({
       requestedHandle: "newclubig",
       reason: "New chapter account",
     });
     expect(document.querySelector('[data-testid="ig-change-requested"]')).toBeNull();
+  });
+
+  it("returns to the form without submitting when confirm is canceled", async () => {
+    render();
+    act(() => {
+      (
+        container.querySelector(
+          '[data-testid="ig-change-open"]',
+        ) as HTMLButtonElement
+      ).click();
+    });
+    act(() => {
+      setInput(
+        document.querySelector(
+          '[data-testid="ig-change-requested"]',
+        ) as HTMLInputElement,
+        "newclubig",
+      );
+      setInput(
+        document.querySelector(
+          '[data-testid="ig-change-reason"]',
+        ) as HTMLInputElement,
+        "New chapter account",
+      );
+    });
+    await act(async () => {
+      (
+        document.querySelector(
+          '[data-testid="ig-change-submit"]',
+        ) as HTMLButtonElement
+      ).click();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      (
+        document.querySelector(
+          '[data-testid="ig-change-confirm-cancel"]',
+        ) as HTMLButtonElement
+      ).click();
+      await Promise.resolve();
+    });
+    expect(mockSubmit).not.toHaveBeenCalled();
+    expect(document.querySelector('[data-testid="ig-change-requested"]')).toBeTruthy();
   });
 
   it("shows submitted @old → @new under review and hides the request control", () => {

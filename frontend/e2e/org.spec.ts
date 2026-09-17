@@ -148,6 +148,10 @@ test("org profile requests Instagram change via modal", async ({ page }) => {
     .getByTestId("ig-change-reason")
     .fill("Switching to the new chapter Instagram.");
   await page.getByTestId("ig-change-submit").click();
+  await expect(page.getByTestId("ig-change-connect-email")).toHaveText(
+    "active-org@berkeley.edu",
+  );
+  await page.getByTestId("ig-change-confirm").click();
   await expect(page.getByTestId("ig-change-pending")).toContainText(
     "@berkeleyrowing → @e2enewrowing",
   );
