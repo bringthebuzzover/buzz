@@ -206,8 +206,7 @@ export default function OrgPortalProfilePage() {
         Keep your club details and shipping address up to date for brands.
       </p>
 
-      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
-        {error ? <ErrorBanner>{error}</ErrorBanner> : null}
+      <div className="space-y-4">
         <IgChangeRequestPanel
           currentHandle={igHandle.replace(/^@/, "")}
           connectEmail={data.eduEmail}
@@ -222,133 +221,137 @@ export default function OrgPortalProfilePage() {
           }
         />
 
-        <div>
+        <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+          {error ? <ErrorBanner>{error}</ErrorBanner> : null}
+
+          <div>
+            <TextField
+              id="org-profile-org-name"
+              label="Organization name"
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              required
+              aria-invalid={Boolean(fieldErrors.orgName)}
+              aria-describedby={
+                fieldErrors.orgName ? "org-profile-org-name-error" : undefined
+              }
+            />
+            <FieldError id="org-profile-org-name-error" message={fieldErrors.orgName} />
+          </div>
+
+          <div>
+            <TextField
+              id="org-profile-university"
+              label="University"
+              value={university}
+              onChange={(e) => setUniversity(e.target.value)}
+              required
+              aria-invalid={Boolean(fieldErrors.university)}
+              aria-describedby={
+                fieldErrors.university ? "org-profile-university-error" : undefined
+              }
+            />
+            <FieldError
+              id="org-profile-university-error"
+              message={fieldErrors.university}
+            />
+          </div>
+
           <TextField
-            id="org-profile-org-name"
-            label="Organization name"
-            value={orgName}
-            onChange={(e) => setOrgName(e.target.value)}
+            id="org-profile-tiktok"
+            label={
+              <>
+                TikTok handle{" "}
+                <span className="font-normal text-buzz-inkMuted">(optional)</span>
+              </>
+            }
+            value={tiktokHandle}
+            onChange={(e) => setTiktokHandle(e.target.value)}
+            placeholder="@yourclub"
+          />
+
+          <div>
+            <p className={fieldLabelClass}>
+              Instagram followers{" "}
+              <span className="font-normal text-buzz-inkMuted">(from Instagram)</span>
+            </p>
+            <p className="rounded-buzzControl border border-buzz-lineMid bg-buzz-paper px-3 py-3 text-sm font-medium text-buzz-ink">
+              {followersDisplay}
+            </p>
+          </div>
+
+          <div>
+            <TextField
+              id="org-profile-member-count"
+              type="number"
+              min="0"
+              label="Number of members"
+              value={memberCount}
+              onChange={(e) => setMemberCount(e.target.value)}
+              required
+              aria-invalid={Boolean(fieldErrors.memberCount)}
+              aria-describedby={
+                fieldErrors.memberCount ? "org-profile-member-count-error" : undefined
+              }
+            />
+            <FieldError
+              id="org-profile-member-count-error"
+              message={fieldErrors.memberCount}
+            />
+          </div>
+
+          <Select
+            id="org-profile-category"
+            label="Organization type"
+            value={category}
+            onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
             required
-            aria-invalid={Boolean(fieldErrors.orgName)}
-            aria-describedby={
-              fieldErrors.orgName ? "org-profile-org-name-error" : undefined
+          >
+            <option value="">Select a type…</option>
+            {ORG_CATEGORY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </Select>
+
+          <div>
+            <TextField
+              id="org-profile-contact-name"
+              label="Contact name"
+              value={contactName}
+              onChange={(e) => setContactName(e.target.value)}
+              required
+              aria-invalid={Boolean(fieldErrors.contactName)}
+              aria-describedby={
+                fieldErrors.contactName ? "org-profile-contact-name-error" : undefined
+              }
+            />
+            <FieldError
+              id="org-profile-contact-name-error"
+              message={fieldErrors.contactName}
+            />
+          </div>
+
+          <ShippingAddressFields
+            value={shipping}
+            onChange={setShipping}
+            testIdPrefix="org-profile"
+            error={fieldErrors.shipping}
+            legacyHint={
+              data.shippingLine1 ? null : (data.deliveryAddress ?? null)
             }
           />
-          <FieldError id="org-profile-org-name-error" message={fieldErrors.orgName} />
-        </div>
 
-        <div>
-          <TextField
-            id="org-profile-university"
-            label="University"
-            value={university}
-            onChange={(e) => setUniversity(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldErrors.university)}
-            aria-describedby={
-              fieldErrors.university ? "org-profile-university-error" : undefined
-            }
-          />
-          <FieldError
-            id="org-profile-university-error"
-            message={fieldErrors.university}
-          />
-        </div>
+          <Button type="submit" disabled={update.isPending} fullWidth>
+            {update.isPending ? "Saving…" : "Save profile"}
+          </Button>
 
-        <TextField
-          id="org-profile-tiktok"
-          label={
-            <>
-              TikTok handle{" "}
-              <span className="font-normal text-buzz-inkMuted">(optional)</span>
-            </>
-          }
-          value={tiktokHandle}
-          onChange={(e) => setTiktokHandle(e.target.value)}
-          placeholder="@yourclub"
-        />
-
-        <div>
-          <p className={fieldLabelClass}>
-            Instagram followers{" "}
-            <span className="font-normal text-buzz-inkMuted">(from Instagram)</span>
-          </p>
-          <p className="rounded-buzzControl border border-buzz-lineMid bg-buzz-paper px-3 py-3 text-sm font-medium text-buzz-ink">
-            {followersDisplay}
-          </p>
-        </div>
-
-        <div>
-          <TextField
-            id="org-profile-member-count"
-            type="number"
-            min="0"
-            label="Number of members"
-            value={memberCount}
-            onChange={(e) => setMemberCount(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldErrors.memberCount)}
-            aria-describedby={
-              fieldErrors.memberCount ? "org-profile-member-count-error" : undefined
-            }
-          />
-          <FieldError
-            id="org-profile-member-count-error"
-            message={fieldErrors.memberCount}
-          />
-        </div>
-
-        <Select
-          id="org-profile-category"
-          label="Organization type"
-          value={category}
-          onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
-          required
-        >
-          <option value="">Select a type…</option>
-          {ORG_CATEGORY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </Select>
-
-        <div>
-          <TextField
-            id="org-profile-contact-name"
-            label="Contact name"
-            value={contactName}
-            onChange={(e) => setContactName(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldErrors.contactName)}
-            aria-describedby={
-              fieldErrors.contactName ? "org-profile-contact-name-error" : undefined
-            }
-          />
-          <FieldError
-            id="org-profile-contact-name-error"
-            message={fieldErrors.contactName}
-          />
-        </div>
-
-        <ShippingAddressFields
-          value={shipping}
-          onChange={setShipping}
-          testIdPrefix="org-profile"
-          error={fieldErrors.shipping}
-          legacyHint={
-            data.shippingLine1 ? null : (data.deliveryAddress ?? null)
-          }
-        />
-
-        <Button type="submit" disabled={update.isPending} fullWidth>
-          {update.isPending ? "Saving…" : "Save profile"}
-        </Button>
-
-        {saved && !error && Object.keys(fieldErrors).length === 0 ? (
-          <SuccessBanner>Profile saved.</SuccessBanner>
-        ) : null}
-      </form>
+          {saved && !error && Object.keys(fieldErrors).length === 0 ? (
+            <SuccessBanner>Profile saved.</SuccessBanner>
+          ) : null}
+        </form>
+      </div>
     </AuthShell>
   );
 }

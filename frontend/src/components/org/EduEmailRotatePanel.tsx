@@ -41,6 +41,7 @@ export default function EduEmailRotatePanel({
 
   const onRotate = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setNotice(null);
     setError(null);
     setFieldError(null);
