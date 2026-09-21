@@ -228,6 +228,12 @@ async def test_org_approved_email_links_tester_invite_tab(monkeypatch, _resend_k
     assert "invitation from BUZZ" in text
     assert "(Tester Invites)" not in text
     assert "(Tester Invites)" not in html
+    assert 'class="buzz-mail-btn"' not in html
+    assert "1. Open" in html and "2. " in html
+    assert ">Connect Instagram</a>" in html
+    assert "Or paste this link:" in html
+    connect_href = f'href="{settings.FRONTEND_URL}/onboarding/connect-instagram?token=tok-connect"'
+    assert html.count(connect_href) >= 2
 
 
 async def test_org_ig_switch_email_tester_invite_copy(monkeypatch, _resend_key) -> None:
@@ -256,3 +262,7 @@ async def test_org_ig_switch_email_tester_invite_copy(monkeypatch, _resend_key) 
     assert "Tester Invites tab" in html and "Tester Invites tab" in text
     assert "invitation from BUZZ for @newcampusig" in html
     assert "invitation from BUZZ for @newcampusig" in text
+    assert 'class="buzz-mail-btn"' not in html
+    assert "1. Open" in html and "2. " in html
+    assert ">Connect Instagram</a>" in html
+    assert "Or paste this link:" in html

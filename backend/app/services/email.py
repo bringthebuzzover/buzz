@@ -123,12 +123,10 @@ async def send_org_approved_email(
         html = _cta_html(
             connect_url,
             subject=subject,
-            button="Connect Instagram",
             paragraphs=[
                 f"Good news — {name} has been approved on Buzz.",
-                _tester_invite_html(),
-                "Then connect the organization's Business or Creator Instagram "
-                "account to finish setup.",
+                _step_html(1, _tester_invite_html()),
+                _step_html(2, _connect_instagram_link_html(connect_url)),
             ],
         )
         log_url = connect_url
@@ -166,20 +164,26 @@ async def send_org_ig_switch_connect_email(
     subject = "Connect the new Instagram account for your Buzz organization"
     text = (
         f"Buzz approved an Instagram account change for {name}.\n\n"
-        f"{_tester_invite_text(handle=handle)} Then connect that Business or "
-        f"Creator account:\n{connect_url}\n\n"
+        f"1. {_tester_invite_text(handle=handle)}\n"
+        "2. Connect that organization's Business or Creator Instagram:\n\n"
+        f"{connect_url}\n\n"
         "Your Buzz portal is closed until you connect. Campaign history stays."
     )
     html = _cta_html(
         connect_url,
         subject=subject,
-        button="Connect Instagram",
         paragraphs=[
             f"Buzz approved an Instagram account change for {name}.",
-            _tester_invite_html(handle=handle),
-            "Then connect that organization's Business or Creator Instagram "
-            "account. The portal stays closed until you finish. Campaign "
-            "history for your organization stays on file.",
+            _step_html(1, _tester_invite_html(handle=handle)),
+            _step_html(
+                2,
+                _connect_instagram_link_html(
+                    connect_url,
+                    trailing=" for that organization's Business or Creator account. "
+                    "The portal stays closed until you finish. Campaign history "
+                    "for your organization stays on file.",
+                ),
+            ),
         ],
     )
     if settings.ENVIRONMENT == "development":
@@ -872,7 +876,8 @@ def _org_connect_text(connect_url: str, org_name: str) -> str:
     return (
         f"Good news — {org_name} has been approved on Buzz.\n\n"
         f"1. {_tester_invite_text()}\n"
-        "2. Connect your organization's Business or Creator Instagram:\n\n"
+        "2. Connect Instagram — your organization's Business or Creator "
+        "account:\n\n"
         f"{connect_url}\n\n"
         "This link expires in 7 days."
     )
@@ -943,8 +948,8 @@ def _cta_html(
     url: str,
     *,
     subject: str,
-    button: str,
     paragraphs: Sequence[str | _HtmlP],
+    button: str | None = None,
     footer_paragraphs: list[str] | None = None,
 ) -> str:
     paras = "".join(
@@ -956,6 +961,15 @@ def _cta_html(
         f'<p style="margin:16px 0 0;color:{_INK};font-size:16px;line-height:1.5;">{_escape(p)}</p>'
         for p in (footer_paragraphs or [])
     )
+    btn = ""
+    if button:
+        btn = (
+            f'<p style="margin:24px 0;"><a class="buzz-mail-btn" href="{_escape(url)}" '
+            f'style="display:inline-block;background-color:{_CORAL};color:#ffffff;'
+            f"text-decoration:none;padding:12px 24px;border-radius:8px;"
+            f'font-weight:600;">{_escape(button)}</a></p>'
+        )
+    paste_margin = "24px 0 0" if not button else "0"
     # Force the light Buzz palette in clients that invert for dark mode
     # (Apple Mail / some Gmail). Exact hexes match the light template.
     dark_lock = _mail_dark_lock()
@@ -973,11 +987,8 @@ def _cta_html(
         f'color:{_INK};">'
         f'<h1 style="margin:0 0 20px;font-size:22px;color:{_INK};">{_escape(subject)}</h1>'
         f"{paras}"
-        f'<p style="margin:24px 0;"><a class="buzz-mail-btn" href="{_escape(url)}" '
-        f'style="display:inline-block;background-color:{_CORAL};color:#ffffff;'
-        f"text-decoration:none;padding:12px 24px;border-radius:8px;"
-        f'font-weight:600;">{_escape(button)}</a></p>'
-        f'<p class="buzz-mail-muted" style="margin:0;color:#666666;font-size:13px;'
+        f"{btn}"
+        f'<p class="buzz-mail-muted" style="margin:{paste_margin};color:#666666;font-size:13px;'
         f'line-height:1.5;">Or paste this link:<br/>{_inline_a(url)}</p>'
         f"{footer}"
         f"</div></body></html>"
@@ -1003,9 +1014,22 @@ def _tester_invite_html(*, handle: str | None = None) -> _HtmlP:
     )
     for_handle = f" for {_escape(handle)}" if handle else ""
     return _HtmlP(
-        f"First, open {link}, go to the Tester Invites tab, and accept "
+        f"Open {link}, go to the Tester Invites tab, and accept "
         f"the invitation from BUZZ{for_handle}."
     )
+
+
+def _step_html(n: int, body: str | _HtmlP) -> _HtmlP:
+    inner = body.inner if isinstance(body, _HtmlP) else _escape(body)
+    return _HtmlP(f"{n}. {inner}")
+
+
+def _connect_instagram_link_html(
+    connect_url: str,
+    *,
+    trailing: str = (" to finish setup with the organization's Business or Creator account."),
+) -> _HtmlP:
+    return _HtmlP(f"{_inline_a(connect_url, 'Connect Instagram')}{_escape(trailing)}")
 
 
 def _inline_a(href: str, label: str | None = None) -> str:

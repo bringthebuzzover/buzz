@@ -141,4 +141,64 @@ describe("EduEmailRotatePanel", () => {
     expect(mockRotate).not.toHaveBeenCalled();
     expect(container.textContent).toMatch(/Must be a valid \.edu email address/);
   });
+
+  it("does not submit a wrapping profile form when sending verification", async () => {
+    mockRotate.mockResolvedValue({
+      emailSentTo: "new@test.edu",
+      pendingEduEmail: "new@test.edu",
+      status: "active",
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const outerSubmit = jest.fn();
+    act(() => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              outerSubmit();
+            }}
+          >
+            <EduEmailRotatePanel
+              liveEmail="live@test.edu"
+              pendingEmail={undefined}
+              onChanged={() => undefined}
+            />
+            <button type="submit">Save profile</button>
+          </form>
+        </QueryClientProvider>,
+      );
+    });
+
+    const change = Array.from(container.querySelectorAll("button")).find((b) =>
+      /change school email/i.test(b.textContent ?? ""),
+    );
+    act(() => {
+      change!.click();
+    });
+    const input = container.querySelector(
+      'input[type="email"]',
+    ) as HTMLInputElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(input, "new@test.edu");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const rotateForm = Array.from(container.querySelectorAll("form")).find(
+      (f) => f.querySelector("#edu-rotate-email"),
+    ) as HTMLFormElement;
+    await act(async () => {
+      rotateForm.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await Promise.resolve();
+    });
+    expect(mockRotate).toHaveBeenCalledWith("new@test.edu");
+    expect(outerSubmit).not.toHaveBeenCalled();
+  });
 });
