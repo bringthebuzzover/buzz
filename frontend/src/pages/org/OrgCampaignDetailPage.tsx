@@ -22,6 +22,40 @@ import { cn } from "../../theme/cn";
 import ShipmentList from "../../components/shipments/ShipmentList";
 import type { Shipment } from "../../utils/shipments";
 
+function CampaignMetrics({
+  agg,
+}: {
+  agg: {
+    postCount: number;
+    likes: number;
+    comments: number;
+    estimatedReach: number;
+  };
+}) {
+  return (
+    <Card kind="card" pad="roomy">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="text-center">
+          <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.postCount}</p>
+          <p className={TEXT.meta}>Posts</p>
+        </div>
+        <div className="text-center">
+          <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.likes}</p>
+          <p className={TEXT.meta}>Likes</p>
+        </div>
+        <div className="text-center">
+          <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.comments}</p>
+          <p className={TEXT.meta}>Comments</p>
+        </div>
+        <div className="text-center">
+          <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.estimatedReach}</p>
+          <p className={TEXT.meta}>Est. Reach</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function shipmentOnTheWay(detail: {
   shipments?: Shipment[];
   brandTrackerStage: string;
@@ -129,32 +163,45 @@ function ApiCampaignDetail() {
       ) : null}
 
       {status === "accepted" ? (
-        <Card kind="card" pad="roomy">
-          <div className="flex items-start gap-4">
-            <Truck size={28} className="mt-1 text-buzz-coral" />
-            <div>
-              <h2 className={cn(TEXT.h2, "mb-1")}>
-                {onTheWay ? "Awaiting product" : "Accepted"}
-              </h2>
-              <p className={cn(TEXT.body, "text-buzz-inkMuted")}>
-                {onTheWay
-                  ? "You are accepted! Your shipment is on the way."
-                  : "Accepted — awaiting shipping."}
-              </p>
-              {(detail.shipments ?? []).length > 0 ? (
-                <div className={cn(SURFACE.inset, "mt-4 px-4 py-3")}>
-                  <p className={cn(TEXT.micro, "mb-2 text-buzz-inkMuted")}>
-                    Tracking
+        <div className={STACK.group}>
+          <Card kind="card" pad="roomy">
+            <div className="flex items-start gap-4">
+              <Truck size={28} className="mt-1 text-buzz-coral" />
+              <div>
+                <h2 className={cn(TEXT.h2, "mb-1")}>
+                  {onTheWay ? "Awaiting product" : "Accepted"}
+                </h2>
+                <p className={cn(TEXT.body, "text-buzz-inkMuted")}>
+                  {onTheWay
+                    ? "You are accepted! Your shipment is on the way."
+                    : "Accepted — awaiting shipping."}
+                </p>
+                {detail.brandTrackerStage === "awaiting_products" ? (
+                  <p className={cn(TEXT.body, "mt-3 text-buzz-inkMuted")}>
+                    If the product already arrived, link a post or reel below.
                   </p>
-                  <ShipmentList
-                    shipments={detail.shipments ?? []}
-                    testId="org-campaign-shipments"
-                  />
-                </div>
-              ) : null}
+                ) : null}
+                {(detail.shipments ?? []).length > 0 ? (
+                  <div className={cn(SURFACE.inset, "mt-4 px-4 py-3")}>
+                    <p className={cn(TEXT.micro, "mb-2 text-buzz-inkMuted")}>
+                      Tracking
+                    </p>
+                    <ShipmentList
+                      shipments={detail.shipments ?? []}
+                      testId="org-campaign-shipments"
+                    />
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+          {detail.brandTrackerStage === "awaiting_products" ? (
+            <>
+              <CampaignMetrics agg={agg} />
+              <ApiPostSelector applicationId={detail.id} />
+            </>
+          ) : null}
+        </div>
       ) : null}
 
       {status === "active" || status === "finished" ? (
@@ -168,26 +215,7 @@ function ApiCampaignDetail() {
               />
             </Card>
           ) : null}
-          <Card kind="card" pad="roomy">
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="text-center">
-                <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.postCount}</p>
-                <p className={TEXT.meta}>Posts</p>
-              </div>
-              <div className="text-center">
-                <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.likes}</p>
-                <p className={TEXT.meta}>Likes</p>
-              </div>
-              <div className="text-center">
-                <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.comments}</p>
-                <p className={TEXT.meta}>Comments</p>
-              </div>
-              <div className="text-center">
-                <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.estimatedReach}</p>
-                <p className={TEXT.meta}>Est. Reach</p>
-              </div>
-            </div>
-          </Card>
+          <CampaignMetrics agg={agg} />
           {status === "finished" ? (
             <Card kind="card" pad="roomy">
               <h2 className={cn(TEXT.h2, "mb-2")}>Final results</h2>

@@ -367,12 +367,14 @@ Drop-level denial (brand): **§7.1**.
 
 - Tap a campaign to open **campaign detail** appropriate to status.
 
-#### 6.4.2 When a campaign is Active — campaign detail
+#### 6.4.2 Linking posts — campaign detail
 
-The org can:
+Once the org is **Accepted** and the drop is **Awaiting Products** (and still when it is **Active**), the org can:
 
-- **Select** which of **their** social posts **relate to this drop** (subject to the **one-post-one-campaign** rule).
+- **Select** which of **their** social posts **relate to this drop** (subject to the **one-post-one-campaign** rule). An org that already has the product may link before other orgs do. The brand tracker stays **Awaiting Products** until Buzz advances it.
 - See an **aggregate engagement score** across all **selected** posts for that campaign.
+
+**Applied** orgs cannot link. **Finished** campaigns are read-only.
 
 **Data flow implication:**
 
@@ -451,8 +453,8 @@ Aggregated all drops →  Brand aggregate dashboard
 | Org   | Onboarding          | Public apply (standalone `/org/apply` or `/d/:id` **§6.3.4**; profile + **§6.1.1** Instagram confirm card + **.edu**); verify; Buzz review; accept Instagram Tester invite; Connect Instagram; then portal |
 | Org   | Public drop         | View published drop; Apply if `active`; signup+intent if logged out; waiting copy if still onboarding (**§6.3.4**) |
 | Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
-| Org   | My Campaigns        | Track status; manage posts when Active                                                                                           |
-| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; Overview **Needs a look** (pending Instagram identity-change tickets + unacked Connect handle mismatches — Ack on org detail); move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment; **late-add** an org onto a published unhidden unfinished drop (**§7.1**); copy public `/d/:id` and see **signup intents** (open and expired — not applicants) on the drop; on an **Active** drop, **sync Instagram then autolink** for that drop's accepted orgs (suggestions stay unconfirmed); erase org or brand account after a verified data-deletion request (**§3.1.2**, **§3.1.3**); review org Instagram identity-change requests (**§3.1.4**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); **resend Connect Instagram email** to every org in **`pending_instagram`** (not unverified / awaiting approval); integrations (see §5.2.1 TODO) |
+| Org   | My Campaigns        | Track status; manage posts while Awaiting Products and while Active                                                              |
+| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; Overview **Needs a look** (pending Instagram identity-change tickets + unacked Connect handle mismatches — Ack on org detail); move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment; **late-add** an org onto a published unhidden unfinished drop (**§7.1**); copy public `/d/:id` and see **signup intents** (open and expired — not applicants) on the drop; on a published unhidden drop in **Awaiting Products** or **Active**, **sync Instagram then autolink** for that drop's accepted orgs (suggestions stay unconfirmed); erase org or brand account after a verified data-deletion request (**§3.1.2**, **§3.1.3**); review org Instagram identity-change requests (**§3.1.4**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); **resend Connect Instagram email** to every org in **`pending_instagram`** (not unverified / awaiting approval); integrations (see §5.2.1 TODO) |
 
 ---
 

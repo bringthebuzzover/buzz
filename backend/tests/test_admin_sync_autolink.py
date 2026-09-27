@@ -141,9 +141,26 @@ class TestAdminSyncAutolink:
         assert count is None
         assert org_a.id != org_b.id
 
-    async def test_refuse_non_active(self, app_client: AsyncClient, db_session):
+    async def test_allows_published_awaiting_products(
+        self,
+        app_client: AsyncClient,
+        db_session,
+    ):
+        org_user, org, drop = await _active_seat(db_session)
+        org_user.instagram_access_token = None
+        drop.brand_tracker_stage = BrandTrackerStage.AWAITING_PRODUCTS.value
+        await db_session.flush()
+        await make_social_post(db_session, org, caption="early @nike post")
+        res = await app_client.post(
+            f"/api/admin/drops/{drop.id}/sync-and-autolink",
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert data["suggestionsCreated"] == 1, data
+
+    async def test_refuse_non_eligible(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        awaiting = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
         finished = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
         draft = await make_drop(
             db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE, published_at=None
@@ -152,7 +169,7 @@ class TestAdminSyncAutolink:
         hidden.hidden_at = datetime.now(timezone.utc)
         await db_session.flush()
         headers = await _admin_headers(db_session)
-        for drop in (awaiting, finished, draft, hidden):
+        for drop in (finished, draft, hidden):
             res = await app_client.post(
                 f"/api/admin/drops/{drop.id}/sync-and-autolink",
                 headers=headers,

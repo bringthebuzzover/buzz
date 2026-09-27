@@ -336,9 +336,21 @@ describe("AdminDropDetailPage", () => {
     expect(container.querySelector('[data-testid="add-org-open"]')).toBeFalsy();
   });
 
-  it("shows sync-and-autolink only on an Active published drop", () => {
+  it("shows sync-and-autolink on an Active published drop", () => {
     mockUseAdminDrop.mockReturnValue({
       data: adminDrop({ publishedAt: now, stage: "drop_active" }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1?tab=attribution");
+    expect(
+      container.querySelector('[data-testid="sync-and-autolink"]'),
+    ).toBeTruthy();
+  });
+
+  it("shows sync-and-autolink while awaiting products", () => {
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({ publishedAt: now, stage: "awaiting_products" }),
       isPending: false,
       isError: false,
     });

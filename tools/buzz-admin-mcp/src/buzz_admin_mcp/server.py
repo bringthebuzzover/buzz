@@ -354,7 +354,7 @@ def add_org_to_drop(
 
 @mcp.tool()
 def sync_and_autolink_drop(drop_id: str) -> str:
-    """Graph sync + autolink for accepted orgs on an Active drop."""
+    """Graph sync + autolink for accepted orgs on Awaiting Products or Active."""
     return _call(
         lambda: _client.request("POST", f"/api/admin/drops/{drop_id}/sync-and-autolink")
     )

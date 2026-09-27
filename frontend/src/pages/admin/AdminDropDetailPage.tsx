@@ -980,7 +980,7 @@ function AttributionPanel({ drop }: { drop: AdminDropDetail }) {
   const canRun =
     drop.publishedAt != null &&
     drop.hiddenAt == null &&
-    drop.stage === "drop_active";
+    (drop.stage === "awaiting_products" || drop.stage === "drop_active");
 
   async function run() {
     setError(null);
