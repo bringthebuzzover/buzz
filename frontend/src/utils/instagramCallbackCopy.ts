@@ -19,7 +19,7 @@ export const INSTAGRAM_CALLBACK_LOGIN_EXPIRED =
   "This login expired. Go back and try Instagram again — stay in this window.";
 
 export const INSTAGRAM_CALLBACK_META =
-  "Instagram didn't hand Buzz a session. Try again. If it keeps happening, the org account may not be a Business or Creator.";
+  "Instagram didn't hand Buzz a session. Try again. If it keeps happening, the organization account may not be a Business or Creator.";
 
 export const INSTAGRAM_CALLBACK_UNKNOWN =
   "Instagram login didn't complete. Try again.";

@@ -92,7 +92,7 @@ async def list_orgs(
     if status is not None and status not in _ORG_STATUSES:
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,
-            f"Unknown org status: {status}.",
+            f"Unknown organization status: {status}.",
             status_code=400,
         )
     if attention is not None and attention not in _ORG_ATTENTIONS:
@@ -219,7 +219,7 @@ async def approve_org(
     if not tester_invite_confirmed:
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,
-            "Confirm you added this org as an Instagram Tester before approving.",
+            "Confirm you added this organization as an Instagram Tester before approving.",
             status_code=400,
         )
 

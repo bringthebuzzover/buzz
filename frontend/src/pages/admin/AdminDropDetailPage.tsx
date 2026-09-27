@@ -281,7 +281,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
     <div>
       <ConfigSection
         title="Campaign"
-        description="What orgs see on the drop: title, story, and hero image."
+        description="What organizations see on the drop: title, story, and hero image."
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
           {previewSrc ? (
@@ -750,7 +750,7 @@ function SignupIntents({
       <div className="px-4 py-3">
         <h3 className={TEXT.h3}>Signup intents (not applicants)</h3>
         <p className={cn(TEXT.meta, "mt-1")}>
-          Orgs who asked to apply before they were approved and connected.
+          Organizations that asked to apply before they were approved and connected.
           Brands never see these rows.
         </p>
       </div>
@@ -904,8 +904,8 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
           title={hidden ? "Unhide campaign" : "Hide campaign"}
           description={
             hidden
-              ? "Org and brand portals will see this drop again at the same URLs."
-              : "Removes this published drop from every org and brand portal. Type hide to confirm. No email unless you opt in."
+              ? "Organization and brand portals will see this drop again at the same URLs."
+              : "Removes this published drop from every organization and brand portal. Type hide to confirm. No email unless you opt in."
           }
         >
           <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
@@ -988,7 +988,7 @@ function AttributionPanel({ drop }: { drop: AdminDropDetail }) {
     try {
       await sync.mutateAsync(undefined);
       setNotice(
-        "Pulled Instagram for accepted orgs and scanned captions. Suggestions stay unconfirmed until the org taps Confirm.",
+        "Pulled Instagram for accepted organizations and scanned captions. Suggestions stay unconfirmed until the organization taps Confirm.",
       );
     } catch (err) {
       setError(
@@ -1000,14 +1000,14 @@ function AttributionPanel({ drop }: { drop: AdminDropDetail }) {
   }
 
   return (
-    <Panel description="Posts the orgs have linked to this campaign, and suggestions the scan found that nobody has confirmed.">
+    <Panel description="Posts the organizations have linked to this campaign, and suggestions the scan found that nobody has confirmed.">
       <FieldGrid>
         <Field label="Attributed posts">{drop.linkedPostCount}</Field>
         <Field label="Unconfirmed suggestions">
           {drop.pendingSuggestionCount}
           {drop.pendingSuggestionCount > 0 && (
             <span className="ml-2 text-xs font-medium text-buzz-warn">
-              metrics understate reality until orgs confirm these
+              metrics understate reality until organizations confirm these
             </span>
           )}
         </Field>
@@ -1022,7 +1022,7 @@ function AttributionPanel({ drop }: { drop: AdminDropDetail }) {
           {error && <ErrorNote>{error}</ErrorNote>}
           {notice && <SuccessBanner>{notice}</SuccessBanner>}
           <p className={TEXT.meta}>
-            This can take a minute. Only this drop&apos;s accepted orgs are
+            This can take a minute. Only this drop&apos;s accepted organizations are
             pulled. Follower counts are not refreshed.
           </p>
           <ActionButton

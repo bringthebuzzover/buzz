@@ -140,7 +140,7 @@ export default function SiteHeader() {
 
         {showCenterItem ? (
           <span className="text-center font-bold text-buzz-coral">
-            {user?.portalRole === "brand" ? "Brand Portal" : "Org Portal"}
+            {user?.portalRole === "brand" ? "Brand Portal" : "Organization Portal"}
           </span>
         ) : (
           <button

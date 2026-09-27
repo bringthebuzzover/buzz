@@ -130,7 +130,7 @@ export default function OrgProfilePage() {
   return (
     <AuthShell align="stack">
       <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
-        Set Up Your <span className="text-buzz-coral">Org Profile</span>
+        Set Up Your <span className="text-buzz-coral">Organization Profile</span>
       </h1>
       <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
         Tell us about your organization to continue. Sign in with the
@@ -147,7 +147,7 @@ export default function OrgProfilePage() {
             </p>
             <p className="mt-1 text-sm font-semibold text-buzz-ink">{signedInAs}</p>
             <p className="mt-1 text-xs text-buzz-inkMuted">
-              This Instagram account is your org identity on Buzz.
+              This Instagram account is your organization identity on Buzz.
             </p>
           </div>
         )}

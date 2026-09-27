@@ -95,7 +95,7 @@ export default function AdminOrgsPage() {
       setBulkNotice(parts.join(" "));
       if (result.failed) {
         setBulkError(
-          "Some Connect emails did not send. Open those orgs and use Resend connect email.",
+          "Some Connect emails did not send. Open those organizations and use Resend connect email.",
         );
       }
     } catch (err) {
@@ -114,7 +114,7 @@ export default function AdminOrgsPage() {
     <div>
       <PageHeading
         title="Organizations"
-        subtitle="Student orgs across every onboarding state. Open a row to Approve (tester invite confirm) or Deny from the awaiting-approval filter."
+        subtitle="Student organizations across every onboarding state. Open a row to Approve (tester invite confirm) or Deny from the awaiting-approval filter."
         actions={
           <ActionButton
             testId="resend-connect-all"
@@ -145,8 +145,8 @@ export default function AdminOrgsPage() {
       {confirmOpen && (
         <Modal
           onClose={() => setConfirmOpen(false)}
-          title="Email orgs awaiting Instagram"
-          description="Send the Connect Instagram email to every org whose last step is connecting Instagram. This does not email orgs still verifying school email or awaiting approval."
+          title="Email organizations awaiting Instagram"
+          description="Send the Connect Instagram email to every organization whose last step is connecting Instagram. This does not email organizations still verifying school email or awaiting approval."
         >
           <div className="mt-6 flex justify-end gap-2 px-6 pb-4">
             <Button

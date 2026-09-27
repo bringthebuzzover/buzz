@@ -39,7 +39,7 @@ export default function AggregateTotalsCards({
     },
     {
       icon: Users,
-      label: "Orgs",
+      label: "Organizations",
       value: metrics.totalOrgs.toLocaleString(),
     },
     {

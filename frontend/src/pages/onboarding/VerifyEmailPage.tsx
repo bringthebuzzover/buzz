@@ -313,7 +313,7 @@ function VerifyWithToken({ token }: { token: string }) {
   // open without session mint: user null → login Continue.
   const successCopy =
     state.user?.status === "active"
-      ? "Your school email is updated. You can continue using the org portal."
+      ? "Your school email is updated. You can continue using the organization portal."
       : state.user?.status === "pending_approval"
         ? "Your school email is confirmed. Your account is awaiting admin approval."
         : "Thanks! Your account is now pending admin approval. We'll let you in as soon as a Buzz admin reviews it.";
@@ -481,7 +481,7 @@ function PublicAwaitVerification() {
       {dropIntent ? (
         <div className="mb-4">
           <SuccessBanner>
-            We&apos;ll submit when your org is approved and connected.
+            We&apos;ll submit when your organization is approved and connected.
           </SuccessBanner>
         </div>
       ) : null}

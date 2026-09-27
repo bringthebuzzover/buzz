@@ -35,7 +35,7 @@ export default function SiteFooter() {
           <ul className="space-y-2 text-sm font-medium text-buzz-inkMuted">
             <li>
               <Link to="/for-orgs" className={linkClass}>
-                For orgs
+                For organizations
               </Link>
             </li>
             <li>
@@ -51,7 +51,7 @@ export default function SiteFooter() {
           <ul className="space-y-2 text-sm font-medium text-buzz-inkMuted">
             <li>
               <Link to="/org/apply" className={linkClass}>
-                Apply as Org
+                Apply as Organization
               </Link>
             </li>
             <li>

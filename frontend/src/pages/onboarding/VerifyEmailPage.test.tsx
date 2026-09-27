@@ -151,7 +151,7 @@ describe("VerifyEmailPage confirm-before-verify", () => {
     await clickVerify();
 
     expect(container.textContent).toContain(
-      "Your school email is updated. You can continue using the org portal.",
+      "Your school email is updated. You can continue using the organization portal.",
     );
     expect(container.textContent).not.toContain("pending admin approval");
   });

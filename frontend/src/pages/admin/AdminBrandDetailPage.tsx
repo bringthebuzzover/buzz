@@ -247,7 +247,7 @@ export default function AdminBrandDetailPage() {
                 setEraseError(null);
               }}
               title="Erase this brand"
-              description="Removes login identity and contact details. Campaign history for orgs stays. Type the company email to confirm."
+              description="Removes login identity and contact details. Campaign history for organizations stays. Type the company email to confirm."
             >
               <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
                 {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
@@ -330,7 +330,7 @@ export default function AdminBrandDetailPage() {
           {erased && (
             <ErrorNote>
               This account has been erased. Identity and contact PII were
-              scrubbed; campaign history for orgs stays under a tombstone
+              scrubbed; campaign history for organizations stays under a tombstone
               brand name.
             </ErrorNote>
           )}

@@ -40,11 +40,11 @@ describe("SiteFooter", () => {
     });
 
     expect(container.textContent).toMatch(/How it works/);
-    expect(container.textContent).toMatch(/Apply as Org/);
+    expect(container.textContent).toMatch(/Apply as Organization/);
     expect(container.textContent).toMatch(/Apply as Brand/);
     expect(container.querySelector('a[href="/for-orgs"]')).not.toBeNull();
     expect(container.querySelector('a[href="/login"]')).toBeNull();
     expect(container.textContent).not.toMatch(/Get Started/);
-    expect(container.textContent).not.toMatch(/Org login/);
+    expect(container.textContent).not.toMatch(/Organization login/);
   });
 });

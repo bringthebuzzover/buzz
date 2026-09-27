@@ -200,7 +200,7 @@ export default function OrgPortalProfilePage() {
   return (
     <AuthShell align="stack">
       <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
-        Org <span className="text-buzz-coral">Profile</span>
+        Organization <span className="text-buzz-coral">Profile</span>
       </h1>
       <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
         Keep your club details and shipping address up to date for brands.

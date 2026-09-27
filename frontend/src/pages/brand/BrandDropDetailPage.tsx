@@ -248,7 +248,7 @@ function ApiApplicantTable({
           <thead>
             <tr className="border-b border-buzz-line bg-buzz-cream">
               <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>Accept</th>
-              <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>Org</th>
+              <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>Organization</th>
               <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>University</th>
               <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>Type</th>
               <th className={cn(TEXT.micro, "px-4 py-3 text-buzz-inkMuted")}>Instagram</th>
@@ -344,8 +344,10 @@ function ApiApplicantTable({
           >
             <p className="text-sm font-medium text-buzz-ink">
               Accept {acceptedCount}{" "}
-              {acceptedCount === 1 ? "org" : "orgs"} · Deny {deniedCount}{" "}
-              {deniedCount === 1 ? "org" : "orgs"}. Denied applicants are
+              {acceptedCount === 1 ? "organization" : "organizations"} · Deny{" "}
+              {deniedCount}{" "}
+              {deniedCount === 1 ? "organization" : "organizations"}. Denied
+              applicants are
               emailed and this cannot be undone.
             </p>
             <div className="flex flex-wrap gap-2">

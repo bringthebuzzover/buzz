@@ -139,7 +139,7 @@ export default function AdminOrgDetailPage() {
         testerInviteConfirmed,
       });
       setTesterInviteConfirmed(false);
-      setActionNotice("Approved — org moved to awaiting Instagram connect.");
+      setActionNotice("Approved — organization moved to awaiting Instagram connect.");
     } catch (err) {
       setActionError(
         err instanceof ApiError
@@ -432,10 +432,10 @@ export default function AdminOrgDetailPage() {
 
           {tokenExpired && !erased && (
             <ErrorNote>
-              This org&apos;s Instagram token expired{" "}
+              This organization&apos;s Instagram token expired{" "}
               {formatElapsed(data.instagramTokenExpiresAt)} ago. Portal API
               requests return <code>INSTAGRAM_TOKEN_EXPIRED</code>; nightly
-              refresh will not retry an already-expired token. The org
+              refresh will not retry an already-expired token. The organization
               reconnects via Instagram OAuth (
               <code>/reconnect-instagram</code>). Clear IG token is optional ops
               assist (null ciphertext + revoke sessions).

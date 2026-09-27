@@ -21,14 +21,14 @@ export type QueueMeta = {
 
 export const QUEUE_META: Record<string, QueueMeta> = {
   orgs_pending_approval: {
-    label: "Orgs awaiting approval",
+    label: "Organizations awaiting approval",
     note: "Verified their email and are waiting on a decision",
     to: "/admin/orgs?status=pending_approval",
     owner: "us",
   },
   orgs_ig_change_pending: {
     label: "Instagram identity requests",
-    note: "Org asked to rename or switch the bound Instagram account",
+    note: "Organization asked to rename or switch the bound Instagram account",
     to: "/admin/ig-changes?status=pending",
     owner: "us",
   },
@@ -93,8 +93,8 @@ export const SIGNAL_META: Record<string, SignalMeta> = {
     to: "/admin/drops?attention=no_tracking",
   },
   verification_blocked_by_ig: {
-    label: "Orgs locked out of email verification",
-    note: "An expired Instagram token rejects every request, including the one that would resend their verification email. Org self-serve reconnect is /reconnect-instagram (Instagram OAuth); Clear IG token is optional ops assist.",
+    label: "Organizations locked out of email verification",
+    note: "An expired Instagram token rejects every request, including the one that would resend their verification email. Organization self-serve reconnect is /reconnect-instagram (Instagram OAuth); Clear IG token is optional ops assist.",
     to: "/admin/orgs?status=pending_email_verification",
   },
   stranded_applicants: {
@@ -111,7 +111,7 @@ export const SIGNAL_META: Record<string, SignalMeta> = {
     note: "Same per-round check as capacity.",
   },
   accepted_missing_units: {
-    label: "Accepted orgs with no units",
+    label: "Accepted organizations with no units",
     note: "The drop has a unit budget but these rows were allocated zero or null.",
   },
   active_user_without_profile: {
@@ -133,7 +133,7 @@ export const SIGNAL_META: Record<string, SignalMeta> = {
   },
   pending_suggestions: {
     label: "Unconfirmed auto-link suggestions",
-    note: "Attributed metrics understate reality until the org confirms these.",
+    note: "Attributed metrics understate reality until the organization confirms these.",
   },
 };
 
@@ -162,7 +162,7 @@ export const PIPELINE_META: Record<
     label: "Instagram token refresh",
     schedule: "daily 04:00 UTC",
     inference:
-      "Only still-valid tokens near expiry are selected. Already-expired rows belong in the expired bucket — org must OAuth reconnect (/reconnect-instagram); cron cannot resurrect them.",
+      "Only still-valid tokens near expiry are selected. Already-expired rows belong in the expired bucket — the organization must OAuth reconnect (/reconnect-instagram); cron cannot resurrect them.",
   },
 };
 
@@ -174,7 +174,7 @@ export const TOKEN_BUCKET_META: Record<string, SignalMeta> = {
   },
   expired: {
     label: "Expired",
-    note: "Authenticated org requests return INSTAGRAM_TOKEN_EXPIRED until the org reconnects via Instagram OAuth; token_refresh will not retry already-expired tokens",
+    note: "Authenticated organization requests return INSTAGRAM_TOKEN_EXPIRED until the organization reconnects via Instagram OAuth; token_refresh will not retry already-expired tokens",
   },
   missing: {
     label: "Missing",
@@ -182,7 +182,7 @@ export const TOKEN_BUCKET_META: Record<string, SignalMeta> = {
   },
   undecryptable: {
     label: "Undecryptable",
-    note: "Ciphertext cannot be read (e.g. encryption key rotated); org must reconnect",
+    note: "Ciphertext cannot be read (e.g. encryption key rotated); the organization must reconnect",
   },
 };
 

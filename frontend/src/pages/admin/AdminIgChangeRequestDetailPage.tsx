@@ -75,7 +75,7 @@ export default function AdminIgChangeRequestDetailPage() {
           />
           <Panel title="Request">
             <FieldGrid>
-              <Field label="Org kind hint">
+              <Field label="Organization kind hint">
                 {data.kind === "rename" ? "Rename" : "Account switch"}
               </Field>
               <Field label="Decided as">{data.decidedKind ?? "—"}</Field>
@@ -138,7 +138,7 @@ export default function AdminIgChangeRequestDetailPage() {
                             kind: "account_switch",
                             testerInviteConfirmed: true,
                           }),
-                        "Approved, but the Connect email failed to send. Open the org and use Resend connect email.",
+                        "Approved, but the Connect email failed to send. Open the organization and use Resend connect email.",
                       )
                     }
                   >
@@ -162,7 +162,7 @@ export default function AdminIgChangeRequestDetailPage() {
                   to={`/admin/orgs/${data.userId}`}
                   className="inline-block text-xs font-bold text-buzz-coral hover:underline"
                 >
-                  Open org profile
+                  Open organization profile
                 </Link>
               </div>
             </Panel>
