@@ -605,7 +605,8 @@ async def send_drop_published_email(
         button="View drop",
         paragraphs=[
             f"Good news — {title} for {name} is now published on Buzz.",
-            "Student organizations can see it on the Drop Feed. Monitor applicants from your brand portal.",
+            "Student organizations can see it on the Drop Feed. "
+            "Monitor applicants from your brand portal.",
         ],
     )
 

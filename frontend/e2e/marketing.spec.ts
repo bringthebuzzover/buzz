@@ -24,7 +24,7 @@ test("home how-to cards open role tours", async ({ page }) => {
   await page.getByRole("link", { name: /for student organizations/i }).click();
   await expect(page).toHaveURL(/\/for-orgs$/);
   await expect(
-    page.getByRole("heading", { name: /how orgs join/i }),
+    page.getByRole("heading", { name: /how organizations join/i }),
   ).toBeVisible();
   await expect(page.getByText(/business or creator/i).first()).toBeVisible();
   await expect(
@@ -58,7 +58,7 @@ test("footer and login link to tours", async ({ page }) => {
     footer.getByRole("heading", { name: /how it works/i }),
   ).toBeVisible();
   await expect(footer.getByRole("heading", { name: /^apply$/i })).toBeVisible();
-  await expect(footer.getByRole("link", { name: /for orgs/i })).toHaveAttribute(
+  await expect(footer.getByRole("link", { name: /for organizations/i })).toHaveAttribute(
     "href",
     "/for-orgs",
   );
@@ -67,12 +67,12 @@ test("footer and login link to tours", async ({ page }) => {
     "/for-brands",
   );
   await expect(
-    footer.getByRole("link", { name: /apply as org/i }),
+    footer.getByRole("link", { name: /apply as organization/i }),
   ).toHaveAttribute("href", "/org/apply");
   await expect(
     footer.getByRole("link", { name: /apply as brand/i }),
   ).toHaveAttribute("href", "/brand/apply");
-  await expect(footer.getByRole("link", { name: /org login/i })).toHaveCount(0);
+  await expect(footer.getByRole("link", { name: /organization login/i })).toHaveCount(0);
 
   await page.goto("/login");
   await page.getByRole("link", { name: /see how it works/i }).click();
