@@ -768,7 +768,10 @@ async def sync_and_autolink_drop(
     drop_id: UUID,
     ig: InstagramClient,
 ) -> dict[str, Any]:
-    """Graph-sync accepted orgs on this Active drop, then autolink suggestions."""
+    """Graph-sync accepted orgs, then autolink suggestions.
+
+    Published, unhidden drops in Awaiting Products or Active only.
+    """
 
     drop = await db.get(Drop, drop_id)
     if drop is None:
@@ -776,11 +779,16 @@ async def sync_and_autolink_drop(
     if (
         drop.published_at is None
         or drop.hidden_at is not None
-        or drop.brand_tracker_stage != BrandTrackerStage.DROP_ACTIVE.value
+        or drop.brand_tracker_stage
+        not in (
+            BrandTrackerStage.AWAITING_PRODUCTS.value,
+            BrandTrackerStage.DROP_ACTIVE.value,
+        )
     ):
         raise BuzzAPIException(
             errors.DROP_NOT_ELIGIBLE,
-            "Sync and autolink only run on a published, visible, Active drop.",
+            "Sync and autolink only run on a published, visible drop that is "
+            "Awaiting Products or Active.",
             status_code=409,
         )
     brand = await db.get(Brand, drop.brand_id)

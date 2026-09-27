@@ -554,6 +554,7 @@ function ApiDropDetail() {
 
   const drop = mapDropToView(detail);
   const showResults =
+    drop.brandTrackerStage === "awaiting_products" ||
     drop.brandTrackerStage === "drop_active" ||
     drop.brandTrackerStage === "drop_finished";
   const canEditSelection =
@@ -564,9 +565,7 @@ function ApiDropDetail() {
         Date.now() > drop.applyCloseAt));
   const showFinalizedRoster =
     drop.applicantSelectionFinalizedAt != null &&
-    (drop.brandTrackerStage === "finalizing_agreements" ||
-      drop.brandTrackerStage === "awaiting_products");
-  const showAwaitingRoster = drop.brandTrackerStage === "awaiting_products";
+    drop.brandTrackerStage === "finalizing_agreements";
 
   const aggregateMetrics = {
     dropId: detail.id,
@@ -625,19 +624,12 @@ function ApiDropDetail() {
           />
         ) : null}
 
-        {showAwaitingRoster && !showFinalizedRoster && !showResults ? (
-          <ApiDropOrgTable
-            applicants={detail.applications ?? []}
-            title="Accepted organizations"
-          />
-        ) : null}
-
         {showResults ? (
           <div className={STACK.group}>
             <DropKPISummary metrics={aggregateMetrics} />
             <ApiDropOrgTable applicants={detail.applications ?? []} />
           </div>
-        ) : !canEditSelection && !showFinalizedRoster && !showAwaitingRoster ? (
+        ) : !canEditSelection && !showFinalizedRoster ? (
           <StatePanel>
             Posts and KPIs will appear here once your drop goes live.
           </StatePanel>

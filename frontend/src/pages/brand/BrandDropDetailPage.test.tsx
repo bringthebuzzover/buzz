@@ -122,6 +122,16 @@ describe("BrandDropDetailPage", () => {
     ).toBeTruthy();
   });
 
+  it("shows drop KPIs while awaiting products", () => {
+    mockUseBrandDropDetail.mockReturnValue({
+      data: { ...brandDrop(false), brandTrackerStage: "awaiting_products" },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    expect(container.textContent).toContain("Total engagement");
+  });
+
   it("hides the public URL until the drop is published", () => {
     mockUseBrandDropDetail.mockReturnValue({
       data: { ...brandDrop(false), publishedAt: null },

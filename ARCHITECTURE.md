@@ -112,7 +112,7 @@ Mounted in `backend/app/main.py`:
 | `/api/drops/*` | `routes/drops.py` | Org feed, public/optional-auth detail, apply, Notify Me |
 | `/api/campaigns/*` | `routes/campaigns.py` | My campaigns, link/unlink, suggestions, aggregate |
 | `/api/brands/*` | `routes/brands.py` | Apply, brand profile, drops, finalize, aggregates |
-| `/api/admin/*` | `routes/admin.py` | Queues + Overview `items` (IG identity work), lifecycle, org/brand erase, org IG identity-change review, bind-mismatch ack, compose email, bulk Connect Instagram email, late-add org, sync+autolink on an Active drop, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |
+| `/api/admin/*` | `routes/admin.py` | Queues + Overview `items` (IG identity work), lifecycle, org/brand erase, org IG identity-change review, bind-mismatch ack, compose email, bulk Connect Instagram email, late-add org, sync+autolink on Awaiting Products or Active, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |
 
 Thin routes; business logic in `backend/app/services/`. Admin table inspect (`/api/admin/tables`) redacts secrets; generic PATCH is allowlisted — see [`ideas/archive/admin-mcp.md`](ideas/archive/admin-mcp.md). Operator stdio MCP: [`tools/buzz-admin-mcp/`](tools/buzz-admin-mcp/).
 
@@ -140,7 +140,7 @@ One-shot scripts via `backend/scripts/run_job.py <name>` (Railway Cron). Idempot
 | `notify_reminders` | `*/5` | Notify Me emails |
 | `metric_sync` | daily ~03:00 | Instagram FEED/REELS media + insights (`/me/media`); also refreshes `organizations.follower_count` from Graph `/me` for all tokened non-erased orgs. Stories out of scope (no `/stories` poller) |
 | `token_cleanup` | daily ~03:00 | Sweep spent tokens |
-| `autolink_scan` | daily ~03:30 | Caption suggestions (`drop_active`) |
+| `autolink_scan` | daily ~03:30 | Caption suggestions (`awaiting_products`, `drop_active`) |
 | `token_refresh` | daily ~04:00 | IG long-lived refresh safety net |
 
 Cadences are ops SOT in [`DEPLOYMENT.md`](DEPLOYMENT.md) (cron table). Primary IG token refresh is on-login (`deps/auth` + `instagram_token` service).
