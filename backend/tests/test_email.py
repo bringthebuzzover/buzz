@@ -9,7 +9,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from app.brand_emails import EMAIL_FROM
+from app.brand_emails import CONTACT_EMAIL, EMAIL_FROM
 from app.config import settings
 from app.services import email
 
@@ -48,7 +48,7 @@ async def test_dispatch_posts_to_resend(monkeypatch, _resend_key) -> None:
         "to": ["to@campus.edu"],
         "subject": "Subject",
         "text": "Body text",
-        "reply_to": "mc3237@cornell.edu",
+        "reply_to": CONTACT_EMAIL,
     }
 
 

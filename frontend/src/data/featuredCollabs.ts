@@ -3,7 +3,7 @@
  */
 import type { FeaturedCollab } from "../types/campaign";
 import sorority from "../assets/sorority.png";
-import ztaLacroix from "../assets/zta-lacroix.png";
+import entUpdate from "../assets/ent-update-cornell.jpg";
 
 /** Title, subtitle, and hero image per collaboration tile. */
 export const FEATURED_COLLABS: FeaturedCollab[] = [
@@ -15,8 +15,8 @@ export const FEATURED_COLLABS: FeaturedCollab[] = [
   },
   {
     id: 2,
-    title: "Zeta Tau Alpha x La Croix",
-    subtitle: "Collaboration at Ole Miss",
-    image: ztaLacroix,
+    title: "Epsilon Nu Tau x UPDATE",
+    subtitle: "Collaboration at Cornell University",
+    image: entUpdate,
   },
 ];
