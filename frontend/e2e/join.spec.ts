@@ -53,7 +53,7 @@ test("home join buttons route to /org/apply and /brand/apply", async ({
 test("org apply page renders the public form", async ({ page }) => {
   await page.goto("/org/apply");
   await expect(
-    page.getByRole("heading", { name: /apply as a student org/i }),
+    page.getByRole("heading", { name: /apply as a student organization/i }),
   ).toBeVisible();
   await expect(page.getByText(/business or creator/i).first()).toBeVisible();
   await expect(
