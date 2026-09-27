@@ -111,6 +111,6 @@ test("anonymous public drop signup stores intent, not an applicant", async ({
 
   await expect(page).toHaveURL(/\/onboarding\/verify-email/);
   await expect(
-    page.getByText(/we'll submit when your org is approved and connected/i),
+    page.getByText(/we'll submit when your organization is approved and connected/i),
   ).toBeVisible();
 });

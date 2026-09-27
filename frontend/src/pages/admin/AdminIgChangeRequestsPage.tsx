@@ -23,7 +23,7 @@ const FILTERS = [
   { value: "denied", label: "Denied" },
 ] as const;
 
-const HEADERS = ["Org", "Change", "Status", "Created", ""] as const;
+const HEADERS = ["Organization", "Change", "Status", "Created", ""] as const;
 
 function statusTone(status: string): "good" | "warn" | "bad" | "neutral" {
   if (status === "approved") return "good";

@@ -11,7 +11,7 @@ const STEPS = [
   "Apply (or accept an invite) with company name and email; Buzz reviews, then you set a password from the setup email.",
   "Plan your Campaign: send a ticket (message and optional notes). That text is not the campaign title — a representative will contact you.",
   "Sales call and logistics happen out of band. Buzz writes the drop creative and window.",
-  "An admin saves an unpublished draft, then Publish. Only then do campus orgs see the campaign.",
+  "An admin saves an unpublished draft, then Publish. Only then do campus organizations see the campaign.",
   "You monitor applicants, KPIs, and a read-only tracker that starts at Awaiting Products.",
   "After the apply window closes, you batch-finalize (approve or deny) up to capacity.",
 ] as const;

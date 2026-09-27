@@ -16,9 +16,9 @@ const STEPS = [
   "Confirm that Business or Creator account, then submit.",
   "Verify the .edu email Buzz sends you (check Junk on campus Outlook).",
   "Wait while Buzz reviews and adds your handle as an Instagram Tester.",
-  "Accept the tester invite, then Connect Instagram on the org account.",
+  "Accept the tester invite, then Connect Instagram on the organization account.",
   "Browse published campaigns on the Drop Feed and Apply when a drop is Open.",
-  "If you’re accepted, products ship to the address you gave; post from that org Instagram.",
+  "If you’re accepted, products ship to the address you gave; post from that organization Instagram.",
 ] as const;
 
 const TOUR_DROP_IMAGE =
@@ -31,7 +31,7 @@ export default function ForOrgsPage() {
         For student organizations
       </p>
       <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink md:text-4xl")}>
-        How orgs join <span className="text-buzz-coral">Buzz</span>
+        How organizations join <span className="text-buzz-coral">Buzz</span>
       </h1>
       <p className={cn(TEXT.bodyLong, "mb-10 font-medium text-buzz-inkMuted")}>
         You apply on the website first. Instagram login comes after Buzz
@@ -48,7 +48,7 @@ export default function ForOrgsPage() {
         </li>
         <li>A campus <span className="font-semibold text-buzz-ink">.edu</span> email you can verify.</li>
         <li>
-          Org name, university, member count, type, city, state, contact name,
+          Organization name, university, member count, type, city, state, contact name,
           and a shipping address (free text — you’ll give where products should
           go).
         </li>
@@ -64,7 +64,7 @@ export default function ForOrgsPage() {
 
       <TourFrame
         url="bringthebuzzover.com/org/apply"
-        caption="Apply: type the org handle, then confirm the card on the same page."
+        caption="Apply: type the organization handle, then confirm the card on the same page."
       >
         <p className={cn(SURFACE.inset, "mb-3 px-3 py-3 text-xs font-medium text-buzz-inkMuted")}>
           Your Instagram must be the organization&apos;s{" "}
@@ -146,7 +146,7 @@ export default function ForOrgsPage() {
         <p className="text-sm font-medium text-buzz-inkMuted">
           Already connected Instagram?{" "}
           <Link to="/login" className="font-semibold text-buzz-coral hover:underline">
-            Org login
+            Organization login
           </Link>
         </p>
       </div>

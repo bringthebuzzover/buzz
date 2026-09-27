@@ -447,7 +447,7 @@ async def send_brand_erased_email(to_email: str, *, brand_name: str = "") -> boo
     body = (
         f"We've completed your data deletion request for {name} on Buzz.\n\n"
         "Your Buzz login identity and contact details on file have been removed "
-        "or anonymized. Campaign records orgs already participated in may stay "
+        "or anonymized. Campaign records organizations already participated in may stay "
         "visible to those organizations as an anonymized brand name.\n\n"
         "If you have questions, reply to this email."
     )
@@ -595,7 +595,7 @@ async def send_drop_published_email(
     subject = f"Your Buzz drop is live — {title}" if drop_title else "Your Buzz drop is live"
     text = (
         f"Good news — {title} for {name} is now published on Buzz.\n\n"
-        f"Student orgs can see it on the Drop Feed. Monitor applicants here:\n\n"
+        f"Student organizations can see it on the Drop Feed. Monitor applicants here:\n\n"
         f"{drop_url}\n\n"
         "We'll email when there are updates that need your attention."
     )
@@ -605,7 +605,7 @@ async def send_drop_published_email(
         button="View drop",
         paragraphs=[
             f"Good news — {title} for {name} is now published on Buzz.",
-            "Student orgs can see it on the Drop Feed. Monitor applicants from your brand portal.",
+            "Student organizations can see it on the Drop Feed. Monitor applicants from your brand portal.",
         ],
     )
 

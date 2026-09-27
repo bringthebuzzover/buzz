@@ -116,7 +116,7 @@ async def patch_drop_intent(
     if user.status == OrgUserStatus.ACTIVE.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
-            "Active orgs apply with POST /api/drops/{id}/apply.",
+            "Active organizations apply with POST /api/drops/{id}/apply.",
             status_code=400,
         )
     org = await get_org_for_user(db, user)

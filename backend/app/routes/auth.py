@@ -160,7 +160,7 @@ async def instagram_bind_start(
     ):
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
-            "Only orgs awaiting Instagram connect can start a bind login.",
+            "Only organizations awaiting Instagram connect can start a bind login.",
             status_code=400,
         )
     state = jwt.create_oauth_state_token(bind_user_id=user.id, next_path=next_path)

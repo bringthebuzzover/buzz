@@ -106,7 +106,7 @@ export default function PublicDropPage() {
       {status === "needs_instagram_reconnect" ? (
         <>
           <StatePanel>
-            Reconnect Instagram to apply from your org account.
+            Reconnect Instagram to apply from your organization account.
           </StatePanel>
           <div className="mb-6 flex justify-center">
             <Button type="button" variant="outline" onClick={() => login(nextPath)}>
@@ -149,7 +149,7 @@ export default function PublicDropPage() {
           </h2>
           <p className={cn(TEXT.body, "mb-6 text-center text-buzz-inkMuted")}>
             Same application as joining Buzz. We&apos;ll submit this drop when
-            your org is approved and connected — you&apos;re not applied yet.
+            your organization is approved and connected — you&apos;re not applied yet.
           </p>
           <OrgApplyForm
             dropId={dropId}
@@ -171,7 +171,7 @@ export default function PublicDropPage() {
             to={loginHref}
             className="font-semibold text-buzz-coral hover:underline"
           >
-            Org login
+            Organization login
           </Link>
         </p>
       ) : null}
@@ -307,12 +307,12 @@ function PendingOrgActions({
     <div className={cn(STACK.default, "mb-6")}>
       {expired ? (
         <StatePanel>
-          The apply window closed before your org was fully set up. Buzz still
+          The apply window closed before your organization was fully set up. Buzz still
           has this attempt — you&apos;re not an applicant.
         </StatePanel>
       ) : (
         <SuccessBanner>
-          We&apos;ll submit when your org is approved and connected. You&apos;re
+          We&apos;ll submit when your organization is approved and connected. You&apos;re
           not applied yet.
         </SuccessBanner>
       )}

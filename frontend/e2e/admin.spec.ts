@@ -151,7 +151,7 @@ test("org list can confirm emailing orgs awaiting Instagram connect", async ({
   await expect(page.getByTestId("resend-connect-all")).toBeVisible();
   await page.getByTestId("resend-connect-all").click();
   await expect(
-    page.getByText(/does not email orgs still verifying school email/i),
+    page.getByText(/does not email organizations still verifying school email/i),
   ).toBeVisible();
   await page.getByTestId("resend-connect-all-cancel").click();
   await expect(page.getByTestId("resend-connect-all-confirm")).toHaveCount(0);

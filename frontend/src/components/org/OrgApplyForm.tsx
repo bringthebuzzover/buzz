@@ -347,7 +347,7 @@ export default function OrgApplyForm({
           message={fieldErrors.instagramHandle}
         />
         <p className="mt-1 text-xs text-buzz-inkMuted">
-          Exact username of the org Business/Creator account (with or without
+          Exact username of the organization Business/Creator account (with or without
           @).
         </p>
 
@@ -524,7 +524,7 @@ export default function OrgApplyForm({
       <p className="text-center text-xs text-buzz-inkMuted">
         Already connected Instagram?{" "}
         <Link to={loginHref} className="font-semibold text-buzz-coral hover:underline">
-          Org login
+          Organization login
         </Link>
       </p>
     </form>

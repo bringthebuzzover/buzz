@@ -20,7 +20,7 @@ export async function waitForAuthSettled(
   if (settled === "org") {
     // failHard → /login must not burn the full expect timeout waiting for
     // Org Portal that never appears (auth.ci-session-restore-flake).
-    const portal = expect(page.getByText("Org Portal")).toBeVisible({
+    const portal = expect(page.getByText("Organization Portal")).toBeVisible({
       timeout: ORG_SETTLE_MS,
     });
     const guestLogin = page

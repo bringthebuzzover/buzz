@@ -41,7 +41,7 @@ export default function OrgApplyPage() {
   return (
     <PageShell width="form">
       <h1 className={cn(TEXT.h1, "mb-2 text-center text-buzz-ink")}>
-        Apply as a <span className="text-buzz-coral">Student Org</span>
+        Apply as a <span className="text-buzz-coral">Student Organization</span>
       </h1>
       <p className="mb-4 text-center text-sm font-medium text-buzz-inkMuted">
         Tell us about your organization. We&apos;ll verify your school email,

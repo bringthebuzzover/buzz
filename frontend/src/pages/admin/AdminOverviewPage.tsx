@@ -110,11 +110,11 @@ export default function AdminOverviewPage() {
 
           <Panel
             title="Needs a look"
-            description="Instagram identity tickets and Connect handle mismatches. Approve or deny a ticket; Ack a mismatch on the org."
+            description="Instagram identity tickets and Connect handle mismatches. Approve or deny a ticket; Ack a mismatch on the organization."
           >
             <div data-testid="needs-a-look">
               <AdminTable
-                headers={["Org", "Why", "Waiting", ""]}
+                headers={["Organization", "Why", "Waiting", ""]}
                 isEmpty={(overview.data.items ?? []).length === 0}
                 empty="No Instagram identity items."
               >

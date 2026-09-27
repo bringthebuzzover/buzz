@@ -72,7 +72,7 @@ export default function ApiDropOrgTable({
             </Select>
           ) : null}
           <span className={TEXT.meta}>
-            {rows.length} {rows.length === 1 ? "org" : "orgs"}
+            {rows.length} {rows.length === 1 ? "organization" : "organizations"}
           </span>
         </div>
       </div>

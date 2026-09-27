@@ -581,7 +581,9 @@ async def finalize_applicants(
     if selected_count > remaining_capacity:
         raise BuzzAPIException(
             errors.CAPACITY_EXCEEDED,
-            f"Selected {selected_count} orgs exceeds remaining capacity of "
+            f"Selected {selected_count} "
+            f"{'organization' if selected_count == 1 else 'organizations'} "
+            f"{'exceeds' if selected_count == 1 else 'exceed'} remaining capacity of "
             f"{remaining_capacity} ({prior_accepted_count} already accepted).",
         )
 
@@ -615,7 +617,7 @@ async def finalize_applicants(
         first_missing = next(iter(missing))
         raise BuzzAPIException(
             errors.ORG_NOT_APPLIED,
-            f"Org {first_missing} has not applied to this drop.",
+            f"Organization {first_missing} has not applied to this drop.",
             details={"org_id": str(first_missing)},
         )
 

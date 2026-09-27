@@ -242,7 +242,7 @@ async def _require_org(db: AsyncSession, org_user: User) -> Organization:
     if org is None:
         raise BuzzAPIException(
             errors.INTERNAL_ERROR,
-            "Active org account is missing its profile.",
+            "Active organization account is missing its profile.",
             status_code=500,
         )
     return org

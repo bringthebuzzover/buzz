@@ -12,7 +12,7 @@ const CARDS = [
     to: "/for-orgs",
     title: "For student organizations",
     teaser:
-      "Apply with your campus .edu, confirm the org Instagram, then connect after Buzz review.",
+      "Apply with your campus .edu, confirm the organization Instagram, then connect after Buzz review.",
   },
   {
     to: "/for-brands",

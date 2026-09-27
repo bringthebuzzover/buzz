@@ -85,7 +85,7 @@ export default function ConnectInstagramPage() {
         <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
           {redeemState.message}
         </p>
-        <LinkButton to="/login">Org login</LinkButton>
+        <LinkButton to="/login">Organization login</LinkButton>
       </AuthShell>
     );
   }

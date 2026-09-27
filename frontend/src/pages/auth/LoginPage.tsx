@@ -57,7 +57,7 @@ export default function LoginPage() {
 
       <div className={cn("mt-8", STACK.default, "text-sm font-medium text-buzz-inkMuted")}>
         <p>
-          New org?{" "}
+          New organization?{" "}
           <Link to="/org/apply" className="font-semibold text-buzz-coral hover:underline">
             Apply here.
           </Link>
