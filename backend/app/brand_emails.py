@@ -1,4 +1,4 @@
-"""Committed brand email addresses (From + public contact + ops CC).
+"""Committed brand email addresses (From + public contact + optional ops CC).
 
 SOT: ``backend/brand_emails.json``. Not overridable via process env — edit the
 JSON and redeploy. ``RESEND_API_KEY`` remains a secret Settings field.
@@ -25,13 +25,13 @@ def _load() -> tuple[str, str, str]:
         raise RuntimeError("brand_emails.json must be a JSON object")
     email_from = raw.get("emailFrom")
     contact_email = raw.get("contactEmail")
-    ops_cc_email = raw.get("opsCcEmail")
+    ops_cc_email = raw.get("opsCcEmail", "")
     if not isinstance(email_from, str) or not email_from.strip():
         raise RuntimeError("brand_emails.json: emailFrom must be a non-empty string")
     if not isinstance(contact_email, str) or not contact_email.strip():
         raise RuntimeError("brand_emails.json: contactEmail must be a non-empty string")
-    if not isinstance(ops_cc_email, str) or not ops_cc_email.strip():
-        raise RuntimeError("brand_emails.json: opsCcEmail must be a non-empty string")
+    if not isinstance(ops_cc_email, str):
+        raise RuntimeError("brand_emails.json: opsCcEmail must be a string")
     return email_from.strip(), contact_email.strip(), ops_cc_email.strip()
 
 

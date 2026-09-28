@@ -2,16 +2,13 @@ import brandEmails from "@brandEmails";
 import { composeDefaultBody, opsCcAddresses } from "./composeEmail";
 
 describe("opsCcAddresses", () => {
-  it("lists contact and ops, skipping the To address", () => {
-    const cc = opsCcAddresses(brandEmails.contactEmail);
-    expect(cc).toEqual([brandEmails.opsCcEmail]);
+  it("skips a blank ops address and the To address", () => {
+    expect(brandEmails.opsCcEmail.trim()).toBe("");
+    expect(opsCcAddresses(brandEmails.contactEmail)).toEqual([]);
   });
 
-  it("keeps both when To is someone else", () => {
-    expect(opsCcAddresses("org@school.edu")).toEqual([
-      brandEmails.contactEmail,
-      brandEmails.opsCcEmail,
-    ]);
+  it("CCs the contact address when To is someone else", () => {
+    expect(opsCcAddresses("org@school.edu")).toEqual([brandEmails.contactEmail]);
   });
 });
 
