@@ -11,7 +11,9 @@ Brainstorm + parallel research (2026-08-11). **Not committed behavior. Not
 legal advice.** Promoting any SKU needs an explicit PRODUCT / pricing decision.
 
 Related: [`markets.md`](markets.md) (Upfront, CPE collars, prepaid credits,
-parked notes/tokens), [`ai.md`](ai.md) (grades that scarcity products need).
+parked notes/tokens), [`ai.md`](ai.md) (grades that scarcity products need),
+[`campus-creators.md`](campus-creators.md) (parked creator take-rate; not the
+org fee model).
 
 Interactive compare: open the Cursor canvas
 `buzz-pricing-models.canvas.tsx` beside chat (workspace canvases folder).
