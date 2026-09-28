@@ -12,6 +12,7 @@ import { getDropFeedStatus } from "../../utils/dropStatus";
 import type { DropFeedRow, DropFeedStatus } from "../../types/drop";
 import { useWallClockNow } from "../../utils/wallClock";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
+import { useCampaigns, type CampaignItem } from "../../api/hooks/useOrgHooks";
 import PageShell from "../../components/site/PageShell";
 import { QueryStatePanel, StatePanel } from "../../components/ui/StatePanel";
 import { Button } from "../../components/forms/controls";
@@ -45,10 +46,21 @@ function FeedHeader() {
   );
 }
 
-/** Shared presentational feed: filter chips + status-sorted card grid. */
+/** My Campaigns detail for an accepted seat on this drop, if the org has one. */
+export function acceptedCampaignPath(
+  campaigns: CampaignItem[] | undefined,
+  dropId: string,
+): string | undefined {
+  const match = campaigns?.find(
+    (campaign) => campaign.dropId === dropId && campaign.decision === "accepted",
+  );
+  return match ? `/org/campaigns/${match.id}` : undefined;
+}
+
 function FeedContent({
   rows,
   onApply,
+  campaignPath,
   disableApply = false,
   hasMore = false,
   isLoadingMore = false,
@@ -56,6 +68,7 @@ function FeedContent({
 }: {
   rows: DropFeedRow[];
   onApply: (dropId: string) => void;
+  campaignPath?: (dropId: string) => string | undefined;
   disableApply?: boolean;
   hasMore?: boolean;
   isLoadingMore?: boolean;
@@ -115,6 +128,7 @@ function FeedContent({
               acceptedCount={row.acceptedCount}
               feedStatus={status}
               alreadyApplied={row.alreadyApplied}
+              campaignTo={campaignPath?.(row.id)}
               disableApply={disableApply}
               onApply={() => onApply(row.id)}
             />
@@ -155,6 +169,7 @@ function ApiDropFeed() {
     fetchNextPage,
   } = useOrgDropFeed();
   const [applyingId, setApplyingId] = useState<string | null>(null);
+  const { data: campaigns } = useCampaigns();
 
   const handleApply = (dropId: string) => {
     setApplyingId(dropId);
@@ -191,6 +206,7 @@ function ApiDropFeed() {
     <FeedContent
       rows={items}
       onApply={handleApply}
+      campaignPath={(dropId) => acceptedCampaignPath(campaigns, dropId)}
       disableApply={false}
       hasMore={hasNextPage}
       isLoadingMore={isFetchingNextPage}

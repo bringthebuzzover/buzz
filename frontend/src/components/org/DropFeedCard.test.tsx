@@ -37,6 +37,34 @@ function renderOpen(acceptedCount: number): string {
   );
 }
 
+describe("DropFeedCard accepted campaign", () => {
+  const closedDrop: DropCardData = {
+    ...openDrop,
+    applyOpenAt: Date.now() - 100_000,
+    applyCloseAt: Date.now() - 1_000,
+    applicantSelectionFinalizedAt: Date.now() - 1_000,
+  };
+
+  it("links an accepted seat to My Campaigns instead of a dead Closed action", () => {
+    const html = renderToString(
+      <MemoryRouter>
+        <DropFeedCard
+          drop={closedDrop}
+          acceptedCount={10}
+          feedStatus="closed"
+          alreadyApplied
+          campaignTo="/org/campaigns/app-1"
+          onApply={() => {}}
+        />
+      </MemoryRouter>,
+    );
+    expect(html).toContain('href="/org/campaigns/app-1"');
+    expect(html).toContain("View campaign");
+    expect(html).not.toContain(">Applied<");
+    expect(html).not.toContain(">Closed</button>");
+  });
+});
+
 describe("DropFeedCard Open spots copy", () => {
   it("shows Up to N when acceptedCount is 0", () => {
     const html = renderOpen(0);

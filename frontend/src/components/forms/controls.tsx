@@ -191,7 +191,7 @@ export { Checkbox } from "./Checkbox";
  * Disabled is a designed state, not `opacity` alone — a faded coral fill read
  * as a broken button rather than a gated one.
  */
-const buttonVariants = cva(
+export const buttonVariants = cva(
   "inline-flex select-none items-center justify-center gap-2 self-center whitespace-nowrap rounded-buzzControl font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-coral/40 disabled:cursor-not-allowed",
   {
     variants: {
