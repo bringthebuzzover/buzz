@@ -636,6 +636,46 @@ async def test_metric_sync_discovers_and_refreshes(db_session) -> None:
     assert post.metrics_updated_at is not None
 
 
+async def test_metric_sync_stores_long_instagram_media_urls(db_session) -> None:
+    """Signed CDN links exceed the old varchar(1024) and must still insert."""
+    org_user = await persist(db_session, make_user(instagram_user_id="ig_long_url"))
+    org_user.instagram_access_token = encrypt_token("long-lived")
+    org_user.instagram_token_expires_at = _now() + timedelta(days=50)
+    org = await make_org(db_session, org_user)
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+    await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    await db_session.flush()
+
+    media_url = "https://scontent.cdninstagram.com/v/" + ("a" * 2000)
+    thumbnail_url = "https://scontent.cdninstagram.com/v/" + ("b" * 2000)
+    fake = FakeInstagramClient()
+    fake.media = [MediaRef(id="m-long", timestamp="2030-01-01T00:00:00+0000")]
+    fake.media_fields = {
+        "m-long": MediaFields(
+            id="m-long",
+            caption="long urls",
+            media_type="IMAGE",
+            media_product_type="FEED",
+            permalink="https://instagram.com/p/m-long",
+            thumbnail_url=thumbnail_url,
+            media_url=media_url,
+            timestamp="2030-01-01T00:00:00+0000",
+            like_count=1,
+            comments_count=0,
+        )
+    }
+
+    result = await sync_metrics(db_session, fake)
+    assert result["posts_discovered"] == 1
+    assert result["failures"] == 0
+
+    post = await db_session.scalar(select(SocialPost).where(SocialPost.external_id == "m-long"))
+    assert post is not None
+    assert post.media_url == media_url
+    assert post.thumbnail_url == thumbnail_url
+
+
 async def test_metric_sync_skips_orgs_without_live_campaign(db_session) -> None:
     org_user = await persist(db_session, make_user(instagram_user_id="ig_nolive"))
     org_user.instagram_access_token = encrypt_token("long-lived")
