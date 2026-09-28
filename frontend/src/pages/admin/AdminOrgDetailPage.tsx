@@ -118,7 +118,8 @@ export default function AdminOrgDetailPage() {
   const mismatchConnected = graphAtMismatch
     ? `@${graphAtMismatch}`
     : connectedHandle;
-  const igProfileUrl = instagramProfileUrl(liveHandle ?? claimedBare);
+  const igProfileUrl = instagramProfileUrl(liveHandle);
+  const claimedProfileUrl = instagramProfileUrl(claimedBare);
   const mismatchOpen = Boolean(
     data?.igBindMismatchedAt && !data.igBindMismatchAckedAt,
   );
@@ -486,9 +487,16 @@ export default function AdminOrgDetailPage() {
           <Panel title="Profile">
             <FieldGrid>
               <Field label="Claimed handle">
-                {claimedBare ? (
+                {claimedBare && claimedProfileUrl ? (
                   <span className="inline-flex flex-wrap items-center gap-2 font-semibold text-buzz-ink">
-                    @{claimedBare}
+                    <a
+                      href={claimedProfileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-buzz-coral hover:underline"
+                    >
+                      @{claimedBare}
+                    </a>
                     {mismatchOpen && <IgBindMismatchChip />}
                     {!data.instagramHandleConfirmed &&
                       data.status !== "active" && <UnconfirmedIgChip />}
