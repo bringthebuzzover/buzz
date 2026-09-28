@@ -41,7 +41,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import func, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.application import DropApplication
@@ -369,9 +369,8 @@ async def sync_metrics_for_orgs(
             if fields.media_product_type == SocialMediaProductType.STORY.value:
                 skipped_story += 1
                 continue
-            # Insert in a savepoint so a concurrent run losing the
-            # UNIQUE(org_id, platform, external_id) race skips that post instead of
-            # aborting the whole job's transaction.
+            # Insert in a savepoint so one bad row (unique race, or a value
+            # Postgres rejects) skips that post instead of aborting the sync.
             try:
                 async with db.begin_nested():
                     db.add(
@@ -395,6 +394,15 @@ async def sync_metrics_for_orgs(
                         )
                     )
             except IntegrityError:
+                continue
+            except SQLAlchemyError:
+                logger.warning(
+                    "metric sync skipped post insert org_id=%s external_id=%s",
+                    org.id,
+                    ref.id,
+                    exc_info=False,
+                )
+                failed += 1
                 continue
             discovered += 1
         await db.flush()

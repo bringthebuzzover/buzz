@@ -45,9 +45,10 @@ class SocialPost(Base):
     platform: Mapped[str] = mapped_column(PlatformEnum, nullable=False)
     external_id: Mapped[str] = mapped_column(sa.String(255), nullable=False)
 
-    url: Mapped[str] = mapped_column(sa.String(1024), nullable=False)
-    media_url: Mapped[str | None] = mapped_column(sa.String(1024), nullable=True)
-    thumbnail_url: Mapped[str | None] = mapped_column(sa.String(1024), nullable=True)
+    # Graph CDN links are signed and routinely longer than 1024 characters.
+    url: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    media_url: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    thumbnail_url: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     caption: Mapped[str] = mapped_column(sa.Text, nullable=False)
 
     media_type: Mapped[str] = mapped_column(SocialMediaTypeEnum, nullable=False)
