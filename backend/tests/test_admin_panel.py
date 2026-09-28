@@ -694,9 +694,7 @@ class TestAdminFinalizeApplicants:
         )
         user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, user, org_name="Theta")
-        await make_application(
-            db_session, drop, org, decision=ApplicationDecision.APPLIED
-        )
+        await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
         await db_session.flush()
 
         res = await app_client.post(
