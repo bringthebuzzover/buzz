@@ -679,3 +679,52 @@ class TestHealth:
         data = res.json()["data"]
         assert _signal(data, "silent", "posts_never_refreshed")["count"] == 1
         assert _signal(data, "pipeline", "metric_sync")["count"] == 1
+
+
+class TestAdminFinalizeApplicants:
+    async def test_admin_finalizes_with_brand_rules(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(
+            db_session,
+            brand,
+            stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
+            apply_open_at=_now() - timedelta(days=30),
+            apply_close_at=_now() - timedelta(days=1),
+            capacity_total=3,
+        )
+        user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, user, org_name="Theta")
+        await make_application(
+            db_session, drop, org, decision=ApplicationDecision.APPLIED
+        )
+        await db_session.flush()
+
+        res = await app_client.post(
+            f"/api/admin/drops/{drop.id}/finalize-applicants",
+            json={"allocations": [{"orgId": str(org.id), "units": 0}]},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 200
+        body = res.json()["data"]
+        assert body["acceptedCount"] == 1
+        assert body["deniedCount"] == 0
+        await db_session.refresh(drop)
+        assert drop.applicant_selection_finalized_at is not None
+        assert drop.brand_tracker_stage == BrandTrackerStage.FINALIZING_AGREEMENTS.value
+
+    async def test_window_still_open_is_rejected(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(
+            db_session,
+            brand,
+            stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
+            apply_open_at=_now() - timedelta(days=1),
+            apply_close_at=_now() + timedelta(days=1),
+        )
+        res = await app_client.post(
+            f"/api/admin/drops/{drop.id}/finalize-applicants",
+            json={"allocations": []},
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 400
+        assert res.json()["error"]["code"] == "APPLY_WINDOW_OPEN"

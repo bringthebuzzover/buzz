@@ -35,6 +35,7 @@ from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.schemas.admin import AdminDropConfigPatch, AdminDropCreateRequest
 from app.security.session import bump_token_version, commit_revocation
+from app.services.brands import finalize_applicants
 from app.services.drop_apply_intents import (
     expire_open_intents_for_org,
     promote_drop_apply_intents,
@@ -841,6 +842,21 @@ async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str
     await db.flush()
     await commit_revocation(db)
     return {"user_id": str(user.id), "instagram_token_cleared": True}
+
+
+async def finalize_drop_applicants(
+    db: AsyncSession,
+    drop_id: UUID,
+    allocations: list[dict[str, Any]],
+) -> dict[str, int]:
+    """Batch-finalize applicants with the same rules as the brand portal (§7.1)."""
+    drop = await db.get(Drop, drop_id)
+    if drop is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    brand = await db.get(Brand, drop.brand_id)
+    if brand is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
+    return await finalize_applicants(db, brand, drop_id, allocations)
 
 
 async def advance_tracker(

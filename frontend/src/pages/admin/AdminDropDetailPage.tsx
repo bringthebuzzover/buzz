@@ -5,8 +5,8 @@
  * facets of it. The tab lives in `?tab=` so a specific view is still a shareable
  * URL.
  *
- * The tracker is forward-only. Skipping past "finalizing agreements" before the
- * brand has picked applicants would strand every applicant permanently.
+ * The tracker is forward-only. Skipping past "finalizing agreements" before
+ * applicant selection is finalized would strand every applicant permanently.
  * Tracking numbers live on accepted applicant seats, not on this advance.
  */
 import { useState, type ReactNode } from "react";
@@ -18,6 +18,7 @@ import {
   useAdvanceTracker,
   useClearReopen,
   useDeleteApplicantShipment,
+  useFinalizeAdminApplicants,
   useHideDrop,
   usePatchAdminDropConfig,
   usePublishDrop,
@@ -591,8 +592,9 @@ function TrackerControls({
 
         {blockedByFinalize && (
           <ErrorBanner>
-            The brand has not finalized its applicant selection. Advancing past
-            that stage would strand every applicant with no way to decide them.
+            Applicant selection is not finalized. Finalize it on the Applicants
+            tab before advancing, or every remaining applicant is left with no
+            decision.
           </ErrorBanner>
         )}
 
@@ -783,6 +785,143 @@ function canLateAdd(drop: AdminDropDetail): boolean {
     drop.publishedAt != null &&
     drop.hiddenAt == null &&
     drop.stage !== "drop_finished"
+  );
+}
+
+function canFinalizeSelection(drop: AdminDropDetail): boolean {
+  if (drop.finalizedAt != null || drop.hiddenAt != null) return false;
+  if (Date.now() <= drop.applyCloseAt) return false;
+  if (drop.stage === "finalizing_agreements") return true;
+  return drop.stage === "request_received" && !drop.manualReopen;
+}
+
+function FinalizeSelection({
+  drop,
+  applicants,
+}: {
+  drop: AdminDropDetail;
+  applicants: AdminApplicant[];
+}) {
+  const finalize = useFinalizeAdminApplicants(drop.id);
+  const pending = applicants.filter((row) => row.decision === "applied");
+  const showUnits = drop.totalProductUnits != null;
+  const [accepted, setAccepted] = useState<Record<string, boolean>>({});
+  const [units, setUnits] = useState<Record<string, number>>({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const acceptedCount = pending.filter((row) => accepted[row.orgId]).length;
+  const deniedCount = pending.length - acceptedCount;
+
+  async function submit() {
+    setError(null);
+    setNotice(null);
+    const allocations = pending
+      .filter((row) => accepted[row.orgId])
+      .map((row) => ({ orgId: row.orgId, units: units[row.orgId] ?? 0 }));
+    try {
+      await finalize.mutateAsync(allocations);
+      setConfirmOpen(false);
+      setNotice("Selection finalized. Denied applicants were emailed.");
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not finalize selection.",
+      );
+    }
+  }
+
+  return (
+    <div className="space-y-3 border-b border-buzz-lineMid px-4 py-4">
+      <p className="text-sm font-medium text-buzz-ink">
+        Same batch as the brand: checked organizations are accepted, every other
+        pending applicant is denied.
+        {pending.length === 0
+          ? " Nobody is still pending — finalize locks the roster as it is."
+          : ""}
+      </p>
+      {pending.map((row) => (
+        <div key={row.id} className="flex flex-wrap items-center gap-3">
+          <Checkbox
+            data-testid={`finalize-accept-${row.orgId}`}
+            checked={Boolean(accepted[row.orgId])}
+            onChange={(event) =>
+              setAccepted((prev) => ({
+                ...prev,
+                [row.orgId]: event.target.checked,
+              }))
+            }
+            label={`Accept ${row.orgName}`}
+          />
+          {showUnits && (
+            <TextField
+              id={`finalize-units-${row.orgId}`}
+              type="number"
+              min={0}
+              size="compact"
+              label="Units"
+              disabled={!accepted[row.orgId]}
+              className="w-24"
+              value={accepted[row.orgId] ? units[row.orgId] ?? 0 : 0}
+              onChange={(event) =>
+                setUnits((prev) => ({
+                  ...prev,
+                  [row.orgId]: Math.max(0, parseInt(event.target.value, 10) || 0),
+                }))
+              }
+            />
+          )}
+        </div>
+      ))}
+      <p className="text-sm font-medium text-buzz-inkMuted">
+        Accept {acceptedCount} · Deny {deniedCount}
+      </p>
+      {notice && <p className="text-sm font-medium text-buzz-ink">{notice}</p>}
+      {error && <ErrorNote>{error}</ErrorNote>}
+      {confirmOpen ? (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-buzz-ink">
+            Accept {acceptedCount}{" "}
+            {acceptedCount === 1 ? "organization" : "organizations"} · Deny{" "}
+            {deniedCount}{" "}
+            {deniedCount === 1 ? "organization" : "organizations"}. Denied
+            applicants are emailed and this cannot be undone.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="compact"
+              data-testid="finalize-cancel"
+              disabled={finalize.isPending}
+              onClick={() => setConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <ActionButton
+              variant="primary"
+              testId="finalize-confirm"
+              disabled={finalize.isPending}
+              onClick={() => void submit()}
+            >
+              {finalize.isPending ? "Finalizing…" : "Confirm finalize"}
+            </ActionButton>
+          </div>
+        </div>
+      ) : (
+        <ActionButton
+          variant="primary"
+          testId="finalize-selection"
+          disabled={finalize.isPending}
+          onClick={() => {
+            setError(null);
+            setConfirmOpen(true);
+          }}
+        >
+          Finalize selection
+        </ActionButton>
+      )}
+    </div>
   );
 }
 
@@ -1162,6 +1301,9 @@ export default function AdminDropDetailPage() {
                     Add organization
                   </ActionButton>
                 </div>
+              )}
+              {canFinalizeSelection(data) && (
+                <FinalizeSelection drop={data} applicants={data.applicants} />
               )}
               <Applicants dropId={data.id} applicants={data.applicants} />
               {addOrgOpen && (

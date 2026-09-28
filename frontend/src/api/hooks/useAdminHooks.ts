@@ -796,6 +796,16 @@ export function usePatchAdminDropConfig(dropId: string) {
   );
 }
 
+export function useFinalizeAdminApplicants(dropId: string) {
+  return useAdminMutation((allocations: { orgId: string; units: number }[]) =>
+    apiFetch(`/api/admin/drops/${dropId}/finalize-applicants`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ allocations }),
+    }),
+  );
+}
+
 export function useAdvanceTracker(dropId: string) {
   return useAdminMutation(
     (input: { stage: string; note?: string }) =>

@@ -35,6 +35,7 @@ from app.schemas.acks import (
     AdminSyncAutolinkResponse,
     ClearInstagramTokenResponse,
     DropReopenResponse,
+    FinalizeApplicantsResponse,
     OkResponse,
     TrackerAdvanceResponse,
 )
@@ -68,12 +69,14 @@ from app.schemas.admin_tables import (
     AdminTableQueryResponse,
     AdminTableRowResponse,
 )
+from app.schemas.brands import FinalizeApplicantsRequest
 from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
 from app.services.address import AddressClient, get_address_client
 from app.services.admin import (
     ack_ig_bind_mismatch,
     add_org_to_drop,
     advance_tracker,
+    finalize_drop_applicants,
     approve_brand,
     approve_org,
     cleanup_request_received_stubs,
@@ -674,6 +677,22 @@ async def patch_drop_config_endpoint(
 ) -> APIResponse:
     await update_drop_config(db, drop_id, payload)
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
+
+
+@router.post(
+    "/drops/{drop_id}/finalize-applicants",
+    response_model=DataResponse[FinalizeApplicantsResponse],
+)
+async def finalize_drop_applicants_endpoint(
+    drop_id: uuid.UUID,
+    payload: FinalizeApplicantsRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Same batch finalize as the brand portal: window closed, selection stage, deny the rest."""
+    allocations = [{"org_id": a.org_id, "units": a.units} for a in payload.allocations]
+    result = await finalize_drop_applicants(db, drop_id, allocations)
+    return api_response(data=FinalizeApplicantsResponse.model_validate(result))
 
 
 @router.patch("/drops/{drop_id}/tracker", response_model=DataResponse[TrackerAdvanceResponse])
