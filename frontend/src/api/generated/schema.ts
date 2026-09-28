@@ -324,6 +324,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/drops/{drop_id}/finalize-applicants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finalize Drop Applicants Endpoint
+         * @description Same batch finalize as the brand portal: window closed, selection stage, deny the rest.
+         */
+        post: operations["finalize_drop_applicants_endpoint_api_admin_drops__drop_id__finalize_applicants_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/drops/{drop_id}/hide": {
         parameters: {
             query?: never;
@@ -5992,6 +6012,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_DropReopenResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    finalize_drop_applicants_endpoint_api_admin_drops__drop_id__finalize_applicants_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinalizeApplicantsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_FinalizeApplicantsResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

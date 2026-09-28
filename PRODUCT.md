@@ -43,7 +43,7 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 - **Campaign (org context):** An org’s participation in a specific drop (application through completion).
 - **Spot:** One org slot in a drop’s fixed capacity.
 - **Buzz / Admin:** Internal operators who onboard brands and orgs to the platform, manage **drop-request tickets** and **drop tracker** stages after publish (**§5.2**), agreements and exception handling, and operate behind the scenes where the product does not give the brand a direct control.
-- **Drop applicant decisions:** After the application window closes, the **brand** **batch-finalizes** applicants (approve or deny up to remaining capacity). Rules: **§7.1**. Brands do not accept while the chronological Open window is still running. **Buzz admin** may late-add an accepted seat anytime on a published, unhidden, unfinished drop (**§7.1**).
+- **Drop applicant decisions:** After the application window closes, the **brand or a Buzz admin** **batch-finalizes** applicants (approve or deny up to remaining capacity). Rules: **§7.1**. Neither accepts while the chronological Open window is still running. **Buzz admin** may also late-add an accepted seat anytime on a published, unhidden, unfinished drop (**§7.1**).
 
 ---
 
@@ -393,7 +393,7 @@ Each drop has **fixed org capacity** and an **application window** (**§4.1**). 
 1. Org submits **Apply** on an **Open** drop (if allowed by time + state; **§4.1**, **§6.3**) — from the Drop Feed or the public drop page while `active`. Applications stay pending through the window.
 
    **Intent (not an applicant):** submitting public org apply **with a `dropId`** (**§6.3.4**, including ops prefill plus `dropId`) creates the org and stores drop **intent**. Intent is **not** `decision=applied` and does **not** appear in brand finalize. Buzz promotes intent → Apply only when the org becomes **`active`** and the drop is still Open. If the window closed, capacity filled, or the drop is hidden/finished first, the intent **expires** and remains on the **admin** drop (not the brand roster). Deny or erase of the org must not leave an open intent. Late-add or a real Apply that already exists treats leftover intent as promoted (noop).
-2. After `apply_close_at`, the **brand** **batch-finalizes** applicants for that drop (typically in the post-window selection stage). Remaining capacity and remaining units are `max(0, published − already accepted)` so an empty finalize still works after admin overbook.
+2. After `apply_close_at`, the **brand or a Buzz admin** **batch-finalizes** applicants for that drop (typically in the post-window selection stage). Same rules either way: window closed, selection stage, remaining capacity and remaining units are `max(0, published − already accepted)` so an empty finalize still works after admin overbook. Denied applicants are emailed. Admin finalize does not move the tracker.
 3. For each applicant the brand **approves** or **denies**:
    - **Approved** — counts toward capacity; if the drop has a `total_product_units` budget (**§4.1**), the brand also **allocates units per approved org**, with the sum of allocations capped by **remaining** budget. Org moves to **Accepted** in **My Campaigns** when product rules expose that state (subject to fulfillment and activation).
    - **Denied** — **no** row in **My Campaigns** for that application; **email** only.
@@ -402,7 +402,7 @@ Each drop has **fixed org capacity** and an **application window** (**§4.1**). 
 
 ### 7.2 Capacity exhaustion
 
-- When **accepted** seats (brand finalize **or** admin late-add) **fill** all published spots:
+- When **accepted** seats (brand or admin finalize **or** admin late-add) **fill** all published spots:
   - Drop shows as **Closed** on the **Drop Feed** (org cannot apply as Open; no waitlist).
 - That Closed state is `accepted_count >= capacity_total` — after selection, on a reopened window with prior accepts, **or** mid-window if admin late-add fills the roster.
 
@@ -436,7 +436,7 @@ Aggregated all drops →  Brand aggregate dashboard
 
 ## 9. Status authority
 
-- **Brand:** Batch-finalize (approve/deny) drop applicants **after `apply_close_at`** (**§7.1**). Org moves **Applied → Accepted** after brand approval (labels may differ by surface).
+- **Brand:** Batch-finalize (approve/deny) drop applicants **after `apply_close_at`** (**§7.1**). Org moves **Applied → Accepted** after approval (labels may differ by surface). A Buzz admin may submit that same finalize.
 - **Buzz:** Brand **platform** onboarding; drop-request **tickets** and drop **tracker** stages after publish (**§5.2**); agreements and ops coordination; **§4.1** reopen; **org** lifecycle beyond applicant choice (e.g. **Active** / **Finished** when fulfillment and campaign rules are met — triggers TBD with brands). Org **portal access** is gated by **.edu** verification, Buzz admin approval, then **Instagram bind** (**§6.1**). Public drop **intent** is admin-visible on the drop, not a brand applicant.
 - **Automation / rules:** Feed **Open/Closed** follows **§4.1**, **§6.3**, **§7.2** (`accepted_count >= capacity_total` closes Apply, including admin late-add during Open).
 
@@ -454,7 +454,7 @@ Aggregated all drops →  Brand aggregate dashboard
 | Org   | Public drop         | View published drop; Apply if `active`; signup+intent if logged out; waiting copy if still onboarding (**§6.3.4**) |
 | Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts while Awaiting Products and while Active                                                              |
-| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; Overview **Needs a look** (pending Instagram identity-change tickets + unacked Connect handle mismatches — Ack on org detail); move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment; **late-add** an org onto a published unhidden unfinished drop (**§7.1**); copy public `/d/:id` and see **signup intents** (open and expired — not applicants) on the drop; on a published unhidden drop in **Awaiting Products** or **Active**, **sync Instagram then autolink** for that drop's accepted orgs (suggestions stay unconfirmed); erase org or brand account after a verified data-deletion request (**§3.1.2**, **§3.1.3**); review org Instagram identity-change requests (**§3.1.4**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); **resend Connect Instagram email** to every org in **`pending_instagram`** (not unverified / awaiting approval); integrations (see §5.2.1 TODO) |
+| Buzz  | Admin (conceptual)  | Platform org/brand onboarding; Overview **Needs a look** (pending Instagram identity-change tickets + unacked Connect handle mismatches — Ack on org detail); move brand tracker stages; hide/unhide a published drop (**§5.2.2**); timing/reopen/fulfillment; **late-add** an org onto a published unhidden unfinished drop (**§7.1**); **batch-finalize** applicants after the apply window closes (same rules as the brand, **§7.1**); copy public `/d/:id` and see **signup intents** (open and expired — not applicants) on the drop; on a published unhidden drop in **Awaiting Products** or **Active**, **sync Instagram then autolink** for that drop's accepted orgs (suggestions stay unconfirmed); erase org or brand account after a verified data-deletion request (**§3.1.2**, **§3.1.3**); review org Instagram identity-change requests (**§3.1.4**); **compose email** from an org or brand profile (To = profile `.edu` / company email, Reply-To and ops CC from `brand_emails.json`); **resend Connect Instagram email** to every org in **`pending_instagram`** (not unverified / awaiting approval); integrations (see §5.2.1 TODO) |
 
 ---
 

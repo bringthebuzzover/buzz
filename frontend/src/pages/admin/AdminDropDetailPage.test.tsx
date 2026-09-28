@@ -26,6 +26,7 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
   useReopenDrop: () => idleMutation(),
   useAddApplicantShipment: () => idleMutation(),
   useDeleteApplicantShipment: () => idleMutation(),
+  useFinalizeAdminApplicants: () => idleMutation(),
   useHideDrop: () => idleMutation(),
   useUnhideDrop: () => idleMutation(),
   useAdminOrgs: () => ({ data: [], isPending: false, isError: false }),
@@ -140,6 +141,48 @@ describe("AdminDropDetailPage", () => {
     expect(container.querySelector("#drop-config-description")).toBeTruthy();
   });
 
+  it("offers finalize on Applicants once the window has closed", () => {
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({
+        publishedAt: now,
+        stage: "finalizing_agreements",
+        applyCloseAt: now - 60_000,
+        applicants: [
+          {
+            id: "app-1",
+            orgId: "org-1",
+            userId: "user-1",
+            orgName: "Theta",
+            university: "Cornell",
+            instagramHandle: "theta",
+            followerCount: 10,
+            deliveryAddress: null,
+            shippingCity: null,
+            shippingState: null,
+            accountErased: false,
+            decision: "applied",
+            allocatedUnits: null,
+            pitch: null,
+            shipments: [],
+            linkedPostCount: 0,
+            appliedAt: now,
+            decisionAt: null,
+          },
+        ],
+      }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1");
+
+    expect(
+      container.querySelector('[data-testid="finalize-selection"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('[data-testid="finalize-accept-org-1"]'),
+    ).toBeTruthy();
+  });
+
   it("defaults to Applicants for a published drop; Config holds the checkbox", () => {
     mockUseAdminDrop.mockReturnValue({
       data: adminDrop({ publishedAt: now }),
@@ -152,6 +195,7 @@ describe("AdminDropDetailPage", () => {
       container.querySelector('[data-testid="tab-applicants"]'),
     ).toBeTruthy();
     expect(container.querySelector('[data-testid="add-org-open"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="finalize-selection"]')).toBeNull();
     expect(container.textContent).toContain("Signup intents (not applicants)");
     expect(container.querySelector('[data-testid="copy-public-drop-url"]')).toBeTruthy();
     expect(
