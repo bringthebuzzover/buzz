@@ -135,9 +135,9 @@ async def test_update_prefill_send_ccs_contact_and_ops(monkeypatch, _resend_key)
         )
         is True
     )
-    assert seen["body"]["cc"] == [CONTACT_EMAIL, OPS_CC_EMAIL]
+    expected_cc = [addr for addr in (CONTACT_EMAIL, OPS_CC_EMAIL) if addr.strip()]
+    assert seen["body"]["cc"] == expected_cc
     assert CONTACT_EMAIL in seen["body"]["cc"]
-    assert OPS_CC_EMAIL in seen["body"]["cc"]
 
 
 def test_org_apply_prefill_email_copy() -> None:

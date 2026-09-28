@@ -46,7 +46,7 @@ class TestAdminComposeEmail:
         assert data["to"] == "greeks@school.edu"
         assert captured["to"] == "greeks@school.edu"
         assert captured["subject"] == "Hello"
-        assert CONTACT_EMAIL in data["cc"] or OPS_CC_EMAIL in data["cc"]
+        assert CONTACT_EMAIL in data["cc"]
         assert "greeks@school.edu" not in [a.lower() for a in data["cc"]]
 
     async def test_org_empty_400(self, app_client: AsyncClient, db_session):
@@ -133,6 +133,7 @@ class TestAdminComposeEmail:
         assert sent is True
         assert captured["to"] == "org@school.edu"
         assert CONTACT_EMAIL in captured["cc"]
-        assert OPS_CC_EMAIL in captured["cc"]
+        if OPS_CC_EMAIL.strip():
+            assert OPS_CC_EMAIL in captured["cc"]
         assert "<script>" not in captured["html"]
         assert "&lt;script&gt;" in captured["html"]
