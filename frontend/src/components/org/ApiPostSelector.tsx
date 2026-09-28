@@ -34,10 +34,13 @@ type Props = {
 };
 
 function PlatformIcon({ platform }: { platform: string }) {
-  return platform === "instagram" ? (
-    <Camera size={16} className="text-buzz-coral" />
-  ) : (
-    <Music2 size={16} className="text-buzz-coral" />
+  const Icon = platform === "instagram" ? Camera : Music2;
+  return (
+    <Icon
+      size={16}
+      aria-hidden
+      className="size-4 shrink-0 text-buzz-coral"
+    />
   );
 }
 
