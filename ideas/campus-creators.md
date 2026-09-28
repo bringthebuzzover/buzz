@@ -335,3 +335,104 @@ business.
    portal. Do not mix org seats and creator seats in one capacity.
 4. Study H\FC for payroll and rights, SideShift for in-app payouts and 1099s,
    Her Campus for how individuals sit *on top of* orgs without replacing them.
+
+## Platform shape (parked)
+
+[`ARCHITECTURE.md`](../ARCHITECTURE.md) stays the as-built system. This section
+is the later shape only. Do not migrate toward it until a PRODUCT decision.
+
+Buzz is one platform: one API, one SPA, one admin, one brand relationship.
+Organizations and creators are two supply doors into the same Drop. They are
+not two products and not two rows in `organizations`.
+
+### What stays
+
+Brand login, admin login, JWT refresh, View as, drop request → admin publish,
+apply window, batch finalize, one post linked to one campaign, metric refresh,
+UGC library, org apply, org Instagram bind, org feed, My Campaigns, shipments,
+and the org tracker (`awaiting_products` → `drop_active` → `drop_finished`).
+
+### What gets added
+
+| Layer | Addition |
+| ----- | -------- |
+| Identity | `users.portal_role` gains `creator`. New `creators` profile, 1:1 with that user, sibling of `organizations` and `brands`. |
+| Login | Same Instagram Business Login machinery. The bound account is the student’s own professional account. Returning login is that Instagram. |
+| Drop | A fulfillment kind (`product` or `digital`) and who may apply (`orgs`, `creators`, or both). Product drops keep today’s tracker and org capacity. Digital drops use a shorter tracker and a creator cap. |
+| Seat | `drop_applications` gains `creator_id`. A row has an org or a creator, never both. Unique active application per participant per drop. |
+| Posts | `social_posts` gains an owner that can be a creator. Same uniqueness on `(owner, platform, external_id)`. `metric_sync` refreshes creator tokens the way it refreshes org tokens. |
+| Money | New payout context, only on creator seats: agreed fee, brand charge (creator gross + Buzz fee), payout status, and a connected payout account (tax identity lives at the processor, not in Buzz columns). |
+| Surfaces | Creator portal (feed, campaigns, profile, payout status). Brand drop view grows a creator roster when the drop allows creators. Admin gains a creator-review queue. Marketing gains a creators page when the line exists. |
+
+Org-only screens do not list creator drops. Creator screens do not list product drops meant for organizations. A mixed drop, if it ever exists, is two rosters and two caps under one title, one window, and one metrics rollup.
+
+### Same person, two supply roles
+
+The org login is the chapter Instagram. A creator login is a personal professional Instagram. Those are different accounts and can both exist. The collision is `users.edu_email`, which is unique today and is the org’s contact inbox. A later creator launch scopes email uniqueness by portal, or moves the org contact address onto `organizations`. It does not merge the two sessions. One authenticated user still has one portal. View as already switches portals for admins only.
+
+### Diagrams
+
+Three are enough. More than this becomes a second PRODUCT.
+
+Who uses the platform:
+
+```mermaid
+flowchart TB
+  brand[Brand]
+  admin[Buzz admin]
+  org[Organization]
+  creator[Creator later]
+  brandPortal[Brand portal]
+  adminPanel[Admin]
+  orgPortal[Org portal]
+  creatorPortal[Creator portal]
+  drop[Drop]
+  brand --> brandPortal
+  admin --> adminPanel
+  org --> orgPortal
+  creator --> creatorPortal
+  brandPortal --> drop
+  adminPanel --> drop
+  orgPortal --> drop
+  creatorPortal --> drop
+```
+
+How a seat attaches:
+
+```mermaid
+erDiagram
+  users ||--o| organizations : "portal org"
+  users ||--o| creators : "portal creator"
+  users ||--o| brands : "portal brand"
+  brands ||--o{ drops : owns
+  drops ||--o{ drop_applications : seats
+  organizations ||--o{ drop_applications : "product seat"
+  creators ||--o{ drop_applications : "digital seat"
+  drop_applications ||--o{ post_campaign_links : links
+  drop_applications ||--o| payouts : "creator seats only"
+  social_posts ||--o{ post_campaign_links : "one campaign"
+```
+
+How the two drop kinds run:
+
+```mermaid
+sequenceDiagram
+  participant Brand
+  participant Admin
+  participant Supply as Org or Creator
+  Brand->>Admin: Drop request
+  Admin->>Brand: Publish
+  Supply->>Brand: Apply while Open
+  Brand->>Supply: Batch finalize after close
+  alt Product drop
+    Admin->>Supply: Tracking numbers
+    Supply->>Brand: Link posts
+  else Digital creator drop
+    Supply->>Brand: Deliver and link post
+    Brand->>Supply: Pay gross plus Buzz fee
+  end
+```
+
+### Leave room now
+
+Leave the org schema as it is. A later migration adds `creator_id` and a check that each application has one owner. Empty shipment lists and nullable unit budgets already exist; they are not a digital-drop mode. Do not add an unused `creator` role, payout tables, or a participant-kind column ahead of the decision.
