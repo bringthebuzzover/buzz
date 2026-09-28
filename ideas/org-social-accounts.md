@@ -19,7 +19,7 @@ attachments), [`META.md`](../META.md),
 
 Lovable’s workspace TikTok connector is **not** the integration (one shared
 account, no per-org OAuth). Implementation, when PRODUCT allows, is Login Kit
-+ Display API per org.
+and Display API per org.
 
 ---
 
