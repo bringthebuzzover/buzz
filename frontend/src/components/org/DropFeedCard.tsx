@@ -7,11 +7,13 @@
  * - Upcoming: countdown to `applyOpenAt` + Notify Me toggle.
  * - Open: Apply; spots copy is "Up to N" when no prior accepts, else "M of N remaining".
  * - Closed: disabled action with reason chip.
+ * - Accepted on this drop: the card opens the campaign in My Campaigns (PRODUCT §6.3).
  *
  * The card is presentational; data fetching + mutations are wired by the parent
  * (`OrgDropFeedPage`) and the inline apply form.
  */
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Bell, BellRing, Calendar, MapPin } from "lucide-react";
 import type { DropCardData, DropFeedStatus } from "../../types/drop";
 import { useCountdown } from "../../utils/useCountdown";
@@ -26,7 +28,7 @@ import NotifyMeModal from "./modals/NotifyMeModal";
 import { REMINDER_CHOICES, useDropNotify } from "../../api/hooks/useDropHooks";
 import { Card } from "../ui/Card";
 import { Chip } from "../ui/Chip";
-import { Button, ErrorBanner } from "../forms/controls";
+import { Button, ErrorBanner, buttonVariants } from "../forms/controls";
 import { PAD, STACK, TEXT, type Tone } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
@@ -38,6 +40,11 @@ type DropFeedCardProps = {
   onApply: () => void;
   /** True when the org already has an application row for this drop. */
   alreadyApplied: boolean;
+  /**
+   * Set when this org was accepted. The card opens that My Campaigns detail
+   * instead of a dead Applied / Closed action.
+   */
+  campaignTo?: string;
   /** Read-only mode (e.g. the API slice before writes land in Stage 5). */
   disableApply?: boolean;
 };
@@ -73,6 +80,7 @@ export default function DropFeedCard({
   feedStatus,
   onApply,
   alreadyApplied,
+  campaignTo,
   disableApply = false,
 }: DropFeedCardProps) {
   const now = useWallClockNow();
@@ -83,7 +91,7 @@ export default function DropFeedCard({
     [drop, acceptedCount, now],
   );
 
-  return (
+  const card = (
     <Card
       kind="cardWarm"
       pad="none"
@@ -134,7 +142,14 @@ export default function DropFeedCard({
         </div>
 
         <div className="mt-auto">
-          {feedStatus === "upcoming" ? (
+          {campaignTo ? (
+            <span
+              className={cn(buttonVariants({ fullWidth: true }))}
+              data-testid="view-campaign"
+            >
+              View campaign
+            </span>
+          ) : feedStatus === "upcoming" ? (
             <UpcomingActions drop={drop} />
           ) : feedStatus === "open" && !full ? (
             <Button
@@ -160,6 +175,14 @@ export default function DropFeedCard({
         </div>
       </div>
     </Card>
+  );
+
+  if (!campaignTo) return card;
+
+  return (
+    <Link to={campaignTo} className="block h-full" data-testid="view-campaign-link">
+      {card}
+    </Link>
   );
 }
 

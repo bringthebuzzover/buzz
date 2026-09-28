@@ -318,6 +318,7 @@ Each **drop card** shows:
 
 - After `apply_open_at` and before closure conditions, the drop is **Open** (subject to `apply_close_at` and not closed for other reasons — **§4.1**). Orgs may **Apply** while Open; applications stay pending until batch finalize (**§7.1**).
 - **Spots line:** first Open (`acceptedCount === 0`) shows capacity as _“Up to N spots”_. If admin late-add writes accepts during that window, the line depletes and capacity full closes Apply (**§7.2**). A **reopened** window with prior accepts may show _“M of N spots remaining”_.
+- An organization already **accepted** on the drop opens that campaign in **My Campaigns** (**§6.4**) instead of Apply. A pending application stays a non-clickable **Already applied** state.
 
 #### 6.3.3 Status: Closed
 
@@ -326,6 +327,7 @@ Each **drop card** shows:
 **Interactions:**
 
 - **Apply** is not available.
+- If this organization was **accepted** on the drop, the card opens that campaign in **My Campaigns** (**§6.4**) so they can see the campaign content. A pending application stays a non-clickable **Applied** state.
 - **Notify Me** may be hidden or irrelevant depending on state (product decision: typically only for Upcoming).
 
 #### 6.3.4 Public drop page (`/d/:id`)
