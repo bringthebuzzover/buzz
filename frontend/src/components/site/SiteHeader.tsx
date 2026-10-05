@@ -15,6 +15,10 @@ import { ChevronRight, LogOut, Menu } from "lucide-react";
 import { siteIdentity } from "../../data/siteIdentity";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
 import { useSignOut } from "../../api/hooks/useSignOut";
+import {
+  useCreatorSession,
+  useCreatorSignOut,
+} from "../../api/hooks/creator/useCreatorHooks";
 import { useAuth } from "../../contexts/AuthContext";
 import { goToHomeJoin } from "../../utils/scrollHomeJoin";
 
@@ -22,6 +26,12 @@ const ORG_NAV_LINKS = [
   { to: "/org/browse", label: "Browse Campaigns" },
   { to: "/org/campaigns", label: "My Campaigns" },
   { to: "/org/profile", label: "Profile" },
+] as const;
+
+const CREATOR_NAV_LINKS = [
+  { to: "/creators/feed", label: "Browse Campaigns" },
+  { to: "/creators/campaigns", label: "My Campaigns" },
+  { to: "/creators/profile", label: "Profile" },
 ] as const;
 
 const BRAND_NAV_LINKS = [
@@ -38,6 +48,8 @@ export default function SiteHeader() {
   const { openContactModal } = useSiteChrome();
   const { user, status: authStatus } = useAuth();
   const signOut = useSignOut();
+  const { data: creatorSession } = useCreatorSession();
+  const creatorSignOut = useCreatorSignOut();
   const { images, social } = siteIdentity;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
@@ -64,7 +76,10 @@ export default function SiteHeader() {
   }, [pathname]);
 
   const isApiAuth = authStatus === "authenticated" && user;
-  const isOrgNav = authStatus === "authenticated" && user?.portalRole === "org";
+  const isCreator = !isApiAuth && creatorSession.status === "active";
+  const isSignedIn = !!isApiAuth || isCreator;
+  const isOrgNav =
+    isCreator || (authStatus === "authenticated" && user?.portalRole === "org");
   const desktopMinPx = isOrgNav ? ORG_DESKTOP_MIN_PX : COMPACT_DESKTOP_MIN_PX;
 
   useEffect(() => {
@@ -86,13 +101,15 @@ export default function SiteHeader() {
   }, [mobileNavOpen]);
 
   // Determine nav links from the authenticated user's role.
-  const navLinks = isApiAuth
-    ? user.portalRole === "brand"
-      ? BRAND_NAV_LINKS
-      : user.portalRole === "org"
-        ? ORG_NAV_LINKS
-        : []
-    : [];
+  const navLinks = isCreator
+    ? CREATOR_NAV_LINKS
+    : isApiAuth
+      ? user.portalRole === "brand"
+        ? BRAND_NAV_LINKS
+        : user.portalRole === "org"
+          ? ORG_NAV_LINKS
+          : []
+      : [];
 
   const isNavActive = (to: string): boolean => {
     if (to === "/") return pathname === "/";
@@ -108,7 +125,21 @@ export default function SiteHeader() {
     goToHomeJoin(pathname, navigate);
   };
 
-  const showCenterItem = !!isApiAuth;
+  const handleSignOut = () => {
+    if (!isCreator) {
+      signOut();
+      return;
+    }
+    creatorSignOut.mutate();
+    window.location.href = "/for-creators";
+  };
+
+  const showCenterItem = isSignedIn;
+  const portalLabel = isCreator
+    ? "Creator Portal"
+    : user?.portalRole === "brand"
+      ? "Brand Portal"
+      : "Organization Portal";
 
   return (
     <header
@@ -139,9 +170,7 @@ export default function SiteHeader() {
         </div>
 
         {showCenterItem ? (
-          <span className="text-center font-bold text-buzz-coral">
-            {user?.portalRole === "brand" ? "Brand Portal" : "Organization Portal"}
-          </span>
+          <span className="text-center font-bold text-buzz-coral">{portalLabel}</span>
         ) : (
           <button
             type="button"
@@ -153,10 +182,10 @@ export default function SiteHeader() {
         )}
 
         <div className="absolute right-6 flex items-center gap-4">
-          {isApiAuth ? (
+          {isSignedIn ? (
             <button
               type="button"
-              onClick={signOut}
+              onClick={handleSignOut}
               className="flex items-center gap-1 text-buzz-inkMuted hover:text-buzz-coral"
               aria-label="Log out"
             >
@@ -345,14 +374,14 @@ export default function SiteHeader() {
                     </button>
                   </li>
                 ) : null}
-                {isApiAuth ? (
+                {isSignedIn ? (
                   <li>
                     <button
                       type="button"
                       className="flex w-full items-center justify-between gap-3 py-4 pr-1 text-left font-bold text-buzz-coral transition hover:text-buzz-coralDark"
                       onClick={() => {
                         setMobileNavOpen(false);
-                        signOut();
+                        handleSignOut();
                       }}
                     >
                       Logout

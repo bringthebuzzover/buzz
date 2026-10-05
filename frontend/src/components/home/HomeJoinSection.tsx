@@ -1,7 +1,6 @@
 /**
- * Public landing Join Us section. Two real account entry points: student orgs
- * apply at `/org/apply`, brands submit a self-registration application
- * (`/brand/apply`). Returning orgs use `/login`.
+ * Public landing Join Us section. Student orgs apply at `/org/apply`,
+ * brands at `/brand/apply`, creators at `/creators/apply`.
  */
 import { LinkButton } from "../forms/controls";
 import { GAP, SECTION_Y, TEXT } from "../../theme/tokens";
@@ -18,8 +17,8 @@ export default function HomeJoinSection() {
           Want to <span className="text-buzz-coral">join?</span>
         </h2>
         <p className={cn(TEXT.body, "mx-auto mb-10 max-w-md font-medium text-buzz-inkMuted md:text-base")}>
-          Pick the path that fits — apply as a student organization, or apply
-          as a brand.
+          Pick the path that fits — apply as a student organization, a creator,
+          or a brand.
         </p>
 
         <div className={cn("mx-auto flex max-w-md flex-col sm:max-w-none sm:flex-row sm:justify-center", GAP.default)}>
@@ -39,6 +38,15 @@ export default function HomeJoinSection() {
             className="sm:max-w-xs"
           >
             Apply as Brand
+          </LinkButton>
+          <LinkButton
+            to="/creators/apply"
+            variant="outline"
+            size="hero"
+            fullWidth
+            className="sm:max-w-xs"
+          >
+            Apply as Creator
           </LinkButton>
         </div>
       </div>

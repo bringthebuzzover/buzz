@@ -436,3 +436,7 @@ sequenceDiagram
 ### Leave room now
 
 Leave the org schema as it is. A later migration adds `creator_id` and a check that each application has one owner. Empty shipment lists and nullable unit budgets already exist; they are not a digital-drop mode. Do not add an unused `creator` role, payout tables, or a participant-kind column ahead of the decision.
+
+## Frontend on branch
+
+Branch `prototype/campus-creators` builds the creator frontend on in-memory hooks in `frontend/src/api/hooks/creator/`, shaped so the backend only replaces the hook bodies. Public: `/for-creators` and `/creators/apply`. Status-gated: `/creators/verify`, `/creators/pending`, `/creators/connect`, then `/creators/feed`, `/creators/campaigns`, and `/creators/profile` once active. The brand roster and admin review/payout queues are components, previewed only in development at `/dev/creators/brand` and `/dev/creators/admin`. It is not PRODUCT.

@@ -20,6 +20,12 @@ const CARDS = [
     teaser:
       "Request a campaign. Buzz drafts and publishes; you monitor and finalize.",
   },
+  {
+    to: "/for-creators",
+    title: "For student creators",
+    teaser:
+      "Apply with your campus .edu and your own Instagram. Digital Drops pay you. Nothing ships.",
+  },
 ] as const;
 
 export default function HomeBringBuzzSection() {
@@ -31,11 +37,11 @@ export default function HomeBringBuzzSection() {
         </h2>
         <p className={cn(TEXT.bodyLong, "mx-auto mt-4 max-w-2xl text-center font-medium text-buzz-inkMuted")}>
           Our platform makes it easy for brands to connect with student
-          ambassadors and campus organizations for authentic marketing
+          creators and campus organizations for authentic marketing
           campaigns.
         </p>
 
-        <div className={cn("mt-12 grid md:grid-cols-2", GAP.group, "md:gap-8")}>
+        <div className={cn("mt-12 grid md:grid-cols-3", GAP.group, "md:gap-8")}>
           {CARDS.map((card) => (
             <Link key={card.to} to={card.to} className="block h-full">
               <Card
