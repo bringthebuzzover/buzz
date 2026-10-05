@@ -12,7 +12,7 @@ export type DropAggregateMetrics = {
   totalComments: number;
   /** likes + comments. */
   totalEngagement: number;
-  /** Estimated reach (sum of participating org follower counts; v1 definition). */
+  /** Sum of Instagram insights reach across linked posts and reels. */
   totalReach: number;
   /** Cost per engagement; `null` in v1 (no cost inputs). */
   costPerEngagement: number | null;

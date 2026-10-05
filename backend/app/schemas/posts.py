@@ -62,8 +62,8 @@ class PostResponse(CamelModel):
 class CampaignAggregateResponse(CamelModel):
     """Per-campaign rollup (ports ``computeCampaignAggregate``, architecture §7.3).
 
-    ``engagement = likes + comments``; ``estimated_reach`` is the org's follower
-    count (v1 reach approximation).
+    ``engagement = likes + comments``; ``estimated_reach`` sums Instagram insights
+    ``reach`` across the linked posts (posts without insights count 0).
     """
 
     post_count: int

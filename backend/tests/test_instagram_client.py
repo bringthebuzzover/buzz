@@ -440,6 +440,32 @@ async def test_fetch_media_insights_reels_excludes_feed_only_metrics() -> None:
     assert "follows" not in captured["metric"]
 
 
+@pytest.mark.parametrize("is_reel", [False, True])
+async def test_fetch_media_insights_never_requests_reposts(is_reel: bool) -> None:
+    captured: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["metric"] = request.url.params["metric"]
+        return httpx.Response(200, json={"data": []})
+
+    await _client(handler).fetch_media_insights("tok", "m1", is_reel=is_reel)
+    assert "reposts" not in captured["metric"].split(",")
+
+
+async def test_fetch_media_insights_logs_graph_error(caplog: pytest.LogCaptureFixture) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            400,
+            json={"error": {"message": "does not support the metrics: x", "code": 100}},
+        )
+
+    with caplog.at_level("WARNING"), pytest.raises(BuzzAPIException):
+        await _client(handler).fetch_media_insights("secret-tok", "m1")
+    assert "media insights failed status=400" in caplog.text
+    assert "does not support the metrics" in caplog.text
+    assert "secret-tok" not in caplog.text
+
+
 async def test_fetch_user_media_follows_paging_next() -> None:
     calls = {"n": 0}
 

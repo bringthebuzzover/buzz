@@ -1,6 +1,7 @@
 """Instagram metric sync (architecture.md §10.1).
 
-Daily. For each org with a live campaign and a valid long-lived token:
+Every 8 hours (03:00 / 11:00 / 19:00 UTC). For each org with a live campaign
+and a valid long-lived token:
 
 1. **Discovery** — ``GET /me/media`` (paged, capped) finds posts in the 30-day
    window; new ones are inserted (``metrics_updated_at = NULL``).
@@ -77,7 +78,6 @@ _INSIGHT_COLUMNS = (
     "views",
     "saved",
     "shares",
-    "reposts",
     "total_interactions",
     "profile_visits",
     "profile_activity",
@@ -423,6 +423,12 @@ async def sync_metrics_for_orgs(
             try:
                 fields = await ig.fetch_media(token, post.external_id)
             except Exception:  # noqa: BLE001
+                logger.warning(
+                    "metric sync media fetch failed org_id=%s post_id=%s external_id=%s",
+                    org.id,
+                    post.id,
+                    post.external_id,
+                )
                 failed += 1
                 continue
             omit_likes, omit_comments, omit_caption, omit_media_url, omit_thumb = _apply_basics(
@@ -444,6 +450,12 @@ async def sync_metrics_for_orgs(
             except Exception:  # noqa: BLE001
                 # Basics kept; prior insight columns untouched; stamp so charts
                 # include the post (LOCKED cluster approach).
+                logger.warning(
+                    "metric sync insights failed org_id=%s post_id=%s external_id=%s",
+                    org.id,
+                    post.id,
+                    post.external_id,
+                )
                 failed += 1
                 post.metrics_updated_at = now
                 refreshed += 1

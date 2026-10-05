@@ -260,7 +260,7 @@ async def refresh_my_posts(
 ) -> APIResponse:
     """Return the caller org's currently-stored posts.
 
-    The canonical Instagram sync is the Stage 8 daily batch job
+    The canonical Instagram sync is the Stage 8 batch job (every 8h)
     (``app.jobs.metric_sync``, §10.1). This endpoint intentionally does NOT call
     Instagram on demand (it would burn rate-limit per click and add latency);
     it just returns the stored posts so the SPA's "Refresh" affordance reflects

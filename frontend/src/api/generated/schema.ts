@@ -2073,7 +2073,7 @@ export interface paths {
          * Refresh My Posts
          * @description Return the caller org's currently-stored posts.
          *
-         *     The canonical Instagram sync is the Stage 8 daily batch job
+         *     The canonical Instagram sync is the Stage 8 batch job (every 8h)
          *     (``app.jobs.metric_sync``, §10.1). This endpoint intentionally does NOT call
          *     Instagram on demand (it would burn rate-limit per click and add latency);
          *     it just returns the stored posts so the SPA's "Refresh" affordance reflects
@@ -3634,8 +3634,8 @@ export interface components {
          * CampaignAggregateResponse
          * @description Per-campaign rollup (ports ``computeCampaignAggregate``, architecture §7.3).
          *
-         *     ``engagement = likes + comments``; ``estimated_reach`` is the org's follower
-         *     count (v1 reach approximation).
+         *     ``engagement = likes + comments``; ``estimated_reach`` sums Instagram insights
+         *     ``reach`` across the linked posts (posts without insights count 0).
          */
         CampaignAggregateResponse: {
             /** Comments */
