@@ -174,7 +174,34 @@ describe("creator journey", () => {
 
     render("/creators/campaigns");
     expect(container.textContent).toMatch(/A Reel of my study routine\./);
-    expect(container.textContent).toMatch(/Paid\$0/);
-    expect(container.textContent).toMatch(/Pending\$0/);
+    expect(container.textContent).toMatch(/Earned this year\$0/);
+  });
+
+  it("opens each demo scenario on its own screen", () => {
+    const expected: [Parameters<typeof actions.startDemo>[0], RegExp][] = [
+      ["guest", /Apply as a creator/],
+      ["pending_email", /Check your campus email/],
+      ["pending_review", /Awaiting Approval/],
+      ["denied", /not approved/],
+      ["pending_instagram", /Connect @jaceystudies/],
+      ["active", /Finals Week Reel/],
+    ];
+    for (const [scenario, screen] of expected) {
+      act(() => actions.startDemo(scenario));
+      render("/creators/feed");
+      expect(container.textContent).toMatch(screen);
+    }
+
+    act(() => actions.startDemo("active_selected"));
+    render("/creators/campaigns");
+    expect(container.textContent).toMatch(/Choose the post you made/);
+    click(container, /My finals week study routine/);
+    click(container, /Link this post/);
+    expect(container.textContent).toMatch(/Linked Reel: My finals week study routine/);
+
+    act(() => actions.startDemo("active_campaign"));
+    render("/creators/campaigns");
+    expect(container.textContent).toMatch(/On its way\$400/);
+    expect(getState().demo).toBe(true);
   });
 });

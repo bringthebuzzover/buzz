@@ -6,12 +6,14 @@ import { SiteChromeProvider } from "../contexts/SiteChromeContext";
 import SiteHeader from "../components/site/SiteHeader";
 import SiteFooter from "../components/site/SiteFooter";
 import ImpersonationBanner from "../components/site/ImpersonationBanner";
+import CreatorDemoBanner from "../components/site/CreatorDemoBanner";
 
 export default function SiteLayout() {
   return (
     <SiteChromeProvider>
       <div className="flex min-h-screen flex-col bg-buzz-cream selection:bg-buzz-butter selection:text-buzz-coral">
         <ImpersonationBanner />
+        <CreatorDemoBanner />
         <SiteHeader />
         {/* Flex column all the way to the outlet so `AUTH_SHELL.center` can
             claim the space between header and footer with `flex-1` and center

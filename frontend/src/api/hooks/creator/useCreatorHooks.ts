@@ -8,7 +8,9 @@ import {
   actions,
   buzzFeeFor,
   getState,
+  resetCreatorMock,
   subscribe,
+  type CreatorDemoScenario,
   type MockDrop,
   type MockState,
 } from "./mockCreatorStore";
@@ -93,10 +95,11 @@ export function creatorCompleteness(profile: CreatorProfile): number {
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);
 }
 
-export function useCreatorSession(): Query<{ status: CreatorStatus | null }> {
+export function useCreatorSession(): Query<{ status: CreatorStatus | null; demo: boolean }> {
   const state = useMockState();
   const status = viewerOf(state)?.status ?? null;
-  return useMemo(() => query({ status }), [status]);
+  const demo = Boolean(state.demo);
+  return useMemo(() => query({ status, demo }), [status, demo]);
 }
 
 export function useCreatorProfile(): Query<CreatorProfile | null> {
@@ -220,3 +223,7 @@ export const useReviewCreator = () =>
   mutation((creatorId: string, approve: boolean) => actions.reviewCreator(creatorId, approve));
 export const useRecordCreatorPayout = () =>
   mutation((applicationId: string) => actions.recordPayout(applicationId));
+
+export const useStartCreatorDemo = () =>
+  mutation((scenario: CreatorDemoScenario) => actions.startDemo(scenario));
+export const useExitCreatorDemo = () => mutation(() => resetCreatorMock());

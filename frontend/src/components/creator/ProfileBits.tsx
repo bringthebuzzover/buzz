@@ -76,20 +76,15 @@ const formatCount = (value: number | null) =>
 export function ConnectedStats({
   followers,
   posts,
-  activeDeliverables,
 }: {
   followers: number | null;
   posts: number | null;
-  activeDeliverables?: number;
 }) {
   return (
-    <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <dl className="mt-4 grid grid-cols-3 gap-3">
       <Stat value={formatCount(followers)} label="Followers" note="from Instagram" />
       <Stat value={formatCount(posts)} label="Posts" note="from Instagram" />
       <Stat value="—" label="Engagement" note="not available yet" />
-      {activeDeliverables !== undefined ? (
-        <Stat value={String(activeDeliverables)} label="Active deliverables" />
-      ) : null}
     </dl>
   );
 }

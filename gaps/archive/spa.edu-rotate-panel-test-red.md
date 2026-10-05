@@ -5,6 +5,7 @@ kind: test_gap
 severity: P3
 status: fixed
 surface: spa
+closed_in: b5ad317
 evidence:
   - path: frontend/src/components/org/EduEmailRotatePanel.test.tsx
     note: "does not submit a wrapping profile form when sending verification" fails; mockRotate is never called after dispatching submit on the inner rotate form.

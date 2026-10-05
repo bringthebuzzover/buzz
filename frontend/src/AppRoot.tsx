@@ -54,12 +54,13 @@ import AdminDropRequestDetailPage from "./pages/admin/AdminDropRequestDetailPage
 import AdminIgChangeRequestsPage from "./pages/admin/AdminIgChangeRequestsPage";
 import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
+import {
+  AdminCreatorReviewDemoPage,
+  AdminCreatorRosterDemoPage,
+  AdminDemoPage,
+} from "./pages/admin/AdminDemoPages";
 import NotFoundPage from "./pages/NotFoundPage";
 import UiKitPage from "./pages/dev/UiKitPage";
-import {
-  CreatorAdminPreviewPage,
-  CreatorBrandPreviewPage,
-} from "./pages/dev/CreatorPreviewPages";
 import ForCreatorsPage from "./pages/marketing/ForCreatorsPage";
 import CreatorStatusGate from "./pages/creator/CreatorStatusGate";
 import CreatorApplyPage from "./pages/creator/CreatorApplyPage";
@@ -338,12 +339,6 @@ export default function AppRoot(): ReactElement {
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 
-      {process.env.NODE_ENV === "development" && (
-        <>
-          <Route path="dev/creators/brand" element={<CreatorBrandPreviewPage />} />
-          <Route path="dev/creators/admin" element={<CreatorAdminPreviewPage />} />
-        </>
-      )}
       {/* Admin panel — its own shell, so no marketing header/footer. */}
       <Route
         path="admin"
@@ -365,6 +360,9 @@ export default function AppRoot(): ReactElement {
         <Route path="drops" element={<AdminDropsPage />} />
         <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />
+        <Route path="demo" element={<AdminDemoPage />} />
+        <Route path="demo/creator-roster" element={<AdminCreatorRosterDemoPage />} />
+        <Route path="demo/creator-review" element={<AdminCreatorReviewDemoPage />} />
         {/* Primitive gallery. CRA production builds omit this route
             (`NODE_ENV !== "development"`), and the parent PortalGuard keeps
             even local access admin-only. */}
