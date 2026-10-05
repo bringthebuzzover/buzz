@@ -18,6 +18,7 @@ import { useSignOut } from "../../api/hooks/useSignOut";
 import {
   useCreatorSession,
   useCreatorSignOut,
+  useExitCreatorDemo,
 } from "../../api/hooks/creator/useCreatorHooks";
 import { useAuth } from "../../contexts/AuthContext";
 import { goToHomeJoin } from "../../utils/scrollHomeJoin";
@@ -50,6 +51,7 @@ export default function SiteHeader() {
   const signOut = useSignOut();
   const { data: creatorSession } = useCreatorSession();
   const creatorSignOut = useCreatorSignOut();
+  const exitDemo = useExitCreatorDemo();
   const { images, social } = siteIdentity;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
@@ -75,7 +77,8 @@ export default function SiteHeader() {
     setMobileNavOpen(false);
   }, [pathname]);
 
-  const isApiAuth = authStatus === "authenticated" && user;
+  // A creator demo shows the creator chrome even though an admin is signed in.
+  const isApiAuth = !creatorSession.demo && authStatus === "authenticated" && user;
   const isCreator = !isApiAuth && creatorSession.status === "active";
   const isSignedIn = !!isApiAuth || isCreator;
   const isOrgNav =
@@ -126,6 +129,11 @@ export default function SiteHeader() {
   };
 
   const handleSignOut = () => {
+    if (creatorSession.demo) {
+      exitDemo.mutate();
+      window.location.href = "/admin/demo";
+      return;
+    }
     if (!isCreator) {
       signOut();
       return;

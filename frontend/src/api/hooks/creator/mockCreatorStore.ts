@@ -28,6 +28,8 @@ export type MockDrop = {
 };
 
 export type MockState = {
+  /** Set when an admin opened the portal from the demo directory. */
+  demo: boolean;
   viewerId: string | null;
   creators: CreatorProfile[];
   drops: MockDrop[];
@@ -39,6 +41,7 @@ export const buzzFeeFor = (gross: number) => Math.round(gross * BUZZ_FEE_RATE);
 
 function seedState(): MockState {
   return {
+    demo: false,
     viewerId: null,
     creators: [
       {
@@ -166,6 +169,89 @@ export function resetCreatorMock() {
 let nextId = 0;
 const newId = (prefix: string) => `${prefix}-${Date.now()}-${(nextId += 1)}`;
 
+const CONNECTED_STATS = { instagramConnected: true, followers: 11200, posts: 386 } as const;
+
+function connectedPosts(): CreatorPost[] {
+  return [
+    {
+      id: newId("post"),
+      caption: "My finals week study routine",
+      format: "Reel",
+      postedAt: "2026-09-21",
+    },
+    {
+      id: newId("post"),
+      caption: "Move-in week, what I actually used",
+      format: "Post",
+      postedAt: "2026-09-02",
+    },
+  ];
+}
+
+/** Every creator state an admin can open from the demo directory. */
+export type CreatorDemoScenario =
+  | "guest"
+  | "pending_email"
+  | "pending_review"
+  | "denied"
+  | "pending_instagram"
+  | "active"
+  | "active_selected"
+  | "active_campaign";
+
+const DEMO_CREATOR_ID = "creator-demo";
+
+function demoState(scenario: CreatorDemoScenario): MockState {
+  const seed = { ...seedState(), demo: true };
+  if (scenario === "guest") return seed;
+  const onDrop = scenario === "active_selected" || scenario === "active_campaign";
+  const active = scenario === "active" || onDrop;
+  const posts = active ? connectedPosts() : [];
+  const creator: CreatorProfile = {
+    id: DEMO_CREATOR_ID,
+    name: "Jacey Park",
+    school: "Cornell University",
+    city: "Ithaca",
+    gradYear: "2027",
+    eduEmail: "jacey@cornell.edu",
+    claimedHandle: "@jaceystudies",
+    instagramConnected: false,
+    followers: null,
+    posts: null,
+    niches: ["College lifestyle", "Fitness"],
+    bio: "Study routines and campus life at Cornell.",
+    tiktokHandle: "",
+    openTo: ["Flat fee"],
+    pastCollab: null,
+    portfolio: [],
+    ...(active ? CONNECTED_STATS : {}),
+    status: active ? "active" : scenario,
+  };
+  const linked = scenario === "active_campaign";
+  const applications = onDrop
+    ? [
+        ...seed.applications,
+        {
+          id: "app-demo-update",
+          dropId: "drop-update",
+          creatorId: DEMO_CREATOR_ID,
+          pitch: "A Reel of my finals week study routine.",
+          decision: "accepted" as const,
+          content: linked ? ("accepted" as const) : ("none" as const),
+          linkedPostId: linked ? posts[0].id : null,
+          payout: "not_recorded" as const,
+        },
+      ]
+    : seed.applications;
+  return {
+    ...seed,
+    viewerId: DEMO_CREATOR_ID,
+    creators: [...seed.creators, creator],
+    applications,
+    posts: active ? { [DEMO_CREATOR_ID]: posts } : {},
+  };
+}
+
 function patchCreator(id: string, patch: Partial<CreatorProfile>) {
   commit({
     ...state,
@@ -224,32 +310,10 @@ export const actions = {
       ...state,
       creators: state.creators.map((row) =>
         row.id === current.id
-          ? {
-              ...row,
-              status: "active",
-              instagramConnected: true,
-              followers: 11200,
-              posts: 386,
-            }
+          ? { ...row, ...CONNECTED_STATS, status: "active" }
           : row,
       ),
-      posts: {
-        ...state.posts,
-        [current.id]: [
-          {
-            id: newId("post"),
-            caption: "My finals week study routine",
-            format: "Reel",
-            postedAt: "2026-09-21",
-          },
-          {
-            id: newId("post"),
-            caption: "Move-in week, what I actually used",
-            format: "Post",
-            postedAt: "2026-09-02",
-          },
-        ],
-      },
+      posts: { ...state.posts, [current.id]: connectedPosts() },
     });
   },
 
@@ -340,5 +404,9 @@ export const actions = {
 
   recordPayout(applicationId: string) {
     patchApplication(applicationId, { payout: "recorded" });
+  },
+
+  startDemo(scenario: CreatorDemoScenario) {
+    commit(demoState(scenario));
   },
 };

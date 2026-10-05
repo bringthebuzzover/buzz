@@ -52,6 +52,7 @@ const NAV: readonly NavItem[] = [
     badgeKeys: ["drops_ready_to_advance"],
   },
   { to: "/admin/health", label: "Health" },
+  { to: "/admin/demo", label: "Demo" },
 ];
 
 function AdminWordmark({ className }: { className?: string }) {
