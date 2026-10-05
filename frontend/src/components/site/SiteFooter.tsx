@@ -43,6 +43,11 @@ export default function SiteFooter() {
                 For brands
               </Link>
             </li>
+            <li>
+              <Link to="/for-creators" className={linkClass}>
+                For creators
+              </Link>
+            </li>
           </ul>
         </div>
 
@@ -57,6 +62,11 @@ export default function SiteFooter() {
             <li>
               <Link to="/brand/apply" className={linkClass}>
                 Apply as Brand
+              </Link>
+            </li>
+            <li>
+              <Link to="/creators/apply" className={linkClass}>
+                Apply as Creator
               </Link>
             </li>
           </ul>

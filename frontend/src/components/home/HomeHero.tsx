@@ -28,8 +28,8 @@ export default function HomeHero() {
           Campus marketing, powered by student communities.
         </h1>
         <h2 className="mb-8 max-w-2xl text-xl font-medium text-buzz-paper/90 md:text-2xl">
-          BUZZ connects brands with student organizations to execute large-scale
-          campus activations nationwide.
+          BUZZ connects brands with student organizations and student creators
+          for campus campaigns nationwide.
         </h2>
         <div className="flex flex-col justify-center space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0 md:justify-start">
           <Button type="button" size="hero" onClick={scrollToHomeJoin}>

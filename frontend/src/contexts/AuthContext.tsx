@@ -114,6 +114,9 @@ function onAuthRoute(): boolean {
     p.startsWith("/org/apply") ||
     p.startsWith("/onboarding/verify-email") ||
     p.startsWith("/onboarding/connect-instagram") ||
+    // Dev auto-login seeds an org, the wrong portal for creators; the creator
+    // status gate guards these routes.
+    p.startsWith("/creators/") ||
     p.startsWith("/admin") ||
     p.startsWith("/auth/")
   );
@@ -130,6 +133,7 @@ function onPublicMarketingRoute(): boolean {
     p === "/" ||
     p.startsWith("/for-orgs") ||
     p.startsWith("/for-brands") ||
+    p.startsWith("/for-creators") ||
     p.startsWith("/privacy") ||
     p.startsWith("/terms") ||
     p.startsWith("/data-deletion") ||

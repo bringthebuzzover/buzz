@@ -6,6 +6,7 @@
 import type { ReactElement } from "react";
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import type { PortalRole } from "./types/auth";
+import type { CreatorStatus } from "./api/hooks/creator/types";
 import SiteLayout from "./layouts/SiteLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import RequireAuth from "./components/routing/RequireAuth";
@@ -55,6 +56,19 @@ import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDe
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import UiKitPage from "./pages/dev/UiKitPage";
+import {
+  CreatorAdminPreviewPage,
+  CreatorBrandPreviewPage,
+} from "./pages/dev/CreatorPreviewPages";
+import ForCreatorsPage from "./pages/marketing/ForCreatorsPage";
+import CreatorStatusGate from "./pages/creator/CreatorStatusGate";
+import CreatorApplyPage from "./pages/creator/CreatorApplyPage";
+import CreatorVerifyPage from "./pages/creator/CreatorVerifyPage";
+import CreatorPendingPage from "./pages/creator/CreatorPendingPage";
+import CreatorConnectPage from "./pages/creator/CreatorConnectPage";
+import CreatorFeedPage from "./pages/creator/CreatorFeedPage";
+import CreatorCampaignsPage from "./pages/creator/CreatorCampaignsPage";
+import CreatorProfilePage from "./pages/creator/CreatorProfilePage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
 function PortalGuard({
@@ -76,6 +90,24 @@ function PortalGuard({
   );
 }
 
+const CREATOR_ROUTES: {
+  path: string;
+  allow: (CreatorStatus | null)[];
+  element: ReactElement;
+}[] = [
+  { path: "creators/apply", allow: [null], element: <CreatorApplyPage /> },
+  { path: "creators/verify", allow: ["pending_email"], element: <CreatorVerifyPage /> },
+  {
+    path: "creators/pending",
+    allow: ["pending_review", "denied"],
+    element: <CreatorPendingPage />,
+  },
+  { path: "creators/connect", allow: ["pending_instagram"], element: <CreatorConnectPage /> },
+  { path: "creators/feed", allow: ["active"], element: <CreatorFeedPage /> },
+  { path: "creators/campaigns", allow: ["active"], element: <CreatorCampaignsPage /> },
+  { path: "creators/profile", allow: ["active"], element: <CreatorProfilePage /> },
+];
+
 /** Forward a legacy `/campaigns/:id` deep link to the real campaign detail
  * route, preserving the id (don't drop it onto the generic feed). */
 function LegacyCampaignRedirect(): ReactElement {
@@ -95,6 +127,18 @@ export default function AppRoot(): ReactElement {
         <Route index element={<HomePage />} />
         <Route path="for-orgs" element={<ForOrgsPage />} />
         <Route path="for-brands" element={<ForBrandsPage />} />
+        <Route path="for-creators" element={<ForCreatorsPage />} />
+
+        {/* Creator journey. Each route admits one status; the gate sends
+            everyone else to the screen for theirs. */}
+        <Route path="creators" element={<CreatorStatusGate allow={[]} />} />
+        {CREATOR_ROUTES.map(({ path, allow, element }) => (
+          <Route
+            key={path}
+            path={path}
+            element={<CreatorStatusGate allow={allow}>{element}</CreatorStatusGate>}
+          />
+        ))}
 
         {/* Public auth pages. */}
         <Route path="login" element={<LoginPage />} />
@@ -294,6 +338,12 @@ export default function AppRoot(): ReactElement {
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 
+      {process.env.NODE_ENV === "development" && (
+        <>
+          <Route path="dev/creators/brand" element={<CreatorBrandPreviewPage />} />
+          <Route path="dev/creators/admin" element={<CreatorAdminPreviewPage />} />
+        </>
+      )}
       {/* Admin panel — its own shell, so no marketing header/footer. */}
       <Route
         path="admin"
