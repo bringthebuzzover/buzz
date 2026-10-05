@@ -50,7 +50,7 @@ Rules and skills **point** here; they must not copy PRODUCT §§.
 For any **behavior-touching** change:
 
 1. Run the **simplify-pass** skill ([`.agents/skills/simplify-pass/SKILL.md`](.agents/skills/simplify-pass/SKILL.md)).
-2. Run **`./scripts/ci-local.sh`** from repo root; must be green before claiming ready to commit (includes Playwright E2E).
+2. Run **`./scripts/ci-local.sh`** from repo root; must be green before claiming ready to commit (includes frontend Jest and Playwright E2E).
 3. **Stop** — do not commit or push unless the user explicitly asks.
 4. Stress Playwright ×N **only if the user asks** (`workflow_dispatch` / `[e2e-stress-N]`).
 

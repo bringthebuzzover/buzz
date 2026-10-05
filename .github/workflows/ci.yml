@@ -85,6 +85,11 @@ jobs:
           npm run gen:api
           git -C .. diff --exit-code -- frontend/src/api/generated/schema.ts
 
+      - name: Unit tests (Jest)
+        run: npm test -- --watchAll=false
+        env:
+          CI: "true"
+
       - name: Build
         run: npm run build
         env:

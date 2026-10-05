@@ -2,7 +2,7 @@
 # Full local CI gate — mirrors `.github/workflows/ci.yml` as closely as practical.
 #
 #   Backend:  black --check → ruff → mypy → openapi dump/diff → alembic upgrade → pytest
-#   Frontend: tsc → gen:api diff → build
+#   Frontend: tsc → gen:api diff → Jest → build
 #   E2E:      Playwright with CI=true (fresh webServers; always runs)
 #
 # Usage (from repo root):
@@ -111,7 +111,14 @@ echo "==> [frontend 2/4] Generated API types in sync"
 )
 
 echo
-echo "==> [frontend 3/4] Production build"
+echo "==> [frontend 3/4] Unit tests (Jest)"
+(
+  cd frontend
+  CI=true npm test -- --watchAll=false
+)
+
+echo
+echo "==> [frontend 4/4] Production build"
 (
   cd frontend
   CI=true npm run build
