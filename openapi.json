@@ -4241,7 +4241,7 @@
         "type": "object"
       },
       "CampaignAggregateResponse": {
-        "description": "Per-campaign rollup (ports ``computeCampaignAggregate``, architecture \u00a77.3).\n\n``engagement = likes + comments``; ``estimated_reach`` is the org's follower\ncount (v1 reach approximation).",
+        "description": "Per-campaign rollup (ports ``computeCampaignAggregate``, architecture \u00a77.3).\n\n``engagement = likes + comments``; ``estimated_reach`` sums Instagram insights\n``reach`` across the linked posts (posts without insights count 0).",
         "properties": {
           "comments": {
             "title": "Comments",
@@ -16305,7 +16305,7 @@
     },
     "/api/orgs/me/posts/refresh": {
       "post": {
-        "description": "Return the caller org's currently-stored posts.\n\nThe canonical Instagram sync is the Stage 8 daily batch job\n(``app.jobs.metric_sync``, \u00a710.1). This endpoint intentionally does NOT call\nInstagram on demand (it would burn rate-limit per click and add latency);\nit just returns the stored posts so the SPA's \"Refresh\" affordance reflects\nthe latest synced metrics. A future single-org on-demand sync could hang\nhere if needed.",
+        "description": "Return the caller org's currently-stored posts.\n\nThe canonical Instagram sync is the Stage 8 batch job (every 8h)\n(``app.jobs.metric_sync``, \u00a710.1). This endpoint intentionally does NOT call\nInstagram on demand (it would burn rate-limit per click and add latency);\nit just returns the stored posts so the SPA's \"Refresh\" affordance reflects\nthe latest synced metrics. A future single-org on-demand sync could hang\nhere if needed.",
         "operationId": "refresh_my_posts_api_orgs_me_posts_refresh_post",
         "parameters": [
           {

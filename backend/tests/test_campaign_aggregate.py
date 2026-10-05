@@ -21,32 +21,34 @@ from tests.conftest import (
 async def test_aggregate_sums_linked_posts(app_client: AsyncClient, db_session) -> None:
     user = await persist(db_session, make_user())
     org = await make_org(db_session, user)
-    org.follower_count = 1240
+    org.follower_count = 9999
     await db_session.flush()
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand)
     application = await make_application(
         db_session, drop, org, decision=ApplicationDecision.ACCEPTED
     )
-    p1 = await make_social_post(db_session, org, likes=10, comments=2)
-    p2 = await make_social_post(db_session, org, likes=5, comments=3)
+    p1 = await make_social_post(db_session, org, likes=10, comments=2, reach=700)
+    p2 = await make_social_post(db_session, org, likes=5, comments=3, reach=540)
+    p3 = await make_social_post(db_session, org, likes=1, comments=0)  # no insights yet
     await make_post_link(db_session, p1, application)
     await make_post_link(db_session, p2, application)
+    await make_post_link(db_session, p3, application)
 
     headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
     resp = await app_client.get(f"/api/campaigns/{application.id}/aggregate", headers=headers)
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["postCount"] == 2
-    assert data["likes"] == 15
+    assert data["postCount"] == 3
+    assert data["likes"] == 16
     assert data["comments"] == 5
-    assert data["engagement"] == 20
-    assert data["estimatedReach"] == 1240
+    assert data["engagement"] == 21
+    assert data["estimatedReach"] == 1240  # summed post reach, not follower_count (9999)
 
 
 async def test_aggregate_empty_campaign(app_client: AsyncClient, db_session) -> None:
     user = await persist(db_session, make_user())
-    org = await make_org(db_session, user)  # follower_count None -> reach 0
+    org = await make_org(db_session, user)
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand)
     application = await make_application(

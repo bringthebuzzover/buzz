@@ -57,9 +57,9 @@ from app.services.shipments import (
     shipments_by_application_ids,
 )
 
-# ``metric_sync`` runs daily at 03:00 UTC; 36h leaves room for one missed run
-# plus clock skew before we call it stale.
-_METRIC_SYNC_STALE_HOURS = 36
+# ``metric_sync`` runs every 8h (03:00 / 11:00 / 19:00 UTC); 20h leaves room for
+# one missed run plus clock skew before we call it stale.
+_METRIC_SYNC_STALE_HOURS = 20
 
 _ATTENTION_FILTERS = frozenset(
     {

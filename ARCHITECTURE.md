@@ -138,7 +138,7 @@ One-shot scripts via `backend/scripts/run_job.py <name>` (Railway Cron). Idempot
 | --- | ------------------- | ---- |
 | `drop_autoclose` | `*/5` | Published drops whose window closed (does not advance `request_received` stubs) |
 | `notify_reminders` | `*/5` | Notify Me emails |
-| `metric_sync` | daily ~03:00 | Instagram FEED/REELS media + insights (`/me/media`); also refreshes `organizations.follower_count` from Graph `/me` for all tokened non-erased orgs. Stories out of scope (no `/stories` poller) |
+| `metric_sync` | every 8h ~03:00 / 11:00 / 19:00 | Instagram FEED/REELS media + insights (`/me/media`); also refreshes `organizations.follower_count` from Graph `/me` for all tokened non-erased orgs. Stories out of scope (no `/stories` poller). Campaign / brand reach = sum of linked posts' insights `reach` |
 | `token_cleanup` | daily ~03:00 | Sweep spent tokens |
 | `autolink_scan` | daily ~03:30 | Caption suggestions (`awaiting_products`, `drop_active`) |
 | `token_refresh` | daily ~04:00 | IG long-lived refresh safety net |

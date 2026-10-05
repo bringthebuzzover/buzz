@@ -252,13 +252,15 @@ async def _ig_json(resp_coro: Awaitable[httpx.Response], op: str, message: str) 
     return _unwrap_ig_payload(body)
 
 
+# One unsupported metric fails the whole request (#100), so every name here must
+# be valid on the media insights endpoint. ``reposts`` is not (Graph #100).
 # FEED (and non-reel) insights — profile_* / follows are FEED/STORY-only on Graph.
 _FEED_INSIGHT_METRICS = (
-    "reach,views,saved,shares,reposts,total_interactions," "profile_visits,profile_activity,follows"
+    "reach,views,saved,shares,total_interactions," "profile_visits,profile_activity,follows"
 )
 # REELS — do not request profile_visits/profile_activity/follows (#100 on REELS).
 _REEL_INSIGHT_METRICS = (
-    "reach,views,saved,shares,reposts,total_interactions,"
+    "reach,views,saved,shares,total_interactions,"
     "ig_reels_avg_watch_time,ig_reels_video_view_total_time,reels_skip_rate"
 )
 _FRACTIONAL_INSIGHTS = frozenset({"reels_skip_rate"})
@@ -495,8 +497,8 @@ class HttpInstagramClient:
             )
             resp.raise_for_status()
             b = resp.json()
-        except httpx.HTTPError:
-            raise _ig_error("Instagram media fetch failed.") from None
+        except httpx.HTTPError as exc:
+            _fail_ig("media fetch", "Instagram media fetch failed.", exc=exc)
 
         return MediaFields(
             id=str(b.get("id", media_id)),
@@ -525,8 +527,8 @@ class HttpInstagramClient:
             )
             resp.raise_for_status()
             body = resp.json()
-        except httpx.HTTPError:
-            raise _ig_error("Instagram insights fetch failed.") from None
+        except httpx.HTTPError as exc:
+            _fail_ig("media insights", "Instagram insights fetch failed.", exc=exc)
 
         # Insights come back as [{name, values:[{value}]}]; flatten to {name: value}.
         out: dict[str, int | float] = {}

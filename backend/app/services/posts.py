@@ -335,13 +335,6 @@ async def get_campaign_aggregate(
     """Per-campaign metric rollup (ports ``computeCampaignAggregate``)."""
 
     application = await resolve_owned_application(db, org_user, application_id)
-    follower_count = (
-        await db.scalar(
-            select(Organization.follower_count).where(Organization.id == application.org_id)
-        )
-        or 0
-    )
-
     posts = list(
         await db.scalars(
             select(SocialPost)
@@ -356,7 +349,7 @@ async def get_campaign_aggregate(
         likes=likes,
         comments=comments,
         engagement=likes + comments,
-        estimated_reach=follower_count,
+        estimated_reach=sum(post.reach or 0 for post in posts),
     )
 
 

@@ -413,21 +413,25 @@ async def test_reopen_unfinalized_drop_only_sets_flag(app_client: AsyncClient, d
     assert drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
 
 
-async def test_brand_aggregate_reach_dedupes_org_across_drops(
+async def test_brand_aggregate_reach_sums_linked_post_reach(
     app_client: AsyncClient, db_session
 ) -> None:
-    """L11: an org accepted on multiple drops counts once toward total_reach."""
+    """total_reach sums insights reach of linked posts across drops, not follower counts."""
     _, brand, headers = await _brand_ctx(db_session)
     org_user = await persist(db_session, make_user(instagram_user_id="ig_reach"))
     org = await make_org(db_session, org_user)
     org.follower_count = 1000
     await db_session.flush()
-    for i in range(2):
+    for i, reach in enumerate((300, 450)):
         drop = await make_drop(db_session, brand, title=f"Reach Drop {i}")
-        await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+        application = await make_application(
+            db_session, drop, org, decision=ApplicationDecision.ACCEPTED
+        )
+        post = await make_social_post(db_session, org, reach=reach)
+        await make_post_link(db_session, post, application)
 
     resp = await app_client.get("/api/brands/me/aggregate", headers=headers)
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["totalReach"] == 1000  # deduped, not 2000
+    assert data["totalReach"] == 750
     assert data["totalOrgs"] == 1

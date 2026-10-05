@@ -522,6 +522,7 @@ async def make_social_post(
     caption: str = "loved the drop",
     likes: int = 10,
     comments: int = 2,
+    reach: int | None = None,
     media_product_type: SocialMediaProductType = SocialMediaProductType.FEED,
 ) -> SocialPost:
     """Persist a ``social_posts`` row owned by ``org``."""
@@ -540,6 +541,7 @@ async def make_social_post(
         posted_at=datetime.now(timezone.utc) - timedelta(days=1),
         likes=likes,
         comments=comments,
+        reach=reach,
         metrics_updated_at=datetime.now(timezone.utc),
     )
     db.add(post)

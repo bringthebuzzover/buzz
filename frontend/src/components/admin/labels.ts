@@ -149,9 +149,9 @@ export const PIPELINE_META: Record<
   },
   metric_sync: {
     label: "Metric sync",
-    schedule: "daily 03:00 UTC",
+    schedule: "every 8h (03:00, 11:00, 19:00 UTC)",
     inference:
-      "Counts recent FEED/REELS whose metrics are missing or over 36h old. Stories are unsupported and excluded.",
+      "Counts recent FEED/REELS whose metrics are missing or over 20h old. Stories are unsupported and excluded.",
   },
   token_cleanup: {
     label: "Token cleanup",
