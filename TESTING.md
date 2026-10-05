@@ -5,7 +5,7 @@ Four layers, cheapest → most expensive to maintain:
 | Layer | Where | Runs against | Maintenance |
 | --- | --- | --- | --- |
 | Backend unit/integration | `backend/tests/` (`pytest`) | rolled-back DB session | low |
-| Frontend smoke | `frontend/src/*.smoke.test.tsx` (`craco test`) | jsdom render | low |
+| Frontend unit + smoke | `frontend/src/**/*.test.tsx` (`craco test`) | jsdom render | low |
 | **API bug-bash (journey + fuzz)** | `backend/scripts/bugbash.py` | a **live** local server | low |
 | **E2E (Playwright)** | `frontend/e2e/` | live backend **+** frontend in a real browser | medium |
 
@@ -90,7 +90,7 @@ From the repo root, after Postgres is up and deps are installed:
 
 Runs the same gate as [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
 backend format/lint/types/openapi/alembic/pytest → frontend leftover hunter /
-tsc/gen:api/build → Playwright E2E with `CI=true`. Use this before merging or after a gap-cluster
+tsc/gen:api/Jest/build → Playwright E2E with `CI=true`. Use this before merging or after a gap-cluster
 fix; backend-only `./backend/scripts/check.sh` is fine for a quick loop but
 does **not** replace full CI.
 

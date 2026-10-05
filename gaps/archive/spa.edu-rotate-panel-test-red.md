@@ -3,7 +3,7 @@ id: spa.edu-rotate-panel-test-red
 title: EduEmailRotatePanel nested-form Jest test fails on main
 kind: test_gap
 severity: P3
-status: open
+status: fixed
 surface: spa
 evidence:
   - path: frontend/src/components/org/EduEmailRotatePanel.test.tsx
@@ -19,7 +19,14 @@ fix_when: |
   the send button) and passes; full frontend Jest is green.
 ---
 
-`scripts/ci-local.sh` does not run frontend Jest, so this stays red without
-blocking CI. Unknown whether the component or the test is wrong: jsdom also
-warns `<form> cannot appear as a descendant of <form>`, which suggests the
-component still renders a real nested `<form>` inside the profile form.
+`scripts/ci-local.sh` and GitHub CI did not run frontend Jest, so this stayed
+red without blocking CI.
+
+**Resolution:** the test was wrong. It picked the submit target with
+`querySelectorAll("form").find(f => f.querySelector("#edu-rotate-email"))`,
+which returns the outer profile form (it also contains the input and comes
+first in document order), so it submitted the profile form itself. The test
+now clicks **Send verification**, and the component's `stopPropagation` is
+what keeps the outer form from firing. Production already renders the panel
+outside the profile form (`OrgPortalProfilePage`). Frontend Jest now runs in
+`ci-local.sh` and in the GitHub `frontend` job.

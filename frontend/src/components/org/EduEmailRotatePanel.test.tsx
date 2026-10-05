@@ -189,13 +189,11 @@ describe("EduEmailRotatePanel", () => {
       setter?.call(input, "new@test.edu");
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
-    const rotateForm = Array.from(container.querySelectorAll("form")).find(
-      (f) => f.querySelector("#edu-rotate-email"),
-    ) as HTMLFormElement;
+    const send = Array.from(container.querySelectorAll("button")).find((b) =>
+      /send verification/i.test(b.textContent ?? ""),
+    );
     await act(async () => {
-      rotateForm.dispatchEvent(
-        new Event("submit", { bubbles: true, cancelable: true }),
-      );
+      send!.click();
       await Promise.resolve();
     });
     expect(mockRotate).toHaveBeenCalledWith("new@test.edu");
