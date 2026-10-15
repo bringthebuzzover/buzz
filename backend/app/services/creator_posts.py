@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -32,7 +33,7 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-async def list_creator_posts(db: AsyncSession, user: User) -> list[dict]:
+async def list_creator_posts(db: AsyncSession, user: User) -> list[dict[str, Any]]:
     creator = await creator_for_user(db, user)
     rows = (
         await db.scalars(
@@ -54,7 +55,7 @@ async def list_creator_posts(db: AsyncSession, user: User) -> list[dict]:
 
 async def link_creator_post(
     db: AsyncSession, user: User, application_id: uuid.UUID, post_id: uuid.UUID
-) -> dict:
+) -> dict[str, Any]:
     creator = await creator_for_user(db, user)
     application = await db.get(DropApplication, application_id)
     post = await db.get(SocialPost, post_id)

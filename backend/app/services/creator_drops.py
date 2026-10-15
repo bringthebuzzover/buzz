@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -98,7 +99,7 @@ async def _accepted_count(db: AsyncSession, drop_id: uuid.UUID) -> int:
     return int(count or 0)
 
 
-def drop_card(drop: Drop, brand_name: str, accepted: int) -> dict:
+def drop_card(drop: Drop, brand_name: str, accepted: int) -> dict[str, Any]:
     now = _now()
     open_at = _aware(drop.apply_open_at)
     close_at = _aware(drop.apply_close_at)
@@ -128,7 +129,7 @@ def drop_card(drop: Drop, brand_name: str, accepted: int) -> dict:
     }
 
 
-async def list_creator_feed(db: AsyncSession, user: User) -> list[dict]:
+async def list_creator_feed(db: AsyncSession, user: User) -> list[dict[str, Any]]:
     creator = await creator_for_user(db, user)
     if creator.status != CreatorStatus.ACTIVE.value:
         raise BuzzAPIException(
@@ -156,7 +157,7 @@ async def list_creator_feed(db: AsyncSession, user: User) -> list[dict]:
 
 async def apply_to_creator_drop(
     db: AsyncSession, user: User, drop_id: uuid.UUID, pitch: str
-) -> dict:
+) -> dict[str, Any]:
     creator = await creator_for_user(db, user)
     if creator.status != CreatorStatus.ACTIVE.value:
         raise BuzzAPIException(
@@ -203,7 +204,7 @@ async def apply_to_creator_drop(
 
 async def finalize_creator_roster(
     db: AsyncSession, drop_id: uuid.UUID, accepted_ids: list[uuid.UUID]
-) -> dict:
+) -> dict[str, Any]:
     """Accept or deny creator applications. Does not ship or touch org capacity."""
     drop = await db.get(Drop, drop_id)
     if drop is None or drop.audience != "creators":
@@ -249,7 +250,7 @@ async def finalize_creator_roster(
     return {"accepted": len(accepted_ids), "capacity_total": drop.capacity_total}
 
 
-async def accept_creator_post(db: AsyncSession, application_id: uuid.UUID) -> dict:
+async def accept_creator_post(db: AsyncSession, application_id: uuid.UUID) -> dict[str, Any]:
     application = await db.get(DropApplication, application_id)
     if application is None or application.creator_id is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
@@ -267,7 +268,7 @@ async def accept_creator_post(db: AsyncSession, application_id: uuid.UUID) -> di
     return {"application_id": str(application.id), "content": application.content_state}
 
 
-async def record_creator_payout(db: AsyncSession, application_id: uuid.UUID) -> dict:
+async def record_creator_payout(db: AsyncSession, application_id: uuid.UUID) -> dict[str, Any]:
     application = await db.get(DropApplication, application_id)
     if application is None or application.creator_id is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
@@ -282,7 +283,7 @@ async def record_creator_payout(db: AsyncSession, application_id: uuid.UUID) -> 
     return {"application_id": str(application.id), "payout": "recorded"}
 
 
-async def creator_earnings(db: AsyncSession, user: User) -> dict:
+async def creator_earnings(db: AsyncSession, user: User) -> dict[str, Any]:
     creator = await creator_for_user(db, user)
     rows = (
         await db.execute(

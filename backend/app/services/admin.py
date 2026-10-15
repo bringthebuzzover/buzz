@@ -1080,10 +1080,11 @@ async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
             status_code=409,
         )
 
+    image = drop.image
     for field, label in (
         (drop.title, "title"),
         (drop.description, "description"),
-        (drop.image, "image"),
+        (image, "image"),
         (drop.location, "location"),
     ):
         if not field or not str(field).strip():
@@ -1092,7 +1093,13 @@ async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
                 f"{label} is required before publish.",
                 status_code=400,
             )
-    validate_https_image(drop.image)
+    if image is None:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "image is required before publish.",
+            status_code=400,
+        )
+    validate_https_image(image)
 
     now = datetime.now(timezone.utc)
     drop.published_at = now
