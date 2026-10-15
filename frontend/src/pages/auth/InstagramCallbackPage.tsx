@@ -80,7 +80,9 @@ export default function InstagramCallbackPage() {
         const next = allowlistedOAuthNext(
           typeof body.data?.next === "string" ? body.data.next : null,
         );
-        window.location.href = next ?? "/org/browse";
+        const role = body.data?.user?.portalRole ?? body.data?.user?.portal_role;
+        const fallback = role === "creator" ? "/creators/feed" : "/org/browse";
+        window.location.href = next ?? fallback;
       } catch {
         setState({ kind: "error", ...INSTAGRAM_CALLBACK_OFFLINE });
       }
