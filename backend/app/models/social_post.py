@@ -29,17 +29,35 @@ from app.models.enums import PlatformEnum, SocialMediaProductTypeEnum, SocialMed
 class SocialPost(Base):
     __tablename__ = "social_posts"
     __table_args__ = (
-        sa.UniqueConstraint(
+        sa.Index(
+            "uq_social_posts_org_platform_external_id",
             "org_id",
             "platform",
             "external_id",
-            name="uq_social_posts_org_platform_external_id",
+            unique=True,
+            postgresql_where=sa.text("org_id IS NOT NULL"),
+        ),
+        sa.Index(
+            "uq_social_posts_creator_platform_external_id",
+            "creator_id",
+            "platform",
+            "external_id",
+            unique=True,
+            postgresql_where=sa.text("creator_id IS NOT NULL"),
+        ),
+        sa.CheckConstraint(
+            "(org_id IS NOT NULL AND creator_id IS NULL) OR "
+            "(org_id IS NULL AND creator_id IS NOT NULL)",
+            name="ck_social_posts_one_owner",
         ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
-    org_id: Mapped[uuid.UUID] = mapped_column(
-        sa.Uuid, sa.ForeignKey("organizations.id"), nullable=False
+    org_id: Mapped[uuid.UUID | None] = mapped_column(
+        sa.Uuid, sa.ForeignKey("organizations.id"), nullable=True
+    )
+    creator_id: Mapped[uuid.UUID | None] = mapped_column(
+        sa.Uuid, sa.ForeignKey("creators.id"), nullable=True
     )
 
     platform: Mapped[str] = mapped_column(PlatformEnum, nullable=False)

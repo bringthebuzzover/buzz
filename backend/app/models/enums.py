@@ -150,6 +150,7 @@ class PostLinkSource(StrEnum):
     """
 
     ORG_MANUAL = "org_manual"
+    CREATOR_MANUAL = "creator_manual"
     AUTO_SUGGESTED = "auto_suggested"
 
 

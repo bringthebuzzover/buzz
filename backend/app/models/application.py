@@ -61,6 +61,12 @@ class DropApplication(Base):
 
     decision: Mapped[str] = mapped_column(ApplicationDecisionEnum, nullable=False)
     pitch: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    content_state: Mapped[str] = mapped_column(
+        sa.String(32), nullable=False, default="none", server_default="none"
+    )
+    payout_state: Mapped[str] = mapped_column(
+        sa.String(32), nullable=False, default="not_recorded", server_default="not_recorded"
+    )
     # Shipment tracking lives on ``drop_application_shipments`` (0–N per seat).
     allocated_units: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
 

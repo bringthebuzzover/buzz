@@ -474,4 +474,7 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
     orgs = await _eligible_orgs(db, now)
     media = await sync_metrics_for_orgs(db, ig, orgs)
     follower_stats = await _refresh_follower_counts(db, ig, now)
-    return {**media, **follower_stats}
+    from app.services.creator_posts import sync_creator_metrics
+
+    creator_stats = await sync_creator_metrics(db, ig)
+    return {**media, **follower_stats, "creator_posts_written": creator_stats["posts_written"]}

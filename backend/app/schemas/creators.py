@@ -95,6 +95,11 @@ class CreatorPitchRequest(CamelModel):
     pitch: str
 
 
+class CreatorLinkPostRequest(CamelModel):
+    application_id: uuid.UUID
+    post_id: uuid.UUID
+
+
 class CreatorDropPublishRequest(CamelModel):
     brand_id: uuid.UUID
     title: str
