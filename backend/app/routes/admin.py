@@ -70,7 +70,11 @@ from app.schemas.admin_tables import (
     AdminTableRowResponse,
 )
 from app.schemas.brands import FinalizeApplicantsRequest
-from app.schemas.creators import CreatorDropPublishRequest, CreatorStatusResponse
+from app.schemas.creators import (
+    CreatorDropPublishRequest,
+    CreatorFinalizeRequest,
+    CreatorStatusResponse,
+)
 from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
 from app.services.address import AddressClient, get_address_client
 from app.services.admin import (
@@ -119,7 +123,12 @@ from app.services.admin_tables import (
     patch_table_row,
     query_table,
 )
-from app.services.creator_drops import publish_creator_drop
+from app.services.creator_drops import (
+    accept_creator_post,
+    finalize_creator_roster,
+    publish_creator_drop,
+    record_creator_payout,
+)
 from app.services.creators import approve_creator, deny_creator
 from app.services.drop_requests import get_admin_drop_request, list_admin_drop_requests
 from app.services.ig_change_requests import (
@@ -890,6 +899,35 @@ async def publish_creator_drop_endpoint(
             "audience": drop.audience,
         }
     )
+
+
+@router.post("/creator-drops/{drop_id}/finalize")
+async def finalize_creator_drop_endpoint(
+    drop_id: uuid.UUID,
+    payload: CreatorFinalizeRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await finalize_creator_roster(db, drop_id, payload.accepted_ids)
+    return api_response(data=result)
+
+
+@router.post("/creator-applications/{application_id}/record-payout")
+async def record_creator_payout_endpoint(
+    application_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(data=await record_creator_payout(db, application_id))
+
+
+@router.post("/creator-applications/{application_id}/accept-post")
+async def accept_creator_post_endpoint(
+    application_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(data=await accept_creator_post(db, application_id))
 
 
 @router.post(

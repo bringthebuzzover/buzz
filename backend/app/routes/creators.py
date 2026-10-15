@@ -22,7 +22,11 @@ from app.schemas.creators import (
     CreatorVerifyRequest,
 )
 from app.security.rate_limit import rate_limited
-from app.services.creator_drops import apply_to_creator_drop, list_creator_feed
+from app.services.creator_drops import (
+    apply_to_creator_drop,
+    creator_earnings,
+    list_creator_feed,
+)
 from app.services.creator_posts import link_creator_post, list_creator_posts
 from app.services.creators import (
     add_portfolio_item,
@@ -77,6 +81,14 @@ async def creator_add_portfolio(
 ) -> APIResponse:
     updated = await add_portfolio_item(db, user, payload.title, payload.link)
     return api_response(data=CreatorProfileResponse.model_validate(updated))
+
+
+@router.get("/earnings")
+async def creator_earnings_route(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(data=await creator_earnings(db, user))
 
 
 @router.get("/posts")

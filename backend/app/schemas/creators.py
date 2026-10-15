@@ -95,6 +95,10 @@ class CreatorPitchRequest(CamelModel):
     pitch: str
 
 
+class CreatorFinalizeRequest(CamelModel):
+    accepted_ids: list[uuid.UUID]
+
+
 class CreatorLinkPostRequest(CamelModel):
     application_id: uuid.UUID
     post_id: uuid.UUID
