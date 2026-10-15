@@ -1,8 +1,8 @@
 ---
 id: campus-creators
 title: Campus creators marketplace
-status: parked
-updated: 2026-09-28
+status: shipped
+updated: 2026-10-15
 ---
 
 # Campus creators marketplace
