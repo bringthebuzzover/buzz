@@ -33,6 +33,7 @@ export function pathForUser(user: AuthUser | null): string {
   }
 
   if (user.portalRole === "brand") return "/brand/dashboard";
+  if (user.portalRole === "creator") return "/creators/feed";
   // Admin lands on the panel overview.
   return "/admin";
 }

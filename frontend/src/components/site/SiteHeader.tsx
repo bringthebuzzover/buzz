@@ -79,7 +79,9 @@ export default function SiteHeader() {
 
   // A creator demo shows the creator chrome even though an admin is signed in.
   const isApiAuth = !creatorSession.demo && authStatus === "authenticated" && user;
-  const isCreator = !isApiAuth && creatorSession.status === "active";
+  const isCreator =
+    (creatorSession.demo && creatorSession.status === "active") ||
+    (!creatorSession.demo && user?.portalRole === "creator");
   const isSignedIn = !!isApiAuth || isCreator;
   const isOrgNav =
     isCreator || (authStatus === "authenticated" && user?.portalRole === "org");
