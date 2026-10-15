@@ -98,6 +98,35 @@ class TestAdminTablesQuery:
 
 
 class TestAdminTablesPatch:
+    async def test_edu_email_unique_per_portal(
+        self, app_client: AsyncClient, db_session
+    ) -> None:
+        creator = make_user(role=PortalRole.CREATOR)
+        creator.edu_email = "shared@cornell.edu"
+        await persist(db_session, creator)
+        org = await persist(db_session, make_user(role=PortalRole.ORG))
+        other_org = make_user(role=PortalRole.ORG)
+        other_org.edu_email = "taken-org@cornell.edu"
+        await persist(db_session, other_org)
+        headers = await _admin_headers(db_session)
+
+        shared = await app_client.patch(
+            f"/api/admin/tables/users/{org.id}",
+            json={"fields": {"eduEmail": "shared@cornell.edu"}},
+            headers=headers,
+        )
+        assert shared.status_code == 200, shared.text
+        await db_session.refresh(org)
+        assert org.edu_email == "shared@cornell.edu"
+
+        taken = await app_client.patch(
+            f"/api/admin/tables/users/{org.id}",
+            json={"fields": {"eduEmail": "taken-org@cornell.edu"}},
+            headers=headers,
+        )
+        assert taken.status_code == 409
+        assert taken.json()["error"]["code"] == "EDU_EMAIL_TAKEN"
+
     async def test_rejects_secret_column(self, app_client: AsyncClient, db_session) -> None:
         user = await persist(db_session, make_user(role=PortalRole.ORG))
         res = await app_client.patch(
