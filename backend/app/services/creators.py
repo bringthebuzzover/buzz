@@ -10,6 +10,7 @@ from __future__ import annotations
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -214,7 +215,9 @@ async def deny_creator(db: AsyncSession, creator_id: uuid.UUID) -> dict[str, str
     return {"creator_id": str(creator.id), "status": creator.status}
 
 
-def profile_payload(user: User, creator: Creator, items: list[CreatorPortfolioItem]) -> dict:
+def profile_payload(
+    user: User, creator: Creator, items: list[CreatorPortfolioItem]
+) -> dict[str, Any]:
     return {
         "id": str(creator.id),
         "name": creator.name,
@@ -246,7 +249,7 @@ def profile_payload(user: User, creator: Creator, items: list[CreatorPortfolioIt
     }
 
 
-async def creator_profile(db: AsyncSession, user: User) -> dict:
+async def creator_profile(db: AsyncSession, user: User) -> dict[str, Any]:
     creator = await creator_for_user(db, user)
     items = (
         await db.scalars(
@@ -258,7 +261,9 @@ async def creator_profile(db: AsyncSession, user: User) -> dict:
     return profile_payload(user, creator, list(items))
 
 
-async def add_portfolio_item(db: AsyncSession, user: User, title: str, link: str | None) -> dict:
+async def add_portfolio_item(
+    db: AsyncSession, user: User, title: str, link: str | None
+) -> dict[str, Any]:
     creator = await creator_for_user(db, user)
     db.add(
         CreatorPortfolioItem(
