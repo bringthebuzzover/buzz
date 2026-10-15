@@ -73,6 +73,7 @@ class TestCreatorPosts:
         )
         assert post is not None
         assert post.org_id is None
+        assert post.posted_at.year == 2030
         orgs = await _eligible_orgs(db_session, now)
         assert orgs == []
 

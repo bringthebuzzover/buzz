@@ -33,6 +33,18 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _posted_at(value: str, fallback: datetime) -> datetime:
+    if not value:
+        return fallback
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        try:
+            return datetime.strptime(value, "%Y-%m-%dT%H:%M:%S%z")
+        except ValueError:
+            return fallback
+
+
 async def list_creator_posts(db: AsyncSession, user: User) -> list[dict[str, Any]]:
     creator = await creator_for_user(db, user)
     rows = (
@@ -130,7 +142,7 @@ async def sync_creator_metrics(db: AsyncSession, ig: InstagramClient) -> dict[st
                             caption=fields.caption or "",
                             media_type=fields.media_type,
                             media_product_type=fields.media_product_type,
-                            posted_at=now,
+                            posted_at=_posted_at(fields.timestamp, now),
                             likes=fields.like_count or 0,
                             comments=fields.comments_count or 0,
                         )
