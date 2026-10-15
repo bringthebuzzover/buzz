@@ -2,7 +2,9 @@
  * /creators/verify — waits for the creator to open the .edu verification
  * link. The button stands in for that link until the email is sent for real.
  */
-import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { apiFetch } from "../../api/client";
 import {
   useConfirmCreatorEmail,
   useCreatorProfile,
@@ -14,6 +16,23 @@ export default function CreatorVerifyPage() {
   const navigate = useNavigate();
   const { data: profile } = useCreatorProfile();
   const confirmEmail = useConfirmCreatorEmail();
+  const [params] = useSearchParams();
+  const token = params.get("token");
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    void apiFetch("/api/creators/verify-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    }).then(() => {
+      if (!cancelled) navigate("/creators/pending");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, navigate]);
 
   return (
     <AuthShell align="center" className="text-center">

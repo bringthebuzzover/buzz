@@ -3,6 +3,8 @@
  * stands in for the Instagram OAuth redirect.
  */
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../../api/client";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   useConnectCreatorInstagram,
   useCreatorProfile,
@@ -14,6 +16,7 @@ export default function CreatorConnectPage() {
   const navigate = useNavigate();
   const { data: profile } = useCreatorProfile();
   const connect = useConnectCreatorInstagram();
+  const { user } = useAuth();
 
   return (
     <AuthShell align="center" className="text-center">
@@ -31,6 +34,16 @@ export default function CreatorConnectPage() {
         fullWidth
         disabled={connect.isPending}
         onClick={() => {
+          if (user?.portalRole === "creator") {
+            void apiFetch<{ authorizeUrl?: string; authorize_url?: string }>(
+              "/api/auth/instagram/bind-start?next=%2Fcreators%2Ffeed",
+              { method: "POST" },
+            ).then(({ data }) => {
+              const url = data.authorizeUrl ?? data.authorize_url;
+              if (url) window.location.assign(url);
+            });
+            return;
+          }
           connect.mutate();
           navigate("/creators/feed");
         }}
