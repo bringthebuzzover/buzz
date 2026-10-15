@@ -32,6 +32,21 @@ class PortalRole(StrEnum):
     ORG = "org"
     BRAND = "brand"
     ADMIN = "admin"
+    CREATOR = "creator"
+
+
+class CreatorStatus(StrEnum):
+    """Lifecycle for a creator profile (``creators.status``).
+
+    Kept off ``users.status`` so the org ``pending_instagram`` → ``active``
+    path cannot treat a creator as an organization.
+    """
+
+    PENDING_EMAIL = "pending_email"
+    PENDING_REVIEW = "pending_review"
+    PENDING_INSTAGRAM = "pending_instagram"
+    ACTIVE = "active"
+    DENIED = "denied"
 
 
 class OrgUserStatus(StrEnum):
@@ -175,6 +190,9 @@ def _enum_values(enum_cls: type[StrEnum]) -> list[str]:
 PortalRoleEnum = sa.Enum(
     PortalRole, name="portal_role", native_enum=True, values_callable=_enum_values
 )
+CreatorStatusEnum = sa.Enum(
+    CreatorStatus, name="creator_status", native_enum=True, values_callable=_enum_values
+)
 OrgUserStatusEnum = sa.Enum(
     OrgUserStatus, name="org_user_status", native_enum=True, values_callable=_enum_values
 )
@@ -228,6 +246,7 @@ DropApplyIntentStatusEnum = sa.Enum(
 
 ALL_ENUM_TYPES: tuple[sa.Enum, ...] = (
     PortalRoleEnum,
+    CreatorStatusEnum,
     OrgUserStatusEnum,
     BrandStatusEnum,
     OrgCategoryEnum,

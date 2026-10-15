@@ -41,7 +41,10 @@ async def send_verification_email(
     kind: str = "signup",
 ) -> bool:
     """Send a .edu verification link (signup vs rotate copy)."""
-    verify_url = f"{settings.FRONTEND_URL}/onboarding/verify-email?token={token}"
+    if kind == "creator":
+        verify_url = f"{settings.FRONTEND_URL}/creators/verify?token={token}"
+    else:
+        verify_url = f"{settings.FRONTEND_URL}/onboarding/verify-email?token={token}"
     name = org_name or "your organization"
 
     if kind == "rotate":

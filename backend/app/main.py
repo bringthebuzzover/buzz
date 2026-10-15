@@ -30,6 +30,7 @@ from app.routes.admin import router as admin_router
 from app.routes.auth import router as auth_router
 from app.routes.brands import router as brands_router
 from app.routes.campaigns import router as campaigns_router
+from app.routes.creators import router as creators_router
 from app.routes.drops import router as drops_router
 from app.routes.health import router as health_router
 from app.routes.orgs import router as orgs_router
@@ -197,6 +198,7 @@ async def unhandled_exception_handler(
 app.include_router(health_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(orgs_router, prefix="/api")
+app.include_router(creators_router, prefix="/api")
 app.include_router(brands_router, prefix="/api")
 app.include_router(drops_router, prefix="/api")
 app.include_router(campaigns_router, prefix="/api")
