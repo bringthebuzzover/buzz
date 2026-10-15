@@ -218,6 +218,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/creator-applications/{application_id}/accept-post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Creator Post Endpoint */
+        post: operations["accept_creator_post_endpoint_api_admin_creator_applications__application_id__accept_post_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/creator-applications/{application_id}/record-payout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record Creator Payout Endpoint */
+        post: operations["record_creator_payout_endpoint_api_admin_creator_applications__application_id__record_payout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/creator-drops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Creator Drop Endpoint */
+        post: operations["publish_creator_drop_endpoint_api_admin_creator_drops_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/creator-drops/{drop_id}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finalize Creator Drop Endpoint */
+        post: operations["finalize_creator_drop_endpoint_api_admin_creator_drops__drop_id__finalize_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/creators/{creator_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Creator Endpoint */
+        post: operations["approve_creator_endpoint_api_admin_creators__creator_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/creators/{creator_id}/deny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deny Creator Endpoint */
+        post: operations["deny_creator_endpoint_api_admin_creators__creator_id__deny_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/drop-requests": {
         parameters: {
             query?: never;
@@ -1088,7 +1190,7 @@ export interface paths {
         put?: never;
         /**
          * Instagram Bind Start
-         * @description Mint OAuth state with bind claim for ``pending_instagram`` orgs.
+         * @description Mint OAuth state with bind claim for an org or creator awaiting Instagram.
          */
         post: operations["instagram_bind_start_api_auth_instagram_bind_start_post"];
         delete?: never;
@@ -1743,6 +1845,168 @@ export interface paths {
         get: operations["get_public_config_api_config_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/creators/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creator Apply
+         * @description Public creator apply. Does not open a feed session.
+         */
+        post: operations["creator_apply_api_creators_apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/creators/drops/{drop_id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Creator Apply To Drop */
+        post: operations["creator_apply_to_drop_api_creators_drops__drop_id__apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/creators/earnings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Creator Earnings Route */
+        get: operations["creator_earnings_route_api_creators_earnings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/creators/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Creator Feed
+         * @description Creator drops only. Closed until the creator is active.
+         */
+        get: operations["creator_feed_api_creators_feed_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/creators/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Creator Me */
+        get: operations["creator_me_api_creators_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/creators/me/portfolio": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Creator Add Portfolio */
+        post: operations["creator_add_portfolio_api_creators_me_portfolio_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/creators/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Creator Posts */
+        get: operations["creator_posts_api_creators_posts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/creators/posts/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Creator Link Post */
+        post: operations["creator_link_post_api_creators_posts_link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/creators/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creator Verify Email
+         * @description Confirm the campus email. Does not mint a feed session.
+         */
+        post: operations["creator_verify_email_api_creators_verify_email_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3776,6 +4040,168 @@ export interface components {
              */
             userId: string;
         };
+        /** CreatorApplyRequest */
+        CreatorApplyRequest: {
+            /** Bio */
+            bio: string;
+            /** City */
+            city: string;
+            /** Claimedhandle */
+            claimedHandle: string;
+            /** Eduemail */
+            eduEmail: string;
+            /** Gradyear */
+            gradYear: string;
+            /** Name */
+            name: string;
+            /** Niches */
+            niches: string[];
+            /**
+             * Opento
+             * @default []
+             */
+            openTo: string[];
+            /** School */
+            school: string;
+            /**
+             * Tiktokhandle
+             * @default
+             */
+            tiktokHandle: string;
+        };
+        /** CreatorApplyResponse */
+        CreatorApplyResponse: {
+            /** Creatorid */
+            creatorId: string;
+            /** Emailsent */
+            emailSent: boolean;
+            /** Emailsentto */
+            emailSentTo: string;
+            /** Status */
+            status: string;
+        };
+        /** CreatorDropPublishRequest */
+        CreatorDropPublishRequest: {
+            /**
+             * Applycloseat
+             * Format: date-time
+             */
+            applyCloseAt: string;
+            /**
+             * Applyopenat
+             * Format: date-time
+             */
+            applyOpenAt: string;
+            /**
+             * Brandid
+             * Format: uuid
+             */
+            brandId: string;
+            /** Creatorcap */
+            creatorCap: number;
+            /** Creatorgross */
+            creatorGross: number;
+            /** Description */
+            description: string;
+            /** Imageurl */
+            imageUrl?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** CreatorFinalizeRequest */
+        CreatorFinalizeRequest: {
+            /** Acceptedids */
+            acceptedIds: string[];
+        };
+        /** CreatorLinkPostRequest */
+        CreatorLinkPostRequest: {
+            /**
+             * Applicationid
+             * Format: uuid
+             */
+            applicationId: string;
+            /**
+             * Postid
+             * Format: uuid
+             */
+            postId: string;
+        };
+        /** CreatorPitchRequest */
+        CreatorPitchRequest: {
+            /** Pitch */
+            pitch: string;
+        };
+        /** CreatorPortfolioCreate */
+        CreatorPortfolioCreate: {
+            /** Link */
+            link?: string | null;
+            /** Title */
+            title: string;
+        };
+        /** CreatorPortfolioItemResponse */
+        CreatorPortfolioItemResponse: {
+            /** Format */
+            format: string;
+            /** Id */
+            id: string;
+            /** Imageurl */
+            imageUrl: string | null;
+            /** Link */
+            link: string | null;
+            /** Source */
+            source: string;
+            /** Title */
+            title: string;
+        };
+        /** CreatorProfileResponse */
+        CreatorProfileResponse: {
+            /** Bio */
+            bio: string;
+            /** City */
+            city: string;
+            /** Claimedhandle */
+            claimedHandle: string;
+            /** Eduemail */
+            eduEmail: string;
+            /** Followers */
+            followers: number | null;
+            /** Gradyear */
+            gradYear: string;
+            /** Id */
+            id: string;
+            /** Instagramconnected */
+            instagramConnected: boolean;
+            /** Name */
+            name: string;
+            /** Niches */
+            niches: string[];
+            /** Opento */
+            openTo: string[];
+            /** Pastcollab */
+            pastCollab: string | null;
+            /** Portfolio */
+            portfolio: components["schemas"]["CreatorPortfolioItemResponse"][];
+            /** Posts */
+            posts: number | null;
+            /** School */
+            school: string;
+            /** Status */
+            status: string;
+            /** Tiktokhandle */
+            tiktokHandle: string;
+        };
+        /** CreatorStatusResponse */
+        CreatorStatusResponse: {
+            /** Creatorid */
+            creatorId: string;
+            /** Status */
+            status: string;
+        };
+        /** CreatorVerifyRequest */
+        CreatorVerifyRequest: {
+            /** Token */
+            token: string;
+        };
         /** DataResponse[AddressPreviewResponse] */
         DataResponse_AddressPreviewResponse_: {
             data?: components["schemas"]["AddressPreviewResponse"] | null;
@@ -4058,6 +4484,33 @@ export interface components {
         /** DataResponse[ClearInstagramTokenResponse] */
         DataResponse_ClearInstagramTokenResponse_: {
             data?: components["schemas"]["ClearInstagramTokenResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[CreatorApplyResponse] */
+        DataResponse_CreatorApplyResponse_: {
+            data?: components["schemas"]["CreatorApplyResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[CreatorProfileResponse] */
+        DataResponse_CreatorProfileResponse_: {
+            data?: components["schemas"]["CreatorProfileResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[CreatorStatusResponse] */
+        DataResponse_CreatorStatusResponse_: {
+            data?: components["schemas"]["CreatorStatusResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -5769,6 +6222,210 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminBrandStatusResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    accept_creator_post_endpoint_api_admin_creator_applications__application_id__accept_post_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    record_creator_payout_endpoint_api_admin_creator_applications__application_id__record_payout_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    publish_creator_drop_endpoint_api_admin_creator_drops_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatorDropPublishRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    finalize_creator_drop_endpoint_api_admin_creator_drops__drop_id__finalize_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatorFinalizeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    approve_creator_endpoint_api_admin_creators__creator_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                creator_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_CreatorStatusResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    deny_creator_endpoint_api_admin_creators__creator_id__deny_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                creator_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_CreatorStatusResponse_"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -8515,6 +9172,303 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_PublicConfigResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    creator_apply_api_creators_apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatorApplyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_CreatorApplyResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    creator_apply_to_drop_api_creators_drops__drop_id__apply_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatorPitchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    creator_earnings_route_api_creators_earnings_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    creator_feed_api_creators_feed_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    creator_me_api_creators_me_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_CreatorProfileResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    creator_add_portfolio_api_creators_me_portfolio_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatorPortfolioCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_CreatorProfileResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    creator_posts_api_creators_posts_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    creator_link_post_api_creators_posts_link_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatorLinkPostRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    creator_verify_email_api_creators_verify_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatorVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_CreatorStatusResponse_"];
                 };
             };
             /** @description Unprocessable Entity */
