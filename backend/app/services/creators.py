@@ -19,6 +19,7 @@ from app import errors
 from app.config import settings
 from app.exceptions import BuzzAPIException
 from app.models.creator import Creator
+from app.models.creator_portfolio import CreatorPortfolioItem
 from app.models.enums import CreatorStatus, OrgUserStatus, PortalRole
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
@@ -211,6 +212,67 @@ async def deny_creator(db: AsyncSession, creator_id: uuid.UUID) -> dict[str, str
         user.token_version = (user.token_version or 0) + 1
     await db.flush()
     return {"creator_id": str(creator.id), "status": creator.status}
+
+
+def profile_payload(user: User, creator: Creator, items: list[CreatorPortfolioItem]) -> dict:
+    return {
+        "id": str(creator.id),
+        "name": creator.name,
+        "school": creator.school,
+        "city": creator.city,
+        "grad_year": creator.grad_year,
+        "edu_email": user.edu_email or "",
+        "claimed_handle": creator.claimed_instagram_username,
+        "instagram_connected": bool(user.instagram_user_id),
+        "followers": creator.follower_count,
+        "posts": creator.post_count,
+        "niches": list(creator.niches or []),
+        "bio": creator.bio,
+        "tiktok_handle": creator.tiktok_handle,
+        "open_to": list(creator.open_to or []),
+        "past_collab": None,
+        "portfolio": [
+            {
+                "id": str(item.id),
+                "title": item.title,
+                "format": item.format,
+                "source": item.source,
+                "link": item.link,
+                "image_url": item.image_url,
+            }
+            for item in items
+        ],
+        "status": creator.status,
+    }
+
+
+async def creator_profile(db: AsyncSession, user: User) -> dict:
+    creator = await creator_for_user(db, user)
+    items = (
+        await db.scalars(
+            select(CreatorPortfolioItem)
+            .where(CreatorPortfolioItem.creator_id == creator.id)
+            .order_by(CreatorPortfolioItem.id)
+        )
+    ).all()
+    return profile_payload(user, creator, list(items))
+
+
+async def add_portfolio_item(db: AsyncSession, user: User, title: str, link: str | None) -> dict:
+    creator = await creator_for_user(db, user)
+    db.add(
+        CreatorPortfolioItem(
+            id=uuid.uuid4(),
+            creator_id=creator.id,
+            title=title,
+            link=link,
+            format="Post",
+            source="supplied",
+            image_url=None,
+        )
+    )
+    await db.flush()
+    return await creator_profile(db, user)
 
 
 async def creator_for_user(db: AsyncSession, user: User) -> Creator:

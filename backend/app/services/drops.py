@@ -58,6 +58,7 @@ def _browsable_drop_filters() -> tuple[ColumnElement[bool], ...]:
         Drop.brand_tracker_stage != BrandTrackerStage.DROP_FINISHED.value,
         Drop.published_at.isnot(None),
         Drop.hidden_at.is_(None),
+        Drop.audience != "creators",
     )
 
 
@@ -74,6 +75,8 @@ async def _require_browsable_drop(db: AsyncSession, drop: Drop) -> Brand:
     if drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
     if drop.published_at is None or is_drop_hidden(drop):
+        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
+    if drop.audience == "creators":
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
     return brand
 
