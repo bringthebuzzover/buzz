@@ -430,7 +430,11 @@ async def _patch_user(db: AsyncSession, user: User, updates: dict[str, Any]) -> 
         email = (updates["edu_email"] or "").strip().lower() or None
         if email is not None:
             taken = await db.scalar(
-                select(User.id).where(func.lower(User.edu_email) == email, User.id != user.id)
+                select(User.id).where(
+                    User.portal_role == user.portal_role,
+                    func.lower(User.edu_email) == email,
+                    User.id != user.id,
+                )
             )
             if taken is not None:
                 raise BuzzAPIException(
