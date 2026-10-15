@@ -14,6 +14,7 @@ from app.response import APIResponse, DataResponse, api_response
 from app.schemas.creators import (
     CreatorApplyRequest,
     CreatorApplyResponse,
+    CreatorLinkPostRequest,
     CreatorPitchRequest,
     CreatorPortfolioCreate,
     CreatorProfileResponse,
@@ -22,6 +23,7 @@ from app.schemas.creators import (
 )
 from app.security.rate_limit import rate_limited
 from app.services.creator_drops import apply_to_creator_drop, list_creator_feed
+from app.services.creator_posts import link_creator_post, list_creator_posts
 from app.services.creators import (
     add_portfolio_item,
     apply_creator,
@@ -75,6 +77,24 @@ async def creator_add_portfolio(
 ) -> APIResponse:
     updated = await add_portfolio_item(db, user, payload.title, payload.link)
     return api_response(data=CreatorProfileResponse.model_validate(updated))
+
+
+@router.get("/posts")
+async def creator_posts(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(data={"posts": await list_creator_posts(db, user)})
+
+
+@router.post("/posts/link")
+async def creator_link_post(
+    payload: CreatorLinkPostRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await link_creator_post(db, user, payload.application_id, payload.post_id)
+    return api_response(data=result)
 
 
 @router.get("/feed")
