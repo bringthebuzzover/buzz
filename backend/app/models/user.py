@@ -44,6 +44,22 @@ class User(Base):
                 "portal_role = 'org' AND status <> 'erased' AND instagram_username IS NOT NULL"
             ),
         ),
+        # Same campus inbox may belong to an org contact and a creator.
+        # Uniqueness is per portal, not global.
+        sa.Index(
+            "uq_users_edu_email_per_portal",
+            "portal_role",
+            sa.text("lower(edu_email)"),
+            unique=True,
+            postgresql_where=sa.text("edu_email IS NOT NULL"),
+        ),
+        sa.Index(
+            "uq_users_pending_edu_email_per_portal",
+            "portal_role",
+            sa.text("lower(pending_edu_email)"),
+            unique=True,
+            postgresql_where=sa.text("pending_edu_email IS NOT NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
@@ -71,12 +87,10 @@ class User(Base):
     portal_role: Mapped[str] = mapped_column(PortalRoleEnum, nullable=False)
     status: Mapped[str] = mapped_column(OrgUserStatusEnum, nullable=False)
 
-    edu_email: Mapped[str | None] = mapped_column(sa.String(320), unique=True, nullable=True)
+    edu_email: Mapped[str | None] = mapped_column(sa.String(320), nullable=True)
     # Pending-swap latch while rotating a verified .edu (PRODUCT §3.1). Live
     # ``edu_email`` stays until the new address is confirmed.
-    pending_edu_email: Mapped[str | None] = mapped_column(
-        sa.String(320), unique=True, nullable=True
-    )
+    pending_edu_email: Mapped[str | None] = mapped_column(sa.String(320), nullable=True)
     email_verified_at: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True), nullable=True
     )

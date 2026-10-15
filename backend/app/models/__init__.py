@@ -11,6 +11,7 @@ from app.models.application import DropApplication
 from app.models.base import Base
 from app.models.brand import Brand
 from app.models.brand_invite_token import BrandInviteToken
+from app.models.creator import Creator
 from app.models.drop import Drop
 from app.models.drop_apply_intent import DropApplyIntent
 from app.models.drop_request import DropRequest
@@ -32,6 +33,7 @@ from app.models.verification_token import EmailVerificationToken
 __all__ = [
     "Base",
     "Brand",
+    "Creator",
     "BrandInviteToken",
     "Drop",
     "DropApplication",

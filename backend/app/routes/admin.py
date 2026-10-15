@@ -70,6 +70,7 @@ from app.schemas.admin_tables import (
     AdminTableRowResponse,
 )
 from app.schemas.brands import FinalizeApplicantsRequest
+from app.schemas.creators import CreatorStatusResponse
 from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
 from app.services.address import AddressClient, get_address_client
 from app.services.admin import (
@@ -118,6 +119,7 @@ from app.services.admin_tables import (
     patch_table_row,
     query_table,
 )
+from app.services.creators import approve_creator, deny_creator
 from app.services.drop_requests import get_admin_drop_request, list_admin_drop_requests
 from app.services.ig_change_requests import (
     approve_request as approve_ig_change_request,
@@ -847,3 +849,29 @@ async def impersonate_endpoint(
             readonly=settings.IMPERSONATION_READONLY,
         )
     )
+
+
+@router.post(
+    "/creators/{creator_id}/approve",
+    response_model=DataResponse[CreatorStatusResponse],
+)
+async def approve_creator_endpoint(
+    creator_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await approve_creator(db, creator_id)
+    return api_response(data=CreatorStatusResponse.model_validate(result))
+
+
+@router.post(
+    "/creators/{creator_id}/deny",
+    response_model=DataResponse[CreatorStatusResponse],
+)
+async def deny_creator_endpoint(
+    creator_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await deny_creator(db, creator_id)
+    return api_response(data=CreatorStatusResponse.model_validate(result))
