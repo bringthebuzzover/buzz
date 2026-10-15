@@ -161,9 +161,7 @@ async def instagram_bind_start(
         awaiting = user.status == OrgUserStatus.PENDING_INSTAGRAM.value
     elif user.portal_role == PortalRole.CREATOR.value:
         creator = await db.scalar(select(Creator).where(Creator.user_id == user.id))
-        awaiting = (
-            creator is not None and creator.status == CreatorStatus.PENDING_INSTAGRAM.value
-        )
+        awaiting = creator is not None and creator.status == CreatorStatus.PENDING_INSTAGRAM.value
     if not awaiting:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,

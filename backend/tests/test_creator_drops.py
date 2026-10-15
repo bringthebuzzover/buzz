@@ -33,9 +33,9 @@ async def _active_creator(app_client, db_session, email: str) -> User:
     )
     creator = await db_session.get(Creator, res.json()["data"]["creatorId"])
     token_row = await db_session.scalar(
-        __import__("sqlalchemy", fromlist=["select"]).select(EmailVerificationToken).where(
-            EmailVerificationToken.user_id == creator.user_id
-        )
+        __import__("sqlalchemy", fromlist=["select"])
+        .select(EmailVerificationToken)
+        .where(EmailVerificationToken.user_id == creator.user_id)
     )
     raw = f"tok-{email}"
     token_row.token_hash = hash_token(raw)
