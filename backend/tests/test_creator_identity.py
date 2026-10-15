@@ -77,6 +77,32 @@ class TestCreatorIdentity:
         roles = {row.portal_role for row in rows}
         assert roles == {PortalRole.ORG.value, PortalRole.CREATOR.value}
 
+        org_apply = await app_client.post(
+            "/api/orgs/apply",
+            json={
+                "orgName": "Campus Greeks",
+                "university": "Cornell University",
+                "eduEmail": "other@cornell.edu",
+                "instagramHandle": "@campusgreeks",
+                "handleConfirmed": True,
+                "memberCount": 40,
+                "category": "sorority",
+                "contactName": "Alex",
+                "shippingLine1": "123 College Ave",
+                "shippingCity": "Ithaca",
+                "shippingState": "NY",
+                "shippingPostalCode": "14850",
+            },
+        )
+        assert org_apply.status_code == 200, org_apply.text
+        creator_user = await db_session.scalar(
+            select(User).where(
+                User.portal_role == PortalRole.CREATOR.value,
+                func.lower(User.edu_email) == "other@cornell.edu",
+            )
+        )
+        assert creator_user is not None
+
     async def test_verify_is_one_shot_and_does_not_open_the_feed(
         self, app_client: AsyncClient, db_session
     ):

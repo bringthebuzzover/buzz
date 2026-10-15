@@ -61,10 +61,15 @@ async def _assert_pending_edu_available(
     *,
     claimant_id: uuid.UUID,
     edu_email: str,
+    portal_role: str = PortalRole.ORG.value,
 ) -> None:
-    """Block addresses already latched as another user's pending rotate."""
+    """Block addresses already latched as another user's pending rotate.
+
+    Uniqueness is per portal, so a creator latch does not block an org.
+    """
     pending_owner = await db.scalar(
         select(User).where(
+            User.portal_role == portal_role,
             User.pending_edu_email == edu_email,
             User.id != claimant_id,
         )
@@ -82,6 +87,7 @@ async def _release_unverified_edu_claim(
     *,
     claimant_id: uuid.UUID,
     edu_email: str,
+    portal_role: str = PortalRole.ORG.value,
 ) -> None:
     """Raise EDU_EMAIL_TAKEN or clear an abandoned unverified peer claim.
 
@@ -90,10 +96,16 @@ async def _release_unverified_edu_claim(
     cleared so a typo / abandoned signup cannot permanently lock the address.
     Pending-swap latches on other users also block (no TTL release).
     """
-    await _assert_pending_edu_available(db, claimant_id=claimant_id, edu_email=edu_email)
+    await _assert_pending_edu_available(
+        db, claimant_id=claimant_id, edu_email=edu_email, portal_role=portal_role
+    )
 
     existing = await db.scalar(
-        select(User).where(User.edu_email == edu_email, User.id != claimant_id)
+        select(User).where(
+            User.portal_role == portal_role,
+            User.edu_email == edu_email,
+            User.id != claimant_id,
+        )
     )
     if existing is None:
         return
