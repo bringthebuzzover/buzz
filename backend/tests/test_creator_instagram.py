@@ -167,8 +167,10 @@ class TestCreatorInstagram:
             json={"code": "first", "state": state},
         )
         assert first.status_code == 200, first.text
-        creator_users = select(func.count()).select_from(User).where(
-            User.portal_role == PortalRole.CREATOR.value
+        creator_users = (
+            select(func.count())
+            .select_from(User)
+            .where(User.portal_role == PortalRole.CREATOR.value)
         )
         before = await db_session.scalar(creator_users)
         fake_instagram.long_lived_token = "second-long-lived"

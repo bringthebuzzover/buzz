@@ -110,10 +110,7 @@ async def handle_instagram_callback(
                 )
         else:
             creator_row = await db.scalar(select(Creator).where(Creator.user_id == target.id))
-            if (
-                creator_row is None
-                or creator_row.status != CreatorStatus.PENDING_INSTAGRAM.value
-            ):
+            if creator_row is None or creator_row.status != CreatorStatus.PENDING_INSTAGRAM.value:
                 raise BuzzAPIException(
                     errors.INVALID_ONBOARDING_STATE,
                     "This account is not waiting to connect Instagram.",

@@ -21,9 +21,7 @@ _APPLY = {
 
 
 class TestCreatorProfile:
-    async def test_portfolio_round_trip_is_private(
-        self, app_client: AsyncClient, db_session
-    ):
+    async def test_portfolio_round_trip_is_private(self, app_client: AsyncClient, db_session):
         first = await app_client.post("/api/creators/apply", json=_APPLY)
         second = await app_client.post(
             "/api/creators/apply",
