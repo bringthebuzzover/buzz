@@ -4584,6 +4584,435 @@
         "title": "ClearInstagramTokenResponse",
         "type": "object"
       },
+      "CreatorApplyRequest": {
+        "properties": {
+          "bio": {
+            "title": "Bio",
+            "type": "string"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "claimedHandle": {
+            "title": "Claimedhandle",
+            "type": "string"
+          },
+          "eduEmail": {
+            "title": "Eduemail",
+            "type": "string"
+          },
+          "gradYear": {
+            "title": "Gradyear",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "niches": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Niches",
+            "type": "array"
+          },
+          "openTo": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Opento",
+            "type": "array"
+          },
+          "school": {
+            "title": "School",
+            "type": "string"
+          },
+          "tiktokHandle": {
+            "default": "",
+            "title": "Tiktokhandle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "school",
+          "city",
+          "gradYear",
+          "eduEmail",
+          "claimedHandle",
+          "niches",
+          "bio"
+        ],
+        "title": "CreatorApplyRequest",
+        "type": "object"
+      },
+      "CreatorApplyResponse": {
+        "properties": {
+          "creatorId": {
+            "title": "Creatorid",
+            "type": "string"
+          },
+          "emailSent": {
+            "title": "Emailsent",
+            "type": "boolean"
+          },
+          "emailSentTo": {
+            "title": "Emailsentto",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "creatorId",
+          "status",
+          "emailSentTo",
+          "emailSent"
+        ],
+        "title": "CreatorApplyResponse",
+        "type": "object"
+      },
+      "CreatorDropPublishRequest": {
+        "properties": {
+          "applyCloseAt": {
+            "format": "date-time",
+            "title": "Applycloseat",
+            "type": "string"
+          },
+          "applyOpenAt": {
+            "format": "date-time",
+            "title": "Applyopenat",
+            "type": "string"
+          },
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "creatorCap": {
+            "title": "Creatorcap",
+            "type": "integer"
+          },
+          "creatorGross": {
+            "title": "Creatorgross",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imageurl"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "brandId",
+          "title",
+          "description",
+          "creatorCap",
+          "creatorGross",
+          "applyOpenAt",
+          "applyCloseAt"
+        ],
+        "title": "CreatorDropPublishRequest",
+        "type": "object"
+      },
+      "CreatorFinalizeRequest": {
+        "properties": {
+          "acceptedIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Acceptedids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "acceptedIds"
+        ],
+        "title": "CreatorFinalizeRequest",
+        "type": "object"
+      },
+      "CreatorLinkPostRequest": {
+        "properties": {
+          "applicationId": {
+            "format": "uuid",
+            "title": "Applicationid",
+            "type": "string"
+          },
+          "postId": {
+            "format": "uuid",
+            "title": "Postid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "applicationId",
+          "postId"
+        ],
+        "title": "CreatorLinkPostRequest",
+        "type": "object"
+      },
+      "CreatorPitchRequest": {
+        "properties": {
+          "pitch": {
+            "title": "Pitch",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pitch"
+        ],
+        "title": "CreatorPitchRequest",
+        "type": "object"
+      },
+      "CreatorPortfolioCreate": {
+        "properties": {
+          "link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "CreatorPortfolioCreate",
+        "type": "object"
+      },
+      "CreatorPortfolioItemResponse": {
+        "properties": {
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imageurl"
+          },
+          "link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "format",
+          "source",
+          "link",
+          "imageUrl"
+        ],
+        "title": "CreatorPortfolioItemResponse",
+        "type": "object"
+      },
+      "CreatorProfileResponse": {
+        "properties": {
+          "bio": {
+            "title": "Bio",
+            "type": "string"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "claimedHandle": {
+            "title": "Claimedhandle",
+            "type": "string"
+          },
+          "eduEmail": {
+            "title": "Eduemail",
+            "type": "string"
+          },
+          "followers": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followers"
+          },
+          "gradYear": {
+            "title": "Gradyear",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "instagramConnected": {
+            "title": "Instagramconnected",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "niches": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Niches",
+            "type": "array"
+          },
+          "openTo": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Opento",
+            "type": "array"
+          },
+          "pastCollab": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pastcollab"
+          },
+          "portfolio": {
+            "items": {
+              "$ref": "#/components/schemas/CreatorPortfolioItemResponse"
+            },
+            "title": "Portfolio",
+            "type": "array"
+          },
+          "posts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Posts"
+          },
+          "school": {
+            "title": "School",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tiktokHandle": {
+            "title": "Tiktokhandle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "school",
+          "city",
+          "gradYear",
+          "eduEmail",
+          "claimedHandle",
+          "instagramConnected",
+          "followers",
+          "posts",
+          "niches",
+          "bio",
+          "tiktokHandle",
+          "openTo",
+          "pastCollab",
+          "portfolio",
+          "status"
+        ],
+        "title": "CreatorProfileResponse",
+        "type": "object"
+      },
+      "CreatorStatusResponse": {
+        "properties": {
+          "creatorId": {
+            "title": "Creatorid",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "creatorId",
+          "status"
+        ],
+        "title": "CreatorStatusResponse",
+        "type": "object"
+      },
+      "CreatorVerifyRequest": {
+        "properties": {
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "CreatorVerifyRequest",
+        "type": "object"
+      },
       "DataResponse_AddressPreviewResponse_": {
         "properties": {
           "data": {
@@ -5798,6 +6227,120 @@
           }
         },
         "title": "DataResponse[ClearInstagramTokenResponse]",
+        "type": "object"
+      },
+      "DataResponse_CreatorApplyResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CreatorApplyResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[CreatorApplyResponse]",
+        "type": "object"
+      },
+      "DataResponse_CreatorProfileResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CreatorProfileResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[CreatorProfileResponse]",
+        "type": "object"
+      },
+      "DataResponse_CreatorStatusResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CreatorStatusResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[CreatorStatusResponse]",
         "type": "object"
       },
       "DataResponse_DropDetailResponse_": {
@@ -10688,6 +11231,370 @@
         ]
       }
     },
+    "/api/admin/creator-applications/{application_id}/accept-post": {
+      "post": {
+        "operationId": "accept_creator_post_endpoint_api_admin_creator_applications__application_id__accept_post_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Accept Creator Post Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/creator-applications/{application_id}/record-payout": {
+      "post": {
+        "operationId": "record_creator_payout_endpoint_api_admin_creator_applications__application_id__record_payout_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Record Creator Payout Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/creator-drops": {
+      "post": {
+        "operationId": "publish_creator_drop_endpoint_api_admin_creator_drops_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatorDropPublishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Publish Creator Drop Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/creator-drops/{drop_id}/finalize": {
+      "post": {
+        "operationId": "finalize_creator_drop_endpoint_api_admin_creator_drops__drop_id__finalize_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatorFinalizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Finalize Creator Drop Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/creators/{creator_id}/approve": {
+      "post": {
+        "operationId": "approve_creator_endpoint_api_admin_creators__creator_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "creator_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Creator Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_CreatorStatusResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Approve Creator Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/creators/{creator_id}/deny": {
+      "post": {
+        "operationId": "deny_creator_endpoint_api_admin_creators__creator_id__deny_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "creator_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Creator Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_CreatorStatusResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Deny Creator Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/drop-requests": {
       "get": {
         "operationId": "list_drop_requests_endpoint_api_admin_drop_requests_get",
@@ -13500,7 +14407,7 @@
     },
     "/api/auth/instagram/bind-start": {
       "post": {
-        "description": "Mint OAuth state with bind claim for ``pending_instagram`` orgs.",
+        "description": "Mint OAuth state with bind claim for an org or creator awaiting Instagram.",
         "operationId": "instagram_bind_start_api_auth_instagram_bind_start_post",
         "parameters": [
           {
@@ -15377,6 +16284,474 @@
         "summary": "Get Public Config",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/creators/apply": {
+      "post": {
+        "description": "Public creator apply. Does not open a feed session.",
+        "operationId": "creator_apply_api_creators_apply_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatorApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_CreatorApplyResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Creator Apply",
+        "tags": [
+          "creators"
+        ]
+      }
+    },
+    "/api/creators/drops/{drop_id}/apply": {
+      "post": {
+        "operationId": "creator_apply_to_drop_api_creators_drops__drop_id__apply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatorPitchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Creator Apply To Drop",
+        "tags": [
+          "creators"
+        ]
+      }
+    },
+    "/api/creators/earnings": {
+      "get": {
+        "operationId": "creator_earnings_route_api_creators_earnings_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Creator Earnings Route",
+        "tags": [
+          "creators"
+        ]
+      }
+    },
+    "/api/creators/feed": {
+      "get": {
+        "description": "Creator drops only. Closed until the creator is active.",
+        "operationId": "creator_feed_api_creators_feed_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Creator Feed",
+        "tags": [
+          "creators"
+        ]
+      }
+    },
+    "/api/creators/me": {
+      "get": {
+        "operationId": "creator_me_api_creators_me_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_CreatorProfileResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Creator Me",
+        "tags": [
+          "creators"
+        ]
+      }
+    },
+    "/api/creators/me/portfolio": {
+      "post": {
+        "operationId": "creator_add_portfolio_api_creators_me_portfolio_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatorPortfolioCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_CreatorProfileResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Creator Add Portfolio",
+        "tags": [
+          "creators"
+        ]
+      }
+    },
+    "/api/creators/posts": {
+      "get": {
+        "operationId": "creator_posts_api_creators_posts_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Creator Posts",
+        "tags": [
+          "creators"
+        ]
+      }
+    },
+    "/api/creators/posts/link": {
+      "post": {
+        "operationId": "creator_link_post_api_creators_posts_link_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatorLinkPostRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Creator Link Post",
+        "tags": [
+          "creators"
+        ]
+      }
+    },
+    "/api/creators/verify-email": {
+      "post": {
+        "description": "Confirm the campus email. Does not mint a feed session.",
+        "operationId": "creator_verify_email_api_creators_verify_email_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatorVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_CreatorStatusResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Creator Verify Email",
+        "tags": [
+          "creators"
         ]
       }
     },

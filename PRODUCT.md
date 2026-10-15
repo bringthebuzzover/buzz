@@ -31,7 +31,9 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 | Analytics lens             | Per-drop, aggregate across drops, engagement over time          | Own posts + aggregate engagement per active campaign                                                      |
 | Motion                     | Representative-driven; brand **requests a call**, Buzz **mints** the drop (**§5.2**) | Self-serve apply (**.edu** first), including from a public drop URL; Instagram **binds** after Buzz approval (**§6.1**) |
 
-**Key product rule:** A real user belongs to **exactly one** portal (Brand **or** Organization). Internal operators may use admin **View as** (impersonation) to open an org or brand session — that is not a production multi-portal capability.
+**Key product rule:** A real user belongs to **exactly one** portal (Brand, Organization, or Creator). Internal operators may use admin **View as** (impersonation) to open an org or brand session — that is not a production multi-portal capability.
+
+Individual creators are a third supply door, not a second product and not an organization row. A creator campaign is creators only and nothing ships. It has its own cap and does not use organization seats or the Awaiting Products tracker. The brand pays the creator’s gross plus a 20% Buzz fee on top. Buzz records that a payout happened. This launch does not collect a bank account, a tax id, or a connected payout account. The same campus email may belong to an organization and a creator. The same Instagram account may not. Instagram Login stays Business or Creator, with the same two permissions. TikTok stays a typed handle.
 
 ---
 

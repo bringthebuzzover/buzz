@@ -10,7 +10,7 @@ Short description of **what is implemented today**. Behavior and UX rules live i
 | ----- | ---------- |
 | Frontend | React 18, TypeScript, Tailwind, CRA + CRACO, React Router 7, TanStack Query |
 | Backend | Python 3.12, FastAPI, SQLAlchemy 2 async + asyncpg, Alembic, Pydantic v2 |
-| Auth | JWT access (Bearer) + httpOnly refresh cookie; org Instagram OAuth; brand/admin password (bcrypt) |
+| Auth | JWT access (Bearer) + httpOnly refresh cookie; org and creator Instagram OAuth; brand/admin password (bcrypt) |
 | Email | Resend |
 | DB | PostgreSQL |
 | Hosting | Railway — SPA + API + Postgres + six cron services; autodeploy from `mvp` |
