@@ -12,6 +12,7 @@ from app.models.base import Base
 from app.models.brand import Brand
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.creator import Creator
+from app.models.creator_portfolio import CreatorPortfolioItem
 from app.models.drop import Drop
 from app.models.drop_apply_intent import DropApplyIntent
 from app.models.drop_request import DropRequest
@@ -34,6 +35,7 @@ __all__ = [
     "Base",
     "Brand",
     "Creator",
+    "CreatorPortfolioItem",
     "BrandInviteToken",
     "Drop",
     "DropApplication",

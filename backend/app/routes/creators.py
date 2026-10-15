@@ -2,27 +2,31 @@
 
 from __future__ import annotations
 
+import uuid
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import errors
 from app.deps.auth import get_current_user
 from app.deps.db import get_db
-from app.exceptions import BuzzAPIException
 from app.models.user import User
 from app.response import APIResponse, DataResponse, api_response
 from app.schemas.creators import (
     CreatorApplyRequest,
     CreatorApplyResponse,
+    CreatorPitchRequest,
+    CreatorPortfolioCreate,
+    CreatorProfileResponse,
     CreatorStatusResponse,
     CreatorVerifyRequest,
 )
 from app.security.rate_limit import rate_limited
+from app.services.creator_drops import apply_to_creator_drop, list_creator_feed
 from app.services.creators import (
+    add_portfolio_item,
     apply_creator,
     confirm_creator_email,
-    creator_for_user,
-    feed_allowed,
+    creator_profile,
 )
 
 router = APIRouter(prefix="/creators", tags=["creators"])
@@ -55,17 +59,40 @@ async def creator_verify_email(
     return api_response(data=CreatorStatusResponse.model_validate(result))
 
 
+@router.get("/me", response_model=DataResponse[CreatorProfileResponse])
+async def creator_me(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(data=CreatorProfileResponse.model_validate(await creator_profile(db, user)))
+
+
+@router.post("/me/portfolio", response_model=DataResponse[CreatorProfileResponse])
+async def creator_add_portfolio(
+    payload: CreatorPortfolioCreate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    updated = await add_portfolio_item(db, user, payload.title, payload.link)
+    return api_response(data=CreatorProfileResponse.model_validate(updated))
+
+
 @router.get("/feed")
 async def creator_feed(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Feed is empty until creator drops exist, and closed until status is active."""
-    creator = await creator_for_user(db, user)
-    if not feed_allowed(creator):
-        raise BuzzAPIException(
-            errors.FORBIDDEN,
-            "Your creator account cannot open the feed.",
-            status_code=403,
-        )
-    return api_response(data={"drops": []})
+    """Creator drops only. Closed until the creator is active."""
+    drops = await list_creator_feed(db, user)
+    return api_response(data={"drops": drops})
+
+
+@router.post("/drops/{drop_id}/apply")
+async def creator_apply_to_drop(
+    drop_id: uuid.UUID,
+    payload: CreatorPitchRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await apply_to_creator_drop(db, user, drop_id, payload.pitch)
+    return api_response(data=result)

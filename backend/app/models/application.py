@@ -30,7 +30,19 @@ class DropApplication(Base):
             "drop_id",
             "org_id",
             unique=True,
-            postgresql_where=sa.text("decision <> 'denied'"),
+            postgresql_where=sa.text("decision <> 'denied' AND org_id IS NOT NULL"),
+        ),
+        sa.Index(
+            "uq_drop_application_active_creator",
+            "drop_id",
+            "creator_id",
+            unique=True,
+            postgresql_where=sa.text("decision <> 'denied' AND creator_id IS NOT NULL"),
+        ),
+        sa.CheckConstraint(
+            "(org_id IS NOT NULL AND creator_id IS NULL) OR "
+            "(org_id IS NULL AND creator_id IS NOT NULL)",
+            name="ck_drop_applications_one_owner",
         ),
         sa.CheckConstraint(
             "allocated_units IS NULL OR allocated_units >= 0",
@@ -40,8 +52,11 @@ class DropApplication(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
     drop_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("drops.id"), nullable=False)
-    org_id: Mapped[uuid.UUID] = mapped_column(
-        sa.Uuid, sa.ForeignKey("organizations.id"), nullable=False
+    org_id: Mapped[uuid.UUID | None] = mapped_column(
+        sa.Uuid, sa.ForeignKey("organizations.id"), nullable=True
+    )
+    creator_id: Mapped[uuid.UUID | None] = mapped_column(
+        sa.Uuid, sa.ForeignKey("creators.id"), nullable=True
     )
 
     decision: Mapped[str] = mapped_column(ApplicationDecisionEnum, nullable=False)

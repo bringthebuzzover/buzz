@@ -44,7 +44,14 @@ class Drop(Base):
 
     title: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     description: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    image: Mapped[str] = mapped_column(sa.String(1024), nullable=False)
+    image: Mapped[str | None] = mapped_column(sa.String(1024), nullable=True)
+    # ``orgs`` uses capacity and the product tracker. ``creators`` is a digital
+    # drop with its own cap and does not enter Awaiting Products.
+    audience: Mapped[str] = mapped_column(
+        sa.String(16), nullable=False, default="orgs", server_default="orgs"
+    )
+    creator_cap: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    creator_gross: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
     location: Mapped[str] = mapped_column(sa.String(255), nullable=False)
 
     capacity_total: Mapped[int] = mapped_column(sa.Integer, nullable=False)

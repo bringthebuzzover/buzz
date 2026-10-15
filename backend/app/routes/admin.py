@@ -70,7 +70,7 @@ from app.schemas.admin_tables import (
     AdminTableRowResponse,
 )
 from app.schemas.brands import FinalizeApplicantsRequest
-from app.schemas.creators import CreatorStatusResponse
+from app.schemas.creators import CreatorDropPublishRequest, CreatorStatusResponse
 from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
 from app.services.address import AddressClient, get_address_client
 from app.services.admin import (
@@ -119,6 +119,7 @@ from app.services.admin_tables import (
     patch_table_row,
     query_table,
 )
+from app.services.creator_drops import publish_creator_drop
 from app.services.creators import approve_creator, deny_creator
 from app.services.drop_requests import get_admin_drop_request, list_admin_drop_requests
 from app.services.ig_change_requests import (
@@ -862,6 +863,33 @@ async def approve_creator_endpoint(
 ) -> APIResponse:
     result = await approve_creator(db, creator_id)
     return api_response(data=CreatorStatusResponse.model_validate(result))
+
+
+@router.post("/creator-drops")
+async def publish_creator_drop_endpoint(
+    payload: CreatorDropPublishRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    drop = await publish_creator_drop(
+        db,
+        brand_id=payload.brand_id,
+        title=payload.title,
+        description=payload.description,
+        creator_cap=payload.creator_cap,
+        creator_gross=payload.creator_gross,
+        apply_open_at=payload.apply_open_at,
+        apply_close_at=payload.apply_close_at,
+        image=payload.image_url,
+    )
+    return api_response(
+        data={
+            "id": str(drop.id),
+            "brand_tracker_stage": drop.brand_tracker_stage,
+            "image": drop.image,
+            "audience": drop.audience,
+        }
+    )
 
 
 @router.post(
