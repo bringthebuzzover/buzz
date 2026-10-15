@@ -9,8 +9,10 @@ describe("allowlistedOAuthNext", () => {
     );
   });
 
-  it("rejects other paths", () => {
+  it("accepts the creator feed and rejects other paths", () => {
+    expect(allowlistedOAuthNext("/creators/feed")).toBe("/creators/feed");
     expect(allowlistedOAuthNext("/org/browse")).toBeNull();
+    expect(allowlistedOAuthNext("/admin")).toBeNull();
     expect(allowlistedOAuthNext(`/d/${DROP}/extra`)).toBeNull();
     expect(allowlistedOAuthNext("/login")).toBeNull();
     expect(allowlistedOAuthNext(null)).toBeNull();

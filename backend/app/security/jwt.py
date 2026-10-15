@@ -139,12 +139,21 @@ def create_refresh_token(user_id: uuid.UUID | str, token_version: int = 0) -> st
     return _encode(claims)
 
 
+_CREATOR_FEED_NEXT = "/creators/feed"
+
+
 def allowlisted_oauth_next(raw: str | None) -> str | None:
-    """Return ``/d/<uuid>`` when ``raw`` is that path; otherwise ``None``."""
+    """Return an allowlisted post-login path, or ``None``.
+
+    Allowed: a public drop ``/d/<uuid>``, and the creator feed.
+    """
 
     if not raw:
         return None
-    match = _PUBLIC_DROP_NEXT.fullmatch(raw.strip())
+    stripped = raw.strip()
+    if stripped == _CREATOR_FEED_NEXT:
+        return _CREATOR_FEED_NEXT
+    match = _PUBLIC_DROP_NEXT.fullmatch(stripped)
     if match is None:
         return None
     try:
@@ -163,7 +172,7 @@ def create_oauth_state_token(
 
     When ``bind_user_id`` is set, the callback binds Instagram to that existing
     user instead of inserting (LAUNCH.md Phase A Connect). ``next_path`` must
-    already be allowlisted (``/d/<uuid>``); other values are dropped.
+    already be allowlisted (``/d/<uuid>`` or ``/creators/feed``); other values are dropped.
     """
 
     issued = _now()

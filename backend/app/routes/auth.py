@@ -20,7 +20,8 @@ from app.config import settings
 from app.deps.auth import get_current_user
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
-from app.models.enums import OrgUserStatus, PortalRole
+from app.models.creator import Creator
+from app.models.enums import CreatorStatus, OrgUserStatus, PortalRole
 from app.models.user import User
 from app.response import APIResponse, DataResponse, api_error_response, api_response
 from app.schemas.acks import (
@@ -149,18 +150,24 @@ async def instagram_login(
 async def instagram_bind_start(
     response: Response,
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
     ig: InstagramClient = Depends(get_instagram_client),
     next_path: str | None = Query(default=None, alias="next"),
 ) -> APIResponse:
-    """Mint OAuth state with bind claim for ``pending_instagram`` orgs."""
+    """Mint OAuth state with bind claim for an org or creator awaiting Instagram."""
 
-    if (
-        user.portal_role != PortalRole.ORG.value
-        or user.status != OrgUserStatus.PENDING_INSTAGRAM.value
-    ):
+    awaiting = False
+    if user.portal_role == PortalRole.ORG.value:
+        awaiting = user.status == OrgUserStatus.PENDING_INSTAGRAM.value
+    elif user.portal_role == PortalRole.CREATOR.value:
+        creator = await db.scalar(select(Creator).where(Creator.user_id == user.id))
+        awaiting = (
+            creator is not None and creator.status == CreatorStatus.PENDING_INSTAGRAM.value
+        )
+    if not awaiting:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
-            "Only organizations awaiting Instagram connect can start a bind login.",
+            "Only accounts awaiting Instagram connect can start a bind login.",
             status_code=400,
         )
     state = jwt.create_oauth_state_token(bind_user_id=user.id, next_path=next_path)
@@ -214,6 +221,8 @@ async def instagram_callback(
     _clear_state_cookie(response)
 
     user = await handle_instagram_callback(db, ig, payload.code, bind_user_id=bind_user_id)
+    if user.portal_role == PortalRole.CREATOR.value and oauth_next is None:
+        oauth_next = "/creators/feed"
     # Don't mint fresh credentials for a terminally-denied account — symmetric
     # with the refresh boundary. New users are pending_org_profile, so signup
     # is unaffected. Distinct code so the SPA can land on /onboarding/denied.

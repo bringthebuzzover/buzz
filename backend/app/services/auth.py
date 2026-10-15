@@ -18,7 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.exceptions import BuzzAPIException
-from app.models.enums import OrgUserStatus, PortalRole
+from app.models.creator import Creator
+from app.models.enums import CreatorStatus, OrgUserStatus, PortalRole
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.auth import UserResponse
@@ -88,20 +89,37 @@ async def handle_instagram_callback(
         )
     )
 
+    creator_bind = False
     if bind_user_id is not None:
         target = await db.get(User, bind_user_id)
-        if target is None or target.portal_role != PortalRole.ORG.value:
+        if target is None or target.portal_role not in (
+            PortalRole.ORG.value,
+            PortalRole.CREATOR.value,
+        ):
             raise BuzzAPIException(
                 errors.NOT_FOUND,
-                "Organization account not found.",
+                "Account not found.",
                 status_code=404,
             )
-        if target.status != OrgUserStatus.PENDING_INSTAGRAM.value:
-            raise BuzzAPIException(
-                errors.INVALID_ONBOARDING_STATE,
-                "This account is not waiting to connect Instagram.",
-                status_code=400,
-            )
+        if target.portal_role == PortalRole.ORG.value:
+            if target.status != OrgUserStatus.PENDING_INSTAGRAM.value:
+                raise BuzzAPIException(
+                    errors.INVALID_ONBOARDING_STATE,
+                    "This account is not waiting to connect Instagram.",
+                    status_code=400,
+                )
+        else:
+            creator_row = await db.scalar(select(Creator).where(Creator.user_id == target.id))
+            if (
+                creator_row is None
+                or creator_row.status != CreatorStatus.PENDING_INSTAGRAM.value
+            ):
+                raise BuzzAPIException(
+                    errors.INVALID_ONBOARDING_STATE,
+                    "This account is not waiting to connect Instagram.",
+                    status_code=400,
+                )
+            creator_bind = True
         if existing is not None and existing.id != target.id:
             raise BuzzAPIException(
                 errors.INSTAGRAM_HANDLE_TAKEN,
@@ -142,11 +160,17 @@ async def handle_instagram_callback(
     _apply_ig_credentials(user, profile, short.user_id, long.access_token, now, expires_at)
     user.last_login_at = now
     became_active = False
-    if bind_user_id is not None or user.status == OrgUserStatus.PENDING_INSTAGRAM.value:
+    if user.portal_role == PortalRole.ORG.value and (
+        bind_user_id is not None or user.status == OrgUserStatus.PENDING_INSTAGRAM.value
+    ):
         user.status = OrgUserStatus.ACTIVE.value
         became_active = True
     if org is not None:
         org.instagram_handle_confirmed = True
+    if creator_bind:
+        creator_row = await db.scalar(select(Creator).where(Creator.user_id == user.id))
+        if creator_row is not None:
+            creator_row.status = CreatorStatus.ACTIVE.value
 
     try:
         await db.flush()
