@@ -19,6 +19,7 @@ from app.models.enums import (
     BrandTrackerStage,
     CreatorStatus,
 )
+from app.models.post_link import PostCampaignLink
 from app.models.user import User
 from app.services.creators import creator_for_user
 
@@ -198,3 +199,107 @@ async def apply_to_creator_drop(
     db.add(row)
     await db.flush()
     return {"application_id": str(row.id), "decision": row.decision}
+
+
+async def finalize_creator_roster(
+    db: AsyncSession, drop_id: uuid.UUID, accepted_ids: list[uuid.UUID]
+) -> dict:
+    """Accept or deny creator applications. Does not ship or touch org capacity."""
+    drop = await db.get(Drop, drop_id)
+    if drop is None or drop.audience != "creators":
+        raise BuzzAPIException(errors.NOT_FOUND, "Creator drop not found.", status_code=404)
+    if _now() < _aware(drop.apply_close_at):
+        raise BuzzAPIException(
+            errors.APPLY_WINDOW_OPEN,
+            "The apply window is still open.",
+            status_code=400,
+        )
+    cap = drop.creator_cap or 0
+    if len(accepted_ids) > cap:
+        raise BuzzAPIException(
+            errors.CAPACITY_EXCEEDED,
+            "That accepts more creators than the cap.",
+            status_code=400,
+        )
+    rows = (
+        await db.scalars(select(DropApplication).where(DropApplication.drop_id == drop.id))
+    ).all()
+    row_ids = {row.id for row in rows}
+    if any(item not in row_ids for item in accepted_ids):
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Every accepted application must be on this drop.",
+            status_code=400,
+        )
+    tracker = drop.brand_tracker_stage
+    capacity = drop.capacity_total
+    accepted = set(accepted_ids)
+    now = _now()
+    for row in rows:
+        if row.creator_id is None:
+            continue
+        if row.id in accepted:
+            row.decision = ApplicationDecision.ACCEPTED.value
+        elif row.decision != ApplicationDecision.DENIED.value:
+            row.decision = ApplicationDecision.DENIED.value
+        row.decision_at = now
+    await db.flush()
+    assert drop.brand_tracker_stage == tracker
+    assert drop.capacity_total == capacity
+    return {"accepted": len(accepted_ids), "capacity_total": drop.capacity_total}
+
+
+async def accept_creator_post(db: AsyncSession, application_id: uuid.UUID) -> dict:
+    application = await db.get(DropApplication, application_id)
+    if application is None or application.creator_id is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
+    link = await db.scalar(
+        select(PostCampaignLink.id).where(PostCampaignLink.application_id == application.id)
+    )
+    if link is None or application.content_state != "in_review":
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "A linked post has to be in review before it can be accepted.",
+            status_code=400,
+        )
+    application.content_state = "accepted"
+    await db.flush()
+    return {"application_id": str(application.id), "content": application.content_state}
+
+
+async def record_creator_payout(db: AsyncSession, application_id: uuid.UUID) -> dict:
+    application = await db.get(DropApplication, application_id)
+    if application is None or application.creator_id is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
+    if application.content_state != "accepted":
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "Content has to be accepted before a payout is recorded.",
+            status_code=400,
+        )
+    application.payout_state = "recorded"
+    await db.flush()
+    return {"application_id": str(application.id), "payout": "recorded"}
+
+
+async def creator_earnings(db: AsyncSession, user: User) -> dict:
+    creator = await creator_for_user(db, user)
+    rows = (
+        await db.execute(
+            select(DropApplication, Drop)
+            .join(Drop, Drop.id == DropApplication.drop_id)
+            .where(
+                DropApplication.creator_id == creator.id,
+                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+            )
+        )
+    ).all()
+    paid = 0
+    pending = 0
+    for application, drop in rows:
+        gross = drop.creator_gross or 0
+        if application.payout_state == "recorded":
+            paid += gross
+        else:
+            pending += gross
+    return {"paid": paid, "pending": pending, "year_to_date": paid + pending}
