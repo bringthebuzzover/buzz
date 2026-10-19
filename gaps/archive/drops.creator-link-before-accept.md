@@ -5,6 +5,7 @@ kind: invariant_break
 severity: P2
 status: fixed
 surface: drops
+closed_in: 9153e54
 evidence:
   - path: backend/app/services/creator_posts.py
     note: link_creator_post checks ownership only, then writes PostCampaignLink and content_state in_review

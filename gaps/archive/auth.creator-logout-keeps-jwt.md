@@ -5,6 +5,7 @@ kind: authz
 severity: P2
 status: fixed
 surface: auth
+closed_in: 9153e54
 evidence:
   - path: frontend/src/components/site/SiteHeader.tsx
     note: handleSignOut calls creatorSignOut for every non-demo creator and skips useSignOut
