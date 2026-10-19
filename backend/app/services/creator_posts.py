@@ -14,7 +14,12 @@ from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.creator import Creator
-from app.models.enums import CreatorStatus, Platform, PostLinkSource
+from app.models.enums import (
+    ApplicationDecision,
+    CreatorStatus,
+    Platform,
+    PostLinkSource,
+)
 from app.models.post_link import PostCampaignLink
 from app.models.social_post import SocialPost
 from app.models.user import User
@@ -72,12 +77,20 @@ async def link_creator_post(
     application = await db.get(DropApplication, application_id)
     post = await db.get(SocialPost, post_id)
     if application is None or application.creator_id != creator.id:
-        raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
+        raise BuzzAPIException(
+            errors.NOT_FOUND, "Application not found.", status_code=404
+        )
     if post is None or post.creator_id != creator.id:
         raise BuzzAPIException(
             errors.FORBIDDEN,
             "That post belongs to another creator.",
             status_code=403,
+        )
+    if application.decision != ApplicationDecision.ACCEPTED.value:
+        raise BuzzAPIException(
+            errors.INVALID_ONBOARDING_STATE,
+            "You can link a post after this campaign accepts you.",
+            status_code=400,
         )
     db.add(
         PostCampaignLink(
@@ -103,7 +116,9 @@ async def sync_creator_metrics(db: AsyncSession, ig: InstagramClient) -> dict[st
     """Refresh creator libraries and follower counts. Does not walk org rows."""
     now = _now()
     creators = (
-        await db.scalars(select(Creator).where(Creator.status == CreatorStatus.ACTIVE.value))
+        await db.scalars(
+            select(Creator).where(Creator.status == CreatorStatus.ACTIVE.value)
+        )
     ).all()
     written = 0
     followers = 0
