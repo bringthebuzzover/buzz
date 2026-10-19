@@ -17,7 +17,6 @@ import { useSiteChrome } from "../../contexts/SiteChromeContext";
 import { useSignOut } from "../../api/hooks/useSignOut";
 import {
   useCreatorSession,
-  useCreatorSignOut,
   useExitCreatorDemo,
 } from "../../api/hooks/creator/useCreatorHooks";
 import { useAuth } from "../../contexts/AuthContext";
@@ -50,7 +49,6 @@ export default function SiteHeader() {
   const { user, status: authStatus } = useAuth();
   const signOut = useSignOut();
   const { data: creatorSession } = useCreatorSession();
-  const creatorSignOut = useCreatorSignOut();
   const exitDemo = useExitCreatorDemo();
   const { images, social } = siteIdentity;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -78,7 +76,8 @@ export default function SiteHeader() {
   }, [pathname]);
 
   // A creator demo shows the creator chrome even though an admin is signed in.
-  const isApiAuth = !creatorSession.demo && authStatus === "authenticated" && user;
+  const isApiAuth =
+    !creatorSession.demo && authStatus === "authenticated" && user;
   const isCreator =
     (creatorSession.demo && creatorSession.status === "active") ||
     (!creatorSession.demo && user?.portalRole === "creator");
@@ -136,12 +135,7 @@ export default function SiteHeader() {
       window.location.href = "/admin/demo";
       return;
     }
-    if (!isCreator) {
-      signOut();
-      return;
-    }
-    creatorSignOut.mutate();
-    window.location.href = "/for-creators";
+    signOut();
   };
 
   const showCenterItem = isSignedIn;
@@ -180,7 +174,9 @@ export default function SiteHeader() {
         </div>
 
         {showCenterItem ? (
-          <span className="text-center font-bold text-buzz-coral">{portalLabel}</span>
+          <span className="text-center font-bold text-buzz-coral">
+            {portalLabel}
+          </span>
         ) : (
           <button
             type="button"
@@ -341,7 +337,11 @@ export default function SiteHeader() {
                     onClick={() => setMobileNavOpen(false)}
                   >
                     Home
-                    <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
+                    <ChevronRight
+                      size={18}
+                      className="shrink-0 text-buzz-inkFaint"
+                      aria-hidden
+                    />
                   </Link>
                 </li>
                 {navLinks.map((link) => (
@@ -352,7 +352,11 @@ export default function SiteHeader() {
                       onClick={() => setMobileNavOpen(false)}
                     >
                       {link.label}
-                      <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
+                      <ChevronRight
+                        size={18}
+                        className="shrink-0 text-buzz-inkFaint"
+                        aria-hidden
+                      />
                     </Link>
                   </li>
                 ))}
@@ -366,7 +370,11 @@ export default function SiteHeader() {
                     }}
                   >
                     Contact
-                    <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
+                    <ChevronRight
+                      size={18}
+                      className="shrink-0 text-buzz-inkFaint"
+                      aria-hidden
+                    />
                   </button>
                 </li>
                 {!showCenterItem ? (
@@ -380,7 +388,11 @@ export default function SiteHeader() {
                       }}
                     >
                       Join Us!
-                      <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
+                      <ChevronRight
+                        size={18}
+                        className="shrink-0 text-buzz-inkFaint"
+                        aria-hidden
+                      />
                     </button>
                   </li>
                 ) : null}

@@ -60,10 +60,14 @@ class TestCreatorPosts:
             apply_close_at=now + timedelta(days=2),
         )
         user, creator = await _active(db_session, "posts@cornell.edu", "ig_posts_1")
-        other_user, other = await _active(db_session, "otherposts@cornell.edu", "ig_posts_2")
+        other_user, other = await _active(
+            db_session, "otherposts@cornell.edu", "ig_posts_2"
+        )
         fake_instagram.user_id = "ig_posts_1"
         fake_instagram.followers_count = 1200
-        fake_instagram.media = [MediaRef(id="media-1", timestamp="2030-01-01T00:00:00+0000")]
+        fake_instagram.media = [
+            MediaRef(id="media-1", timestamp="2030-01-01T00:00:00+0000")
+        ]
         stats = await sync_creator_metrics(db_session, fake_instagram)
         assert stats["posts_written"] >= 1
         await db_session.refresh(creator)
@@ -94,6 +98,16 @@ class TestCreatorPosts:
         db_session.add_all([application, other_app])
         await db_session.flush()
 
+        from app.exceptions import BuzzAPIException
+
+        try:
+            await link_creator_post(db_session, user, application.id, post.id)
+            raise AssertionError("applied creator should not link a post")
+        except BuzzAPIException as exc:
+            assert exc.status_code == 400
+
+        application.decision = ApplicationDecision.ACCEPTED.value
+        await db_session.flush()
         linked = await link_creator_post(db_session, user, application.id, post.id)
         assert linked["linked_post_id"] == str(post.id)
         await db_session.refresh(application)
@@ -123,8 +137,6 @@ class TestCreatorPosts:
 
         assert await list_creator_posts(db_session, empty_user) == []
 
-        from app.exceptions import BuzzAPIException
-
         try:
             await link_creator_post(db_session, other_user, other_app.id, post.id)
             raise AssertionError("other creator should not link this post")
@@ -145,7 +157,7 @@ class TestCreatorPosts:
             id=uuid.uuid4(),
             drop_id=second_drop.id,
             creator_id=creator.id,
-            decision=ApplicationDecision.APPLIED.value,
+            decision=ApplicationDecision.ACCEPTED.value,
             pitch="again",
         )
         db_session.add(second)
