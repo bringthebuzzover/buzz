@@ -287,6 +287,9 @@ Already in code: OAuth handshake, signed state cookie, encrypted tokens, Busines
 **Railway production (set):**
 
 - [x] `INSTAGRAM_CLIENT_ID` / `INSTAGRAM_CLIENT_SECRET` (real Meta app; live login no longer uses a placeholder client id)
+- `INSTAGRAM_GRAPH_VERSION` (optional; default `v26.0`) prefixes `graph.instagram.com` reads: `/me`, `/me/media`, `/{media-id}`, `/{media-id}/insights`. That matches the [get started](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/get-started/) samples (Graph API v26.0, current on the [versions](https://developers.facebook.com/docs/graph-api/changelog/versions/) table as of 2026-10-26). Leave `INSTAGRAM_GRAPH_BASE` as the host only (`https://graph.instagram.com`). Set the version empty to call those reads unversioned.
+- `GET /access_token` (short→long exchange) and `GET /refresh_access_token` stay **unversioned** on that host. [Access Token](https://developers.facebook.com/docs/instagram-platform/reference/access_token/) (updated 2026-03-09) and [Refresh Access Token](https://developers.facebook.com/docs/instagram-platform/reference/refresh_access_token/) (updated 2025-07-17) show `https://graph.instagram.com/access_token` and `https://graph.instagram.com/refresh_access_token` with no version segment.
+- Code exchange (`api.instagram.com/oauth/access_token`) `permissions` is logged (no token) and stored on `users.instagram_granted_permissions` when present. A grant outside `instagram_business_basic` and `instagram_business_manage_insights` is a warning. Omitted `permissions` does not clear a previously stored value. Railway pre-deploy `alembic upgrade head` adds the nullable column; no new env var is required.
 - [x] `INSTAGRAM_REDIRECT_URI=https://www.bringthebuzzover.com/auth/instagram/callback`
 - [x] `FRONTEND_URL=https://www.bringthebuzzover.com`
 - [x] `REFRESH_COOKIE_SAMESITE=lax` + `REFRESH_COOKIE_SECURE=true` (brand www+api same eTLD+1)

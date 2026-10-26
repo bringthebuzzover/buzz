@@ -139,7 +139,15 @@ async def handle_instagram_callback(
                 )
                 flag_ig_bind_mismatch(org, graph_handle, now)
 
-    _apply_ig_credentials(user, profile, short.user_id, long.access_token, now, expires_at)
+    _apply_ig_credentials(
+        user,
+        profile,
+        short.user_id,
+        long.access_token,
+        now,
+        expires_at,
+        short.permissions,
+    )
     user.last_login_at = now
     became_active = False
     if bind_user_id is not None or user.status == OrgUserStatus.PENDING_INSTAGRAM.value:
@@ -172,6 +180,7 @@ def _apply_ig_credentials(
     long_token: str,
     now: datetime,
     expires_at: datetime,
+    permissions: tuple[str, ...] | None,
 ) -> None:
     user.instagram_user_id = profile.id  # type: ignore[attr-defined]
     user.instagram_token_user_id = token_user_id
@@ -180,6 +189,9 @@ def _apply_ig_credentials(
     user.instagram_token_issued_at = now
     user.instagram_token_expires_at = expires_at
     user.instagram_token_refreshed_at = now
+    # Omitted ``permissions`` leaves the previous grant in place.
+    if permissions is not None:
+        user.instagram_granted_permissions = ",".join(permissions)
 
 
 async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: str) -> bool:

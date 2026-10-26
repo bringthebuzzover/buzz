@@ -11,9 +11,9 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 import pytest
 
-from app.config import settings
+from app.config import Settings, settings
 from app.exceptions import BuzzAPIException
-from app.services.instagram import HttpInstagramClient
+from app.services.instagram import HttpInstagramClient, instagram_graph_url
 
 
 def test_build_authorize_url_stays_in_browser() -> None:
@@ -50,6 +50,7 @@ async def test_exchange_code_parses_documented_data_array() -> None:
     out = await _client(handler).exchange_code("the-code")
     assert out.access_token == "IGQVJ-short"
     assert out.user_id == "1020"
+    assert out.permissions == ("instagram_business_basic",)
 
 
 async def test_exchange_code_parses_legacy_flat_payload() -> None:
@@ -62,6 +63,7 @@ async def test_exchange_code_parses_legacy_flat_payload() -> None:
     out = await _client(handler).exchange_code("c")
     assert out.access_token == "flat-short"
     assert out.user_id == "7788"
+    assert out.permissions is None
 
 
 async def test_exchange_code_http_error_logs_meta_not_secrets(
@@ -84,6 +86,135 @@ async def test_exchange_code_http_error_logs_meta_not_secrets(
     assert "client_secret" not in exc.value.message
     assert "Matching code was not found" in caplog.text
     assert "IGQVJ" not in caplog.text
+
+
+def test_default_graph_version_matches_instagram_login_docs() -> None:
+    assert Settings.model_fields["INSTAGRAM_GRAPH_VERSION"].default == "v26.0"
+
+
+def test_instagram_graph_url_joins_host_and_version(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "INSTAGRAM_GRAPH_BASE", "https://graph.instagram.com/")
+    monkeypatch.setattr(settings, "INSTAGRAM_GRAPH_VERSION", "v26.0")
+    assert instagram_graph_url("me") == "https://graph.instagram.com/v26.0/me"
+    assert instagram_graph_url("/me/media") == "https://graph.instagram.com/v26.0/me/media"
+    assert (
+        instagram_graph_url("media-1/insights")
+        == "https://graph.instagram.com/v26.0/media-1/insights"
+    )
+    monkeypatch.setattr(settings, "INSTAGRAM_GRAPH_VERSION", "  ")
+    assert instagram_graph_url("me") == "https://graph.instagram.com/me"
+
+
+async def test_read_calls_are_versioned_and_me_still_requests_user_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Sync and login share ``fetch_profile``; ``user_id`` stays on that /me call."""
+
+    monkeypatch.setattr(settings, "INSTAGRAM_GRAPH_BASE", "https://graph.instagram.com")
+    monkeypatch.setattr(settings, "INSTAGRAM_GRAPH_VERSION", "v26.0")
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
+        if request.url.path.endswith("/access_token"):
+            return httpx.Response(
+                200, json={"access_token": "long-tok", "token_type": "bearer", "expires_in": 60}
+            )
+        if request.url.path.endswith("/refresh_access_token"):
+            return httpx.Response(200, json={"access_token": "refreshed", "expires_in": 60})
+        if request.url.path.endswith("/me"):
+            assert request.url.params["fields"] == (
+                "id,user_id,username,account_type,followers_count"
+            )
+            return httpx.Response(
+                200,
+                json={
+                    "id": "ig",
+                    "user_id": "ig-pro",
+                    "username": "campus",
+                    "account_type": "BUSINESS",
+                },
+            )
+        if request.url.path.endswith("/me/media"):
+            return httpx.Response(200, json={"data": []})
+        if request.url.path.endswith("/insights"):
+            return httpx.Response(200, json={"data": []})
+        return httpx.Response(
+            200,
+            json={
+                "id": "m1",
+                "media_type": "IMAGE",
+                "media_product_type": "FEED",
+                "permalink": "https://instagram.com/p/m1",
+                "timestamp": "2030-01-01T00:00:00+0000",
+            },
+        )
+
+    client = _client(handler)
+    await client.exchange_for_long_lived("short")
+    await client.refresh_long_lived("long")
+    profile = await client.fetch_profile("tok")
+    await client.fetch_user_media("tok")
+    await client.fetch_media("tok", "m1")
+    await client.fetch_media_insights("tok", "m1")
+    assert profile.id == "ig"
+    assert seen == [
+        "/access_token",
+        "/refresh_access_token",
+        "/v26.0/me",
+        "/v26.0/me/media",
+        "/v26.0/m1",
+        "/v26.0/m1/insights",
+    ]
+
+
+async def test_exchange_code_logs_permissions_and_warns_on_extras(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "access_token": "IGQVJ-do-not-log",
+                "user_id": "55",
+                "permissions": [
+                    "instagram_business_basic",
+                    " instagram_business_manage_insights ",
+                    "instagram_business_manage_messages",
+                    "instagram_business_basic",
+                ],
+            },
+        )
+
+    with caplog.at_level("INFO", logger="app.services.instagram"):
+        out = await _client(handler).exchange_code("c")
+    assert out.permissions == (
+        "instagram_business_basic",
+        "instagram_business_manage_insights",
+        "instagram_business_manage_messages",
+    )
+    assert (
+        "granted_permissions=instagram_business_basic,"
+        "instagram_business_manage_insights,instagram_business_manage_messages"
+    ) in caplog.text
+    assert "unexpected_permissions=instagram_business_manage_messages" in caplog.text
+    assert "IGQVJ-do-not-log" not in caplog.text
+
+
+async def test_exchange_code_unrecognized_permissions_shape(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"access_token": "tok", "user_id": "9", "permissions": {"scope": "basic"}},
+        )
+
+    with caplog.at_level("WARNING", logger="app.services.instagram"):
+        out = await _client(handler).exchange_code("c")
+    assert out.permissions is None
+    assert "granted_permissions unrecognized type=dict" in caplog.text
+    assert "tok" not in caplog.text
 
 
 async def test_exchange_for_long_lived_gets_query() -> None:
