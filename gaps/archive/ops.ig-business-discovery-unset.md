@@ -5,7 +5,7 @@ kind: ops
 severity: P2
 status: fixed
 surface: deploy
-closed_in: pending
+closed_in: 8266712
 evidence:
   - path: backend/app/services/instagram.py
     note: fetch_business_discovery 503s when INSTAGRAM_BUSINESS_DISCOVERY_TOKEN or IG_USER_ID is empty
