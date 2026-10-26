@@ -5,6 +5,7 @@ kind: ops
 severity: P0
 status: fixed
 surface: deploy
+closed_in: b535aae
 evidence:
   - path: gaps/deploy.meta-app-review.md
     note: This id was renamed when App Review and the Graph 100 tester wall were merged
