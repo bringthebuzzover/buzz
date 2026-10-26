@@ -260,7 +260,7 @@ Docs: [Instagram App Review](https://developers.facebook.com/docs/instagram-plat
 - [ ] Successful API use of both permissions via an **accepted** tester login (confirm with engineering; metrics sync should have run)
 - [x] Privacy + Terms on the www URLs above; set in App settings → Basic (reconfirmed 2026-10-26, with data-deletion instructions and icon)
 - [ ] Reviewers use an accepted tester account and a Buzz test org from the test-credentials field
-- [ ] Screencast(s): `/login` → credentials → consent under **BUZZ - IG** listing both permissions → profile data → insights labeled **Instagram Reach**, English captions, one video per permission ([recording guide](https://developers.facebook.com/docs/app-review/submission-guide/screen-recordings/))
+- [ ] Screencast(s): one file per permission. Each file is **Connect with Instagram** → credentials → first-time consent under **BUZZ - IG** listing that permission → Allow → that account’s data (profile and comment counts, or **Instagram Reach**). English captions. Not Continue with Instagram, and not a clip that starts after login ([recording guide](https://developers.facebook.com/docs/app-review/submission-guide/screen-recordings/))
 
 **Submit:**
 

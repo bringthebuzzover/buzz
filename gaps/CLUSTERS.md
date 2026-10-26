@@ -588,8 +588,8 @@ approach: |
   instagram_business_manage_insights was submitted 2026-10-07 and rejected
   (Developer Policy 1.6). Owners, status, and the 2026-10-07 form are in
   gaps/deploy.meta-app-review.md.
-  Already on main: Instagram Reach label (PR #7). Open code: Graph v26.0
-  and granted-permissions storage (PR #8). Still a decision: remove or
+  Already on main: Instagram Reach label (PR #7) and Graph v26.0 plus
+  granted-permissions storage (PR #8, `12f8850`). Still a decision: remove or
   disclose the unused Facebook Login Business Discovery path
   (ops.ig-business-discovery-unset).
   Agents do not submit App Review, remove permissions, paste tester

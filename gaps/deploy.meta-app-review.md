@@ -142,9 +142,9 @@ Instagram use case
 ([create a Meta app with Instagram](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/create-a-meta-app-with-instagram/)).
 Its 285 calls equal the insights count, so Meta may be attributing insights
 calls to the messaging permission as well. That is an inference, not
-confirmed. [PR #8](https://github.com/bringthebuzzover/buzz/pull/8) records
-the `permissions` field Meta returns on each login so the next real grant
-is visible without guessing.
+confirmed. [PR #8](https://github.com/bringthebuzzover/buzz/pull/8) is merged
+(`12f8850`). It records the `permissions` field Meta returns on each login
+so the next real grant is visible without guessing.
 
 Removing a Standard Access permission is reversible
 ([access levels](https://developers.facebook.com/docs/graph-api/overview/access-levels/)).
@@ -188,8 +188,8 @@ Reviewed against the submitted videos and the form text.
 **Video A** (`instagram_business_basic`, about 2:43) spends about two
 minutes on signup, email verification, and admin approval. Instagram login
 skips the credentials screen and shows only a re-auth “continue sharing”
-screen. That screen names an old app, **BUZZ-V2**, and lists no
-permissions. Profile data is on screen only briefly.
+screen. That screen says the account was already connected to **BUZZ-IG**
+and lists no permissions. Profile data is on screen only briefly.
 
 **Video B** (`instagram_business_manage_insights`, about 1:14) has no
 login, no consent screen, and no captions. The metric label on screen is
@@ -209,7 +209,7 @@ The written answers contradict the product:
 | “Buzz does not use Facebook Login.” | `fetch_business_discovery` (`instagram.py` ~542) still calls Business Discovery on `graph.facebook.com` with a Facebook Login service token. The token is unset in production (`ops.ig-business-discovery-unset`). Org Connect does not use this path. |
 | “There is no access to messages or comments.” | Usage text also says Buzz reads **likes and comments** on linked posts. Those are counts on media (`like_count`, `comments_count`), not comment management or messaging. |
 | Insights are “reach and related insights.” | Feed metrics are `reach`, `views`, `saved`, `shares`, `total_interactions`, `profile_visits`, `profile_activity`, `follows`. Reel metrics add `ig_reels_avg_watch_time`, `ig_reels_video_view_total_time`, and `reels_skip_rate` (`instagram.py` `_FEED_INSIGHT_METRICS` / `_REEL_INSIGHT_METRICS`). |
-| Consent shown under **BUZZ-V2** | Dashboard app name is **BUZZ - IG**. |
+| Consent was a re-auth for **BUZZ-IG**, with no permission list | A new recording must show a first grant. The Instagram app name on the dashboard is **BUZZ - IG**. Hold that screen until the name and both permissions are readable. |
 
 ## Resubmission checklist
 
@@ -220,21 +220,33 @@ session cookies, or one-time connect links in this repo.
 | # | Work | Owner | Status |
 | --- | --- | --- | --- |
 | 1a | Rename **Est. Reach** → **Instagram Reach** on the org campaign | Engineering | **Done.** [PR #7](https://github.com/bringthebuzzover/buzz/pull/7) merged. Record from a www build that serves this label. |
-| 1b | Pin Graph `v26.0` on Instagram reads and store granted permissions per login | Engineering | **Open.** [PR #8](https://github.com/bringthebuzzover/buzz/pull/8). |
+| 1b | Pin Graph `v26.0` on Instagram reads and store granted permissions per login | Engineering | **Done.** [PR #8](https://github.com/bringthebuzzover/buzz/pull/8) merged as `12f8850`. |
 | 1c | Decide: remove the unused Facebook Login Business Discovery path, or disclose it on the form | Lawrence + engineering | **Not started.** |
 | 2a | Remove auto-added `instagram_business_manage_messages`, `manage_comments`, and `content_publish` | Lawrence | **Not started.** Needs Lawrence’s approval. Reversible per the access-levels doc above. |
 | 2b | Consider a Data Deletion Callback URL (instructions URL already set) | Lawrence | **Not started.** |
 | 3 | Put an **accepted** tester’s Instagram credentials and a Buzz test org in the test-credentials field. Do not tell reviewers to use their own account. | Lawrence | **Not started.** Credentials stay in the Meta form, not in git. |
-| 4 | Record one fresh session, then edit two captioned videos (English captions). See the recording bar below. | Lawrence | **Not started.** After 1a is on www, after 2a (so consent lists only the two permissions), and after 1c (so the script matches the Facebook Login answer). |
+| 4 | Record two captioned videos (English). Each file contains its own login, grant, and that permission’s data. See the recording bar below. | Lawrence | **Not started.** After 1a is on www, after 2a (so consent lists only the two permissions), and after 1c (so the script matches the Facebook Login answer). |
 | 5 | Rewrite each permission’s usage description. Name the fields and metrics. Say “comment counts,” not that Buzz has no access to comments. Say the messaging permission was auto-added and removed (after 2a). | Engineering drafts; Lawrence confirms | **Not started.** |
 | 6 | Submit | Lawrence | **Not started.** |
 
-**Recording bar.** On the tester account, remove Buzz, then use a fresh
-browser. Start at `/login` → **Continue with Instagram**. The take must
-show the credentials screen and the full consent screen listing **both**
-permissions under **BUZZ - IG**, then profile data, then a live campaign
-whose insights show **Instagram Reach** and the metrics above. Edit that
-session into two videos, one per permission, with English captions.
+**Recording bar.** Use an accepted tester whose Instagram account is not
+already authorized for Buzz (remove the app first, or use an account that
+has never approved it). A first bind starts on the connect page and uses
+**Connect with Instagram**, not **Continue with Instagram** on `/login`.
+Continue with Instagram is only the returning path, and only after that
+account is already the org’s login.
+
+Record two files. Do not cut one session so that either file loses the
+login. Each file, in English, with captions, must show:
+
+1. Instagram credentials, if Instagram asks.
+2. A first-time consent screen for **BUZZ - IG** that lists the permission
+   this video is for. Hold it until the app name and the permission are
+   readable. Click Allow.
+3. Back in Buzz, data from the account that just clicked Allow. The basic
+   video shows that account’s `@username`, follower count, and a linked
+   post’s like and comment counts. The insights video shows **Instagram
+   Reach** on that same post, on the org campaign and the brand drop.
 
 ## Verify (read-only)
 
@@ -313,7 +325,8 @@ video
 **Resubmission change.** Replace Video A. New captioned video: credentials,
 full consent under **BUZZ - IG** listing this permission, then profile data
 held on screen long enough to read. No two-minute signup preamble. No
-BUZZ-V2 re-auth screen.
+“already connected to BUZZ-IG” re-auth screen. The file includes its own
+login and Allow.
 
 ### 3. `instagram_business_basic` — allowed-usage attestation
 
@@ -365,9 +378,11 @@ checklist 2a). Do not imply Buzz reads message content.
 video
 ```
 
-**Resubmission change.** Replace Video B. New captioned video must include
-login and the consent screen, then a live campaign showing **Instagram
-Reach** and the metrics named in the usage text. English captions.
+**Resubmission change.** Replace Video B. This file has its own login, its
+own Allow on a consent screen that lists
+`instagram_business_manage_insights` under **BUZZ - IG**, then a live
+campaign showing **Instagram Reach** and the metrics named in the usage
+text. English captions. Do not use a clip that starts after login.
 
 ### 6. `instagram_business_manage_insights` — allowed-usage attestation
 
@@ -532,12 +547,13 @@ Provide instructions for accessing the app so we may complete our review. Explai
 Buzz does not use Facebook Login. Student organizations have no Buzz password. They sign in with Instagram Login using a Business or Creator account. We do not request Facebook user permissions such as email, public profile, user_friends, user_gender, or user_birthday. To review, use a desktop browser and open this link once, in one window. Do not forward it or open it again: https://www.bringthebuzzover.com/onboarding/connect-instagram?token=[REDACTED] The page says Connect Instagram. Click Connect with Instagram and approve access with your own Instagram Business or Creator account. Buzz reads that account’s profile and post insights only. There is no access to messages or comments. No payment or membership is required. When Buzz opens again, go to https://www.bringthebuzzover.com/org/profile. Instagram identity shows the @username you connected. Instagram followers shows the count from that account. The app is in Development mode, so only an accepted Instagram Tester can finish the consent screen. If Instagram blocks the account, reply with the @username. We will add it as an Instagram Tester and send a new link. Accept the invite at https://www.instagram.com/accounts/manage_access/ under Tester Invites, then open only the new link. The link expires 7 days after we send it. If it has expired or was already opened, tell us and we will send a new one. Do not use Continue with Instagram on the normal login page. That path is only for an organization that has already connected.
 ```
 
-**Resubmission change.** Rewrite. Tell the reviewer to open
-`https://www.bringthebuzzover.com/login` and use **Continue with
-Instagram** with the account in the test-credentials field. Delete “use
-your own account,” the one-time connect link, and “we will add you as a
-tester.” Say comment **counts**, not “no access to comments.” Mention that
-the messaging permission was auto-added and removed (after checklist 2a).
+**Resubmission change.** Rewrite. Tell the reviewer to repeat the path in
+the screencast: an accepted tester, **Connect with Instagram** (not
+Continue with Instagram on `/login`), then the profile and the campaign.
+Delete “use your own account,” the one-time connect link, and “we will add
+you as a tester.” The test-credentials field holds the accepted tester.
+Say comment **counts**, not “no access to comments.” Mention that the
+messaging permission was auto-added and removed (after checklist 2a).
 The Facebook Login sentence has to match checklist 1c: either the unused
 Business Discovery path is gone and “org login does not use Facebook Login”
 is accurate, or the sentence discloses that path.
