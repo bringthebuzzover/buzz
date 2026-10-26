@@ -1,6 +1,6 @@
 """Add users.instagram_granted_permissions.
 
-Revision ID: c2d3e4f5a6b7
+Revision ID: c4d5e6f7a8b9
 Revises: b1c2d3e4f5a6
 Create Date: 2026-10-26 18:20:00.000000
 
@@ -13,7 +13,7 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "c2d3e4f5a6b7"
+revision: str = "c4d5e6f7a8b9"
 down_revision: Union[str, Sequence[str], None] = "b1c2d3e4f5a6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
