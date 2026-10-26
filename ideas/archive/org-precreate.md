@@ -29,7 +29,7 @@ Everything below is **historical brainstorm** unless it matches LAUNCH §4 Targe
 
 Brainstorm (2026-08-25). **Not committed behavior.** Promoting this needs an
 explicit PRODUCT / UX lock ([`AGENTS.md`](../../AGENTS.md) hard stop). Related
-ops: [`gaps/deploy.meta-business-verification.md`](../../gaps/deploy.meta-business-verification.md)
+ops: [`gaps/deploy.meta-app-review.md`](../../gaps/deploy.meta-app-review.md)
 (public Instagram login still blocked).
 
 ## Historical brainstorm — desired motion (superseded)
@@ -44,7 +44,7 @@ is **connect / sync Instagram**.
 
 Public Instagram OAuth is still **Standard Access**. Only Instagram Testers
 can complete login ([`META.md`](../../META.md),
-[`gaps/deploy.meta-business-verification.md`](../../gaps/deploy.meta-business-verification.md)).
+[`gaps/deploy.meta-app-review.md`](../../gaps/deploy.meta-app-review.md)).
 Adding a tester is a **human Meta dashboard** step, and the org must
 **accept** the tester invite on Instagram before Buzz OAuth works.
 
@@ -120,7 +120,7 @@ step**, same family as today’s `/reconnect-instagram`.
 
 **Ops overlay:** until Meta **Advanced Access**, only Instagram Testers can
 complete OAuth ([`META.md`](../../META.md),
-`gaps/deploy.meta-business-verification.md`). Inviting a hundred public
+`gaps/deploy.meta-app-review.md`). Inviting a hundred public
 chapters to “just sync IG” will fail for anyone who is not a tester.
 
 ## Product forks this would take

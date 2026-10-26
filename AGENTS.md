@@ -45,6 +45,12 @@ Rules and skills **point** here; they must not copy PRODUCT §§.
 
 ---
 
+## Branching
+
+Never push, force-push, or delete `main`. Open a pull request from a short-lived feature branch. There is no `dev` or `staging` branch and no staging environment. Protection rules, required CI check names, and `bugbot run` on high-risk PRs: [Branching & main protection](README.md#branching--main-protection).
+
+---
+
 ## Definition of done
 
 For any **behavior-touching** change:
@@ -92,7 +98,7 @@ Use project/user MCP when it helps. **Read** is fine; **mutate** needs explicit 
 | Server | Use for | Do not |
 | ------ | ------- | ------ |
 | **Railway** | Status, logs, vars (read), docs; mutations via **direct** tools only (`update-service`, `set-variables`, `list-variables`, `redeploy`, …) | Redeploy / set vars / accept-deploy / create services without explicit OK. **Minimize `railway-agent`** — do ops fully with direct tools (or human dashboard/CLI); do not ask the agent to delete/stage vars. See Railway notes below. |
-| **GitHub** | PRs, checks, issues, file reads for this repo | Force-push, surprise merges; prefer `gh` when user rules say so |
+| **GitHub** | PRs, checks, issues, file reads for this repo | Push or force-push `main`, surprise merges; prefer `gh` when user rules say so |
 | **Hostinger** | Registrar / nameservers for `bringthebuzzover.com` (Melissa’s account — API/MCP only; see [`DEPLOYMENT.md`](DEPLOYMENT.md) Domain / DNS ownership) | Assume Lawrence hPanel; mutate NS without explicit OK; commit API tokens; treat Hostinger DNS zone as SOT (Cloudflare is) |
 | **Cloudflare** | Authoritative DNS + apex→www redirect for `bringthebuzzover.com` (Lawrence account) | Orange-cloud `www`/`api` (breaks Railway TLS); delete personal zones; mutate without OK |
 | **Resend** | Domains (`create`/`list`/`get`/`verify`), transactional send debug (`list-emails` / logs). Cursor plugin / user MCP (`plugin-resend-resend`, `https://mcp.resend.com/mcp`) | Enable Receiving on apex (fights future human MX); create/delete API keys without OK; commit keys to repo `.cursor/mcp.json`; treat as human inbox. Domain mutate only with explicit OK (see hard stops) |

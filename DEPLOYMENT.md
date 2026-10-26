@@ -6,6 +6,8 @@ Deploy target: **Railway** from branch **`main`** (autodeploy on) — repo **`br
 
 **GitHub:** org [`bringthebuzzover/buzz`](https://github.com/bringthebuzzover/buzz) (mirrored from legacy `ShannonLin284/buzz`; do not push there). Default branch **`main`** (`mvp` merged via PR #1). All 8 Railway code services Source = **`bringthebuzzover/buzz` @ `main`** (verified 2026-08-10; see [`gaps/archive/deploy.github-repo-owner-shannon.md`](gaps/archive/deploy.github-repo-owner-shannon.md)).
 
+**Branching:** no `dev` or `staging` branch, and no staging environment. Feature branches open a pull request into protected `main`. Do not push `main` directly. Rules, required checks, and `bugbot run`: [Branching & main protection](README.md#branching--main-protection).
+
 **Live hosts (brand DNS on Railway — app SOT):**
 
 | Role | URL |
@@ -28,7 +30,7 @@ Env + cookies use **www/api**. Meta Hosts paste done 2026-08-11 — see [`gaps/a
 | ---- | ------------- |
 | **Local / `development`** | Laptop bring-up (`ENVIRONMENT=development`). Dev secrets, insecure cookies OK, localhost CORS. |
 | **Railway env `production`** | The **only** Railway environment today (project **buzz**). Serves brand hosts `www` / `api.bringthebuzzover.com` plus secondary `*.up.railway.app`. `ENVIRONMENT` for the API is whatever is set on that service (must be `staging` or `production` for the fail-fast path — not `development`). |
-| **Staging (optional / future)** | A second Railway environment is **not** provisioned. Optional later if you want a separate stack from public launch. |
+| **Staging** | **Not used.** Decided 2026-10-26: no staging Railway environment and no `dev` / `staging` git branch. `ENVIRONMENT=staging` remains a valid API value (hardened path, same as `production`) but there is no second stack. |
 
 **Live hosts (repeat):** `https://www.bringthebuzzover.com` / `https://api.bringthebuzzover.com`
 
@@ -75,7 +77,7 @@ You do **not** need App Review to run a small, hand-picked pilot. In **Developme
 
 ## Phase 2 — Provision infrastructure (Railway)
 
-Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway project (**buzz**). One Railway environment (**`production`**) — there is no separate staging environment.
+Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway project (**buzz**). One Railway environment (**`production`**). There is no staging environment and no `dev` / `staging` branch (decided 2026-10-26; [`README.md`](README.md#branching--main-protection)).
 
 | Service                 | What                                                                                      | Notes                                                                                                                                 |
 | ----------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -101,10 +103,24 @@ Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway
 
 **Hostinger:** registrar + nameserver updates only (MCP). Hostinger’s parking DNS zone was **cleared** after the CF NS flip — do not recreate www/api/apex there. Mutate Hostinger NS/registrar only with explicit user OK; never commit the API token.
 
+### Human inbox (Google Workspace)
+
+Company mail is Google Workspace Business Starter on the apex. Resend on `send.` is app autosend only. Leave Cloudflare Email Routing off so it does not publish a second apex MX.
+
+| Item | Value |
+| ---- | ----- |
+| **Provider** | Google Workspace Business Starter |
+| **Public contact** | `melissa@bringthebuzzover.com` — `contactEmail` in [`backend/brand_emails.json`](backend/brand_emails.json). Contact modal, privacy, terms, and data deletion read it via `@brandEmails`. |
+| **Webmail** | https://mail.google.com |
+| **Admin console** | https://admin.google.com |
+| **Apex DNS** | Cloudflare. Probed 2026-10-26 with `dig @1.1.1.1`: MX `1 smtp.google.com.`; SPF `v=spf1 include:_spf.google.com ~all`; `google-site-verification` TXT present; DKIM `google._domainkey` present; DMARC `v=DMARC1; p=none; rua=mailto:melissa@bringthebuzzover.com`. |
+| **Transactional From** | `Buzz <hello@bringthebuzzover.com>` via Resend (`send.` SPF/MX + `resend._domainkey`). Every app send sets Reply-To to `contactEmail`. Do not edit those `send.` records when changing the human mailbox. |
+| **`hello@`** | Not confirmed as a Workspace user or alias. Direct mail to `hello@` may not arrive. Tracked in [`gaps/ops.brand-mailbox.md`](gaps/ops.brand-mailbox.md). |
+| **Billing owner / Super Admin** | Not recorded in this repo. |
+
 Meta URL paste after brand cutover: **done** — `gaps/archive/deploy.meta-brand-url-cutover.md`.
 - [ ] Enable **Wait for CI** on Frontend + API (CI on `main`/`mvp` includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
 - [ ] Optional: `RAILPACK_PYTHON_VERSION=3.12` on API + cron services (cron siblings already set; confirm API).
-- [ ] Optional later: a second Railway environment for true staging (not required for pilot on the current stack).
 
 ### Frontend build / start
 
@@ -260,7 +276,6 @@ Logout, admin deny, password reset, and related paths bump `users.token_version`
 ## Known follow-ups (non-blocking)
 
 - **Custom DNS + cookie cutover.** Attach `www` / `api.bringthebuzzover.com`, rebuild the SPA, flip Meta URLs, and keep `REFRESH_COOKIE_SAMESITE=lax` on same-site custom hosts (see Phase 3).
-- **Optional staging Railway environment** if you want a stack separate from the current `production` env before public launch.
 - **Dead `firebase` dependency.** Nothing imports Firebase anymore. The `firebase` package and `REACT_APP_FIREBASE_*` entries in `.env.example` can be removed to shrink the bundle.
 - **Legal pages** should be replaced with counsel-reviewed copy (see Phase 1).
 
@@ -298,11 +313,11 @@ Set the resulting credentials in the backend env: `INSTAGRAM_CLIENT_ID`, `INSTAG
 - API keys dashboard: <https://resend.com/api-keys>
 - Agent ops: Resend MCP row in [`AGENTS.md`](AGENTS.md) (Domains + send debug; no keys in repo)
 
-**Done (2026-08-11):** `bringthebuzzover.com` Verified — DKIM TXT `resend._domainkey` + SPF TXT + MX on `send.` (not apex), Cloudflare DNS-only / grey-cloud. Receiving disabled on Resend (apex human MX → [`ops.brand-mailbox`](gaps/ops.brand-mailbox.md)). `RESEND_API_KEY` on Railway **api** + **cron-notify-reminders** (send-scoped key for the verified domain). Transactional From and public contact email are committed in [`backend/brand_emails.json`](backend/brand_emails.json) (not env). Delete any leftover `EMAIL_FROM` service variable — it is ignored.
+**Done (2026-08-11):** `bringthebuzzover.com` Verified — DKIM TXT `resend._domainkey` + SPF TXT + MX on `send.` (not apex), Cloudflare DNS-only / grey-cloud. Receiving stays **off** on Resend so it does not fight apex Google MX (human inbox: [Human inbox](#human-inbox-google-workspace) and [`ops.brand-mailbox`](gaps/ops.brand-mailbox.md)). `RESEND_API_KEY` on Railway **api** + **cron-notify-reminders** (send-scoped key for the verified domain). Transactional From and public contact email are committed in [`backend/brand_emails.json`](backend/brand_emails.json) (not env). Delete any leftover `EMAIL_FROM` service variable — it is ignored.
 
 ### Railway (hosting: Frontend + API + Postgres + Cron)
 
-Stack is already provisioned (project **buzz**, env **`production`**). Remaining Railway work is custom domains, optional Wait-for-CI, and optional second env for staging.
+Stack is already provisioned (project **buzz**, env **`production`**). Remaining Railway work is custom domains and optional Wait-for-CI. There is no second environment for staging.
 
 - Deploy a FastAPI app: <https://docs.railway.com/guides/fastapi>
 - PostgreSQL (provision + `DATABASE_URL`): <https://docs.railway.com/databases/postgresql>

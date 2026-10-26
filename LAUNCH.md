@@ -78,7 +78,7 @@ Public contact mailbox (`ops.brand-mailbox`) is **ops-parallel**, not a code gat
 
 | Fork | Lock |
 | ---- | ---- |
-| Business Verification | **Not this revamp.** Keep `deploy.meta-business-verification` parked. |
+| Business Verification | **Not this revamp.** Living gap `deploy.meta-app-review` (was `deploy.meta-business-verification`) is the App Review resubmission. Testers do not need BV. |
 | App Review | **Not this revamp.** |
 | Mailbox | Parallel ops. Reply-To on app mail can stay Cornell until cutover. From on verify mail flips to `hello@` in Phase A. |
 
@@ -116,7 +116,7 @@ All former “remaining questions” are closed. Implement from the locks above 
 
 | Id | Why |
 | -- | --- |
-| `deploy.meta-business-verification` | Testers do not need BV. |
+| `deploy.meta-app-review` | Was `deploy.meta-business-verification`. Testers do not need BV. Public login is that gap (Advanced Access + Live mode), not this revamp. |
 | `spa.csp-blocks-gh-pages-inline` | Archived (fixed). |
 | `ops.observability-thin` | One replica is enough. |
 | `deploy.npm-workspaces-wontfix` | Decision record. |
@@ -387,8 +387,8 @@ Frames match **this** plan. Stylized chrome, not View-as PNGs.
 
 ### Ops-parallel — mailbox
 
-Gap: `ops.brand-mailbox` (already parked; un-park only when named).  
-Does not block A–C. Do not flip `contactEmail` until receive + send-as proofs.
+Gap: `ops.brand-mailbox` (stays parked; do not auto-execute).  
+Does not block A–C. Public contact is already `melissa@bringthebuzzover.com`, and apex Google MX/SPF/DKIM/DMARC are published. Still open: whether `hello@` is a Workspace alias, and naming the billing owner / Super Admin in [`DEPLOYMENT.md`](DEPLOYMENT.md). Do not touch Resend `send.` records.
 
 ### Not a phase
 
