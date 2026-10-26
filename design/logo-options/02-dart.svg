@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" color="#1C1917" role="img" aria-labelledby="dart-title dart-desc">
+  <title id="dart-title">Dart</title>
+  <desc id="dart-desc">Profile bee facing right, one swept wing, honey stripes and eye.</desc>
+  <defs>
+    <clipPath id="dart-abdomen">
+      <ellipse cx="58" cy="72" rx="32" ry="18"/>
+    </clipPath>
+  </defs>
+  <g transform="rotate(-13 64 68)">
+    <path fill="currentColor" d="M72 60C50 38 22 28 14 44C6 58 36 70 70 62Z"/>
+    <ellipse cx="58" cy="72" rx="32" ry="18" fill="#1C1917" stroke="currentColor" stroke-width="3"/>
+    <circle cx="92" cy="64" r="14.5" fill="#1C1917" stroke="currentColor" stroke-width="3"/>
+    <path d="M89 54C95 46 100 42 103 40" fill="none" stroke="currentColor" stroke-width="3.75" stroke-linecap="round"/>
+    <circle cx="104.2" cy="39.2" r="3.2" fill="currentColor"/>
+    <g clip-path="url(#dart-abdomen)">
+      <rect x="24" y="64" width="68" height="7.5" fill="#F9D940"/>
+      <rect x="24" y="78" width="68" height="7.5" fill="#F9D940"/>
+    </g>
+    <circle cx="98" cy="61" r="3.3" fill="#F9D940"/>
+  </g>
+</svg>

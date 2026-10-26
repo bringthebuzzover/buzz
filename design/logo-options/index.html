@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Buzz logo options</title>
+  <style>
+    :root {
+      --ink: #1C1917;
+      --honey: #F9D940;
+      --cream: #FFFCF5;
+      --paper: #ffffff;
+      --line: #e7e5e4;
+      --muted: #57534e;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--cream);
+      color: var(--ink);
+      font-family: "Avenir Next", Futura, "Century Gothic", sans-serif;
+      font-size: 16px;
+      line-height: 1.45;
+    }
+    header, main { width: min(1120px, calc(100% - 48px)); margin: 0 auto; }
+    header { padding: 56px 0 28px; }
+    h1 {
+      font-family: "Bodoni 72", Didot, Georgia, serif;
+      font-weight: 400;
+      font-style: italic;
+      font-size: 64px;
+      line-height: 0.9;
+      letter-spacing: -0.02em;
+      margin: 0 0 16px;
+    }
+    .lede { max-width: 62ch; margin: 0; color: var(--ink); font-size: 18px; }
+    .meta { margin-top: 22px; display: flex; gap: 28px; align-items: center; color: var(--muted); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; }
+    .swatch { display: flex; align-items: center; gap: 8px; }
+    .chip { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); }
+    h2 {
+      font-family: "Bodoni 72", Didot, Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: 32px;
+      margin: 0 0 8px;
+    }
+    h3 { margin: 0; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+    p.note { margin: 0; color: var(--muted); max-width: 62ch; }
+    section { padding: 28px 0 8px; }
+    .rule { border: 0; border-top: 1px solid var(--line); margin: 12px 0 0; }
+    .current {
+      display: grid;
+      grid-template-columns: 1.4fr 0.8fr;
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .frame {
+      background: var(--ink);
+      border-radius: 12px;
+      min-height: 180px;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+    .frame.coral { background: #F7366D; }
+    .frame img { width: 100%; height: auto; display: block; }
+    .frame.coral img, .frame.ink img { max-width: 520px; }
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
+    .compare figure, .detail figure { margin: 0; }
+    .compare figcaption, .cap {
+      margin-top: 8px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .plate {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      aspect-ratio: 1;
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .plate.wide { aspect-ratio: 5 / 3; height: auto; }
+    .plate, .hero-plate, .bug { color: var(--ink); }
+    .slot {
+      position: absolute;
+      inset: 12px;
+      color: inherit;
+      min-width: 0;
+      min-height: 0;
+    }
+    .slot svg, .bug svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: hidden;
+      color: inherit;
+    }
+    .options { display: flex; flex-direction: column; gap: 56px; margin-top: 8px; }
+    article.option {
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+      gap: 28px;
+      padding-top: 8px;
+      align-items: start;
+      min-width: 0;
+    }
+    .hero-plate {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      height: 280px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-plate .slot { inset: 28px; }
+    .hero-plate.wide { height: 220px; }
+    .copy, .rows, .ramp, .surfaces, .lockup { min-width: 0; max-width: 100%; }
+    .copy h2 { font-size: 40px; }
+    .copy .num { color: var(--muted); font-family: "Avenir Next", Futura, sans-serif; font-style: normal; font-size: 13px; letter-spacing: 0.12em; display: block; margin-bottom: 6px; }
+    .rows { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+    .ramp, .surfaces, .lockups { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .ramp .plate { width: 88px; height: 88px; aspect-ratio: auto; flex: 0 0 auto; }
+    .ramp .plate .slot { inset: 8px; }
+    .ramp .plate.s48 { width: 64px; height: 64px; }
+    .ramp .plate.s32 { width: 48px; height: 48px; }
+    .ramp .plate.s24 { width: 40px; height: 40px; }
+    .ramp .plate.s16 { width: 32px; height: 32px; }
+    .ramp .plate.s32 .slot,
+    .ramp .plate.s24 .slot,
+    .ramp .plate.s16 .slot { inset: 4px; }
+    .surfaces .plate { width: 120px; height: 120px; aspect-ratio: auto; flex: 0 0 auto; }
+    .surfaces .plate.dark,
+    .surfaces .plate.dark .slot,
+    .surfaces .plate.dark svg { background: var(--ink); color: #fff; }
+    .surfaces .plate.dark { border-color: var(--ink); }
+    .lockup {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px 22px 16px 16px;
+      overflow: hidden;
+    }
+    .lockup .bug {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      color: var(--ink);
+      flex: 0 0 72px;
+      overflow: hidden;
+    }
+    .lockup .bug svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .word {
+      font-family: "Bodoni 72", Didot, Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(36px, 5vw, 64px);
+      line-height: 0.85;
+      letter-spacing: 0.01em;
+      min-width: 0;
+    }
+    .word.sans {
+      font-family: "Futura", "Avenir Next", sans-serif;
+      font-style: normal;
+      font-weight: 500;
+      font-size: 54px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); width: 72px; flex: 0 0 72px; }
+    footer { width: min(1120px, calc(100% - 48px)); margin: 12px auto 64px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 860px) {
+      h1 { font-size: 44px; }
+      .current { grid-template-columns: 1fr; }
+      article.option { grid-template-columns: 1fr; }
+      .hero-plate, .hero-plate.wide { height: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Four bees.</h1>
+    <p class="lede">New Buzz marks. Black is the body, honey is the accent. Same yellow as the current bee (<span style="font-family:ui-monospace,monospace">#F9D940</span>), on the product ink (<span style="font-family:ui-monospace,monospace">#1C1917</span>). Clean vectors, built to hold up small and to reverse on a dark field.</p>
+    <div class="meta">
+      <span class="swatch"><i class="chip" style="background:#1C1917"></i> Ink</span>
+      <span class="swatch"><i class="chip" style="background:#F9D940"></i> Honey</span>
+      <span>Square marks for the icon. Arc and the word rows are the lockup.</span>
+    </div>
+  </header>
+  <main>
+    <section>
+      <h3>Current</h3>
+      <p class="note">Traced cartoon, dotted flight trail, italic BUZZ. Wings are white, so the bee needs a dark or coral field. The wordmark is the part worth keeping.</p>
+      <div class="current">
+        <div class="frame ink"><img alt="Current Buzz lockup on ink" src="current-lockup.svg"/></div>
+        <div class="frame coral"><img alt="Current Buzz lockup on coral" src="current-lockup.svg"/></div>
+      </div>
+    </section>
+
+    <section>
+      <h3>The set</h3>
+      <p class="note">Same size, same paper. Squint: the silhouette should still say bee.</p>
+      <div class="compare" id="compare"></div>
+    </section>
+
+    <section>
+      <h3>Each one, at size</h3>
+      <hr class="rule"/>
+      <div class="options" id="options"></div>
+    </section>
+  </main>
+  <footer>Explorations only. Nothing here replaces <span style="font-family:ui-monospace,monospace">frontend/public/logos</span>.</footer>
+
+  <script>
+    const marks = [
+      {
+        file: "01-herald.svg",
+        name: "Herald",
+        num: "01",
+        blurb: "Front emblem. The one to put on a header, a favicon, and a shirt. Two stripes, round head, wings set into the thorax.",
+        wide: false
+      },
+      {
+        file: "02-dart.svg",
+        name: "Dart",
+        num: "02",
+        blurb: "Profile bee, nose up, in motion. One swept wing, honey stripes, a honey eye. The character mark.",
+        wide: false
+      },
+      {
+        file: "04-line.svg",
+        name: "Line",
+        num: "03",
+        blurb: "Outline bee with a honey abdomen and ink stripes. The yellow is the belly, so it stays visible on white and on black.",
+        wide: false
+      },
+      {
+        file: "05-arc.svg",
+        name: "Arc",
+        num: "04",
+        blurb: "Dotted flight trail, bee at the front. A horizontal symbol more than an app icon.",
+        wide: true
+      }
+    ];
+
+    const cache = {};
+    let seq = 0;
+
+    async function svgText(file) {
+      if (!cache[file]) cache[file] = await fetch(file).then((r) => r.text());
+      return cache[file];
+    }
+
+    function unique(raw) {
+      const n = ++seq;
+      return raw
+        .replace(/\bid="([^"]+)"/g, (_, id) => `id="${id}-${n}"`)
+        .replace(/url\(#([^)]+)\)/g, (_, id) => `url(#${id}-${n})`)
+        .replace(/\baria-labelledby="([^"]+)"/g, (_, ids) => {
+          const next = ids.split(/\s+/).map((id) => `${id}-${n}`).join(" ");
+          return `aria-labelledby="${next}"`;
+        });
+    }
+
+    function slot(file, className) {
+      const el = document.createElement("div");
+      el.className = className || "slot";
+      el.dataset.file = file;
+      return el;
+    }
+
+    async function fill(el) {
+      const raw = await svgText(el.dataset.file);
+      el.innerHTML = unique(raw);
+    }
+
+    function plate(file, extra) {
+      const p = document.createElement("div");
+      p.className = "plate" + (extra ? " " + extra : "");
+      p.appendChild(slot(file));
+      return p;
+    }
+
+    function caption(text) {
+      const c = document.createElement("figcaption");
+      c.className = "cap";
+      c.textContent = text;
+      return c;
+    }
+
+    async function build() {
+      const compare = document.getElementById("compare");
+      const options = document.getElementById("options");
+
+      for (const mark of marks) {
+        const fig = document.createElement("figure");
+        const p = plate(mark.file, mark.wide ? "wide" : "");
+        fig.appendChild(p);
+        fig.appendChild(caption(mark.name));
+        compare.appendChild(fig);
+
+        const article = document.createElement("article");
+        article.className = "option";
+
+        const hero = document.createElement("div");
+        hero.className = "hero-plate" + (mark.wide ? " wide" : "");
+        hero.appendChild(slot(mark.file));
+
+        const copy = document.createElement("div");
+        copy.className = "copy";
+        copy.innerHTML = `<h2><span class="num">${mark.num}</span>${mark.name}</h2><p class="note">${mark.blurb}</p>`;
+
+        const rows = document.createElement("div");
+        rows.className = "rows";
+
+        const ramp = document.createElement("div");
+        ramp.className = "ramp";
+        ramp.appendChild(Object.assign(document.createElement("div"), { className: "label", textContent: "Size" }));
+        for (const [cls, label] of [["", ""], ["s48", ""], ["s32", ""], ["s24", ""], ["s16", ""]]) {
+          const wrap = document.createElement("div");
+          wrap.style.display = "grid";
+          wrap.style.justifyItems = "center";
+          wrap.appendChild(plate(mark.file, cls));
+          ramp.appendChild(wrap);
+        }
+
+        const surfaces = document.createElement("div");
+        surfaces.className = "surfaces";
+        surfaces.appendChild(Object.assign(document.createElement("div"), { className: "label", textContent: "Field" }));
+        surfaces.appendChild(plate(mark.file));
+        const dark = plate(mark.file, "dark");
+        surfaces.appendChild(dark);
+
+        const lock = document.createElement("div");
+        lock.className = "lockup";
+        const bug = slot(mark.file, "bug");
+        const word = document.createElement("div");
+        word.className = "word";
+        word.textContent = "BUZZ";
+        lock.append(bug, word);
+
+        const lockSans = document.createElement("div");
+        lockSans.className = "lockup";
+        const bug2 = slot(mark.file, "bug");
+        const word2 = document.createElement("div");
+        word2.className = "word sans";
+        word2.textContent = "Buzz";
+        lockSans.append(bug2, word2);
+
+        rows.append(ramp, surfaces, lock, lockSans);
+        copy.appendChild(rows);
+        article.append(hero, copy);
+        options.appendChild(article);
+      }
+
+      const pending = [...document.querySelectorAll("[data-file]")];
+      await Promise.all(pending.map(fill));
+    }
+
+    build();
+  </script>
+</body>
+</html>
