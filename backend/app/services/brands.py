@@ -35,7 +35,11 @@ from app.schemas.brands import (
     BrandDropPostItem,
 )
 from app.services.drop_image import validate_https_image
-from app.services.email import send_application_denied_email
+from app.services.email import (
+    KIND_APPLICATION_DENIED,
+    build_idempotency_key,
+    send_application_denied_email,
+)
 from app.services.shipments import shipments_by_application_ids
 
 logger = logging.getLogger(__name__)
@@ -638,6 +642,9 @@ async def finalize_applicants(
                 org_name=org_name,
                 drop_title=drop.title,
                 brand_name=brand.brand_name,
+                idempotency_key=build_idempotency_key(
+                    KIND_APPLICATION_DENIED, app_id_by_org[org_id]
+                ),
             )
             if not ok:
                 logger.warning(

@@ -109,7 +109,7 @@ All former “remaining questions” are closed. Implement from the locks above 
 | `auth.revoked-access-skips-refresh` | Session 401 after tab/View-as. Reload works. Not the loop. |
 | `auth.ci-session-restore-flake` | E2E/CI wait-for-restore. Not the user loop. |
 | `brand.drop-creative-uneditable` | Admin writes creative at mint. Brand typo-fix is a later Want. |
-| `ops.email-ledger` | PRODUCT still email-only for drop denials. |
+| `ops.email-ledger` | Archived 2026-10-26. Idempotency keys, not a send ledger. |
 | `ideas/paper-ui.md` | Visual workshop. Not the loop. |
 
 ### Out (do not implement)

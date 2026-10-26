@@ -20,7 +20,7 @@ async def test_brand_invite_mint_persists_hash_not_raw(db_session) -> None:
     brand = await make_brand(db_session)
     user = await db_session.get(User, brand.user_id)
     assert user is not None
-    raw = await create_brand_invite(db_session, brand, user)
+    raw, _invite_id = await create_brand_invite(db_session, brand, user)
     row = await db_session.scalar(
         select(BrandInviteToken).where(BrandInviteToken.brand_id == brand.id)
     )
@@ -42,7 +42,12 @@ async def test_verification_mint_persists_hash_not_raw(db_session, monkeypatch) 
     captured: list[str] = []
 
     async def _fake_send(
-        email: str, token: str, *, org_name: str = "", kind: str = "signup"
+        email: str,
+        token: str,
+        *,
+        org_name: str = "",
+        kind: str = "signup",
+        idempotency_key: str | None = None,
     ) -> bool:
         captured.append(token)
         return True

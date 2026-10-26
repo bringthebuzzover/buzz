@@ -21,7 +21,7 @@ from app.models.user import User
 from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password
 from app.security.session import bump_token_version, commit_revocation
-from app.services.email import send_password_reset_email
+from app.services.email import KIND_PASSWORD_RESET, build_idempotency_key, send_password_reset_email
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,12 @@ async def request_password_reset(
     db.add(row)
     await db.flush()
 
-    ok = await send_password_reset_email(normalized, raw, portal=portal)
+    ok = await send_password_reset_email(
+        normalized,
+        raw,
+        portal=portal,
+        idempotency_key=build_idempotency_key(KIND_PASSWORD_RESET, row.id),
+    )
     if not ok:
         # Keep the forgot-password response opaque; burn the unused token so a
         # failed send cannot leave a live link that never reached the user.

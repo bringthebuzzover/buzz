@@ -17,7 +17,14 @@ from app.config import settings
 from app.exceptions import BuzzAPIException
 from app.models.org_apply_prefill import OrgApplyPrefill
 from app.security.one_shot_tokens import hash_token
-from app.services.email import send_org_apply_prefill_email, send_org_apply_prefill_update_email
+from app.services.email import (
+    KIND_ORG_APPLY_PREFILL,
+    KIND_ORG_APPLY_PREFILL_UPDATE,
+    build_idempotency_key,
+    idempotency_generation,
+    send_org_apply_prefill_email,
+    send_org_apply_prefill_update_email,
+)
 from app.services.org_apply_prefill_parse import PREFILL_TTL_DAYS, ParsedPrefill
 
 logger = logging.getLogger(__name__)
@@ -102,6 +109,19 @@ async def find_by_source_row_key(db: AsyncSession, key: str | None) -> OrgApplyP
     return row
 
 
+def _prefill_idempotency_key(kind: str, row: OrgApplyPrefill) -> str | None:
+    """First send keys on the row id. A later resend adds the prior sent_at.
+
+    The same row can be mailed again on purpose (``resend=True``). Including
+    the previous ``email_sent_at`` makes that a new key. A crash before that
+    stamp commits retries the same key.
+    """
+    generation = idempotency_generation(row.email_sent_at)
+    if generation is None:
+        return build_idempotency_key(kind, row.id)
+    return build_idempotency_key(kind, row.id, generation)
+
+
 def apply_url_for_token(raw: str) -> str:
     return f"{settings.FRONTEND_URL.rstrip('/')}/org/apply?prefill={raw}"
 
@@ -134,6 +154,7 @@ async def deliver_saved_prefill_email(
         invite_email,
         raw,
         org_name=org_name or row.org_name or "",
+        idempotency_key=_prefill_idempotency_key(KIND_ORG_APPLY_PREFILL, row),
     )
     if not ok:
         return "send_failed"
@@ -164,6 +185,7 @@ async def deliver_saved_prefill_update_email(
         raw,
         org_name=org_name or row.org_name or "",
         contact_name=row.contact_name or "",
+        idempotency_key=_prefill_idempotency_key(KIND_ORG_APPLY_PREFILL_UPDATE, row),
     )
     if not ok:
         return "send_failed"

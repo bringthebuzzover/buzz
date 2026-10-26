@@ -121,7 +121,7 @@ human inbox MX — avoid for contact; subdomain only if we ever want API ingest.
 | Prod | After Verified: one controlled trigger (invite/verify yourself) → log
 `Email dispatched: … resend_id=` + Resend dashboard + destination inbox |
 | Caution | Notify Me cron `*/5` can flush a backlog; don’t blast deny/notify. No
-send ledger yet ([`ops.email-ledger`](../ops.email-ledger.md)) |
+send ledger yet ([`ops.email-ledger`](ops.email-ledger.md), later archived) |
 
 ## Inbound — company addresses (pick one)
 
@@ -179,7 +179,7 @@ in-app mail client is a product fork.
 
 ## Coupling
 
-- [`ops.email-ledger`](../ops.email-ledger.md) — send honesty/ledger; does not create inboxes or verify Resend.
+- [`ops.email-ledger`](ops.email-ledger.md) — send honesty/ledger; does not create inboxes or verify Resend. Archived 2026-10-26.
 - [`DEPLOYMENT.md`](../../DEPLOYMENT.md) — Resend + Domain/DNS ownership.
 - [`AGENTS.md`](../../AGENTS.md) — Cloudflare / Hostinger MCP mutate rules; prefer direct tools over `railway-agent`.
 

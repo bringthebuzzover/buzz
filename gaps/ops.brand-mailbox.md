@@ -327,7 +327,9 @@ PRODUCT.md has **no** admin inbox / public mailbox requirement.
 ## Coupling
 
 - [`ops.resend-domain-unverified`](archive/ops.resend-domain-unverified.md) — **archived**; parallel DNS OK.
-- [`ops.email-ledger`](ops.email-ledger.md) — app send honesty; does not create mailboxes.
+- [`ops.email-ledger`](archive/ops.email-ledger.md) — **archived** 2026-10-26.
+  Idempotency keys cover double-send. No app send ledger (history is the
+  Resend dashboard). Does not create mailboxes.
 - Soft: deny email copy “reply to this email” has no Reply-To until a human
   mailbox / Reply-To policy exists (optional follow after this gap).
 

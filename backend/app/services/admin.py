@@ -43,7 +43,15 @@ from app.services.drop_apply_intents import (
 from app.services.drop_image import validate_https_image
 from app.services.drop_requests import touch_updated_at
 from app.services.email import (
+    KIND_BRAND_INVITE,
+    KIND_DROP_PUBLISHED,
+    KIND_IG_SWITCH_CONNECT,
+    KIND_LATE_ADD_BRAND,
+    KIND_LATE_ADD_ORG,
+    KIND_ORG_APPROVED,
+    KIND_ORG_APPROVED_BOUND,
     _ops_cc,
+    build_idempotency_key,
     send_admin_compose_email,
     send_brand_denied_email,
     send_brand_invite_email,
@@ -234,15 +242,20 @@ async def approve_org(
         user.status = OrgUserStatus.ACTIVE.value
         await db.flush()
         await promote_drop_apply_intents(db, user)
-        await send_org_approved_email(user.edu_email or "", org_name=org.org_name)
+        await send_org_approved_email(
+            user.edu_email or "",
+            org_name=org.org_name,
+            idempotency_key=build_idempotency_key(KIND_ORG_APPROVED_BOUND, org.id),
+        )
     else:
         user.status = OrgUserStatus.PENDING_INSTAGRAM.value
-        connect_token = await create_org_connect_token(db, org, user)
+        connect_token, connect_token_id = await create_org_connect_token(db, org, user)
         await db.flush()
         await send_org_approved_email(
             user.edu_email or "",
             org_name=org.org_name,
             connect_token=connect_token,
+            idempotency_key=build_idempotency_key(KIND_ORG_APPROVED, connect_token_id),
         )
 
     return {"org_id": str(org.id), "status": user.status}
@@ -266,7 +279,7 @@ async def resend_org_connect(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
             status_code=400,
         )
 
-    raw = await create_org_connect_token(db, org, user)
+    raw, connect_token_id = await create_org_connect_token(db, org, user)
     await db.flush()
     switch = await latest_approved_switch(db, org.id)
     if switch is not None:
@@ -275,12 +288,14 @@ async def resend_org_connect(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
             org_name=org.org_name,
             connect_token=raw,
             requested_handle=switch.requested_handle,
+            idempotency_key=build_idempotency_key(KIND_IG_SWITCH_CONNECT, connect_token_id),
         )
     else:
         email_sent = await send_org_approved_email(
             user.edu_email or "",
             org_name=org.org_name,
             connect_token=raw,
+            idempotency_key=build_idempotency_key(KIND_ORG_APPROVED, connect_token_id),
         )
     return {"org_id": str(org.id), "status": user.status, "email_sent": email_sent}
 
@@ -451,9 +466,12 @@ async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     # Generate invite token and send the setup email (Stage 7).
     from app.services.brand_auth import create_brand_invite
 
-    token = await create_brand_invite(db, brand, user)
+    token, invite_id = await create_brand_invite(db, brand, user)
     email_sent = await send_brand_invite_email(
-        brand.company_email, token, brand_name=brand.brand_name
+        brand.company_email,
+        token,
+        brand_name=brand.brand_name,
+        idempotency_key=build_idempotency_key(KIND_BRAND_INVITE, invite_id),
     )
 
     return {
@@ -561,9 +579,12 @@ async def resend_brand_invite(db: AsyncSession, brand_id: UUID) -> dict[str, Any
 
     from app.services.brand_auth import create_brand_invite
 
-    token = await create_brand_invite(db, brand, user)
+    token, invite_id = await create_brand_invite(db, brand, user)
     email_sent = await send_brand_invite_email(
-        brand.company_email, token, brand_name=brand.brand_name
+        brand.company_email,
+        token,
+        brand_name=brand.brand_name,
+        idempotency_key=build_idempotency_key(KIND_BRAND_INVITE, invite_id),
     )
     if not email_sent:
         raise BuzzAPIException(
@@ -739,6 +760,7 @@ async def add_org_to_drop(
                 drop_title=drop.title,
                 brand_name=brand.brand_name,
                 campaign_url=f"{settings.FRONTEND_URL}/org/campaigns/{application.id}",
+                idempotency_key=build_idempotency_key(KIND_LATE_ADD_ORG, application.id),
             )
         )
     if email_brand:
@@ -751,6 +773,7 @@ async def add_org_to_drop(
                 drop_title=drop.title,
                 brand_name=brand.brand_name,
                 drop_url=f"{settings.FRONTEND_URL}/brand/drops/{drop.id}",
+                idempotency_key=build_idempotency_key(KIND_LATE_ADD_BRAND, application.id),
             )
         )
 
@@ -1115,6 +1138,7 @@ async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
             brand_name=brand.brand_name,
             drop_title=drop.title,
             drop_url=drop_url,
+            idempotency_key=build_idempotency_key(KIND_DROP_PUBLISHED, drop.id),
         )
     return drop
 

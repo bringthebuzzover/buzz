@@ -114,7 +114,7 @@ the other campaign), not the ability to attribute the post.
 
 - PRODUCT §4.2 (one-post-one-campaign), §6.4.2 (org selects posts).
 - PRODUCT Later: admin tooling for reopen / exception / Buzz override paths.
-- `ops.email-ledger` — do not route this edge case through email until ledger
-  honesty exists and PRODUCT asks for it.
+- `ops.email-ledger` — **archived** 2026-10-26 (idempotency keys; no send
+  ledger). Do not add email for this edge case unless PRODUCT asks for it.
 - Admin Attribution counts: `AdminDropDetailPage` + `admin_read` pending
   suggestion / linked post counters.
