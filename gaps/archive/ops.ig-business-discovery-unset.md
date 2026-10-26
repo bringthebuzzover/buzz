@@ -43,7 +43,7 @@ are still set (do not mint a replacement):
 - `INSTAGRAM_BUSINESS_DISCOVERY_IG_USER_ID`
 - `FACEBOOK_GRAPH_BASE`
 
-Living App Review note: [`deploy.meta-app-review`](../deploy.meta-app-review.md) checklist 1c.
+Living App Review note: [`deploy.meta-app-review`](../deploy.meta-app-review.md) checklist 1c. Removing PR: https://github.com/bringthebuzzover/buzz/pull/15.
 
 The runbook below is historical. Do not mint the token.
 
