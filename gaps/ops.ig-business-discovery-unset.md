@@ -28,7 +28,7 @@ fix_when: |
   soft-fail, for @bringthebuzzover.
   Do not commit tokens. FACEBOOK_GRAPH_BASE optional (default is correct).
   Out of archive scope: App Review resubmission
-  (deploy.meta-business-verification). Business Verification is already
+  (deploy.meta-app-review). Business Verification is already
   Verified (2026-10-26). Token rotation calendar after first mint.
 ---
 
@@ -97,7 +97,7 @@ works for this query. Calendar a remint before ~60 days.
 
 **System User** never-expire tokens need the app in a verified Business
 portfolio. Business Verification is **Verified** (2026-10-26;
-`deploy.meta-business-verification`). A Graph Explorer **app admin** who
+`deploy.meta-app-review`). A Graph Explorer **app admin** who
 can manage the Page linked to `@bringthebuzzover` can still mint the
 service token this runbook uses. App mode is **Development**. An admin
 mint in Graph Explorer still works in that mode.
@@ -227,5 +227,5 @@ curl -sS 'https://api.bringthebuzzover.com/api/orgs/instagram-lookup?username=br
 ## Related
 
 - [`META.md`](../META.md) — Apply-time handle lookup (rate limits, cache, IP caps already in code).
-- [`deploy.meta-business-verification`](deploy.meta-business-verification.md) — Business Verification is **Verified** (2026-10-26). Advanced Access is the open App Review resubmission. An **admin** Graph Explorer token for seeded lookup does not wait on that review. System User tokens and public non-tester login still do.
+- [`deploy.meta-app-review`](deploy.meta-app-review.md) — Business Verification is **Verified** (2026-10-26). Advanced Access is the open App Review resubmission. An **admin** Graph Explorer token for seeded lookup does not wait on that review. System User tokens and public non-tester login still do.
 - `PRODUCT.md` §6.1.1 — confirm card vs unconfirmed submit.

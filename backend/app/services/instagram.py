@@ -358,6 +358,8 @@ class HttpInstagramClient:
         return ShortLivedToken(access_token=str(token), user_id=str(user_id))
 
     async def exchange_for_long_lived(self, short_token: str) -> LongLivedToken:
+        # Documented GET. Non-tester Graph 100 is Standard Access, not a
+        # reason to POST. Living gap: deploy.meta-app-review.
         client = await self._client()
         payload = await _ig_json(
             client.get(

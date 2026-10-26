@@ -1,8 +1,8 @@
 ---
-id: deploy.meta-business-verification
+id: deploy.meta-app-review
 title: "Meta App Review (Instagram Login) — resubmission in progress"
 kind: ops
-severity: P1
+severity: P0
 status: in_progress
 surface: deploy
 evidence:
@@ -11,29 +11,43 @@ evidence:
   - path: backend/app/config.py
     note: INSTAGRAM_SCOPES is only instagram_business_basic and instagram_business_manage_insights
   - path: backend/app/services/instagram.py
+    note: exchange_for_long_lived uses the documented GET graph.instagram.com/access_token; do not switch that call to POST
+  - path: backend/app/services/instagram.py
     note: fetch_business_discovery (~542) still calls graph.facebook.com with a Facebook Login service token; org login does not
+  - path: frontend/src/utils/instagramCallbackCopy.ts
+    note: API UNAUTHORIZED maps to "Instagram didn't connect" / didn't hand Buzz a session
   - path: frontend/src/pages/org/OrgCampaignDetailPage.tsx
     note: org campaign label is Instagram Reach on main (PR #7); the rejected insights screencast showed Est. Reach
-  - path: gaps/auth.ig-long-lived-get-unsupported.md
-    note: P0 — Development + Standard Access; only an accepted Instagram Tester can finish login
   - path: gaps/ops.ig-business-discovery-unset.md
     note: same unset Facebook Login token; its “app is Live” precondition was wrong
 repro: |
   Read-only Meta dashboard check, 2026-10-26 (do not paste tokens or tester
   credentials into git or chat). Facebook app BUZZ 1589568552810678 and
-  Instagram app BUZZ - IG 2056969808271074. App mode Development.
-  App Review for instagram_business_basic and instagram_business_manage_insights
-  submitted 2026-10-07, rejected under Developer Policy 1.6.
-  Instagram Testers: 3 accepted, 11 pending. A pending invite cannot complete
-  login (see auth.ig-long-lived-get-unsupported).
+  Instagram app BUZZ - IG 2056969808271074. App mode Development. Standard
+  Access. App Review for instagram_business_basic and
+  instagram_business_manage_insights submitted 2026-10-07, rejected under
+  Developer Policy 1.6.
+  Instagram Testers: 3 accepted, 11 pending. The 11 pending invites are
+  blocked the same way as non-testers. Handles are not listed.
+  After 1f389a9, org Connect on www.bringthebuzzover.com.
+  SPA GET /auth/instagram/callback 200; POST /api/auth/instagram/callback 401
+  "Instagram long-lived token exchange failed."
+  API log 2026-09-17 20:32–20:34Z:
+  status=400 type=IGApiException message=Unsupported request - method type: get code=100
   Code: INSTAGRAM_SCOPES in backend/app/config.py. Git history on main has
   never contained instagram_business_manage_messages, manage_comments, or
   content_publish.
 fix_when: |
-  Archive when Meta has granted Advanced Access on both
-  instagram_business_basic and instagram_business_manage_insights, and a
-  non-tester Instagram Business or Creator account completes Instagram Login
-  on https://www.bringthebuzzover.com (META.md §G).
+  Advanced Access is approved for instagram_business_basic and
+  instagram_business_manage_insights, and the app is in Live mode. A
+  non-tester Instagram Business or Creator account then completes Connect on
+  https://www.bringthebuzzover.com through the documented GET
+  graph.instagram.com/access_token exchange (META.md §G).
+  An accepted Instagram Tester must also complete that same GET. If Graph 100
+  persists for a tester (IGApiException code 100, "Unsupported request -
+  method type: get"), reopen a code gap. Do not switch
+  exchange_for_long_lived to POST; Access Token docs mark Creating as
+  unsupported.
   The resubmission’s screencasts and usage text must match the code: consent
   under the app name BUZZ - IG, both permissions listed, org campaign label
   Instagram Reach, and the feed/reel metrics in instagram.py. Reviewers use
@@ -49,18 +63,23 @@ fix_when: |
 
 # Meta App Review (Instagram Login) — resubmission in progress
 
+Retired ids: `deploy.meta-business-verification`, `auth.ig-long-lived-get-unsupported`.
+Both are pointers in [`gaps/archive/`](archive/). This file is the living gap.
+
 Business Verification is **Verified**. Public org login is still blocked on
 **App Review**. Meta rejected the 2026-10-07 submission for
 `instagram_business_basic` and `instagram_business_manage_insights`
 (Developer Policy 1.6 — reviewers could not verify the use case / login
-flow). That rejection matches the screencasts and the form text. This file
-is the resubmission checklist.
+flow). That rejection matches the screencasts and the form text. The same
+gate is why non-testers, and the **11 pending** tester invites, get Graph
+**100** on the long-lived token exchange. Approval (Advanced Access) plus
+**Live** mode is the fix. This file is that workstream.
 
 Human Meta dashboard only. Agents verify; do not mutate Meta, submit App
 Review, or paste tester credentials without an explicit OK.
 [`LAUNCH.md`](../LAUNCH.md) still treats Advanced Access as outside the
-seeded revamp: testers do not need it. Seeded onboarding stays “add the
-handle as an Instagram Tester, then Connect.”
+seeded revamp: accepted testers can log in without it. Seeded onboarding
+stays “add the handle as an Instagram Tester, then Connect.”
 
 ## Verified 2026-10-26 (dashboard, read-only)
 
@@ -95,11 +114,11 @@ on the checklist below (Lawrence).
 
 ### Instagram Testers
 
-**3 accepted, 11 pending.** Only an accepted tester can complete Instagram
-Login while the app stays in Development on Standard Access. A pending
-invite fails the same way as a non-tester. That is the production symptom
-in [`auth.ig-long-lived-get-unsupported`](auth.ig-long-lived-get-unsupported.md)
-(P0). Handles are not listed here.
+**3 accepted, 11 pending.** The 11 pending invites are blocked. Only an
+accepted tester can complete Instagram Login while the app stays in
+Development on Standard Access. A pending invite fails the same way as a
+non-tester: Graph 100 on the long-lived exchange (below). Handles are not
+listed here.
 
 ### Permissions (Standard Access, last 30 days)
 
@@ -136,6 +155,31 @@ Submitted **2026-10-07** for `instagram_business_basic` and
 `instagram_business_manage_insights`. **Rejected** (Developer Policy 1.6).
 The export reproduced in the appendix was downloaded 2026-10-26, 9:34 AM PDT.
 The one-time connect token in that export is `[REDACTED]`.
+
+## Graph 100 on the documented long-lived GET
+
+Short-lived code exchange is fixed (`auth.ig-token-exchange-data-wrap`,
+archived). The next hop is
+[Access Token](https://developers.facebook.com/docs/instagram-platform/reference/access_token/)
+(updated 2026-03-09):
+
+- **Reading:** `GET https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=…&access_token=…`
+- **Creating / Updating / Deleting:** not supported (do not POST)
+
+`exchange_for_long_lived` in `backend/app/services/instagram.py` uses that
+GET. Production returns Graph **400** `IGApiException` **100** “Unsupported
+request - method type: get” for an Instagram account that is not an accepted
+[Instagram Tester](https://developers.facebook.com/docs/development/build-and-test/app-roles/).
+Testers can GET. Non-testers and the **11 pending** invites get this 100.
+The SPA shows it as `UNAUTHORIZED` (“Instagram didn't connect”) in
+`frontend/src/utils/instagramCallbackCopy.ts`.
+
+Community threads that “fixed” the 100 with POST are fighting the same
+access gate. Official CRUD still forbids Creating on this node. If an
+**accepted** tester still gets Graph 100, reopen a **code** gap. Do not
+switch this call to POST.
+
+Chrome AutoClicker / LMS / `Receiving end does not exist` lines are extensions.
 
 ## Why the rejection was justified
 
@@ -209,19 +253,18 @@ After Lawrence submits, re-check App Review status before claiming §F done.
 
 Not edited here. They still disagree with this file:
 
-- [`LAUNCH.md`](../LAUNCH.md) §2 lock and §3 Out say keep this gap parked and
-  that Business Verification is not part of the seeded revamp. Testers still
-  do not need Advanced Access. The lock does not describe this resubmission.
 - [`DEPLOYMENT.md`](../DEPLOYMENT.md) launch table still says App Review +
   Business Verification are “Not started.”
 - [`ideas/org-bind-at-signup.md`](../ideas/org-bind-at-signup.md) still cites
-  `business_verification_passes: false` (2026-09-14). Ideas are not SOT.
+  `business_verification_passes: false` (2026-09-14). The link to this gap
+  is updated; that 2026-09-14 sentence is not. Ideas are not SOT.
 
 ## Related
 
 - [`META.md`](../META.md) — dashboard guide; §E done; §F is this resubmission.
-- [`auth.ig-long-lived-get-unsupported`](auth.ig-long-lived-get-unsupported.md) — tester wall on the long-lived exchange.
 - [`ops.ig-business-discovery-unset`](ops.ig-business-discovery-unset.md) — unset service token for the unused Facebook Login path (checklist 1c).
+- [`archive/auth.ig-long-lived-get-unsupported.md`](archive/auth.ig-long-lived-get-unsupported.md) — absorbed id.
+- [`archive/deploy.meta-business-verification.md`](archive/deploy.meta-business-verification.md) — renamed id.
 
 ## Appendix: Submitted form — full questions and our answers (2026-10-07)
 

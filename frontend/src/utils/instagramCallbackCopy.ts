@@ -51,6 +51,8 @@ export function instagramCallbackFailureCopy(
       body: INSTAGRAM_CALLBACK_LOGIN_EXPIRED,
     };
   }
+  // Non-tester Graph 100 on the long-lived exchange surfaces as UNAUTHORIZED.
+  // Living gap: deploy.meta-app-review.
   if (code === "UNAUTHORIZED") {
     return {
       title: "Instagram didn't connect",
