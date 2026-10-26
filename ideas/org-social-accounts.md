@@ -15,7 +15,7 @@ from this file alone ([`AGENTS.md`](../AGENTS.md) hard stop).
 Related: [`archive/org-precreate.md`](archive/org-precreate.md),
 [`campus-creators.md`](campus-creators.md) (later participant kind; socials as
 attachments), [`META.md`](../META.md),
-[`gaps/deploy.meta-business-verification.md`](../gaps/deploy.meta-business-verification.md).
+[`gaps/deploy.meta-app-review.md`](../gaps/deploy.meta-app-review.md).
 
 Lovable’s workspace TikTok connector is **not** the integration (one shared
 account, no per-org OAuth). Implementation, when PRODUCT allows, is Login Kit

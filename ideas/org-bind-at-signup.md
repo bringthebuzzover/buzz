@@ -16,7 +16,7 @@ Related: [`archive/org-precreate.md`](archive/org-precreate.md) (opposite sequen
 IG last — that **shipped** via LAUNCH Phase A). [`archive/drop-signup-apply.md`](archive/drop-signup-apply.md)
 (brand deep link → apply — **shipped**; “account creation finished” is still
 **admin Approve**, not the signup form). Meta: [`META.md`](../META.md),
-[`gaps/deploy.meta-business-verification.md`](../gaps/deploy.meta-business-verification.md).
+[`gaps/deploy.meta-app-review.md`](../gaps/deploy.meta-app-review.md).
 
 **Sequence (2026-09-15):** implement [`archive/drop-signup-apply.md`](archive/drop-signup-apply.md)
 **first** (shipped). This file is the later one-click identity change. Keep the

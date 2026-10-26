@@ -26,6 +26,7 @@ Deep investigate before coding (proportional to risk). Evidence-driven; say when
 2. `./scripts/ci-local.sh` green (includes Playwright E2E)
 3. **Stop** — no commit/push unless the user explicitly asks
 4. Stress E2E ×N only if asked
+5. **Never push to `main`** — it is protected. Feature-branch PR only ([Branching & main protection](README.md#branching--main-protection))
 
 ## Hard stops (ask first)
 
