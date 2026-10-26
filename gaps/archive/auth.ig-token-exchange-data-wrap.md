@@ -48,6 +48,7 @@ before live Connect works.
 Chrome `Receiving end does not exist` / AutoClicker / LMS lines in the client
 console are extensions, not Buzz.
 
-**Residual:** app is Live with no Advanced Access
-(`gaps/deploy.meta-business-verification.md`). Non-tester campus orgs can
-still fail Graph even when testers succeed.
+**Residual:** non-tester campus orgs can still fail Graph even when testers
+succeed. Living gap: [`deploy.meta-app-review`](../deploy.meta-app-review.md)
+(was `deploy.meta-business-verification`). Dashboard 2026-10-26: App mode
+Development, Standard Access, App Review rejected.

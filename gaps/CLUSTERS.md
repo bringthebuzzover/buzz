@@ -178,7 +178,7 @@ Priority rationale (2026-08-11 delivery order — code first, then ops parallel)
 3. `brand-delivery-address` — **done** (null denied applicants' deliveryAddress)
 4. `org-edu-email-change` — **done** (pending-swap `.edu` rotate)
 5. `admin-drops-ops-ui` — **done** (list multiselect + detail logistics)
-Ops (not auto-pick): `meta-business-verification`, `ops.brand-mailbox` (follow-ups).
+Ops (not auto-pick): `meta-app-review` (`in_progress` — App Review resubmission; was `meta-business-verification`; human dashboard), `ops.brand-mailbox` (follow-ups).
 
 ---
 
@@ -401,11 +401,14 @@ approach: |
   Archives: `gaps/archive/deploy.samesite-lax-railway-preview.md`,
   `gaps/archive/deploy.meta-brand-url-cutover.md`.
   Live verify: `GET https://api.bringthebuzzover.com/api/auth/instagram/login`
-  → `SameSite=lax; Secure` + www `redirect_uri`. Meta MCP: Basic privacy/terms/
-  data-deletion on www; app live. Business login OAuth/deauth are not MCP-
-  readable — human confirm + production login smoke.
-  Residual Meta launch: living `deploy.meta-business-verification` (§E);
-  §F App Review / §G public login still META.md-only until filed.
+  → `SameSite=lax; Secure` + www `redirect_uri`. Meta MCP (2026-08-11): Basic
+  privacy/terms/data-deletion on www. That pass recorded “app live”; the
+  dashboard on 2026-10-26 shows App mode Development. Business login
+  OAuth/deauth are not MCP-readable — human confirm + production login smoke.
+  Residual Meta launch: living `deploy.meta-app-review` (was
+  `deploy.meta-business-verification`; §E Verified 2026-10-26; §F submitted
+  2026-10-07 and rejected, resubmission in progress; §G public login still
+  open). Graph 100 on the long-lived exchange is the same gap.
 stop_if:
   - Always pause before mutating Railway/Meta without explicit user OK.
   - Orange-clouding `www`/`api` on Cloudflare (Railway must terminate TLS).
@@ -553,7 +556,9 @@ note: |
   - `deploy.custom-domain-samesite-lax` — **archived** 2026-08-09 (Plan A).
   - `deploy.meta-brand-url-cutover` + `deploy.samesite-lax-railway-preview` —
     **archived** 2026-08-11 (Meta §C Hosts + www IG smoke; cluster `ops-samesite`
-    done). Meta §E tracked as living `deploy.meta-business-verification`.
+    done). Meta §E is Verified; living `deploy.meta-app-review` (was
+    `deploy.meta-business-verification`) is the App Review resubmission
+    (`in_progress`).
   - `deploy.github-repo-owner-shannon` — **archived** 2026-08-10 (all 8 Sources
     `bringthebuzzover/buzz` @ `main`; push `e27a7f6` deployed from org).
   - `deploy.apex-hostinger-forward-blocked` — **archived** 2026-08-10
@@ -563,18 +568,36 @@ note: |
 
 ---
 
-## meta-business-verification
+## meta-app-review
 
-status: deferred
+status: in_progress
 gaps:
-  - deploy.meta-business-verification
+  - deploy.meta-app-review
 approach: |
-  Human Meta only. Link BUZZ to a business portfolio (App settings → Basic →
-  Verification → Start Verification), complete Business Verification in
-  Business Manager, confirm MCP `business_verification_passes: true`.
-  Out of scope: App Review Advanced Access (§F) and public login (§G).
+  Former cluster id: meta-business-verification.
+  Former gap ids (archived pointers): deploy.meta-business-verification,
+  auth.ig-long-lived-get-unsupported.
+  Human Meta dashboard and screencasts. Do not auto-execute.
+  One workstream: App Review resubmission, then Live mode. That is also the
+  fix for Graph 100 on GET graph.instagram.com/access_token. Non-testers and
+  11 pending tester invites are blocked while the app is in Development on
+  Standard Access. Do not switch the exchange to POST. If an accepted tester
+  still gets Graph 100 after Advanced Access and Live mode, reopen a code gap.
+  Business Verification is Verified (2026-10-26). App mode is Development.
+  App Review for instagram_business_basic and
+  instagram_business_manage_insights was submitted 2026-10-07 and rejected
+  (Developer Policy 1.6). Owners, status, and the 2026-10-07 form are in
+  gaps/deploy.meta-app-review.md.
+  Already on main: Instagram Reach label (PR #7) and Graph v26.0 plus
+  granted-permissions storage (PR #8, `12f8850`). Still a decision: remove or
+  disclose the unused Facebook Login Business Discovery path
+  (ops.ig-business-discovery-unset).
+  Agents do not submit App Review, remove permissions, paste tester
+  credentials, or switch the app to Live.
 stop_if:
   - Always pause before mutating Meta / Business Manager without explicit OK.
+  - Do not put tester credentials, tokens, or one-time connect links in git.
+  - Do not change exchange_for_long_lived from GET to POST.
 
 ---
 
