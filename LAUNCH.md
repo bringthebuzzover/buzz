@@ -3,9 +3,9 @@
 **Status:** Phases A–C shipped (2026-08-28). Locks below still apply; do not reopen.  
 **Not** an idea file. **Not** a gap list. **Not** a second PRODUCT.
 
-| This file | [`PRODUCT.md`](PRODUCT.md) | [`ARCHITECTURE.md`](ARCHITECTURE.md) | [`gaps/`](gaps/) |
-| --------- | -------------------------- | ------------------------------------- | ---------------- |
-| Sequence, locks, current vs target, phases | Intended behavior after this revamp | As-built until each phase lands | One hole per file; archive when that hole is gone |
+| This file                                  | [`PRODUCT.md`](PRODUCT.md)          | [`ARCHITECTURE.md`](ARCHITECTURE.md) | [`gaps/`](gaps/)                                  |
+| ------------------------------------------ | ----------------------------------- | ------------------------------------ | ------------------------------------------------- |
+| Sequence, locks, current vs target, phases | Intended behavior after this revamp | As-built until each phase lands      | One hole per file; archive when that hole is gone |
 
 Agents implement **phase by phase** from here. Do not invent a parallel tracker. Do not implement OUT items. PRODUCT forks listed below are **locked** — do not re-ask unless the user reverses a lock.
 
@@ -13,7 +13,7 @@ Agents implement **phase by phase** from here. Do not invent a parallel tracker.
 
 ## 1. Launch shape
 
-A **seeded** launch: known campus orgs + sales-led brands. Public Instagram login for *any* campus org (Meta Advanced Access) is **out**. Meta Business Verification is **out**.
+A **seeded** launch: known campus orgs + sales-led brands. Public Instagram login for _any_ campus org (Meta Advanced Access) is **out**. Meta Business Verification is **out**.
 
 **Org:** fill the website form first (profile + `.edu` + claimed `@handle`) → verify school email → Buzz reviews and adds that handle as an Instagram Tester → approval email → they accept the tester invite → Connect Instagram **binds** the existing Buzz user → portal.
 
@@ -36,51 +36,51 @@ Public contact mailbox (`ops.brand-mailbox`) is **ops-parallel**, not a code gat
 
 ### Org
 
-| Fork | Lock |
-| ---- | ---- |
-| Intake | **Public** `/org/apply` (brand-apply analog). No admin CSV that **mints org accounts**. Ops may CLI-**mint** apply prefills (hashed drafts + local sidecar of `/org/apply?prefill=` URLs), verify on www, then **later** email from that sidecar; the org still submits apply. |
-| Identity until bind | `.edu` is the account. Claimed `@handle` is ops data, not login. |
-| Review | Still Buzz admin approve/deny. No auto-approve. |
-| Tester | Ops **sends** the Instagram Tester invite in Meta **before** Approve (honor-system confirm). Approval email: **accept the tester invite, then Connect**. Connect is expected to fail until they accept. |
-| Emails | (1) verify `.edu` (2) **one** approval email = approved + accept tester invite + Connect link. No extra “tester ready” mail. |
-| After approve, before bind | New status `pending_instagram`. **Not** `active`. No Drop Feed / Apply until bind. |
-| Connect | `/onboarding/connect-instagram`. Approval email one-shot token mints session if the cookie is dead. |
-| OAuth bind | Callback **updates** this user. Graph id already owned → 409. **No session / unknown IG → do not insert** (`ORG_APPLY_REQUIRED`). |
-| Returning login after bind | **Continue with Instagram only** (`/login`). No org password. No magic-link as ongoing login. |
-| Claimed handle | Unique among non-erased orgs (case-insensitive, `@` stripped). **Denied** orgs keep the handle until **erase**. **Apply UX:** same-page inline **confirm card** after exact-username lookup (§6.1.1) — not a separate route; not an IG-app typeahead. |
-| Graph `@` ≠ claimed `@` at Connect | **Allow** bind; overwrite `users.instagram_username` from Graph; keep apply-time `@` on `organizations.claimed_instagram_username`; Overview **Needs a look** until admin Ack. No email. Portal `active`. |
-| `.edu` rotate while `pending_instagram` | **Yes** (same pending-swap as `pending_approval` / `active`). |
-| View-as while `pending_instagram` | **No** — nothing to impersonate until bind. |
-| Legacy IG at Approve | If Graph ids/token already on file → **`active`** (skip Connect). Else → `pending_instagram`. |
-| Lost session `pending_approval` | Wait for approval email only (no connect link exists yet). |
-| Resend `.edu` verify (no session) | **Public** `POST` (email + rate-limit) after apply. |
-| Legacy mid-flight | Existing `pending_org_profile` users may finish the old profile form. **New** IG-first inserts are off. |
-| Portal before IG | No. Apply / posts / Graph followers require bind. |
+| Fork                                    | Lock                                                                                                                                                                                                                                                                           |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Intake                                  | **Public** `/org/apply` (brand-apply analog). No admin CSV that **mints org accounts**. Ops may CLI-**mint** apply prefills (hashed drafts + local sidecar of `/org/apply?prefill=` URLs), verify on www, then **later** email from that sidecar; the org still submits apply. |
+| Identity until bind                     | `.edu` is the account. Claimed `@handle` is ops data, not login.                                                                                                                                                                                                               |
+| Review                                  | Still Buzz admin approve/deny. No auto-approve.                                                                                                                                                                                                                                |
+| Tester                                  | Ops **sends** the Instagram Tester invite in Meta **before** Approve (honor-system confirm). Approval email: **accept the tester invite, then Connect**. Connect is expected to fail until they accept.                                                                        |
+| Emails                                  | (1) verify `.edu` (2) **one** approval email = approved + accept tester invite + Connect link. No extra “tester ready” mail.                                                                                                                                                   |
+| After approve, before bind              | New status `pending_instagram`. **Not** `active`. No Drop Feed / Apply until bind.                                                                                                                                                                                             |
+| Connect                                 | `/onboarding/connect-instagram`. Approval email one-shot token mints session if the cookie is dead.                                                                                                                                                                            |
+| OAuth bind                              | Callback **updates** this user. Graph id already owned → 409. **No session / unknown IG → do not insert** (`ORG_APPLY_REQUIRED`).                                                                                                                                              |
+| Returning login after bind              | **Continue with Instagram only** (`/login`). No org password. No magic-link as ongoing login.                                                                                                                                                                                  |
+| Claimed handle                          | Unique among non-erased orgs (case-insensitive, `@` stripped). **Denied** orgs keep the handle until **erase**. **Apply UX:** same-page inline **confirm card** after exact-username lookup (§6.1.1) — not a separate route; not an IG-app typeahead.                          |
+| Graph `@` ≠ claimed `@` at Connect      | **Allow** bind; overwrite `users.instagram_username` from Graph; keep apply-time `@` on `organizations.claimed_instagram_username`; Overview **Needs a look** until admin Ack. No email. Portal `active`.                                                                      |
+| `.edu` rotate while `pending_instagram` | **Yes** (same pending-swap as `pending_approval` / `active`).                                                                                                                                                                                                                  |
+| View-as while `pending_instagram`       | **No** — nothing to impersonate until bind.                                                                                                                                                                                                                                    |
+| Legacy IG at Approve                    | If Graph ids/token already on file → **`active`** (skip Connect). Else → `pending_instagram`.                                                                                                                                                                                  |
+| Lost session `pending_approval`         | Wait for approval email only (no connect link exists yet).                                                                                                                                                                                                                     |
+| Resend `.edu` verify (no session)       | **Public** `POST` (email + rate-limit) after apply.                                                                                                                                                                                                                            |
+| Legacy mid-flight                       | Existing `pending_org_profile` users may finish the old profile form. **New** IG-first inserts are off.                                                                                                                                                                        |
+| Portal before IG                        | No. Apply / posts / Graph followers require bind.                                                                                                                                                                                                                              |
 
 ### Brand / drops
 
-| Fork | Lock |
-| ---- | ---- |
-| Request vs drop | **Two objects.** Ticket (`drop_requests`) is “request received.” A **new** `drops` row is what admin drafts and publishes. `request_received` is **not** a drop tracker stage. |
-| Intake vs creative | Ticket message/notes are **reference only**. They do **not** become title/description. Admin writes creative on the drop. |
-| Admin UX | Ticket detail: **side-by-side** ticket | draft-drop editor. Save draft; **Publish** is a separate action. |
-| Who writes creative | **Admin** on the draft and after publish (title, description, location, **https** image URL). Brand gets a creative editor **only** when admin sets `brand_can_edit_creative` on that drop (default off). |
-| Image URL | **https only.** Reject blank, `http:`, `data:`, `javascript:`, `placehold.co`. No relative URLs. |
-| Publish | Unpublished draft: not on org feed, no Notify Me, no autoclose, brand tracker does not run. **Publish** sets `published_at`; orgs see Upcoming/Open from the real window; tracker starts; brand gets monitor email. |
-| Brand sees draft | **Yes** — logged-in brand sees unpublished drafts (not org-visible). Ticket + draft on brand surfaces. |
-| Ticket required | **Every** `drops` row links to a `drop_requests` ticket. No admin create without a ticket. |
-| Tracker after publish | Three stages: `awaiting_products` → `drop_active` → `drop_finished`. No `request_received` or `finalizing_agreements` on drops. |
-| Brand link | `{FRONTEND_URL}/brand/drops/{id}` after **publish** (logged-in). No guest token. |
-| Legacy stubs | Hide unpublished **and** leftover `request_received` drops from the org feed until ops cleans them. |
-| Autoclose | Only **published** drops. Never tickets. Never unpublished drafts. |
+| Fork                  | Lock                                                                                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Request vs drop       | **Two objects.** Ticket (`drop_requests`) is “request received.” A **new** `drops` row is what admin drafts and publishes. `request_received` is **not** a drop tracker stage.                                      |
+| Intake vs creative    | Ticket message/notes are **reference only**. They do **not** become title/description. Admin writes creative on the drop.                                                                                           |
+| Admin UX              | Ticket detail: **side-by-side** ticket                                                                                                                                                                              | draft-drop editor. Save draft; **Publish** is a separate action. |
+| Who writes creative   | **Admin** on the draft and after publish (title, description, location, **https** image URL). Brand gets a creative editor **only** when admin sets `brand_can_edit_creative` on that drop (default off).           |
+| Image URL             | **https only.** Reject blank, `http:`, `data:`, `javascript:`, `placehold.co`. No relative URLs.                                                                                                                    |
+| Publish               | Unpublished draft: not on org feed, no Notify Me, no autoclose, brand tracker does not run. **Publish** sets `published_at`; orgs see Upcoming/Open from the real window; tracker starts; brand gets monitor email. |
+| Brand sees draft      | **Yes** — logged-in brand sees unpublished drafts (not org-visible). Ticket + draft on brand surfaces.                                                                                                              |
+| Ticket required       | **Every** `drops` row links to a `drop_requests` ticket. No admin create without a ticket.                                                                                                                          |
+| Tracker after publish | Three stages: `awaiting_products` → `drop_active` → `drop_finished`. No `request_received` or `finalizing_agreements` on drops.                                                                                     |
+| Brand link            | `{FRONTEND_URL}/brand/drops/{id}` after **publish** (logged-in). No guest token.                                                                                                                                    |
+| Legacy stubs          | Hide unpublished **and** leftover `request_received` drops from the org feed until ops cleans them.                                                                                                                 |
+| Autoclose             | Only **published** drops. Never tickets. Never unpublished drafts.                                                                                                                                                  |
 
 ### Meta / ops
 
-| Fork | Lock |
-| ---- | ---- |
+| Fork                  | Lock                                                                                                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Business Verification | **Not this revamp.** Living gap `deploy.meta-app-review` (was `deploy.meta-business-verification`) is the App Review resubmission. Testers do not need BV. |
-| App Review | **Not this revamp.** |
-| Mailbox | Parallel ops. Reply-To on app mail can stay Cornell until cutover. From on verify mail flips to `hello@` in Phase A. |
+| App Review            | **Not this revamp.**                                                                                                                                       |
+| Mailbox               | Parallel ops. Reply-To on app mail can stay Cornell until cutover. From on verify mail flips to `hello@` in Phase A.                                       |
 
 ### Locked decisions (2026-08-25 — do not reopen)
 
@@ -92,37 +92,37 @@ All former “remaining questions” are closed. Implement from the locks above 
 
 ### In this revamp
 
-| Id | Role | Phase |
-| -- | ---- | ----- |
-| [`org.signup-instagram-first`](gaps/org.signup-instagram-first.md) | New hole vs locked PRODUCT: signup is IG-first, non-testers bounce | A |
-| [`ideas/archive/org-precreate.md`](ideas/archive/org-precreate.md) | Motion (public-form variant). Locks live **here**, not in the idea file | A |
-| [`org.edu-verify-outlook-junk`](gaps/org.edu-verify-outlook-junk.md) | Verify mail must land in campus Outlook | A (same email.py pass) |
-| [`drops.unconfigured-request-on-org-feed`](gaps/drops.unconfigured-request-on-org-feed.md) | Stub campaigns on the org feed | B |
-| [`ideas/archive/admin-drops.md`](ideas/archive/admin-drops.md) | Option B. Remaining forks locked **here** | B |
-| [`spa.for-orgs-for-brands`](gaps/spa.for-orgs-for-brands.md) | Honest tours of the **new** motions | C (after A+B) |
-| [`ops.brand-mailbox`](gaps/ops.brand-mailbox.md) | Company inbox; human Workspace | Ops-parallel |
+| Id                                                                                         | Role                                                                    | Phase                  |
+| ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- | ---------------------- |
+| [`org.signup-instagram-first`](gaps/org.signup-instagram-first.md)                         | New hole vs locked PRODUCT: signup is IG-first, non-testers bounce      | A                      |
+| [`ideas/archive/org-precreate.md`](ideas/archive/org-precreate.md)                         | Motion (public-form variant). Locks live **here**, not in the idea file | A                      |
+| [`org.edu-verify-outlook-junk`](gaps/org.edu-verify-outlook-junk.md)                       | Verify mail must land in campus Outlook                                 | A (same email.py pass) |
+| [`drops.unconfigured-request-on-org-feed`](gaps/drops.unconfigured-request-on-org-feed.md) | Stub campaigns on the org feed                                          | B                      |
+| [`ideas/archive/admin-drops.md`](ideas/archive/admin-drops.md)                             | Option B. Remaining forks locked **here**                               | B                      |
+| [`spa.for-orgs-for-brands`](gaps/spa.for-orgs-for-brands.md)                               | Honest tours of the **new** motions                                     | C (after A+B)          |
+| [`ops.brand-mailbox`](gaps/archive/ops.brand-mailbox.md)                                   | Company inbox; `hello@` alias on `melissa@`                             | Done 2026-10-26        |
 
 ### After this revamp (Want — do not pull in)
 
-| Id | Why wait |
-| -- | -------- |
-| `auth.revoked-access-skips-refresh` | Session 401 after tab/View-as. Reload works. Not the loop. |
-| `auth.ci-session-restore-flake` | E2E/CI wait-for-restore. Not the user loop. |
-| `brand.drop-creative-uneditable` | Admin writes creative at mint. Brand typo-fix is a later Want. |
-| `ops.email-ledger` | Archived 2026-10-26. Idempotency keys, not a send ledger. |
-| `ideas/paper-ui.md` | Visual workshop. Not the loop. |
+| Id                                  | Why wait                                                       |
+| ----------------------------------- | -------------------------------------------------------------- |
+| `auth.revoked-access-skips-refresh` | Session 401 after tab/View-as. Reload works. Not the loop.     |
+| `auth.ci-session-restore-flake`     | E2E/CI wait-for-restore. Not the user loop.                    |
+| `brand.drop-creative-uneditable`    | Admin writes creative at mint. Brand typo-fix is a later Want. |
+| `ops.email-ledger`                  | Archived 2026-10-26. Idempotency keys, not a send ledger.      |
+| `ideas/paper-ui.md`                 | Visual workshop. Not the loop.                                 |
 
 ### Out (do not implement)
 
-| Id | Why |
-| -- | --- |
-| `deploy.meta-app-review` | Was `deploy.meta-business-verification`. Testers do not need BV. Public login is that gap (Advanced Access + Live mode), not this revamp. |
-| `spa.csp-blocks-gh-pages-inline` | Archived (fixed). |
-| `ops.observability-thin` | One replica is enough. |
-| `deploy.npm-workspaces-wontfix` | Decision record. |
-| `posts.sibling-dismiss-never-rearms` | PRODUCT accept. |
-| `ideas/org-social-accounts.md` | IG-only loop. Typed TikTok handle stays optional on the form. |
-| `ideas/ai.md` / `pricing.md` / `markets.md` | Post-PMF. Invoice brands out of band. |
+| Id                                          | Why                                                                                                                                       |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `deploy.meta-app-review`                    | Was `deploy.meta-business-verification`. Testers do not need BV. Public login is that gap (Advanced Access + Live mode), not this revamp. |
+| `spa.csp-blocks-gh-pages-inline`            | Archived (fixed).                                                                                                                         |
+| `ops.observability-thin`                    | One replica is enough.                                                                                                                    |
+| `deploy.npm-workspaces-wontfix`             | Decision record.                                                                                                                          |
+| `posts.sibling-dismiss-never-rearms`        | PRODUCT accept.                                                                                                                           |
+| `ideas/org-social-accounts.md`              | IG-only loop. Typed TikTok handle stays optional on the form.                                                                             |
+| `ideas/ai.md` / `pricing.md` / `markets.md` | Post-PMF. Invoice brands out of band.                                                                                                     |
 
 ### Contradictions closed
 
@@ -199,14 +199,14 @@ Admin org detail:
 
 ### Status machine (org)
 
-| Status | Now | After revamp |
-| ------ | --- | ------------ |
-| `pending_org_profile` | After IG create | Legacy only (drain existing rows) |
-| `pending_email_verification` | After profile | After `/org/apply` |
-| `pending_approval` | After `.edu` | After `.edu` (waiting room, no Connect) |
-| `pending_instagram` | — | After Approve, until bind |
-| `active` | After Approve | After IG bind |
-| `denied` / `erased` | unchanged | unchanged |
+| Status                       | Now             | After revamp                            |
+| ---------------------------- | --------------- | --------------------------------------- |
+| `pending_org_profile`        | After IG create | Legacy only (drain existing rows)       |
+| `pending_email_verification` | After profile   | After `/org/apply`                      |
+| `pending_approval`           | After `.edu`    | After `.edu` (waiting room, no Connect) |
+| `pending_instagram`          | —               | After Approve, until bind               |
+| `active`                     | After Approve   | After IG bind                           |
+| `denied` / `erased`          | unchanged       | unchanged                               |
 
 `pathForUser`: `pending_instagram` → `/onboarding/connect-instagram`.
 
@@ -214,17 +214,17 @@ Admin org detail:
 
 ### Files (Phase A)
 
-| Area | Touch |
-| ---- | ----- |
-| Enum / migration | `OrgUserStatus.PENDING_INSTAGRAM`; `org_connect_tokens` (mirror `brand_invite_tokens`) |
-| Apply | `POST /api/orgs/apply` public, rate-limited; schemas = today’s onboarding fields **plus** `instagramHandle` |
-| Onboarding | Stop requiring IG handle on submit; keep `/onboarding/profile` for legacy `pending_org_profile` |
-| Auth | `handle_instagram_callback`: bind-if-session-or-state; no insert; `ORG_APPLY_REQUIRED` |
-| Verify | On onboarding verify success, **issue token pair + refresh cookie** (today verify does not log them in — that only worked because they already had an IG session) |
-| Admin | Approve → `pending_instagram`; confirm copy; claimed handle on org list/detail; resend connect email |
-| Email | Verify (gap locked copy) + new approval/connect bodies |
-| SPA | `/org/apply`; connect page; Join CTA; `/login` copy for **returning** orgs; `pathForUser`; E2E |
-| OpenAPI | regen |
+| Area             | Touch                                                                                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Enum / migration | `OrgUserStatus.PENDING_INSTAGRAM`; `org_connect_tokens` (mirror `brand_invite_tokens`)                                                                            |
+| Apply            | `POST /api/orgs/apply` public, rate-limited; schemas = today’s onboarding fields **plus** `instagramHandle`                                                       |
+| Onboarding       | Stop requiring IG handle on submit; keep `/onboarding/profile` for legacy `pending_org_profile`                                                                   |
+| Auth             | `handle_instagram_callback`: bind-if-session-or-state; no insert; `ORG_APPLY_REQUIRED`                                                                            |
+| Verify           | On onboarding verify success, **issue token pair + refresh cookie** (today verify does not log them in — that only worked because they already had an IG session) |
+| Admin            | Approve → `pending_instagram`; confirm copy; claimed handle on org list/detail; resend connect email                                                              |
+| Email            | Verify (gap locked copy) + new approval/connect bodies                                                                                                            |
+| SPA              | `/org/apply`; connect page; Join CTA; `/login` copy for **returning** orgs; `pathForUser`; E2E                                                                    |
+| OpenAPI          | regen                                                                                                                                                             |
 
 ---
 
@@ -271,31 +271,31 @@ Existing stub `drops` in prod: treat as unpublished / hide from org feed. Leave 
 
 ### Files (Phase B)
 
-| Area | Touch |
-| ---- | ----- |
-| Model | `drop_requests`; Drop `published_at` (nullable). Remove `request_received` from **new** drop tracker use. |
-| Brand API | POST drop-requests only; **stop** `create_brand_drop`. |
-| Admin API | Draft create/patch (creative + logistics + https image); **Publish**. Side-by-side request UI. |
-| Feed | `published_at IS NOT NULL` and stage != `drop_finished` and brand approved. |
-| Job | Autoclose **published** only. |
-| SPA | Brand: tickets until publish; Admin: split ticket / draft + Publish. |
-| Email | On **publish**, not on first draft save. |
-| Tests / OpenAPI | Ticket absent from GET /api/drops; unpublished absent; published present. |
+| Area            | Touch                                                                                                     |
+| --------------- | --------------------------------------------------------------------------------------------------------- |
+| Model           | `drop_requests`; Drop `published_at` (nullable). Remove `request_received` from **new** drop tracker use. |
+| Brand API       | POST drop-requests only; **stop** `create_brand_drop`.                                                    |
+| Admin API       | Draft create/patch (creative + logistics + https image); **Publish**. Side-by-side request UI.            |
+| Feed            | `published_at IS NOT NULL` and stage != `drop_finished` and brand approved.                               |
+| Job             | Autoclose **published** only.                                                                             |
+| SPA             | Brand: tickets until publish; Admin: split ticket / draft + Publish.                                      |
+| Email           | On **publish**, not on first draft save.                                                                  |
+| Tests / OpenAPI | Ticket absent from GET /api/drops; unpublished absent; published present.                                 |
 
 ---
 
 ## 6. Email matrix (after Phase A+B)
 
-| Kind | When | Notes |
-| ---- | ---- | ----- |
-| Org verify (signup) | Apply | Locked bodies in `org.edu-verify-outlook-junk`. HTML+text. From `Buzz <hello@bringthebuzzover.com>`. Reply-To `CONTACT_EMAIL`. |
-| Org verify (rotate) | Officer swap | Same gap; different copy. |
-| Org waiting | SPA only | Junk line. |
-| Org approved + connect | Admin approve | New. Tester-accept + connect URL (token). **Not** “sign in at /login”. |
-| Org denied / undeny / erase | unchanged intent | Restyle out of scope. |
-| Brand invite / reset | unchanged | |
-| Drop live | Admin **Publish** | New. Monitor URL. Not on draft save. |
-| Notify Me | unchanged | Only real windows (stubs gone). |
+| Kind                        | When              | Notes                                                                                                                          |
+| --------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Org verify (signup)         | Apply             | Locked bodies in `org.edu-verify-outlook-junk`. HTML+text. From `Buzz <hello@bringthebuzzover.com>`. Reply-To `CONTACT_EMAIL`. |
+| Org verify (rotate)         | Officer swap      | Same gap; different copy.                                                                                                      |
+| Org waiting                 | SPA only          | Junk line.                                                                                                                     |
+| Org approved + connect      | Admin approve     | New. Tester-accept + connect URL (token). **Not** “sign in at /login”.                                                         |
+| Org denied / undeny / erase | unchanged intent  | Restyle out of scope.                                                                                                          |
+| Brand invite / reset        | unchanged         |                                                                                                                                |
+| Drop live                   | Admin **Publish** | New. Monitor URL. Not on draft save.                                                                                           |
+| Notify Me                   | unchanged         | Only real windows (stubs gone).                                                                                                |
 
 Do not restyle every template in this revamp.
 
@@ -347,7 +347,7 @@ Order:
 
 1. Migration: `pending_instagram` enum value; `org_connect_tokens`.
 2. Public apply API + SPA `/org/apply` (all current profile fields + **§6.1.1** Instagram confirm card; TikTok optional as today).
-2b. Public rate-limited `GET /api/orgs/instagram-lookup?username=` via Meta **Business Discovery** (Buzz service IG + Facebook Login token — see [`META.md`](META.md) § apply lookup + rate limits). Server cache + per-IP limits; fake in tests.
+   2b. Public rate-limited `GET /api/orgs/instagram-lookup?username=` via Meta **Business Discovery** (Buzz service IG + Facebook Login token — see [`META.md`](META.md) § apply lookup + rate limits). Server cache + per-IP limits; fake in tests.
 3. Verify: mint session on success; locked HTML mail + Junk copy (do the full verify gap, not a subset).
 4. Waiting room copy (no Connect).
 5. OAuth: bind / reject insert / `ORG_APPLY_REQUIRED`.
@@ -387,8 +387,8 @@ Frames match **this** plan. Stylized chrome, not View-as PNGs.
 
 ### Ops-parallel — mailbox
 
-Gap: `ops.brand-mailbox` (stays parked; do not auto-execute).  
-Does not block A–C. Public contact is already `melissa@bringthebuzzover.com`, and apex Google MX/SPF/DKIM/DMARC are published. Still open: whether `hello@` is a Workspace alias, and naming the billing owner / Super Admin in [`DEPLOYMENT.md`](DEPLOYMENT.md). Do not touch Resend `send.` records.
+Gap: [`ops.brand-mailbox`](gaps/archive/ops.brand-mailbox.md) — **done** 2026-10-26.  
+`hello@` is an alias on the sole Workspace user `melissa@`. A message to `hello@` arrived in that inbox. Resend stays on `send.`. Billing profile was not opened.
 
 ### Not a phase
 
@@ -400,19 +400,19 @@ Meta BV, App Review, address verifier, always-on brand creative editor (flag-off
 
 As-built detail: [`ARCHITECTURE.md`](ARCHITECTURE.md). PRODUCT remains SOT for UX.
 
-| Surface | After A–C |
-| ------- | --------- |
-| `/` Join org | `/org/apply` |
-| `/login` | Returning orgs + “New org? Apply” |
-| `/org/apply` | Public form |
-| `/onboarding/profile` | Legacy drain only |
-| `/onboarding/connect-instagram` | After approve |
-| `/for-orgs` / `/for-brands` | Public role tours (Phase C) |
-| `/brand/requests/new` | Creates ticket |
-| Admin brand | Full create form + Publish |
-| Admin org Approve | → `pending_instagram` |
-| Org feed | **Published** only (`published_at` set); hide leftover unpublished stubs until ops cleanup |
-| IG callback unknown user | 400 apply-required |
+| Surface                         | After A–C                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------------------------ |
+| `/` Join org                    | `/org/apply`                                                                               |
+| `/login`                        | Returning orgs + “New org? Apply”                                                          |
+| `/org/apply`                    | Public form                                                                                |
+| `/onboarding/profile`           | Legacy drain only                                                                          |
+| `/onboarding/connect-instagram` | After approve                                                                              |
+| `/for-orgs` / `/for-brands`     | Public role tours (Phase C)                                                                |
+| `/brand/requests/new`           | Creates ticket                                                                             |
+| Admin brand                     | Full create form + Publish                                                                 |
+| Admin org Approve               | → `pending_instagram`                                                                      |
+| Org feed                        | **Published** only (`published_at` set); hide leftover unpublished stubs until ops cleanup |
+| IG callback unknown user        | 400 apply-required                                                                         |
 
 Unchanged on purpose: org Drop Feed card UX, My Campaigns, brand dashboard KPIs, batch finalize §7.1, View as, erase, `.edu` rotate, brand apply/password, admin tracker stage moves.
 
