@@ -5,6 +5,7 @@ kind: ops
 severity: P0
 status: fixed
 surface: auth
+closed_in: b535aae
 evidence:
   - path: gaps/deploy.meta-app-review.md
     note: Living gap. Graph 100 for non-testers is Development / Standard Access, fixed by App Review plus Live mode
