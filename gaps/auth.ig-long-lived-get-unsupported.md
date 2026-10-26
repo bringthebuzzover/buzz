@@ -9,7 +9,7 @@ evidence:
   - path: backend/app/services/instagram.py
     note: exchange_for_long_lived uses the documented GET graph.instagram.com/access_token
   - path: gaps/deploy.meta-business-verification.md
-    note: App Live, privileges empty — Standard Access; non-testers fail Graph
+    note: App mode Development (2026-10-26), Standard Access; only accepted testers finish login — see that gap
   - path: frontend/src/utils/instagramCallbackCopy.ts
     note: API UNAUTHORIZED maps to "Instagram didn't connect" / didn't hand Buzz a session
 repro: |

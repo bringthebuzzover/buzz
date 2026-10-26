@@ -1,73 +1,575 @@
 ---
 id: deploy.meta-business-verification
-title: Meta Business Verification not completed — blocks Advanced Access / public IG login
+title: "Meta App Review (Instagram Login) — resubmission in progress"
 kind: ops
 severity: P1
-status: deferred
+status: in_progress
 surface: deploy
 evidence:
   - path: META.md
-    note: §E Business Verification required for Advanced Access; A–D done 2026-08-11
-  - path: gaps/archive/deploy.meta-brand-url-cutover.md
-    note: Hosts §C archived; launch residual was §E→F→G with no living gap until this file
-  - path: gaps/CLUSTERS.md
-    note: Cluster meta-business-verification (deferred); human Meta dashboard only
+    note: §E–F and the 2026-08-31 “app is live” line lagged the 2026-10-26 dashboard (Development; BV Verified; App Review rejected)
+  - path: backend/app/config.py
+    note: INSTAGRAM_SCOPES is only instagram_business_basic and instagram_business_manage_insights
+  - path: backend/app/services/instagram.py
+    note: fetch_business_discovery (~542) still calls graph.facebook.com with a Facebook Login service token; org login does not
+  - path: frontend/src/pages/org/OrgCampaignDetailPage.tsx
+    note: org campaign label is Instagram Reach on main (PR #7); the rejected insights screencast showed Est. Reach
+  - path: gaps/auth.ig-long-lived-get-unsupported.md
+    note: P0 — Development + Standard Access; only an accepted Instagram Tester can finish login
+  - path: gaps/ops.ig-business-discovery-unset.md
+    note: same unset Facebook Login token; its “app is Live” precondition was wrong
 repro: |
-  Meta MCP (BUZZ app 1589568552810678), 2026-08-11:
-  app_review requirements → business_verification_passes: false
-  privileges → [] (no Advanced Access)
-  submission_status → NO_SUBMISSION
-  Pilot testers can still IG-login (Standard Access). Non-tester public orgs cannot
-  be granted Advanced Access until a verified Business is linked.
+  Read-only Meta dashboard check, 2026-10-26 (do not paste tokens or tester
+  credentials into git or chat). Facebook app BUZZ 1589568552810678 and
+  Instagram app BUZZ - IG 2056969808271074. App mode Development.
+  App Review for instagram_business_basic and instagram_business_manage_insights
+  submitted 2026-10-07, rejected under Developer Policy 1.6.
+  Instagram Testers: 3 accepted, 11 pending. A pending invite cannot complete
+  login (see auth.ig-long-lived-get-unsupported).
+  Code: INSTAGRAM_SCOPES in backend/app/config.py. Git history on main has
+  never contained instagram_business_manage_messages, manage_comments, or
+  content_publish.
 fix_when: |
-  BUZZ app is connected to a Meta Business (business portfolio) that has completed
-  Business Verification. Meta MCP app_review requirements shows
-  business_verification_passes: true (or App Dashboard Settings → Basic →
-  Verification shows Verified next to the Business name).
-  Out of archive scope: App Review / Advanced Access submission (§F) and public
-  login without testers (§G) — file or track separately when started.
+  Archive when Meta has granted Advanced Access on both
+  instagram_business_basic and instagram_business_manage_insights, and a
+  non-tester Instagram Business or Creator account completes Instagram Login
+  on https://www.bringthebuzzover.com (META.md §G).
+  The resubmission’s screencasts and usage text must match the code: consent
+  under the app name BUZZ - IG, both permissions listed, org campaign label
+  Instagram Reach, and the feed/reel metrics in instagram.py. Reviewers use
+  the test-credentials field (accepted tester + a Buzz test org), not their
+  own account.
+  instagram_business_manage_messages, manage_comments, and content_publish
+  are removed, or Lawrence keeps one and the submission says so while Buzz
+  still does not call it.
+  Business Verification is already Verified (2026-10-26) and is not the
+  remaining gate. Do not archive on submit alone.
+  Do not commit tester passwords, access tokens, or one-time connect links.
 ---
 
-# Meta Business Verification (§E)
+# Meta App Review (Instagram Login) — resubmission in progress
 
-Independent of Hosts cutover (`deploy.meta-brand-url-cutover`, archived).
-Human Meta dashboard / Business Manager only — agents verify via MCP; do not
-mutate Meta without explicit OK.
+Business Verification is **Verified**. Public org login is still blocked on
+**App Review**. Meta rejected the 2026-10-07 submission for
+`instagram_business_basic` and `instagram_business_manage_insights`
+(Developer Policy 1.6 — reviewers could not verify the use case / login
+flow). That rejection matches the screencasts and the form text. This file
+is the resubmission checklist.
 
-## Official path
+Human Meta dashboard only. Agents verify; do not mutate Meta, submit App
+Review, or paste tester credentials without an explicit OK.
+[`LAUNCH.md`](../LAUNCH.md) still treats Advanced Access as outside the
+seeded revamp: testers do not need it. Seeded onboarding stays “add the
+handle as an Instagram Tester, then Connect.”
 
-Docs: [Business Verification](https://developers.facebook.com/docs/development/release/business-verification/),
-[documents](https://www.facebook.com/business/help/2058515294227817).
+## Verified 2026-10-26 (dashboard, read-only)
 
-1. **App Dashboard** → [BUZZ](https://developers.facebook.com/apps/1589568552810678/)
-   → **App settings → Basic → Verification** → **Start Verification**
-   (or **+ Business Verification**). Link or create a **business portfolio**.
-   Newer use-case UI: left nav **Review → Verification**.
-2. **Business Manager** ([business.facebook.com](https://business.facebook.com/)) —
-   Business Admin completes verification (tax / registration / utility docs).
-3. Return to Basic → Verification should show **Verified**.
+### Apps
 
-| Role | Can do |
-| ---- | ------ |
-| App Admin | Connect app ↔ Business |
-| Business Admin | Finish verification in Business Manager |
+| | |
+| --- | --- |
+| Facebook app | **BUZZ** `1589568552810678` |
+| Instagram app | **BUZZ - IG** `2056969808271074` |
+| App mode | **Development** |
+| Business Verification | **Verified** |
+| Required actions | None |
+| Webhooks | Off |
 
-## Why required
+Earlier notes that called BUZZ **Live** (META.md status 2026-08-31,
+`ops.ig-business-discovery-unset`) do not match this check.
 
-| Goal | Need BV? |
-| ---- | -------- |
-| Pilot (Instagram Testers / app roles) | No |
-| Public orgs (Advanced Access) | **Yes** |
+### Settings that are in place
 
-Buzz needs Advanced Access for `instagram_business_basic` +
-`instagram_business_manage_insights` before non-tester campus orgs can log in.
+| Setting | Value |
+| --- | --- |
+| Privacy policy | `https://www.bringthebuzzover.com/privacy` |
+| Terms | `https://www.bringthebuzzover.com/terms` |
+| Data deletion instructions | `https://www.bringthebuzzover.com/data-deletion` |
+| App icon | Present |
+| OAuth redirect | `https://www.bringthebuzzover.com/auth/instagram/callback` |
+| Deauthorize callback | `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize` |
+
+Advanced settings shows a notice recommending a **Data Deletion Callback
+URL**. Only the instructions URL is set. Adding the callback is optional
+on the checklist below (Lawrence).
+
+### Instagram Testers
+
+**3 accepted, 11 pending.** Only an accepted tester can complete Instagram
+Login while the app stays in Development on Standard Access. A pending
+invite fails the same way as a non-tester. That is the production symptom
+in [`auth.ig-long-lived-get-unsupported`](auth.ig-long-lived-get-unsupported.md)
+(P0). Handles are not listed here.
+
+### Permissions (Standard Access, last 30 days)
+
+| Permission | State | API calls | App Review |
+| --- | --- | ---: | --- |
+| `instagram_business_basic` | Active | 946 | Rejected |
+| `instagram_business_manage_insights` | Active | 285 | Rejected |
+| `instagram_business_manage_messages` | Active | 285 | Not requested |
+| `manage_comments` | Ready to use | 0 | — |
+| `content_publish` | Ready to use | 0 | — |
+
+Buzz requests only the first two. `INSTAGRAM_SCOPES` in
+`backend/app/config.py` is
+`instagram_business_basic,instagram_business_manage_insights`. That default
+was set in `0e46e63` and has not changed. Git history on `main` has no
+`instagram_business_manage_messages`, `manage_comments`, or
+`content_publish`.
+
+`instagram_business_manage_messages` was auto-added by Meta with the
+Instagram use case
+([create a Meta app with Instagram](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/create-a-meta-app-with-instagram/)).
+Its 285 calls equal the insights count, so Meta may be attributing insights
+calls to the messaging permission as well. That is an inference, not
+confirmed. [PR #8](https://github.com/bringthebuzzover/buzz/pull/8) records
+the `permissions` field Meta returns on each login so the next real grant
+is visible without guessing.
+
+Removing a Standard Access permission is reversible
+([access levels](https://developers.facebook.com/docs/graph-api/overview/access-levels/)).
+
+### Submission
+
+Submitted **2026-10-07** for `instagram_business_basic` and
+`instagram_business_manage_insights`. **Rejected** (Developer Policy 1.6).
+The export reproduced in the appendix was downloaded 2026-10-26, 9:34 AM PDT.
+The one-time connect token in that export is `[REDACTED]`.
+
+## Why the rejection was justified
+
+Reviewed against the submitted videos and the form text.
+
+**Video A** (`instagram_business_basic`, about 2:43) spends about two
+minutes on signup, email verification, and admin approval. Instagram login
+skips the credentials screen and shows only a re-auth “continue sharing”
+screen. That screen names an old app, **BUZZ-V2**, and lists no
+permissions. Profile data is on screen only briefly.
+
+**Video B** (`instagram_business_manage_insights`, about 1:14) has no
+login, no consent screen, and no captions. The metric label on screen is
+**Est. Reach**. On `main`, that label is **Instagram Reach**
+([PR #7](https://github.com/bringthebuzzover/buzz/pull/7), merged).
+
+Reviewer instructions tell the reviewer to use **their own** Instagram
+Business or Creator account, and in the same text admit that Development
+mode blocks anyone who is not an accepted tester. The optional
+test-credentials field was blank, so the reviewer had no account that could
+finish the flow.
+
+The written answers contradict the product:
+
+| Form said | Code does |
+| --- | --- |
+| “Buzz does not use Facebook Login.” | `fetch_business_discovery` (`instagram.py` ~542) still calls Business Discovery on `graph.facebook.com` with a Facebook Login service token. The token is unset in production (`ops.ig-business-discovery-unset`). Org Connect does not use this path. |
+| “There is no access to messages or comments.” | Usage text also says Buzz reads **likes and comments** on linked posts. Those are counts on media (`like_count`, `comments_count`), not comment management or messaging. |
+| Insights are “reach and related insights.” | Feed metrics are `reach`, `views`, `saved`, `shares`, `total_interactions`, `profile_visits`, `profile_activity`, `follows`. Reel metrics add `ig_reels_avg_watch_time`, `ig_reels_video_view_total_time`, and `reels_skip_rate` (`instagram.py` `_FEED_INSIGHT_METRICS` / `_REEL_INSIGHT_METRICS`). |
+| Consent shown under **BUZZ-V2** | Dashboard app name is **BUZZ - IG**. |
+
+## Resubmission checklist
+
+Do the steps in order. Recording and form text depend on the dashboard
+cleanup and on the Facebook Login decision. Do not put tester passwords,
+session cookies, or one-time connect links in this repo.
+
+| # | Work | Owner | Status |
+| --- | --- | --- | --- |
+| 1a | Rename **Est. Reach** → **Instagram Reach** on the org campaign | Engineering | **Done.** [PR #7](https://github.com/bringthebuzzover/buzz/pull/7) merged. Record from a www build that serves this label. |
+| 1b | Pin Graph `v26.0` on Instagram reads and store granted permissions per login | Engineering | **Open.** [PR #8](https://github.com/bringthebuzzover/buzz/pull/8). |
+| 1c | Decide: remove the unused Facebook Login Business Discovery path, or disclose it on the form | Lawrence + engineering | **Not started.** |
+| 2a | Remove auto-added `instagram_business_manage_messages`, `manage_comments`, and `content_publish` | Lawrence | **Not started.** Needs Lawrence’s approval. Reversible per the access-levels doc above. |
+| 2b | Consider a Data Deletion Callback URL (instructions URL already set) | Lawrence | **Not started.** |
+| 3 | Put an **accepted** tester’s Instagram credentials and a Buzz test org in the test-credentials field. Do not tell reviewers to use their own account. | Lawrence | **Not started.** Credentials stay in the Meta form, not in git. |
+| 4 | Record one fresh session, then edit two captioned videos (English captions). See the recording bar below. | Lawrence | **Not started.** After 1a is on www, after 2a (so consent lists only the two permissions), and after 1c (so the script matches the Facebook Login answer). |
+| 5 | Rewrite each permission’s usage description. Name the fields and metrics. Say “comment counts,” not that Buzz has no access to comments. Say the messaging permission was auto-added and removed (after 2a). | Engineering drafts; Lawrence confirms | **Not started.** |
+| 6 | Submit | Lawrence | **Not started.** |
+
+**Recording bar.** On the tester account, remove Buzz, then use a fresh
+browser. Start at `/login` → **Continue with Instagram**. The take must
+show the credentials screen and the full consent screen listing **both**
+permissions under **BUZZ - IG**, then profile data, then a live campaign
+whose insights show **Instagram Reach** and the metrics above. Edit that
+session into two videos, one per permission, with English captions.
 
 ## Verify (read-only)
 
 ```text
-Meta MCP → devtools_app_review action=requirements app_id=1589568552810678
-→ app_settings_valid.business_verification_passes === true
+Dashboard → both apps above → App mode = Development
+Settings → Basic → Verification = Verified
+App Review → instagram_business_basic and instagram_business_manage_insights
+  = rejected until the new submission is approved
+Instagram Testers → accepted count is what can log in
 ```
 
-Optional: `devtools_app` basic_settings (privacy already on www); privileges still
-empty until App Review (§F) approves Advanced Access.
+After Lawrence submits, re-check App Review status before claiming §F done.
+§G (non-tester login on www) is still required to archive.
+
+## Docs left on the old story
+
+Not edited here. They still disagree with this file:
+
+- [`LAUNCH.md`](../LAUNCH.md) §2 lock and §3 Out say keep this gap parked and
+  that Business Verification is not part of the seeded revamp. Testers still
+  do not need Advanced Access. The lock does not describe this resubmission.
+- [`DEPLOYMENT.md`](../DEPLOYMENT.md) launch table still says App Review +
+  Business Verification are “Not started.”
+- [`ideas/org-bind-at-signup.md`](../ideas/org-bind-at-signup.md) still cites
+  `business_verification_passes: false` (2026-09-14). Ideas are not SOT.
+
+## Related
+
+- [`META.md`](../META.md) — dashboard guide; §E done; §F is this resubmission.
+- [`auth.ig-long-lived-get-unsupported`](auth.ig-long-lived-get-unsupported.md) — tester wall on the long-lived exchange.
+- [`ops.ig-business-discovery-unset`](ops.ig-business-discovery-unset.md) — unset service token for the unused Facebook Login path (checklist 1c).
+
+## Appendix: Submitted form — full questions and our answers (2026-10-07)
+
+Source: Meta “App review request for BUZZ (app ID 1589568552810678)”,
+downloaded October 26, 2026, 9:34 AM PDT. Question labels and answers are
+the export. Hard line wraps are joined. The connect token was already
+`[REDACTED]` in the export; no email addresses were in it. Three labels
+are missing a space after a period in the export (`payment.Codes`,
+`submission.Include`, `locations.For`) and are copied that way. The TCPDF
+footer is omitted.
+
+### 1. `instagram_business_basic` — how the permission is used
+
+**Question**
+
+```text
+[instagram_business_basic] Tell us how you're using this permission or feature
+```
+
+**Submitted answer**
+
+```text
+Buzz connects campus organizations with brand campaigns. An organization connects its own Instagram professional account through Instagram Login. We use instagram_business_basic to read that account's username and profile, and to read the media on that account, including likes and comments on posts the organization links to a campaign. Those metrics are shown to the organization and to the brand on that campaign. We do not publish, comment, or message, and we do not read any Instagram account the organization did not connect. This permission is not requested as a dependency of messages or comments. INSTRUCTIONS Organizations do not have a Buzz password. We prepared a test organization named "Meta Test Org". It is already approved and waiting to connect Instagram. The attached video shows that setup: the application, email verification, Buzz approval, and the approval email. Your step is the Instagram connection at the end of that email. Use a desktop browser. Open this link once, in one window, and do not forward it or open it again: https://www.bringthebuzzover.com/onboarding/connect-instagram?token=[REDACTED] The page should say Connect Instagram. Click Connect with Instagram. Sign in with your own Instagram Business or Creator account, not a personal account. Approve the request. Buzz asks to read that account’s profile and insights only. There is no access to messages or comments. When Buzz opens again, go to https://www.bringthebuzzover.com/org/profile (or choose Profile in the top navigation; on a narrow window, open the menu first). Instagram identity is the @username you just connected. Instagram followers is the count from that account. This Meta app is still in Development, so Instagram only lets accepted Testers through. If Instagram stops you before you return to Buzz, do not try another login. Reply with the Instagram @username and a screenshot of Instagram’s message, then wait. We will add that username as an Instagram Tester and send a new link. Accept the invite at https://www.instagram.com/accounts/manage_access/ under Tester Invites (the invite is from BUZZ), then open only the new link. If Buzz shows an error, copy the heading and the sentence under it and send them to us. We are not requesting messages or comments.
+```
+
+**Resubmission change.** Drop the signup walkthrough and the one-time
+connect link. Describe profile fields and media Buzz actually reads, and
+call likes/comments **counts**. Delete “no access to comments.” Do not tell
+the reviewer to use their own account or to wait while we add them as a
+tester. Point at the credentials in field 15 and at `/login`.
+
+### 2. `instagram_business_basic` — video
+
+**Question**
+
+```text
+[instagram_business_basic] Provide a detailed step-by-step video walkthrough of how your app will use this permission or feature so we can confirm it is used correctly and does not violate our policies.
+```
+
+**Submitted answer**
+
+```text
+video
+```
+
+**Resubmission change.** Replace Video A. New captioned video: credentials,
+full consent under **BUZZ - IG** listing this permission, then profile data
+held on screen long enough to read. No two-minute signup preamble. No
+BUZZ-V2 re-auth screen.
+
+### 3. `instagram_business_basic` — allowed-usage attestation
+
+**Question**
+
+```text
+[instagram_business_basic] The instagram_business_basic allows your app to read an Instagram Business account profile's info and media. The allowed usage for this permission is to get basic metadata of an Instagram Business account profile, for example username and ID. You may also use this permission to request analytics insights to improve your app and for marketing or advertising purposes, through the use of aggregated and de-identified or anonymized information (provided such data cannot be re-identified).
+
+If approved, I agree that any data I receive through instagram_business_basic will be used in accordance with the allowed usage.
+```
+
+**Submitted answer.** The export has no separate written answer. Submitting
+required agreeing to this block.
+
+**Resubmission change.** Agree again on the new submission. No wording
+change; this text is Meta’s.
+
+### 4. `instagram_business_manage_insights` — how the permission is used
+
+**Question**
+
+```text
+[instagram_business_manage_insights] Tell us how you're using this permission or feature
+```
+
+**Submitted answer**
+
+```text
+Buzz connects campus organizations to brand campaigns. Each organization logs in with Instagram and grants Buzz read access to its own professional account. We use instagram_business_basic to identify the account and read its media, including likes and comments on posts linked to a campaign. We use instagram_business_manage_insights to read reach and related insights for those same posts and show them to the organization and the brand. We do not publish content, read messages, or access any account the organization did not connect.
+```
+
+**Resubmission change.** Replace “reach and related insights” with the feed
+and reel metric names in the table above, and say the org campaign label is
+**Instagram Reach**. Keep likes/comments as counts. State that
+`instagram_business_manage_messages` was auto-added and then removed (after
+checklist 2a). Do not imply Buzz reads message content.
+
+### 5. `instagram_business_manage_insights` — video
+
+**Question**
+
+```text
+[instagram_business_manage_insights] Provide a detailed step-by-step video walkthrough of how your app will use this permission or feature so we can confirm it is used correctly and does not violate our policies.
+```
+
+**Submitted answer**
+
+```text
+video
+```
+
+**Resubmission change.** Replace Video B. New captioned video must include
+login and the consent screen, then a live campaign showing **Instagram
+Reach** and the metrics named in the usage text. English captions.
+
+### 6. `instagram_business_manage_insights` — allowed-usage attestation
+
+**Question**
+
+```text
+[instagram_business_manage_insights] The instagram_business_manage_insights permission allows an app to get insights from the app user's Instagram professional account metadata, posts, photos, and videos; and insights for an Instagram professional account's public profile metadata and media. The allowed usage of this permission is to allow an app to get the insights for the app user's Instagram professional account metadata, posts, photos, and videos; and get insights for an Instagram professional account's public profile metadata and media on behalf of the app user's Instagram professional account. You may also use this permission to request analytics insights to improve your app and for marketing or advertising purposes, through the use of aggregated and de-identified or anonymized information (provided such data cannot be re-identified).
+
+If approved, I agree that any data I receive through instagram_business_manage_insights will be used in accordance with the allowed usage.
+```
+
+**Submitted answer.** The export has no separate written answer. Submitting
+required agreeing to this block.
+
+**Resubmission change.** Agree again. No wording change; this text is Meta’s.
+
+### 7. `processor-0` — any processors
+
+**Question**
+
+```text
+processor-0. Do you have data processors or service providers, including your own companies, that will have access to the Platform Data that you obtain from Meta? Data processors or service providers are separate entities that, on your behalf, process the Platform Data made accessible to you in order to provide you with a service. Please provide the names of any processors that will have access to the Platform Data made accessible to you through the requested permissions and features. “Platform Data” is any data that you receive from Meta (e.g., Meta user ID, email address, profile picture, Meta API user access token, and app secret).
+```
+
+**Submitted answer**
+
+```text
+Yes
+```
+
+**Resubmission change.** Reconfirm. No change unless a new processor will
+see Platform Data. Do not paste an app secret into the answer.
+
+### 8. `processor-2` — which processors
+
+**Question**
+
+```text
+processor-2. List all data processors or service providers, including your own companies, that will have access to the Platform Data that you obtain from Meta. Please note that Platform Data may include a subset of personal data or personal information that relates to an identified or identifiable person.
+```
+
+**Submitted answer**
+
+```text
+Railway
+```
+
+**Resubmission change.** Reconfirm Railway is still the only processor of
+Platform Data. Lawrence confirms before submit.
+
+### 9. `processor-1a` — service category
+
+**Question**
+
+```text
+processor-1a. For which category of services will this data processor process the personal data of users received from Meta? Select all that apply.
+```
+
+**Submitted answer**
+
+```text
+IT solutions and services, including cloud storage and processing
+```
+
+**Resubmission change.** No change. Reconfirm the same category for Railway.
+
+### 10. `processor-1b` — countries
+
+**Question**
+
+```text
+processor-1b. List all countries where this data processor will process the personal data of users received from Meta. Include locations from which the data processor will access the data remotely, via the internet. Select all that apply. Many data processors provide this information on their corporate website.
+```
+
+**Submitted answer**
+
+```text
+United States of America
+```
+
+**Resubmission change.** No change unless Railway’s processing locations for
+this data have changed. Lawrence confirms.
+
+### 11. `responsible-1` — who controls Platform Data
+
+**Question**
+
+```text
+responsible-1. Who is the person or entity that will be responsible for all Platform Data Meta shares with you? Please provide the name of the legal entity that will control the data (i.e., determine the purposes and means of processing the data) made available to you by Meta through the requested permissions and/or features. This could be a natural or legal person, a public authority, an agency or other entity. In some regions this is called a data controller.
+```
+
+**Submitted answer**
+
+```text
+Bring the Buzz Over Inc.
+```
+
+**Resubmission change.** No change. Lawrence confirms the legal name is
+still correct.
+
+### 12. `responsible-2` — country of that entity
+
+**Question**
+
+```text
+responsible-2. Select the country where this person or entity is located.
+```
+
+**Submitted answer**
+
+```text
+United States of America
+```
+
+**Resubmission change.** No change.
+
+### 13. `requests-3` — national security requests
+
+**Question**
+
+```text
+requests-3. Have you provided the personal data or personal information of users to public authorities in response to national security requests in the past 12 months? This does not include requests related to search warrants or court orders associated with criminal investigations. Personal data or personal information is any data you receive from Meta that relates to an identified or identifiable person.
+```
+
+**Submitted answer**
+
+```text
+No
+```
+
+**Resubmission change.** Lawrence reconfirms for the new 12-month window.
+Do not change the answer in git if the fact changes; he answers on the form.
+
+### 14. `requests-4` — policies for authority requests
+
+**Question**
+
+```text
+requests-4. Which of the following policies or processes do you have in place regarding requests from public authorities for the personal data or personal information of users? Check all that apply.
+```
+
+**Submitted answer**
+
+```text
+None of the above.
+```
+
+**Resubmission change.** No change unless counsel has adopted one of Meta’s
+listed policies since 2026-10-07. Lawrence confirms.
+
+### 15. Web reviewer instructions
+
+**Question**
+
+```text
+Provide instructions for accessing the app so we may complete our review. Explain how to navigate to the app, and provide instructions for testing.
+```
+
+**Submitted answer**
+
+```text
+Buzz does not use Facebook Login. Student organizations have no Buzz password. They sign in with Instagram Login using a Business or Creator account. We do not request Facebook user permissions such as email, public profile, user_friends, user_gender, or user_birthday. To review, use a desktop browser and open this link once, in one window. Do not forward it or open it again: https://www.bringthebuzzover.com/onboarding/connect-instagram?token=[REDACTED] The page says Connect Instagram. Click Connect with Instagram and approve access with your own Instagram Business or Creator account. Buzz reads that account’s profile and post insights only. There is no access to messages or comments. No payment or membership is required. When Buzz opens again, go to https://www.bringthebuzzover.com/org/profile. Instagram identity shows the @username you connected. Instagram followers shows the count from that account. The app is in Development mode, so only an accepted Instagram Tester can finish the consent screen. If Instagram blocks the account, reply with the @username. We will add it as an Instagram Tester and send a new link. Accept the invite at https://www.instagram.com/accounts/manage_access/ under Tester Invites, then open only the new link. The link expires 7 days after we send it. If it has expired or was already opened, tell us and we will send a new one. Do not use Continue with Instagram on the normal login page. That path is only for an organization that has already connected.
+```
+
+**Resubmission change.** Rewrite. Tell the reviewer to open
+`https://www.bringthebuzzover.com/login` and use **Continue with
+Instagram** with the account in the test-credentials field. Delete “use
+your own account,” the one-time connect link, and “we will add you as a
+tester.” Say comment **counts**, not “no access to comments.” Mention that
+the messaging permission was auto-added and removed (after checklist 2a).
+The Facebook Login sentence has to match checklist 1c: either the unused
+Business Discovery path is gone and “org login does not use Facebook Login”
+is accurate, or the sentence discloses that path.
+
+### 16. Facebook Login on this platform
+
+**Question**
+
+```text
+Is Facebook Login integrated on this platform?
+```
+
+**Submitted answer**
+
+```text
+No
+```
+
+**Resubmission change.** Depends on checklist 1c. **No** stays accurate for
+the flow reviewers test only if the unused Business Discovery path is
+removed first. If that path stays in the repo, this answer cannot stay an
+unqualified No.
+
+### 17. Test credentials (optional)
+
+**Question**
+
+```text
+(optional) If payment or membership is required to access the full functionality of this app, provide access codes or test credentials so we can access and review all features on this app. Codes should be active for one year after submission.
+```
+
+**Submitted answer.** Blank.
+
+**Resubmission change.** Fill this in. Provide an accepted tester’s
+Instagram login and a Buzz test org that already has a live campaign.
+Credentials go in the Meta form only. Do not write “use your own account.”
+
+### 18. Store gift codes (optional)
+
+**Question**
+
+```text
+(optional) If payment is required to download this app, provide 8–10 gift codes so we can download it from app stores without payment.Codes should be active for one year after submission.Include any codes or test credentials required to access in-app subscriptions, purchases, or features.
+```
+
+**Submitted answer.** Blank.
+
+**Resubmission change.** Leave blank. Buzz is a website; there is no store
+download and no in-app purchase.
+
+### 19. Geographic restriction (optional)
+
+**Question**
+
+```text
+(optional) If access to this app or any of its features is limited to users within a specific geographic location or restricted by geo-blocking or geo-fencing, explain the restrictions and provide a list of locations.For example, specify the countries where the app can be accessed.
+```
+
+**Submitted answer.** Blank.
+
+**Resubmission change.** Leave blank. No geo-block.
+
+### 20. Supporting documentation (optional)
+
+**Question**
+
+```text
+Include supporting documentation. (Optional) For example, you can upload a screen recording or images that show how to access the app, log in, and how the app uses Meta APIs. You can upload multiple files, maximum 2 GB each. We accept .xls, .xlsx, .csv, .doc, .docx, .pdf, .txt, .jpeg, .jpg, .png, .ppt, .pptx, .mov, .mp4, .zip and .zipx.
+```
+
+**Submitted answer**
+
+```text
+buzz-signup-login-demo.mp4
+```
+
+**Resubmission change.** Replace that file with the two new captioned
+videos from checklist 4. Do not re-upload the rejected signup demo.
