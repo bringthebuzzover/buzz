@@ -104,6 +104,29 @@ Production SPA/API are on **Railway** with brand hosts `www` / `api.bringthebuzz
 
 ---
 
+## Branching & main protection
+
+Decided 2026-10-26: there is no long-lived `dev` or `staging` branch and no staging environment. Short-lived feature branches open a pull request straight into `main`. Railway autodeploys from `main` only ([`DEPLOYMENT.md`](DEPLOYMENT.md)). `ENVIRONMENT=staging` is still a legal API setting (same hardened path as `production`); it is not a second deployed stack.
+
+`main` is protected. These GitHub branch-protection settings are already applied, and admins are bound by them (`enforce_admins`):
+
+- A pull request is required to merge. Required approving reviews: **0**, so the solo maintainer can merge agent pull requests.
+- Required status checks (a failing check blocks merge; branches do **not** have to be up to date before merging):
+  - `Backend (ruff + mypy + pytest)`
+  - `Frontend (typecheck + build)`
+- Playwright E2E is not a required check. That job’s check name includes the shard (`Frontend E2E (Playwright) #N` in [`.github/workflows/ci.yml`](.github/workflows/ci.yml)) and changes with the matrix. Still run `./scripts/ci-local.sh` before behavior changes ([`TESTING.md`](TESTING.md)).
+- Force pushes to `main` are blocked, and `main` cannot be deleted.
+- Every pull request conversation must be resolved before merge, including Bugbot threads.
+- In an emergency, an admin can temporarily turn off **enforce admins** under the repo **Settings → Branches**, then turn it back on.
+
+If a job `name:` in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) is renamed, update the required-check list on `main` in the same change. GitHub matches those strings exactly; a stale name blocks every merge.
+
+High-risk pull requests get a Bugbot pass: comment `bugbot run` on the PR.
+
+Do not push to `main` directly. Open a pull request from a feature branch.
+
+---
+
 ## Project layout (high level)
 
 ```

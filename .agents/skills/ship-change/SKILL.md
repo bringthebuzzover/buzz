@@ -48,7 +48,9 @@ For work that is **not** a gap cluster (`fix-gap-cluster`). Agent map: [`AGENTS.
 ### 6. Stop
 
 11. Report what changed, residual gaps / risk, CI result.
-12. **Do not commit or push** unless the user explicitly asks.
+12. **Do not commit or push** unless the user explicitly asks. When they do,
+    push a feature branch and open a PR. Never push `main`
+    ([Branching & main protection](../../../README.md#branching--main-protection)).
 
 ## Non-negotiables
 

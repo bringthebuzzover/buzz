@@ -94,6 +94,8 @@ tsc/gen:api/build → Playwright E2E with `CI=true`. Use this before merging or 
 fix; backend-only `./backend/scripts/check.sh` is fine for a quick loop but
 does **not** replace full CI.
 
+GitHub required checks on `main` are only `Backend (ruff + mypy + pytest)` and `Frontend (typecheck + build)`. Playwright is not required: its check name is per shard and changes with the matrix. If those job `name:` values change in `.github/workflows/ci.yml`, update the required-check list in branch protection or merges block. Full rules: [Branching & main protection](README.md#branching--main-protection).
+
 ## E2E — Playwright (`frontend/e2e/`)
 
 Deliberately **thin** (critical cross-stack journeys) and on `data-testid`
