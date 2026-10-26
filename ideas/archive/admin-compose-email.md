@@ -10,7 +10,7 @@ updated: 2026-09-17
 **Shipped** on `main` (`03323a3`). Behavior SOT is [`PRODUCT.md`](../../PRODUCT.md)
 **§10**. This file is provenance. Do not implement from here.
 
-Brainstorm (2026-09-13). Related ops: [`gaps/ops.brand-mailbox.md`](../../gaps/ops.brand-mailbox.md)
+Brainstorm (2026-09-13). Related ops: [`gaps/archive/ops.brand-mailbox.md`](../../gaps/archive/ops.brand-mailbox.md)
 (company inbox cutover; **in-app inbox still out of scope**),
 [`gaps/archive/ops.email-ledger.md`](../../gaps/archive/ops.email-ledger.md)
 (no in-app send history; Resend dashboard is the record).
@@ -68,16 +68,16 @@ Not required for v1. Optional: one `email_sends` row (kind=`admin_compose`)
 
 ## Locked (2026-09-13)
 
-| Fork | Lock |
-| ---- | ---- |
-| Reply-To | Ship now with Cornell `CONTACT_EMAIL`. Change later = `brand_emails.json` `contactEmail` only (already the SOT for Reply-To + public mailto). |
-| Body | Existing cream/coral HTML wrapper around the admin-typed body. |
-| To | Locked to profile email (org `.edu` / brand `company_email`). Not editable. |
-| Attachments | **None.** |
-| Ledger | **Skip v1.** Gmail / Resend is the record. |
-| CC in UI | **Visible** (read-only), not hidden. |
-| Empty subject/body | **Block send.** |
-| Resend reject | **Fail the request** (like brand invite resend). |
+| Fork               | Lock                                                                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reply-To           | Ship now with Cornell `CONTACT_EMAIL`. Change later = `brand_emails.json` `contactEmail` only (already the SOT for Reply-To + public mailto). |
+| Body               | Existing cream/coral HTML wrapper around the admin-typed body.                                                                                |
+| To                 | Locked to profile email (org `.edu` / brand `company_email`). Not editable.                                                                   |
+| Attachments        | **None.**                                                                                                                                     |
+| Ledger             | **Skip v1.** Gmail / Resend is the record.                                                                                                    |
+| CC in UI           | **Visible** (read-only), not hidden.                                                                                                          |
+| Empty subject/body | **Block send.**                                                                                                                               |
+| Resend reject      | **Fail the request** (like brand invite resend).                                                                                              |
 
 CC the usual (`_ops_cc()`) on every send. Replies stay in Gmail. Default
 subject/body copy still to draft at promote (footer must mention Reply-To).

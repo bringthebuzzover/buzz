@@ -16,7 +16,7 @@ implement from here.
 Related: [`gaps/archive/drops.unconfigured-request-on-org-feed.md`](../../gaps/archive/drops.unconfigured-request-on-org-feed.md)
 (this is now that gap’s locked fix),
 [`gaps/archive/brand.drop-creative-uneditable.md`](../../gaps/archive/brand.drop-creative-uneditable.md),
-[`gaps/ops.brand-mailbox.md`](../../gaps/ops.brand-mailbox.md),
+[`gaps/archive/ops.brand-mailbox.md`](../../gaps/archive/ops.brand-mailbox.md),
 [`gaps/archive/spa.for-orgs-for-brands.md`](../../gaps/archive/spa.for-orgs-for-brands.md)
 (public `/for-brands` tour waits until B ships — do not teach stub-as-campaign).
 
@@ -41,7 +41,7 @@ Drop **configuration** sits with Buzz, not with the brand.
 Split **intake** from **campaign**. A request is not a `drops` row.
 
 1. **Plan your Campaign** creates a `drop_requests` row: message, optional notes.
-   Stage copy: *A representative will contact you.* No `apply_open_at`. Not on the org feed.
+   Stage copy: _A representative will contact you._ No `apply_open_at`. Not on the org feed.
 2. Sales call happens out of band (Calendly, phone, email).
 3. Admin **side-by-side** ticket | draft editor. Every `drops` row links to a ticket.
    Save **unpublished draft** (title, description, https hero, location, capacity,
@@ -84,11 +84,11 @@ is enough (same family as brand invite landing on a known path).
 
 ### Not chosen
 
-| Option | Why not |
-| --- | --- |
-| **A** — hide `request_received` stubs until publish | Stop-gap only. Brand still mints a `drops` row with a fake window. |
-| **C** — mailto/Calendly CTA, no intake row | No in-app receipt; pipeline lives in inbox. Fragile until company mailbox exists. |
-| **D** — admin impersonates brand POST | Placeholders, leak, worst ops UX. |
+| Option                                              | Why not                                                                           |
+| --------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **A** — hide `request_received` stubs until publish | Stop-gap only. Brand still mints a `drops` row with a fake window.                |
+| **C** — mailto/Calendly CTA, no intake row          | No in-app receipt; pipeline lives in inbox. Fragile until company mailbox exists. |
+| **D** — admin impersonates brand POST               | Placeholders, leak, worst ops UX.                                                 |
 
 ## What PRODUCT already says
 
@@ -118,14 +118,14 @@ as `POST /api/brands/me/drops` → live campaign.
 `/api/brands/me/drops` with **title + description only**.
 `create_brand_drop` immediately inserts a live `Drop`:
 
-| Field | Server default |
-| --- | --- |
-| `image` | `https://placehold.co/600x400/png` |
-| `location` | `"Multiple Campuses"` (display string, not targeting) |
-| `capacity_total` | `10` |
-| apply window | now+1d → now+8d |
-| stage | `request_received` |
-| units / hashtag | unset |
+| Field            | Server default                                        |
+| ---------------- | ----------------------------------------------------- |
+| `image`          | `https://placehold.co/600x400/png`                    |
+| `location`       | `"Multiple Campuses"` (display string, not targeting) |
+| `capacity_total` | `10`                                                  |
+| apply window     | now+1d → now+8d                                       |
+| stage            | `request_received`                                    |
+| units / hashtag  | unset                                                 |
 
 The SPA then **navigates to `/brand/drops/:id`** as if the campaign existed.
 
@@ -170,17 +170,17 @@ separate targeting decision.
 
 Reuse patterns; do not add a second drop lifecycle.
 
-| Piece | Approach |
-| --- | --- |
-| Intake | `drop_requests` table: `brand_id`, message / notes, status (`received` / `converted` / `closed`), `converted_drop_id` nullable. No apply window. |
-| Brand create | Repoint `POST /api/brands/me/drops` at intake **or** new `POST /api/brands/me/drop-requests`. Do **not** insert a `Drop`. |
-| Admin create | `POST /api/admin/brands/{brand_id}/drops` with every field `Drop` already requires (title, description, image, location, capacity, window, optional units/hashtag). Optional `drop_request_id` to promote. No placehold.co. |
-| Admin creative | Fold title / description / image / location into admin PATCH (today’s gap left them OUT). Ops can fix copy after mint. |
-| Org visibility | Feed only lists real `drops` rows. Requests never appear. |
-| Notify / autoclose | Key off the admin-created window only. No stub can enqueue reminder mail. |
-| Brand email | New Resend body: drop title + monitor URL + “you’ll finalize after the window.” |
-| SPA | Admin: Create drop (brand detail and/or from a request). Brand: Plan your Campaign → ticket receipt; drop detail only after convert. Org: unchanged cards, honest data. |
-| Tests | Request not in `GET /api/drops`; admin-created drop is; brand GET request vs drop; autoclose/notify ignore requests; finalize still §7.1. OpenAPI regen. |
+| Piece              | Approach                                                                                                                                                                                                                    |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Intake             | `drop_requests` table: `brand_id`, message / notes, status (`received` / `converted` / `closed`), `converted_drop_id` nullable. No apply window.                                                                            |
+| Brand create       | Repoint `POST /api/brands/me/drops` at intake **or** new `POST /api/brands/me/drop-requests`. Do **not** insert a `Drop`.                                                                                                   |
+| Admin create       | `POST /api/admin/brands/{brand_id}/drops` with every field `Drop` already requires (title, description, image, location, capacity, window, optional units/hashtag). Optional `drop_request_id` to promote. No placehold.co. |
+| Admin creative     | Fold title / description / image / location into admin PATCH (today’s gap left them OUT). Ops can fix copy after mint.                                                                                                      |
+| Org visibility     | Feed only lists real `drops` rows. Requests never appear.                                                                                                                                                                   |
+| Notify / autoclose | Key off the admin-created window only. No stub can enqueue reminder mail.                                                                                                                                                   |
+| Brand email        | New Resend body: drop title + monitor URL + “you’ll finalize after the window.”                                                                                                                                             |
+| SPA                | Admin: Create drop (brand detail and/or from a request). Brand: Plan your Campaign → ticket receipt; drop detail only after convert. Org: unchanged cards, honest data.                                                     |
+| Tests              | Request not in `GET /api/drops`; admin-created drop is; brand GET request vs drop; autoclose/notify ignore requests; finalize still §7.1. OpenAPI regen.                                                                    |
 
 **Campus targeting** (only some orgs see the drop) is a **later fork**:
 schema (`university` / region / org type filters), feed predicate, and
