@@ -1,6 +1,7 @@
 /**
- * Confirm-card gating (§6.1.1): submit stays disabled until confirm, and soft-fail
- * unlocks submit without confirm.
+ * Typed Instagram handle (§6.1.1): submit stays disabled until a handle is
+ * entered, then the form posts that handle unconfirmed. Other field checks
+ * still block submit.
  *
  * Uses react-dom (no @testing-library/react in this package).
  */
@@ -12,7 +13,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
-const mockLookup = jest.fn();
 const mockApply = jest.fn();
 const mockPrefill = {
   data: undefined as
@@ -38,10 +38,6 @@ const mockPrefill = {
 };
 
 jest.mock("../../api/hooks/useOnboardingHooks", () => ({
-  useInstagramLookup: () => ({
-    mutateAsync: mockLookup,
-    isPending: false,
-  }),
   useOrgApply: () => ({
     mutateAsync: mockApply,
     isPending: false,
@@ -61,13 +57,11 @@ jest.mock("../../api/hooks/useOnboardingHooks", () => ({
 
 import OrgApplyPage from "./OrgApplyPage";
 
-describe("OrgApplyPage confirm card", () => {
+describe("OrgApplyPage typed Instagram handle", () => {
   let container: HTMLDivElement;
   let root: Root;
 
   beforeEach(() => {
-    jest.useFakeTimers();
-    mockLookup.mockReset();
     mockApply.mockReset();
     mockPrefill.data = undefined;
     mockPrefill.isError = false;
@@ -81,7 +75,6 @@ describe("OrgApplyPage confirm card", () => {
       root.unmount();
     });
     container.remove();
-    jest.useRealTimers();
   });
 
   function renderPage() {
@@ -152,89 +145,50 @@ describe("OrgApplyPage confirm card", () => {
     void inputs;
   }
 
-  it("keeps submit disabled until the confirm card is confirmed", async () => {
-    mockLookup.mockResolvedValue({
-      available: true,
-      username: "campusgreeks",
-      name: "Campus Greeks",
-      followersCount: 1200,
-      biography: "Greek life",
-      profilePictureUrl: null,
-      reason: null,
-    });
-    renderPage();
-    fillRequiredFieldsExceptHandle();
-
-    const handleInput = Array.from(container.querySelectorAll("label"))
-      .find((el) => el.textContent?.includes("Instagram handle"))
-      ?.parentElement?.querySelector("input") as HTMLInputElement;
+  function setHandle(value: string) {
+    const handleInput = container.querySelector(
+      '[data-testid="org-apply-instagram"]',
+    ) as HTMLInputElement;
     act(() => {
       const setter = Object.getOwnPropertyDescriptor(
         HTMLInputElement.prototype,
         "value",
       )?.set;
-      setter?.call(handleInput, "campusgreeks");
+      setter?.call(handleInput, value);
       handleInput.dispatchEvent(new Event("input", { bubbles: true }));
     });
+  }
 
-    await act(async () => {
-      jest.advanceTimersByTime(600);
-      await Promise.resolve();
-    });
+  it("keeps submit disabled until a handle is typed, then allows submit unconfirmed", async () => {
+    mockApply.mockResolvedValue({ emailSent: true });
+    renderPage();
+    fillRequiredFieldsExceptHandle();
 
     const submit = container.querySelector(
       'button[type="submit"]',
     ) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
-    expect(container.textContent).toMatch(/@campusgreeks/i);
+    expect(container.textContent).not.toMatch(/confirm this is our organization/i);
     expect(container.textContent).toMatch(/Contact name/);
     expect(container.textContent).toMatch(/Shipping address/);
 
-    const confirm = Array.from(container.querySelectorAll("button")).find((b) =>
-      /confirm this is our organization/i.test(b.textContent || ""),
-    );
-    expect(confirm).toBeTruthy();
-    act(() => {
-      confirm!.click();
-    });
+    setHandle("@campusgreeks");
     expect(submit.disabled).toBe(false);
-  });
 
-  it("allows submit on soft-fail without confirm", async () => {
-    mockLookup.mockResolvedValue({
-      available: false,
-      username: null,
-      name: null,
-      followersCount: null,
-      biography: null,
-      profilePictureUrl: null,
-      reason: "unavailable",
-    });
-    renderPage();
-    fillRequiredFieldsExceptHandle();
-
-    const handleInput = Array.from(container.querySelectorAll("label"))
-      .find((el) => el.textContent?.includes("Instagram handle"))
-      ?.parentElement?.querySelector("input") as HTMLInputElement;
-    act(() => {
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        "value",
-      )?.set;
-      setter?.call(handleInput, "softfailorg");
-      handleInput.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-
+    const form = container.querySelector("form") as HTMLFormElement;
     await act(async () => {
-      jest.advanceTimersByTime(600);
+      form.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
       await Promise.resolve();
     });
 
-    expect(container.textContent).toMatch(/couldn.?t verify that handle/i);
-    const submit = container.querySelector(
-      'button[type="submit"]',
-    ) as HTMLButtonElement;
-    expect(submit.disabled).toBe(false);
+    expect(mockApply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        instagramHandle: "campusgreeks",
+        handleConfirmed: false,
+      }),
+    );
   });
 
   it("hydrates fields from a prefill draft without auto-confirming Instagram", () => {
@@ -266,44 +220,15 @@ describe("OrgApplyPage confirm card", () => {
     const submit = container.querySelector(
       'button[type="submit"]',
     ) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
+    expect(submit.disabled).toBe(false);
+    expect(container.textContent).not.toMatch(/confirm this is our organization/i);
   });
 
   it("does not submit a Gmail address", async () => {
-    mockLookup.mockResolvedValue({
-      available: true,
-      username: "campusgreeks",
-      name: "Campus Greeks",
-      followersCount: 1200,
-      biography: "Greek life",
-      profilePictureUrl: null,
-      reason: null,
-    });
     mockApply.mockResolvedValue({ emailSent: true });
     renderPage();
     fillRequiredFieldsExceptHandle();
-
-    const handleInput = Array.from(container.querySelectorAll("label"))
-      .find((el) => el.textContent?.includes("Instagram handle"))
-      ?.parentElement?.querySelector("input") as HTMLInputElement;
-    act(() => {
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        "value",
-      )?.set;
-      setter?.call(handleInput, "campusgreeks");
-      handleInput.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    await act(async () => {
-      jest.advanceTimersByTime(600);
-      await Promise.resolve();
-    });
-    const confirm = Array.from(container.querySelectorAll("button")).find((b) =>
-      /confirm this is our organization/i.test(b.textContent || ""),
-    );
-    act(() => {
-      confirm!.click();
-    });
+    setHandle("campusgreeks");
 
     const email = container.querySelector(
       '[data-testid="org-apply-edu-email"]',
@@ -330,32 +255,9 @@ describe("OrgApplyPage confirm card", () => {
   });
 
   it("does not submit a decimal member count", async () => {
-    mockLookup.mockResolvedValue({
-      available: false,
-      username: null,
-      name: null,
-      followersCount: null,
-      biography: null,
-      profilePictureUrl: null,
-      reason: "unavailable",
-    });
     renderPage();
     fillRequiredFieldsExceptHandle();
-    const handleInput = Array.from(container.querySelectorAll("label"))
-      .find((el) => el.textContent?.includes("Instagram handle"))
-      ?.parentElement?.querySelector("input") as HTMLInputElement;
-    act(() => {
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        "value",
-      )?.set;
-      setter?.call(handleInput, "softfailorg");
-      handleInput.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    await act(async () => {
-      jest.advanceTimersByTime(600);
-      await Promise.resolve();
-    });
+    setHandle("softfailorg");
 
     const members = container.querySelector(
       '[data-testid="org-apply-member-count"]',
@@ -381,32 +283,9 @@ describe("OrgApplyPage confirm card", () => {
   });
 
   it("does not submit a whitespace-only org name", async () => {
-    mockLookup.mockResolvedValue({
-      available: false,
-      username: null,
-      name: null,
-      followersCount: null,
-      biography: null,
-      profilePictureUrl: null,
-      reason: "unavailable",
-    });
     renderPage();
     fillRequiredFieldsExceptHandle();
-    const handleInput = Array.from(container.querySelectorAll("label"))
-      .find((el) => el.textContent?.includes("Instagram handle"))
-      ?.parentElement?.querySelector("input") as HTMLInputElement;
-    act(() => {
-      const setter = Object.getOwnPropertyDescriptor(
-        HTMLInputElement.prototype,
-        "value",
-      )?.set;
-      setter?.call(handleInput, "softfailorg");
-      handleInput.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    await act(async () => {
-      jest.advanceTimersByTime(600);
-      await Promise.resolve();
-    });
+    setHandle("softfailorg");
 
     const org = container.querySelector(
       '[data-testid="org-apply-org-name"]',

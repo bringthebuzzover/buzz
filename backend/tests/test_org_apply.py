@@ -1,4 +1,4 @@
-"""Phase A: public org apply, lookup, verify session, connect bind."""
+"""Phase A: public org apply, verify session, connect bind."""
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security import rate_limit
 from app.security.one_shot_tokens import hash_token
-from app.services.instagram_lookup import clear_instagram_lookup_cache
 from tests.conftest import FakeInstagramClient, make_user, persist
 
 _APPLY = {
@@ -71,37 +70,42 @@ async def test_org_apply_duplicate_handle(app_client: AsyncClient, db_session) -
     assert resp.json()["error"]["code"] == errors.INSTAGRAM_HANDLE_TAKEN
 
 
-async def test_instagram_lookup_found(
-    app_client: AsyncClient, fake_instagram: FakeInstagramClient
+async def test_org_apply_rejects_invalid_instagram_handle(app_client: AsyncClient) -> None:
+    resp = await app_client.post(
+        "/api/orgs/apply",
+        json={
+            **_APPLY,
+            "eduEmail": "badhandle@cornell.edu",
+            "instagramHandle": "not a handle",
+        },
+    )
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == errors.VALIDATION_ERROR
+    assert "Instagram username" in body["error"]["message"]
+
+
+async def test_org_apply_stores_unconfirmed_when_handle_not_confirmed(
+    app_client: AsyncClient, db_session
 ) -> None:
-    clear_instagram_lookup_cache()
-    resp = await app_client.get("/api/orgs/instagram-lookup", params={"username": "testorg"})
+    """Apply without a confirm card stores the typed handle as unconfirmed."""
+    resp = await app_client.post(
+        "/api/orgs/apply",
+        json={
+            **_APPLY,
+            "eduEmail": "unconfirmed@cornell.edu",
+            "instagramHandle": "@Unconfirmed.Org",
+            "handleConfirmed": False,
+        },
+    )
     assert resp.status_code == 200
-    data = resp.json()["data"]
-    assert data["available"] is True
-    assert data["username"] == "testorg"
-    assert data["followersCount"] == 1200
-
-
-async def test_instagram_lookup_soft_fail_unavailable(
-    app_client: AsyncClient, fake_instagram: FakeInstagramClient
-) -> None:
-    clear_instagram_lookup_cache()
-    fake_instagram.business_discovery_unavailable = True
-    resp = await app_client.get("/api/orgs/instagram-lookup", params={"username": "x"})
-    assert resp.status_code == 200
-    assert resp.json()["data"]["reason"] == "unavailable"
-    assert resp.json()["data"]["available"] is False
-
-
-async def test_instagram_lookup_not_found(
-    app_client: AsyncClient, fake_instagram: FakeInstagramClient
-) -> None:
-    clear_instagram_lookup_cache()
-    fake_instagram.business_discovery_miss = True
-    resp = await app_client.get("/api/orgs/instagram-lookup", params={"username": "ghost"})
-    assert resp.status_code == 200
-    assert resp.json()["data"]["reason"] == "not_found"
+    user = await db_session.scalar(select(User).where(User.edu_email == "unconfirmed@cornell.edu"))
+    assert user is not None
+    assert user.instagram_username == "Unconfirmed.Org"
+    org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
+    assert org is not None
+    assert org.instagram_handle_confirmed is False
+    assert org.claimed_instagram_username == "Unconfirmed.Org"
 
 
 async def test_verify_email_mints_session(app_client: AsyncClient, db_session) -> None:
@@ -212,7 +216,7 @@ def _enable_rate_limit():
 async def test_address_suggest_allows_typing_burst(
     app_client: AsyncClient, _enable_rate_limit
 ) -> None:
-    """Autocomplete is per-keystroke; 10/min (IG lookup copy) is too tight."""
+    """Autocomplete is per-keystroke; a tight per-minute cap would block typing."""
     for i in range(40):
         resp = await app_client.get("/api/orgs/address-suggest", params={"q": f"123 Main {i}"})
         assert resp.status_code == 200, resp.text

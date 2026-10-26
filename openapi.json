@@ -6066,44 +6066,6 @@
         "title": "DataResponse[InstagramDeauthorizeResponse]",
         "type": "object"
       },
-      "DataResponse_InstagramLookupResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/InstagramLookupResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[InstagramLookupResponse]",
-        "type": "object"
-      },
       "DataResponse_OkResponse_": {
         "properties": {
           "data": {
@@ -7942,86 +7904,6 @@
           "revoked"
         ],
         "title": "InstagramDeauthorizeResponse",
-        "type": "object"
-      },
-      "InstagramLookupResponse": {
-        "description": "Business Discovery lookup result for the apply confirm card.",
-        "properties": {
-          "available": {
-            "title": "Available",
-            "type": "boolean"
-          },
-          "biography": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Biography"
-          },
-          "followersCount": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Followerscount"
-          },
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
-          },
-          "profilePictureUrl": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Profilepictureurl"
-          },
-          "reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reason"
-          },
-          "username": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Username"
-          }
-        },
-        "required": [
-          "available"
-        ],
-        "title": "InstagramLookupResponse",
         "type": "object"
       },
       "LinkPostRequest": {
@@ -15985,51 +15867,6 @@
           }
         },
         "summary": "Org Apply Prefill",
-        "tags": [
-          "orgs"
-        ]
-      }
-    },
-    "/api/orgs/instagram-lookup": {
-      "get": {
-        "description": "Exact-username Business Discovery lookup for the apply confirm card.",
-        "operationId": "org_instagram_lookup_api_orgs_instagram_lookup_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "username",
-            "required": true,
-            "schema": {
-              "maxLength": 64,
-              "minLength": 1,
-              "title": "Username",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_InstagramLookupResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Org Instagram Lookup",
         "tags": [
           "orgs"
         ]

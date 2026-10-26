@@ -82,7 +82,7 @@ dropping review.
 | Piece | As-built |
 | ----- | -------- |
 | Create | `POST /api/orgs/apply` inserts org at `pending_email_verification`, **claimed** `@`, no token, **no session**. |
-| IG on apply | §6.1.1 typed handle + Business Discovery confirm card. OAuth does **not** create. |
+| IG on apply | §6.1.1 typed handle, stored unconfirmed until Connect. No Business Discovery (removed 2026-10-26). OAuth does **not** create. |
 | Verify | Confirm link → `pending_approval`, **mints session**. Unverified = no session (apply-first). |
 | Wait | `/onboarding/pending-approval` (AuthShell). Copy assumes Connect is still ahead. |
 | Login | `/login` Continue with Instagram. Unknown Graph id → `ORG_APPLY_REQUIRED` (no INSERT). Returning `pending_approval` **cannot** match — no `instagram_user_id`. |
@@ -134,9 +134,9 @@ rejection as now; draft remains so they can convert and retry.
 Graph `@` unique among non-erased orgs (same uniqueness as claimed handle
 today). Collision → 409; do not insert.
 
-**`/for-orgs`:** Phase C currently must show the handle confirm card. This
-idea replaces that with Business/Creator + Continue with Instagram (no
-typeahead, no Discovery card).
+**`/for-orgs`:** The tour shows a typed handle and the Business/Creator
+requirement (the confirm card was removed 2026-10-26). This idea replaces
+that with Business/Creator + Continue with Instagram (no typeahead).
 
 Prefill (`/org/apply?prefill=`) still fills profile + `.edu`; it does **not**
 create the user; they still finish with OAuth. Handle on prefill rows becomes
