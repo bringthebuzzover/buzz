@@ -49,7 +49,7 @@ function CampaignMetrics({
         </div>
         <div className="text-center">
           <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.estimatedReach}</p>
-          <p className={TEXT.meta}>Est. Reach</p>
+          <p className={TEXT.meta}>Instagram Reach</p>
         </div>
       </div>
     </Card>
