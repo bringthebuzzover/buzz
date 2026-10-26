@@ -374,3 +374,54 @@ async def test_reminder_retry_reuses_row_key_and_recipients_differ(db_session, m
     assert expected_a != expected_b
     assert user_a.edu_email not in (expected_a or "")
     assert user_b.edu_email not in (expected_b or "")
+
+
+async def test_org_approve_bound_and_connect_use_different_keys(db_session, monkeypatch) -> None:
+    """Already-bound approval is org id; Connect approval is the new token id."""
+    from sqlalchemy import select
+
+    from app.models.org_connect_token import OrgConnectToken
+    from app.services.admin import approve_org
+
+    captured: list[tuple[str | None, str | None]] = []
+
+    async def _fake(to_email, *, org_name="", connect_token=None, idempotency_key=None):
+        captured.append((connect_token, idempotency_key))
+        return True
+
+    monkeypatch.setattr("app.services.admin.send_org_approved_email", _fake)
+
+    bound_user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.PENDING_APPROVAL, instagram_user_id="ig_bound"),
+    )
+    bound_user.edu_email = "bound@school.edu"
+    bound_user.instagram_access_token = "ciphertext"
+    await db_session.flush()
+    bound_org = await make_org(db_session, bound_user)
+
+    connect_user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.PENDING_APPROVAL, instagram_username="connectorg"),
+    )
+    connect_user.edu_email = "connect@school.edu"
+    await db_session.flush()
+    connect_org = await make_org(db_session, connect_user)
+
+    await approve_org(db_session, bound_org.id, tester_invite_confirmed=True)
+    await approve_org(db_session, connect_org.id, tester_invite_confirmed=True)
+
+    bound_token, bound_key = captured[0]
+    raw_token, connect_key = captured[1]
+    token_row = await db_session.scalar(
+        select(OrgConnectToken).where(OrgConnectToken.org_id == connect_org.id)
+    )
+    assert token_row is not None
+    assert bound_token is None
+    assert bound_key == email.build_idempotency_key(email.KIND_ORG_APPROVED_BOUND, bound_org.id)
+    assert connect_key == email.build_idempotency_key(email.KIND_ORG_APPROVED, token_row.id)
+    assert bound_key != connect_key
+    assert raw_token is not None
+    assert raw_token not in (connect_key or "")
+    assert "bound@school.edu" not in (bound_key or "")
+    assert "connect@school.edu" not in (connect_key or "")
