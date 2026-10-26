@@ -117,7 +117,7 @@ class TestAdminComposeEmail:
 
         captured: dict = {}
 
-        async def _dispatch(to_email, subject, body, *, html=None, cc=None):
+        async def _dispatch(to_email, subject, body, *, html=None, cc=None, idempotency_key=None):
             captured["to"] = to_email
             captured["html"] = html
             captured["cc"] = cc

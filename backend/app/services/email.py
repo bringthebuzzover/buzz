@@ -8,15 +8,22 @@ never raised, so a failed email can't roll back the operation that triggered it
 (account verification, brand invite, applicant denial).
 
 Callers that need honesty (verification, Notify Me) use the returned ``bool``:
-``True`` only on provider accept (HTTP 2xx) or intentional development console
-success; ``False`` on unset key / HTTP error / exception.
+``True`` only on provider accept (HTTP 2xx, including a Resend idempotency
+replay of that original 2xx) or intentional development console success;
+``False`` on unset API key / HTTP error / idempotency conflict / exception.
+
+Optional Resend ``Idempotency-Key`` values are opt-in per call
+(``build_idempotency_key``). A missing key sends with no header. Policy and
+per-kind choices: ``gaps/archive/ops.email-ledger.md``.
 """
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import re
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 
@@ -26,11 +33,157 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 _RESEND_ENDPOINT = "https://api.resend.com/emails"
+_IDEMPOTENCY_KEY_MAX = 256
+
+# Kind strings are the first segment of an Idempotency-Key. Renaming one
+# starts a new key (a duplicate is possible for 24h). Reusing one for a
+# different send suppresses mail. Kinds with no constant are sent with no key.
+KIND_VERIFICATION = "verification"
+KIND_BRAND_INVITE = "brand-invite"
+KIND_ORG_APPROVED = "org-approved"
+KIND_ORG_APPROVED_BOUND = "org-approved-bound"
+KIND_IG_SWITCH_CONNECT = "ig-switch-connect"
+KIND_IG_RENAME_APPROVED = "ig-rename-approved"
+KIND_IG_CHANGE_DENIED = "ig-change-denied"
+KIND_ORG_APPLY_PREFILL = "org-apply-prefill"
+KIND_ORG_APPLY_PREFILL_UPDATE = "org-apply-prefill-update"
+KIND_ORG_ERASED = "org-erased"
+KIND_BRAND_ERASED = "brand-erased"
+KIND_APPLICATION_DENIED = "application-denied"
+KIND_REMINDER = "reminder"
+KIND_DROP_PUBLISHED = "drop-published"
+KIND_PASSWORD_RESET = "password-reset"
+KIND_LATE_ADD_ORG = "late-add-org"
+KIND_LATE_ADD_BRAND = "late-add-brand"
+
+_KIND_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
+# ``idempotency_generation`` strftime. A persisted timestamp, not a clock bucket.
+_GENERATION_RE = re.compile(r"^\d{8}T\d{12}Z$")
 
 
 def _email_client() -> httpx.AsyncClient:
     """HTTP client for the email provider (seam for tests to inject a transport)."""
     return httpx.AsyncClient(timeout=10.0)
+
+
+def idempotency_generation(sent_at: datetime | None) -> str | None:
+    """Exact UTC timestamp of a prior successful send, or None if there isn't one.
+
+    Used as a per-send discriminator when the same row can legitimately be
+    mailed again (org-apply prefill resend). It is the stored ``email_sent_at``,
+    not a wall-clock bucket.
+    """
+    if sent_at is None:
+        return None
+    if sent_at.tzinfo is None:
+        sent_at = sent_at.replace(tzinfo=timezone.utc)
+    else:
+        sent_at = sent_at.astimezone(timezone.utc)
+    return sent_at.strftime("%Y%m%dT%H%M%S%fZ")
+
+
+def build_idempotency_key(kind: str, *parts: object) -> str | None:
+    """``kind/<id>[/...]`` for Resend, or None when the inputs are not safe.
+
+    None means the caller must send with no ``Idempotency-Key`` (the email
+    still goes out). Parts must be row ids or ``idempotency_generation``
+    values. Email addresses are refused. Anything else printable (a raw token,
+    a code) is SHA-256 hex so it cannot appear in the header. At least one
+    part is required — a kind-only key would collide across recipients.
+    """
+    kind_clean = str(kind).strip() if kind is not None else ""
+    if not _KIND_RE.fullmatch(kind_clean):
+        logger.error("Refusing idempotency key: unsafe kind")
+        return None
+    if not parts:
+        logger.error("Refusing idempotency key: kind-only key kind=%s", kind_clean)
+        return None
+    rendered = [kind_clean]
+    for part in parts:
+        piece = _render_idempotency_part(part)
+        if piece is None:
+            logger.error("Refusing idempotency key: unsafe part kind=%s", kind_clean)
+            return None
+        rendered.append(piece)
+    key = "/".join(rendered)
+    if len(key) > _IDEMPOTENCY_KEY_MAX:
+        digest = hashlib.sha256(key.encode()).hexdigest()
+        key = f"{kind_clean}/{digest}"
+    return key
+
+
+def _render_idempotency_part(part: object) -> str | None:
+    if part is None:
+        return None
+    text = str(part).strip()
+    if not text or "@" in text or any(ch.isspace() for ch in text):
+        return None
+    if _UUID_RE.fullmatch(text) or _GENERATION_RE.fullmatch(text):
+        return text
+    if any(ord(ch) < 33 or ord(ch) > 126 for ch in text):
+        return None
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def _usable_idempotency_key(key: str | None) -> str | None:
+    """Header value, or None to omit the header (still send the email)."""
+    if key is None:
+        return None
+    cleaned = key.strip()
+    if (
+        not cleaned
+        or len(cleaned) > _IDEMPOTENCY_KEY_MAX
+        or "@" in cleaned
+        or any(ord(ch) < 33 or ord(ch) > 126 for ch in cleaned)
+    ):
+        logger.error(
+            "Dropping idempotency key; sending without one: kind=%s key_sha256_16=%s",
+            _idempotency_kind(cleaned),
+            _key_hash(cleaned) if cleaned else "-",
+        )
+        return None
+    return cleaned
+
+
+def _idempotency_kind(key: str | None) -> str:
+    """First path segment, or ``unsafe`` when the key itself must not be logged."""
+    if not key:
+        return "unknown"
+    if "@" in key or any(ord(ch) < 33 or ord(ch) > 126 for ch in key):
+        return "unsafe"
+    kind = key.split("/", 1)[0]
+    if not kind or not _KIND_RE.fullmatch(kind):
+        return "unsafe"
+    return kind
+
+
+def _key_hash(key: str) -> str:
+    return hashlib.sha256(key.encode()).hexdigest()[:16]
+
+
+def _resend_error_name(resp: httpx.Response) -> str:
+    try:
+        data = resp.json()
+    except Exception:  # noqa: BLE001 — error-body parse is best-effort
+        return "unparsed"
+    if isinstance(data, dict):
+        name = data.get("name")
+        if isinstance(name, str) and name:
+            return name
+    return "unknown"
+
+
+def _log_idempotency_conflict(key: str | None, resp: httpx.Response) -> None:
+    logger.error(
+        "Email idempotency conflict (not sent-success): kind=%s key_sha256_16=%s resend_error=%s",
+        _idempotency_kind(key),
+        _key_hash(key) if key else "-",
+        _resend_error_name(resp),
+    )
 
 
 async def send_verification_email(
@@ -39,6 +192,7 @@ async def send_verification_email(
     *,
     org_name: str = "",
     kind: str = "signup",
+    idempotency_key: str | None = None,
 ) -> bool:
     """Send a .edu verification link (signup vs rotate copy)."""
     verify_url = f"{settings.FRONTEND_URL}/onboarding/verify-email?token={token}"
@@ -78,7 +232,7 @@ async def send_verification_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, text, html=html)
+    return await _dispatch(to_email, subject, text, html=html, idempotency_key=idempotency_key)
 
 
 async def send_brand_invite_email(
@@ -86,6 +240,7 @@ async def send_brand_invite_email(
     setup_token: str,
     *,
     brand_name: str = "",
+    idempotency_key: str | None = None,
 ) -> bool:
     """Send a brand account-setup invitation link."""
     setup_url = f"{settings.FRONTEND_URL}/brand/setup?token={setup_token}"
@@ -105,7 +260,7 @@ async def send_brand_invite_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
 
 
 async def send_org_approved_email(
@@ -113,6 +268,7 @@ async def send_org_approved_email(
     *,
     org_name: str = "",
     connect_token: str | None = None,
+    idempotency_key: str | None = None,
 ) -> bool:
     """Tell an org they are approved and must Connect Instagram (or legacy login)."""
     name = org_name or "your organization"
@@ -147,7 +303,7 @@ async def send_org_approved_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, text, html=html)
+    return await _dispatch(to_email, subject, text, html=html, idempotency_key=idempotency_key)
 
 
 async def send_org_ig_switch_connect_email(
@@ -156,6 +312,7 @@ async def send_org_ig_switch_connect_email(
     org_name: str = "",
     connect_token: str,
     requested_handle: str = "",
+    idempotency_key: str | None = None,
 ) -> bool:
     """Connect link after an approved Instagram account switch (PRODUCT §3.1.4)."""
     name = org_name or "your organization"
@@ -195,7 +352,7 @@ async def send_org_ig_switch_connect_email(
             "╚══════════════════════════════════════════════════════════════╝"
         )
         return True
-    return await _dispatch(to_email, subject, text, html=html)
+    return await _dispatch(to_email, subject, text, html=html, idempotency_key=idempotency_key)
 
 
 async def send_org_ig_rename_approved_email(
@@ -203,6 +360,7 @@ async def send_org_ig_rename_approved_email(
     *,
     org_name: str = "",
     requested_handle: str = "",
+    idempotency_key: str | None = None,
 ) -> bool:
     """Tell an org to log in with Instagram again after a rename request."""
     name = org_name or "your organization"
@@ -222,13 +380,14 @@ async def send_org_ig_rename_approved_email(
             handle,
         )
         return True
-    return await _dispatch(to_email, subject, text)
+    return await _dispatch(to_email, subject, text, idempotency_key=idempotency_key)
 
 
 async def send_org_ig_change_denied_email(
     to_email: str,
     *,
     org_name: str = "",
+    idempotency_key: str | None = None,
 ) -> bool:
     """Tell an org their Instagram identity change request was denied."""
     name = org_name or "your organization"
@@ -240,7 +399,7 @@ async def send_org_ig_change_denied_email(
     if settings.ENVIRONMENT == "development":
         logger.info("DEV EMAIL — Org IG change denied to=%s", to_email)
         return True
-    return await _dispatch(to_email, subject, text)
+    return await _dispatch(to_email, subject, text, idempotency_key=idempotency_key)
 
 
 async def send_org_apply_prefill_email(
@@ -248,6 +407,7 @@ async def send_org_apply_prefill_email(
     raw_token: str,
     *,
     org_name: str = "",
+    idempotency_key: str | None = None,
 ) -> bool:
     """Invite an org to finish public apply with a prefilled form."""
     subject, text, html = build_org_apply_prefill_email(raw_token, org_name=org_name)
@@ -259,7 +419,7 @@ async def send_org_apply_prefill_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, text, html=html)
+    return await _dispatch(to_email, subject, text, html=html, idempotency_key=idempotency_key)
 
 
 def build_org_apply_prefill_email(
@@ -321,6 +481,7 @@ async def send_org_apply_prefill_update_email(
     *,
     org_name: str = "",
     contact_name: str = "",
+    idempotency_key: str | None = None,
 ) -> bool:
     """Invite an org that already has an UPDATE shipment to finish apply."""
     subject, text, html = build_org_apply_prefill_update_email(
@@ -342,6 +503,7 @@ async def send_org_apply_prefill_update_email(
         text,
         html=html,
         cc=_ops_cc(exclude=to_email),
+        idempotency_key=idempotency_key,
     )
 
 
@@ -406,7 +568,12 @@ def build_org_apply_prefill_update_email(
     return subject, text, html
 
 
-async def send_org_denied_email(to_email: str, *, org_name: str = "") -> bool:
+async def send_org_denied_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+    idempotency_key: str | None = None,
+) -> bool:
     """Tell an org their application was not approved."""
     subject = "Update on your Buzz application"
     body = _org_denied_body(org_name)
@@ -420,10 +587,15 @@ async def send_org_denied_email(to_email: str, *, org_name: str = "") -> bool:
         )
         return True
 
-    return await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
 
 
-async def send_org_erased_email(to_email: str, *, org_name: str = "") -> bool:
+async def send_org_erased_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+    idempotency_key: str | None = None,
+) -> bool:
     """Confirm an org account was erased after a data-deletion request."""
     subject = "Your Buzz account data has been deleted"
     body = _org_erased_body(org_name)
@@ -437,10 +609,15 @@ async def send_org_erased_email(to_email: str, *, org_name: str = "") -> bool:
         )
         return True
 
-    return await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
 
 
-async def send_brand_erased_email(to_email: str, *, brand_name: str = "") -> bool:
+async def send_brand_erased_email(
+    to_email: str,
+    *,
+    brand_name: str = "",
+    idempotency_key: str | None = None,
+) -> bool:
     """Confirm a brand account was erased after a data-deletion request."""
     subject = "Your Buzz account data has been deleted"
     name = brand_name or "your brand"
@@ -461,10 +638,15 @@ async def send_brand_erased_email(to_email: str, *, brand_name: str = "") -> boo
         )
         return True
 
-    return await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
 
 
-async def send_brand_denied_email(to_email: str, *, brand_name: str = "") -> bool:
+async def send_brand_denied_email(
+    to_email: str,
+    *,
+    brand_name: str = "",
+    idempotency_key: str | None = None,
+) -> bool:
     """Tell a brand their application was not approved."""
     subject = "Update on your Buzz application"
     name = brand_name or "your brand"
@@ -482,10 +664,15 @@ async def send_brand_denied_email(to_email: str, *, brand_name: str = "") -> boo
         )
         return True
 
-    return await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
 
 
-async def send_org_undenied_email(to_email: str, *, org_name: str = "") -> bool:
+async def send_org_undenied_email(
+    to_email: str,
+    *,
+    org_name: str = "",
+    idempotency_key: str | None = None,
+) -> bool:
     """Tell an org their denial was lifted and they are back under review."""
     subject = "Your Buzz application is under review again"
     name = org_name or "your organization"
@@ -503,10 +690,15 @@ async def send_org_undenied_email(to_email: str, *, org_name: str = "") -> bool:
         )
         return True
 
-    return await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
 
 
-async def send_brand_undenied_email(to_email: str, *, brand_name: str = "") -> bool:
+async def send_brand_undenied_email(
+    to_email: str,
+    *,
+    brand_name: str = "",
+    idempotency_key: str | None = None,
+) -> bool:
     """Tell a brand their denial was lifted and they are back under review."""
     subject = "Your Buzz application is under review again"
     name = brand_name or "your brand"
@@ -524,7 +716,7 @@ async def send_brand_undenied_email(to_email: str, *, brand_name: str = "") -> b
         )
         return True
 
-    return await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
 
 
 async def send_application_denied_email(
@@ -533,6 +725,7 @@ async def send_application_denied_email(
     org_name: str = "",
     drop_title: str = "",
     brand_name: str = "",
+    idempotency_key: str | None = None,
 ) -> bool:
     """Tell an org their drop application was not selected (PRODUCT §7.1: email-only).
 
@@ -551,7 +744,7 @@ async def send_application_denied_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
 
 
 async def send_drop_opening_reminder_email(
@@ -560,6 +753,7 @@ async def send_drop_opening_reminder_email(
     org_name: str = "",
     drop_title: str = "",
     brand_name: str = "",
+    idempotency_key: str | None = None,
 ) -> bool:
     """Tell an org a drop they subscribed to is about to open (§6.3.1).
 
@@ -579,7 +773,7 @@ async def send_drop_opening_reminder_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
 
 
 async def send_drop_published_email(
@@ -588,6 +782,7 @@ async def send_drop_published_email(
     brand_name: str = "",
     drop_title: str = "",
     drop_url: str,
+    idempotency_key: str | None = None,
 ) -> bool:
     """Tell a brand their campaign is live on the org feed (LAUNCH.md Phase B)."""
     name = brand_name or "your brand"
@@ -620,7 +815,7 @@ async def send_drop_published_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, text, html=html)
+    return await _dispatch(to_email, subject, text, html=html, idempotency_key=idempotency_key)
 
 
 async def send_drop_hidden_email(
@@ -628,6 +823,7 @@ async def send_drop_hidden_email(
     *,
     brand_name: str = "",
     drop_title: str = "",
+    idempotency_key: str | None = None,
 ) -> bool:
     """Optional brand notice that a published drop was withdrawn (PRODUCT §5.2.2)."""
     name = brand_name or "your brand"
@@ -650,7 +846,7 @@ async def send_drop_hidden_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, text)
+    return await _dispatch(to_email, subject, text, idempotency_key=idempotency_key)
 
 
 async def send_password_reset_email(
@@ -658,6 +854,7 @@ async def send_password_reset_email(
     token: str,
     *,
     portal: str,
+    idempotency_key: str | None = None,
 ) -> bool:
     """Send a brand or admin password-reset link."""
     path = "/brand/reset-password" if portal == "brand" else "/admin/reset-password"
@@ -680,7 +877,7 @@ async def send_password_reset_email(
         )
         return True
 
-    return await _dispatch(to_email, subject, body)
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
 
 
 def _ops_cc(*, exclude: str) -> list[str]:
@@ -698,7 +895,13 @@ def _ops_cc(*, exclude: str) -> list[str]:
     return out
 
 
-async def send_admin_compose_email(to_email: str, subject: str, body: str) -> bool:
+async def send_admin_compose_email(
+    to_email: str,
+    subject: str,
+    body: str,
+    *,
+    idempotency_key: str | None = None,
+) -> bool:
     """Freeform admin compose: From/Reply-To as usual, CC ops, HTML wrapper."""
     cc = _ops_cc(exclude=to_email)
     html = _message_html(subject=subject, body=body)
@@ -711,7 +914,14 @@ async def send_admin_compose_email(to_email: str, subject: str, body: str) -> bo
             "╚══════════════════════════════════════════════════════════════╝"
         )
         return True
-    return await _dispatch(to_email, subject, body, html=html, cc=cc or None)
+    return await _dispatch(
+        to_email,
+        subject,
+        body,
+        html=html,
+        cc=cc or None,
+        idempotency_key=idempotency_key,
+    )
 
 
 async def send_late_add_org_email(
@@ -721,6 +931,7 @@ async def send_late_add_org_email(
     drop_title: str = "",
     brand_name: str = "",
     campaign_url: str,
+    idempotency_key: str | None = None,
 ) -> bool:
     """Tell an org Buzz added them to a campaign (admin late-add)."""
     name = org_name or "your organization"
@@ -751,7 +962,14 @@ async def send_late_add_org_email(
             "╚══════════════════════════════════════════════════════════════╝"
         )
         return True
-    return await _dispatch(to_email, subject, text, html=html, cc=cc or None)
+    return await _dispatch(
+        to_email,
+        subject,
+        text,
+        html=html,
+        cc=cc or None,
+        idempotency_key=idempotency_key,
+    )
 
 
 async def send_late_add_brand_email(
@@ -761,6 +979,7 @@ async def send_late_add_brand_email(
     drop_title: str = "",
     brand_name: str = "",
     drop_url: str,
+    idempotency_key: str | None = None,
 ) -> bool:
     """Tell a brand Buzz added an org to their campaign (admin late-add)."""
     name = brand_name or "your brand"
@@ -791,7 +1010,14 @@ async def send_late_add_brand_email(
             "╚══════════════════════════════════════════════════════════════╝"
         )
         return True
-    return await _dispatch(to_email, subject, text, html=html, cc=cc or None)
+    return await _dispatch(
+        to_email,
+        subject,
+        text,
+        html=html,
+        cc=cc or None,
+        idempotency_key=idempotency_key,
+    )
 
 
 async def _dispatch(
@@ -801,13 +1027,25 @@ async def _dispatch(
     *,
     html: str | None = None,
     cc: list[str] | None = None,
+    idempotency_key: str | None = None,
 ) -> bool:
     """Send one email through Resend. Best-effort: never raises.
 
-    Returns ``True`` on HTTP 2xx provider accept, ``False`` on unset key /
-    HTTP error / exception. With no ``RESEND_API_KEY`` configured this logs
-    and returns False, so a deploy that hasn't wired email yet degrades
-    gracefully instead of 500-ing the flows that send mail.
+    Returns ``True`` on HTTP 2xx provider accept. A replay of the same
+    idempotency key and payload is also 2xx (Resend returns the original
+    email id and does not send again) and counts as success.
+
+    Returns ``False`` on unset API key, HTTP error, or exception. HTTP 409
+    is not success: ``invalid_idempotent_request`` means this payload differs
+    from the one already stored for the key, and ``concurrent_idempotent_requests``
+    means another request with this key is still in flight. Both are logged
+    at error with the kind and a hash of the key. Callers must not stamp
+    sent-success on ``False``.
+
+    With no ``RESEND_API_KEY`` configured this logs and returns False, so a
+    deploy that hasn't wired email yet degrades gracefully instead of
+    500-ing the flows that send mail. An unsafe idempotency key is dropped
+    and the email is still attempted with no header.
     """
     if not settings.RESEND_API_KEY:
         logger.warning("Email not sent (RESEND_API_KEY unset): to=%s subject=%s", to_email, subject)
@@ -823,13 +1061,20 @@ async def _dispatch(
         payload["html"] = html
     if cc:
         payload["cc"] = cc
+    headers = {"Authorization": f"Bearer {settings.RESEND_API_KEY}"}
+    usable_key = _usable_idempotency_key(idempotency_key)
+    if usable_key is not None:
+        headers["Idempotency-Key"] = usable_key
     try:
         async with _email_client() as client:
             resp = await client.post(
                 _RESEND_ENDPOINT,
-                headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                headers=headers,
                 json=payload,
             )
+            if resp.status_code == 409:
+                _log_idempotency_conflict(usable_key, resp)
+                return False
             resp.raise_for_status()
             resend_id = None
             try:

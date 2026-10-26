@@ -323,7 +323,9 @@ async def _notify_ctx(db_session, *, reminder_minutes=15, opens_in=timedelta(min
 async def test_notify_reminder_sent_when_due(db_session, monkeypatch) -> None:
     sent: list[tuple[str, str]] = []
 
-    async def _capture(to_email, *, org_name="", drop_title="", brand_name=""):
+    async def _capture(
+        to_email, *, org_name="", drop_title="", brand_name="", idempotency_key=None
+    ):
         sent.append((to_email, drop_title))
         return True
 

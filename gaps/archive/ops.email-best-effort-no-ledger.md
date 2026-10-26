@@ -148,6 +148,10 @@ story.
 Covers durable ledger, drop-denial org-visible channel (or product wontfix),
 invite/password-reset honesty, optional webhooks/outbox.
 
+Superseded 2026-10-26: that follow-up was archived
+(`ops.email-ledger.md` in this folder). Double-send is covered by Resend
+idempotency keys. The durable ledger and webhooks will not be built.
+
 Archiving this file **requires** that follow-up gap still exist; do not claim
 email silent-loss is fully closed.
 

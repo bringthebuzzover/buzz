@@ -142,7 +142,7 @@ resend. **Avoid** Notify Me cron (`*/5`) for first proof — retries leave
 | Notify cron | Leave `sent_at` NULL → retry |
 | Password reset | Always `{ok: true}`; burn token + warn |
 
-Ledger / remaining honesty polish → [`ops.email-ledger`](../ops.email-ledger.md).
+Ledger / remaining honesty polish → [`ops.email-ledger`](ops.email-ledger.md) (archived 2026-10-26).
 
 ## How to test
 
