@@ -173,6 +173,10 @@ class FakeInstagramClient:
         self.username = "testorg"
         self.long_lived_token = "fake-long-lived-token"
         self.seen_code: str | None = None
+        self.granted_permissions: tuple[str, ...] | None = (
+            "instagram_business_basic",
+            "instagram_business_manage_insights",
+        )
 
     def build_authorize_url(self, state: str) -> str:
         return (
@@ -183,7 +187,11 @@ class FakeInstagramClient:
 
     async def exchange_code(self, code: str) -> ShortLivedToken:
         self.seen_code = code
-        return ShortLivedToken(access_token="fake-short-lived", user_id=self.user_id)
+        return ShortLivedToken(
+            access_token="fake-short-lived",
+            user_id=self.user_id,
+            permissions=self.granted_permissions,
+        )
 
     async def exchange_for_long_lived(self, short_token: str) -> LongLivedToken:
         return LongLivedToken(access_token=self.long_lived_token, expires_in=5183944)

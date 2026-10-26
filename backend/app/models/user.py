@@ -10,7 +10,8 @@ Notable columns:
   — populated only for the org-side IG OAuth path (PRODUCT.md §6.1).
   ``instagram_user_id`` is Graph ``/me.id``; ``instagram_token_user_id`` is
   the token-exchange ``user_id`` Meta may send on deauthorize (usually the
-  same). Nullable on brand/admin rows.
+  same). ``instagram_granted_permissions`` is the code-exchange
+  ``permissions`` list (comma-separated). Nullable on brand/admin rows.
 * ``password_hash`` — set by Stage 3 brand-side password auth; nullable to
   cover org/admin rows that authenticate via IG OAuth. Kept on this table
   (rather than a sidecar ``brand_passwords``) so future role-switching needs
@@ -57,6 +58,9 @@ class User(Base):
         sa.String(255), unique=True, nullable=True
     )
     instagram_username: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    # Comma-separated scopes from the Instagram code-exchange ``permissions``
+    # field (not a token). Null when that response omitted the field.
+    instagram_granted_permissions: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     instagram_access_token: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     instagram_token_issued_at: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True), nullable=True

@@ -158,7 +158,22 @@ class Settings(BaseSettings):
     INSTAGRAM_TOKEN_URL: str = Field(
         default="https://api.instagram.com/oauth/access_token",
     )
-    INSTAGRAM_GRAPH_BASE: str = Field(default="https://graph.instagram.com")
+    INSTAGRAM_GRAPH_BASE: str = Field(
+        default="https://graph.instagram.com",
+        description="Host only. Do not append a version; see INSTAGRAM_GRAPH_VERSION.",
+    )
+    INSTAGRAM_GRAPH_VERSION: str = Field(
+        default="v26.0",
+        description=(
+            "Version prefix for graph.instagram.com read calls "
+            "(/me, /me/media, /{media-id}, /{media-id}/insights). "
+            "Default matches Instagram API with Instagram Login get-started "
+            "samples (Graph API v26.0, current as of 2026-10-26). "
+            "Empty keeps those calls unversioned. Long-lived exchange "
+            "(/access_token) and refresh (/refresh_access_token) stay "
+            "unversioned — Meta's token references omit a version prefix."
+        ),
+    )
 
     # --- Business Discovery (apply-time handle lookup; META.md) ---
     FACEBOOK_GRAPH_BASE: str = Field(

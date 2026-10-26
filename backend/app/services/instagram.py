@@ -32,6 +32,83 @@ logger = logging.getLogger(__name__)
 ACCOUNT_TYPE_BUSINESS = "BUSINESS"
 ACCOUNT_TYPE_MEDIA_CREATOR = "MEDIA_CREATOR"
 ALLOWED_ACCOUNT_TYPES = frozenset({ACCOUNT_TYPE_BUSINESS, ACCOUNT_TYPE_MEDIA_CREATOR})
+# Scopes Buzz asks for at Business Login (META.md). Extra names on the
+# code-exchange ``permissions`` field are logged; login still proceeds.
+EXPECTED_IG_LOGIN_PERMISSIONS = frozenset(
+    {"instagram_business_basic", "instagram_business_manage_insights"}
+)
+
+
+def instagram_graph_url(path: str) -> str:
+    """Versioned ``graph.instagram.com`` URL for Instagram Login read calls.
+
+    ``/access_token`` and ``/refresh_access_token`` stay on the unversioned
+    host: Meta's Access Token and Refresh Access Token references omit a
+    version prefix. An empty ``INSTAGRAM_GRAPH_VERSION`` keeps reads
+    unversioned too.
+    """
+
+    base = settings.INSTAGRAM_GRAPH_BASE.rstrip("/")
+    version = settings.INSTAGRAM_GRAPH_VERSION.strip().strip("/")
+    suffix = path.lstrip("/")
+    if version:
+        return f"{base}/{version}/{suffix}"
+    return f"{base}/{suffix}"
+
+
+def _instagram_graph_host() -> str:
+    return settings.INSTAGRAM_GRAPH_BASE.rstrip("/")
+
+
+def _permission_names(raw: object) -> tuple[str, ...] | None:
+    """Comma-separated string or list of strings → deduped names.
+
+    ``None`` means the value is not a shape we store (caller logs the type).
+    """
+
+    if isinstance(raw, str):
+        parts = raw.split(",")
+    elif isinstance(raw, list):
+        parts = []
+        for item in raw:
+            if not isinstance(item, str):
+                return None
+            parts.append(item)
+    else:
+        return None
+    seen: list[str] = []
+    for part in parts:
+        name = part.strip()
+        if name and name not in seen:
+            seen.append(name)
+    return tuple(seen)
+
+
+def _capture_granted_permissions(payload: dict[str, Any]) -> tuple[str, ...] | None:
+    """Log the code-exchange ``permissions`` field (never the token)."""
+
+    if "permissions" not in payload or payload.get("permissions") is None:
+        logger.info("instagram code exchange granted_permissions=omitted")
+        return None
+    raw = payload["permissions"]
+    names = _permission_names(raw)
+    if names is None:
+        logger.warning(
+            "instagram code exchange granted_permissions unrecognized type=%s",
+            type(raw).__name__,
+        )
+        return None
+    logger.info(
+        "instagram code exchange granted_permissions=%s",
+        ",".join(names) if names else "(none)",
+    )
+    unexpected = [name for name in names if name not in EXPECTED_IG_LOGIN_PERMISSIONS]
+    if unexpected:
+        logger.warning(
+            "instagram code exchange unexpected_permissions=%s",
+            ",".join(unexpected),
+        )
+    return names
 
 
 def canonical_instagram_handle(username: str | None) -> str:
@@ -59,10 +136,16 @@ def require_instagram_handle(username: str | None) -> str:
 
 @dataclass(frozen=True)
 class ShortLivedToken:
-    """Result of the ``code → access_token`` exchange (never persisted)."""
+    """Result of the ``code → access_token`` exchange.
+
+    The short-lived ``access_token`` is never persisted. ``permissions`` may
+    be copied onto the user row.
+    """
 
     access_token: str
     user_id: str
+    # ``None`` when the code-exchange body omitted ``permissions``.
+    permissions: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -355,13 +438,17 @@ class HttpInstagramClient:
                 "Instagram code exchange returned no token.",
                 body=payload,
             )
-        return ShortLivedToken(access_token=str(token), user_id=str(user_id))
+        return ShortLivedToken(
+            access_token=str(token),
+            user_id=str(user_id),
+            permissions=_capture_granted_permissions(payload),
+        )
 
     async def exchange_for_long_lived(self, short_token: str) -> LongLivedToken:
         client = await self._client()
         payload = await _ig_json(
             client.get(
-                f"{settings.INSTAGRAM_GRAPH_BASE}/access_token",
+                f"{_instagram_graph_host()}/access_token",
                 params={
                     "grant_type": "ig_exchange_token",
                     "client_secret": settings.INSTAGRAM_CLIENT_SECRET,
@@ -384,7 +471,7 @@ class HttpInstagramClient:
         client = await self._client()
         payload = await _ig_json(
             client.get(
-                f"{settings.INSTAGRAM_GRAPH_BASE}/me",
+                instagram_graph_url("me"),
                 params={
                     "fields": "id,user_id,username,account_type,followers_count",
                     "access_token": long_token,
@@ -414,7 +501,7 @@ class HttpInstagramClient:
         client = await self._client()
         try:
             resp = await client.get(
-                f"{settings.INSTAGRAM_GRAPH_BASE}/refresh_access_token",
+                f"{_instagram_graph_host()}/refresh_access_token",
                 params={"grant_type": "ig_refresh_token", "access_token": long_token},
             )
             resp.raise_for_status()
@@ -441,7 +528,7 @@ class HttpInstagramClient:
         client = await self._client()
         window_start = datetime.now(timezone.utc) - timedelta(days=_MEDIA_LIST_WINDOW_DAYS)
         out: list[MediaRef] = []
-        url: str | None = f"{settings.INSTAGRAM_GRAPH_BASE}/me/media"
+        url: str | None = instagram_graph_url("me/media")
         params: dict[str, str | int] | None = {
             "fields": "id,timestamp",
             "limit": limit,
@@ -492,7 +579,7 @@ class HttpInstagramClient:
         )
         try:
             resp = await client.get(
-                f"{settings.INSTAGRAM_GRAPH_BASE}/{media_id}",
+                instagram_graph_url(media_id),
                 params={"fields": fields, "access_token": long_token},
             )
             resp.raise_for_status()
@@ -522,7 +609,7 @@ class HttpInstagramClient:
         metrics = _REEL_INSIGHT_METRICS if is_reel else _FEED_INSIGHT_METRICS
         try:
             resp = await client.get(
-                f"{settings.INSTAGRAM_GRAPH_BASE}/{media_id}/insights",
+                instagram_graph_url(f"{media_id}/insights"),
                 params={"metric": metrics, "access_token": long_token},
             )
             resp.raise_for_status()
