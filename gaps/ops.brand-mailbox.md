@@ -26,7 +26,7 @@ repro: |
   send MX 10 feedback-smtp.us-east-1.amazonses.com.
   send TXT v=spf1 include:amazonses.com ~all
   resend._domainkey TXT present (Resend DKIM; not copied here)
-  Live SPA bundle main.abbc5540.js contains melissa@bringthebuzzover.com and does not contain the former Cornell contact.
+  Live SPA script referenced by the www index on 2026-10-26 is static/js/main.686ff88a.js. That file contains melissa@bringthebuzzover.com and does not contain the former Cornell contact.
   Authoritative query to felipe.ns.cloudflare.com timed out (UDP/53); 1.1.1.1 is the probe above.
 fix_when: |
   hello@bringthebuzzover.com is confirmed as a Workspace user or alias on the
@@ -38,7 +38,7 @@ fix_when: |
   Out of scope: in-app admin inbox; Resend on send.
 ---
 
-# Company mailbox — Google Workspace (contact cut over)
+# Company mailbox — Google Workspace Business Starter (contact cut over)
 
 Split from [`ops.brand-domain-email-unset`](archive/ops.brand-domain-email-unset.md)
 (2026-08-11). Sibling (done):
@@ -50,12 +50,12 @@ This file stays open for the remaining human checks below.
 
 ## Status (2026-10-26)
 
-Google Workspace is live for `bringthebuzzover.com`. Public contact is
+Google Workspace Business Starter is live for `bringthebuzzover.com`. Public contact is
 `melissa@bringthebuzzover.com` in [`backend/brand_emails.json`](../backend/brand_emails.json)
 (`emailFrom` is `Buzz <hello@bringthebuzzover.com>`). The SPA reads that JSON
-through `@brandEmails`. Production `www` bundle `main.abbc5540.js` (probed
-2026-10-26) contains `melissa@bringthebuzzover.com` and not the former Cornell
-contact.
+through `@brandEmails`. The script referenced by the www index on 2026-10-26,
+`static/js/main.686ff88a.js`, contains `melissa@bringthebuzzover.com` and not
+the former Cornell contact.
 
 Apex DNS on Cloudflare (via `dig @1.1.1.1`) is Google mail, not empty:
 
@@ -87,7 +87,7 @@ Receive and send-as were not re-proven from this environment (no Gmail login). T
 
 | Decision | Lock |
 | -------- | ---- |
-| **Provider** | Google Workspace |
+| **Provider** | Google Workspace Business Starter |
 | **Public contact** | `melissa@bringthebuzzover.com` (cut over; do not point it back at a personal address) |
 | **DNS SOT** | Cloudflare only (Hostinger = registrar; never publish MX there) |
 | **Webmail** | https://mail.google.com |
@@ -108,10 +108,12 @@ Display name in the Contact modal remains “Melissa Chowdhury” (`siteIdentity
 | UI | Contact modal; Privacy; Terms; Data deletion (`mailto:` from `contact.email`) |
 | Backend | [`backend/app/brand_emails.py`](../backend/app/brand_emails.py) loads `CONTACT_EMAIL` / `EMAIL_FROM` / `OPS_CC_EMAIL`. [`email.py`](../backend/app/services/email.py) uses From `EMAIL_FROM`, Reply-To `CONTACT_EMAIL` on every `_dispatch`, and CC `CONTACT_EMAIL` for admin compose and late-add. Prefill copy also prints `CONTACT_EMAIL`. |
 
-`rg mc3237` outside `gaps/archive` and `ideas/archive` (2026-10-26) hits only this gap’s history before this edit, plus tests that are **not** public-contact assertions:
+`mc3237@cornell.edu` is an applicant school address on an old org-apply row, not the public contact. Tracked hits outside `gaps/archive` and `ideas/archive` (2026-10-26) are tests. A normal `rg` skips gitignored fixtures; those files hold the same row.
 
 | File | Why it stays |
 | ---- | ------------ |
+| `backend/scripts/fixtures/links.json` | Gitignored local prefill-link sidecar. `invite_email` on the Epsilon Nu Tau row |
+| `backend/scripts/fixtures/org-apply-prefills-buzz-x-update.csv` | Gitignored source sheet for that same applicant row |
 | `backend/tests/test_org_apply_prefill.py` | Parsed org-apply row; `.edu` is the applicant address |
 | `frontend/src/pages/auth/OrgApplyPage.test.tsx` | Prefill draft `eduEmail` for that same applicant row |
 | `backend/tests/test_email.py` | `applied_on_from_source_row_key` date parse; the address is part of the row key |
@@ -126,7 +128,7 @@ College domain `cornell.edu` in `frontend/src/data/colleges.ts` and other `.edu`
 | Registrar | Hostinger | Melissa — Active, expires 2026-12-21; NS → Cloudflare |
 | Authoritative DNS | Cloudflare zone `9103e4c774707bf5b2f17fbb9d9144cf` | Lawrence — Free; NS `felipe` / `melody` |
 | Transactional send | Resend on `send.` + Railway `RESEND_API_KEY` | From `hello@…`; Reply-To `melissa@…` |
-| Human inbox | Google Workspace | `melissa@bringthebuzzover.com`. Webmail https://mail.google.com. Admin https://admin.google.com. Billing owner / Super Admin not named in-repo. `hello@` alias unconfirmed. |
+| Human inbox | Google Workspace Business Starter | `melissa@bringthebuzzover.com`. Webmail https://mail.google.com. Admin https://admin.google.com. Billing owner / Super Admin not named in-repo. `hello@` alias unconfirmed. |
 
 ## Cutover risks (still)
 
@@ -137,6 +139,7 @@ College domain `cornell.edu` in `frontend/src/data/colleges.ts` and other `.edu`
 - Editing `send` or `resend._domainkey` breaks Resend.
 - Orange-cloud `www` / `api` breaks Railway TLS. MX stays DNS-only.
 - Do not point `contactEmail` at a personal mailbox again.
+- Do not set DMARC `aspf=s`. Resend’s MAIL FROM stays on `send.`, so strict SPF alignment would fail app mail. Leave alignment relaxed and do not tighten past `p=none` until that is reviewed.
 
 ## Repo checklist
 
@@ -145,7 +148,7 @@ College domain `cornell.edu` in `frontend/src/data/colleges.ts` and other `.edu`
 [x] frontend/src/data/siteIdentity.test.ts expects that address
 [x] Legal pages + Contact modal read siteIdentity.contact.email
 [x] App mail Reply-To is CONTACT_EMAIL (melissa@)
-[x] Production SPA bundle serves melissa@ (2026-10-26, main.abbc5540.js)
+[x] Production SPA script referenced by the www index on 2026-10-26 (static/js/main.686ff88a.js) serves melissa@
 [x] Apex MX + SPF + google-site-verification + google._domainkey + _dmarc
 [x] send. / resend._domainkey untouched
 [x] DEPLOYMENT.md Human inbox section (provider, address, webmail, admin URL)

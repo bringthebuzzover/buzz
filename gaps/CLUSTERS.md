@@ -542,7 +542,7 @@ note: |
     org channel (or wontfix) + invite/reset honesty.
   - `ops.resend-domain-unverified` — **archived** 2026-08-11 (domain Verified +
     brand invite inbox proof; key rotated onto Railway).
-  - `ops.brand-mailbox` — Google Workspace mailbox `melissa@bringthebuzzover.com`
+  - `ops.brand-mailbox` — Google Workspace Business Starter mailbox `melissa@bringthebuzzover.com`
     is live (apex MX/SPF/DKIM/DMARC published; SPA contact cut over, probed
     2026-10-26). Still open: confirm `hello@` is a Workspace alias (or record
     that it must not receive), and name the billing owner / Super Admin in

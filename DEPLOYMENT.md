@@ -103,11 +103,11 @@ Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway
 
 ### Human inbox (Google Workspace)
 
-Company mail is Google Workspace on the apex. Resend on `send.` is app autosend only. Leave Cloudflare Email Routing off so it does not publish a second apex MX.
+Company mail is Google Workspace Business Starter on the apex. Resend on `send.` is app autosend only. Leave Cloudflare Email Routing off so it does not publish a second apex MX.
 
 | Item | Value |
 | ---- | ----- |
-| **Provider** | Google Workspace |
+| **Provider** | Google Workspace Business Starter |
 | **Public contact** | `melissa@bringthebuzzover.com` — `contactEmail` in [`backend/brand_emails.json`](backend/brand_emails.json). Contact modal, privacy, terms, and data deletion read it via `@brandEmails`. |
 | **Webmail** | https://mail.google.com |
 | **Admin console** | https://admin.google.com |
