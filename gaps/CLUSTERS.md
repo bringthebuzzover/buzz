@@ -178,7 +178,7 @@ Priority rationale (2026-08-11 delivery order — code first, then ops parallel)
 3. `brand-delivery-address` — **done** (null denied applicants' deliveryAddress)
 4. `org-edu-email-change` — **done** (pending-swap `.edu` rotate)
 5. `admin-drops-ops-ui` — **done** (list multiselect + detail logistics)
-Ops (not auto-pick): `meta-business-verification`, `ops.brand-mailbox` (follow-ups).
+Ops (not auto-pick): `meta-business-verification`, `ops.brand-mailbox` (follow-ups; contact cut over, `hello@` alias and inbox admin still open).
 
 ---
 
@@ -542,9 +542,11 @@ note: |
     org channel (or wontfix) + invite/reset honesty.
   - `ops.resend-domain-unverified` — **archived** 2026-08-11 (domain Verified +
     brand invite inbox proof; key rotated onto Railway).
-  - `ops.brand-mailbox` — **provider locked: Google Workspace Business Starter**;
-    still need billing owner + local-part, then MX/proofs + flip Cornell
-    `contactEmail` (not forward-only; Resend stays on `send.`).
+  - `ops.brand-mailbox` — Google Workspace mailbox `melissa@bringthebuzzover.com`
+    is live (apex MX/SPF/DKIM/DMARC published; SPA contact cut over, probed
+    2026-10-26). Still open: confirm `hello@` is a Workspace alias (or record
+    that it must not receive), and name the billing owner / Super Admin in
+    DEPLOYMENT.md. Do not touch Resend `send.`.
   - `ops.ig-business-discovery-unset` — apply confirm card soft-fails until
     Facebook Login Business Discovery token + IG user id are on Railway api
     (human Meta mint; not Instagram Login `INSTAGRAM_CLIENT_*`).
