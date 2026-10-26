@@ -179,56 +179,19 @@ Pending invites cannot log in. Invites are manual on both sides.
 
 **Seeded org onboarding** ([`LAUNCH.md`](LAUNCH.md) §7): copy the org’s **claimed `@handle`** from Buzz admin → add as Instagram Tester **before** Approve → org accepts invite → approval email → Connect Instagram (not `/login` as signup). Honor-system confirm on admin Approve.
 
-### Apply-time handle lookup (Business Discovery)
+### Apply-time handle (no Meta lookup)
 
-[`PRODUCT.md`](PRODUCT.md) §6.1.1: `/org/apply` shows an **inline confirm card** after an exact-username lookup (not an IG-app typeahead). Implementation uses Meta **Business Discovery** on `graph.facebook.com` — **not** the org’s Instagram Login token.
+[`PRODUCT.md`](PRODUCT.md) §6.1.1: `/org/apply` asks for the organization’s Instagram handle as typed text. Buzz does **not** call Meta to look it up. There is no confirm card and no `GET /api/orgs/instagram-lookup`.
 
-**Ops / engineering setup (one-time):**
+The handle is stored **unconfirmed** until Connect Instagram (Instagram Login on `graph.instagram.com`) binds the account. Username-shape validation stays on apply.
 
-1. Connect a Buzz-owned **Instagram Business or Creator** account to the Meta app via **Facebook Login for Business** (Page-linked path — separate from org Instagram Login OAuth).
-2. Store a long-lived **server** access token (env var; rotate like other secrets). Used only for public `GET /api/orgs/instagram-lookup` (rate-limited).
-3. Query shape: `GET /{buzz-ig-user-id}?fields=business_discovery.username({handle}){username,name,profile_picture_url,biography,followers_count}`.
-
-**Railway env (api service only — after human mint):**
+**Removed 2026-10-26** (Facebook Login Business Discovery). These env vars are no longer read. If they are still set on Railway **api**, delete them. Do not mint a replacement token:
 
 - `INSTAGRAM_BUSINESS_DISCOVERY_TOKEN`
 - `INSTAGRAM_BUSINESS_DISCOVERY_IG_USER_ID`
-- `FACEBOOK_GRAPH_BASE` (default `https://graph.facebook.com`)
+- `FACEBOOK_GRAPH_BASE`
 
-Until those are set, lookup **soft-fails** (PRODUCT §6.1.1) — apply still works with handle marked unconfirmed.
-
-**Status (2026-10-26):** Facebook app BUZZ (`1589568552810678`) and Instagram app BUZZ - IG (`2056969808271074`) are in **Development**. Business Verification is **Verified**. Service IG + Facebook Login long-lived token are still **unset** on Railway `api` — production lookup returns `reason=unavailable`. Living ops runbook: [`gaps/ops.ig-business-discovery-unset.md`](gaps/ops.ig-business-discovery-unset.md). App Review resubmission: [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md).
-
-**Product rules:**
-
-- Lookup is **exact username** after debounce — no similar-handle suggestions.
-- Not found / personal account → surface **Business or Creator required**; **blocks** apply submit.
-- Transient / rate-limited / token-unset → **soft-fail**: allow submit with handle marked **unconfirmed** (admin sees the flag). See [`PRODUCT.md`](PRODUCT.md) §6.1.1.
-- Does **not** replace Connect at approval; only helps the applicant confirm the right handle on the apply form.
-
-Docs: [Business Discovery](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-facebook-login/business-discovery/), [Graph API rate limiting](https://developers.facebook.com/docs/graph-api/overview/rate-limiting/).
-
-**Meta rate limits (Business Discovery):**
-
-Business Discovery is **not** counted against the Instagram BUC budget (`4800 × impressions` / 24h). Meta documents it under **Platform Rate Limits** instead ([Instagram Platform overview — Rate limiting](https://developers.facebook.com/docs/instagram-platform/overview/)).
-
-| Bucket | Official rule | Buzz implication |
-| ------ | ------------- | ---------------- |
-| **Platform (app token)** | `Calls within 1 hour = 200 × Number of Users` (app DAU; scales with engagement) | Shared **app-wide** hourly budget — not per applicant |
-| **Platform (user token)** | Rolling 1h per token; Meta does **not** publish the numeric cap | Our service IG token is likely one user bucket — treat as **finite** |
-| **CPU / wall time** | `X-App-Usage`: `total_cputime` / `total_time` are **percentages**; throttling at 100% can happen **before** the hourly call budget | Avoid burst lookups; space Meta calls |
-
-Community reports (low-DAU apps) often see **~200 lookups/hour** as a practical ceiling when using a single service token — enough for seeded apply **if** Buzz does not call Meta on every keystroke.
-
-**Buzz-side protections (required in Phase A):**
-
-1. **Client debounce** — lookup only after typing pauses (~500ms) on a **complete** username shape; never on partial strings (Meta needs exact `username` anyway).
-2. **Server cache** — cache lookup results by normalized handle (hit + miss) for **≥15 minutes**; dedupe concurrent requests for the same handle.
-3. **Public endpoint limits** — `GET /api/orgs/instagram-lookup`: per-IP cap (e.g. **30/hour**, **10/min burst**) independent of Meta; return **429** with retry-after when exceeded.
-4. **Meta throttle handling** — on Graph `4` / `17` / `32` / `613` or `429`, serve “try again in a few minutes” on the confirm card; log `X-App-Usage` when present; optional short server-side backoff when `call_count` or `total_time` > **80%**.
-5. **One Meta call per debounced lookup** — no retry storm; applicant can click Retry manually.
-
-**Seeded-launch capacity (order of magnitude):** with debounce + cache, dozens of applies per hour are fine on a ~200/hr Meta budget; a campus tabling event with hundreds of simultaneous typists needs cache + IP limits so duplicate handles and retries do not fan out to Meta.
+The API ignores unknown env vars, so leaving them does not change behavior. Archived ops note: [`gaps/archive/ops.ig-business-discovery-unset.md`](gaps/archive/ops.ig-business-discovery-unset.md). App Review: [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md) checklist 1c.
 
 ---
 
