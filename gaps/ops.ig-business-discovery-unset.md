@@ -27,8 +27,9 @@ fix_when: |
   reason=not_found (not unavailable). /org/apply shows the confirm card, not the amber
   soft-fail, for @bringthebuzzover.
   Do not commit tokens. FACEBOOK_GRAPH_BASE optional (default is correct).
-  Out of archive scope: App Review / Advanced Access / Business Verification
-  (deploy.meta-business-verification). Token rotation calendar after first mint.
+  Out of archive scope: App Review resubmission
+  (deploy.meta-app-review). Business Verification is already
+  Verified (2026-10-26). Token rotation calendar after first mint.
 ---
 
 # Apply-time Instagram lookup unset (Business Discovery)
@@ -94,15 +95,18 @@ Business Discovery samples use a **User** token
 storing the **long-lived User** token unless a smoke test proves a Page token
 works for this query. Calendar a remint before ~60 days.
 
-**System User** never-expire tokens need the app in a Business portfolio
-(`deploy.meta-business-verification`). Until BV, use Graph Explorer as an
-**app admin** who can manage the Page linked to `@bringthebuzzover`.
+**System User** never-expire tokens need the app in a verified Business
+portfolio. Business Verification is **Verified** (2026-10-26;
+`deploy.meta-app-review`). A Graph Explorer **app admin** who
+can manage the Page linked to `@bringthebuzzover` can still mint the
+service token this runbook uses. App mode is **Development**. An admin
+mint in Graph Explorer still works in that mode.
 
 ## Steps (human)
 
 ### 0. Preconditions
 
-- Meta app **BUZZ** `1589568552810678` is Live (true 2026-08-26 / still listed).
+- Facebook app **BUZZ** `1589568552810678` and Instagram app **BUZZ - IG** `2056969808271074` are in **Development** (dashboard 2026-10-26). Business Verification is **Verified**.
 - `@bringthebuzzover` is Business or Creator.
 - You are App Admin (or Developer) on BUZZ.
 
@@ -223,5 +227,5 @@ curl -sS 'https://api.bringthebuzzover.com/api/orgs/instagram-lookup?username=br
 ## Related
 
 - [`META.md`](../META.md) — Apply-time handle lookup (rate limits, cache, IP caps already in code).
-- [`deploy.meta-business-verification`](deploy.meta-business-verification.md) — BV / Advanced Access; not required to mint an **admin** token for seeded lookup, required for System User / public non-tester login.
+- [`deploy.meta-app-review`](deploy.meta-app-review.md) — Business Verification is **Verified** (2026-10-26). Advanced Access is the open App Review resubmission. An **admin** Graph Explorer token for seeded lookup does not wait on that review. System User tokens and public non-tester login still do.
 - `PRODUCT.md` §6.1.1 — confirm card vs unconfirmed submit.
