@@ -33,7 +33,7 @@ export default function HomeBringBuzzSection() {
           </h2>
           <HomeFlyingBee />
         </div>
-        <p className={cn(TEXT.bodyLong, "mx-auto mt-8 max-w-2xl text-center font-medium text-buzz-inkMuted")}>
+        <p className={cn(TEXT.bodyLong, "mx-auto mt-14 max-w-2xl text-center font-medium text-buzz-inkMuted")}>
           Our platform makes it easy for brands to connect with student
           ambassadors and campus organizations for authentic marketing
           campaigns.
