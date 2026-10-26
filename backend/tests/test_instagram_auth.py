@@ -205,6 +205,63 @@ async def test_relogin_syncs_instagram_username(
 
     await db_session.refresh(user)
     assert user.instagram_username == "newchapter"
+    assert user.instagram_granted_permissions == (
+        "instagram_business_basic,instagram_business_manage_insights"
+    )
+
+
+async def test_callback_persists_granted_permissions_in_response_order(
+    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
+) -> None:
+    from app.models.enums import OrgUserStatus
+    from tests.conftest import make_user, persist
+
+    fake_instagram.user_id = "ig_perms_1"
+    fake_instagram.granted_permissions = (
+        "instagram_business_manage_insights",
+        "instagram_business_basic",
+    )
+    user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.ACTIVE, instagram_user_id="ig_perms_1"),
+    )
+    await db_session.commit()
+
+    state = await _begin_login(app_client)
+    resp = await app_client.post(
+        "/api/auth/instagram/callback",
+        json={"code": "c", "state": state},
+    )
+    assert resp.status_code == 200
+    await db_session.refresh(user)
+    assert user.instagram_granted_permissions == (
+        "instagram_business_manage_insights,instagram_business_basic"
+    )
+
+
+async def test_callback_omitted_permissions_keeps_stored_grant(
+    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
+) -> None:
+    from app.models.enums import OrgUserStatus
+    from tests.conftest import make_user, persist
+
+    fake_instagram.user_id = "ig_perms_keep"
+    fake_instagram.granted_permissions = None
+    user = await persist(
+        db_session,
+        make_user(status=OrgUserStatus.ACTIVE, instagram_user_id="ig_perms_keep"),
+    )
+    user.instagram_granted_permissions = "instagram_business_basic"
+    await db_session.commit()
+
+    state = await _begin_login(app_client)
+    resp = await app_client.post(
+        "/api/auth/instagram/callback",
+        json={"code": "c", "state": state},
+    )
+    assert resp.status_code == 200
+    await db_session.refresh(user)
+    assert user.instagram_granted_permissions == "instagram_business_basic"
 
 
 async def test_relogin_taken_handle_409(
