@@ -96,7 +96,9 @@ Follow these phases **in order**. Do not skip Explore/Plan and jump to code.
 
 ### Phase 6 — Stop for commit/push
 
-16. **Do not commit or push** unless the user explicitly asks.
+16. **Do not commit or push** unless the user explicitly asks. When they do,
+    push a feature branch and open a PR. Never push `main`
+    ([Branching & main protection](../../../README.md#branching--main-protection)).
 17. Reply with: cluster id, gaps archived, CI summary, residual risk / related
     open gaps, remaining `pending` clusters, and that the tree is ready for
     commit/push when they say so.
