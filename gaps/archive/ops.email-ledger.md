@@ -5,7 +5,7 @@ kind: silent_loss
 severity: P2
 status: fixed
 surface: ops
-closed_in: pending
+closed_in: f15b860
 evidence:
   - path: backend/app/services/email.py
     note: Optional Resend Idempotency-Key on _dispatch; 409 is not sent-success
