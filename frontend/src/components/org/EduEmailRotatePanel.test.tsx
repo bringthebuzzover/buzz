@@ -190,7 +190,7 @@ describe("EduEmailRotatePanel", () => {
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
     const rotateForm = Array.from(container.querySelectorAll("form")).find(
-      (f) => f.querySelector("#edu-rotate-email"),
+      (f) => f.querySelector("#edu-rotate-email") && f.querySelector("form") == null,
     ) as HTMLFormElement;
     await act(async () => {
       rotateForm.dispatchEvent(
