@@ -4,7 +4,7 @@ Guide for configuring Instagram login for Buzz’s org portal. Written so a non-
 
 Buzz uses **Instagram API with Instagram Login** (Business Login): no Facebook Page required. Orgs **bind** a Business or Creator account after Buzz approval; **returning** sign-in is Instagram on that bound account. Personal accounts are not supported. New org accounts are created via public **org apply**, not Instagram OAuth — see [`LAUNCH.md`](LAUNCH.md) Phase A.
 
-**Seeded launch (current product work):** testers + apply-first; **Business Verification** and **App Review / public login without testers** are **out of this revamp** ([`LAUNCH.md`](LAUNCH.md) §3 Out). §E–G below remain the long-term public-launch path when you intentionally un-park [`gaps/deploy.meta-business-verification.md`](gaps/deploy.meta-business-verification.md).
+**Seeded launch (current product work):** testers + apply-first. Public login without testers still waits on App Review. **Business Verification is Verified** (dashboard 2026-10-26). **App Review** for `instagram_business_basic` and `instagram_business_manage_insights` was submitted 2026-10-07 and **rejected**; resubmission is in progress — [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md). [`LAUNCH.md`](LAUNCH.md) §3 still treats Advanced Access as out of the seeded revamp (testers do not need it). App mode is **Development**.
 
 ---
 
@@ -79,7 +79,7 @@ Backend env matches: `INSTAGRAM_REDIRECT_URI` and `FRONTEND_URL` use www. Traili
 
 Saving redirect URIs does **not** start App Review.
 
-**Configure now (public launch path).** For the **seeded launch**, A–D (tester pilot) are enough — do **not** block Phase A/B on §E–G. When intentionally pursuing public org login without testers: **Start Business Verification** (§E), then App Review (§F).
+**Configure now (public launch path).** For the **seeded launch**, A–D (tester pilot) are enough — do **not** block Phase A/B on §F–G. Business Verification (§E) is **Verified** (2026-10-26). App Review (§F) was rejected; the resubmission checklist is the living gap linked above.
 
 **Submit App Review only when** privacy, terms, and OAuth work on the www/api Hosts above. Meta crawls privacy/terms ([policy](https://developers.facebook.com/docs/development/terms-and-policies/privacy-policy/)).
 
@@ -104,11 +104,11 @@ Engineering does **not** need you to paste secrets into git. Railway Variables +
 - [x] **B.** Add Instagram → **API setup with Instagram login**; copy App ID + Secret → engineering / Railway
 - [x] **C.** Business Login: redirect, permissions, deauthorize, data deletion (+ privacy / terms URLs) — done 2026-08-11
 - [x] **D.** Pilot: Instagram Testers (Standard Access) — confirmed 2026-08-11
-- [ ] **E.** Business Verification — living gap [`gaps/deploy.meta-business-verification.md`](gaps/deploy.meta-business-verification.md)
-- [ ] **F.** App Review: Advanced Access for both permissions
+- [x] **E.** Business Verification — **Verified** 2026-10-26 (dashboard)
+- [ ] **F.** App Review: Advanced Access for both permissions — submitted 2026-10-07, **rejected** (Developer Policy 1.6); resubmission in progress — [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md)
 - [ ] **G.** Confirm public login works without testers
 
-A–D done (tester pilot). **E–F = public launch** (parked for seeded revamp — see [`LAUNCH.md`](LAUNCH.md) §3 Out).
+A–D done (tester pilot). **E done.** **F–G** are the public-login gate (testers still do not need them — [`LAUNCH.md`](LAUNCH.md) §3 Out).
 
 ---
 
@@ -130,7 +130,7 @@ A–D done (tester pilot). **E–F = public launch** (parked for seeded revamp �
 
 > Hand ID → `INSTAGRAM_CLIENT_ID`, secret → `INSTAGRAM_CLIENT_SECRET`. Treat the secret like a password.
 >
-> **Done (2026-08-08):** credentials are on Railway production and in local `backend/.env` (never commit). **§C–D done 2026-08-11.** Continue with **§E**.
+> **Done (2026-08-08):** credentials are on Railway production and in local `backend/.env` (never commit). **§C–D done 2026-08-11. §E Verified 2026-10-26.** Continue with **§F** (resubmission).
 
 ---
 
@@ -143,12 +143,15 @@ Reference: [Business Login](https://developers.facebook.com/docs/instagram-platf
    - `https://www.bringthebuzzover.com/auth/instagram/callback` (**required** — matches Railway env)
    - `http://localhost:3000/auth/instagram/callback` (**optional**, for local SPA ↔ local API OAuth)
    - Optional until IG smoke: `https://frontend-production-3819.up.railway.app/auth/instagram/callback`
-3. **Permissions** — only:
+3. **Permissions** — Buzz requests only:
    - `instagram_business_basic`
    - `instagram_business_manage_insights`  
-   Do not add publishing, comments, or messaging scopes.
+   Do not add publishing, comments, or messaging scopes in code (`INSTAGRAM_SCOPES`).
+
+   **Dashboard (2026-10-26):** those two are Active (Standard Access) and were **rejected** in App Review. Meta also shows `instagram_business_manage_messages` (Active, no review requested; auto-added with the Instagram use case), plus `manage_comments` and `content_publish` (Ready to use, 0 calls). Removal is on the resubmission checklist (Lawrence). Buzz has never requested those three.
 4. **Deauthorize callback URL:** `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize`
-5. **Data deletion instructions URL:** `https://www.bringthebuzzover.com/data-deletion`
+5. **Data deletion instructions URL:** `https://www.bringthebuzzover.com/data-deletion`  
+   Advanced settings also recommends a **Data Deletion Callback URL**. As of 2026-10-26 only this instructions URL is set. Adding the callback is optional (living gap, Lawrence).
 6. **Save.** Confirm the saved redirect string with engineering (dashboard may add a trailing slash).
 7. **App settings → Basic:** Privacy + Terms → `https://www.bringthebuzzover.com/privacy` and `…/terms`.
 
@@ -172,6 +175,8 @@ For each:
 
 Pending invites cannot log in. Invites are manual on both sides.
 
+**Dashboard (2026-10-26):** 3 accepted, 11 pending. Handles are not listed in the living gap. Only an accepted tester can finish login while App mode stays **Development** and the permissions stay on Standard Access.
+
 **Seeded org onboarding** ([`LAUNCH.md`](LAUNCH.md) §7): copy the org’s **claimed `@handle`** from Buzz admin → add as Instagram Tester **before** Approve → org accepts invite → approval email → Connect Instagram (not `/login` as signup). Honor-system confirm on admin Approve.
 
 ### Apply-time handle lookup (Business Discovery)
@@ -192,7 +197,7 @@ Pending invites cannot log in. Invites are manual on both sides.
 
 Until those are set, lookup **soft-fails** (PRODUCT §6.1.1) — apply still works with handle marked unconfirmed.
 
-**Status (2026-08-31):** Meta app BUZZ (`1589568552810678`) is live. Service IG + Facebook Login long-lived token are still **unset** on Railway `api` — production lookup returns `reason=unavailable`. Living ops runbook: [`gaps/ops.ig-business-discovery-unset.md`](gaps/ops.ig-business-discovery-unset.md). Soft-fail path ships in Phase A.
+**Status (2026-10-26):** Facebook app BUZZ (`1589568552810678`) and Instagram app BUZZ - IG (`2056969808271074`) are in **Development**. Business Verification is **Verified**. Service IG + Facebook Login long-lived token are still **unset** on Railway `api` — production lookup returns `reason=unavailable`. Living ops runbook: [`gaps/ops.ig-business-discovery-unset.md`](gaps/ops.ig-business-discovery-unset.md). App Review resubmission: [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md).
 
 **Product rules:**
 
@@ -229,12 +234,16 @@ Community reports (low-DAU apps) often see **~200 lookups/hour** as a practical 
 
 ## E. Business Verification
 
+**Status (2026-10-26): Verified.** Facebook app BUZZ (`1589568552810678`) and Instagram app BUZZ - IG (`2056969808271074`). App mode is **Development**.
+
 Required for Advanced Access.  
 Docs: [Business Verification](https://developers.facebook.com/docs/development/release/business-verification/), [documents](https://www.facebook.com/business/help/2058515294227817).
 
+Path that was completed:
+
 1. App settings → Basic → start Business Verification (attach or create a Business).
 2. Complete verification in Business Manager (tax / registration / utility docs as requested).
-3. Start as soon as documents are ready.
+3. Basic → Verification shows **Verified**.
 
 ---
 
@@ -243,13 +252,15 @@ Docs: [Business Verification](https://developers.facebook.com/docs/development/r
 Unlocks login for orgs that are not testers.  
 Docs: [Instagram App Review](https://developers.facebook.com/docs/instagram-platform/app-review/).
 
-**Before submit:**
+**Status (2026-10-26):** Submitted 2026-10-07 for both permissions. **Rejected** (Developer Policy 1.6 — reviewers could not verify the use case / login flow). Do not resubmit those screencasts or that reviewer text. Checklist, owners, and the 2026-10-07 form: [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md).
 
-- [ ] Business Verification done (or not blocking Advanced Access)
-- [ ] Successful API use of both permissions via a tester login (confirm with engineering; metrics sync should have run)
-- [ ] Privacy + Terms live on the www URLs above; set in App settings → Basic
-- [ ] Reviewers can reach `https://www.bringthebuzzover.com`; include tester credentials if needed
-- [ ] Screencast(s): login → Instagram consent → data use for **each** permission ([recording guide](https://developers.facebook.com/docs/app-review/submission-guide/screen-recordings/))
+**Before the next submit:**
+
+- [x] Business Verification done (Verified 2026-10-26)
+- [ ] Successful API use of both permissions via an **accepted** tester login (confirm with engineering; metrics sync should have run)
+- [x] Privacy + Terms on the www URLs above; set in App settings → Basic (reconfirmed 2026-10-26, with data-deletion instructions and icon)
+- [ ] Reviewers use an accepted tester account and a Buzz test org from the test-credentials field
+- [ ] Screencast(s): one file per permission. Each file is **Connect with Instagram** → credentials → first-time consent under **BUZZ - IG** listing that permission → Allow → that account’s data (profile and comment counts, or **Instagram Reach**). English captions. Not Continue with Instagram, and not a clip that starts after login ([recording guide](https://developers.facebook.com/docs/app-review/submission-guide/screen-recordings/))
 
 **Submit:**
 
@@ -298,7 +309,7 @@ Already in code: OAuth handshake, signed state cookie, encrypted tokens, Busines
 
 **Local laptop:** copy `backend/.env.example` → `backend/.env` (gitignored). Fill the same `INSTAGRAM_CLIENT_*` values; keep `INSTAGRAM_REDIRECT_URI=http://localhost:3000/auth/instagram/callback` and add that URI in Meta §C if you test OAuth locally. Frontend: `REACT_APP_API_URL=http://localhost:8000` in `frontend/.env`.
 
-**Still human (Meta launch):** §E Business Verification → §F App Review Advanced Access → §G public login (Hosts §C archived 2026-08-11 — see `gaps/archive/deploy.meta-brand-url-cutover.md`).
+**Still human (Meta launch):** §E Business Verification is **Verified** (2026-10-26). §F App Review was rejected; resubmission is [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md). §G public login is still open. Hosts §C archived 2026-08-11 — see `gaps/archive/deploy.meta-brand-url-cutover.md`. App mode is **Development**.
 
 Details: `DEPLOYMENT.md`.
 
@@ -327,5 +338,5 @@ Details: `DEPLOYMENT.md`.
 
 - Instagram accounts must be **Business or Creator**.
 - Redirect URI in Meta and `INSTAGRAM_REDIRECT_URI` must match character-for-character.
-- Only the two listed permissions.
-- Public launch = Advanced Access + Business Verification, not testers alone.
+- Code requests only the two listed permissions. Dashboard extras (messaging, comments, content publish) are on the resubmission gap for removal.
+- Public launch still needs Advanced Access on both permissions. Business Verification is already Verified. Testers alone are the seeded pilot.

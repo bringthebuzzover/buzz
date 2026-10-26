@@ -105,7 +105,7 @@ copy matching shipped `/org/apply`.
 
 Copy constraints (not full blockers):
 
-- [`deploy.meta-business-verification.md`](../deploy.meta-business-verification.md)
+- [`deploy.meta-app-review.md`](../deploy.meta-app-review.md)
   — public IG login is still testers-only. Do not promise any campus org can
   Continue with Instagram until Advanced Access. Honest: Business/Creator
   account, then Buzz review.
