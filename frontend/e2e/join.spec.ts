@@ -90,8 +90,8 @@ test("org apply → verify → pending approval", async ({ page }) => {
   expect(posted.ok()).toBeTruthy();
   expect(posted.request().postDataJSON()).toMatchObject({
     instagramHandle: handle,
-    handleConfirmed: false,
   });
+  expect(posted.request().postDataJSON()).not.toHaveProperty("handleConfirmed");
   await expect(page).toHaveURL(/\/onboarding\/verify-email/);
   await expect(page.getByTestId("verify-edu-email")).toHaveText(eduEmail);
   await expect(page.locator("input[type=email]")).toHaveCount(0);
@@ -145,11 +145,10 @@ test("org apply prefill hydrates then submits", async ({ page }) => {
   expect(posted.ok()).toBeTruthy();
   const body = posted.request().postDataJSON() as {
     prefillToken?: string;
-    handleConfirmed?: boolean;
     instagramHandle?: string;
   };
   expect(body.prefillToken).toBe(raw);
   expect(body.instagramHandle).toBe(handle);
-  expect(body.handleConfirmed).toBe(false);
+  expect(body).not.toHaveProperty("handleConfirmed");
   await expect(page).toHaveURL(/\/onboarding\/verify-email/);
 });

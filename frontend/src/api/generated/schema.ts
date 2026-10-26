@@ -4747,11 +4747,6 @@ export interface components {
             dropId?: string | null;
             /** Eduemail */
             eduEmail: string;
-            /**
-             * Handleconfirmed
-             * @default false
-             */
-            handleConfirmed: boolean;
             /** Instagramhandle */
             instagramHandle: string;
             /** Membercount */

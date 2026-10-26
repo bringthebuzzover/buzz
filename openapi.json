@@ -8135,11 +8135,6 @@
             "title": "Eduemail",
             "type": "string"
           },
-          "handleConfirmed": {
-            "default": false,
-            "title": "Handleconfirmed",
-            "type": "boolean"
-          },
           "instagramHandle": {
             "title": "Instagramhandle",
             "type": "string"

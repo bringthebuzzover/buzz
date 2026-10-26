@@ -20,7 +20,6 @@ class OrgApplyRequest(CamelModel):
     university: str
     edu_email: str
     instagram_handle: str
-    handle_confirmed: bool = False
     tiktok_handle: str | None = None
     member_count: int
     category: OrgCategory

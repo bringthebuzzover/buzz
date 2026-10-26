@@ -186,9 +186,9 @@ describe("OrgApplyPage typed Instagram handle", () => {
     expect(mockApply).toHaveBeenCalledWith(
       expect.objectContaining({
         instagramHandle: "campusgreeks",
-        handleConfirmed: false,
       }),
     );
+    expect(mockApply.mock.calls[0][0]).not.toHaveProperty("handleConfirmed");
   });
 
   it("hydrates fields from a prefill draft without auto-confirming Instagram", () => {

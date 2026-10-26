@@ -162,7 +162,6 @@ export default function OrgApplyForm({
         university: unwrapParsed(uni),
         eduEmail: unwrapParsed(edu),
         instagramHandle: handleNorm,
-        handleConfirmed: false,
         prefillToken: prefillToken || undefined,
         tiktokHandle: tiktokHandle.trim().replace(/^@/, "") || undefined,
         memberCount: unwrapParsed(members),
