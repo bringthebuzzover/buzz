@@ -4,6 +4,7 @@
  */
 import { Link } from "react-router-dom";
 import { Card } from "../ui/Card";
+import HomeFlyingBee from "./HomeFlyingBee";
 import { GAP, SECTION_Y, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
@@ -18,7 +19,7 @@ const CARDS = [
     to: "/for-brands",
     title: "For brands",
     teaser:
-      "Request a campaign. Buzz drafts and publishes; you monitor and finalize.",
+      "Request a campaign. Buzz writes and publishes it. You choose which student groups join after applications close.",
   },
 ] as const;
 
@@ -26,10 +27,13 @@ export default function HomeBringBuzzSection() {
   return (
     <section className={cn("bg-buzz-cream px-8", SECTION_Y)}>
       <div className="mx-auto max-w-5xl">
-        <h2 className={cn(TEXT.h2, "text-center text-buzz-coral md:text-4xl")}>
-          How to Bring the Buzz Over
-        </h2>
-        <p className={cn(TEXT.bodyLong, "mx-auto mt-4 max-w-2xl text-center font-medium text-buzz-inkMuted")}>
+        <div className="relative mx-auto w-fit max-w-full">
+          <h2 className={cn(TEXT.h2, "text-center text-buzz-coral md:text-4xl")}>
+            How to Bring the Buzz Over
+          </h2>
+          <HomeFlyingBee />
+        </div>
+        <p className={cn(TEXT.bodyLong, "mx-auto mt-8 max-w-2xl text-center font-medium text-buzz-inkMuted")}>
           Our platform makes it easy for brands to connect with student
           ambassadors and campus organizations for authentic marketing
           campaigns.
