@@ -54,7 +54,6 @@ export type OrgOnboardingInput = {
 
 export type OrgApplyInput = OrgOnboardingInput & {
   instagramHandle: string;
-  handleConfirmed: boolean;
   prefillToken?: string;
   dropId?: string;
   pitch?: string;

@@ -87,12 +87,11 @@ test("anonymous public drop signup stores intent, not an applicant", async ({
     dropId?: string;
     pitch?: string;
     instagramHandle?: string;
-    handleConfirmed?: boolean;
   };
   expect(body.dropId).toBe(E2E_OPEN_DROP_ID);
   expect(body.pitch).toBe("We would love this drop");
   expect(body.instagramHandle).toBe(handle);
-  expect(body.handleConfirmed).toBe(false);
+  expect(body).not.toHaveProperty("handleConfirmed");
 
   await expect(page).toHaveURL(/\/onboarding\/verify-email/);
   await expect(

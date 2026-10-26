@@ -31,7 +31,6 @@ _APPLY = {
     "university": "Cornell University",
     "eduEmail": "intent-club@cornell.edu",
     "instagramHandle": "@intentclub",
-    "handleConfirmed": True,
     "memberCount": 12,
     "category": "social",
     "contactName": "Sam",

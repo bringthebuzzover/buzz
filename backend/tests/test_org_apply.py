@@ -23,7 +23,6 @@ _APPLY = {
     "university": "Cornell University",
     "eduEmail": "greeks@cornell.edu",
     "instagramHandle": "@campusgreeks",
-    "handleConfirmed": True,
     "memberCount": 40,
     "category": "sorority",
     "contactName": "Alex",
@@ -49,7 +48,7 @@ async def test_org_apply_creates_without_ig_token(app_client: AsyncClient, db_se
 
     org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
     assert org is not None
-    assert org.instagram_handle_confirmed is True
+    assert org.instagram_handle_confirmed is False
     assert org.claimed_instagram_username == "campusgreeks"
     assert org.shipping_line1 == "123 College Ave"
     assert org.shipping_city == "Ithaca"
@@ -85,17 +84,33 @@ async def test_org_apply_rejects_invalid_instagram_handle(app_client: AsyncClien
     assert "Instagram username" in body["error"]["message"]
 
 
-async def test_org_apply_stores_unconfirmed_when_handle_not_confirmed(
+async def test_org_apply_rejects_client_handle_confirmation(
+    app_client: AsyncClient,
+) -> None:
+    """A caller cannot mark the claimed handle confirmed. Connect does that."""
+    resp = await app_client.post(
+        "/api/orgs/apply",
+        json={
+            **_APPLY,
+            "eduEmail": "confirmed@cornell.edu",
+            "instagramHandle": "clientconfirmed",
+            "handleConfirmed": True,
+        },
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == errors.VALIDATION_ERROR
+
+
+async def test_org_apply_stores_typed_handle_unconfirmed(
     app_client: AsyncClient, db_session
 ) -> None:
-    """Apply without a confirm card stores the typed handle as unconfirmed."""
+    """Apply stores the typed handle unconfirmed until Connect."""
     resp = await app_client.post(
         "/api/orgs/apply",
         json={
             **_APPLY,
             "eduEmail": "unconfirmed@cornell.edu",
             "instagramHandle": "@Unconfirmed.Org",
-            "handleConfirmed": False,
         },
     )
     assert resp.status_code == 200

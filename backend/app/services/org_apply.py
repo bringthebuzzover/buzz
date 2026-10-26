@@ -122,7 +122,7 @@ async def apply_org(
         city=payload.city,
         state=payload.state,
         contact_name=payload.contact_name,
-        instagram_handle_confirmed=payload.handle_confirmed,
+        instagram_handle_confirmed=False,
         claimed_instagram_username=handle,
     )
     apply_to_org(org, addr)
