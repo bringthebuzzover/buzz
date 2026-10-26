@@ -1,5 +1,5 @@
 /**
- * /for-orgs tour: apply-first copy, confirm-card frame, apply CTA.
+ * /for-orgs tour: apply-first copy, typed Instagram handle, apply CTA.
  */
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -27,7 +27,7 @@ describe("ForOrgsPage", () => {
     container.remove();
   });
 
-  it("shows Business or Creator, confirm card, and apply CTA", () => {
+  it("shows Business or Creator, the typed handle, and apply CTA", () => {
     act(() => {
       root.render(
         <MemoryRouter>
@@ -38,7 +38,8 @@ describe("ForOrgsPage", () => {
     const text = container.textContent ?? "";
     expect(text).toMatch(/Business or Creator/);
     expect(text).toMatch(/@cornellouting/);
-    expect(text).toMatch(/Confirm this is our organization's account/);
+    expect(text).not.toMatch(/Confirm this is our organization's account/);
+    expect(text).not.toMatch(/confirm card/i);
     expect(text).toMatch(/Campus Kickoff 2026/);
     expect(text).not.toMatch(/placehold\.co/i);
     const hero = container.querySelector('img[alt="Campus Kickoff 2026"]');

@@ -3,8 +3,9 @@ id: ops.ig-business-discovery-unset
 title: Apply Instagram confirm card always soft-fails — Business Discovery token not on Railway
 kind: ops
 severity: P2
-status: ops
+status: fixed
 surface: deploy
+closed_in: pending
 evidence:
   - path: backend/app/services/instagram.py
     note: fetch_business_discovery 503s when INSTAGRAM_BUSINESS_DISCOVERY_TOKEN or IG_USER_ID is empty
@@ -21,16 +22,30 @@ repro: |
   and INSTAGRAM_BUSINESS_DISCOVERY_IG_USER_ID absent.
   Apply still submits; organizations.instagram_handle_confirmed stays false.
 fix_when: |
-  Both vars set on Railway **api** (production) and local backend/.env.
-  Smoke: GET /api/orgs/instagram-lookup?username=bringthebuzzover returns available=true
-  plus username/name/picture (professional account). A known-missing handle returns
-  reason=not_found (not unavailable). /org/apply shows the confirm card, not the amber
-  soft-fail, for @bringthebuzzover.
-  Do not commit tokens. FACEBOOK_GRAPH_BASE optional (default is correct).
-  Out of archive scope: App Review resubmission
-  (deploy.meta-app-review). Business Verification is already
-  Verified (2026-10-26). Token rotation calendar after first mint.
+  Superseded 2026-10-26. The Facebook Login Business Discovery path was
+  removed instead of minting a service token. Apply still accepts a typed
+  handle, keeps username-shape validation, and stores it unconfirmed until
+  Connect. See the resolution note. App Review stays in
+  deploy.meta-app-review.
 ---
+
+# Resolved 2026-10-26 — path removed
+
+Lawrence removed Business Discovery instead of minting a Facebook Login
+token. `GET /api/orgs/instagram-lookup`, `fetch_business_discovery`, and the
+apply confirm card are gone. Apply is a typed handle with the existing
+username-shape check; `instagram_handle_confirmed` stays false until Connect.
+
+These env vars are no longer read. Delete them from Railway **api** if they
+are still set (do not mint a replacement):
+
+- `INSTAGRAM_BUSINESS_DISCOVERY_TOKEN`
+- `INSTAGRAM_BUSINESS_DISCOVERY_IG_USER_ID`
+- `FACEBOOK_GRAPH_BASE`
+
+Living App Review note: [`deploy.meta-app-review`](../deploy.meta-app-review.md) checklist 1c.
+
+The runbook below is historical. Do not mint the token.
 
 # Apply-time Instagram lookup unset (Business Discovery)
 

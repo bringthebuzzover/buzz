@@ -12,8 +12,8 @@ import { cn } from "../../theme/cn";
 
 const STEPS = [
   "Fill out the public apply form (profile, campus .edu, shipping address).",
-  "Type your organization’s Instagram handle and wait for the same-page confirm card.",
-  "Confirm that Business or Creator account, then submit.",
+  "Type your organization’s Instagram handle — the Business or Creator account, not a personal profile.",
+  "Submit. Buzz reviews the claimed handle; you Connect Instagram after approval.",
   "Verify the .edu email Buzz sends you (check Junk on campus Outlook).",
   "Wait while Buzz reviews and adds your handle as an Instagram Tester.",
   "Accept the tester invite, then Connect Instagram on the organization account.",
@@ -64,7 +64,7 @@ export default function ForOrgsPage() {
 
       <TourFrame
         url="bringthebuzzover.com/org/apply"
-        caption="Apply: type the organization handle, then confirm the card on the same page."
+        caption="Apply: type the organization handle. Buzz does not look it up on Instagram."
       >
         <p className={cn(SURFACE.inset, "mb-3 px-3 py-3 text-xs font-medium text-buzz-inkMuted")}>
           Your Instagram must be the organization&apos;s{" "}
@@ -76,35 +76,11 @@ export default function ForOrgsPage() {
           Instagram handle
         </label>
         <div className={cn(SURFACE.inset, "px-3 py-2 text-sm font-medium text-buzz-ink")}>
-          cornellouting
+          @cornellouting
         </div>
-        <div className={cn(SURFACE.inset, "mt-3 p-3 text-left")}>
-          <div className="flex gap-3">
-            <div
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-buzz-butter text-xs font-semibold text-buzz-ink"
-              aria-hidden
-            >
-              CO
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-buzz-ink">@cornellouting</p>
-              <p className="truncate text-sm font-medium text-buzz-inkMuted">
-                Cornell Outing Club
-              </p>
-              <p className="text-xs text-buzz-inkMuted">2,410 followers</p>
-            </div>
-          </div>
-          <p className="mt-2 text-xs text-buzz-inkMuted">
-            Outdoor trips and trail days for Cornell students.
-          </p>
-          <button
-            type="button"
-            tabIndex={-1}
-            className="mt-3 w-full cursor-default rounded-buzzControl bg-buzz-coral px-3 py-2 text-sm font-semibold text-buzz-paper"
-          >
-            Confirm this is our organization&apos;s account.
-          </button>
-        </div>
+        <p className="mt-2 text-xs font-medium text-buzz-inkMuted">
+          Exact username of the organization Business or Creator account.
+        </p>
       </TourFrame>
 
       <TourFrame

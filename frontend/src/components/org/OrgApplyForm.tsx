@@ -5,26 +5,19 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  useInstagramLookup,
   useOrgApply,
-  type InstagramLookupResponse,
   type OrgApplyInput,
 } from "../../api/hooks/useOnboardingHooks";
-import { ApiError } from "../../api/client";
 import { userFacingApiError } from "../../api/userFacingError";
 import FieldError from "../forms/FieldError";
 import {
   Button,
   ErrorBanner,
   Select,
-  SuccessBanner,
   TextArea,
   TextField,
-  WarningBanner,
   fieldClass,
 } from "../forms/controls";
-import { SURFACE } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
 import ShippingAddressFields, {
   EMPTY_SHIPPING,
   shippingToApi,
@@ -42,24 +35,12 @@ import {
   unwrapParsed,
 } from "../../utils/formValidation";
 
-const LOOKUP_DEBOUNCE_MS = 500;
-const META_PROFESSIONAL_HELP =
-  "https://help.instagram.com/502981923235522";
-
 export const VERIFY_EMAIL_SENT_KEY = "buzz.verifyEmailSent";
 export const VERIFY_EDU_EMAIL_KEY = "buzz.verifyEduEmail";
 export const VERIFY_DROP_INTENT_KEY = "buzz.verifyDropIntent";
 
 function normalizeHandle(raw: string): string {
   return raw.trim().replace(/^@/, "");
-}
-
-function isSoftFailReason(reason: string | null | undefined): boolean {
-  return reason === "unavailable" || reason === "throttled";
-}
-
-function isBlockReason(reason: string | null | undefined): boolean {
-  return reason === "not_found" || reason === "not_professional";
 }
 
 export type OrgApplyPrefillValues = {
@@ -94,19 +75,12 @@ export default function OrgApplyForm({
   onSuccess: (result: { emailSent?: boolean }, eduEmail: string) => void;
 }) {
   const apply = useOrgApply();
-  const lookup = useInstagramLookup();
   const hydrated = useRef(false);
 
   const [orgName, setOrgName] = useState("");
   const [university, setUniversity] = useState("");
   const [eduEmail, setEduEmail] = useState("");
   const [instagramHandle, setInstagramHandle] = useState("");
-  const [handleConfirmed, setHandleConfirmed] = useState(false);
-  const [confirmedFor, setConfirmedFor] = useState<string | null>(null);
-  const [lookupResult, setLookupResult] = useState<InstagramLookupResponse | null>(
-    null,
-  );
-  const [lookupError, setLookupError] = useState<string | null>(null);
   const [tiktokHandle, setTiktokHandle] = useState("");
   const [memberCount, setMemberCount] = useState("");
   const [category, setCategory] = useState<OrgCategory | "">("");
@@ -139,65 +113,9 @@ export default function OrgApplyForm({
     if (d.shippingRaw) setShippingRawHint(d.shippingRaw);
   }, [prefill]);
 
-  const lookupGen = useRef(0);
   const handleNorm = normalizeHandle(instagramHandle);
-  const confirmedMatches =
-    handleConfirmed && confirmedFor !== null && confirmedFor === handleNorm;
 
-  useEffect(() => {
-    setHandleConfirmed(false);
-    setConfirmedFor(null);
-    setLookupResult(null);
-    setLookupError(null);
-
-    if (!handleNorm || handleNorm.length < 1) return;
-
-    const gen = ++lookupGen.current;
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        try {
-          const data = await lookup.mutateAsync(handleNorm);
-          if (gen !== lookupGen.current) return;
-          setLookupResult(data);
-          setLookupError(null);
-        } catch (err) {
-          if (gen !== lookupGen.current) return;
-          setLookupResult(null);
-          setLookupError(
-            err instanceof ApiError
-              ? err.message
-              : "Could not look up that Instagram handle. Try again.",
-          );
-        }
-      })();
-    }, LOOKUP_DEBOUNCE_MS);
-
-    return () => window.clearTimeout(timer);
-    // lookup.mutateAsync is stable enough; omit the whole mutation object.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- debounce on handle only
-  }, [handleNorm]);
-
-  const softFail =
-    Boolean(lookupResult && isSoftFailReason(lookupResult.reason)) ||
-    Boolean(lookupError);
-  const blocked =
-    Boolean(lookupResult && isBlockReason(lookupResult.reason)) ||
-    (lookupResult !== null &&
-      !lookupResult.available &&
-      !isSoftFailReason(lookupResult.reason));
-
-  const canSubmit =
-    Boolean(handleNorm) &&
-    !blocked &&
-    (confirmedMatches || softFail) &&
-    !apply.isPending;
-
-  const onConfirmHandle = () => {
-    if (!lookupResult?.available || !lookupResult.username) return;
-    const confirmed = normalizeHandle(lookupResult.username);
-    setHandleConfirmed(true);
-    setConfirmedFor(confirmed);
-  };
+  const canSubmit = Boolean(handleNorm) && !apply.isPending;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,7 +126,7 @@ export default function OrgApplyForm({
       return;
     }
     if (!canSubmit) {
-      setError("Confirm your organization's Instagram account to continue.");
+      setError("Enter your organization's Instagram handle to continue.");
       return;
     }
     const next: Record<string, string> = {};
@@ -244,7 +162,7 @@ export default function OrgApplyForm({
         university: unwrapParsed(uni),
         eduEmail: unwrapParsed(edu),
         instagramHandle: handleNorm,
-        handleConfirmed: confirmedMatches,
+        handleConfirmed: false,
         prefillToken: prefillToken || undefined,
         tiktokHandle: tiktokHandle.trim().replace(/^@/, "") || undefined,
         memberCount: unwrapParsed(members),
@@ -348,71 +266,9 @@ export default function OrgApplyForm({
         />
         <p className="mt-1 text-xs text-buzz-inkMuted">
           Exact username of the organization Business/Creator account (with or without
-          @).
+          @). Buzz checks the username shape here; the account is confirmed when you
+          Connect Instagram after approval.
         </p>
-
-        {lookup.isPending && handleNorm && (
-          <p className="mt-2 text-xs font-medium text-buzz-inkMuted">
-            Looking up @{handleNorm}…
-          </p>
-        )}
-
-        {lookupError && (
-          <div className="mt-3 text-left">
-            <WarningBanner>
-              <p>
-                Lookup is temporarily unavailable. You can still submit — we&apos;ll
-                verify the handle during review.
-              </p>
-              <button
-                type="button"
-                className="mt-2 text-xs font-semibold text-buzz-coral hover:underline"
-                onClick={() => {
-                  setLookupError(null);
-                  lookupGen.current += 1;
-                  void lookup.mutateAsync(handleNorm).then(
-                    (data) => {
-                      setLookupResult(data);
-                      setLookupError(null);
-                    },
-                    (err: unknown) => {
-                      setLookupError(
-                        err instanceof ApiError
-                          ? err.message
-                          : "Could not look up that Instagram handle.",
-                      );
-                    },
-                  );
-                }}
-              >
-                Retry lookup
-              </button>
-            </WarningBanner>
-          </div>
-        )}
-
-        {lookupResult && !lookupError && (
-          <InstagramConfirmCard
-            result={lookupResult}
-            confirmed={confirmedMatches}
-            onConfirm={onConfirmHandle}
-            onRetry={() => {
-              setLookupResult(null);
-              setLookupError(null);
-              lookupGen.current += 1;
-              void lookup.mutateAsync(handleNorm).then(
-                (data) => setLookupResult(data),
-                (err: unknown) => {
-                  setLookupError(
-                    err instanceof ApiError
-                      ? err.message
-                      : "Could not look up that Instagram handle.",
-                  );
-                },
-              );
-            }}
-          />
-        )}
       </div>
 
       <TextField
@@ -561,114 +417,4 @@ export function goToVerifyEmailWait(
       ...extraState,
     },
   });
-}
-
-function InstagramConfirmCard({
-  result,
-  confirmed,
-  onConfirm,
-  onRetry,
-}: {
-  result: InstagramLookupResponse;
-  confirmed: boolean;
-  onConfirm: () => void;
-  onRetry: () => void;
-}) {
-  if (result.available && result.username) {
-    const handle = normalizeHandle(result.username);
-    return (
-      <div className={cn(SURFACE.inset, "mt-3 p-3 text-left")}>
-        <div className="flex gap-3">
-          {result.profilePictureUrl ? (
-            <img
-              src={result.profilePictureUrl}
-              alt=""
-              className="h-14 w-14 shrink-0 rounded-full object-cover"
-            />
-          ) : (
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-buzz-cream text-xs font-semibold text-buzz-inkMuted">
-              IG
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-buzz-ink">@{handle}</p>
-            {result.name && (
-              <p className="truncate text-sm font-medium text-buzz-inkMuted">
-                {result.name}
-              </p>
-            )}
-            {typeof result.followersCount === "number" && (
-              <p className="text-xs text-buzz-inkMuted">
-                {result.followersCount.toLocaleString()} followers
-              </p>
-            )}
-          </div>
-        </div>
-        {result.biography && (
-          <p className="mt-2 line-clamp-3 text-xs text-buzz-inkMuted">
-            {result.biography}
-          </p>
-        )}
-        {confirmed ? (
-          <div className="mt-3">
-            <SuccessBanner>
-              Confirmed as your organization&apos;s account.
-            </SuccessBanner>
-          </div>
-        ) : (
-          <Button
-            type="button"
-            onClick={onConfirm}
-            fullWidth
-            className="mt-3"
-          >
-            Confirm this is our organization&apos;s account.
-          </Button>
-        )}
-      </div>
-    );
-  }
-
-  if (isSoftFailReason(result.reason)) {
-    return (
-      <div className="mt-3 text-left">
-        <WarningBanner>
-          <p>
-            We couldn&apos;t verify that handle right now
-            {result.reason === "throttled" ? " (rate limited)" : ""}. You can still
-            submit — we&apos;ll confirm it during review.
-          </p>
-          <button
-            type="button"
-            className="mt-2 text-xs font-semibold text-buzz-coral hover:underline"
-            onClick={onRetry}
-          >
-            Retry lookup
-          </button>
-        </WarningBanner>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-3">
-      <ErrorBanner>
-        <p>
-          {result.reason === "not_professional"
-            ? "That Instagram account is not a Business or Creator (professional) profile."
-            : "We couldn't find that Instagram username."}{" "}
-          Buzz needs your organization&apos;s professional account — not a personal
-          member profile.
-        </p>
-        <a
-          href={META_PROFESSIONAL_HELP}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-2 inline-block text-xs font-bold text-buzz-coral hover:underline"
-        >
-          How to switch to a professional account
-        </a>
-      </ErrorBanner>
-    </div>
-  );
 }

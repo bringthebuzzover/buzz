@@ -213,18 +213,6 @@ class OrgConnectRedeemRequest(CamelModel):
     token: str
 
 
-class InstagramLookupResponse(CamelModel):
-    """Business Discovery lookup result for the apply confirm card."""
-
-    available: bool
-    username: str | None = None
-    name: str | None = None
-    profile_picture_url: str | None = None
-    biography: str | None = None
-    followers_count: int | None = None
-    reason: str | None = None  # not_found | not_professional | unavailable | throttled
-
-
 class VerifyEmailRequest(CamelModel):
     """Phase 3: verify .edu email with a one-time token."""
 

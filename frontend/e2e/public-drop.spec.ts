@@ -58,24 +58,6 @@ test("anonymous public drop signup stores intent, not an applicant", async ({
   const eduEmail = `e2e-drop-${Date.now()}@cornell.edu`;
   const handle = `e2edrop${Date.now().toString().slice(-6)}`;
 
-  await page.route("**/api/orgs/instagram-lookup**", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        data: {
-          available: true,
-          username: handle,
-          name: "E2E Drop Org",
-          followersCount: 500,
-          biography: "Campus org",
-          profilePictureUrl: null,
-          reason: null,
-        },
-      }),
-    });
-  });
-
   await page.goto(`/d/${E2E_OPEN_DROP_ID}`);
   await expect(
     page.getByRole("button", { name: /request to join buzz and apply/i }),
@@ -85,11 +67,7 @@ test("anonymous public drop signup stores intent, not an applicant", async ({
   await page.getByTestId("org-apply-university").fill("Cornell University");
   await page.getByTestId("org-apply-edu-email").fill(eduEmail);
   await page.getByTestId("org-apply-instagram").fill(handle);
-  await expect(page.getByText(`@${handle}`)).toBeVisible({ timeout: 10_000 });
-  await page
-    .getByRole("button", { name: /confirm this is our organization/i })
-    .click();
-  await expect(page.getByText(/confirmed as your organization/i)).toBeVisible();
+  await expect(page.getByTestId("org-apply-submit")).toBeEnabled();
   await page.getByTestId("org-apply-member-count").fill("12");
   await page.getByTestId("org-apply-category").selectOption("social");
   await page.getByTestId("org-apply-contact-name").fill("Sam");
@@ -105,9 +83,16 @@ test("anonymous public drop signup stores intent, not an applicant", async ({
   );
   await page.getByTestId("org-apply-submit").click();
   const req = await applyReq;
-  const body = req.postDataJSON() as { dropId?: string; pitch?: string };
+  const body = req.postDataJSON() as {
+    dropId?: string;
+    pitch?: string;
+    instagramHandle?: string;
+    handleConfirmed?: boolean;
+  };
   expect(body.dropId).toBe(E2E_OPEN_DROP_ID);
   expect(body.pitch).toBe("We would love this drop");
+  expect(body.instagramHandle).toBe(handle);
+  expect(body.handleConfirmed).toBe(false);
 
   await expect(page).toHaveURL(/\/onboarding\/verify-email/);
   await expect(

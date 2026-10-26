@@ -47,7 +47,7 @@ Public contact mailbox (`ops.brand-mailbox`) is **ops-parallel**, not a code gat
 | Connect | `/onboarding/connect-instagram`. Approval email one-shot token mints session if the cookie is dead. |
 | OAuth bind | Callback **updates** this user. Graph id already owned → 409. **No session / unknown IG → do not insert** (`ORG_APPLY_REQUIRED`). |
 | Returning login after bind | **Continue with Instagram only** (`/login`). No org password. No magic-link as ongoing login. |
-| Claimed handle | Unique among non-erased orgs (case-insensitive, `@` stripped). **Denied** orgs keep the handle until **erase**. **Apply UX:** same-page inline **confirm card** after exact-username lookup (§6.1.1) — not a separate route; not an IG-app typeahead. |
+| Claimed handle | Unique among non-erased orgs (case-insensitive, `@` stripped). **Denied** orgs keep the handle until **erase**. **Apply UX (2026-10-26):** typed handle, username-shape check, stored unconfirmed until Connect. No Meta lookup and no confirm card. |
 | Graph `@` ≠ claimed `@` at Connect | **Allow** bind; overwrite `users.instagram_username` from Graph; keep apply-time `@` on `organizations.claimed_instagram_username`; Overview **Needs a look** until admin Ack. No email. Portal `active`. |
 | `.edu` rotate while `pending_instagram` | **Yes** (same pending-swap as `pending_approval` / `active`). |
 | View-as while `pending_instagram` | **No** — nothing to impersonate until bind. |
@@ -159,8 +159,8 @@ Evidence: `handle_instagram_callback` inserts on unknown IG; `submit_org_onboard
 
 ```
 Home Join → /org/apply  (public, no session)
-  → Instagram handle: type → debounced lookup → **same-page confirm card**
-       (Business/Creator required; not personal; not a typeahead)
+  → Instagram handle: type the organization Business/Creator username
+       (validated shape; stored unconfirmed; no Meta lookup)
   → POST /api/orgs/apply
        User (org, pending_email_verification, NO ig ids)
        Organization (full profile)
@@ -346,15 +346,15 @@ Gaps: `org.signup-instagram-first`, `org.edu-verify-outlook-junk`
 Order:
 
 1. Migration: `pending_instagram` enum value; `org_connect_tokens`.
-2. Public apply API + SPA `/org/apply` (all current profile fields + **§6.1.1** Instagram confirm card; TikTok optional as today).
-2b. Public rate-limited `GET /api/orgs/instagram-lookup?username=` via Meta **Business Discovery** (Buzz service IG + Facebook Login token — see [`META.md`](META.md) § apply lookup + rate limits). Server cache + per-IP limits; fake in tests.
+2. Public apply API + SPA `/org/apply` (profile fields + typed Instagram handle; TikTok optional).
+2b. **Removed 2026-10-26.** `GET /api/orgs/instagram-lookup` (Facebook Login Business Discovery) and the confirm card are gone. Do not reintroduce `graph.facebook.com` for apply. See [`META.md`](META.md).
 3. Verify: mint session on success; locked HTML mail + Junk copy (do the full verify gap, not a subset).
 4. Waiting room copy (no Connect).
 5. OAuth: bind / reject insert / `ORG_APPLY_REQUIRED`.
 6. Admin approve → `pending_instagram` + connect email + confirm copy.
 7. Connect page + token redeem.
 8. Join / login / footer CTAs.
-9. Tests: apply without IG; verify sets cookie; approve not active; bind; unknown IG no insert; duplicate `.edu`; handle claim shown in admin; verify signup vs rotate bodies; **handle lookup + confirm required before submit**; not-found / not-professional surfaces Business/Creator copy.
+9. Tests: apply without IG; verify sets cookie; approve not active; bind; unknown IG no insert; duplicate `.edu`; handle claim shown in admin; verify signup vs rotate bodies; **invalid handle rejected**; apply stores the handle unconfirmed.
 10. E2E: replace “Join → Instagram → profile” with apply → (test) verify → pending; keep existing **bound** test org login.
 11. OpenAPI regen.
 
