@@ -60,8 +60,8 @@ class Organization(Base):
     shipping_state: Mapped[str | None] = mapped_column(sa.String(2), nullable=True)
     shipping_postal_code: Mapped[str | None] = mapped_column(sa.String(10), nullable=True)
 
-    # Apply-time Instagram confirm card (PRODUCT §6.1.1). False when soft-fail
-    # (lookup unavailable) or legacy rows; True when the applicant confirmed.
+    # Claimed handle is unconfirmed until Connect Instagram binds Graph
+    # identity (PRODUCT §6.1.1). Legacy rows may already be true.
     instagram_handle_confirmed: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=False, server_default=sa.text("false")
     )

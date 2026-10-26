@@ -1,9 +1,9 @@
 /**
  * /org/apply — public org apply-first signup (LAUNCH.md Phase A / PRODUCT §6.1).
  *
- * Collects the full org profile plus a claimed Instagram handle confirmed via
- * the same-page Business Discovery lookup card (§6.1.1). On success the org
- * waits for .edu verification with no session yet.
+ * Collects the full org profile plus a claimed Instagram handle (§6.1.1).
+ * The handle is typed and stored unconfirmed until Connect. On success the
+ * org waits for .edu verification with no session yet.
  */
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";

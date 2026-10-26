@@ -1956,26 +1956,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/orgs/instagram-lookup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Org Instagram Lookup
-         * @description Exact-username Business Discovery lookup for the apply confirm card.
-         */
-        get: operations["org_instagram_lookup_api_orgs_instagram_lookup_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/orgs/me": {
         parameters: {
             query?: never;
@@ -4127,15 +4107,6 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /** DataResponse[InstagramLookupResponse] */
-        DataResponse_InstagramLookupResponse_: {
-            data?: components["schemas"]["InstagramLookupResponse"] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
         /** DataResponse[OkResponse] */
         DataResponse_OkResponse_: {
             data?: components["schemas"]["OkResponse"] | null;
@@ -4701,26 +4672,6 @@ export interface components {
             revoked: boolean;
         };
         /**
-         * InstagramLookupResponse
-         * @description Business Discovery lookup result for the apply confirm card.
-         */
-        InstagramLookupResponse: {
-            /** Available */
-            available: boolean;
-            /** Biography */
-            biography?: string | null;
-            /** Followerscount */
-            followersCount?: number | null;
-            /** Name */
-            name?: string | null;
-            /** Profilepictureurl */
-            profilePictureUrl?: string | null;
-            /** Reason */
-            reason?: string | null;
-            /** Username */
-            username?: string | null;
-        };
-        /**
          * LinkPostRequest
          * @description Body for ``POST|DELETE /api/campaigns/{id}/link-post``.
          */
@@ -4796,11 +4747,6 @@ export interface components {
             dropId?: string | null;
             /** Eduemail */
             eduEmail: string;
-            /**
-             * Handleconfirmed
-             * @default false
-             */
-            handleConfirmed: boolean;
             /** Instagramhandle */
             instagramHandle: string;
             /** Membercount */
@@ -8881,37 +8827,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_OrgApplyPrefillResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    org_instagram_lookup_api_orgs_instagram_lookup_get: {
-        parameters: {
-            query: {
-                username: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_InstagramLookupResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

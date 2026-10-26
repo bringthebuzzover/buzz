@@ -66,37 +66,12 @@ test("org apply → verify → pending approval", async ({ page }) => {
   const eduEmail = `e2e-apply-${Date.now()}@cornell.edu`;
   const handle = `e2eapply${Date.now().toString().slice(-6)}`;
 
-  await page.route("**/api/orgs/instagram-lookup**", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        data: {
-          available: true,
-          username: handle,
-          name: "E2E Apply Org",
-          followersCount: 500,
-          biography: "Campus org",
-          profilePictureUrl: null,
-          reason: null,
-        },
-      }),
-    });
-  });
-
   await page.goto("/org/apply");
   await page.getByTestId("org-apply-org-name").fill("E2E Apply Org");
   await page.getByTestId("org-apply-university").fill("Cornell University");
   await page.getByTestId("org-apply-edu-email").fill(eduEmail);
   await page.getByTestId("org-apply-instagram").fill(handle);
-
-  await expect(page.getByText(`@${handle}`)).toBeVisible({ timeout: 10_000 });
-  await page
-    .getByRole("button", {
-      name: /confirm this is our organization/i,
-    })
-    .click();
-  await expect(page.getByText(/confirmed as your organization/i)).toBeVisible();
+  await expect(page.getByTestId("org-apply-submit")).toBeEnabled();
 
   await page.getByTestId("org-apply-member-count").fill("25");
   await page.getByTestId("org-apply-category").selectOption("other");
@@ -111,7 +86,12 @@ test("org apply → verify → pending approval", async ({ page }) => {
       r.url().includes("/api/orgs/apply") && r.request().method() === "POST",
   );
   await page.getByTestId("org-apply-submit").click();
-  expect((await applyResp).ok()).toBeTruthy();
+  const posted = await applyResp;
+  expect(posted.ok()).toBeTruthy();
+  expect(posted.request().postDataJSON()).toMatchObject({
+    instagramHandle: handle,
+  });
+  expect(posted.request().postDataJSON()).not.toHaveProperty("handleConfirmed");
   await expect(page).toHaveURL(/\/onboarding\/verify-email/);
   await expect(page.getByTestId("verify-edu-email")).toHaveText(eduEmail);
   await expect(page.locator("input[type=email]")).toHaveCount(0);
@@ -146,24 +126,6 @@ test("org apply prefill hydrates then submits", async ({ page }) => {
     },
   );
 
-  await page.route("**/api/orgs/instagram-lookup**", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        data: {
-          available: true,
-          username: handle,
-          name: "E2E Prefill Org",
-          followersCount: 500,
-          biography: "Campus org",
-          profilePictureUrl: null,
-          reason: null,
-        },
-      }),
-    });
-  });
-
   await page.goto(`/org/apply?prefill=${encodeURIComponent(raw)}`);
   await expect(page.getByTestId("org-apply-org-name")).toHaveValue(
     "E2E Prefill Org",
@@ -171,13 +133,8 @@ test("org apply prefill hydrates then submits", async ({ page }) => {
   await expect(page.getByTestId("org-apply-edu-email")).toHaveValue(eduEmail);
   await expect(page.getByTestId("org-apply-shipping-raw")).toBeVisible();
   await expect(page).not.toHaveURL(/prefill=/);
-
-  await expect(page.getByText(`@${handle}`)).toBeVisible({ timeout: 10_000 });
-  await page
-    .getByRole("button", {
-      name: /confirm this is our organization/i,
-    })
-    .click();
+  await expect(page.getByTestId("org-apply-instagram")).toHaveValue(handle);
+  await expect(page.getByTestId("org-apply-submit")).toBeEnabled();
 
   const applyResp = page.waitForResponse(
     (r) =>
@@ -186,7 +143,12 @@ test("org apply prefill hydrates then submits", async ({ page }) => {
   await page.getByTestId("org-apply-submit").click();
   const posted = await applyResp;
   expect(posted.ok()).toBeTruthy();
-  const body = posted.request().postDataJSON() as { prefillToken?: string };
+  const body = posted.request().postDataJSON() as {
+    prefillToken?: string;
+    instagramHandle?: string;
+  };
   expect(body.prefillToken).toBe(raw);
+  expect(body.instagramHandle).toBe(handle);
+  expect(body).not.toHaveProperty("handleConfirmed");
   await expect(page).toHaveURL(/\/onboarding\/verify-email/);
 });

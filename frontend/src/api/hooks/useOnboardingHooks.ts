@@ -23,8 +23,6 @@ export type CancelPendingEduEmailResponse =
   components["schemas"]["CancelPendingEduEmailResponse"];
 export type BrandApplyResponse = components["schemas"]["BrandApplyResponse"];
 export type PublicConfigResponse = components["schemas"]["PublicConfigResponse"];
-export type InstagramLookupResponse =
-  components["schemas"]["InstagramLookupResponse"];
 export type OrgApplyPrefillResponse =
   components["schemas"]["OrgApplyPrefillResponse"];
 export type AddressSuggestResponse =
@@ -56,7 +54,6 @@ export type OrgOnboardingInput = {
 
 export type OrgApplyInput = OrgOnboardingInput & {
   instagramHandle: string;
-  handleConfirmed: boolean;
   prefillToken?: string;
   dropId?: string;
   pitch?: string;
@@ -87,19 +84,6 @@ export function useOrgApply() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
       });
-      return data;
-    },
-  });
-}
-
-/** Exact-username Business Discovery lookup for the apply confirm card. */
-export function useInstagramLookup() {
-  return useMutation({
-    mutationFn: async (username: string) => {
-      const q = encodeURIComponent(username.trim().replace(/^@/, ""));
-      const { data } = await apiFetch<InstagramLookupResponse>(
-        `/api/orgs/instagram-lookup?username=${q}`,
-      );
       return data;
     },
   });
