@@ -113,7 +113,7 @@ Resend failed, the row was one-shot consumed → permanent miss. Sibling
 **Recommended order (satisfied):** Enable `cron-notify-reminders` **after**
 email-honesty v1, **or** hard-gate Resend sending-domain verify (+ known-good
 `EMAIL_FROM`) before the first fire / backlog flush. Do **not** wait on a
-full email ledger (`ops.email-ledger` remains deferred).
+full email ledger (`ops.email-ledger`, later archived 2026-10-26 without one).
 
 Empty `RESEND_API_KEY` fails boot off-dev, so a running cron with email unset
 should not happen; misconfig is domain/key/`EMAIL_FROM` quality, not missing key.

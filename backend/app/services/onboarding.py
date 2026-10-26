@@ -26,7 +26,7 @@ from app.schemas.onboarding import OrgOnboardingRequest
 from app.security.one_shot_tokens import hash_token
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.address import AddressClient, apply_to_org
-from app.services.email import send_verification_email
+from app.services.email import KIND_VERIFICATION, build_idempotency_key, send_verification_email
 from app.services.instagram import (
     InstagramClient,
     canonical_instagram_handle,
@@ -176,7 +176,13 @@ async def _mint_and_send_verification(
     )
     db.add(evt)
     await db.flush()
-    ok = await send_verification_email(edu_email, raw, org_name=org_name, kind=kind)
+    ok = await send_verification_email(
+        edu_email,
+        raw,
+        org_name=org_name,
+        kind=kind,
+        idempotency_key=build_idempotency_key(KIND_VERIFICATION, evt.id),
+    )
     if not ok:
         await db.delete(evt)
         await db.flush()

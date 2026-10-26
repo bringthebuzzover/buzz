@@ -28,8 +28,14 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-async def create_org_connect_token(db: AsyncSession, org: Organization, user: User) -> str:
-    """Invalidate prior unused connect tokens and mint a new raw token."""
+async def create_org_connect_token(
+    db: AsyncSession, org: Organization, user: User
+) -> tuple[str, uuid.UUID]:
+    """Invalidate prior unused connect tokens and mint a new raw token.
+
+    Returns the raw token and the row id. The id is safe to put on a Resend
+    idempotency key; the raw token is not.
+    """
     now = _now()
     await db.execute(
         sa_update(OrgConnectToken)
@@ -51,7 +57,7 @@ async def create_org_connect_token(db: AsyncSession, org: Organization, user: Us
     )
     db.add(row)
     await db.flush()
-    return raw
+    return raw, row.id
 
 
 async def redeem_org_connect_token(db: AsyncSession, token: str) -> User:

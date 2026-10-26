@@ -879,7 +879,9 @@ class TestAdminCreateAndPublish:
     ):
         sent: list[dict] = []
 
-        async def _capture(to_email, *, brand_name="", drop_title="", drop_url=""):
+        async def _capture(
+            to_email, *, brand_name="", drop_title="", drop_url="", idempotency_key=None
+        ):
             sent.append(
                 {
                     "to": to_email,
