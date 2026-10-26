@@ -287,7 +287,7 @@ Official docs for each thing this runbook asks you to provision. Verify against 
 
 ### Meta / Instagram (org login)
 
-The app uses **Instagram API with Instagram Login** (Business Login), scopes `instagram_business_basic` + `instagram_business_manage_insights`, host `graph.instagram.com`. It does **not** use Facebook Login or require a linked Facebook Page.
+The app uses **Instagram API with Instagram Login** (Business Login), scopes `instagram_business_basic` + `instagram_business_manage_insights`, host `graph.instagram.com`. Read calls use `INSTAGRAM_GRAPH_VERSION` (default `v26.0`); token exchange and refresh stay unversioned. It does **not** use Facebook Login or require a linked Facebook Page. See [`META.md`](META.md).
 
 - Meta App Dashboard (create/manage the app): <https://developers.facebook.com/apps/>
 - Instagram API with Instagram Login (product overview): <https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/>
