@@ -1,0 +1,18 @@
+---
+description: POST to Zuck only when the user says to send
+alwaysApply: true
+---
+
+# Send to Zuck
+
+When the user says "send this to Zuck", POST the requested content as JSON to `$ZUCK_WEBHOOK_URL` with the `$ZUCK_AUTH_HEADER` header. Never send otherwise.
+
+If the variables are unset, load them from `.cursor/zuck.env` in the same command. Do not print the URL, the header, or the file.
+
+```bash
+set -a && source .cursor/zuck.env && set +a
+curl -sS -X POST "$ZUCK_WEBHOOK_URL" \
+  -H "$ZUCK_AUTH_HEADER" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"..."}'
+```
