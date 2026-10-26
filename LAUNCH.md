@@ -387,8 +387,8 @@ Frames match **this** plan. Stylized chrome, not View-as PNGs.
 
 ### Ops-parallel — mailbox
 
-Gap: `ops.brand-mailbox` (already parked; un-park only when named).  
-Does not block A–C. Do not flip `contactEmail` until receive + send-as proofs.
+Gap: `ops.brand-mailbox` (parked follow-up; un-park only when named).  
+Does not block A–C. Public contact is already `melissa@bringthebuzzover.com`, and apex Google MX/SPF/DKIM/DMARC are published. Still open: whether `hello@` is a Workspace alias, and naming the billing owner / Super Admin in [`DEPLOYMENT.md`](DEPLOYMENT.md). Do not touch Resend `send.` records.
 
 ### Not a phase
 
