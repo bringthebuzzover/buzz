@@ -4,7 +4,7 @@ Guide for configuring Instagram login for Buzz’s org portal. Written so a non-
 
 Buzz uses **Instagram API with Instagram Login** (Business Login): no Facebook Page required. Orgs **bind** a Business or Creator account after Buzz approval; **returning** sign-in is Instagram on that bound account. Personal accounts are not supported. New org accounts are created via public **org apply**, not Instagram OAuth — see [`LAUNCH.md`](LAUNCH.md) Phase A.
 
-**Seeded launch (current product work):** testers + apply-first. Public login without testers still waits on App Review. **Business Verification is Verified** (dashboard 2026-10-26). **App Review** for `instagram_business_basic` and `instagram_business_manage_insights` was submitted 2026-10-07 and **rejected**; resubmission is in progress — [`gaps/deploy.meta-business-verification.md`](gaps/deploy.meta-business-verification.md). [`LAUNCH.md`](LAUNCH.md) §3 still treats Advanced Access as out of the seeded revamp (testers do not need it). App mode is **Development**.
+**Seeded launch (current product work):** testers + apply-first. Public login without testers still waits on App Review. **Business Verification is Verified** (dashboard 2026-10-26). **App Review** for `instagram_business_basic` and `instagram_business_manage_insights` was submitted 2026-10-07 and **rejected**; resubmission is in progress — [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md). [`LAUNCH.md`](LAUNCH.md) §3 still treats Advanced Access as out of the seeded revamp (testers do not need it). App mode is **Development**.
 
 ---
 
@@ -105,7 +105,7 @@ Engineering does **not** need you to paste secrets into git. Railway Variables +
 - [x] **C.** Business Login: redirect, permissions, deauthorize, data deletion (+ privacy / terms URLs) — done 2026-08-11
 - [x] **D.** Pilot: Instagram Testers (Standard Access) — confirmed 2026-08-11
 - [x] **E.** Business Verification — **Verified** 2026-10-26 (dashboard)
-- [ ] **F.** App Review: Advanced Access for both permissions — submitted 2026-10-07, **rejected** (Developer Policy 1.6); resubmission in progress — [`gaps/deploy.meta-business-verification.md`](gaps/deploy.meta-business-verification.md)
+- [ ] **F.** App Review: Advanced Access for both permissions — submitted 2026-10-07, **rejected** (Developer Policy 1.6); resubmission in progress — [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md)
 - [ ] **G.** Confirm public login works without testers
 
 A–D done (tester pilot). **E done.** **F–G** are the public-login gate (testers still do not need them — [`LAUNCH.md`](LAUNCH.md) §3 Out).
@@ -197,7 +197,7 @@ Pending invites cannot log in. Invites are manual on both sides.
 
 Until those are set, lookup **soft-fails** (PRODUCT §6.1.1) — apply still works with handle marked unconfirmed.
 
-**Status (2026-10-26):** Facebook app BUZZ (`1589568552810678`) and Instagram app BUZZ - IG (`2056969808271074`) are in **Development**. Business Verification is **Verified**. Service IG + Facebook Login long-lived token are still **unset** on Railway `api` — production lookup returns `reason=unavailable`. Living ops runbook: [`gaps/ops.ig-business-discovery-unset.md`](gaps/ops.ig-business-discovery-unset.md). App Review resubmission: [`gaps/deploy.meta-business-verification.md`](gaps/deploy.meta-business-verification.md).
+**Status (2026-10-26):** Facebook app BUZZ (`1589568552810678`) and Instagram app BUZZ - IG (`2056969808271074`) are in **Development**. Business Verification is **Verified**. Service IG + Facebook Login long-lived token are still **unset** on Railway `api` — production lookup returns `reason=unavailable`. Living ops runbook: [`gaps/ops.ig-business-discovery-unset.md`](gaps/ops.ig-business-discovery-unset.md). App Review resubmission: [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md).
 
 **Product rules:**
 
@@ -252,7 +252,7 @@ Path that was completed:
 Unlocks login for orgs that are not testers.  
 Docs: [Instagram App Review](https://developers.facebook.com/docs/instagram-platform/app-review/).
 
-**Status (2026-10-26):** Submitted 2026-10-07 for both permissions. **Rejected** (Developer Policy 1.6 — reviewers could not verify the use case / login flow). Do not resubmit those screencasts or that reviewer text. Checklist, owners, and the 2026-10-07 form: [`gaps/deploy.meta-business-verification.md`](gaps/deploy.meta-business-verification.md).
+**Status (2026-10-26):** Submitted 2026-10-07 for both permissions. **Rejected** (Developer Policy 1.6 — reviewers could not verify the use case / login flow). Do not resubmit those screencasts or that reviewer text. Checklist, owners, and the 2026-10-07 form: [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md).
 
 **Before the next submit:**
 
@@ -306,7 +306,7 @@ Already in code: OAuth handshake, signed state cookie, encrypted tokens, Busines
 
 **Local laptop:** copy `backend/.env.example` → `backend/.env` (gitignored). Fill the same `INSTAGRAM_CLIENT_*` values; keep `INSTAGRAM_REDIRECT_URI=http://localhost:3000/auth/instagram/callback` and add that URI in Meta §C if you test OAuth locally. Frontend: `REACT_APP_API_URL=http://localhost:8000` in `frontend/.env`.
 
-**Still human (Meta launch):** §E Business Verification is **Verified** (2026-10-26). §F App Review was rejected; resubmission is [`gaps/deploy.meta-business-verification.md`](gaps/deploy.meta-business-verification.md). §G public login is still open. Hosts §C archived 2026-08-11 — see `gaps/archive/deploy.meta-brand-url-cutover.md`. App mode is **Development**.
+**Still human (Meta launch):** §E Business Verification is **Verified** (2026-10-26). §F App Review was rejected; resubmission is [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md). §G public login is still open. Hosts §C archived 2026-08-11 — see `gaps/archive/deploy.meta-brand-url-cutover.md`. App mode is **Development**.
 
 Details: `DEPLOYMENT.md`.
 
