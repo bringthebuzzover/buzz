@@ -114,7 +114,7 @@ Decided 2026-10-26: there is no long-lived `dev` or `staging` branch and no stag
 - Required status checks (a failing check blocks merge; branches do **not** have to be up to date before merging):
   - `Backend (ruff + mypy + pytest)`
   - `Frontend (typecheck + build)`
-- Playwright E2E is not a required check. That job’s check name includes the shard (`Frontend E2E (Playwright) #N` in [`.github/workflows/ci.yml`](.github/workflows/ci.yml)) and changes with the matrix. Still run `./scripts/ci-local.sh` before behavior changes ([`TESTING.md`](TESTING.md)).
+- Playwright E2E is not a required check. The job name is `Frontend E2E (Playwright)`. GitHub appends the matrix value, so the check run is `Frontend E2E (Playwright) (1)`. That suffix changes if the matrix changes. The `#${{ matrix.attempt }}` in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) is a YAML comment and is not part of the name. Still run `./scripts/ci-local.sh` before behavior changes ([`TESTING.md`](TESTING.md)).
 - Force pushes to `main` are blocked, and `main` cannot be deleted.
 - Every pull request conversation must be resolved before merge, including Bugbot threads.
 - In an emergency, an admin can temporarily turn off **enforce admins** under the repo **Settings → Branches**, then turn it back on.
