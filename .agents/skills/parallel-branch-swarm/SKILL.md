@@ -4,7 +4,8 @@ description: >-
   Orchestrate multiple disjoint work slices on parallel git branches (cloud
   agents or local worktrees): lock decisions, conflict/limit analysis, handoff
   commit, launch workers with explore→plan→CI→branch commit, then orchestrator
-  merge, verify acceptance, one integrated ci-local, push on ask. Use when the
+  merge, verify acceptance, one integrated ci-local, merge PRs on ask
+  (never push `main`). Use when the
   user says swarm parallel, parallel branches, parallel slices, run N in
   parallel, or wants the multi-branch handoff used for independent gaps/clusters.
 ---
@@ -83,9 +84,13 @@ files explicitly allowed as merge-time conflicts).
 
 ### Phase 2 — Handoff commit
 
-5. Commit + **push** lock/docs updates to `main` so every worker starts from the
-   same remote ref (cloud clones remote; dirty local tree is invisible).
-6. Note the handoff SHA; workers must use `main` at/after that SHA.
+5. Commit lock/docs updates on a short-lived branch and open a pull request
+   into `main`. Direct pushes to `main` are blocked
+   ([Branching & main protection](../../../README.md#branching--main-protection)).
+   Merge that PR on GitHub before launch so every worker starts from the same
+   remote ref (cloud clones remote; a dirty local tree is invisible).
+6. Note the handoff SHA on `main` after that PR merges; workers must use
+   `main` at/after that SHA.
 
 ### Phase 3 — Launch workers
 
@@ -105,8 +110,9 @@ files explicitly allowed as merge-time conflicts).
 
 ### Phase 5 — Merge
 
-12. Fetch branches. Merge into local `main` using the matrix merge-order hint
-    (default: fewer shared-file touches first, or documented preference).
+12. Fetch branches. Land them in the matrix merge-order hint by merging each
+    pull request on GitHub (default: fewer shared-file touches first, or
+    documented preference). Do not push a local merge of `main`.
 13. Resolve conflicts (`CLUSTERS.md`, OpenAPI/schema, shared primitives).
 14. Reconcile cluster/queue status so archived gaps and `status: done` match reality.
 
@@ -130,8 +136,9 @@ files explicitly allowed as merge-time conflicts).
 
 ### Phase 8 — Ship
 
-18. Push `main` only when CI is green **and** the user asks (or already
-    authorized “merge and push if green”).
+18. Never push `main`. Merge the pull request(s) on GitHub only when required
+    checks are green, conversations are resolved, **and** the user asks
+    (or already authorized merge if green).
 19. Report: SHAs, PRs, residuals, whether any new `gaps/<id>.md` were filed.
 
 ---
@@ -147,7 +154,7 @@ Mandatory; no skipping:
 5. [`simplify-pass`](../simplify-pass/SKILL.md) then full `./scripts/ci-local.sh`
    (isolated DB name recommended when sharing Postgres).
 6. Archive **only** its gap (`status: fixed`); may touch `CLUSTERS.md` (conflicts OK).
-7. Commit + push **feature branch**; open PR optional.
+7. Commit + push **feature branch**; open a pull request into `main`.
 8. **Never** merge/push `main`.
 9. Final report: branch, PR URL, commit SHA(s), ci-local result, residual risk.
 
@@ -156,11 +163,11 @@ Mandatory; no skipping:
 ## Orchestrator todos (minimum)
 
 - `conflict-matrix` — phase 1 partition / limits
-- `handoff-push` — locks on `main`
+- `handoff-push` — lock PR merged to `main` (no direct push)
 - `launch-N` — workers started
 - `await-N` — reports collected
 - `merge-verify-ci` — merge + acceptance + `ci-local`
-- `push-main` — only when authorized
+- `merge-prs` — merge via GitHub only when the user asks; never push `main`
 
 ---
 
@@ -168,6 +175,6 @@ Mandatory; no skipping:
 
 - No launch before conflict/limit matrix and locked decisions.
 - No PRODUCT drift without prior ask + SOT write.
-- Workers never push `main`; orchestrator never skips integrated `ci-local`.
+- Nobody pushes `main` (workers or orchestrator). Orchestrator never skips integrated `ci-local`.
 - Never act on unverified subagent findings.
 - File new gaps for out-of-scope holes ([`file-gap`](../file-gap/SKILL.md)); do not bury in chat.
