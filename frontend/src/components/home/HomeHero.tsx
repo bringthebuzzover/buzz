@@ -19,7 +19,8 @@ export default function HomeHero() {
         playsInline
         className="absolute inset-0 z-0 h-full w-full object-cover opacity-60"
       >
-        <source src={`${publicUrl}/hero.mp4`} type="video/mp4" />
+        <source src={`${publicUrl}/hero.mp4`} type='video/mp4; codecs="hvc1"' />
+        <source src={`${publicUrl}/hero-h264.mp4`} type="video/mp4" />
         Your browser does not support the video tag.
       </video>
 
