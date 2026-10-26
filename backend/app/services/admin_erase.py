@@ -27,7 +27,13 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.session import bump_token_version, commit_revocation
 from app.services.drop_apply_intents import expire_and_clear_intents_for_org
-from app.services.email import send_brand_erased_email, send_org_erased_email
+from app.services.email import (
+    KIND_BRAND_ERASED,
+    KIND_ORG_ERASED,
+    build_idempotency_key,
+    send_brand_erased_email,
+    send_org_erased_email,
+)
 from app.services.instagram import canonical_instagram_handle
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.org_apply import clear_ig_bind_mismatch
@@ -104,7 +110,11 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
 
     email_sent = False
     if notify_email:
-        email_sent = await send_org_erased_email(notify_email, org_name=display_name)
+        email_sent = await send_org_erased_email(
+            notify_email,
+            org_name=display_name,
+            idempotency_key=build_idempotency_key(KIND_ORG_ERASED, user.id),
+        )
 
     logger.info(
         "org_erase_completed user_id=%s email_sent=%s",
@@ -237,7 +247,11 @@ async def erase_brand(db: AsyncSession, brand_id: UUID, confirm: str) -> dict[st
     await db.flush()
     await commit_revocation(db)
 
-    email_sent = await send_brand_erased_email(notify_email, brand_name=display_name)
+    email_sent = await send_brand_erased_email(
+        notify_email,
+        brand_name=display_name,
+        idempotency_key=build_idempotency_key(KIND_BRAND_ERASED, brand.id),
+    )
     logger.info(
         "brand_erase_completed brand_id=%s email_sent=%s",
         brand.id,

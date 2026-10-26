@@ -6,10 +6,15 @@ minus that lead time has passed, so the reminder lands while they can still be
 first in line.
 
 Idempotent via ``notify_me.sent_at``: stamped only when the provider accepts
-the send, so a failed attempt stays eligible for the next run.
-``FOR UPDATE SKIP LOCKED`` keeps two overlapping runs from double-sending.
-Rows whose apply window has already closed are skipped rather than mailed —
-a reminder to apply to a closed drop is worse than no reminder.
+the send, so a failed attempt stays eligible for the next run. The Resend
+idempotency key is ``reminder/{notify_me.id}``. A crash after Resend accepts
+and before this transaction commits retries the same key; the same payload
+replays the original 2xx and does not send a second email. A 409 (payload
+changed under that key, or a concurrent in-flight request) is not success, so
+``sent_at`` stays null and a later run retries. ``FOR UPDATE SKIP LOCKED``
+keeps two overlapping runs from double-sending. Rows whose apply window has
+already closed are skipped rather than mailed — a reminder to apply to a
+closed drop is worse than no reminder.
 """
 
 from __future__ import annotations
@@ -26,7 +31,11 @@ from app.models.enums import BrandStatus, BrandTrackerStage
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.user import User
-from app.services.email import send_drop_opening_reminder_email
+from app.services.email import (
+    KIND_REMINDER,
+    build_idempotency_key,
+    send_drop_opening_reminder_email,
+)
 
 
 async def send_due_reminders(db: AsyncSession) -> dict[str, Any]:
@@ -72,6 +81,7 @@ async def send_due_reminders(db: AsyncSession) -> dict[str, Any]:
             org_name=org.org_name,
             drop_title=drop.title,
             brand_name=brand.brand_name,
+            idempotency_key=build_idempotency_key(KIND_REMINDER, notify.id),
         )
         if not ok:
             # Leave sent_at NULL so the next cron run retries.

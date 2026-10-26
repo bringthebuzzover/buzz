@@ -12,7 +12,8 @@ updated: 2026-09-17
 
 Brainstorm (2026-09-13). Related ops: [`gaps/ops.brand-mailbox.md`](../../gaps/ops.brand-mailbox.md)
 (company inbox cutover; **in-app inbox still out of scope**),
-[`gaps/ops.email-ledger.md`](../../gaps/ops.email-ledger.md) (no send history).
+[`gaps/archive/ops.email-ledger.md`](../../gaps/archive/ops.email-ledger.md)
+(no in-app send history; Resend dashboard is the record).
 
 ## Desired motion
 

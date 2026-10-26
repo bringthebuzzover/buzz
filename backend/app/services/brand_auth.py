@@ -97,8 +97,10 @@ async def apply_brand(
     return {"brand_id": str(brand.id), "status": brand.status}
 
 
-async def create_brand_invite(db: AsyncSession, brand: Brand, user: User) -> str:
-    """Generate a BrandInviteToken for *brand* and return the raw token string.
+async def create_brand_invite(db: AsyncSession, brand: Brand, user: User) -> tuple[str, uuid.UUID]:
+    """Generate a BrandInviteToken for *brand*.
+
+    Returns the raw token (email link only) and the row id (idempotency key).
 
     Any prior unused invite for this brand is invalidated first, so re-issuing
     leaves exactly one live setup link (no accumulation of valid tokens).
@@ -124,7 +126,7 @@ async def create_brand_invite(db: AsyncSession, brand: Brand, user: User) -> str
     )
     db.add(bit)
     await db.flush()
-    return raw
+    return raw, bit.id
 
 
 async def set_brand_password(

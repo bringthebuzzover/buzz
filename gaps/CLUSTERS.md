@@ -200,6 +200,9 @@ approach: |
   Out: ledger, webhooks, invite/reset honesty, admin email UI.
   **Partial / not timeless:** on archive, leave `ops.email-ledger`
   deferred follow-up open (ledger + denial channel + invite/reset).
+  Later (2026-10-26): that follow-up was archived. Resend idempotency
+  keys cover the double-send. A durable ledger and Resend webhooks will
+  not be built. See `gaps/archive/ops.email-ledger.md`.
 
 stop_if:
   - Product insists denial needs in-app channel in the same PR (expand scope).
@@ -534,15 +537,17 @@ stop_if:
 
 status: parked
 gaps:
-  - ops.email-ledger
   - ops.brand-mailbox
   - ops.ig-business-discovery-unset
   - deploy.npm-workspaces-wontfix
 note: |
   Required follow-ups for partial v1 clusters (not timeless-complete).
   Do not auto-execute. Create Locked v1 + un-park only when named explicitly.
-  - `ops.email-ledger` — after `email-honesty` archives; ledger + denial
-    org channel (or wontfix) + invite/reset honesty.
+  - `ops.email-ledger` — **archived** 2026-10-26. Resend idempotency keys
+    cover the opening-reminder double-send. Durable `email_sends` and Resend
+    webhooks will not be pursued (Lawrence). Send history is the Resend
+    dashboard Emails page (retention depends on plan). Drop denial stays
+    PRODUCT email-only. See `gaps/archive/ops.email-ledger.md`.
   - `ops.resend-domain-unverified` — **archived** 2026-08-11 (domain Verified +
     brand invite inbox proof; key rotated onto Railway).
   - `ops.brand-mailbox` — Google Workspace Business Starter mailbox `melissa@bringthebuzzover.com`

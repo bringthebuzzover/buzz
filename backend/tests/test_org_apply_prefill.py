@@ -277,7 +277,13 @@ async def test_deliver_saved_prefill_email_skips_and_sends(db_session, monkeypat
 
     sent: list[tuple[str, str, str]] = []
 
-    async def _fake_send(to_email: str, token: str, *, org_name: str = "") -> bool:
+    async def _fake_send(
+        to_email: str,
+        token: str,
+        *,
+        org_name: str = "",
+        idempotency_key: str | None = None,
+    ) -> bool:
         sent.append((to_email, token, org_name))
         return True
 

@@ -27,6 +27,10 @@ from app.models.social_post import SocialPost
 from app.models.user import User
 from app.security.session import bump_token_version, commit_revocation
 from app.services.email import (
+    KIND_IG_CHANGE_DENIED,
+    KIND_IG_RENAME_APPROVED,
+    KIND_IG_SWITCH_CONNECT,
+    build_idempotency_key,
     send_org_ig_change_denied_email,
     send_org_ig_rename_approved_email,
     send_org_ig_switch_connect_email,
@@ -335,6 +339,7 @@ async def approve_request(
             user.edu_email or "",
             org_name=org.org_name,
             requested_handle=req.requested_handle,
+            idempotency_key=build_idempotency_key(KIND_IG_RENAME_APPROVED, req.id),
         )
     else:
         await assert_handle_available(db, req.requested_handle, exclude_user_id=user.id)
@@ -346,7 +351,7 @@ async def approve_request(
         org.claimed_instagram_username = req.requested_handle
         clear_ig_bind_mismatch(org)
         bump_token_version(user)
-        connect_token = await create_org_connect_token(db, org, user)
+        connect_token, connect_token_id = await create_org_connect_token(db, org, user)
         await db.flush()
         await commit_revocation(db)
         email_sent = await send_org_ig_switch_connect_email(
@@ -354,6 +359,7 @@ async def approve_request(
             org_name=org.org_name,
             connect_token=connect_token,
             requested_handle=req.requested_handle,
+            idempotency_key=build_idempotency_key(KIND_IG_SWITCH_CONNECT, connect_token_id),
         )
 
     logger.info(
@@ -385,6 +391,7 @@ async def deny_request(db: AsyncSession, request_id: UUID) -> dict[str, Any]:
     email_sent = await send_org_ig_change_denied_email(
         user.edu_email or "",
         org_name=org.org_name,
+        idempotency_key=build_idempotency_key(KIND_IG_CHANGE_DENIED, req.id),
     )
     logger.info("ig_change_request_denied request_id=%s", req.id)
     return {**_serialize(req), "email_sent": email_sent}

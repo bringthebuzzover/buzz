@@ -161,7 +161,7 @@ College domain `cornell.edu` in `frontend/src/data/colleges.ts` and other `.edu`
 ## Coupling
 
 - [`ops.resend-domain-unverified`](archive/ops.resend-domain-unverified.md) — archived; leave `send.` alone.
-- [`ops.email-ledger`](ops.email-ledger.md) — app send honesty; does not create mailboxes.
+- [`ops.email-ledger`](archive/ops.email-ledger.md) — **archived** 2026-10-26. Idempotency keys cover double-send. No app send ledger (history is the Resend dashboard). Does not create mailboxes.
 - Denial and a few other templates say “reply to this email”. That works only if the recipient’s client honors Reply-To (`melissa@`). A client that replies to From hits `hello@`, which is the open alias question above.
 
 ## Probes (read-only)
