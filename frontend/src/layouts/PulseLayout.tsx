@@ -1,15 +1,16 @@
 /**
- * Shell for the `/pulse` yellow/black concept. Isolated from SiteLayout and
- * from the parked `/inspo` redesign.
+ * Shell for the `/pulse` concept. Isolated from SiteLayout and /inspo.
  */
-import { useEffect } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { Link, Outlet } from "react-router-dom";
 import PulseFooter from "../components/pulse/PulseFooter";
 import PulseNav from "../components/pulse/PulseNav";
+import { usePulseMotion } from "../components/pulse/usePulseMotion";
 import "../pages/pulse/pulse.css";
 
 export default function PulseLayout() {
-  const { hash, pathname } = useLocation();
+  const rootRef = useRef<HTMLDivElement>(null);
+  usePulseMotion(rootRef);
 
   useEffect(() => {
     const prevTitle = document.title;
@@ -19,9 +20,9 @@ export default function PulseLayout() {
     const prevTheme = meta?.getAttribute("content") ?? null;
 
     document.title = "BUZZ — Pulse";
-    document.body.style.backgroundColor = "#0a0a0a";
-    document.documentElement.style.backgroundColor = "#0a0a0a";
-    meta?.setAttribute("content", "#0a0a0a");
+    document.body.style.backgroundColor = "#0b0b0b";
+    document.documentElement.style.backgroundColor = "#0b0b0b";
+    meta?.setAttribute("content", "#0b0b0b");
 
     return () => {
       document.title = prevTitle;
@@ -32,25 +33,21 @@ export default function PulseLayout() {
   }, []);
 
   useEffect(() => {
-    if (!hash) {
-      try {
-        window.scrollTo(0, 0);
-      } catch {
-        // jsdom implements scrollTo as a throwing stub.
-      }
-      return undefined;
-    }
-    const id = hash.slice(1);
-    try {
-      document.getElementById(id)?.scrollIntoView();
-    } catch {
-      // jsdom implements scrollIntoView as a throwing stub.
-    }
-    return undefined;
-  }, [hash, pathname]);
+    const dock = document.querySelector(".pulse-dock");
+    const footer = document.querySelector(".pulse-footer");
+    if (!dock || !footer || typeof IntersectionObserver === "undefined") return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        dock.classList.toggle("is-hidden", entry.isIntersecting);
+      },
+      { threshold: 0.12 },
+    );
+    observer.observe(footer);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="pulse">
+    <div className="pulse" ref={rootRef}>
       <a className="pulse-skip" href="#pulse-content">
         Skip to content
       </a>
@@ -59,6 +56,11 @@ export default function PulseLayout() {
         <Outlet />
       </main>
       <PulseFooter />
+      <div className="pulse-dock">
+        <Link className="pulse-pill" to="/org/apply">
+          Join as a student organization
+        </Link>
+      </div>
     </div>
   );
 }

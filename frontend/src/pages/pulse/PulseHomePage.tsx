@@ -1,194 +1,208 @@
 /**
- * `/pulse` — yellow/black marketing concept. Copy is the live site's;
- * stills from featured collaborations are graded so this page stays in palette.
+ * /pulse — yellow and black marketing concept.
+ * Copy is shortened from the live home, /for-orgs, and /for-brands pages.
  */
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { COLLEGES } from "../../data/colleges";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
 import { siteIdentity } from "../../data/siteIdentity";
-import PulseHero from "../../components/pulse/PulseHero";
-import PulseNetwork from "../../components/pulse/PulseNetwork";
+import { usePrefersReducedMotion } from "../../components/pulse/usePrefersReducedMotion";
+import pathOrgs from "./media/path-orgs.jpg";
+import pathBrands from "./media/path-brands.jpg";
 
-const ORG_STEPS = [
-  "Fill out the public apply form (profile, campus .edu, shipping address) and type the organization’s Instagram handle — the Business or Creator account, not a personal profile.",
-  "Buzz reviews the claimed handle. Verify the .edu email Buzz sends you, then Connect Instagram after approval.",
-  "Browse published campaigns on the Drop Feed and apply when a drop is Open.",
-  "If you’re accepted, products ship to the address you gave. Post from that organization Instagram.",
+const STEPS = [
+  {
+    index: 0,
+    side: "left",
+    kicker: "Apply",
+    title: "Campus .edu email",
+    caption: "Apply with your campus .edu email.",
+  },
+  {
+    index: 1,
+    side: "right",
+    kicker: "Instagram",
+    title: "Business or Creator",
+    detail: "@cornellouting",
+    caption: "Use the Business or Creator account.",
+  },
+  {
+    index: 2,
+    side: "left",
+    kicker: "Approved",
+    title: "Connect Instagram",
+    caption: "Connect Instagram after approval.",
+  },
+  {
+    index: 3,
+    side: "right",
+    kicker: "Drop Feed",
+    title: "Campus Kickoff 2026",
+    detail: "Ithaca, NY · Open",
+    caption: "Apply when a drop is Open.",
+  },
 ] as const;
 
-const BRAND_STEPS = [
-  "Apply with company name and email. Buzz reviews, then you set a password from the setup email.",
-  "Send a ticket — a message, not the campaign title. A representative will contact you. This request is not a live campaign.",
-  "Buzz writes the drop and publishes it. Only then do campus organizations see the campaign.",
-  "You monitor applicants. After the apply window closes, you approve or deny up to capacity.",
-] as const;
-
-function StepList({ steps }: { steps: readonly string[] }) {
+function Names({ hidden }: { hidden?: boolean }) {
   return (
-    <ol className="pulse-steps">
-      {steps.map((step, index) => (
-        <li key={step}>
-          <span>{String(index + 1).padStart(2, "0")}</span>
-          <p>{step}</p>
-        </li>
+    <p className="pulse-marquee__group" aria-hidden={hidden || undefined}>
+      {COLLEGES.map((college) => (
+        <span key={college.name}>{college.name}</span>
       ))}
-    </ol>
+    </p>
   );
 }
 
 export default function PulseHomePage() {
-  const { contact, social } = siteIdentity;
+  const reduced = usePrefersReducedMotion();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const publicUrl = process.env.PUBLIC_URL ?? "";
+  const { content } = siteIdentity;
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !reduced) return undefined;
+    try {
+      video.pause();
+    } catch {
+      // jsdom's pause() is a throwing stub.
+    }
+    return undefined;
+  }, [reduced]);
+
+  const leftSteps = STEPS.filter((step) => step.side === "left");
+  const rightSteps = STEPS.filter((step) => step.side === "right");
 
   return (
     <>
-      <PulseHero />
-      <PulseNetwork />
-
-      <section className="pulse-statement">
-        <div className="pulse-wrap">
-          <p>
-            Our platform makes it easy{" "}
-            <span className="is-quiet">
-              for brands to connect with student ambassadors and campus organizations{" "}
+      <section className="pulse-hero" data-theme="ink" data-surface="dark" aria-label="Introduction">
+        <video
+          ref={videoRef}
+          className="pulse-hero__video"
+          autoPlay={!reduced}
+          muted
+          loop
+          playsInline
+          aria-hidden="true"
+        >
+          <source src={`${publicUrl}/hero.mp4`} type='video/mp4; codecs="hvc1"' />
+          <source src={`${publicUrl}/hero-h264.mp4`} type="video/mp4" />
+        </video>
+        <div className="pulse-hero__scrim" aria-hidden="true" />
+        <div className="pulse-hero__shade" aria-hidden="true" />
+        <div className="pulse-hero__center">
+          <h1 className="pulse-display">
+            <span className="pulse-line" data-reveal="load">
+              <span>Campus</span>
             </span>
-            for authentic marketing campaigns.
+            <span className="pulse-line" data-reveal="load">
+              <span>marketing.</span>
+            </span>
+          </h1>
+          <p className="pulse-hero__sub pulse-line" data-reveal="load">
+            <span>powered by student communities.</span>
           </p>
-        </div>
-      </section>
-
-      <section className="pulse-roles" aria-label="Who it’s for">
-        <article id="students" className="pulse-role pulse-role--dark">
-          <div>
-            <h2 className="pulse-display">For student organizations</h2>
-            <p>
-              Apply with your campus .edu, confirm the organization Instagram,
-              then connect after Buzz review.
-            </p>
-          </div>
-          <div className="pulse-role__links">
-            <Link className="pulse-textlink" to="/for-orgs">
-              See how it works
+          <div className="pulse-hero__actions">
+            <Link className="pulse-ghost" to="/brand/apply">
+              Apply as a brand
             </Link>
-            <Link className="pulse-role__quiet" to="/login">
-              Organization login
-            </Link>
-          </div>
-        </article>
-
-        <article id="brands" className="pulse-role pulse-role--yellow">
-          <div>
-            <h2 className="pulse-display">For brands</h2>
-            <p>Request a campaign. Buzz drafts and publishes; you monitor and finalize.</p>
-          </div>
-          <div className="pulse-role__links">
-            <Link className="pulse-textlink" to="/for-brands">
-              See how it works
-            </Link>
-            <Link className="pulse-role__quiet" to="/brand/login">
-              Brand login
-            </Link>
-          </div>
-        </article>
-      </section>
-
-      <section id="how" className="pulse-how" aria-labelledby="pulse-how-title">
-        <div className="pulse-wrap">
-          <div className="pulse-how__intro">
-            <h2 id="pulse-how-title" className="pulse-display">
-              How it works
-            </h2>
-          </div>
-          <div className="pulse-how__grid">
-            <div>
-              <h3>For student organizations</h3>
-              <p className="pulse-how__lede">
-                You apply on the website first. Instagram login comes after Buzz
-                approves you — it binds the organization account, it does not
-                create a new one.
-              </p>
-              <StepList steps={ORG_STEPS} />
-              <Link className="pulse-how__more" to="/for-orgs">
-                For organizations
-              </Link>
-            </div>
-            <div>
-              <h3>For brands</h3>
-              <p className="pulse-how__lede">
-                You request a call. Buzz mints and publishes the drop. Brands do
-                not create a live campaign from the portal or edit creative in
-                this motion.
-              </p>
-              <StepList steps={BRAND_STEPS} />
-              <Link className="pulse-how__more" to="/for-brands">
-                For brands
-              </Link>
-            </div>
           </div>
         </div>
       </section>
 
-      <section className="pulse-collabs" aria-labelledby="pulse-collab-title">
-        <div className="pulse-wrap">
-          <div className="pulse-collabs__intro">
-            <h2 id="pulse-collab-title" className="pulse-display">
-              Featured Campus Collaborations
-            </h2>
+      <section className="pulse-band" data-theme="paper" aria-labelledby="pulse-statement">
+        <div className="pulse-measure" data-reveal-group>
+          <h2 id="pulse-statement" className="pulse-statement">
+            <span className="pulse-line">
+              <span>Our platform makes it easy</span>
+            </span>
+            <span className="pulse-line pulse-line--quiet">
+              <span>for brands to connect with student organizations.</span>
+            </span>
+          </h2>
+        </div>
+      </section>
+
+      <section className="pulse-band pulse-band--tight" data-theme="paper" aria-label="Campuses">
+        <p className="pulse-support">
+          Vetted student organizations powering authentic campus marketing nationwide.
+        </p>
+        <div className="pulse-marquee">
+          <div className="pulse-marquee__track">
+            <Names />
+            <Names hidden />
           </div>
-          <div className="pulse-collabs__grid">
-            {FEATURED_COLLABS.map((collab) => (
-              <article key={collab.id} className="pulse-collab">
-                <div className="pulse-collab__media">
-                  <img src={collab.image} alt={collab.title} />
-                </div>
-                <div className="pulse-collab__body">
-                  <p className="pulse-kicker">Featured</p>
-                  <h3>{collab.title}</h3>
-                  <p>{collab.subtitle}</p>
-                </div>
-              </article>
+        </div>
+      </section>
+
+      <section className="pulse-how" id="how" data-theme="paper" aria-labelledby="pulse-how-title">
+        <h2 id="pulse-how-title" className="pulse-sr">
+          How it works
+        </h2>
+        <div className="pulse-how__pin">
+          <div className="pulse-how__copy">
+            {leftSteps.map((step) => (
+              <p key={step.caption} className="pulse-step" data-side="left" data-index={step.index}>
+                {step.caption}
+              </p>
+            ))}
+          </div>
+          <div className="pulse-phone" aria-hidden="true">
+            {STEPS.map((step) => (
+              <div key={step.caption} className="pulse-phone__screen" data-index={step.index}>
+                <p className="pulse-kicker">{step.kicker}</p>
+                <p className="pulse-phone__title">{step.title}</p>
+                {"detail" in step ? <p className="pulse-phone__detail">{step.detail}</p> : null}
+              </div>
+            ))}
+          </div>
+          <div className="pulse-how__copy pulse-how__copy--right">
+            {rightSteps.map((step) => (
+              <p key={step.caption} className="pulse-step" data-side="right" data-index={step.index}>
+                {step.caption}
+              </p>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="join" className="pulse-join">
-        <div className="pulse-wrap">
-          <h2 className="pulse-display">Want to join?</h2>
-          <p className="pulse-join__sub">
-            Pick the path that fits — apply as a student organization, or apply
-            as a brand.
-          </p>
-          <div className="pulse-join__actions">
-            <Link className="pulse-btn pulse-btn--ink" to="/org/apply">
-              Join as Student Organization
-            </Link>
-            <Link className="pulse-btn pulse-btn--line" to="/brand/apply">
-              Apply as Brand
-            </Link>
-          </div>
-        </div>
+      <section className="pulse-stack" data-theme="ink" data-surface="dark" aria-label="Featured collaborations">
+        {FEATURED_COLLABS.map((collab, index) => (
+          <article key={collab.id} className="pulse-card">
+            <div className="pulse-card__media">
+              <img src={collab.image} alt="" />
+              <div className="pulse-card__shade" />
+            </div>
+            <div className="pulse-card__copy">
+              <p className="pulse-card__tag">{collab.subtitle}</p>
+              <h2>{collab.title}</h2>
+              <p className="pulse-card__tag pulse-card__tag--end">
+                {index === 0 ? content.heroSpotlightLine : "Cornell University"}
+              </p>
+            </div>
+          </article>
+        ))}
       </section>
 
-      <section id="contact" className="pulse-contact" aria-labelledby="pulse-contact-title">
-        <div className="pulse-wrap">
-          <h2 id="pulse-contact-title" className="pulse-display">
-            Contact
-          </h2>
-          <ul className="pulse-contact__list">
-            <li>
-              <span>Team</span>
-              <a href={`mailto:${contact.email}`}>{contact.primaryPersonName}</a>
-            </li>
-            <li>
-              <span>Email</span>
-              <a href={`mailto:${contact.email}`}>{contact.email}</a>
-            </li>
-            <li>
-              <span>Instagram</span>
-              <a href={social.instagram.profileUrl} target="_blank" rel="noreferrer">
-                {social.instagram.handleWithAt}
-              </a>
-            </li>
-          </ul>
+      <section className="pulse-band" data-theme="paper" aria-label="Two ways in">
+        <div className="pulse-paths">
+          <article className="pulse-path" id="students">
+            <div className="pulse-reveal">
+              <img className="pulse-reveal__media" src={pathOrgs} alt="Students walking across a campus lawn" />
+            </div>
+            <h2>Apply with your campus .edu.</h2>
+            <p>Connect Instagram after Buzz review.</p>
+            <Link to="/for-orgs">See how organizations join</Link>
+          </article>
+          <article className="pulse-path" id="brands">
+            <div className="pulse-reveal">
+              <img className="pulse-reveal__media" src={pathBrands} alt="A crowd at a campus event" />
+            </div>
+            <h2>Request a campaign.</h2>
+            <p>Buzz drafts and publishes it.</p>
+            <Link to="/for-brands">See how brands run a campaign</Link>
+          </article>
         </div>
       </section>
     </>
