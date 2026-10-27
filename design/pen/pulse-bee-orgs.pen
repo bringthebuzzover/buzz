@@ -386,9 +386,9 @@
      "fill": "$ink",
      "content": "—",
      "fontFamily": "$font",
-     "fontSize": 18.4,
+     "fontSize": "$type-h3",
      "fontWeight": "500",
-     "letterSpacing": -0.55
+     "letterSpacing": -0.6
     },
     {
      "type": "text",
@@ -398,7 +398,7 @@
      "content": "Upcoming",
      "lineHeight": 1.5,
      "fontFamily": "$font",
-     "fontSize": "$type-micro",
+     "fontSize": "$type-label",
      "fontWeight": "normal"
     }
    ]
@@ -435,9 +435,9 @@
      "content": "Yerba Madre",
      "lineHeight": 0.95,
      "fontFamily": "$font",
-     "fontSize": "$type-title-lg",
+     "fontSize": "$type-statement",
      "fontWeight": "500",
-     "letterSpacing": -2.52
+     "letterSpacing": -2.43
     }
    ]
   },
@@ -459,7 +459,7 @@
      "fill": "$paper",
      "content": "Organizations",
      "fontFamily": "$font",
-     "fontSize": "$type-micro",
+     "fontSize": "$type-label",
      "fontWeight": "normal"
     },
     {
@@ -482,7 +482,7 @@
          "fill": "$paper-60",
          "content": "How it works",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         }
        ]
@@ -501,7 +501,7 @@
          "fill": "$paper-60",
          "content": "Apply",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         }
        ]
@@ -520,7 +520,7 @@
          "fill": "$paper-60",
          "content": "Login",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         }
        ]
@@ -542,7 +542,7 @@
          "fill": "$paper-60",
          "content": "Extra",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         }
        ]
@@ -644,7 +644,7 @@
      "fontSize": "$type-h2",
      "fontWeight": "500",
      "lineHeight": 1,
-     "letterSpacing": -1.73,
+     "letterSpacing": -1.76,
      "textAlign": "center",
      "textGrowth": "fixed-width",
      "width": "fill_container"
@@ -955,10 +955,10 @@
        "fill": "$on-surface",
        "content": "Who can apply?",
        "fontFamily": "$font",
-       "fontSize": "$type-h4",
+       "fontSize": "$type-h3",
        "fontWeight": "500",
        "lineHeight": 1.3,
-       "letterSpacing": -0.19,
+       "letterSpacing": -0.2,
        "textGrowth": "fixed-width",
        "width": "fill_container"
       },
@@ -1011,10 +1011,10 @@
        "fill": "$on-surface",
        "content": "Who can apply?",
        "fontFamily": "$font",
-       "fontSize": "$type-h4",
+       "fontSize": "$type-h3",
        "fontWeight": "500",
        "lineHeight": 1.3,
-       "letterSpacing": -0.19,
+       "letterSpacing": -0.2,
        "textGrowth": "fixed-width",
        "width": "fill_container"
       },
@@ -1200,9 +1200,9 @@
        "content": "Brand drops\nfor student\norganizations.",
        "lineHeight": 1,
        "fontFamily": "$font",
-       "fontSize": "$type-hero",
+       "fontSize": "$type-title",
        "fontWeight": "500",
-       "letterSpacing": -2.53
+       "letterSpacing": -2.56
       },
       {
        "type": "frame",
@@ -1565,7 +1565,7 @@
          "content": "Apply",
          "lineHeight": 1.3,
          "fontFamily": "$font",
-         "fontSize": "$type-tiny",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         },
         {
@@ -1587,7 +1587,7 @@
            "content": "Organization name",
            "lineHeight": 1.3,
            "fontFamily": "$font",
-           "fontSize": "$type-tiny",
+           "fontSize": "$type-label",
            "fontWeight": "normal"
           }
          ]
@@ -1624,7 +1624,7 @@
            "content": "University",
            "lineHeight": 1.3,
            "fontFamily": "$font",
-           "fontSize": "$type-tiny",
+           "fontSize": "$type-label",
            "fontWeight": "normal"
           }
          ]
@@ -1661,7 +1661,7 @@
            "content": "School (.edu) email",
            "lineHeight": 1.3,
            "fontFamily": "$font",
-           "fontSize": "$type-tiny",
+           "fontSize": "$type-label",
            "fontWeight": "normal"
           }
          ]
@@ -1799,9 +1799,9 @@
          "content": "Current drops",
          "lineHeight": 0.95,
          "fontFamily": "$font",
-         "fontSize": "$type-title-xl",
+         "fontSize": "$type-title",
          "fontWeight": "500",
-         "letterSpacing": -2.98
+         "letterSpacing": -2.88
         },
         {
          "type": "frame",
@@ -1994,10 +1994,10 @@
            "fill": "$on-surface",
            "content": "Questions",
            "fontFamily": "$font",
-           "fontSize": "$type-title-xl",
+           "fontSize": "$type-title",
            "fontWeight": "500",
            "lineHeight": 0.95,
-           "letterSpacing": -2.98
+           "letterSpacing": -2.88
           }
          ]
         },
@@ -2184,9 +2184,9 @@
          "content": "Apply with your\ncampus .edu.",
          "lineHeight": 1.02,
          "fontFamily": "$font",
-         "fontSize": "$type-join",
+         "fontSize": "$type-statement",
          "fontWeight": "500",
-         "letterSpacing": -2.33
+         "letterSpacing": -2.43
         },
         {
          "type": "frame",
@@ -2206,7 +2206,7 @@
          "content": "You apply on the website first.",
          "lineHeight": 1.45,
          "fontFamily": "$font",
-         "fontSize": "$type-body-lg",
+         "fontSize": "$type-body",
          "fontWeight": "normal"
         },
         {
@@ -2237,7 +2237,7 @@
            "descendants": {
             "o48sD": {
              "content": "Apply as an organization",
-             "fontSize": 15
+             "fontSize": "$type-small"
             },
             "ARbUw": {
              "enabled": true
@@ -2302,9 +2302,9 @@
          "content": "Request a campaign.",
          "lineHeight": 1.02,
          "fontFamily": "$font",
-         "fontSize": "$type-join",
+         "fontSize": "$type-statement",
          "fontWeight": "500",
-         "letterSpacing": -2.33
+         "letterSpacing": -2.43
         },
         {
          "type": "frame",
@@ -2324,7 +2324,7 @@
          "content": "You request a call. Buzz mints and publishes the drop.",
          "lineHeight": 1.45,
          "fontFamily": "$font",
-         "fontSize": "$type-body-lg",
+         "fontSize": "$type-body",
          "fontWeight": "normal"
         },
         {
@@ -2355,7 +2355,7 @@
            "descendants": {
             "o48sD": {
              "content": "See Buzz for brands",
-             "fontSize": 15
+             "fontSize": "$type-small"
             },
             "ARbUw": {
              "enabled": true
@@ -2397,7 +2397,7 @@
        "fontFamily": "$font",
        "fontSize": "$type-display",
        "fontWeight": "500",
-       "letterSpacing": -4.6
+       "letterSpacing": -4.59
       },
       {
        "type": "frame",
@@ -2457,9 +2457,9 @@
        "content": "hello@bringthebuzzover.com",
        "lineHeight": 1,
        "fontFamily": "$font",
-       "fontSize": "$type-title-lg",
+       "fontSize": "$type-statement",
        "fontWeight": "500",
-       "letterSpacing": -2.8
+       "letterSpacing": -2.7
       },
       {
        "type": "frame",
@@ -2613,7 +2613,7 @@
          "fill": "$paper-60",
          "content": "Connecting brands with campus communities for authentic college marketing, at scale.",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         },
         {
@@ -2623,7 +2623,7 @@
          "fill": "$paper-60",
          "content": "2026",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         }
        ]
@@ -2708,9 +2708,9 @@
        "content": "Brand drops\nfor student\norganizations.",
        "lineHeight": 1,
        "fontFamily": "$font",
-       "fontSize": "$type-hero",
+       "fontSize": "$type-title",
        "fontWeight": "500",
-       "letterSpacing": -1.312
+       "letterSpacing": -1.44
       },
       {
        "type": "text",
@@ -2850,7 +2850,7 @@
        "fontFamily": "$font",
        "fontSize": "$type-statement",
        "fontWeight": "500",
-       "letterSpacing": -1.8
+       "letterSpacing": -1.6
       },
       {
        "type": "text",
@@ -2865,7 +2865,7 @@
        "fontFamily": "$font",
        "fontSize": "$type-statement",
        "fontWeight": "500",
-       "letterSpacing": -1.8
+       "letterSpacing": -1.6
       }
      ]
     },
@@ -3058,7 +3058,7 @@
          "content": "Apply",
          "lineHeight": 1.3,
          "fontFamily": "$font",
-         "fontSize": "$type-tiny",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         },
         {
@@ -3080,7 +3080,7 @@
            "content": "Organization name",
            "lineHeight": 1.3,
            "fontFamily": "$font",
-           "fontSize": "$type-tiny",
+           "fontSize": "$type-label",
            "fontWeight": "normal"
           }
          ]
@@ -3117,7 +3117,7 @@
            "content": "University",
            "lineHeight": 1.3,
            "fontFamily": "$font",
-           "fontSize": "$type-tiny",
+           "fontSize": "$type-label",
            "fontWeight": "normal"
           }
          ]
@@ -3154,7 +3154,7 @@
            "content": "School (.edu) email",
            "lineHeight": 1.3,
            "fontFamily": "$font",
-           "fontSize": "$type-tiny",
+           "fontSize": "$type-label",
            "fontWeight": "normal"
           }
          ]
@@ -3317,9 +3317,9 @@
            "content": "Current drops",
            "lineHeight": 0.95,
            "fontFamily": "$font",
-           "fontSize": "$type-title-xl",
+           "fontSize": "$type-title",
            "fontWeight": "500",
-           "letterSpacing": -1.728
+           "letterSpacing": -1.62
           }
          ]
         },
@@ -3416,7 +3416,7 @@
             "RGfWE": {
              "x": 16,
              "y": 16,
-             "fontSize": 28,
+             "fontSize": "$type-h2",
              "letterSpacing": -1.26
             }
            }
@@ -3443,7 +3443,7 @@
             "RGfWE": {
              "x": 16,
              "y": 16,
-             "fontSize": 28,
+             "fontSize": "$type-h2",
              "letterSpacing": -1.26,
              "content": "UPDATE",
              "fill": "$ink"
@@ -3519,10 +3519,10 @@
          "fill": "$on-surface",
          "content": "Questions",
          "fontFamily": "$font",
-         "fontSize": "$type-title-xl",
+         "fontSize": "$type-title",
          "fontWeight": "500",
          "lineHeight": 0.95,
-         "letterSpacing": -2.98
+         "letterSpacing": -2.79
         },
         {
          "type": "frame",
@@ -3699,9 +3699,9 @@
          "content": "Apply with your\ncampus .edu.",
          "lineHeight": 1.02,
          "fontFamily": "$font",
-         "fontSize": "$type-join",
+         "fontSize": "$type-statement",
          "fontWeight": "500",
-         "letterSpacing": -1.58
+         "letterSpacing": -1.44
         },
         {
          "type": "frame",
@@ -3722,7 +3722,7 @@
          "content": "You apply on the website first.",
          "lineHeight": 1.45,
          "fontFamily": "$font",
-         "fontSize": "$type-body-lg",
+         "fontSize": "$type-body",
          "fontWeight": "normal"
         },
         {
@@ -3738,7 +3738,7 @@
          "descendants": {
           "o48sD": {
            "content": "Apply as an organization",
-           "fontSize": 15
+           "fontSize": "$type-small"
           },
           "ARbUw": {
            "enabled": true
@@ -3809,9 +3809,9 @@
          "content": "Request a campaign.",
          "lineHeight": 1.02,
          "fontFamily": "$font",
-         "fontSize": "$type-join",
+         "fontSize": "$type-statement",
          "fontWeight": "500",
-         "letterSpacing": -1.58
+         "letterSpacing": -1.44
         },
         {
          "type": "frame",
@@ -3831,7 +3831,7 @@
          "content": "You request a call. Buzz mints and publishes the drop.",
          "lineHeight": 1.45,
          "fontFamily": "$font",
-         "fontSize": "$type-body-lg",
+         "fontSize": "$type-body",
          "fontWeight": "normal"
         },
         {
@@ -3847,7 +3847,7 @@
          "descendants": {
           "o48sD": {
            "content": "See Buzz for brands",
-           "fontSize": 15
+           "fontSize": "$type-small"
           },
           "ARbUw": {
            "enabled": true
@@ -3955,9 +3955,9 @@
        "content": "hello@bringthebuzzover.com",
        "lineHeight": 1.05,
        "fontFamily": "$font",
-       "fontSize": "$type-title-lg",
+       "fontSize": "$type-h3",
        "fontWeight": "500",
-       "letterSpacing": -1.08
+       "letterSpacing": -1.0
       },
       {
        "type": "frame",
@@ -4133,7 +4133,7 @@
          "content": "Connecting brands with campus communities for authentic college marketing, at scale.",
          "lineHeight": 1.4,
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         },
         {
@@ -4144,7 +4144,7 @@
          "content": "2026",
          "lineHeight": 1.4,
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         }
        ]
@@ -4467,11 +4467,28 @@
     }
    ]
   },
+  "section-y": {
+   "type": "number",
+   "value": [
+    {
+     "value": 108,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 68,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
   "type-display": {
    "type": "number",
    "value": [
     {
-     "value": 115.2,
+     "value": 115,
      "theme": {
       "device": "desktop"
      }
@@ -4484,17 +4501,17 @@
     }
    ]
   },
-  "type-title-xl": {
+  "type-title": {
    "type": "number",
    "value": [
     {
-     "value": 66.24,
+     "value": 64,
      "theme": {
       "device": "desktop"
      }
     },
     {
-     "value": 38.4,
+     "value": 36,
      "theme": {
       "device": "mobile"
      }
@@ -4511,7 +4528,7 @@
      }
     },
     {
-     "value": 36,
+     "value": 32,
      "theme": {
       "device": "mobile"
      }
@@ -4522,13 +4539,13 @@
    "type": "number",
    "value": [
     {
-     "value": 43.2,
+     "value": 44,
      "theme": {
       "device": "desktop"
      }
     },
     {
-     "value": 32,
+     "value": 28,
      "theme": {
       "device": "mobile"
      }
@@ -4546,23 +4563,6 @@
     },
     {
      "value": 20,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-body-lg": {
-   "type": "number",
-   "value": [
-    {
-     "value": 17,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 17,
      "theme": {
       "device": "mobile"
      }
@@ -4607,23 +4607,6 @@
    "type": "number",
    "value": [
     {
-     "value": 13,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 13,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-micro": {
-   "type": "number",
-   "value": [
-    {
      "value": 12,
      "theme": {
       "device": "desktop"
@@ -4631,108 +4614,6 @@
     },
     {
      "value": 12,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-tiny": {
-   "type": "number",
-   "value": [
-    {
-     "value": 11,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 11,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "section-y": {
-   "type": "number",
-   "value": [
-    {
-     "value": 108,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 68,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-hero": {
-   "type": "number",
-   "value": [
-    {
-     "value": 63.36,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 32.8,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-join": {
-   "type": "number",
-   "value": [
-    {
-     "value": 51.84,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 35.1,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-title-lg": {
-   "type": "number",
-   "value": [
-    {
-     "value": 56,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 21.6,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-h4": {
-   "type": "number",
-   "value": [
-    {
-     "value": 18.72,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 17,
      "theme": {
       "device": "mobile"
      }
