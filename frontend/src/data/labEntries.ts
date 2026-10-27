@@ -45,6 +45,7 @@ export type LabEntry = {
 };
 
 const DROP_EDITOR = "/lab/drop-editor/";
+const DROP_EDITOR_APP = "/drop-editor";
 
 /**
  * Cloudflare branch alias: lowercased, every non-alphanumeric run becomes
@@ -115,6 +116,21 @@ export const labEntries: readonly LabEntry[] = [
       { label: "Date picker", href: `${DROP_EDITOR}?pop=1` },
       { label: "Description", href: `${DROP_EDITOR}?desc=1` },
       { label: "Rename", href: `${DROP_EDITOR}?edit=1` },
+    ],
+  },
+  {
+    id: "drop-editor-react",
+    name: "Drop editor (React)",
+    note: "The drop editor built in the app. Click around; nothing saves.",
+    status: "Live",
+    href: DROP_EDITOR_APP,
+    thumbnail: dropEditorThumb,
+    thumbnailAlt: "Drop editor, admin mode, Yerba Madre x BUZZ.",
+    quickLinks: [
+      { label: "Brand", href: `${DROP_EDITOR_APP}?mode=brand` },
+      { label: "Date picker", href: `${DROP_EDITOR_APP}?pop=1` },
+      { label: "Description", href: `${DROP_EDITOR_APP}?desc=1` },
+      { label: "Rename", href: `${DROP_EDITOR_APP}?edit=1` },
     ],
   },
   {

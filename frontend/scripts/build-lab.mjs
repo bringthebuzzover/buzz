@@ -59,15 +59,36 @@ if (build.status !== 0) {
   process.exit(build.status ?? 1);
 }
 
-fs.cpSync(
+// Copy with symlinks resolved to real files. Pages rejects build output
+// that contains links, and fs.cpSync's `dereference` is not honored on
+// Node 22 (it writes absolute links). statSync follows links.
+function copyResolved(src, dest) {
+  if (fs.statSync(src).isDirectory()) {
+    fs.mkdirSync(dest, { recursive: true });
+    for (const name of fs.readdirSync(src)) {
+      copyResolved(path.join(src, name), path.join(dest, name));
+    }
+  } else {
+    fs.copyFileSync(src, dest);
+  }
+}
+
+function findLinks(dir, links = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isSymbolicLink()) links.push(full);
+    else if (entry.isDirectory()) findLinks(full, links);
+  }
+  return links;
+}
+
+copyResolved(
   path.join(frontendRoot, "lab-static/drop-editor"),
   path.join(buildDir, "lab/drop-editor"),
-  { recursive: true },
 );
-fs.cpSync(
+copyResolved(
   path.join(repoRoot, "design/logo-options"),
   path.join(buildDir, "lab/logo-options"),
-  { recursive: true },
 );
 
 for (const file of walkHtml(path.join(buildDir, "lab"))) {
@@ -95,9 +116,25 @@ fs.writeFileSync(
 // matches, so a `/* /index.html 200` splat would hide robots.txt, the JS
 // bundles, and the mockup. No top-level 404.html: Pages falls back to the
 // SPA for paths that are not files. See docs/LAB.md.
+// Pages rejects any file over 25 MiB. The hero videos in public/ are
+// larger, so the lab build drops them and 302s to the identical files the
+// production site serves. Any other oversized file fails the build.
+const PAGES_MAX_BYTES = 25 * 1024 * 1024;
+const PROD_ORIGIN = "https://www.bringthebuzzover.com";
+const OFFSITE_FILES = ["hero.mp4", "hero-h264.mp4"];
+const offsite = [];
+for (const name of OFFSITE_FILES) {
+  const file = path.join(buildDir, name);
+  if (fs.existsSync(file)) {
+    fs.rmSync(file);
+    offsite.push(`/${name}  ${PROD_ORIGIN}/${name}  302`);
+  }
+}
+
 const redirects = [
   "/lab/drop-editor  /lab/drop-editor/  301",
   "/lab/logo-options  /lab/logo-options/  301",
+  ...offsite,
   "",
 ].join("\n");
 if (redirects.includes("/index.html")) {
@@ -118,6 +155,26 @@ if (!bundled.includes("Design preview") || !bundled.includes("BUZZ Lab")) {
 }
 if (bundled.includes("REACT_APP_API_URL is unset")) {
   console.error("Lab bundle still contains the production API URL warning.");
+  process.exit(1);
+}
+
+function findOversized(dir, files = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) findOversized(full, files);
+    else if (fs.statSync(full).size > PAGES_MAX_BYTES) files.push(full);
+  }
+  return files;
+}
+const oversized = findOversized(buildDir);
+if (oversized.length) {
+  console.error(`Lab build output has files over 25 MiB: ${oversized.join(", ")}`);
+  process.exit(1);
+}
+
+const links = findLinks(buildDir);
+if (links.length) {
+  console.error(`Lab build output contains symlinks: ${links.join(", ")}`);
   process.exit(1);
 }
 
