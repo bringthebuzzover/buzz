@@ -133,16 +133,14 @@ Requested via `INSTAGRAM_SCOPES` in `backend/app/config.py`.
 
 All other permissions and features were removed on 2026-10-27 (reversible).
 
+There are no `graph.facebook.com` calls.
+
 ### Submission
 
 Submitted **2026-10-07** for `instagram_business_basic` and
 `instagram_business_manage_insights`. **Rejected** (Developer Policy 1.6).
 The export reproduced in the appendix was downloaded 2026-10-26, 9:34 AM PDT.
 The one-time connect token in that export is `[REDACTED]`.
-
-## Verified 2026-10-27
-
-Code on `main` requests only the two scopes in the table above. There are no `graph.facebook.com` calls.
 
 ## Graph 100 on the documented long-lived GET
 
@@ -215,7 +213,7 @@ links in this repo.
 | 2b | Consider a Data Deletion Callback URL (instructions URL already set) | Lawrence | **Skipped (Lawrence, 2026-10-27).** Data deletion instructions URL is set; callback not required. |
 | 3 | Put an **accepted** tester’s Instagram credentials and a Buzz test org in the test-credentials field. Do not tell reviewers to use their own account. | Lawrence | **Not started.** Credentials stay in the Meta form, not in git. |
 | 4 | Record two captioned videos (English). Each file contains its own login, grant, and that permission’s data. See the recording bar below. | Lawrence | **Not started.** Confirm Instagram Reach shows on www while recording. 1c and 2a are done. |
-| 5 | Rewrite each permission’s usage description. Name the fields and metrics. Say “comment counts,” not that Buzz has no access to comments. Say the messaging permission was auto-added and removed (after 2a). | Engineering drafts; Lawrence confirms | **Not started.** |
+| 5 | Rewrite each permission’s usage description. Name the fields and metrics. Say “comment counts,” not that Buzz has no access to comments. Say only these two permissions are requested. | Engineering drafts; Lawrence confirms | **Not started.** |
 | 6 | Submit | Lawrence | **Not started.** |
 
 **Recording bar.** Use an accepted tester whose Instagram account is not
@@ -347,9 +345,8 @@ Buzz connects campus organizations to brand campaigns. Each organization logs in
 
 **Resubmission change.** Replace “reach and related insights” with the feed
 and reel metric names in the table above, and say the org campaign label is
-**Instagram Reach**. Keep likes/comments as counts. State that
-`instagram_business_manage_messages` was auto-added and then removed (after
-checklist 2a). Do not imply Buzz reads message content.
+**Instagram Reach**. Keep likes/comments as counts. Say only these two
+permissions are requested.
 
 ### 5. `instagram_business_manage_insights` — video
 
@@ -539,8 +536,8 @@ the screencast: an accepted tester, **Connect with Instagram** (not
 Continue with Instagram on `/login`), then the profile and the campaign.
 Delete “use your own account,” the one-time connect link, and “we will add
 you as a tester.” The test-credentials field holds the accepted tester.
-Say comment **counts**, not “no access to comments.” Mention that the
-messaging permission was auto-added and removed (after checklist 2a).
+Say comment **counts**, not “no access to comments.” Say only these two
+permissions are requested.
 The Facebook Login sentence is accurate. Checklist 1c removed the unused
 Business Discovery path, so “Buzz does not use Facebook Login” matches the
 code. Org sign-in is Instagram Login only.
