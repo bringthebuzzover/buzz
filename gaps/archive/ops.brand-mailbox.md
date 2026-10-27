@@ -4,6 +4,7 @@ title: hello@ is a Workspace alias on melissa@
 kind: ops
 severity: P1
 status: fixed
+closed_in: 794f8af
 surface: deploy
 evidence:
   - path: backend/brand_emails.json
