@@ -583,8 +583,6 @@ gaps:
 
 status: parked
 gaps:
-
-- ops.ig-business-discovery-unset
 - deploy.npm-workspaces-wontfix
   note: |
   Required follow-ups for partial v1 clusters (not timeless-complete).
@@ -599,9 +597,11 @@ gaps:
 - `ops.brand-mailbox` — **archived** 2026-10-26. `hello@` is an alias on
   `melissa@`. That address is the only Workspace email, and Google bills it.
   Resend stays on `send.`. See `gaps/archive/ops.brand-mailbox.md`.
-- `ops.ig-business-discovery-unset` — apply confirm card soft-fails until
-  Facebook Login Business Discovery token + IG user id are on Railway api
-  (human Meta mint; not Instagram Login `INSTAGRAM_CLIENT_*`).
+- `ops.ig-business-discovery-unset` — **archived** 2026-10-26. Lawrence
+  removed the Facebook Login Business Discovery path instead of minting a
+  token. Apply is a typed handle, stored unconfirmed until Connect. Delete
+  `INSTAGRAM_BUSINESS_DISCOVERY_TOKEN`, `INSTAGRAM_BUSINESS_DISCOVERY_IG_USER_ID`,
+  and `FACEBOOK_GRAPH_BASE` from Railway **api** if they are still set.
 - `deploy.npm-workspaces-wontfix` — Railpack ignores workspaces; keep root
   package.json scripts + engines (do not retry workspaces without OK).
 - `deploy.custom-domain-samesite-lax` — **archived** 2026-08-09 (Plan A).
@@ -641,9 +641,10 @@ gaps:
   (Developer Policy 1.6). Owners, status, and the 2026-10-07 form are in
   gaps/deploy.meta-app-review.md.
   Already on main: Instagram Reach label (PR #7) and Graph v26.0 plus
-  granted-permissions storage (PR #8, `12f8850`). Still a decision: remove or
-  disclose the unused Facebook Login Business Discovery path
-  (ops.ig-business-discovery-unset).
+  granted-permissions storage (PR #8, `12f8850`). Checklist 1c is done: the
+  unused Facebook Login Business Discovery path was removed
+  (`ops.ig-business-discovery-unset` archived). “Buzz does not use Facebook
+  Login” matches the code.
   Agents do not submit App Review, remove permissions, paste tester
   credentials, or switch the app to Live.
   stop_if:
@@ -731,16 +732,17 @@ gaps:
 - org.edu-verify-outlook-junk
   approach: |
   Full lock: [`LAUNCH.md`](../LAUNCH.md) Phase A. Do not re-open forks there.
-  Public `/org/apply` → User+Org without IG token; **§6.1.1** inline Instagram
-  confirm card (Business Discovery lookup + same-page confirm); verify mints
+  Public `/org/apply` → User+Org without IG token; **§6.1.1** typed Instagram
+  handle (Business Discovery lookup removed 2026-10-26); verify mints
   session; waiting room no Connect; admin Approve → `pending_instagram` +
   connect email; OAuth binds; unknown IG does not insert.
   Verify mail (same `email.py` pass): two bodies (signup vs rotate); html+text;
   From `Buzz <hello@bringthebuzzover.com>`; Reply-To CONTACT_EMAIL; Junk line
   on the waiting screen. Out: other templates, React Email, DMARC DNS.
   Archived both gaps after Phase A implementation + ci-local green (2026-08-26).
-  Residual ops: Meta service IG + Facebook Login token → Railway BD vars
-  (lookup soft-fails until set). Set `closed_in` on archive files at commit.
+  Residual ops: Business Discovery was not minted. Path removed 2026-10-26
+  (`ops.ig-business-discovery-unset` archived). Set `closed_in` on archive
+  files at commit.
   stop_if:
 - User reverses LAUNCH.md org locks (CSV import, approve→active, IG-first insert).
 

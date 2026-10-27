@@ -26,7 +26,6 @@ from app.schemas.address import (
     AddressSuggestResponse,
 )
 from app.schemas.onboarding import (
-    InstagramLookupResponse,
     OrgApplyPrefillResponse,
     OrgApplyRequest,
     OrgOnboardingRequest,
@@ -44,7 +43,6 @@ from app.services.address import AddressClient, get_address_client
 from app.services.drop_apply_intents import assert_intent_drop_public, record_drop_apply_intent
 from app.services.ig_change_requests import get_request_state, submit_request
 from app.services.instagram import InstagramClient, get_instagram_client
-from app.services.instagram_lookup import lookup_instagram_handle
 from app.services.onboarding import submit_org_onboarding
 from app.services.org_apply import apply_org
 from app.services.org_apply_prefill import get_live_prefill, prefill_to_public
@@ -95,23 +93,6 @@ async def org_apply_prefill(
     """Public hashed apply draft. Does not consume the token."""
     row = await get_live_prefill(db, token)
     return api_response(data=OrgApplyPrefillResponse.model_validate(prefill_to_public(row)))
-
-
-@router.get(
-    "/instagram-lookup",
-    response_model=DataResponse[InstagramLookupResponse],
-    dependencies=[
-        Depends(rate_limited("ig_lookup_burst", limit=10, window=60)),
-        Depends(rate_limited("ig_lookup_hour", limit=30, window=3600)),
-    ],
-)
-async def org_instagram_lookup(
-    username: str = Query(min_length=1, max_length=64),
-    ig: InstagramClient = Depends(get_instagram_client),
-) -> APIResponse:
-    """Exact-username Business Discovery lookup for the apply confirm card."""
-    result = await lookup_instagram_handle(ig, username)
-    return api_response(data=InstagramLookupResponse.model_validate(result))
 
 
 @router.get(

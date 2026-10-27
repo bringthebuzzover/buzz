@@ -20,7 +20,6 @@ class OrgApplyRequest(CamelModel):
     university: str
     edu_email: str
     instagram_handle: str
-    handle_confirmed: bool = False
     tiktok_handle: str | None = None
     member_count: int
     category: OrgCategory
@@ -211,18 +210,6 @@ class OrgConnectRedeemRequest(CamelModel):
     """Redeem approval connect-email token to mint a session."""
 
     token: str
-
-
-class InstagramLookupResponse(CamelModel):
-    """Business Discovery lookup result for the apply confirm card."""
-
-    available: bool
-    username: str | None = None
-    name: str | None = None
-    profile_picture_url: str | None = None
-    biography: str | None = None
-    followers_count: int | None = None
-    reason: str | None = None  # not_found | not_professional | unavailable | throttled
 
 
 class VerifyEmailRequest(CamelModel):

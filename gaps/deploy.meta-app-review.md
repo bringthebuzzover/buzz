@@ -13,13 +13,13 @@ evidence:
   - path: backend/app/services/instagram.py
     note: exchange_for_long_lived uses the documented GET graph.instagram.com/access_token; do not switch that call to POST
   - path: backend/app/services/instagram.py
-    note: fetch_business_discovery (~542) still calls graph.facebook.com with a Facebook Login service token; org login does not
+    note: Business Discovery / graph.facebook.com removed (checklist 1c). Org login stays graph.instagram.com
   - path: frontend/src/utils/instagramCallbackCopy.ts
     note: API UNAUTHORIZED maps to "Instagram didn't connect" / didn't hand Buzz a session
   - path: frontend/src/pages/org/OrgCampaignDetailPage.tsx
     note: org campaign label is Instagram Reach on main (PR #7); the rejected insights screencast showed Est. Reach
-  - path: gaps/ops.ig-business-discovery-unset.md
-    note: same unset Facebook Login token; its “app is Live” precondition was wrong
+  - path: gaps/archive/ops.ig-business-discovery-unset.md
+    note: Facebook Login lookup removed 2026-10-26; the service token was never set
 repro: |
   Read-only Meta dashboard check, 2026-10-26 (do not paste tokens or tester
   credentials into git or chat). Facebook app BUZZ 1589568552810678 and
@@ -95,7 +95,7 @@ stays “add the handle as an Instagram Tester, then Connect.”
 | Webhooks | Off |
 
 Earlier notes that called BUZZ **Live** (META.md status 2026-08-31,
-`ops.ig-business-discovery-unset`) do not match this check.
+archived `ops.ig-business-discovery-unset`) do not match this check.
 
 ### Settings that are in place
 
@@ -206,7 +206,7 @@ The written answers contradict the product:
 
 | Form said | Code does |
 | --- | --- |
-| “Buzz does not use Facebook Login.” | `fetch_business_discovery` (`instagram.py` ~542) still calls Business Discovery on `graph.facebook.com` with a Facebook Login service token. The token is unset in production (`ops.ig-business-discovery-unset`). Org Connect does not use this path. |
+| “Buzz does not use Facebook Login.” | Accurate after checklist 1c. The Business Discovery call on `graph.facebook.com` was removed. Org Connect uses Instagram Login only (`graph.instagram.com`). |
 | “There is no access to messages or comments.” | Usage text also says Buzz reads **likes and comments** on linked posts. Those are counts on media (`like_count`, `comments_count`), not comment management or messaging. |
 | Insights are “reach and related insights.” | Feed metrics are `reach`, `views`, `saved`, `shares`, `total_interactions`, `profile_visits`, `profile_activity`, `follows`. Reel metrics add `ig_reels_avg_watch_time`, `ig_reels_video_view_total_time`, and `reels_skip_rate` (`instagram.py` `_FEED_INSIGHT_METRICS` / `_REEL_INSIGHT_METRICS`). |
 | Consent was a re-auth for **BUZZ-IG**, with no permission list | A new recording must show a first grant. The Instagram app name on the dashboard is **BUZZ - IG**. Hold that screen until the name and both permissions are readable. |
@@ -221,7 +221,7 @@ session cookies, or one-time connect links in this repo.
 | --- | --- | --- | --- |
 | 1a | Rename **Est. Reach** → **Instagram Reach** on the org campaign | Engineering | **Done.** [PR #7](https://github.com/bringthebuzzover/buzz/pull/7) merged. Record from a www build that serves this label. |
 | 1b | Pin Graph `v26.0` on Instagram reads and store granted permissions per login | Engineering | **Done.** [PR #8](https://github.com/bringthebuzzover/buzz/pull/8) merged as `12f8850`. |
-| 1c | Decide: remove the unused Facebook Login Business Discovery path, or disclose it on the form | Lawrence + engineering | **Not started.** |
+| 1c | Decide: remove the unused Facebook Login Business Discovery path, or disclose it on the form | Lawrence + engineering | **Done.** Path removed in [`8266712`](https://github.com/bringthebuzzover/buzz/pull/15). Apply is a typed handle, stored unconfirmed. |
 | 2a | Remove auto-added `instagram_business_manage_messages`, `manage_comments`, and `content_publish` | Lawrence | **Not started.** Needs Lawrence’s approval. Reversible per the access-levels doc above. |
 | 2b | Consider a Data Deletion Callback URL (instructions URL already set) | Lawrence | **Not started.** |
 | 3 | Put an **accepted** tester’s Instagram credentials and a Buzz test org in the test-credentials field. Do not tell reviewers to use their own account. | Lawrence | **Not started.** Credentials stay in the Meta form, not in git. |
@@ -274,7 +274,7 @@ Not edited here. They still disagree with this file:
 ## Related
 
 - [`META.md`](../META.md) — dashboard guide; §E done; §F is this resubmission.
-- [`ops.ig-business-discovery-unset`](ops.ig-business-discovery-unset.md) — unset service token for the unused Facebook Login path (checklist 1c).
+- [`archive/ops.ig-business-discovery-unset`](archive/ops.ig-business-discovery-unset.md) — path removed (checklist 1c). Delete leftover Railway vars if present.
 - [`archive/auth.ig-long-lived-get-unsupported.md`](archive/auth.ig-long-lived-get-unsupported.md) — absorbed id.
 - [`archive/deploy.meta-business-verification.md`](archive/deploy.meta-business-verification.md) — renamed id.
 
@@ -554,9 +554,9 @@ Delete “use your own account,” the one-time connect link, and “we will add
 you as a tester.” The test-credentials field holds the accepted tester.
 Say comment **counts**, not “no access to comments.” Mention that the
 messaging permission was auto-added and removed (after checklist 2a).
-The Facebook Login sentence has to match checklist 1c: either the unused
-Business Discovery path is gone and “org login does not use Facebook Login”
-is accurate, or the sentence discloses that path.
+The Facebook Login sentence is accurate. Checklist 1c removed the unused
+Business Discovery path, so “Buzz does not use Facebook Login” matches the
+code. Org sign-in is Instagram Login only.
 
 ### 16. Facebook Login on this platform
 
@@ -572,10 +572,9 @@ Is Facebook Login integrated on this platform?
 No
 ```
 
-**Resubmission change.** Depends on checklist 1c. **No** stays accurate for
-the flow reviewers test only if the unused Business Discovery path is
-removed first. If that path stays in the repo, this answer cannot stay an
-unqualified No.
+**Resubmission change.** **No** is accurate. Checklist 1c removed the
+Business Discovery path that called `graph.facebook.com`. Buzz does not
+integrate Facebook Login.
 
 ### 17. Test credentials (optional)
 

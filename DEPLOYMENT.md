@@ -288,7 +288,7 @@ Official docs for each thing this runbook asks you to provision. Verify against 
 
 ### Meta / Instagram (org login)
 
-The app uses **Instagram API with Instagram Login** (Business Login), scopes `instagram_business_basic` + `instagram_business_manage_insights`, host `graph.instagram.com`. Read calls use `INSTAGRAM_GRAPH_VERSION` (default `v26.0`); token exchange and refresh stay unversioned. It does **not** use Facebook Login or require a linked Facebook Page. See [`META.md`](META.md).
+The app uses **Instagram API with Instagram Login** (Business Login), scopes `instagram_business_basic` + `instagram_business_manage_insights`, host `graph.instagram.com`. Read calls use `INSTAGRAM_GRAPH_VERSION` (default `v26.0`); token exchange and refresh stay unversioned. It does **not** use Facebook Login or require a linked Facebook Page. Apply does not look handles up on Meta. `INSTAGRAM_BUSINESS_DISCOVERY_TOKEN`, `INSTAGRAM_BUSINESS_DISCOVERY_IG_USER_ID`, and `FACEBOOK_GRAPH_BASE` were removed from the app (2026-10-26). If those variables are still set on Railway **api**, delete them. The API ignores unknown env vars, so leaving them does not change behavior. See [`META.md`](META.md).
 
 - Meta App Dashboard (create/manage the app): <https://developers.facebook.com/apps/>
 - Instagram API with Instagram Login (product overview): <https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/>

@@ -53,7 +53,7 @@ Buzz serves **two separate platform experiences** that intentionally do not over
 
 - No end user may belong to **both** the Brand portal and the Organization portal.
 - Routing and permissions enforce a **single portal** per authenticated user.
-- **Organization accounts** are created by a public **org apply** form (not by Instagram OAuth) — standalone `/org/apply` **or** the same fields on a published drop’s public page (`/d/:id`, **§6.3.4**). Required: **university**, **org name**, \# of members, **organization type**, **contact name**, a **US shipping address** (street; optional apt, CPO, or PO Box; city, state, ZIP — provider-verified), a university **.edu** email, and a **claimed Instagram handle** confirmed on the same page via the inline lookup card (**§6.1.1**). The handle must be the org’s **Business or Creator** account — not a personal member profile. The handle is for Buzz ops (Instagram Tester) until OAuth **binds** Graph identity. Those profile fields remain required on later org profile edits (cannot be cleared). Shipping is US-only (including PO Boxes and campus CPO).
+- **Organization accounts** are created by a public **org apply** form (not by Instagram OAuth) — standalone `/org/apply` **or** the same fields on a published drop’s public page (`/d/:id`, **§6.3.4**). Required: **university**, **org name**, \# of members, **organization type**, **contact name**, a **US shipping address** (street; optional apt, CPO, or PO Box; city, state, ZIP — provider-verified), a university **.edu** email, and a **claimed Instagram handle** typed on the same page (**§6.1.1**). The handle must be the org’s **Business or Creator** account — not a personal member profile. The handle is for Buzz ops (Instagram Tester) until OAuth **binds** Graph identity. Those profile fields remain required on later org profile edits (cannot be cleared). Shipping is US-only (including PO Boxes and campus CPO).
 - After **.edu** verification the org awaits **Buzz admin review**. During review, Buzz adds the claimed handle as an **Instagram Tester** (Meta App roles; Standard Access). Admin **approval** does not open the portal yet: the org **Connects Instagram** (Business/Creator) so Graph ids/token attach to **this** user. **Portal access** (`active`) starts after that bind. Denied applicants are notified by **email** and do not Connect. A **denied** org keeps its claimed handle reserved until **erase** (another applicant cannot claim it).
 - **Returning** org login is **Login with Instagram** on the bound account every time (no org password, no magic-link as ongoing login). Instagram OAuth **must not** create a second Buzz user. An unknown Instagram with no bind latch is told to apply first. The Instagram account used at connect/login **is** the organization account (Business/Creator). Claimed Instagram handles are **unique** among non-erased orgs (case-insensitive, `@` stripped). If Graph returns a different `@` at Connect than was claimed at apply, Buzz **binds anyway** and overwrites `users.instagram_username` from Graph (ops may have tester’d a typo). The apply-time handle stays on `organizations.claimed_instagram_username`. Admin Overview lists an unacked **IG bind mismatch** until Ack (portal stays `active`; no email). Returning login and reconnect do not re-flag. Instagram OAuth callback failures are **specific** (not one “Login failed”): apply-first vs expired login (start over from Buzz in this window — no cookie jargon) vs Instagram didn’t connect vs personal/handle/onboarding reasons. Denied orgs land on the denial page.
 - Instagram **follower count** is not manually entered — it is seeded from Instagram **at bind** when possible and refreshed every 8 hours (**§4.3**).
@@ -244,7 +244,7 @@ A separate **high-level** view across **all** the brand’s drops:
 
 ### 6.1 Onboarding
 
-1. Org user submits a public **org apply** form: **university**, **org name**, \# of members, **organization type**, **contact name**, a **US shipping address** (street; optional apt/CPO/PO Box; city, state, ZIP — provider-verified), campus **.edu**, and the organization’s Instagram **handle** via **§6.1.1** (lookup + same-page confirm). This **creates** the Buzz account. Instagram OAuth does not. The form lives on standalone **`/org/apply`** or on a published drop’s public page (**§6.3.4**) with the same fields plus optional pitch. Shipping is US-only. Ops may email a **prefill link** (`/org/apply?prefill=`) that fills a draft from a hashed one-shot row — it does **not** create the account. Prefill may be combined with a public-drop `dropId`. The applicant still submits this form (including handle confirm). Prefill mail may go to a non-`.edu` inbox; apply still requires a campus **.edu**. Phone, officer role, and similar form extras are not org profile fields.
+1. Org user submits a public **org apply** form: **university**, **org name**, \# of members, **organization type**, **contact name**, a **US shipping address** (street; optional apt/CPO/PO Box; city, state, ZIP — provider-verified), campus **.edu**, and the organization’s Instagram **handle** via **§6.1.1** (typed claim, stored unconfirmed until Connect). This **creates** the Buzz account. Instagram OAuth does not. The form lives on standalone **`/org/apply`** or on a published drop’s public page (**§6.3.4**) with the same fields plus optional pitch. Shipping is US-only. Ops may email a **prefill link** (`/org/apply?prefill=`) that fills a draft from a hashed one-shot row — it does **not** create the account. Prefill may be combined with a public-drop `dropId`. The applicant still submits this form (including the claimed handle). Prefill mail may go to a non-`.edu` inbox; apply still requires a campus **.edu**. Phone, officer role, and similar form extras are not org profile fields.
 2. Buzz sends a **verification** to that **.edu** address; the user completes verification (confirm on the verify page).
 3. After **verified .edu**, the org enters **pending Buzz review**. A Buzz admin reviews the org. During review, Buzz adds the claimed handle as an Instagram Tester (Meta; Standard Access), then **approves** or **denies**.
 4. After **approval**, the org **Connects Instagram** on the organization Business/Creator account. OAuth **binds** Graph identity to this user (token, ids, handle from Graph). Follower seed runs at bind (**§4.3**).
@@ -254,32 +254,26 @@ A separate **high-level** view across **all** the brand’s drops:
 
 Typed TikTok handle on the org profile remains optional. Connecting TikTok as a second OAuth account is **not** v1 (**§11**).
 
-#### 6.1.1 Instagram handle — same-page confirm card
+#### 6.1.1 Instagram handle — typed claim
 
-On **`/org/apply`**, on the public drop page (**§6.3.4**), and illustrated on public **`/for-orgs`** — Phase C, the Instagram handle is **not** free text alone.
+On **`/org/apply`**, on the public drop page (**§6.3.4**), and illustrated on public **`/for-orgs`**, the Instagram handle is a typed claim. Buzz does **not** look the handle up on Meta at apply time (no Business Discovery, no Facebook Login).
 
 **Always visible (apply + for-orgs):**
 
 - The account must be the **organization’s** Instagram **Business or Creator** profile — **not** a member’s personal account.
-- Plain-language note that personal accounts cannot be used and that Buzz will verify the account type at lookup / Connect.
+- Plain-language note that personal accounts cannot be used. Ops check the claimed handle before Approve. Connect Instagram (after approval) is what binds the Graph account.
 
-**On `/org/apply` and `/d/:id` (single page — no separate confirm route):**
+**On `/org/apply` and `/d/:id` (single page):**
 
 1. Applicant types their handle (with or without `@`).
-2. After a **debounced pause** (~500ms) on a valid username shape, Buzz looks up that **exact** handle server-side (Meta Business Discovery — see [`META.md`](META.md) for limits and caching). There is **no** Instagram-style typeahead of similar handles (not supported by Meta’s public API). Do **not** call Meta on every keystroke.
-3. **Inline on the same form**, show a **confirm card** when lookup succeeds:
-   - Profile picture, `@username`, display name (when available), follower count, short bio snippet.
-   - Primary action: **“Confirm this is our organization’s account.”**
-4. **Submit** stays disabled until the user confirms the card for the current handle — **except** soft-fail (below).
-5. If the user **edits the handle** after confirming, clear confirmation and re-run lookup.
-6. **Lookup failure states** (inline on the card, same page):
-   - **Not found** or **not a Business/Creator (professional) account** → explain they need a professional org account (not personal); link to Meta’s convert-to-professional help where useful. **Blocks submit.**
-   - **Transient API error**, **rate limit**, or **lookup unavailable** (token unset / Meta outage) → **soft-fail**: retry affordance; do **not** block typing; allow submit with the handle marked **unconfirmed**. Admin org list/detail surfaces the unconfirmed flag so ops can verify before Approve. After **Connect Instagram**, Graph bind confirms the account and the flag clears — Active orgs do not stay “Unconfirmed IG”.
-7. Confirming the card only latches the **claimed handle** for apply — it does **not** OAuth-bind or open the portal. Connect still happens after Buzz approval (**§6.1** step 4).
+2. The handle must be a valid Instagram username shape: 1–30 characters; letters, digits, periods, and underscores; not starting or ending with a period; no consecutive periods. Invalid shape blocks submit with the field error. Do not loosen this check.
+3. **Submit** is allowed once that handle is present and valid. The claimed handle is stored **unconfirmed**.
+4. Admin org list/detail surfaces the unconfirmed flag so ops can verify before Approve. After **Connect Instagram**, Graph bind confirms the account and the flag clears — Active orgs do not stay “Unconfirmed IG”.
+5. Nothing on the apply form OAuth-binds the account or opens the portal. Connect still happens after Buzz approval (**§6.1** step 4).
 
-**`/for-orgs`:** Requirements list and at least one stylized frame must show this handle field + confirm card pattern and the Business/Creator requirement (not only a bullet in prose).
+**`/for-orgs`:** Requirements list and at least one stylized frame must show this handle field and the Business/Creator requirement (not only a bullet in prose). Do not illustrate a lookup confirm card.
 
-**Explicit OUT:** separate `/confirm-instagram` step; unofficial/scraped IG search typeahead; requiring OAuth at apply time.
+**Explicit OUT:** Meta handle lookup; same-page confirm card; separate `/confirm-instagram` step; unofficial/scraped IG search typeahead; requiring OAuth at apply time; Facebook Login.
 
 ### 6.2 Pages
 
@@ -453,7 +447,7 @@ Aggregated all drops →  Brand aggregate dashboard
 | Brand | Drop request        | Submit ticket; wait for Buzz; after publish, view tracker; edit title/description/hero only if admin enabled `brand_can_edit_creative` |
 | Brand | Per-drop dashboard  | Batch-finalize applicants after close; copy public `/d/:id` URL (no intent list); per-org posts + metrics; drop KPIs; UGC preview/download                                |
 | Brand | Aggregate dashboard | Totals, time series, compare drops, running totals                                                                               |
-| Org   | Onboarding          | Public apply (standalone `/org/apply` or `/d/:id` **§6.3.4**; profile + **§6.1.1** Instagram confirm card + **.edu**); verify; Buzz review; accept Instagram Tester invite; Connect Instagram; then portal |
+| Org   | Onboarding          | Public apply (standalone `/org/apply` or `/d/:id` **§6.3.4**; profile + **§6.1.1** claimed Instagram handle + **.edu**); verify; Buzz review; accept Instagram Tester invite; Connect Instagram; then portal |
 | Org   | Public drop         | View published drop; Apply if `active`; signup+intent if logged out; waiting copy if still onboarding (**§6.3.4**) |
 | Org   | Drop Feed           | Browse; countdown + Notify Me (server subscription); Apply                                                                                     |
 | Org   | My Campaigns        | Track status; manage posts while Awaiting Products and while Active                                                              |

@@ -175,23 +175,6 @@ class Settings(BaseSettings):
         ),
     )
 
-    # --- Business Discovery (apply-time handle lookup; META.md) ---
-    FACEBOOK_GRAPH_BASE: str = Field(
-        default="https://graph.facebook.com",
-        description="Graph host for Business Discovery (Facebook Login path).",
-    )
-    INSTAGRAM_BUSINESS_DISCOVERY_TOKEN: str = Field(
-        default="",
-        description=(
-            "Long-lived Facebook Login token for the Buzz service IG account. "
-            "Empty → lookup soft-fails (PRODUCT §6.1.1)."
-        ),
-    )
-    INSTAGRAM_BUSINESS_DISCOVERY_IG_USER_ID: str = Field(
-        default="",
-        description="Buzz-owned Instagram professional account id for Business Discovery.",
-    )
-
     # --- Google Address Validation + Places (org ship-to) ---
     GOOGLE_ADDRESS_API_KEY: str = Field(
         default="",
