@@ -1,5 +1,7 @@
 /* /pulse-bee only. Copied from /pulse2 so that page stays frozen.
-   Fonts shared with /pulse. Switzer (Fontshare FFL) — see fonts/Switzer-FFL.txt. */
+   Fonts shared with /pulse. Switzer (Fontshare FFL) — see fonts/Switzer-FFL.txt.
+   Type and color tokens: design/pen/README.md. */
+@import "../../styles/buzz-tokens.css";
 
 @font-face {
   font-family: Switzer;
@@ -23,31 +25,31 @@ html.lenis body {
 }
 
 .pulse2 {
-  --ink: #0b0b0b;
-  --paper: #f0f0f0;
-  --yellow: #f6d32a;
-  --yellow-hover: #e0be16;
-  --ink-30: color-mix(in srgb, var(--ink) 30%, transparent);
-  --paper-60: color-mix(in srgb, var(--paper) 60%, transparent);
-  --s1: 4px;
-  --s2: 8px;
-  --s3: 12px;
-  --s4: 16px;
-  --s5: 24px;
-  --s6: 32px;
-  --s7: 48px;
-  --s8: 64px;
-  --s9: 96px;
-  --gutter: 16px;
-  --side: clamp(1rem, 3.3vw, 3rem);
+  --ink: var(--buzz-ink);
+  --paper: var(--buzz-paper);
+  --yellow: var(--buzz-yellow);
+  --yellow-hover: var(--buzz-yellow-hover);
+  --ink-30: var(--buzz-ink-30);
+  --paper-60: var(--buzz-paper-60);
+  --s1: var(--buzz-space-1);
+  --s2: var(--buzz-space-2);
+  --s3: var(--buzz-space-3);
+  --s4: var(--buzz-space-4);
+  --s5: var(--buzz-space-5);
+  --s6: var(--buzz-space-6);
+  --s7: var(--buzz-space-7);
+  --s8: var(--buzz-space-8);
+  --s9: var(--buzz-space-9);
+  --gutter: var(--buzz-space-4);
+  --side: var(--buzz-side);
   --ease: cubic-bezier(0.19, 1, 0.22, 1);
   --nav-ease: cubic-bezier(0.23, 1, 0.32, 1);
 
   background: var(--ink);
   color: var(--paper);
-  font-family: Switzer, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--buzz-font);
   font-weight: 400;
-  font-size: clamp(1rem, 1.1vw, 1.125rem);
+  font-size: var(--buzz-type-body);
   line-height: 1.5;
   min-height: 100svh;
 }
@@ -97,7 +99,7 @@ html.lenis body {
 
 .pulse2-display {
   margin: 0;
-  font-size: clamp(3rem, 8vw, 8rem);
+  font-size: var(--buzz-type-display);
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.04em;
@@ -105,7 +107,7 @@ html.lenis body {
 
 .pulse2-statement {
   margin: 0;
-  font-size: clamp(2.25rem, 3.75vw, 3.5rem);
+  font-size: var(--buzz-type-statement);
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.05em;
@@ -129,7 +131,7 @@ html.lenis body {
 .pulse2-kicker,
 .pulse2-support {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: var(--buzz-type-label);
   line-height: 1.4;
   font-weight: 400;
 }
@@ -223,7 +225,7 @@ html.lenis body {
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--buzz-type-small);
   cursor: pointer;
 }
 
@@ -239,7 +241,7 @@ html.lenis body {
   display: flex;
   align-items: center;
   gap: clamp(20px, 2.3vw, 38px);
-  font-size: 14px;
+  font-size: var(--buzz-type-small);
   letter-spacing: 0;
 }
 
@@ -306,8 +308,8 @@ html.lenis body {
   justify-content: center;
   min-height: 44px;
   padding: 0.75em 1.5em;
-  border-radius: 999px;
-  font-size: 14px;
+  border-radius: var(--buzz-radius-pill);
+  font-size: var(--buzz-type-small);
   font-weight: 400;
   line-height: 1.2;
   text-align: center;
@@ -333,12 +335,13 @@ html.lenis body {
 
 .pulse2 a.pulse2-ghost,
 .pulse2 a.pulse2-ghost:hover {
-  color: var(--paper);
+  color: var(--buzz-on-surface);
 }
 
-.pulse2 [data-surface="dark"] a.pulse2-ghost:hover {
-  background: var(--paper);
-  color: var(--ink);
+.pulse2 [data-surface="dark"] a.pulse2-ghost:hover,
+.pulse2 [data-theme="ink"] a.pulse2-ghost:hover {
+  background: var(--buzz-on-surface);
+  color: var(--buzz-surface);
 }
 
 .pulse2-pill {
@@ -356,14 +359,15 @@ html.lenis body {
 }
 
 .pulse2-ghost {
+  padding: 0 var(--buzz-space-5);
   background: transparent;
-  color: var(--paper);
-  box-shadow: inset 0 0 0 1px var(--paper);
+  color: var(--buzz-on-surface);
+  box-shadow: inset 0 0 0 1px var(--buzz-on-surface);
 }
 
 .pulse2-ghost:hover {
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--buzz-on-surface);
+  color: var(--buzz-surface);
 }
 
 .pulse2-hero {
@@ -407,7 +411,9 @@ html.lenis body {
 
 .pulse2-hero .pulse2-display {
   max-width: 12em;
-  font-size: clamp(2.05rem, 4.4vw, 4.5rem);
+  font-size: var(--buzz-type-title);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
 }
 
 .pulse2-hero__copy {
@@ -422,7 +428,7 @@ html.lenis body {
 .pulse2-hero__sub {
   margin: var(--s4) 0 0;
   max-width: 42ch;
-  font-size: clamp(1rem, 1.1vw, 1.125rem);
+  font-size: var(--buzz-type-body);
   font-weight: 400;
   line-height: 1.4;
   letter-spacing: 0;
@@ -443,7 +449,7 @@ html.lenis body {
   gap: 0.4em;
   min-height: 44px;
   color: var(--paper);
-  font-size: 14px;
+  font-size: var(--buzz-type-small);
 }
 
 .pulse2-textlink span {
@@ -464,7 +470,7 @@ html.lenis body {
 
 .pulse2-hero__aside p {
   margin: var(--s2) 0 0;
-  font-size: 0.875rem;
+  font-size: var(--buzz-type-small);
   line-height: 1.4;
 }
 
@@ -481,12 +487,12 @@ html.lenis body {
 
 .pulse2-band,
 .pulse2-how {
-  background: var(--paper);
+  background: var(--buzz-surface);
 }
 
 .pulse2-band {
   padding: 12svh var(--side);
-  color: var(--ink);
+  color: var(--buzz-on-surface);
 }
 
 .pulse2-band--tight {
@@ -494,7 +500,7 @@ html.lenis body {
 }
 
 .pulse2-measure {
-  width: min(100%, 40rem);
+  width: min(100%, var(--buzz-statement-measure));
   margin-inline: auto;
   text-align: center;
 }
@@ -503,9 +509,9 @@ html.lenis body {
   width: min(100%, 36rem);
   margin: var(--s4) auto 0;
   text-align: center;
-  font-size: clamp(1rem, 1.1vw, 1.125rem);
+  font-size: var(--buzz-type-body);
   line-height: 1.5;
-  color: var(--ink-30);
+  color: var(--buzz-on-surface-quiet);
 }
 
 .pulse2-marquee {
@@ -537,7 +543,7 @@ html.lenis body {
 
 .pulse2-how {
   position: relative;
-  color: var(--ink);
+  color: var(--buzz-on-surface);
   padding: 8svh var(--side) 10svh;
 }
 
@@ -553,7 +559,7 @@ html.lenis body {
 
 .pulse2-step {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--buzz-type-h3);
   font-weight: 500;
   line-height: 1.25;
   letter-spacing: -0.01em;
@@ -587,15 +593,15 @@ html.lenis body {
 
 .pulse2-phone__title {
   margin: var(--s3) 0 0;
-  font-size: clamp(1.5rem, 2vw, 2rem);
+  font-size: var(--buzz-type-h3);
   font-weight: 500;
   line-height: 1.1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
 }
 
 .pulse2-phone__detail {
   margin: var(--s3) 0 0;
-  color: var(--ink-30);
+  color: var(--buzz-on-surface-quiet);
 }
 
 .pulse2-stack {
@@ -645,7 +651,7 @@ html.lenis body {
 
 .pulse2-card__copy h2 {
   margin: 0;
-  font-size: clamp(2.25rem, 3.75vw, 3.5rem);
+  font-size: var(--buzz-type-statement);
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.05em;
@@ -655,8 +661,8 @@ html.lenis body {
 
 .pulse2-card__tag {
   margin: 0;
-  color: #fff;
-  font-size: 14px;
+  color: var(--buzz-white);
+  font-size: var(--buzz-type-small);
   line-height: 1.4;
   text-align: left;
   text-shadow: 0 1px 16px rgba(0, 0, 0, 0.7);
@@ -700,17 +706,17 @@ html.lenis body {
 }
 
 .pulse2-join__kicker {
-  font-size: 13px;
+  font-size: var(--buzz-type-label);
   line-height: 1.4;
 }
 
 .pulse2-join__title {
   margin-top: 28px;
   min-height: 2.16em;
-  font-size: clamp(2.5rem, 3.6vw, 3.75rem);
+  font-size: var(--buzz-type-statement);
   font-weight: 500;
   line-height: 1.02;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.05em;
 }
 
 .pulse2-join__nowrap {
@@ -721,7 +727,7 @@ html.lenis body {
   max-width: 34ch;
   min-height: 2.9em;
   margin-top: 20px;
-  font-size: 1.0625rem;
+  font-size: var(--buzz-type-body);
   line-height: 1.45;
   opacity: 0.64;
 }
@@ -734,9 +740,9 @@ html.lenis body {
   margin-top: auto;
   padding: 0 18px;
   border-radius: 999px;
-  background: #111;
+  background: var(--buzz-ink-btn);
   color: var(--paper);
-  font-size: 15px;
+  font-size: var(--buzz-type-small);
   transition: background-color 300ms ease, color 300ms ease;
 }
 
@@ -756,7 +762,7 @@ html.lenis body {
   display: flex;
   align-items: center;
   min-height: 44px;
-  font-size: 14px;
+  font-size: var(--buzz-type-small);
   line-height: 1.4;
   text-decoration: underline;
   text-underline-offset: 0.22em;
@@ -820,12 +826,20 @@ html.lenis body {
 .pulse2-email {
   display: block;
   max-width: 100%;
-  font-size: clamp(1.35rem, 4.2vw, 3.5rem);
+  font-size: var(--buzz-type-statement);
   font-weight: 500;
   line-height: 1.05;
   letter-spacing: -0.05em;
   overflow-wrap: normal;
   word-break: keep-all;
+}
+
+/* 26 characters overflow a 358px row at statement size. */
+@media (max-width: 540px) {
+  .pulse2-email {
+    font-size: var(--buzz-type-h3);
+    letter-spacing: -0.01em;
+  }
 }
 
 .pulse2-footer__cols {
@@ -836,7 +850,7 @@ html.lenis body {
 
 .pulse2-footer__cols h3 {
   margin: 0 0 var(--s3);
-  font-size: 0.75rem;
+  font-size: var(--buzz-type-label);
   font-weight: 400;
   line-height: 1.4;
   color: var(--paper);
@@ -853,7 +867,7 @@ html.lenis body {
   align-items: center;
   min-height: 32px;
   color: var(--paper-60);
-  font-size: 0.75rem;
+  font-size: var(--buzz-type-label);
   transition: opacity 0.2s ease;
 }
 
@@ -869,7 +883,7 @@ html.lenis body {
   gap: var(--s4);
   margin: 0;
   color: var(--paper-60);
-  font-size: 0.75rem;
+  font-size: var(--buzz-type-label);
   line-height: 1.4;
 }
 
@@ -1040,10 +1054,6 @@ html.lenis body {
   .pulse2-join__half + .pulse2-join__half {
     border-left: 0;
     border-top: 1px solid rgba(17, 17, 17, 0.16);
-  }
-
-  .pulse2-join__title {
-    font-size: clamp(2.15rem, 9vw, 2.75rem);
   }
 
   .pulse2-card__copy {
@@ -1238,7 +1248,7 @@ html.lenis body {
 
 .pulse2-network__head h2 {
   margin: 0;
-  font-size: clamp(2rem, 3vw, 2.75rem);
+  font-size: var(--buzz-type-h2);
   font-weight: 500;
   letter-spacing: -0.04em;
   line-height: 1;
@@ -1290,7 +1300,7 @@ html.lenis body {
   border-radius: 999px;
   background: var(--ink);
   color: var(--paper);
-  font-size: 12px;
+  font-size: var(--buzz-type-label);
   line-height: 1.3;
   white-space: nowrap;
   opacity: 0;
@@ -1339,7 +1349,7 @@ html.lenis body {
 
 .pulse2-carousel__head h2 {
   margin: 0;
-  font-size: clamp(2.4rem, 4.6vw, 4.25rem);
+  font-size: var(--buzz-type-title);
   font-weight: 500;
   letter-spacing: -0.045em;
   line-height: 0.95;
@@ -1357,10 +1367,10 @@ html.lenis body {
   width: 40px;
   height: 40px;
   padding: 0;
-  border: 1px solid #111;
+  border: 1px solid var(--buzz-ink-btn);
   border-radius: 50%;
   background: transparent;
-  color: #111;
+  color: var(--buzz-ink-btn);
   font-family: inherit;
   cursor: pointer;
 }
@@ -1404,8 +1414,8 @@ html.lenis body {
   display: block;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  border-radius: 8px;
-  background: #ddd;
+  border-radius: var(--buzz-radius-card);
+  background: var(--buzz-grey-media);
 }
 
 .pulse2-carousel__frame img {
@@ -1420,10 +1430,10 @@ html.lenis body {
   top: 28px;
   left: 28px;
   max-width: calc(100% - 56px);
-  color: #ffffff;
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  color: var(--buzz-white);
+  font-size: var(--buzz-type-statement);
   font-weight: 500;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.05em;
   line-height: 0.95;
   opacity: 0;
   text-shadow: 0 1px 2px rgba(11, 11, 11, 0.35);
@@ -1466,7 +1476,7 @@ html.lenis body {
   min-width: 0;
   margin: 0;
   overflow: hidden;
-  font-size: 1rem;
+  font-size: var(--buzz-type-body);
   line-height: 1.4;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -1479,9 +1489,9 @@ html.lenis body {
   min-height: 36px;
   padding: 0 14px;
   border-radius: 999px;
-  background: #111;
+  background: var(--buzz-ink-btn);
   color: var(--paper);
-  font-size: 13px;
+  font-size: var(--buzz-type-label);
 }
 
 .pulse2 a.pulse2-carousel__view {
@@ -1515,9 +1525,9 @@ html.lenis body {
 
 .pulse2-app__kicker,
 .pulse2-app__label {
-  font-size: 11px;
+  font-size: var(--buzz-type-label);
   line-height: 1.3;
-  color: var(--ink-30);
+  color: var(--buzz-on-surface-quiet);
 }
 
 .pulse2-app__label {
@@ -1525,16 +1535,16 @@ html.lenis body {
 }
 
 .pulse2-app__title {
-  font-size: clamp(1.15rem, 1.6vw, 1.5rem);
+  font-size: var(--buzz-type-h3);
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
   line-height: 1.1;
 }
 
 .pulse2-app__copy {
-  font-size: 13px;
+  font-size: var(--buzz-type-label);
   line-height: 1.4;
-  color: var(--ink-30);
+  color: var(--buzz-on-surface-quiet);
 }
 
 .pulse2-app__copy strong {
@@ -1546,7 +1556,7 @@ html.lenis body {
   padding: 10px 12px;
   border-radius: 10px;
   background: var(--paper);
-  font-size: 13px;
+  font-size: var(--buzz-type-label);
 }
 
 .pulse2-app__field--muted {
@@ -1559,7 +1569,7 @@ html.lenis body {
   border-radius: 999px;
   background: var(--ink);
   color: var(--paper);
-  font-size: 13px;
+  font-size: var(--buzz-type-label);
   text-align: center;
 }
 
@@ -1584,7 +1594,7 @@ html.lenis body {
   margin: 8px 0 0;
   padding: 0;
   list-style: none;
-  font-size: 12px;
+  font-size: var(--buzz-type-label);
 }
 
 .pulse2-app__status li,
@@ -1601,9 +1611,9 @@ html.lenis body {
 
 .pulse2-app__metrics span {
   display: block;
-  font-size: 1.15rem;
+  font-size: var(--buzz-type-h3);
   font-weight: 500;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
 }
 
 @media (max-width: 767px) {
@@ -1616,7 +1626,7 @@ html.lenis body {
   .pulse2-carousel__brand {
     top: 16px;
     left: 16px;
-    font-size: 1.75rem;
+    font-size: var(--buzz-type-h2);
   }
 
   .pulse2-join__main {
@@ -1702,7 +1712,7 @@ html.lenis body {
   border-radius: 999px;
   background: var(--ink);
   color: var(--paper);
-  font-size: 12px;
+  font-size: var(--buzz-type-label);
   line-height: 1.3;
   white-space: nowrap;
   transform: translate(0, calc(-100% - 14px));

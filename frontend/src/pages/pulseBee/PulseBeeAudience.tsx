@@ -45,9 +45,17 @@ export function NumberedCards({ cards }: { cards: readonly NumberedCard[] }) {
 
 export type FaqItem = { q: string; a: ReactNode };
 
-export function Faq({ id, items }: { id: string; items: readonly FaqItem[] }) {
+export function Faq({
+  id,
+  items,
+  theme = "paper",
+}: {
+  id: string;
+  items: readonly FaqItem[];
+  theme?: "paper" | "ink";
+}) {
   return (
-    <section className="pulse2-band" id={id} data-theme="paper" aria-labelledby={`${id}-title`}>
+    <section className="pulse2-band" id={id} data-theme={theme} aria-labelledby={`${id}-title`}>
       <div className="pulsebee-aud-faq">
         <h2 id={`${id}-title`} className="pulsebee-aud-faq__title">
           Questions

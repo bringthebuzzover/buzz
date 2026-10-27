@@ -172,7 +172,7 @@ export default function PulseBeeBrandsPage() {
         </div>
       </section>
 
-      <Faq id="faq" items={FAQ} />
+      <Faq id="faq" items={FAQ} theme="ink" />
 
       <JoinBlock
         halves={[

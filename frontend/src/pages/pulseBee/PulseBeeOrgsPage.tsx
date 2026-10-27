@@ -115,7 +115,7 @@ export default function PulseBeeOrgsPage() {
       <section
         className="pulse2-band pulse2-band--tight"
         id="gets"
-        data-theme="paper"
+        data-theme="ink"
         aria-labelledby="pulsebee-orgs-gets"
       >
         <div className="pulsebee-aud-head">
@@ -161,7 +161,7 @@ export default function PulseBeeOrgsPage() {
         <DropsCarousel />
       </section>
 
-      <Faq id="faq" items={FAQ} />
+      <Faq id="faq" items={FAQ} theme="ink" />
 
       <JoinBlock
         halves={[
