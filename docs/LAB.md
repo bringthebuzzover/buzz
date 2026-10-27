@@ -78,7 +78,7 @@ Include without an email domain or an email list lets anyone request a PIN. Keep
 
 ### Hostnames to protect
 
-Cover all three. The branch alias `cursor-pulse-yellow-black-2572.<project>.pages.dev` is a preview hostname. If only the custom domain is locked, that alias is public.
+Cover all three. A branch alias such as `fix-api.<project>.pages.dev` is a preview hostname. If only the custom domain is locked, that alias is public.
 
 **1. Preview wildcard** (`<hash>.<project>.pages.dev` and branch aliases):
 
@@ -118,18 +118,11 @@ Every branch Pages builds gets:
 
 The alias is the branch name, lowercased, with each run of non-alphanumeric characters replaced by a hyphen. `fix/api` becomes `fix-api.<project>.pages.dev`.
 
-`/pulse` and `/pulse2` are on `cursor/pulse-yellow-black-2572` ([PR 20](https://github.com/bringthebuzzover/buzz/pull/20)), not on `design/brainstorm` yet. On the lab production host those two routes 404 until that branch merges. Their cards link to the alias pattern:
+`/pulse` and `/pulse2` are on `design/brainstorm` (squash-merged from [PR 20](https://github.com/bringthebuzzover/buzz/pull/20) as `40ee864`). Their cards link to `/pulse` and `/pulse2` on the lab host.
 
-```text
-https://cursor-pulse-yellow-black-2572.{project}.pages.dev/pulse
-https://cursor-pulse-yellow-black-2572.{project}.pages.dev/pulse2
-```
+When a design exists only on another branch, set `branch` (and optional `branchPath`) on its directory entry. The card then links that branch alias as well as the in-app path. `LAB_PAGES_PROJECT` in `frontend/src/data/labEntries.ts` is the label before `.pages.dev`; it stays `{project}` until the Pages project has a name.
 
-Replace `{project}` with the Pages project name (the label before `.pages.dev`). Then set `LAB_PAGES_PROJECT` in `frontend/src/data/labEntries.ts` to that same label and merge it into `design/brainstorm`, so the cards link to a real URL.
-
-That pulse branch does not contain this directory until it is updated from `design/brainstorm`. Its preview is the Pulse pages themselves, not the lab home.
-
-Pages will not build pull requests that come from a fork. Preview URLs update when the branch is pushed inside this repo.
+Pages will not build pull requests that come from a fork. Preview URLs update when the branch is pushed inside this repo. Access has to cover `*.<project>.pages.dev`, or those aliases are public.
 
 ## Add a directory entry
 
