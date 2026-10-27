@@ -65,6 +65,8 @@ import PulseTwoHomePage from "./pages/pulse2/PulseTwoHomePage";
 import DropEditorPage from "./pages/drop-editor/DropEditorPage";
 import PulseBeeLayout from "./layouts/PulseBeeLayout";
 import PulseBeeHomePage from "./pages/pulseBee/PulseBeeHomePage";
+import PulseBeeOrgsPage, { ORG_NAV } from "./pages/pulseBee/PulseBeeOrgsPage";
+import PulseBeeBrandsPage, { BRAND_NAV } from "./pages/pulseBee/PulseBeeBrandsPage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
 function PortalGuard({
@@ -130,6 +132,22 @@ export default function AppRoot(): ReactElement {
       <Route path="drop-editor" element={<DropEditorPage />} />
       <Route element={<PulseBeeLayout />}>
         <Route path="pulse-bee" element={<PulseBeeHomePage />} />
+      </Route>
+      {/* Audience pages in the /pulse-bee style. Own layout instance (key) so
+          the scroll motion re-binds to each page. */}
+      <Route element={<PulseBeeLayout key="orgs" nav={ORG_NAV} />}>
+        <Route path="pulse-bee/orgs" element={<PulseBeeOrgsPage />} />
+      </Route>
+      <Route
+        element={
+          <PulseBeeLayout
+            key="brands"
+            nav={BRAND_NAV}
+            dock={{ href: "/brand/apply", label: "Apply as a brand" }}
+          />
+        }
+      >
+        <Route path="pulse-bee/brands" element={<PulseBeeBrandsPage />} />
       </Route>
 
       <Route element={<SiteLayout />}>

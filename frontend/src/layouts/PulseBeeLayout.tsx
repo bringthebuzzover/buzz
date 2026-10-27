@@ -5,11 +5,20 @@
 import { useEffect, useRef } from "react";
 import { Link, Outlet } from "react-router-dom";
 import PulseBeeFooter from "../components/pulseBee/PulseBeeFooter";
-import PulseBeeNav from "../components/pulseBee/PulseBeeNav";
+import PulseBeeNav, { type PulseBeeNavProps } from "../components/pulseBee/PulseBeeNav";
 import { usePulseBeeMotion } from "../components/pulseBee/usePulseBeeMotion";
 import "../pages/pulseBee/pulseBee.css";
 
-export default function PulseBeeLayout() {
+export type PulseBeeLayoutProps = {
+  /** Nav overrides for the /pulse-bee/orgs and /pulse-bee/brands pages. */
+  nav?: PulseBeeNavProps;
+  /** Mobile dock pill. Defaults to the org apply link. */
+  dock?: { href: string; label: string };
+};
+
+const DOCK = { href: "/org/apply", label: "Join as a student organization" };
+
+export default function PulseBeeLayout({ nav, dock = DOCK }: PulseBeeLayoutProps = {}) {
   const rootRef = useRef<HTMLDivElement>(null);
   usePulseBeeMotion(rootRef);
 
@@ -52,14 +61,14 @@ export default function PulseBeeLayout() {
       <a className="pulse2-skip" href="#pulse2-content">
         Skip to content
       </a>
-      <PulseBeeNav />
+      <PulseBeeNav {...nav} />
       <main id="pulse2-content">
         <Outlet />
       </main>
       <PulseBeeFooter />
       <div className="pulse2-dock">
-        <Link className="pulse2-pill" to="/org/apply">
-          Join as a student organization
+        <Link className="pulse2-pill" to={dock.href}>
+          {dock.label}
         </Link>
       </div>
     </div>

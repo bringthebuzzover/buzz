@@ -4,18 +4,29 @@
  * shadow over the first 480px of scroll.
  */
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { siteIdentity } from "../../data/siteIdentity";
 import { setPulseBeeScrollLocked } from "./usePulseBeeMotion";
 
-const LINKS = [
+export type PulseBeeNavLink = { href: string; label: string };
+
+const LINKS: readonly PulseBeeNavLink[] = [
   { href: "#students", label: "Organizations" },
   { href: "#brands", label: "Brands" },
   { href: "#how", label: "How it works" },
   { href: "/login", label: "Login" },
-] as const;
+];
 
-const SECTION_IDS = ["how", "students", "brands"] as const;
+/** In page order: the last one scrolled past is marked current. */
+const SECTION_IDS: readonly string[] = ["how", "students", "brands"];
+
+const CTA: PulseBeeNavLink = { href: "/org/apply", label: "Join" };
+
+export type PulseBeeNavProps = {
+  links?: readonly PulseBeeNavLink[];
+  sections?: readonly string[];
+  cta?: PulseBeeNavLink;
+};
 
 function useMaxWidth(px: number): boolean {
   const query = `(max-width: ${px}px)`;
@@ -38,7 +49,12 @@ function smoothstep(value: number): number {
   return t * t * (3 - 2 * t);
 }
 
-export default function PulseBeeNav() {
+export default function PulseBeeNav({
+  links = LINKS,
+  sections = SECTION_IDS,
+  cta = CTA,
+}: PulseBeeNavProps = {}) {
+  const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState("");
   const headerRef = useRef<HTMLElement>(null);
@@ -92,7 +108,7 @@ export default function PulseBeeNav() {
 
       const line = window.scrollY + rect.bottom;
       let active = "";
-      SECTION_IDS.forEach((id) => {
+      sections.forEach((id) => {
         const section = document.getElementById(id);
         if (section && section.offsetTop <= line) active = `#${id}`;
       });
@@ -112,7 +128,7 @@ export default function PulseBeeNav() {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, []);
+  }, [sections]);
 
   const close = () => setOpen(false);
 
@@ -145,9 +161,9 @@ export default function PulseBeeNav() {
           data-lenis-prevent=""
           hidden={isMobile && !open}
         >
-          {LINKS.map((link) => {
-            const currentProps =
-              link.href === current ? ({ "aria-current": "page" } as const) : {};
+          {links.map((link) => {
+            const isCurrent = link.href === current || link.href === pathname;
+            const currentProps = isCurrent ? ({ "aria-current": "page" } as const) : {};
             return link.href.startsWith("/") ? (
               <Link key={link.href} to={link.href} onClick={close} {...currentProps}>
                 <span className="pulse2-nav__label">{link.label}</span>
@@ -158,8 +174,8 @@ export default function PulseBeeNav() {
               </a>
             );
           })}
-          <Link className="pulse2-pill pulse2-nav__cta" to="/org/apply" onClick={close}>
-            Join
+          <Link className="pulse2-pill pulse2-nav__cta" to={cta.href} onClick={close}>
+            {cta.label}
           </Link>
         </nav>
       </div>
