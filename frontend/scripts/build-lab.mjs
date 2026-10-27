@@ -59,15 +59,36 @@ if (build.status !== 0) {
   process.exit(build.status ?? 1);
 }
 
-fs.cpSync(
+// Copy with symlinks resolved to real files. Pages rejects build output
+// that contains links, and fs.cpSync's `dereference` is not honored on
+// Node 22 (it writes absolute links). statSync follows links.
+function copyResolved(src, dest) {
+  if (fs.statSync(src).isDirectory()) {
+    fs.mkdirSync(dest, { recursive: true });
+    for (const name of fs.readdirSync(src)) {
+      copyResolved(path.join(src, name), path.join(dest, name));
+    }
+  } else {
+    fs.copyFileSync(src, dest);
+  }
+}
+
+function findLinks(dir, links = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isSymbolicLink()) links.push(full);
+    else if (entry.isDirectory()) findLinks(full, links);
+  }
+  return links;
+}
+
+copyResolved(
   path.join(frontendRoot, "lab-static/drop-editor"),
   path.join(buildDir, "lab/drop-editor"),
-  { recursive: true, dereference: true },
 );
-fs.cpSync(
+copyResolved(
   path.join(repoRoot, "design/logo-options"),
   path.join(buildDir, "lab/logo-options"),
-  { recursive: true, dereference: true },
 );
 
 for (const file of walkHtml(path.join(buildDir, "lab"))) {
@@ -118,6 +139,12 @@ if (!bundled.includes("Design preview") || !bundled.includes("BUZZ Lab")) {
 }
 if (bundled.includes("REACT_APP_API_URL is unset")) {
   console.error("Lab bundle still contains the production API URL warning.");
+  process.exit(1);
+}
+
+const links = findLinks(buildDir);
+if (links.length) {
+  console.error(`Lab build output contains symlinks: ${links.join(", ")}`);
   process.exit(1);
 }
 
