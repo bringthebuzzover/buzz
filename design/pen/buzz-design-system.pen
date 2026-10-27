@@ -386,9 +386,9 @@
      "fill": "$ink",
      "content": "—",
      "fontFamily": "$font",
-     "fontSize": 18.4,
+     "fontSize": "$type-h3",
      "fontWeight": "500",
-     "letterSpacing": -0.55
+     "letterSpacing": -0.6
     },
     {
      "type": "text",
@@ -398,7 +398,7 @@
      "content": "Upcoming",
      "lineHeight": 1.5,
      "fontFamily": "$font",
-     "fontSize": "$type-micro",
+     "fontSize": "$type-label",
      "fontWeight": "normal"
     }
    ]
@@ -435,9 +435,9 @@
      "content": "Yerba Madre",
      "lineHeight": 0.95,
      "fontFamily": "$font",
-     "fontSize": "$type-title-lg",
+     "fontSize": "$type-statement",
      "fontWeight": "500",
-     "letterSpacing": -2.52
+     "letterSpacing": -2.43
     }
    ]
   },
@@ -459,7 +459,7 @@
      "fill": "$paper",
      "content": "Organizations",
      "fontFamily": "$font",
-     "fontSize": "$type-micro",
+     "fontSize": "$type-label",
      "fontWeight": "normal"
     },
     {
@@ -482,7 +482,7 @@
          "fill": "$paper-60",
          "content": "How it works",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         }
        ]
@@ -501,7 +501,7 @@
          "fill": "$paper-60",
          "content": "Apply",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         }
        ]
@@ -520,7 +520,7 @@
          "fill": "$paper-60",
          "content": "Login",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         }
        ]
@@ -542,7 +542,7 @@
          "fill": "$paper-60",
          "content": "Extra",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal"
         }
        ]
@@ -795,9 +795,9 @@
      "fill": "$paper",
      "content": "Campuses",
      "fontFamily": "$font",
-     "fontSize": 22,
+     "fontSize": "$type-h3",
      "fontWeight": "500",
-     "letterSpacing": -0.66
+     "letterSpacing": -0.6
     },
     {
      "type": "frame",
@@ -857,7 +857,7 @@
      "fill": "$paper-30",
      "content": "GMT-4",
      "fontFamily": "$font",
-     "fontSize": "$type-micro",
+     "fontSize": "$type-label",
      "fontWeight": "normal"
     },
     {
@@ -974,9 +974,9 @@
        "content": "8",
        "lineHeight": 1,
        "fontFamily": "$font",
-       "fontSize": 40,
+       "fontSize": "$type-h2",
        "fontWeight": "500",
-       "letterSpacing": -1.8
+       "letterSpacing": -1.98
       },
       {
        "type": "text",
@@ -1097,9 +1097,9 @@
          "fill": "$paper-30",
          "content": "QUICK PICK",
          "fontFamily": "$font",
-         "fontSize": "$type-tiny",
+         "fontSize": "$type-label",
          "fontWeight": "normal",
-         "letterSpacing": 0.66
+         "letterSpacing": 0.72
         }
        ]
       },
@@ -1290,7 +1290,7 @@
            "fill": "$paper-52",
            "content": "Today, Oct 27",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal"
           }
          ]
@@ -1351,7 +1351,7 @@
              "fill": "$paper",
              "content": "October 2026",
              "fontFamily": "$font",
-             "fontSize": 15,
+             "fontSize": "$type-small",
              "fontWeight": "500"
             }
            ]
@@ -1383,9 +1383,9 @@
                "content": "Su",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               },
               {
                "type": "text",
@@ -1397,9 +1397,9 @@
                "content": "Mo",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               },
               {
                "type": "text",
@@ -1411,9 +1411,9 @@
                "content": "Tu",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               },
               {
                "type": "text",
@@ -1425,9 +1425,9 @@
                "content": "We",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               },
               {
                "type": "text",
@@ -1439,9 +1439,9 @@
                "content": "Th",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               },
               {
                "type": "text",
@@ -1453,9 +1453,9 @@
                "content": "Fr",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               },
               {
                "type": "text",
@@ -1467,9 +1467,9 @@
                "content": "Sa",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               }
              ]
             },
@@ -3061,9 +3061,9 @@
                    "content": "TODAY",
                    "lineHeight": 1,
                    "fontFamily": "$font",
-                   "fontSize": 9,
+                   "fontSize": "$type-label",
                    "fontWeight": "500",
-                   "letterSpacing": 0.5
+                   "letterSpacing": 0.67
                   }
                  ]
                 }
@@ -3311,7 +3311,7 @@
              "fill": "$paper",
              "content": "November 2026",
              "fontFamily": "$font",
-             "fontSize": 15,
+             "fontSize": "$type-small",
              "fontWeight": "500"
             }
            ]
@@ -3343,9 +3343,9 @@
                "content": "Su",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               },
               {
                "type": "text",
@@ -3357,9 +3357,9 @@
                "content": "Mo",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               },
               {
                "type": "text",
@@ -3371,9 +3371,9 @@
                "content": "Tu",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               },
               {
                "type": "text",
@@ -3385,9 +3385,9 @@
                "content": "We",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               },
               {
                "type": "text",
@@ -3399,9 +3399,9 @@
                "content": "Th",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               },
               {
                "type": "text",
@@ -3413,9 +3413,9 @@
                "content": "Fr",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               },
               {
                "type": "text",
@@ -3427,9 +3427,9 @@
                "content": "Sa",
                "textAlign": "center",
                "fontFamily": "$font",
-               "fontSize": "$type-tiny",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
-               "letterSpacing": 0.22
+               "letterSpacing": 0.24
               }
              ]
             },
@@ -5200,9 +5200,9 @@
              "fill": "$paper-30",
              "content": "OPENS",
              "fontFamily": "$font",
-             "fontSize": "$type-tiny",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
-             "letterSpacing": 0.55
+             "letterSpacing": 0.6
             },
             {
              "type": "text",
@@ -5211,7 +5211,7 @@
              "fill": "$paper",
              "content": "Mon, Nov 2",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "500"
             },
             {
@@ -5232,7 +5232,7 @@
                "fill": "$paper-52",
                "content": "9:00 AM",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal"
               }
              ]
@@ -5263,9 +5263,9 @@
              "fill": "$paper-30",
              "content": "CLOSES",
              "fontFamily": "$font",
-             "fontSize": "$type-tiny",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
-             "letterSpacing": 0.55
+             "letterSpacing": 0.6
             },
             {
              "type": "text",
@@ -5274,7 +5274,7 @@
              "fill": "$paper",
              "content": "Fri, Nov 13",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "500"
             },
             {
@@ -5295,7 +5295,7 @@
                "fill": "$paper-52",
                "content": "11:59 PM",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal"
               }
              ]
@@ -5396,7 +5396,7 @@
     },
     {
      "type": "frame",
-     "id": "ZFK51",
+     "id": "OnOby",
      "name": "Support wrap",
      "width": "fill_container",
      "padding": [
@@ -5489,7 +5489,7 @@
     },
     {
      "type": "frame",
-     "id": "QSoHf",
+     "id": "aQ8La",
      "name": "Title wrap",
      "width": "fill_container",
      "padding": [
@@ -5517,7 +5517,7 @@
     },
     {
      "type": "frame",
-     "id": "aMKNS",
+     "id": "zDstt",
      "name": "Body wrap",
      "width": "fill_container",
      "padding": [
@@ -5610,7 +5610,7 @@
     },
     {
      "type": "frame",
-     "id": "sE27D",
+     "id": "eBY6x",
      "name": "Title wrap",
      "width": "fill_container",
      "padding": [
@@ -5638,7 +5638,7 @@
     },
     {
      "type": "frame",
-     "id": "FL513",
+     "id": "RHXbI",
      "name": "Body wrap",
      "width": "fill_container",
      "padding": [
@@ -5700,7 +5700,7 @@
        "fill": "$on-surface",
        "content": "Who can apply?",
        "fontFamily": "$font",
-       "fontSize": "$type-h4",
+       "fontSize": "$type-h3",
        "fontWeight": "500",
        "lineHeight": 1.3,
        "letterSpacing": -0.19,
@@ -5756,7 +5756,7 @@
        "fill": "$on-surface",
        "content": "Who can apply?",
        "fontFamily": "$font",
-       "fontSize": "$type-h4",
+       "fontSize": "$type-h3",
        "fontWeight": "500",
        "lineHeight": 1.3,
        "letterSpacing": -0.19,
@@ -5875,7 +5875,7 @@
    "children": [
     {
      "type": "frame",
-     "id": "aVWZm",
+     "id": "uPQSe",
      "name": "Cover",
      "width": "fill_container",
      "layout": "vertical",
@@ -5893,7 +5893,7 @@
      "children": [
       {
        "type": "text",
-       "id": "HpUaa",
+       "id": "BqTbv",
        "name": "Kicker",
        "fill": "$on-surface-muted",
        "content": "BUZZ · design system",
@@ -5903,7 +5903,7 @@
       },
       {
        "type": "text",
-       "id": "Ao9Ox",
+       "id": "RivEe",
        "name": "Title",
        "fill": "$on-surface",
        "content": "Foundations",
@@ -5915,7 +5915,7 @@
       },
       {
        "type": "text",
-       "id": "uAMaO",
+       "id": "P9vTX",
        "name": "Note",
        "fill": "$on-surface-muted",
        "content": "Source of truth: /pulse-bee (design/pen/pulse-bee.pen). Every token below is read off pulseBee.css, pulseBeeAudience.css and drop-editor.css at 1440 and 390. Font: Switzer 400 / 500.",
@@ -5930,7 +5930,7 @@
     },
     {
      "type": "frame",
-     "id": "OcfpC",
+     "id": "Qf4pc",
      "name": "Base palette",
      "width": "fill_container",
      "layout": "vertical",
@@ -5943,7 +5943,7 @@
      "children": [
       {
        "type": "text",
-       "id": "tlyoz",
+       "id": "bfmnx",
        "name": "H2",
        "fill": "$on-surface",
        "content": "Base palette",
@@ -5955,7 +5955,7 @@
       },
       {
        "type": "text",
-       "id": "XF15K",
+       "id": "kwdzU",
        "name": "Note",
        "fill": "$on-surface-muted",
        "content": "Raw colors. Alphas are written as the base color with an alpha suffix (ink-64 = #0b0b0b at 64%).",
@@ -5968,27 +5968,27 @@
       },
       {
        "type": "frame",
-       "id": "DyoEV",
+       "id": "uItyU",
        "name": "Gap",
        "width": 10,
        "height": 8
       },
       {
        "type": "frame",
-       "id": "LlvD8",
+       "id": "AWXlM",
        "name": "Grid",
        "layout": "vertical",
        "gap": "$space-5",
        "children": [
         {
          "type": "frame",
-         "id": "dIEUU",
+         "id": "W0Rh9",
          "name": "Row",
          "gap": "$space-5",
          "children": [
           {
            "type": "frame",
-           "id": "M5lyU",
+           "id": "cH6Zf",
            "name": "Swatch ink",
            "layout": "vertical",
            "gap": "$space-2",
@@ -5996,7 +5996,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "a1etC",
+             "id": "wLYIl",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6007,7 +6007,7 @@
             },
             {
              "type": "text",
-             "id": "IMT5W",
+             "id": "K1qkL",
              "name": "Name",
              "fill": "$on-surface",
              "content": "ink",
@@ -6017,12 +6017,12 @@
             },
             {
              "type": "text",
-             "id": "pfumf",
+             "id": "AvxOR",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#0b0b0b",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6030,7 +6030,7 @@
           },
           {
            "type": "frame",
-           "id": "Ufpz1",
+           "id": "lEXAO",
            "name": "Swatch ink-raised",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6038,7 +6038,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "JjIyZ",
+             "id": "Jhyu6",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6049,7 +6049,7 @@
             },
             {
              "type": "text",
-             "id": "jBGUa",
+             "id": "mAv7P",
              "name": "Name",
              "fill": "$on-surface",
              "content": "ink-raised",
@@ -6059,12 +6059,12 @@
             },
             {
              "type": "text",
-             "id": "WHUIL",
+             "id": "TB6DA",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#121212",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6072,7 +6072,7 @@
           },
           {
            "type": "frame",
-           "id": "OhkPE",
+           "id": "WVyJe",
            "name": "Swatch ink-pop",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6080,7 +6080,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "hptpV",
+             "id": "ZgESS",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6091,7 +6091,7 @@
             },
             {
              "type": "text",
-             "id": "WpGSt",
+             "id": "f4AQ7",
              "name": "Name",
              "fill": "$on-surface",
              "content": "ink-pop",
@@ -6101,12 +6101,12 @@
             },
             {
              "type": "text",
-             "id": "aIWHB",
+             "id": "uepU7",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#161616",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6114,7 +6114,7 @@
           },
           {
            "type": "frame",
-           "id": "wreAZ",
+           "id": "ZImRE",
            "name": "Swatch ink-btn",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6122,7 +6122,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "z0UFv",
+             "id": "UIJjK",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6133,7 +6133,7 @@
             },
             {
              "type": "text",
-             "id": "Qg20o",
+             "id": "Oxb8Q",
              "name": "Name",
              "fill": "$on-surface",
              "content": "ink-btn",
@@ -6143,12 +6143,12 @@
             },
             {
              "type": "text",
-             "id": "eYkMZ",
+             "id": "R8MjB",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#111111",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6156,7 +6156,7 @@
           },
           {
            "type": "frame",
-           "id": "PFzfA",
+           "id": "VB2y7",
            "name": "Swatch paper",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6164,7 +6164,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "S4AV7",
+             "id": "u7tW5",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6175,7 +6175,7 @@
             },
             {
              "type": "text",
-             "id": "PlWxJ",
+             "id": "agExy",
              "name": "Name",
              "fill": "$on-surface",
              "content": "paper",
@@ -6185,12 +6185,12 @@
             },
             {
              "type": "text",
-             "id": "Xk8q3",
+             "id": "zFKBq",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#f0f0f0",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6198,7 +6198,7 @@
           },
           {
            "type": "frame",
-           "id": "anhjk",
+           "id": "vCMlB",
            "name": "Swatch white",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6206,7 +6206,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "xU8XL",
+             "id": "dleGn",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6217,7 +6217,7 @@
             },
             {
              "type": "text",
-             "id": "iruyG",
+             "id": "kInuU",
              "name": "Name",
              "fill": "$on-surface",
              "content": "white",
@@ -6227,12 +6227,12 @@
             },
             {
              "type": "text",
-             "id": "cptX9",
+             "id": "IHLys",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#ffffff",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6240,7 +6240,7 @@
           },
           {
            "type": "frame",
-           "id": "ayDFp",
+           "id": "u2YPx",
            "name": "Swatch grey-media",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6248,7 +6248,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "h7Boq",
+             "id": "s92ki",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6259,7 +6259,7 @@
             },
             {
              "type": "text",
-             "id": "d12z1",
+             "id": "ZAObF",
              "name": "Name",
              "fill": "$on-surface",
              "content": "grey-media",
@@ -6269,12 +6269,12 @@
             },
             {
              "type": "text",
-             "id": "hGC39",
+             "id": "hzEwV",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#dddddd",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6282,7 +6282,7 @@
           },
           {
            "type": "frame",
-           "id": "zOOhJ",
+           "id": "yt12h",
            "name": "Swatch yellow",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6290,7 +6290,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "Lb4IH",
+             "id": "Qe7h0",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6301,7 +6301,7 @@
             },
             {
              "type": "text",
-             "id": "POOgm",
+             "id": "uk7MJ",
              "name": "Name",
              "fill": "$on-surface",
              "content": "yellow",
@@ -6311,12 +6311,12 @@
             },
             {
              "type": "text",
-             "id": "Wt6q5",
+             "id": "B6q8A",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#f6d32a",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6324,7 +6324,7 @@
           },
           {
            "type": "frame",
-           "id": "R2ZLM",
+           "id": "AFPjS",
            "name": "Swatch yellow-hover",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6332,7 +6332,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "nvrJN",
+             "id": "bil6Q",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6343,7 +6343,7 @@
             },
             {
              "type": "text",
-             "id": "hpyoZ",
+             "id": "FhP4j",
              "name": "Name",
              "fill": "$on-surface",
              "content": "yellow-hover",
@@ -6353,12 +6353,12 @@
             },
             {
              "type": "text",
-             "id": "jUAqk",
+             "id": "sYa0z",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#e0be16",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6368,13 +6368,13 @@
         },
         {
          "type": "frame",
-         "id": "bV1OK",
+         "id": "BEblQ",
          "name": "Row",
          "gap": "$space-5",
          "children": [
           {
            "type": "frame",
-           "id": "sT2se",
+           "id": "UMtqG",
            "name": "Swatch yellow-faded",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6382,7 +6382,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "I9qXD",
+             "id": "iGSkn",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6393,7 +6393,7 @@
             },
             {
              "type": "text",
-             "id": "JZg21",
+             "id": "t2lkS",
              "name": "Name",
              "fill": "$on-surface",
              "content": "yellow-faded",
@@ -6403,12 +6403,12 @@
             },
             {
              "type": "text",
-             "id": "L567G",
+             "id": "wIMB1",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#f6d32a24",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6416,7 +6416,7 @@
           },
           {
            "type": "frame",
-           "id": "vuS5d",
+           "id": "dbFCt",
            "name": "Swatch ink-64",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6424,7 +6424,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "FJFKg",
+             "id": "pc99l",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6435,7 +6435,7 @@
             },
             {
              "type": "text",
-             "id": "uQCvj",
+             "id": "ZDFDv",
              "name": "Name",
              "fill": "$on-surface",
              "content": "ink-64",
@@ -6445,12 +6445,12 @@
             },
             {
              "type": "text",
-             "id": "za40W",
+             "id": "MrcPQ",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#0b0b0ba3",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6458,7 +6458,7 @@
           },
           {
            "type": "frame",
-           "id": "wPU5Y",
+           "id": "npknY",
            "name": "Swatch ink-30",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6466,7 +6466,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "aJjPC",
+             "id": "nhQEV",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6477,7 +6477,7 @@
             },
             {
              "type": "text",
-             "id": "L9Jzt",
+             "id": "CWOgi",
              "name": "Name",
              "fill": "$on-surface",
              "content": "ink-30",
@@ -6487,12 +6487,12 @@
             },
             {
              "type": "text",
-             "id": "BLkWG",
+             "id": "oQkhr",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#0b0b0b4d",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6500,7 +6500,7 @@
           },
           {
            "type": "frame",
-           "id": "hI29x",
+           "id": "uePTU",
            "name": "Swatch ink-16",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6508,7 +6508,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "doD4E",
+             "id": "kxsq2",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6519,7 +6519,7 @@
             },
             {
              "type": "text",
-             "id": "HPQTS",
+             "id": "tEcwU",
              "name": "Name",
              "fill": "$on-surface",
              "content": "ink-16",
@@ -6529,12 +6529,12 @@
             },
             {
              "type": "text",
-             "id": "miUZV",
+             "id": "N9vpo",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#11111129",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6542,7 +6542,7 @@
           },
           {
            "type": "frame",
-           "id": "MErrt",
+           "id": "Wg6Ea",
            "name": "Swatch ink-08",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6550,7 +6550,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "fcUr1",
+             "id": "KT9Ub",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6561,7 +6561,7 @@
             },
             {
              "type": "text",
-             "id": "tbys7",
+             "id": "nx8ok",
              "name": "Name",
              "fill": "$on-surface",
              "content": "ink-08",
@@ -6571,12 +6571,12 @@
             },
             {
              "type": "text",
-             "id": "A0xaO",
+             "id": "WiJZN",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#0b0b0b14",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6584,7 +6584,7 @@
           },
           {
            "type": "frame",
-           "id": "UAHjg",
+           "id": "RSKe8",
            "name": "Swatch paper-60",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6592,7 +6592,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "qIIUe",
+             "id": "NaGqG",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6603,7 +6603,7 @@
             },
             {
              "type": "text",
-             "id": "ffGOT",
+             "id": "daszQ",
              "name": "Name",
              "fill": "$on-surface",
              "content": "paper-60",
@@ -6613,12 +6613,12 @@
             },
             {
              "type": "text",
-             "id": "iofWW",
+             "id": "a8uIZ",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#f0f0f099",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6626,7 +6626,7 @@
           },
           {
            "type": "frame",
-           "id": "OYl1I",
+           "id": "xwmKU",
            "name": "Swatch paper-52",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6634,7 +6634,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "aa8oV",
+             "id": "j68Rh",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6645,7 +6645,7 @@
             },
             {
              "type": "text",
-             "id": "bvQlf",
+             "id": "wBgQk",
              "name": "Name",
              "fill": "$on-surface",
              "content": "paper-52",
@@ -6655,12 +6655,12 @@
             },
             {
              "type": "text",
-             "id": "NEqNq",
+             "id": "QHnPE",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#f0f0f085",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6668,7 +6668,7 @@
           },
           {
            "type": "frame",
-           "id": "Hlxm7",
+           "id": "rvvDW",
            "name": "Swatch paper-30",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6676,7 +6676,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "jJF8Y",
+             "id": "ZPPpp",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6687,7 +6687,7 @@
             },
             {
              "type": "text",
-             "id": "atMLm",
+             "id": "jEgQE",
              "name": "Name",
              "fill": "$on-surface",
              "content": "paper-30",
@@ -6697,12 +6697,12 @@
             },
             {
              "type": "text",
-             "id": "cTTX0",
+             "id": "WJLle",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#f0f0f04d",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6710,7 +6710,7 @@
           },
           {
            "type": "frame",
-           "id": "wEl7G",
+           "id": "AJ6cl",
            "name": "Swatch paper-09",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6718,7 +6718,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "N77GR",
+             "id": "ZmimE",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6729,7 +6729,7 @@
             },
             {
              "type": "text",
-             "id": "OQ0Lj",
+             "id": "jUckW",
              "name": "Name",
              "fill": "$on-surface",
              "content": "paper-09",
@@ -6739,12 +6739,12 @@
             },
             {
              "type": "text",
-             "id": "TjFoE",
+             "id": "OzEw2",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#f0f0f017",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6754,13 +6754,13 @@
         },
         {
          "type": "frame",
-         "id": "Pu5rV",
+         "id": "ssyxk",
          "name": "Row",
          "gap": "$space-5",
          "children": [
           {
            "type": "frame",
-           "id": "JYdHX",
+           "id": "E0LcR",
            "name": "Swatch paper-08",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6768,7 +6768,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "HU44f",
+             "id": "Zm2Lh",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6779,7 +6779,7 @@
             },
             {
              "type": "text",
-             "id": "WR070",
+             "id": "ZurU9",
              "name": "Name",
              "fill": "$on-surface",
              "content": "paper-08",
@@ -6789,12 +6789,12 @@
             },
             {
              "type": "text",
-             "id": "eJp6N",
+             "id": "aIfEo",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#f0f0f014",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6802,7 +6802,7 @@
           },
           {
            "type": "frame",
-           "id": "T9Jer",
+           "id": "peN31",
            "name": "Swatch paper-04",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6810,7 +6810,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "E7j69",
+             "id": "bMfUd",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6821,7 +6821,7 @@
             },
             {
              "type": "text",
-             "id": "OaU7b",
+             "id": "IAKBW",
              "name": "Name",
              "fill": "$on-surface",
              "content": "paper-04",
@@ -6831,12 +6831,12 @@
             },
             {
              "type": "text",
-             "id": "utioB",
+             "id": "FNX6b",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#f0f0f00a",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6844,7 +6844,7 @@
           },
           {
            "type": "frame",
-           "id": "se2yi",
+           "id": "xszdF",
            "name": "Swatch success",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6852,7 +6852,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "cFxLk",
+             "id": "QrzaF",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6863,7 +6863,7 @@
             },
             {
              "type": "text",
-             "id": "yJ5nV",
+             "id": "Q8QWU",
              "name": "Name",
              "fill": "$on-surface",
              "content": "success",
@@ -6873,12 +6873,12 @@
             },
             {
              "type": "text",
-             "id": "JHWHB",
+             "id": "JBv3H",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#166534",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6886,7 +6886,7 @@
           },
           {
            "type": "frame",
-           "id": "p3Zjh",
+           "id": "inLbH",
            "name": "Swatch success-wash",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6894,7 +6894,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "svcoW",
+             "id": "lfEQn",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6905,7 +6905,7 @@
             },
             {
              "type": "text",
-             "id": "zVhTt",
+             "id": "wxKjH",
              "name": "Name",
              "fill": "$on-surface",
              "content": "success-wash",
@@ -6915,12 +6915,12 @@
             },
             {
              "type": "text",
-             "id": "xLNa9",
+             "id": "lA4FW",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#f0fdf4",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6928,7 +6928,7 @@
           },
           {
            "type": "frame",
-           "id": "pers3",
+           "id": "bmiDi",
            "name": "Swatch warn",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6936,7 +6936,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "aMCnX",
+             "id": "UofGj",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6947,7 +6947,7 @@
             },
             {
              "type": "text",
-             "id": "BD7ZI",
+             "id": "i9ob2",
              "name": "Name",
              "fill": "$on-surface",
              "content": "warn",
@@ -6957,12 +6957,12 @@
             },
             {
              "type": "text",
-             "id": "zpIT3",
+             "id": "ILcTh",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#b45309",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -6970,7 +6970,7 @@
           },
           {
            "type": "frame",
-           "id": "GrwXk",
+           "id": "uHe1d",
            "name": "Swatch warn-wash",
            "layout": "vertical",
            "gap": "$space-2",
@@ -6978,7 +6978,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "QzJ5y",
+             "id": "KTZS0",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -6989,7 +6989,7 @@
             },
             {
              "type": "text",
-             "id": "jaPXd",
+             "id": "bT8K1",
              "name": "Name",
              "fill": "$on-surface",
              "content": "warn-wash",
@@ -6999,12 +6999,12 @@
             },
             {
              "type": "text",
-             "id": "te5VS",
+             "id": "P4s6A",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#fffbeb",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -7012,7 +7012,7 @@
           },
           {
            "type": "frame",
-           "id": "gKACs",
+           "id": "dOJGb",
            "name": "Swatch danger",
            "layout": "vertical",
            "gap": "$space-2",
@@ -7020,7 +7020,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "gY8RM",
+             "id": "aU6is",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -7031,7 +7031,7 @@
             },
             {
              "type": "text",
-             "id": "powfN",
+             "id": "W9SO5",
              "name": "Name",
              "fill": "$on-surface",
              "content": "danger",
@@ -7041,12 +7041,12 @@
             },
             {
              "type": "text",
-             "id": "wwuWh",
+             "id": "Fc28z",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#b91c1c",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -7054,7 +7054,7 @@
           },
           {
            "type": "frame",
-           "id": "UXsoV",
+           "id": "yj9le",
            "name": "Swatch danger-wash",
            "layout": "vertical",
            "gap": "$space-2",
@@ -7062,7 +7062,7 @@
            "children": [
             {
              "type": "frame",
-             "id": "ceZtB",
+             "id": "SPsnC",
              "name": "Chip",
              "width": 128,
              "height": 88,
@@ -7073,7 +7073,7 @@
             },
             {
              "type": "text",
-             "id": "O7GHw",
+             "id": "AVPSV",
              "name": "Name",
              "fill": "$on-surface",
              "content": "danger-wash",
@@ -7083,12 +7083,12 @@
             },
             {
              "type": "text",
-             "id": "rW9cQ",
+             "id": "kwCPt",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "#fef2f2",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -7102,14 +7102,14 @@
     },
     {
      "type": "frame",
-     "id": "dVeAk",
+     "id": "uBUiU",
      "name": "Semantic",
      "width": "fill_container",
      "layout": "vertical",
      "children": [
       {
        "type": "frame",
-       "id": "iJWzI",
+       "id": "bplAf",
        "name": "Semantic · paper",
        "width": "fill_container",
        "layout": "vertical",
@@ -7122,7 +7122,7 @@
        "children": [
         {
          "type": "text",
-         "id": "hXDoX",
+         "id": "kAwcU",
          "name": "H2",
          "fill": "$on-surface",
          "content": "Semantic · paper",
@@ -7134,7 +7134,7 @@
         },
         {
          "type": "text",
-         "id": "ZTAFu",
+         "id": "QxHcN",
          "name": "Note",
          "fill": "$on-surface-muted",
          "content": "theme surface=paper. Use these in components, never raw colors.",
@@ -7147,27 +7147,27 @@
         },
         {
          "type": "frame",
-         "id": "q2ryP",
+         "id": "rPQ1x",
          "name": "Gap",
          "width": 10,
          "height": 8
         },
         {
          "type": "frame",
-         "id": "AQiCb",
+         "id": "OOrss",
          "name": "Grid",
          "layout": "vertical",
          "gap": "$space-5",
          "children": [
           {
            "type": "frame",
-           "id": "XkliD",
+           "id": "GJew8",
            "name": "Row",
            "gap": "$space-5",
            "children": [
             {
              "type": "frame",
-             "id": "M5S5u",
+             "id": "ncVfy",
              "name": "Swatch surface",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7175,7 +7175,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "RVm5m",
+               "id": "EUwdK",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7186,7 +7186,7 @@
               },
               {
                "type": "text",
-               "id": "f0O06",
+               "id": "Xi6On",
                "name": "Name",
                "fill": "$on-surface",
                "content": "surface",
@@ -7196,12 +7196,12 @@
               },
               {
                "type": "text",
-               "id": "EiuXw",
+               "id": "cY3qu",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#f0f0f0",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7209,7 +7209,7 @@
             },
             {
              "type": "frame",
-             "id": "lhT0D",
+             "id": "sr02E",
              "name": "Swatch on-surface",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7217,7 +7217,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "zzZOk",
+               "id": "lum3X",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7228,7 +7228,7 @@
               },
               {
                "type": "text",
-               "id": "s3rJH",
+               "id": "YVQAY",
                "name": "Name",
                "fill": "$on-surface",
                "content": "on-surface",
@@ -7238,12 +7238,12 @@
               },
               {
                "type": "text",
-               "id": "XSZ4g",
+               "id": "npmJx",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#0b0b0b",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7251,7 +7251,7 @@
             },
             {
              "type": "frame",
-             "id": "Sd9Qq",
+             "id": "JwJWf",
              "name": "Swatch on-surface-muted",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7259,7 +7259,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "HzAlv",
+               "id": "WFTdl",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7270,7 +7270,7 @@
               },
               {
                "type": "text",
-               "id": "fm9Ox",
+               "id": "ifMey",
                "name": "Name",
                "fill": "$on-surface",
                "content": "on-surface-muted",
@@ -7280,12 +7280,12 @@
               },
               {
                "type": "text",
-               "id": "r21tj",
+               "id": "yGh4a",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#0b0b0ba3",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7293,7 +7293,7 @@
             },
             {
              "type": "frame",
-             "id": "V75XL",
+             "id": "u6UcF",
              "name": "Swatch on-surface-quiet",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7301,7 +7301,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "wwMz2",
+               "id": "nOy0g",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7312,7 +7312,7 @@
               },
               {
                "type": "text",
-               "id": "M8ZVw",
+               "id": "yBMan",
                "name": "Name",
                "fill": "$on-surface",
                "content": "on-surface-quiet",
@@ -7322,12 +7322,12 @@
               },
               {
                "type": "text",
-               "id": "Lvcal",
+               "id": "qXXjF",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#0b0b0b4d",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7335,7 +7335,7 @@
             },
             {
              "type": "frame",
-             "id": "HzqWW",
+             "id": "XKFvP",
              "name": "Swatch hairline",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7343,7 +7343,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "zAZ66",
+               "id": "Kr0a0",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7354,7 +7354,7 @@
               },
               {
                "type": "text",
-               "id": "wIiNI",
+               "id": "iqP24",
                "name": "Name",
                "fill": "$on-surface",
                "content": "hairline",
@@ -7364,12 +7364,12 @@
               },
               {
                "type": "text",
-               "id": "WkJQZ",
+               "id": "Do0Oo",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#11111129",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7377,7 +7377,7 @@
             },
             {
              "type": "frame",
-             "id": "RjyY3",
+             "id": "vQWTz",
              "name": "Swatch card-surface",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7385,7 +7385,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "iUvKM",
+               "id": "hgqOV",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7396,7 +7396,7 @@
               },
               {
                "type": "text",
-               "id": "hpQjV",
+               "id": "N4Gl4",
                "name": "Name",
                "fill": "$on-surface",
                "content": "card-surface",
@@ -7406,12 +7406,12 @@
               },
               {
                "type": "text",
-               "id": "Vh2vG",
+               "id": "awbiN",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#ffffff",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7419,7 +7419,7 @@
             },
             {
              "type": "frame",
-             "id": "fqvnZ",
+             "id": "eaCoS",
              "name": "Swatch pill-ghost-fill",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7427,7 +7427,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "lzSlR",
+               "id": "E7IxM",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7438,7 +7438,7 @@
               },
               {
                "type": "text",
-               "id": "zkPgo",
+               "id": "g3dIT",
                "name": "Name",
                "fill": "$on-surface",
                "content": "pill-ghost-fill",
@@ -7448,12 +7448,12 @@
               },
               {
                "type": "text",
-               "id": "QOc7L",
+               "id": "dpRER",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#0b0b0b14",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7467,7 +7467,7 @@
       },
       {
        "type": "frame",
-       "id": "MzicI",
+       "id": "l77RB",
        "name": "Semantic · ink",
        "width": "fill_container",
        "layout": "vertical",
@@ -7480,7 +7480,7 @@
        "children": [
         {
          "type": "text",
-         "id": "ylmyK",
+         "id": "Dmrcn",
          "name": "H2",
          "fill": "$on-surface",
          "content": "Semantic · ink",
@@ -7492,7 +7492,7 @@
         },
         {
          "type": "text",
-         "id": "pX9UW",
+         "id": "b4gDr",
          "name": "Note",
          "fill": "$on-surface-muted",
          "content": "theme surface=ink. Same tokens, flipped.",
@@ -7505,27 +7505,27 @@
         },
         {
          "type": "frame",
-         "id": "vq1jl",
+         "id": "Jmx2E",
          "name": "Gap",
          "width": 10,
          "height": 8
         },
         {
          "type": "frame",
-         "id": "jpWBu",
+         "id": "Vy7iR",
          "name": "Grid",
          "layout": "vertical",
          "gap": "$space-5",
          "children": [
           {
            "type": "frame",
-           "id": "Fcdlp",
+           "id": "SruO6",
            "name": "Row",
            "gap": "$space-5",
            "children": [
             {
              "type": "frame",
-             "id": "ism0D",
+             "id": "zTdQ7",
              "name": "Swatch surface",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7533,7 +7533,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "BVGLe",
+               "id": "CI1KQ",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7544,7 +7544,7 @@
               },
               {
                "type": "text",
-               "id": "kjpzh",
+               "id": "ylPvh",
                "name": "Name",
                "fill": "$on-surface",
                "content": "surface",
@@ -7554,12 +7554,12 @@
               },
               {
                "type": "text",
-               "id": "sXn8J",
+               "id": "AeOG5",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#0b0b0b",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7567,7 +7567,7 @@
             },
             {
              "type": "frame",
-             "id": "zPg7o",
+             "id": "uOIuO",
              "name": "Swatch on-surface",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7575,7 +7575,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "rwz9H",
+               "id": "PKRRW",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7586,7 +7586,7 @@
               },
               {
                "type": "text",
-               "id": "N2RJo",
+               "id": "YPGF6",
                "name": "Name",
                "fill": "$on-surface",
                "content": "on-surface",
@@ -7596,12 +7596,12 @@
               },
               {
                "type": "text",
-               "id": "GOIFH",
+               "id": "PdzpY",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#f0f0f0",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7609,7 +7609,7 @@
             },
             {
              "type": "frame",
-             "id": "dsAzu",
+             "id": "GsNjA",
              "name": "Swatch on-surface-muted",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7617,7 +7617,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "Cx97U",
+               "id": "ZJL5b",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7628,7 +7628,7 @@
               },
               {
                "type": "text",
-               "id": "Orlsr",
+               "id": "JqraY",
                "name": "Name",
                "fill": "$on-surface",
                "content": "on-surface-muted",
@@ -7638,12 +7638,12 @@
               },
               {
                "type": "text",
-               "id": "Kbxj7",
+               "id": "HwwPB",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#f0f0f099",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7651,7 +7651,7 @@
             },
             {
              "type": "frame",
-             "id": "XvCSs",
+             "id": "wM2lO",
              "name": "Swatch on-surface-quiet",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7659,7 +7659,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "yHJVF",
+               "id": "QRtDi",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7670,7 +7670,7 @@
               },
               {
                "type": "text",
-               "id": "TLguw",
+               "id": "BLWVB",
                "name": "Name",
                "fill": "$on-surface",
                "content": "on-surface-quiet",
@@ -7680,12 +7680,12 @@
               },
               {
                "type": "text",
-               "id": "c2KJm",
+               "id": "i0cPi",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#f0f0f04d",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7693,7 +7693,7 @@
             },
             {
              "type": "frame",
-             "id": "FjNAS",
+             "id": "W5lNs",
              "name": "Swatch hairline",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7701,7 +7701,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "nhGWK",
+               "id": "iebub",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7712,7 +7712,7 @@
               },
               {
                "type": "text",
-               "id": "kELl4",
+               "id": "rAZIG",
                "name": "Name",
                "fill": "$on-surface",
                "content": "hairline",
@@ -7722,12 +7722,12 @@
               },
               {
                "type": "text",
-               "id": "Bw7Cd",
+               "id": "QVMn7",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#f0f0f017",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7735,7 +7735,7 @@
             },
             {
              "type": "frame",
-             "id": "B9uqc",
+             "id": "SR8Rd",
              "name": "Swatch card-surface",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7743,7 +7743,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "WKl3G",
+               "id": "T9OPp",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7754,7 +7754,7 @@
               },
               {
                "type": "text",
-               "id": "dURSu",
+               "id": "EoNXr",
                "name": "Name",
                "fill": "$on-surface",
                "content": "card-surface",
@@ -7764,12 +7764,12 @@
               },
               {
                "type": "text",
-               "id": "yx2uN",
+               "id": "NOjbv",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#121212",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7777,7 +7777,7 @@
             },
             {
              "type": "frame",
-             "id": "cRD14",
+             "id": "SvxfV",
              "name": "Swatch pill-ghost-fill",
              "layout": "vertical",
              "gap": "$space-2",
@@ -7785,7 +7785,7 @@
              "children": [
               {
                "type": "frame",
-               "id": "b61SZ",
+               "id": "N6i7M",
                "name": "Chip",
                "width": 128,
                "height": 88,
@@ -7796,7 +7796,7 @@
               },
               {
                "type": "text",
-               "id": "QTFrq",
+               "id": "Ogvr5",
                "name": "Name",
                "fill": "$on-surface",
                "content": "pill-ghost-fill",
@@ -7806,12 +7806,12 @@
               },
               {
                "type": "text",
-               "id": "fZ7tr",
+               "id": "GMF55",
                "name": "Label",
                "fill": "$on-surface-muted",
                "content": "#f0f0f014",
                "fontFamily": "$font",
-               "fontSize": "$type-micro",
+               "fontSize": "$type-label",
                "fontWeight": "normal",
                "lineHeight": 1.4
               }
@@ -7830,7 +7830,7 @@
     },
     {
      "type": "frame",
-     "id": "f6YPr",
+     "id": "JAeLG",
      "name": "Black usage",
      "width": "fill_container",
      "layout": "vertical",
@@ -7843,7 +7843,7 @@
      "children": [
       {
        "type": "text",
-       "id": "zBDmZ",
+       "id": "Uob1D",
        "name": "H2",
        "fill": "$on-surface",
        "content": "Black usage",
@@ -7855,7 +7855,7 @@
       },
       {
        "type": "text",
-       "id": "xEw42",
+       "id": "sNinS",
        "name": "Note",
        "fill": "$on-surface-muted",
        "content": "Black rhythm (from /pulse-bee): photo hero with ink scrim → paper bands → ink or photo band → paper → ink footer. Audience pages (orgs, brands) alternate after the statement so no more than two paper bands sit together; /pulse-bee keeps its own order. Ink bands use the same components with theme surface=ink, so text flips to paper, muted text to paper-60, hairlines to paper-09. Yellow is only for the primary pill, number badges, the bee tile and map pins. Buttons on paper are ink-btn (#111); on ink they are yellow or ghost (1px paper outline).",
@@ -7868,20 +7868,20 @@
       },
       {
        "type": "frame",
-       "id": "kOKMQ",
+       "id": "EX0SO",
        "name": "Gap",
        "width": 10,
        "height": 8
       },
       {
        "type": "frame",
-       "id": "Wg3VT",
+       "id": "CnWZc",
        "name": "Rhythm",
        "gap": "$space-2",
        "children": [
         {
          "type": "frame",
-         "id": "T8rhs",
+         "id": "t93D7",
          "name": "Band Hero (photo)",
          "width": 140,
          "height": 56,
@@ -7897,12 +7897,12 @@
          "children": [
           {
            "type": "text",
-           "id": "eLpvE",
+           "id": "wOWBI",
            "name": "L",
            "fill": "$on-surface",
            "content": "Hero (photo)",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "textAlign": "center",
            "textGrowth": "fixed-width",
@@ -7912,7 +7912,7 @@
         },
         {
          "type": "frame",
-         "id": "Y2wg6",
+         "id": "t4D2a",
          "name": "Band Statement",
          "width": 140,
          "height": 56,
@@ -7928,12 +7928,12 @@
          "children": [
           {
            "type": "text",
-           "id": "DWNtf",
+           "id": "iofNQ",
            "name": "L",
            "fill": "$on-surface",
            "content": "Statement",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "textAlign": "center",
            "textGrowth": "fixed-width",
@@ -7943,7 +7943,7 @@
         },
         {
          "type": "frame",
-         "id": "PKZg9",
+         "id": "SnMNK",
          "name": "Band Section",
          "width": 140,
          "height": 56,
@@ -7959,12 +7959,12 @@
          "children": [
           {
            "type": "text",
-           "id": "VssVA",
+           "id": "bDoWf",
            "name": "L",
            "fill": "$on-surface",
            "content": "Section",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "textAlign": "center",
            "textGrowth": "fixed-width",
@@ -7974,7 +7974,7 @@
         },
         {
          "type": "frame",
-         "id": "rCDyg",
+         "id": "yhUGt",
          "name": "Band Ink band",
          "width": 140,
          "height": 56,
@@ -7990,12 +7990,12 @@
          "children": [
           {
            "type": "text",
-           "id": "LcbEr",
+           "id": "U9cup",
            "name": "L",
            "fill": "$on-surface",
            "content": "Ink band",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "textAlign": "center",
            "textGrowth": "fixed-width",
@@ -8005,7 +8005,7 @@
         },
         {
          "type": "frame",
-         "id": "Pkgyk",
+         "id": "yZvQX",
          "name": "Band Section",
          "width": 140,
          "height": 56,
@@ -8021,12 +8021,12 @@
          "children": [
           {
            "type": "text",
-           "id": "PUAvJ",
+           "id": "Wy7tK",
            "name": "L",
            "fill": "$on-surface",
            "content": "Section",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "textAlign": "center",
            "textGrowth": "fixed-width",
@@ -8036,7 +8036,7 @@
         },
         {
          "type": "frame",
-         "id": "WxqIg",
+         "id": "NYURm",
          "name": "Band Ink band",
          "width": 140,
          "height": 56,
@@ -8052,12 +8052,12 @@
          "children": [
           {
            "type": "text",
-           "id": "wZo6H",
+           "id": "wWRMb",
            "name": "L",
            "fill": "$on-surface",
            "content": "Ink band",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "textAlign": "center",
            "textGrowth": "fixed-width",
@@ -8067,7 +8067,7 @@
         },
         {
          "type": "frame",
-         "id": "XlSl5",
+         "id": "AJmKH",
          "name": "Band Join",
          "width": 140,
          "height": 56,
@@ -8083,12 +8083,12 @@
          "children": [
           {
            "type": "text",
-           "id": "wfEs8",
+           "id": "r3QMl",
            "name": "L",
            "fill": "$on-surface",
            "content": "Join",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "textAlign": "center",
            "textGrowth": "fixed-width",
@@ -8098,7 +8098,7 @@
         },
         {
          "type": "frame",
-         "id": "LzRGT",
+         "id": "sp2bL",
          "name": "Band Footer",
          "width": 140,
          "height": 56,
@@ -8114,12 +8114,12 @@
          "children": [
           {
            "type": "text",
-           "id": "VIwta",
+           "id": "xXDd8",
            "name": "L",
            "fill": "$on-surface",
            "content": "Footer",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "textAlign": "center",
            "textGrowth": "fixed-width",
@@ -8133,7 +8133,7 @@
     },
     {
      "type": "frame",
-     "id": "Ncnmk",
+     "id": "g7rq1",
      "name": "Type scale",
      "width": "fill_container",
      "layout": "vertical",
@@ -8146,7 +8146,7 @@
      "children": [
       {
        "type": "text",
-       "id": "Q6N9w",
+       "id": "y9piM",
        "name": "H2",
        "fill": "$on-surface",
        "content": "Type scale",
@@ -8158,10 +8158,10 @@
       },
       {
        "type": "text",
-       "id": "UqtXA",
+       "id": "JAzQx",
        "name": "Note",
        "fill": "$on-surface-muted",
-       "content": "Device-themed number tokens: values switch with theme device=desktop|mobile. Display and statement weights are 500 with tight tracking; body copy 400.",
+       "content": "Eight steps, device-themed: values switch with theme device=desktop|mobile. Display and statement weights are 500 with tight tracking; body copy 400.",
        "fontFamily": "$font",
        "fontSize": "$type-body",
        "fontWeight": "normal",
@@ -8171,21 +8171,21 @@
       },
       {
        "type": "frame",
-       "id": "lfOXz",
+       "id": "EarpB",
        "name": "Gap",
        "width": 10,
        "height": 8
       },
       {
        "type": "frame",
-       "id": "qLTbB",
+       "id": "CviTm",
        "name": "Type rows",
        "width": "fill_container",
        "layout": "vertical",
        "children": [
         {
          "type": "frame",
-         "id": "BIemn",
+         "id": "rkPWq",
          "name": "Type type-display",
          "width": "fill_container",
          "gap": "$space-6",
@@ -8201,7 +8201,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "vxFfe",
+           "id": "yytFR",
            "name": "Meta",
            "layout": "vertical",
            "gap": "$space-1",
@@ -8209,7 +8209,7 @@
            "children": [
             {
              "type": "text",
-             "id": "d7TLK",
+             "id": "i1u3X",
              "name": "Token",
              "fill": "$on-surface",
              "content": "type-display",
@@ -8219,23 +8219,23 @@
             },
             {
              "type": "text",
-             "id": "Ai2pA",
+             "id": "T1ws2",
              "name": "Label",
              "fill": "$on-surface-muted",
-             "content": "115.2 / 48 px · Medium 500 · ls -0.04em",
+             "content": "115 / 48 px · Medium 500 · ls -0.04em",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             },
             {
              "type": "text",
-             "id": "nZvBi",
+             "id": "EhIWO",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "Display: footer “Want to join?”",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -8243,7 +8243,7 @@
           },
           {
            "type": "text",
-           "id": "VPUtX",
+           "id": "XBPyA",
            "name": "Sample",
            "fill": "$on-surface",
            "content": "Want to join?",
@@ -8251,7 +8251,7 @@
            "fontSize": "$type-display",
            "fontWeight": "500",
            "lineHeight": 1,
-           "letterSpacing": -4.61,
+           "letterSpacing": -4.6,
            "textGrowth": "fixed-width",
            "width": 960
           }
@@ -8259,8 +8259,8 @@
         },
         {
          "type": "frame",
-         "id": "KtWuA",
-         "name": "Type type-title-xl",
+         "id": "V3ReB",
+         "name": "Type type-title",
          "width": "fill_container",
          "gap": "$space-6",
          "alignItems": "center",
@@ -8275,7 +8275,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "SgR4N",
+           "id": "g0pHw",
            "name": "Meta",
            "layout": "vertical",
            "gap": "$space-1",
@@ -8283,33 +8283,33 @@
            "children": [
             {
              "type": "text",
-             "id": "D8YE3",
+             "id": "E1eoU",
              "name": "Token",
              "fill": "$on-surface",
-             "content": "type-title-xl",
+             "content": "type-title",
              "fontFamily": "$font",
              "fontSize": "$type-small",
              "fontWeight": "500"
             },
             {
              "type": "text",
-             "id": "Hheyd",
+             "id": "wO3vJ",
              "name": "Label",
              "fill": "$on-surface-muted",
-             "content": "66.24 / 38.4 px · Medium 500 · ls -0.045em",
+             "content": "64 / 36 px · Medium 500 · ls -0.045em",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             },
             {
              "type": "text",
-             "id": "YENZQ",
+             "id": "kDkRK",
              "name": "Label",
              "fill": "$on-surface-muted",
-             "content": "Title XL: Current drops, Questions",
+             "content": "Hero headline, Current drops, Questions",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -8317,89 +8317,15 @@
           },
           {
            "type": "text",
-           "id": "eP3SZ",
-           "name": "Sample",
-           "fill": "$on-surface",
-           "content": "Current drops",
-           "fontFamily": "$font",
-           "fontSize": "$type-title-xl",
-           "fontWeight": "500",
-           "lineHeight": 1,
-           "letterSpacing": -2.98,
-           "textGrowth": "fixed-width",
-           "width": 960
-          }
-         ]
-        },
-        {
-         "type": "frame",
-         "id": "lbkdY",
-         "name": "Type type-hero",
-         "width": "fill_container",
-         "gap": "$space-6",
-         "alignItems": "center",
-         "padding": [
-          "$space-4",
-          0
-         ],
-         "stroke": "$hairline",
-         "strokeWidth": {
-          "top": 1
-         },
-         "children": [
-          {
-           "type": "frame",
-           "id": "FFHgq",
-           "name": "Meta",
-           "layout": "vertical",
-           "gap": "$space-1",
-           "width": 320,
-           "children": [
-            {
-             "type": "text",
-             "id": "ZBjWf",
-             "name": "Token",
-             "fill": "$on-surface",
-             "content": "type-hero",
-             "fontFamily": "$font",
-             "fontSize": "$type-small",
-             "fontWeight": "500"
-            },
-            {
-             "type": "text",
-             "id": "xSE6R",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "63.36 / 32.8 px · Medium 500 · ls -0.04em",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            },
-            {
-             "type": "text",
-             "id": "prAyc",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "Hero headline (all pulse-bee pages)",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            }
-           ]
-          },
-          {
-           "type": "text",
-           "id": "JQrIB",
+           "id": "M5hKR",
            "name": "Sample",
            "fill": "$on-surface",
            "content": "Campus marketing,",
            "fontFamily": "$font",
-           "fontSize": "$type-hero",
+           "fontSize": "$type-title",
            "fontWeight": "500",
            "lineHeight": 1,
-           "letterSpacing": -2.53,
+           "letterSpacing": -2.88,
            "textGrowth": "fixed-width",
            "width": 960
           }
@@ -8407,81 +8333,7 @@
         },
         {
          "type": "frame",
-         "id": "jyitO",
-         "name": "Type type-title-lg",
-         "width": "fill_container",
-         "gap": "$space-6",
-         "alignItems": "center",
-         "padding": [
-          "$space-4",
-          0
-         ],
-         "stroke": "$hairline",
-         "strokeWidth": {
-          "top": 1
-         },
-         "children": [
-          {
-           "type": "frame",
-           "id": "yGvd9",
-           "name": "Meta",
-           "layout": "vertical",
-           "gap": "$space-1",
-           "width": 320,
-           "children": [
-            {
-             "type": "text",
-             "id": "z7r1c",
-             "name": "Token",
-             "fill": "$on-surface",
-             "content": "type-title-lg",
-             "fontFamily": "$font",
-             "fontSize": "$type-small",
-             "fontWeight": "500"
-            },
-            {
-             "type": "text",
-             "id": "LNlOq",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "56 / 21.6 px · Medium 500 · ls -0.05em",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            },
-            {
-             "type": "text",
-             "id": "ZAuox",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "Footer email, drop card brand",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            }
-           ]
-          },
-          {
-           "type": "text",
-           "id": "F4JeT",
-           "name": "Sample",
-           "fill": "$on-surface",
-           "content": "hello@bringthebuzzover.com",
-           "fontFamily": "$font",
-           "fontSize": "$type-title-lg",
-           "fontWeight": "500",
-           "lineHeight": 1,
-           "letterSpacing": -2.8,
-           "textGrowth": "fixed-width",
-           "width": 960
-          }
-         ]
-        },
-        {
-         "type": "frame",
-         "id": "VHOxE",
+         "id": "MMvlR",
          "name": "Type type-statement",
          "width": "fill_container",
          "gap": "$space-6",
@@ -8497,7 +8349,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "fT3Kn",
+           "id": "vhHOx",
            "name": "Meta",
            "layout": "vertical",
            "gap": "$space-1",
@@ -8505,7 +8357,7 @@
            "children": [
             {
              "type": "text",
-             "id": "tXkoK",
+             "id": "NPBih",
              "name": "Token",
              "fill": "$on-surface",
              "content": "type-statement",
@@ -8515,23 +8367,23 @@
             },
             {
              "type": "text",
-             "id": "psLrY",
+             "id": "qNwl2",
              "name": "Label",
              "fill": "$on-surface-muted",
-             "content": "54 / 36 px · Medium 500 · ls -0.05em",
+             "content": "54 / 32 px · Medium 500 · ls -0.05em",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             },
             {
              "type": "text",
-             "id": "TuTGJ",
+             "id": "fJ5nr",
              "name": "Label",
              "fill": "$on-surface-muted",
-             "content": "Statement bands, goals",
+             "content": "Statement bands, goals, join halves, drop card brand, footer email (desktop)",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -8539,10 +8391,10 @@
           },
           {
            "type": "text",
-           "id": "v6MC5",
+           "id": "JUkf9",
            "name": "Sample",
            "fill": "$on-surface",
-           "content": "You request a call.",
+           "content": "Request a campaign.",
            "fontFamily": "$font",
            "fontSize": "$type-statement",
            "fontWeight": "500",
@@ -8555,81 +8407,7 @@
         },
         {
          "type": "frame",
-         "id": "D1Sie",
-         "name": "Type type-join",
-         "width": "fill_container",
-         "gap": "$space-6",
-         "alignItems": "center",
-         "padding": [
-          "$space-4",
-          0
-         ],
-         "stroke": "$hairline",
-         "strokeWidth": {
-          "top": 1
-         },
-         "children": [
-          {
-           "type": "frame",
-           "id": "cN5lT",
-           "name": "Meta",
-           "layout": "vertical",
-           "gap": "$space-1",
-           "width": 320,
-           "children": [
-            {
-             "type": "text",
-             "id": "qpdTd",
-             "name": "Token",
-             "fill": "$on-surface",
-             "content": "type-join",
-             "fontFamily": "$font",
-             "fontSize": "$type-small",
-             "fontWeight": "500"
-            },
-            {
-             "type": "text",
-             "id": "tN0VX",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "51.84 / 35.1 px · Medium 500 · ls -0.045em",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            },
-            {
-             "type": "text",
-             "id": "tTI7H",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "Join half titles",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            }
-           ]
-          },
-          {
-           "type": "text",
-           "id": "f7KsL",
-           "name": "Sample",
-           "fill": "$on-surface",
-           "content": "Request a campaign.",
-           "fontFamily": "$font",
-           "fontSize": "$type-join",
-           "fontWeight": "500",
-           "lineHeight": 1,
-           "letterSpacing": -2.33,
-           "textGrowth": "fixed-width",
-           "width": 960
-          }
-         ]
-        },
-        {
-         "type": "frame",
-         "id": "NUysU",
+         "id": "DAlj1",
          "name": "Type type-h2",
          "width": "fill_container",
          "gap": "$space-6",
@@ -8645,7 +8423,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "Pdz8p",
+           "id": "zYTiC",
            "name": "Meta",
            "layout": "vertical",
            "gap": "$space-1",
@@ -8653,7 +8431,7 @@
            "children": [
             {
              "type": "text",
-             "id": "vNNy0",
+             "id": "r7smu",
              "name": "Token",
              "fill": "$on-surface",
              "content": "type-h2",
@@ -8663,23 +8441,23 @@
             },
             {
              "type": "text",
-             "id": "Ct5vG",
+             "id": "lPfEO",
              "name": "Label",
              "fill": "$on-surface-muted",
-             "content": "43.2 / 32 px · Medium 500 · ls -0.04em",
+             "content": "44 / 28 px · Medium 500 · ls -0.04em",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             },
             {
              "type": "text",
-             "id": "JuD8c",
+             "id": "ad3jf",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "Section heads, College network",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -8687,7 +8465,7 @@
           },
           {
            "type": "text",
-           "id": "LnKYU",
+           "id": "k3Twj",
            "name": "Sample",
            "fill": "$on-surface",
            "content": "College network",
@@ -8695,7 +8473,7 @@
            "fontSize": "$type-h2",
            "fontWeight": "500",
            "lineHeight": 1,
-           "letterSpacing": -1.73,
+           "letterSpacing": -1.76,
            "textGrowth": "fixed-width",
            "width": 960
           }
@@ -8703,7 +8481,7 @@
         },
         {
          "type": "frame",
-         "id": "TjhVS",
+         "id": "pxgQG",
          "name": "Type type-h3",
          "width": "fill_container",
          "gap": "$space-6",
@@ -8719,7 +8497,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "cRuvG",
+           "id": "W2qGs",
            "name": "Meta",
            "layout": "vertical",
            "gap": "$space-1",
@@ -8727,7 +8505,7 @@
            "children": [
             {
              "type": "text",
-             "id": "f8S9R",
+             "id": "fFA4p",
              "name": "Token",
              "fill": "$on-surface",
              "content": "type-h3",
@@ -8737,23 +8515,23 @@
             },
             {
              "type": "text",
-             "id": "RMugm",
+             "id": "ccEEU",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "20 / 20 px · Medium 500 · ls -0.01em",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             },
             {
              "type": "text",
-             "id": "i8sQG",
+             "id": "sclKP",
              "name": "Label",
              "fill": "$on-surface-muted",
-             "content": "Card titles, step captions",
+             "content": "Card titles, FAQ questions, step captions, footer email (mobile)",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -8761,7 +8539,7 @@
           },
           {
            "type": "text",
-           "id": "YXnJb",
+           "id": "NFtnm",
            "name": "Sample",
            "fill": "$on-surface",
            "content": "Brand products, shipped to you",
@@ -8777,155 +8555,7 @@
         },
         {
          "type": "frame",
-         "id": "rhK4h",
-         "name": "Type type-h4",
-         "width": "fill_container",
-         "gap": "$space-6",
-         "alignItems": "center",
-         "padding": [
-          "$space-4",
-          0
-         ],
-         "stroke": "$hairline",
-         "strokeWidth": {
-          "top": 1
-         },
-         "children": [
-          {
-           "type": "frame",
-           "id": "yz6MO",
-           "name": "Meta",
-           "layout": "vertical",
-           "gap": "$space-1",
-           "width": 320,
-           "children": [
-            {
-             "type": "text",
-             "id": "AWWqs",
-             "name": "Token",
-             "fill": "$on-surface",
-             "content": "type-h4",
-             "fontFamily": "$font",
-             "fontSize": "$type-small",
-             "fontWeight": "500"
-            },
-            {
-             "type": "text",
-             "id": "wjmZi",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "18.72 / 17 px · Medium 500 · ls -0.01em",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            },
-            {
-             "type": "text",
-             "id": "W5qJz",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "FAQ questions",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            }
-           ]
-          },
-          {
-           "type": "text",
-           "id": "IaNyT",
-           "name": "Sample",
-           "fill": "$on-surface",
-           "content": "Who can apply?",
-           "fontFamily": "$font",
-           "fontSize": "$type-h4",
-           "fontWeight": "500",
-           "lineHeight": 1,
-           "letterSpacing": -0.19,
-           "textGrowth": "fixed-width",
-           "width": 960
-          }
-         ]
-        },
-        {
-         "type": "frame",
-         "id": "AwI7u",
-         "name": "Type type-body-lg",
-         "width": "fill_container",
-         "gap": "$space-6",
-         "alignItems": "center",
-         "padding": [
-          "$space-4",
-          0
-         ],
-         "stroke": "$hairline",
-         "strokeWidth": {
-          "top": 1
-         },
-         "children": [
-          {
-           "type": "frame",
-           "id": "CQoHV",
-           "name": "Meta",
-           "layout": "vertical",
-           "gap": "$space-1",
-           "width": 320,
-           "children": [
-            {
-             "type": "text",
-             "id": "uPG6N",
-             "name": "Token",
-             "fill": "$on-surface",
-             "content": "type-body-lg",
-             "fontFamily": "$font",
-             "fontSize": "$type-small",
-             "fontWeight": "500"
-            },
-            {
-             "type": "text",
-             "id": "rJb48",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "17 / 17 px · Regular 400",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            },
-            {
-             "type": "text",
-             "id": "fAWP5",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "Join support",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            }
-           ]
-          },
-          {
-           "type": "text",
-           "id": "ijCQv",
-           "name": "Sample",
-           "fill": "$on-surface",
-           "content": "You apply on the website first.",
-           "fontFamily": "$font",
-           "fontSize": "$type-body-lg",
-           "fontWeight": "normal",
-           "lineHeight": 1.4,
-           "letterSpacing": 0,
-           "textGrowth": "fixed-width",
-           "width": 960
-          }
-         ]
-        },
-        {
-         "type": "frame",
-         "id": "b1qnb",
+         "id": "FNtyU",
          "name": "Type type-body",
          "width": "fill_container",
          "gap": "$space-6",
@@ -8941,7 +8571,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "iZ6Bh",
+           "id": "ccMaR",
            "name": "Meta",
            "layout": "vertical",
            "gap": "$space-1",
@@ -8949,7 +8579,7 @@
            "children": [
             {
              "type": "text",
-             "id": "jQVCM",
+             "id": "YyRBa",
              "name": "Token",
              "fill": "$on-surface",
              "content": "type-body",
@@ -8959,23 +8589,23 @@
             },
             {
              "type": "text",
-             "id": "j8HIL",
+             "id": "hLoRK",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "16 / 16 px · Regular 400",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             },
             {
              "type": "text",
-             "id": "yBtd7",
+             "id": "o1Z5d",
              "name": "Label",
              "fill": "$on-surface-muted",
-             "content": "Body, support lines",
+             "content": "Body, support lines, join support",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -8983,7 +8613,7 @@
           },
           {
            "type": "text",
-           "id": "tzBcP",
+           "id": "bPfdc",
            "name": "Sample",
            "fill": "$on-surface",
            "content": "Vetted student organizations powering authentic campus marketing nationwide.",
@@ -8999,7 +8629,7 @@
         },
         {
          "type": "frame",
-         "id": "oHULE",
+         "id": "V1vtf",
          "name": "Type type-small",
          "width": "fill_container",
          "gap": "$space-6",
@@ -9015,7 +8645,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "Y6zGc",
+           "id": "ePF61",
            "name": "Meta",
            "layout": "vertical",
            "gap": "$space-1",
@@ -9023,7 +8653,7 @@
            "children": [
             {
              "type": "text",
-             "id": "WRMHr",
+             "id": "k12bi",
              "name": "Token",
              "fill": "$on-surface",
              "content": "type-small",
@@ -9033,23 +8663,23 @@
             },
             {
              "type": "text",
-             "id": "yUSGj",
+             "id": "KwDuJ",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "14 / 14 px · Regular 400",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             },
             {
              "type": "text",
-             "id": "FYISx",
+             "id": "Wdfrb",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "Nav links, pills, buttons, drop-editor base",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -9057,7 +8687,7 @@
           },
           {
            "type": "text",
-           "id": "ilEqS",
+           "id": "cP0MW",
            "name": "Sample",
            "fill": "$on-surface",
            "content": "How it works",
@@ -9073,7 +8703,7 @@
         },
         {
          "type": "frame",
-         "id": "e5urg",
+         "id": "QubhM",
          "name": "Type type-label",
          "width": "fill_container",
          "gap": "$space-6",
@@ -9089,7 +8719,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "tKGGQ",
+           "id": "Y7KR2",
            "name": "Meta",
            "layout": "vertical",
            "gap": "$space-1",
@@ -9097,7 +8727,7 @@
            "children": [
             {
              "type": "text",
-             "id": "jtSdr",
+             "id": "V2Dgj",
              "name": "Token",
              "fill": "$on-surface",
              "content": "type-label",
@@ -9107,97 +8737,23 @@
             },
             {
              "type": "text",
-             "id": "tnnOI",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "13 / 13 px · Regular 400",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            },
-            {
-             "type": "text",
-             "id": "XcqGf",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "Kickers, small pills",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            }
-           ]
-          },
-          {
-           "type": "text",
-           "id": "oHXrW",
-           "name": "Sample",
-           "fill": "$on-surface",
-           "content": "For organizations",
-           "fontFamily": "$font",
-           "fontSize": "$type-label",
-           "fontWeight": "normal",
-           "lineHeight": 1.4,
-           "letterSpacing": 0,
-           "textGrowth": "fixed-width",
-           "width": 960
-          }
-         ]
-        },
-        {
-         "type": "frame",
-         "id": "mxfqT",
-         "name": "Type type-micro",
-         "width": "fill_container",
-         "gap": "$space-6",
-         "alignItems": "center",
-         "padding": [
-          "$space-4",
-          0
-         ],
-         "stroke": "$hairline",
-         "strokeWidth": {
-          "top": 1
-         },
-         "children": [
-          {
-           "type": "frame",
-           "id": "Ms7qu",
-           "name": "Meta",
-           "layout": "vertical",
-           "gap": "$space-1",
-           "width": 320,
-           "children": [
-            {
-             "type": "text",
-             "id": "bEh5s",
-             "name": "Token",
-             "fill": "$on-surface",
-             "content": "type-micro",
-             "fontFamily": "$font",
-             "fontSize": "$type-small",
-             "fontWeight": "500"
-            },
-            {
-             "type": "text",
-             "id": "bKSYC",
+             "id": "AAxb8",
              "name": "Label",
              "fill": "$on-surface-muted",
              "content": "12 / 12 px · Regular 400",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             },
             {
              "type": "text",
-             "id": "pZS4f",
+             "id": "xePd0",
              "name": "Label",
              "fill": "$on-surface-muted",
-             "content": "Footer meta, captions",
+             "content": "Kickers, small pills, footer meta, field labels, drop-editor micro labels",
              "fontFamily": "$font",
-             "fontSize": "$type-micro",
+             "fontSize": "$type-label",
              "fontWeight": "normal",
              "lineHeight": 1.4
             }
@@ -9205,86 +8761,12 @@
           },
           {
            "type": "text",
-           "id": "PDXKP",
-           "name": "Sample",
-           "fill": "$on-surface",
-           "content": "Collaboration at Cornell University",
-           "fontFamily": "$font",
-           "fontSize": "$type-micro",
-           "fontWeight": "normal",
-           "lineHeight": 1.4,
-           "letterSpacing": 0,
-           "textGrowth": "fixed-width",
-           "width": 960
-          }
-         ]
-        },
-        {
-         "type": "frame",
-         "id": "XySNh",
-         "name": "Type type-tiny",
-         "width": "fill_container",
-         "gap": "$space-6",
-         "alignItems": "center",
-         "padding": [
-          "$space-4",
-          0
-         ],
-         "stroke": "$hairline",
-         "strokeWidth": {
-          "top": 1
-         },
-         "children": [
-          {
-           "type": "frame",
-           "id": "oTSEJ",
-           "name": "Meta",
-           "layout": "vertical",
-           "gap": "$space-1",
-           "width": 320,
-           "children": [
-            {
-             "type": "text",
-             "id": "SCUuU",
-             "name": "Token",
-             "fill": "$on-surface",
-             "content": "type-tiny",
-             "fontFamily": "$font",
-             "fontSize": "$type-small",
-             "fontWeight": "500"
-            },
-            {
-             "type": "text",
-             "id": "uGGIE",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "11 / 11 px · Regular 400",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            },
-            {
-             "type": "text",
-             "id": "sADCY",
-             "name": "Label",
-             "fill": "$on-surface-muted",
-             "content": "Drop-editor micro labels",
-             "fontFamily": "$font",
-             "fontSize": "$type-micro",
-             "fontWeight": "normal",
-             "lineHeight": 1.4
-            }
-           ]
-          },
-          {
-           "type": "text",
-           "id": "sJumN",
+           "id": "XR6zb",
            "name": "Sample",
            "fill": "$on-surface",
            "content": "APPLY WINDOW",
            "fontFamily": "$font",
-           "fontSize": "$type-tiny",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4,
            "letterSpacing": 0,
@@ -9299,7 +8781,7 @@
     },
     {
      "type": "frame",
-     "id": "TDosC",
+     "id": "We0uo",
      "name": "Spacing",
      "width": "fill_container",
      "layout": "vertical",
@@ -9312,7 +8794,7 @@
      "children": [
       {
        "type": "text",
-       "id": "eQHVB",
+       "id": "vc8aT",
        "name": "H2",
        "fill": "$on-surface",
        "content": "Spacing",
@@ -9324,7 +8806,7 @@
       },
       {
        "type": "text",
-       "id": "p8A5z",
+       "id": "muglL",
        "name": "Note",
        "fill": "$on-surface-muted",
        "content": "4-based scale (pulse .pulse2 --s1…--s9). Section padding uses section-y (12svh) and side (clamp 1rem, 3.3vw, 3rem).",
@@ -9337,21 +8819,21 @@
       },
       {
        "type": "frame",
-       "id": "feUmJ",
+       "id": "RgqFV",
        "name": "Gap",
        "width": 10,
        "height": 8
       },
       {
        "type": "frame",
-       "id": "b3jh9",
+       "id": "wkDMU",
        "name": "Row",
        "gap": "$space-6",
        "alignItems": "end",
        "children": [
         {
          "type": "frame",
-         "id": "hvGb8",
+         "id": "Mq8XM",
          "name": "Space space-1",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9359,7 +8841,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "HQPZD",
+           "id": "uhTPm",
            "name": "Bar",
            "width": 4,
            "height": 4,
@@ -9368,7 +8850,7 @@
           },
           {
            "type": "text",
-           "id": "nNDKv",
+           "id": "yk7YS",
            "name": "Name",
            "fill": "$on-surface",
            "content": "space-1",
@@ -9378,12 +8860,12 @@
           },
           {
            "type": "text",
-           "id": "BI0ke",
+           "id": "UDWpS",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "4px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9391,7 +8873,7 @@
         },
         {
          "type": "frame",
-         "id": "VNfqm",
+         "id": "U43fh",
          "name": "Space space-2",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9399,7 +8881,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "RendE",
+           "id": "Z76Xo",
            "name": "Bar",
            "width": 8,
            "height": 8,
@@ -9408,7 +8890,7 @@
           },
           {
            "type": "text",
-           "id": "QKfPT",
+           "id": "INTut",
            "name": "Name",
            "fill": "$on-surface",
            "content": "space-2",
@@ -9418,12 +8900,12 @@
           },
           {
            "type": "text",
-           "id": "EpZqM",
+           "id": "XxteJ",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "8px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9431,7 +8913,7 @@
         },
         {
          "type": "frame",
-         "id": "ryO9m",
+         "id": "TKJkY",
          "name": "Space space-3",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9439,7 +8921,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "AbYnM",
+           "id": "PyIth",
            "name": "Bar",
            "width": 12,
            "height": 12,
@@ -9448,7 +8930,7 @@
           },
           {
            "type": "text",
-           "id": "oTgVq",
+           "id": "QghWU",
            "name": "Name",
            "fill": "$on-surface",
            "content": "space-3",
@@ -9458,12 +8940,12 @@
           },
           {
            "type": "text",
-           "id": "ef1ge",
+           "id": "Cl7oi",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "12px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9471,7 +8953,7 @@
         },
         {
          "type": "frame",
-         "id": "UAPFp",
+         "id": "JYh5t",
          "name": "Space space-4",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9479,7 +8961,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "L0Ei6",
+           "id": "SdwjU",
            "name": "Bar",
            "width": 16,
            "height": 16,
@@ -9488,7 +8970,7 @@
           },
           {
            "type": "text",
-           "id": "sAROx",
+           "id": "HsoL8",
            "name": "Name",
            "fill": "$on-surface",
            "content": "space-4",
@@ -9498,12 +8980,12 @@
           },
           {
            "type": "text",
-           "id": "E7d2v",
+           "id": "tNMkI",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "16px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9511,7 +8993,7 @@
         },
         {
          "type": "frame",
-         "id": "eEHsG",
+         "id": "PAXkO",
          "name": "Space space-5",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9519,7 +9001,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "WxMMx",
+           "id": "DSNfE",
            "name": "Bar",
            "width": 24,
            "height": 24,
@@ -9528,7 +9010,7 @@
           },
           {
            "type": "text",
-           "id": "Ciw2v",
+           "id": "ScAFR",
            "name": "Name",
            "fill": "$on-surface",
            "content": "space-5",
@@ -9538,12 +9020,12 @@
           },
           {
            "type": "text",
-           "id": "xyApv",
+           "id": "QhLvb",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "24px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9551,7 +9033,7 @@
         },
         {
          "type": "frame",
-         "id": "jV07Z",
+         "id": "Ti4zz",
          "name": "Space space-6",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9559,7 +9041,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "dg8V0",
+           "id": "beaB2",
            "name": "Bar",
            "width": 32,
            "height": 32,
@@ -9568,7 +9050,7 @@
           },
           {
            "type": "text",
-           "id": "HGIWs",
+           "id": "fbjqd",
            "name": "Name",
            "fill": "$on-surface",
            "content": "space-6",
@@ -9578,12 +9060,12 @@
           },
           {
            "type": "text",
-           "id": "yOPB5",
+           "id": "rpvxG",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "32px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9591,7 +9073,7 @@
         },
         {
          "type": "frame",
-         "id": "vJTiq",
+         "id": "bOrs3",
          "name": "Space space-7",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9599,7 +9081,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "fKBqe",
+           "id": "xD4pq",
            "name": "Bar",
            "width": 48,
            "height": 48,
@@ -9608,7 +9090,7 @@
           },
           {
            "type": "text",
-           "id": "Na9qe",
+           "id": "t878t",
            "name": "Name",
            "fill": "$on-surface",
            "content": "space-7",
@@ -9618,12 +9100,12 @@
           },
           {
            "type": "text",
-           "id": "QG2Vr",
+           "id": "OgAjm",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "48px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9631,7 +9113,7 @@
         },
         {
          "type": "frame",
-         "id": "kxP3x",
+         "id": "O6X9x",
          "name": "Space space-8",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9639,7 +9121,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "O5jrq",
+           "id": "gMB65",
            "name": "Bar",
            "width": 64,
            "height": 64,
@@ -9648,7 +9130,7 @@
           },
           {
            "type": "text",
-           "id": "qriYZ",
+           "id": "qzoYq",
            "name": "Name",
            "fill": "$on-surface",
            "content": "space-8",
@@ -9658,12 +9140,12 @@
           },
           {
            "type": "text",
-           "id": "vreHQ",
+           "id": "gNssr",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "64px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9671,7 +9153,7 @@
         },
         {
          "type": "frame",
-         "id": "HWy30",
+         "id": "EbfQ0",
          "name": "Space space-9",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9679,7 +9161,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "pcDYO",
+           "id": "J1Mas",
            "name": "Bar",
            "width": 96,
            "height": 96,
@@ -9688,7 +9170,7 @@
           },
           {
            "type": "text",
-           "id": "aTevN",
+           "id": "ziJxp",
            "name": "Name",
            "fill": "$on-surface",
            "content": "space-9",
@@ -9698,12 +9180,12 @@
           },
           {
            "type": "text",
-           "id": "Rin5l",
+           "id": "aipxh",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "96px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9711,7 +9193,7 @@
         },
         {
          "type": "frame",
-         "id": "UUr7C",
+         "id": "FMmq8",
          "name": "Dev side",
          "layout": "vertical",
          "gap": "$space-1",
@@ -9719,7 +9201,7 @@
          "children": [
           {
            "type": "text",
-           "id": "Li1C1",
+           "id": "susP9",
            "name": "Name",
            "fill": "$on-surface",
            "content": "side",
@@ -9729,12 +9211,12 @@
           },
           {
            "type": "text",
-           "id": "bXOCO",
+           "id": "fvQY9",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "desktop 48 · mobile 16",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9742,7 +9224,7 @@
         },
         {
          "type": "frame",
-         "id": "WGLTe",
+         "id": "krapu",
          "name": "Dev section-y",
          "layout": "vertical",
          "gap": "$space-1",
@@ -9750,7 +9232,7 @@
          "children": [
           {
            "type": "text",
-           "id": "V99hT",
+           "id": "WRpkl",
            "name": "Name",
            "fill": "$on-surface",
            "content": "section-y",
@@ -9760,12 +9242,12 @@
           },
           {
            "type": "text",
-           "id": "LEoTc",
+           "id": "Fp47v",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "desktop 108 · mobile 68",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9777,7 +9259,7 @@
     },
     {
      "type": "frame",
-     "id": "k4n3c",
+     "id": "Br3ZM",
      "name": "Radii",
      "width": "fill_container",
      "layout": "vertical",
@@ -9790,7 +9272,7 @@
      "children": [
       {
        "type": "text",
-       "id": "WQHXD",
+       "id": "gLXCL",
        "name": "H2",
        "fill": "$on-surface",
        "content": "Radii",
@@ -9802,7 +9284,7 @@
       },
       {
        "type": "text",
-       "id": "M9zzU",
+       "id": "U5mFW",
        "name": "Note",
        "fill": "$on-surface-muted",
        "content": "Pills are fully round. Cards and media 8. Fields 10 (drop editor). Boards 16. Phone 32.",
@@ -9815,20 +9297,20 @@
       },
       {
        "type": "frame",
-       "id": "kztSU",
+       "id": "YPtp6",
        "name": "Gap",
        "width": 10,
        "height": 8
       },
       {
        "type": "frame",
-       "id": "rX22q",
+       "id": "E9Ksw",
        "name": "Row",
        "gap": "$space-6",
        "children": [
         {
          "type": "frame",
-         "id": "iJFUV",
+         "id": "kulri",
          "name": "Radius radius-control",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9836,7 +9318,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "ExSE1",
+           "id": "mDaIp",
            "name": "Box",
            "width": 96,
            "height": 64,
@@ -9847,7 +9329,7 @@
           },
           {
            "type": "text",
-           "id": "jxND7",
+           "id": "F6wIx",
            "name": "Name",
            "fill": "$on-surface",
            "content": "radius-control",
@@ -9857,12 +9339,12 @@
           },
           {
            "type": "text",
-           "id": "ArCNp",
+           "id": "gpX6w",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "8px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9870,7 +9352,7 @@
         },
         {
          "type": "frame",
-         "id": "Sspm8",
+         "id": "oj7qv",
          "name": "Radius radius-card",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9878,7 +9360,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "kSiGi",
+           "id": "f3Iqe",
            "name": "Box",
            "width": 96,
            "height": 64,
@@ -9889,7 +9371,7 @@
           },
           {
            "type": "text",
-           "id": "zRgGH",
+           "id": "DtTjo",
            "name": "Name",
            "fill": "$on-surface",
            "content": "radius-card",
@@ -9899,12 +9381,12 @@
           },
           {
            "type": "text",
-           "id": "RU9Kk",
+           "id": "x2EiD",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "8px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9912,7 +9394,7 @@
         },
         {
          "type": "frame",
-         "id": "w6sHL",
+         "id": "h4aXw",
          "name": "Radius radius-field",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9920,7 +9402,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "IfvgL",
+           "id": "X8a0S",
            "name": "Box",
            "width": 96,
            "height": 64,
@@ -9931,7 +9413,7 @@
           },
           {
            "type": "text",
-           "id": "Z4Rjo",
+           "id": "UjrrA",
            "name": "Name",
            "fill": "$on-surface",
            "content": "radius-field",
@@ -9941,12 +9423,12 @@
           },
           {
            "type": "text",
-           "id": "kpzGy",
+           "id": "jaVdJ",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "10px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9954,7 +9436,7 @@
         },
         {
          "type": "frame",
-         "id": "mLoLq",
+         "id": "R0i55",
          "name": "Radius radius-board",
          "layout": "vertical",
          "gap": "$space-2",
@@ -9962,7 +9444,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "sGnUi",
+           "id": "BAcJp",
            "name": "Box",
            "width": 96,
            "height": 64,
@@ -9973,7 +9455,7 @@
           },
           {
            "type": "text",
-           "id": "Xxb1b",
+           "id": "Ra4rR",
            "name": "Name",
            "fill": "$on-surface",
            "content": "radius-board",
@@ -9983,12 +9465,12 @@
           },
           {
            "type": "text",
-           "id": "CXyxz",
+           "id": "TvbY0",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "16px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -9996,7 +9478,7 @@
         },
         {
          "type": "frame",
-         "id": "dlimO",
+         "id": "lkNKZ",
          "name": "Radius radius-phone",
          "layout": "vertical",
          "gap": "$space-2",
@@ -10004,7 +9486,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "EKqBF",
+           "id": "gs7Ae",
            "name": "Box",
            "width": 96,
            "height": 64,
@@ -10015,7 +9497,7 @@
           },
           {
            "type": "text",
-           "id": "Np9qr",
+           "id": "dFlAo",
            "name": "Name",
            "fill": "$on-surface",
            "content": "radius-phone",
@@ -10025,12 +9507,12 @@
           },
           {
            "type": "text",
-           "id": "efadK",
+           "id": "hvqzn",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "32px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -10038,7 +9520,7 @@
         },
         {
          "type": "frame",
-         "id": "M2in2",
+         "id": "L2CD5",
          "name": "Radius radius-pill",
          "layout": "vertical",
          "gap": "$space-2",
@@ -10046,7 +9528,7 @@
          "children": [
           {
            "type": "frame",
-           "id": "oNslF",
+           "id": "aNFbI",
            "name": "Box",
            "width": 96,
            "height": 64,
@@ -10057,7 +9539,7 @@
           },
           {
            "type": "text",
-           "id": "px6mZ",
+           "id": "iOGKs",
            "name": "Name",
            "fill": "$on-surface",
            "content": "radius-pill",
@@ -10067,12 +9549,12 @@
           },
           {
            "type": "text",
-           "id": "QDrB2",
+           "id": "xZ63O",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "999px",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           }
@@ -10097,7 +9579,7 @@
    "children": [
     {
      "type": "frame",
-     "id": "U0hb0",
+     "id": "Kk7ut",
      "name": "Cover",
      "width": "fill_container",
      "layout": "vertical",
@@ -10115,7 +9597,7 @@
      "children": [
       {
        "type": "text",
-       "id": "aZMWW",
+       "id": "jVRoa",
        "name": "Kicker",
        "fill": "$on-surface-muted",
        "content": "BUZZ · design system",
@@ -10125,7 +9607,7 @@
       },
       {
        "type": "text",
-       "id": "d2CDr",
+       "id": "JtPXz",
        "name": "Title",
        "fill": "$on-surface",
        "content": "Components",
@@ -10137,7 +9619,7 @@
       },
       {
        "type": "text",
-       "id": "hQZUu",
+       "id": "BJQpu",
        "name": "Note",
        "fill": "$on-surface-muted",
        "content": "Every page pen carries these same components (pen.dev cannot share components across files). Definitions sit above the pages in each file; this board shows each one on paper and ink.",
@@ -10152,7 +9634,7 @@
     },
     {
      "type": "frame",
-     "id": "ywRhD",
+     "id": "DfX7R",
      "name": "Marketing · small",
      "layout": "vertical",
      "gap": "$space-5",
@@ -10166,7 +9648,7 @@
      "children": [
       {
        "type": "text",
-       "id": "pgHY3",
+       "id": "FV91N",
        "name": "H2",
        "fill": "$on-surface",
        "content": "Marketing · controls",
@@ -10178,21 +9660,21 @@
       },
       {
        "type": "frame",
-       "id": "nnVkQ",
+       "id": "Z2T0H",
        "name": "Row",
        "gap": "$space-6",
        "alignItems": "start",
        "children": [
         {
          "type": "frame",
-         "id": "PA7Lt",
+         "id": "UxQ2x",
          "name": "Spec Pill / Yellow",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "ORkai",
+           "id": "QtxME",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Pill / Yellow",
@@ -10202,18 +9684,18 @@
           },
           {
            "type": "text",
-           "id": "ok34U",
+           "id": "LD1Z8",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "Primary CTA · 40 or 44 high · ink text",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           },
           {
            "type": "frame",
-           "id": "ToLVb",
+           "id": "vb6Ay",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -10223,7 +9705,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "O2Ggr",
+             "id": "fpq98",
              "ref": "uKtnH",
              "name": "Instance"
             }
@@ -10236,14 +9718,14 @@
         },
         {
          "type": "frame",
-         "id": "Ms3f8",
+         "id": "PiezS",
          "name": "Spec Pill / Dark",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "SWrtG",
+           "id": "BrBj6",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Pill / Dark",
@@ -10253,18 +9735,18 @@
           },
           {
            "type": "text",
-           "id": "fK2hv",
+           "id": "eBsjG",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "Secondary on paper · ink-btn",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           },
           {
            "type": "frame",
-           "id": "EUVqB",
+           "id": "GNvu3",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -10274,7 +9756,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "FAKig",
+             "id": "Voyif",
              "ref": "XHmYw",
              "name": "Instance",
              "descendants": {
@@ -10289,14 +9771,14 @@
         },
         {
          "type": "frame",
-         "id": "vPodZ",
+         "id": "DNqBY",
          "name": "Spec Pill / Ghost (on ink)",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "lyKfF",
+           "id": "ZG9cu",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Pill / Ghost (on ink)",
@@ -10306,18 +9788,18 @@
           },
           {
            "type": "text",
-           "id": "RWiXg",
+           "id": "uGuWK",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "1px on-surface outline",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           },
           {
            "type": "frame",
-           "id": "eIEa9",
+           "id": "tV3YU",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -10327,7 +9809,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "kEk5H",
+             "id": "bpkhB",
              "ref": "Ghost",
              "name": "Instance"
             }
@@ -10340,14 +9822,14 @@
         },
         {
          "type": "frame",
-         "id": "cihlw",
+         "id": "bQscK",
          "name": "Spec Pill / Ghost (on paper)",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "GyJf7",
+           "id": "MRUtl",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Pill / Ghost (on paper)",
@@ -10357,7 +9839,7 @@
           },
           {
            "type": "frame",
-           "id": "PIwsM",
+           "id": "XObqP",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -10367,7 +9849,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "bGhjy",
+             "id": "Vip9T",
              "ref": "Ghost",
              "name": "Instance",
              "descendants": {
@@ -10382,14 +9864,14 @@
         },
         {
          "type": "frame",
-         "id": "oVyLs",
+         "id": "jFkCU",
          "name": "Spec Button / Arrow",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "stRMD",
+           "id": "Z9gi5",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Button / Arrow",
@@ -10399,18 +9881,18 @@
           },
           {
            "type": "text",
-           "id": "EnEjJ",
+           "id": "k4PjS",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "Carousel prev/next · 40",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           },
           {
            "type": "frame",
-           "id": "paasA",
+           "id": "mDKwv",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -10420,7 +9902,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "ET7p5",
+             "id": "k93ia",
              "ref": "ArrowB",
              "name": "Instance"
             }
@@ -10430,14 +9912,14 @@
         },
         {
          "type": "frame",
-         "id": "ZuOuQ",
+         "id": "wU6d5",
          "name": "Spec LogoItem",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "xC9RV",
+           "id": "FiLRP",
            "name": "Name",
            "fill": "$on-surface",
            "content": "LogoItem",
@@ -10447,18 +9929,18 @@
           },
           {
            "type": "text",
-           "id": "WjVbY",
+           "id": "EdDbY",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "College logo in marquee · 48",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           },
           {
            "type": "frame",
-           "id": "qd31f",
+           "id": "xL29o",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -10468,7 +9950,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "hdyXb",
+             "id": "NZICG",
              "ref": "lM2vX",
              "name": "Instance"
             }
@@ -10478,14 +9960,14 @@
         },
         {
          "type": "frame",
-         "id": "XhNED",
+         "id": "ap88W",
          "name": "Spec MapPin",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "kYsTu",
+           "id": "bgPLg",
            "name": "Name",
            "fill": "$on-surface",
            "content": "MapPin",
@@ -10495,18 +9977,18 @@
           },
           {
            "type": "text",
-           "id": "LARgj",
+           "id": "yv11J",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "Campus pin",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           },
           {
            "type": "frame",
-           "id": "H5E5M",
+           "id": "DBWmE",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -10516,7 +9998,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "FvOGM",
+             "id": "YtExu",
              "ref": "QFtyV",
              "name": "Instance"
             }
@@ -10530,7 +10012,7 @@
     },
     {
      "type": "frame",
-     "id": "FLoWA",
+     "id": "jp5DL",
      "name": "Marketing · blocks",
      "layout": "vertical",
      "gap": "$space-6",
@@ -10542,7 +10024,7 @@
      "children": [
       {
        "type": "text",
-       "id": "bnG6d",
+       "id": "SLVSm",
        "name": "H2",
        "fill": "$on-surface",
        "content": "Marketing · blocks",
@@ -10554,14 +10036,14 @@
       },
       {
        "type": "frame",
-       "id": "EKnyr",
+       "id": "ZxIkA",
        "name": "Spec NavBar",
        "layout": "vertical",
        "gap": "$space-2",
        "children": [
         {
          "type": "text",
-         "id": "GILkq",
+         "id": "LIpzd",
          "name": "Name",
          "fill": "$on-surface",
          "content": "NavBar",
@@ -10571,18 +10053,18 @@
         },
         {
          "type": "text",
-         "id": "zyo1h",
+         "id": "YCQUm",
          "name": "Label",
          "fill": "$on-surface-muted",
          "content": "Desktop · floating glass bar · 1152 wide",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal",
          "lineHeight": 1.4
         },
         {
          "type": "frame",
-         "id": "aBO2s",
+         "id": "egSVf",
          "name": "Stage",
          "padding": "$space-5",
          "fill": "$surface",
@@ -10592,7 +10074,7 @@
          "children": [
           {
            "type": "ref",
-           "id": "tVPBT",
+           "id": "rMHI3",
            "ref": "H3d268",
            "name": "Instance"
           }
@@ -10605,14 +10087,14 @@
       },
       {
        "type": "frame",
-       "id": "LZD2I",
+       "id": "ou9EA",
        "name": "Spec NavBar / Mobile",
        "layout": "vertical",
        "gap": "$space-2",
        "children": [
         {
          "type": "text",
-         "id": "AX0MZ",
+         "id": "XgHU6",
          "name": "Name",
          "fill": "$on-surface",
          "content": "NavBar / Mobile",
@@ -10622,18 +10104,18 @@
         },
         {
          "type": "text",
-         "id": "txx91",
+         "id": "e0Yhq",
          "name": "Label",
          "fill": "$on-surface-muted",
          "content": "Mobile · 374 wide",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal",
          "lineHeight": 1.4
         },
         {
          "type": "frame",
-         "id": "jeFSJ",
+         "id": "yDesi",
          "name": "Stage",
          "padding": "$space-5",
          "fill": "$surface",
@@ -10643,7 +10125,7 @@
          "children": [
           {
            "type": "ref",
-           "id": "wk0a5",
+           "id": "htBav",
            "ref": "YSw6B",
            "name": "Instance"
           }
@@ -10656,14 +10138,14 @@
       },
       {
        "type": "frame",
-       "id": "FRPLl",
+       "id": "Qy1UO",
        "name": "Spec Section / Head",
        "layout": "vertical",
        "gap": "$space-2",
        "children": [
         {
          "type": "text",
-         "id": "y0d0C",
+         "id": "TXoVP",
          "name": "Name",
          "fill": "$on-surface",
          "content": "Section / Head",
@@ -10673,18 +10155,18 @@
         },
         {
          "type": "text",
-         "id": "c99gu",
+         "id": "tp8CU",
          "name": "Label",
          "fill": "$on-surface-muted",
          "content": "Centered h2 + support · 704 measure",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal",
          "lineHeight": 1.4
         },
         {
          "type": "frame",
-         "id": "OVXGQ",
+         "id": "oVj7U",
          "name": "Stage",
          "padding": "$space-5",
          "fill": "$surface",
@@ -10694,7 +10176,7 @@
          "children": [
           {
            "type": "ref",
-           "id": "E1EuS",
+           "id": "Zn1aL",
            "ref": "SecHd",
            "name": "Instance"
           }
@@ -10704,14 +10186,14 @@
       },
       {
        "type": "frame",
-       "id": "swhEr",
+       "id": "kARrb",
        "name": "Spec Section / Head (ink)",
        "layout": "vertical",
        "gap": "$space-2",
        "children": [
         {
          "type": "text",
-         "id": "u8oPv",
+         "id": "X6EY6",
          "name": "Name",
          "fill": "$on-surface",
          "content": "Section / Head (ink)",
@@ -10721,7 +10203,7 @@
         },
         {
          "type": "frame",
-         "id": "lBEJw",
+         "id": "kuMuK",
          "name": "Stage",
          "padding": "$space-5",
          "fill": "$surface",
@@ -10731,7 +10213,7 @@
          "children": [
           {
            "type": "ref",
-           "id": "Ue2a9",
+           "id": "e809a",
            "ref": "SecHd",
            "name": "Instance"
           }
@@ -10744,20 +10226,20 @@
       },
       {
        "type": "frame",
-       "id": "yDr0d",
+       "id": "vK5Vw",
        "name": "Cards",
        "gap": "$space-6",
        "children": [
         {
          "type": "frame",
-         "id": "Kvab9",
+         "id": "ZZGJK",
          "name": "Spec Card / Numbered / Photo",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "DYaJH",
+           "id": "ceIGn",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Card / Numbered / Photo",
@@ -10767,18 +10249,18 @@
           },
           {
            "type": "text",
-           "id": "nIkMn",
+           "id": "fvcTE",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "16:15 media (4:3 mobile) · yellow badge",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           },
           {
            "type": "frame",
-           "id": "e8B5O",
+           "id": "J7EJv",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -10788,7 +10270,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "LTAYK",
+             "id": "BlHLc",
              "ref": "CardPh",
              "name": "Instance"
             }
@@ -10798,14 +10280,14 @@
         },
         {
          "type": "frame",
-         "id": "wk6kF",
+         "id": "ChPmi",
          "name": "Spec Card / Numbered / Mark",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "k8kTq",
+           "id": "RVguv",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Card / Numbered / Mark",
@@ -10815,18 +10297,18 @@
           },
           {
            "type": "text",
-           "id": "lHmq5",
+           "id": "IpBNF",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "Yellow bee tile · ink badge",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           },
           {
            "type": "frame",
-           "id": "hZwVX",
+           "id": "m4VPS",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -10836,7 +10318,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "oBPac",
+             "id": "myhVP",
              "ref": "CardMk",
              "name": "Instance"
             }
@@ -10846,14 +10328,14 @@
         },
         {
          "type": "frame",
-         "id": "G7XDA",
+         "id": "aSHpN",
          "name": "Spec Card / Numbered / Photo (ink)",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "k1HaK",
+           "id": "BtblJ",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Card / Numbered / Photo (ink)",
@@ -10863,7 +10345,7 @@
           },
           {
            "type": "frame",
-           "id": "IQTLh",
+           "id": "YZKxu",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -10873,7 +10355,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "AdRYc",
+             "id": "aoKFm",
              "ref": "CardPh",
              "name": "Instance"
             }
@@ -10888,20 +10370,20 @@
       },
       {
        "type": "frame",
-       "id": "Xowid",
+       "id": "BNFlI",
        "name": "FAQ",
        "gap": "$space-6",
        "children": [
         {
          "type": "frame",
-         "id": "WUswU",
+         "id": "OiwOr",
          "name": "Spec FAQ / Item",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "ovCgH",
+           "id": "FWZkP",
            "name": "Name",
            "fill": "$on-surface",
            "content": "FAQ / Item",
@@ -10911,18 +10393,18 @@
           },
           {
            "type": "text",
-           "id": "XiGc0",
+           "id": "QaZg2",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "64 row · hairline top",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           },
           {
            "type": "frame",
-           "id": "gDtOw",
+           "id": "fdN9T",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -10932,7 +10414,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "n6hKT",
+             "id": "O9MoI",
              "ref": "FaqCl",
              "name": "Instance"
             }
@@ -10942,14 +10424,14 @@
         },
         {
          "type": "frame",
-         "id": "haZAI",
+         "id": "zvuem",
          "name": "Spec FAQ / Item / Open",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "p9ZTU",
+           "id": "SXThU",
            "name": "Name",
            "fill": "$on-surface",
            "content": "FAQ / Item / Open",
@@ -10959,18 +10441,18 @@
           },
           {
            "type": "text",
-           "id": "Wpg8B",
+           "id": "cSh4U",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "Open state on ink",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           },
           {
            "type": "frame",
-           "id": "fBHXf",
+           "id": "KnQnv",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -10980,7 +10462,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "CJzAO",
+             "id": "JmqnO",
              "ref": "FaqOp",
              "name": "Instance"
             }
@@ -10995,14 +10477,14 @@
       },
       {
        "type": "frame",
-       "id": "TLSDe",
+       "id": "pzG3P",
        "name": "Spec DropCard",
        "layout": "vertical",
        "gap": "$space-2",
        "children": [
         {
          "type": "text",
-         "id": "z9LvM",
+         "id": "lKRgM",
          "name": "Name",
          "fill": "$on-surface",
          "content": "DropCard",
@@ -11012,18 +10494,18 @@
         },
         {
          "type": "text",
-         "id": "uECmH",
+         "id": "aRbiq",
          "name": "Label",
          "fill": "$on-surface-muted",
          "content": "Current drops slide",
          "fontFamily": "$font",
-         "fontSize": "$type-micro",
+         "fontSize": "$type-label",
          "fontWeight": "normal",
          "lineHeight": 1.4
         },
         {
          "type": "frame",
-         "id": "Mi37o",
+         "id": "K6WwC",
          "name": "Stage",
          "padding": "$space-5",
          "fill": "$surface",
@@ -11033,7 +10515,7 @@
          "children": [
           {
            "type": "ref",
-           "id": "Ns9uD",
+           "id": "Pk6O4",
            "ref": "N4ul60",
            "name": "Instance"
           }
@@ -11043,14 +10525,14 @@
       },
       {
        "type": "frame",
-       "id": "yc3Vf",
+       "id": "Fu3M1",
        "name": "Spec FooterColumn",
        "layout": "vertical",
        "gap": "$space-2",
        "children": [
         {
          "type": "text",
-         "id": "BqE7m",
+         "id": "J6KJJ",
          "name": "Name",
          "fill": "$on-surface",
          "content": "FooterColumn",
@@ -11060,7 +10542,7 @@
         },
         {
          "type": "frame",
-         "id": "g1V2P",
+         "id": "r8VEt",
          "name": "Stage",
          "padding": "$space-5",
          "fill": "$surface",
@@ -11070,7 +10552,7 @@
          "children": [
           {
            "type": "ref",
-           "id": "HiANM",
+           "id": "yTgRE",
            "ref": "RArr7",
            "name": "Instance"
           }
@@ -11085,7 +10567,7 @@
     },
     {
      "type": "frame",
-     "id": "qnWqq",
+     "id": "yIK30",
      "name": "App",
      "layout": "vertical",
      "gap": "$space-5",
@@ -11101,7 +10583,7 @@
      "children": [
       {
        "type": "text",
-       "id": "q7YxF",
+       "id": "DF8nr",
        "name": "H2",
        "fill": "$on-surface",
        "content": "App · drop editor",
@@ -11113,21 +10595,21 @@
       },
       {
        "type": "frame",
-       "id": "ZdfLz",
+       "id": "x6qId",
        "name": "Row",
        "gap": "$space-5",
        "alignItems": "start",
        "children": [
         {
          "type": "frame",
-         "id": "sLNIm",
+         "id": "zQdsI",
          "name": "Spec App / Field",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "nzckJ",
+           "id": "nQk79",
            "name": "Name",
            "fill": "$on-surface",
            "content": "App / Field",
@@ -11137,18 +10619,18 @@
           },
           {
            "type": "text",
-           "id": "NonI7",
+           "id": "WVn59",
            "name": "Label",
            "fill": "$on-surface-muted",
            "content": "Phone mock field",
            "fontFamily": "$font",
-           "fontSize": "$type-micro",
+           "fontSize": "$type-label",
            "fontWeight": "normal",
            "lineHeight": 1.4
           },
           {
            "type": "frame",
-           "id": "gtJ5o",
+           "id": "oaHmI",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -11158,7 +10640,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "YqyYm",
+             "id": "jPhfs",
              "ref": "QhHN7",
              "name": "Instance"
             }
@@ -11168,14 +10650,14 @@
         },
         {
          "type": "frame",
-         "id": "GNu7K",
+         "id": "LBdzk",
          "name": "Spec App / Button",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "cRYuX",
+           "id": "CpRGY",
            "name": "Name",
            "fill": "$on-surface",
            "content": "App / Button",
@@ -11185,7 +10667,7 @@
           },
           {
            "type": "frame",
-           "id": "g9OHq",
+           "id": "abXvD",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -11195,7 +10677,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "a4Yus",
+             "id": "voMnq",
              "ref": "V6GNvM",
              "name": "Instance"
             }
@@ -11205,14 +10687,14 @@
         },
         {
          "type": "frame",
-         "id": "D4xU4",
+         "id": "Du35d",
          "name": "Spec App / Chip",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "weuUJ",
+           "id": "TO5fn",
            "name": "Name",
            "fill": "$on-surface",
            "content": "App / Chip",
@@ -11222,7 +10704,7 @@
           },
           {
            "type": "frame",
-           "id": "GSo04",
+           "id": "xJDWO",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -11232,7 +10714,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "PRN4S",
+             "id": "t9i4K",
              "ref": "Brjmq",
              "name": "Instance"
             }
@@ -11242,14 +10724,14 @@
         },
         {
          "type": "frame",
-         "id": "wUNOr",
+         "id": "kWI93",
          "name": "Spec Pill (drop editor)",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "sVoR2",
+           "id": "N7Z83",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Pill (drop editor)",
@@ -11259,7 +10741,7 @@
           },
           {
            "type": "frame",
-           "id": "lHep2",
+           "id": "jG3Qk",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -11269,7 +10751,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "G6HAR",
+             "id": "DlPsN",
              "ref": "O4h20f",
              "name": "Instance"
             }
@@ -11282,14 +10764,14 @@
         },
         {
          "type": "frame",
-         "id": "T9woF",
+         "id": "n7ROc",
          "name": "Spec Chip (drop editor)",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "ZKmHw",
+           "id": "Pdj7M",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Chip (drop editor)",
@@ -11299,7 +10781,7 @@
           },
           {
            "type": "frame",
-           "id": "xZ0Ab",
+           "id": "E8ea2",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -11309,7 +10791,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "eXnG7",
+             "id": "S7rJ8",
              "ref": "vTXYD",
              "name": "Instance"
             }
@@ -11322,14 +10804,14 @@
         },
         {
          "type": "frame",
-         "id": "iOy7p",
+         "id": "BPQ8n",
          "name": "Spec Campus chip",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "mo6ra",
+           "id": "fyvyg",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Campus chip",
@@ -11339,7 +10821,7 @@
           },
           {
            "type": "frame",
-           "id": "Imyow",
+           "id": "FoSMW",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -11349,7 +10831,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "YmROO",
+             "id": "V7cQv",
              "ref": "hN5sG",
              "name": "Instance"
             }
@@ -11362,14 +10844,14 @@
         },
         {
          "type": "frame",
-         "id": "MkgE8",
+         "id": "w30kP",
          "name": "Spec Toggle",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "zSnEk",
+           "id": "jENlK",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Toggle",
@@ -11379,7 +10861,7 @@
           },
           {
            "type": "frame",
-           "id": "Z2Leu",
+           "id": "GDA2Q",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -11389,7 +10871,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "p34TG",
+             "id": "TeNLg",
              "ref": "cw9tO",
              "name": "Instance"
             }
@@ -11402,14 +10884,14 @@
         },
         {
          "type": "frame",
-         "id": "bplgc",
+         "id": "qTGuZ",
          "name": "Spec Stat",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "nh43y",
+           "id": "aHrAG",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Stat",
@@ -11419,7 +10901,7 @@
           },
           {
            "type": "frame",
-           "id": "bJJLF",
+           "id": "CG6Hs",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -11429,7 +10911,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "xn9pc",
+             "id": "pJVc7",
              "ref": "e5JjE",
              "name": "Instance"
             }
@@ -11444,21 +10926,21 @@
       },
       {
        "type": "frame",
-       "id": "RjHgW",
+       "id": "bIz17",
        "name": "Row",
        "gap": "$space-5",
        "alignItems": "start",
        "children": [
         {
          "type": "frame",
-         "id": "ETKBv",
+         "id": "rWsmE",
          "name": "Spec Section header (drop editor)",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "r2cVC",
+           "id": "zquTx",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Section header (drop editor)",
@@ -11468,7 +10950,7 @@
           },
           {
            "type": "frame",
-           "id": "ZHWJF",
+           "id": "pCkli",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -11478,7 +10960,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "TEK6x",
+             "id": "qgyKH",
              "ref": "e0Bt4",
              "name": "Instance"
             }
@@ -11491,14 +10973,14 @@
         },
         {
          "type": "frame",
-         "id": "MraQs",
+         "id": "mB7oK",
          "name": "Spec Time row",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "o6VhK",
+           "id": "GXEa2",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Time row",
@@ -11508,7 +10990,7 @@
           },
           {
            "type": "frame",
-           "id": "qucCS",
+           "id": "A3ZGc",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -11518,7 +11000,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "yeT0k",
+             "id": "TjbPT",
              "ref": "xNCzN",
              "name": "Instance"
             }
@@ -11531,14 +11013,14 @@
         },
         {
          "type": "frame",
-         "id": "AT7Xa",
+         "id": "aaQ9v",
          "name": "Spec Detail row",
          "layout": "vertical",
          "gap": "$space-2",
          "children": [
           {
            "type": "text",
-           "id": "HXb8B",
+           "id": "Phfef",
            "name": "Name",
            "fill": "$on-surface",
            "content": "Detail row",
@@ -11548,7 +11030,7 @@
           },
           {
            "type": "frame",
-           "id": "crqzD",
+           "id": "wUaaJ",
            "name": "Stage",
            "padding": "$space-5",
            "fill": "$surface",
@@ -11558,7 +11040,7 @@
            "children": [
             {
              "type": "ref",
-             "id": "yQ7kB",
+             "id": "BNobd",
              "ref": "CCoIO",
              "name": "Instance"
             }
@@ -11573,14 +11055,14 @@
       },
       {
        "type": "frame",
-       "id": "i7nVT",
+       "id": "cxXt2",
        "name": "Spec Date range popover",
        "layout": "vertical",
        "gap": "$space-2",
        "children": [
         {
          "type": "text",
-         "id": "a4CQI",
+         "id": "hPyIn",
          "name": "Name",
          "fill": "$on-surface",
          "content": "Date range popover",
@@ -11590,7 +11072,7 @@
         },
         {
          "type": "frame",
-         "id": "NQ13R",
+         "id": "CtvTx",
          "name": "Stage",
          "padding": "$space-5",
          "fill": "$surface",
@@ -11600,7 +11082,7 @@
          "children": [
           {
            "type": "ref",
-           "id": "H4Gi9",
+           "id": "Xw3yN",
            "ref": "I3tYj",
            "name": "Instance"
           }
@@ -11917,11 +11399,28 @@
     }
    ]
   },
+  "section-y": {
+   "type": "number",
+   "value": [
+    {
+     "value": 108,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 68,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
   "type-display": {
    "type": "number",
    "value": [
     {
-     "value": 115.2,
+     "value": 115,
      "theme": {
       "device": "desktop"
      }
@@ -11934,17 +11433,17 @@
     }
    ]
   },
-  "type-title-xl": {
+  "type-title": {
    "type": "number",
    "value": [
     {
-     "value": 66.24,
+     "value": 64,
      "theme": {
       "device": "desktop"
      }
     },
     {
-     "value": 38.4,
+     "value": 36,
      "theme": {
       "device": "mobile"
      }
@@ -11961,7 +11460,7 @@
      }
     },
     {
-     "value": 36,
+     "value": 32,
      "theme": {
       "device": "mobile"
      }
@@ -11972,13 +11471,13 @@
    "type": "number",
    "value": [
     {
-     "value": 43.2,
+     "value": 44,
      "theme": {
       "device": "desktop"
      }
     },
     {
-     "value": 32,
+     "value": 28,
      "theme": {
       "device": "mobile"
      }
@@ -11996,23 +11495,6 @@
     },
     {
      "value": 20,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-body-lg": {
-   "type": "number",
-   "value": [
-    {
-     "value": 17,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 17,
      "theme": {
       "device": "mobile"
      }
@@ -12057,23 +11539,6 @@
    "type": "number",
    "value": [
     {
-     "value": 13,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 13,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-micro": {
-   "type": "number",
-   "value": [
-    {
      "value": 12,
      "theme": {
       "device": "desktop"
@@ -12081,108 +11546,6 @@
     },
     {
      "value": 12,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-tiny": {
-   "type": "number",
-   "value": [
-    {
-     "value": 11,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 11,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "section-y": {
-   "type": "number",
-   "value": [
-    {
-     "value": 108,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 68,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-hero": {
-   "type": "number",
-   "value": [
-    {
-     "value": 63.36,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 32.8,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-join": {
-   "type": "number",
-   "value": [
-    {
-     "value": 51.84,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 35.1,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-title-lg": {
-   "type": "number",
-   "value": [
-    {
-     "value": 56,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 21.6,
-     "theme": {
-      "device": "mobile"
-     }
-    }
-   ]
-  },
-  "type-h4": {
-   "type": "number",
-   "value": [
-    {
-     "value": 18.72,
-     "theme": {
-      "device": "desktop"
-     }
-    },
-    {
-     "value": 17,
      "theme": {
       "device": "mobile"
      }
@@ -12204,7 +11567,7 @@
    "mobile"
   ]
  },
- "fileToken": "af59d284-751f-454e-8d8a-c876d288cc02",
+ "fileToken": "055b3ab0-6897-4168-bf84-2dc61dcbe65e",
  "fonts": [
   {
    "name": "Switzer",

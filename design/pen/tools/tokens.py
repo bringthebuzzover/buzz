@@ -15,11 +15,10 @@ SEM = {  # themed by surface: paper (light) / ink (dark)
 }
 N = {"space-1":4,"space-2":8,"space-3":12,"space-4":16,"space-5":24,"space-6":32,"space-7":48,"space-8":64,"space-9":96,
      "radius-control":8,"radius-card":8,"radius-field":10,"radius-board":16,"radius-phone":32,"radius-pill":999}
-DEV = {  # desktop 1440 / mobile 390 (CSS clamp() resolved at those widths)
- "side":(48,16),"type-display":(115.2,48),"type-title-xl":(66.24,38.4),"type-statement":(54,36),"type-h2":(43.2,32),
- "type-h3":(20,20),"type-body-lg":(17,17),"type-body":(16,16),"type-small":(14,14),"type-label":(13,13),"type-micro":(12,12),"type-tiny":(11,11),
- "section-y":(108,68),
- "type-hero":(63.36,32.8),"type-join":(51.84,35.1),"type-title-lg":(56,21.6),"type-h4":(18.72,17)}
+DEV = {  # desktop 1440 / mobile 390. Type: 8 steps (consolidated from 15, see README)
+ "side":(48,16),"section-y":(108,68),
+ "type-display":(115,48),"type-title":(64,36),"type-statement":(54,32),"type-h2":(44,28),
+ "type-h3":(20,20),"type-body":(16,16),"type-small":(14,14),"type-label":(12,12)}
 def variables():
     v={k:{"type":"color","value":x} for k,x in C.items()}
     for k,(l,d) in SEM.items(): v[k]={"type":"color","value":[{"value":l,"theme":{"surface":"paper"}},{"value":d,"theme":{"surface":"ink"}}]}
