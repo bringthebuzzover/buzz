@@ -62,6 +62,8 @@ import PulseLayout from "./layouts/PulseLayout";
 import PulseHomePage from "./pages/pulse/PulseHomePage";
 import PulseTwoLayout from "./layouts/PulseTwoLayout";
 import PulseTwoHomePage from "./pages/pulse2/PulseTwoHomePage";
+import PulseBeeLayout from "./layouts/PulseBeeLayout";
+import PulseBeeHomePage from "./pages/pulseBee/PulseBeeHomePage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
 function PortalGuard({
@@ -121,6 +123,10 @@ export default function AppRoot(): ReactElement {
 
       <Route element={<PulseTwoLayout />}>
         <Route path="pulse2" element={<PulseTwoHomePage />} />
+      </Route>
+
+      <Route element={<PulseBeeLayout />}>
+        <Route path="pulse-bee" element={<PulseBeeHomePage />} />
       </Route>
 
       <Route element={<SiteLayout />}>
