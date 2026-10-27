@@ -53,4 +53,12 @@ describe("LabShell", () => {
     expect(html).toContain("pulse2-display");
     expect(html).not.toContain("lab-grid");
   });
+
+  it("serves /drop-editor from the app", () => {
+    const html = renderAt("/drop-editor");
+    expect(html).toContain("Design preview");
+    expect(html).toContain("drop-editor");
+    expect(html).toContain("Application window");
+    expect(html).not.toContain("lab-grid");
+  });
 });
