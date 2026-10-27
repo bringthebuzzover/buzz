@@ -17,7 +17,7 @@ import { siteIdentity } from "../../data/siteIdentity";
 import PulseBeeCampusMap from "../../components/pulseBee/PulseBeeCampusMap";
 import { usePrefersReducedMotion } from "../../components/pulseBee/usePrefersReducedMotion";
 import { publicLogo } from "../../utils/publicLogo";
-import type { CollegeMarqueeItem, FeaturedCollab } from "../../types/campaign";
+import type { FeaturedCollab } from "../../types/campaign";
 import { useTitleTone } from "./useTitleTone";
 import type { FrameRegion } from "./titleTone";
 
@@ -46,11 +46,6 @@ export const STEPS = [
   },
 ] as const;
 
-/** Local mark first, otherwise Clearbit by domain. icon.horse is the onError fallback. */
-function logoSrcFor(item: CollegeMarqueeItem): string {
-  return item.logoSrc ?? `https://logo.clearbit.com/${item.domain}`;
-}
-
 export function LogoRow({ hidden }: { hidden?: boolean }) {
   return (
     <ul className="pulse2-marquee__group" aria-hidden={hidden || undefined}>
@@ -58,13 +53,8 @@ export function LogoRow({ hidden }: { hidden?: boolean }) {
         <li key={college.domain} className="pulse2-logo-item">
           <img
             className="pulse2-logo"
-            src={logoSrcFor(college)}
+            src={college.logoSrc}
             alt={hidden ? "" : college.name}
-            onError={(event) => {
-              const img = event.currentTarget;
-              const fallback = `https://icon.horse/icon/${college.domain}`;
-              if (img.src !== fallback) img.src = fallback;
-            }}
           />
         </li>
       ))}

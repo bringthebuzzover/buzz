@@ -33,7 +33,8 @@ describe("PulseBeeHomePage", () => {
     expect(html).toMatch(/Apply as a brand/);
     expect(html).toMatch(/For organizations/);
     expect(html).toMatch(/For brands/);
-    expect(html).toContain("logo.clearbit.com/stanford.edu");
+    expect(html).toContain("/colleges/stanford.png");
+    expect(html).not.toMatch(/clearbit|icon\.horse/);
     expect(html).toMatch(/Stanford/);
     expect(html).toMatch(/Princeton/);
     expect(html).toMatch(/School \(\.edu\) email/);
