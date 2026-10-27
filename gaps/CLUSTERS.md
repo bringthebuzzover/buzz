@@ -188,7 +188,7 @@ Priority rationale (2026-08-11 delivery order — code first, then ops parallel)
 3. `brand-delivery-address` — **done** (null denied applicants' deliveryAddress)
 4. `org-edu-email-change` — **done** (pending-swap `.edu` rotate)
 5. `admin-drops-ops-ui` — **done** (list multiselect + detail logistics)
-   Ops (not auto-pick): `meta-app-review` (`in_progress` — App Review resubmission; was `meta-business-verification`; human dashboard). `ops.brand-mailbox` archived 2026-10-26 (`hello@` alias on `melissa@`, inbox proof).
+   Ops (not auto-pick): `meta-app-review` (`in_progress` — App Review resubmission; was `meta-business-verification`; human dashboard). `ops.brand-mailbox` archived 2026-10-26 (`hello@` alias on `melissa@`; Google bills that only email).
 
 ---
 
@@ -596,9 +596,9 @@ gaps:
   PRODUCT email-only. See `gaps/archive/ops.email-ledger.md`.
 - `ops.resend-domain-unverified` — **archived** 2026-08-11 (domain Verified +
   brand invite inbox proof; key rotated onto Railway).
-- `ops.brand-mailbox` — **archived** 2026-10-26. `hello@` is an alias on the
-  sole Workspace user `melissa@` (inbox proof). Resend stays on `send.`.
-  See `gaps/archive/ops.brand-mailbox.md`.
+- `ops.brand-mailbox` — **archived** 2026-10-26. `hello@` is an alias on
+  `melissa@`. That address is the only Workspace email, and Google bills it.
+  Resend stays on `send.`. See `gaps/archive/ops.brand-mailbox.md`.
 - `ops.ig-business-discovery-unset` — apply confirm card soft-fails until
   Facebook Login Business Discovery token + IG user id are on Railway api
   (human Meta mint; not Instagram Login `INSTAGRAM_CLIENT_*`).
