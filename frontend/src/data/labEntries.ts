@@ -7,6 +7,7 @@ import pulseTwoThumb from "../lab/media/pulse2.jpg";
 import inspoThumb from "../lab/media/inspo.jpg";
 import dropEditorThumb from "../lab/media/drop-editor.jpg";
 import logoThumb from "../lab/media/logo-options.svg";
+import pulseBeeThumb from "../lab/media/pulse-bee.jpg";
 import pulseBeeOrgsThumb from "../lab/media/pulse-bee-orgs.jpg";
 import pulseBeeBrandsThumb from "../lab/media/pulse-bee-brands.jpg";
 
@@ -104,6 +105,16 @@ export const labEntries: readonly LabEntry[] = [
     thumbnail: inspoThumb,
     thumbnailAlt:
       "Inspo hero: Tap into Gen Z everywhere, beside a dotted campus map.",
+  },
+  {
+    id: "pulse-bee",
+    name: "Pulse Bee",
+    note: "Pulse 2 plus a bee that flies campus to campus on the college map.",
+    status: "Live",
+    href: "/pulse-bee",
+    prUrl: "https://github.com/bringthebuzzover/buzz/pull/22",
+    thumbnail: pulseBeeThumb,
+    thumbnailAlt: "Pulse Bee hero: Campus marketing, powered by student communities.",
   },
   {
     id: "pulse-bee-orgs",
