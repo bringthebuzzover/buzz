@@ -17,55 +17,55 @@ Statuses: `pending` | `in_progress` | `done` | `parked` | `ops`
 
 status: done
 gaps:
-  - jobs.reels-insights-feed-metrics
-  - jobs.insights-failure-drops-basics
-  - jobs.reels-skip-rate-truncated
-  - jobs.metric-sync-single-page
-  - jobs.metric-sync-per-post-failures
-  - jobs.engagement-over-time-cliff
-approach: |
-  Touch `backend/app/services/instagram.py` + `backend/app/jobs/metric_sync.py`
-  + `backend/app/services/brands.py` (`compute_engagement_series`) + tests in
-  `backend/tests/test_jobs.py` (and brand series tests if present).
 
-  1. REELS metric set: In `HttpInstagramClient.fetch_media_insights`, when
-     `is_reel=True`, request ONLY reel-safe metrics (reach, views, saved, shares,
-     reposts, total_interactions, ig_reels_avg_watch_time,
-     ig_reels_video_view_total_time, reels_skip_rate). Do NOT include
-     profile_visits, profile_activity, follows on REELS. FEED keeps the current
-     non-reel set including profile_* / follows.
-  2. Fractional metrics: Parse insight values with a helper that uses `float`
-     for `reels_skip_rate` (and any other known fractional names) and `int` for
-     the rest. Update return type to `dict[str, int | float]` (or keep dict and
-     cast in `_apply_metrics`). Fake client + tests must exercise fractional
-     skip rate.
-  3. Split basics vs insights in `sync_metrics` refresh loop: `fetch_media`
-     success always writes likes/comments (and related basic fields) via a
-     basics path; `fetch_media_insights` in its own try. Insights success applies
-     insight columns + stamps `metrics_updated_at`. Insights failure: keep
-     basics, do not wipe prior insight columns, increment `failures`, leave
-     `metrics_updated_at` unchanged unless product already stamped on basics —
-     LOCKED: stamp `metrics_updated_at` only when insights succeed OR when
-     basics succeed and insights were skipped as N/A; for insights failure after
-     basics, still stamp `metrics_updated_at` so charts include the post, and
-     leave insight columns null/prior. Count insights failures in `failures`.
-  4. Pagination: `fetch_user_media` follows `paging.next` until exhausted or
-     items fall outside the 30-day window (stop early when timestamps age out).
-     Cap pages (e.g. 10) to bound runtime; document the cap. Media-list
-     exceptions increment `failures` (not silent empty list alone).
-  5. Failure accounting: skipped orgs with present-but-unusable tokens
-     (expired/undecryptable) increment `failures` (or a dedicated
-     `skipped_token` counter that rolls into the job summary and is treated as
-     non-clean). Document in job docstring that sync eligibility
-     (`_LIVE_STAGES` / finalize→awaiting blackout) is intentional for this
-     batch — do NOT expand stage gating here.
-  6. Engagement series: bucket by `posted_at` (stable axis), not
-     `metrics_updated_at`. Include posts that have engagement fields even if
-     insights are partial, consistent with drop aggregates. Update tests.
+- jobs.reels-insights-feed-metrics
+- jobs.insights-failure-drops-basics
+- jobs.reels-skip-rate-truncated
+- jobs.metric-sync-single-page
+- jobs.metric-sync-per-post-failures
+- jobs.engagement-over-time-cliff
+  approach: |
+  Touch `backend/app/services/instagram.py`, `backend/app/jobs/metric_sync.py`, and `backend/app/services/brands.py` (`compute_engagement_series`), plus tests in `backend/tests/test_jobs.py` (and brand series tests if present).
+
+1. REELS metric set: In `HttpInstagramClient.fetch_media_insights`, when
+   `is_reel=True`, request ONLY reel-safe metrics (reach, views, saved, shares,
+   reposts, `total_interactions`, `ig_reels_avg_watch_time`,
+   `ig_reels_video_view_total_time`, `reels_skip_rate`). Do NOT include
+   `profile_visits`, `profile_activity`, follows on REELS. FEED keeps the current
+   non-reel set including `profile_*` / follows.
+2. Fractional metrics: Parse insight values with a helper that uses `float`
+   for `reels_skip_rate` (and any other known fractional names) and `int` for
+   the rest. Update return type to `dict[str, int | float]` (or keep dict and
+   cast in `_apply_metrics`). Fake client + tests must exercise fractional
+   skip rate.
+3. Split basics vs insights in `sync_metrics` refresh loop: `fetch_media`
+   success always writes likes/comments (and related basic fields) via a
+   basics path; `fetch_media_insights` in its own try. Insights success applies
+   insight columns + stamps `metrics_updated_at`. Insights failure: keep
+   basics, do not wipe prior insight columns, increment `failures`, leave
+   `metrics_updated_at` unchanged unless product already stamped on basics —
+   LOCKED: stamp `metrics_updated_at` only when insights succeed OR when
+   basics succeed and insights were skipped as N/A; for insights failure after
+   basics, still stamp `metrics_updated_at` so charts include the post, and
+   leave insight columns null/prior. Count insights failures in `failures`.
+4. Pagination: `fetch_user_media` follows `paging.next` until exhausted or
+   items fall outside the 30-day window (stop early when timestamps age out).
+   Cap pages (e.g. 10) to bound runtime; document the cap. Media-list
+   exceptions increment `failures` (not silent empty list alone).
+5. Failure accounting: skipped orgs with present-but-unusable tokens
+   (expired/undecryptable) increment `failures` (or a dedicated
+   `skipped_token` counter that rolls into the job summary and is treated as
+   non-clean). Document in job docstring that sync eligibility
+   (`_LIVE_STAGES` / finalize→awaiting blackout) is intentional for this
+   batch — do NOT expand stage gating here.
+6. Engagement series: bucket by `posted_at` (stable axis), not
+   `metrics_updated_at`. Include posts that have engagement fields even if
+   insights are partial, consistent with drop aggregates. Update tests.
 
 stop_if:
-  - Meta docs contradict reel-safe metric names after checking META.md / Graph
-    docs; pause and ask before inventing metrics.
+
+- Meta docs contradict reel-safe metric names after checking META.md / Graph
+  docs; pause and ask before inventing metrics.
 
 ---
 
@@ -73,23 +73,25 @@ stop_if:
 
 status: done
 gaps:
-  - jobs.autolink-dotted-handle-false-positive
-  - jobs.autolink-after-drop-finished
-approach: |
+
+- jobs.autolink-dotted-handle-false-positive
+- jobs.autolink-after-drop-finished
+  approach: |
   Touch `backend/app/jobs/autolink_scan.py` + tests.
 
-  1. Dotted handle: tighten `_match` so `@handle` does not match inside
-     `@handle.more` or path continuations (negative lookahead for `[A-Za-z0-9._]`
-     after the handle). Keep underscore-safe behavior. Add tests for
-     `@nike.official`, URL path mentions, and exact `@nike` / `@nike_official`.
-  2. Finished drops: exclude `drop_finished` from suggestion minting (remove
-     from `_LIVE_STAGES` for autolink, or cap window using finished transition
-     time if available). Prefer: stop minting new pending suggestions once
-     stage is `drop_finished`. Do not change metric_sync stage lists in this
-     cluster. Add a test that finished drops do not gain new suggestions.
+1. Dotted handle: tighten `_match` so `@handle` does not match inside
+   `@handle.more` or path continuations (negative lookahead for `[A-Za-z0-9._]`
+   after the handle). Keep underscore-safe behavior. Add tests for
+   `@nike.official`, URL path mentions, and exact `@nike` / `@nike_official`.
+2. Finished drops: exclude `drop_finished` from suggestion minting (remove
+   from `_LIVE_STAGES` for autolink, or cap window using finished transition
+   time if available). Prefer: stop minting new pending suggestions once
+   stage is `drop_finished`. Do not change metric_sync stage lists in this
+   cluster. Add a test that finished drops do not gain new suggestions.
 
 stop_if:
-  - PRODUCT explicitly requires post-finished autolink; ask before changing.
+
+- PRODUCT explicitly requires post-finished autolink; ask before changing.
 
 ---
 
@@ -97,32 +99,35 @@ stop_if:
 
 status: done
 gaps:
-  - auth.deauthorize-userid-mismatch-noop
-  - auth.undecryptable-ig-ciphertext
-  - auth.denied-org-loses-denial-ui
-  - auth.suspended-no-writer
-approach: |
-  1. Deauthorize: stop returning silent `{ok:true}` on unknown Meta user_id —
-     log + return a non-ok or distinct acknowledged-noop that operators can
-     detect; on successful revoke, bump `token_version` (or clear such that
-     access JWTs die) consistent with Batch 1 revocation. Prefer storing both
-     Graph `/me.id` and token-exchange `user_id` if they can differ, or document
-     and match the id Meta actually sends on deauthorize callbacks.
-  2. Undecryptable ciphertext: on `TokenDecryptionError` in login/jobs paths,
-     clear unusable ciphertext (or mark needs_reauth) and surface
-     INSTAGRAM_TOKEN_EXPIRED / reconnect to the org; admin health can count
-     undecryptable. Do not leave "authenticated" with dead tokens.
-  3. Denied UI: allow `/onboarding/denied` without a live session when status
-     is denied (route guard exception), and/or Instagram callback maps denied
-     users to that page instead of generic 403.
-  4. SUSPENDED: remove dead enum + checks if unused, OR add admin
-     suspend/unsuspend writers. LOCKED default: remove SUSPENDED from enum and
-     auth checks (no writer ever existed); migration/data note if any row has
-     the value (unlikely).
+
+- auth.deauthorize-userid-mismatch-noop
+- auth.undecryptable-ig-ciphertext
+- auth.denied-org-loses-denial-ui
+- auth.suspended-no-writer
+  approach: |
+
+1. Deauthorize: stop returning silent `{ok:true}` on unknown Meta user_id —
+   log + return a non-ok or distinct acknowledged-noop that operators can
+   detect; on successful revoke, bump `token_version` (or clear such that
+   access JWTs die) consistent with Batch 1 revocation. Prefer storing both
+   Graph `/me.id` and token-exchange `user_id` if they can differ, or document
+   and match the id Meta actually sends on deauthorize callbacks.
+2. Undecryptable ciphertext: on `TokenDecryptionError` in login/jobs paths,
+   clear unusable ciphertext (or mark needs_reauth) and surface
+   INSTAGRAM_TOKEN_EXPIRED / reconnect to the org; admin health can count
+   undecryptable. Do not leave "authenticated" with dead tokens.
+3. Denied UI: allow `/onboarding/denied` without a live session when status
+   is denied (route guard exception), and/or Instagram callback maps denied
+   users to that page instead of generic 403.
+4. SUSPENDED: remove dead enum + checks if unused, OR add admin
+   suspend/unsuspend writers. LOCKED default: remove SUSPENDED from enum and
+   auth checks (no writer ever existed); migration/data note if any row has
+   the value (unlikely).
 
 stop_if:
-  - Removing SUSPENDED conflicts with uncommitted product intent to ship
-    suspend UX soon; ask.
+
+- Removing SUSPENDED conflicts with uncommitted product intent to ship
+  suspend UX soon; ask.
 
 ---
 
@@ -130,24 +135,26 @@ stop_if:
 
 status: done
 gaps:
-  - drops.detail-notify-skip-browsable-gates
-  - brand.org-attributed-totals-duplicate
-  - admin.undeny-silent-no-email
-  - admin.job-runs-failed-count-as-heartbeat
-approach: |
-  1. Drop detail/notify: apply the same browsable gates as feed/apply
-     (approved brand, not finished / same filters as `list_org_drop_feed`)
-     to get detail, notify subscribe, and clear notify. Reminder job should
-     skip non-browsable drops. Tests for finished + unapproved brand.
-  2. Attribution: `_org_attributed_totals` filter to the application row's
-     decision (or only non-denied / the current applicant row's posts) so
-     deny+reapply cannot double-count. Align with `_drop_aggregate` semantics.
-  3. Un-deny email: send a restore/access email on admin un-deny (reuse email
-     service patterns) OR if PRODUCT says intentional silence, update PRODUCT
-     and archive as wontfix — LOCKED: send email (mirror deny/approve).
-  4. Health heartbeat: last-run age prefer latest `ok=true` run (fallback:
-     show failed distinctly). Fix token_refresh inference copy to match
-     expired-token signal (`expires_at <= now`).
+
+- drops.detail-notify-skip-browsable-gates
+- brand.org-attributed-totals-duplicate
+- admin.undeny-silent-no-email
+- admin.job-runs-failed-count-as-heartbeat
+  approach: |
+
+1. Drop detail/notify: apply the same browsable gates as feed/apply
+   (approved brand, not finished / same filters as `list_org_drop_feed`)
+   to get detail, notify subscribe, and clear notify. Reminder job should
+   skip non-browsable drops. Tests for finished + unapproved brand.
+2. Attribution: `_org_attributed_totals` filter to the application row's
+   decision (or only non-denied / the current applicant row's posts) so
+   deny+reapply cannot double-count. Align with `_drop_aggregate` semantics.
+3. Un-deny email: send a restore/access email on admin un-deny (reuse email
+   service patterns) OR if PRODUCT says intentional silence, update PRODUCT
+   and archive as wontfix — LOCKED: send email (mirror deny/approve).
+4. Health heartbeat: last-run age prefer latest `ok=true` run (fallback:
+   show failed distinctly). Fix token_refresh inference copy to match
+   expired-token signal (`expires_at <= now`).
 
 ---
 
@@ -155,15 +162,17 @@ approach: |
 
 status: done
 gaps:
-  - models.social-posts-global-unique
-approach: |
+
+- models.social-posts-global-unique
+  approach: |
   Change uniqueness to per-org `(org_id, platform, external_id)` via Alembic
   migration. Handle existing duplicates carefully (unlikely). Update insert
   paths / IntegrityError handling in metric_sync. Do NOT ship
   `models.missing-check-constraints` in this cluster (parked deferred).
 
 stop_if:
-  - Production data has cross-org external_id collisions; pause for data plan.
+
+- Production data has cross-org external_id collisions; pause for data plan.
 
 ---
 
@@ -173,12 +182,14 @@ Auto-pick (`run next cluster`) = first `status: pending` below.
 `ops` clusters require `run cluster <id>`. Do not auto-pick `parked`.
 
 Priority rationale (2026-08-11 delivery order — code first, then ops parallel):
+
 1. `org-verify-email-confirm` — **done** (confirm before .edu verify POST)
 2. `org-onboarding-required-fields` — **done** (required profile fields + Graph followers)
 3. `brand-delivery-address` — **done** (null denied applicants' deliveryAddress)
 4. `org-edu-email-change` — **done** (pending-swap `.edu` rotate)
 5. `admin-drops-ops-ui` — **done** (list multiselect + detail logistics)
-Ops (not auto-pick): `meta-app-review` (`in_progress` — App Review resubmission; was `meta-business-verification`; human dashboard), `ops.brand-mailbox` (follow-ups; contact cut over, `hello@` alias and inbox admin still open).
+
+Ops (not auto-pick): `meta-app-review` (`in_progress` — App Review resubmission; was `meta-business-verification`; human dashboard). `ops.brand-mailbox` archived 2026-10-26 (`hello@` is an alias on `melissa@`, the only Workspace email, which Google bills).
 
 ---
 
@@ -186,28 +197,31 @@ Ops (not auto-pick): `meta-app-review` (`in_progress` — App Review resubmissio
 
 status: done
 gaps:
-  - ops.email-best-effort-no-ledger
-approach: |
+
+- ops.email-best-effort-no-ledger
+  approach: |
   Implement Locked v1 in `gaps/ops.email-best-effort-no-ledger.md` only
   (cheap wins — no ledger):
-  1. `_dispatch` + v1 wrappers return bool; never raise from dispatch.
-  2. Verification resend/change-email: on false, invalidate token; raise
-     `EMAIL_SEND_FAILED` (502/503); SPA must not claim re-sent.
-  3. First signup: keep user+org (`pending_email_verification`); delete
-     token; `email_sent: false` / wire `emailSent`; SPA durable failure UX.
-  4. Notify Me: stamp `sent_at` only when dispatch true.
-  5. Denial: structured log only (does not close org-visible silent loss).
-  Out: ledger, webhooks, invite/reset honesty, admin email UI.
-  **Partial / not timeless:** on archive, leave `ops.email-ledger`
-  deferred follow-up open (ledger + denial channel + invite/reset).
-  Later (2026-10-26): that follow-up was archived. Resend idempotency
-  keys cover the double-send. A durable ledger and Resend webhooks will
-  not be built. See `gaps/archive/ops.email-ledger.md`.
+
+1. `_dispatch` + v1 wrappers return bool; never raise from dispatch.
+2. Verification resend/change-email: on false, invalidate token; raise
+   `EMAIL_SEND_FAILED` (502/503); SPA must not claim re-sent.
+3. First signup: keep user+org (`pending_email_verification`); delete
+   token; `email_sent: false` / wire `emailSent`; SPA durable failure UX.
+4. Notify Me: stamp `sent_at` only when dispatch true.
+5. Denial: structured log only (does not close org-visible silent loss).
+   Out: ledger, webhooks, invite/reset honesty, admin email UI.
+   **Partial / not timeless:** on archive, leave `ops.email-ledger`
+   deferred follow-up open (ledger + denial channel + invite/reset).
+   Later (2026-10-26): that follow-up was archived. Resend idempotency
+   keys cover the double-send. A durable ledger and Resend webhooks will
+   not be built. See `gaps/archive/ops.email-ledger.md`.
 
 stop_if:
-  - Product insists denial needs in-app channel in the same PR (expand scope).
-  - Scope expands into `ops.email-ledger` work.
-  - Archiving without `gaps/ops.email-ledger.md` still living.
+
+- Product insists denial needs in-app channel in the same PR (expand scope).
+- Scope expands into `ops.email-ledger` work.
+- Archiving without `gaps/ops.email-ledger.md` still living.
 
 ---
 
@@ -215,22 +229,25 @@ stop_if:
 
 status: done
 gaps:
-  - auth.expired-ig-token-reconnect
-approach: |
+
+- auth.expired-ig-token-reconnect
+  approach: |
   Implement Locked v1 in `gaps/auth.expired-ig-token-reconnect.md`:
-  1. FE: `fetchMe` / `apiFetch` / `AuthContext` distinguish
-     `INSTAGRAM_TOKEN_EXPIRED` → `needs_instagram_reconnect` + latch
-     `buzz.instagramReconnect`; mid-session hard-nav; cold Navigate.
-  2. Public `/reconnect-instagram` (no authenticated fetches / anti-loop).
-  3. Latch clear on `InstagramCallbackPage` success (`setAccessToken` +
-     `/org/browse`); pending_email → verify via RequireStatus.
-  4. BE: clock-expiry clear ciphertext + bump `token_version` in dedicated
-     session before raise (undecryptable parity).
-  5. Admin + DEPLOYMENT copy: cron cannot resurrect expired; Clear is ops
-     assist.
+
+1. FE: `fetchMe` / `apiFetch` / `AuthContext` distinguish
+   `INSTAGRAM_TOKEN_EXPIRED` → `needs_instagram_reconnect` + latch
+   `buzz.instagramReconnect`; mid-session hard-nav; cold Navigate.
+2. Public `/reconnect-instagram` (no authenticated fetches / anti-loop).
+3. Latch clear on `InstagramCallbackPage` success (`setAccessToken` +
+   `/org/browse`); pending_email → verify via RequireStatus.
+4. BE: clock-expiry clear ciphertext + bump `token_version` in dedicated
+   session before raise (undecryptable parity).
+5. Admin + DEPLOYMENT copy: cron cannot resurrect expired; Clear is ops
+   assist.
 
 stop_if:
-  - Meta OAuth reconnect path broken in staging; pause before shipping UX-only.
+
+- Meta OAuth reconnect path broken in staging; pause before shipping UX-only.
 
 ---
 
@@ -238,20 +255,23 @@ stop_if:
 
 status: done
 gaps:
-  - brand.drop-create-thin
-  - models.missing-check-constraints
-approach: |
-  1. Phase 1 from `gaps/brand.drop-create-thin.md`: `PATCH /api/admin/drops/{id}`
-     for capacity / window / units / hashtag (image/location OUT); omit vs null
-     via `exclude_unset`; epoch-ms windows; stage gate; AdminDropDetail editors;
-     `useAdminMutation` invalidate all `["admin"]`.
-  2. Then (same cluster, after PATCH): Locked v1 from
-     `gaps/models.missing-check-constraints.md` — named CHECKs on Drop +
-     allocated_units; NOT VALID → VALIDATE; do not block Phase 1 archive if
-     CHECKs slip — prefer same PR.
+
+- brand.drop-create-thin
+- models.missing-check-constraints
+  approach: |
+
+1. Phase 1 from `gaps/brand.drop-create-thin.md`: `PATCH /api/admin/drops/{id}`
+   for capacity / window / units / hashtag (image/location OUT); omit vs null
+   via `exclude_unset`; epoch-ms windows; stage gate; AdminDropDetail editors;
+   `useAdminMutation` invalidate all `["admin"]`.
+2. Then (same cluster, after PATCH): Locked v1 from
+   `gaps/models.missing-check-constraints.md` — named CHECKs on Drop +
+   allocated_units; NOT VALID → VALIDATE; do not block Phase 1 archive if
+   CHECKs slip — prefer same PR.
 
 stop_if:
-  - Prod drops already violate proposed CHECKs; pause for data repair.
+
+- Prod drops already violate proposed CHECKs; pause for data repair.
 
 ---
 
@@ -259,8 +279,9 @@ stop_if:
 
 status: done
 gaps:
-  - product.capacity-closed-during-open-unreachable
-approach: |
+
+- product.capacity-closed-during-open-unreachable
+  approach: |
   Fork A only (`gaps/product.capacity-closed-during-open-unreachable.md`):
   rewrite PRODUCT §4.1 / §5.3.1 / §6.3 (incl. intro spots example) / §7.1–7.2
   (+ §8–§10/glossary) to batch-finalize after `apply_close_at`; conditional
@@ -269,7 +290,8 @@ approach: |
   Fork B out of scope.
 
 stop_if:
-  - Product locks Fork B (mid-window accept) instead; stop and open a new gap.
+
+- Product locks Fork B (mid-window accept) instead; stop and open a new gap.
 
 ---
 
@@ -277,15 +299,17 @@ stop_if:
 
 status: done
 gaps:
-  - org.awaiting-products-suggestions-no-ui
-approach: |
+
+- org.awaiting-products-suggestions-no-ui
+  approach: |
   Locked A in `gaps/org.awaiting-products-suggestions-no-ui.md`: mint only at
   `drop_active` (`_MINT_STAGES` / independent of metric_sync `_LIVE_STAGES`);
   update docstring; test awaiting_products → 0 suggestions; keep Active happy
   path. Do not change metric_sync stages or posts.py API gates.
 
 stop_if:
-  - Product requires suggestions UI during awaiting_products (Option B).
+
+- Product requires suggestions UI during awaiting_products (Option B).
 
 ---
 
@@ -293,8 +317,9 @@ stop_if:
 
 status: done
 gaps:
-  - ops.cron-logging-thin
-approach: |
+
+- ops.cron-logging-thin
+  approach: |
   Locked v1 in `gaps/ops.cron-logging-thin.md`: in `run_job.py` `main()`,
   configure INFO for `app.*` on stderr (`basicConfig` + dampen httpx/
   sqlalchemy/asyncpg, or app-scoped handler). No import-time config. Leave
@@ -308,8 +333,9 @@ stop_if: []
 
 status: done
 gaps:
-  - ops.notify-cron-not-created
-approach: |
+
+- ops.notify-cron-not-created
+  approach: |
   Human Railway create per Locked v1 in `gaps/ops.notify-cron-not-created.md`:
   clone `cron-drop-autoclose` → `cron-notify-reminders`; exact 15-var env;
   RAILPACK required; `*/5`; prefer after `email-honesty` (sent_at on true) or
@@ -317,8 +343,9 @@ approach: |
   human confirms; no agent Railway mutate without explicit user OK.
 
 stop_if:
-  - Always pause before mutating Railway production without explicit user OK.
-  - Prefer `email-honesty` done first (or Resend hard-gate).
+
+- Always pause before mutating Railway production without explicit user OK.
+- Prefer `email-honesty` done first (or Resend hard-gate).
 
 ---
 
@@ -326,17 +353,19 @@ stop_if:
 
 status: done
 gaps:
-  - test.jwt-secret-key-length-warning
-approach: |
+
+- test.jwt-secret-key-length-warning
+  approach: |
   Locked v1 in `gaps/test.jwt-secret-key-length-warning.md`:
-  1. Lengthen `_DEV_SECRET_KEY` in `config.py` to ≥32 bytes (keep
-     `dev-secret-change-me-…` prefix).
-  2. Forbidden-dev-secret set includes historical `"dev-secret-change-me"`
-     **and** current `_DEV_SECRET_KEY`; off-dev guard rejects any of them.
-  3. Sync `.env.example`; update `test_hardening.py` to assert old literal
-     (and preferably shared forbidden constant).
-  4. No filterwarnings. Verify zero `InsecureKeyLengthWarning` in pytest.
-  Non-goals: Railway/prod rotation, arbitrary min-length validator, HS256 change.
+
+1. Lengthen `_DEV_SECRET_KEY` in `config.py` to ≥32 bytes (keep
+   `dev-secret-change-me-…` prefix).
+2. Forbidden-dev-secret set includes historical `"dev-secret-change-me"`
+   **and** current `_DEV_SECRET_KEY`; off-dev guard rejects any of them.
+3. Sync `.env.example`; update `test_hardening.py` to assert old literal
+   (and preferably shared forbidden constant).
+4. No filterwarnings. Verify zero `InsecureKeyLengthWarning` in pytest.
+   Non-goals: Railway/prod rotation, arbitrary min-length validator, HS256 change.
 
 stop_if: []
 
@@ -346,17 +375,19 @@ stop_if: []
 
 status: done
 gaps:
-  - test.httpx-per-request-cookies-deprecated
-approach: |
+
+- test.httpx-per-request-cookies-deprecated
+  approach: |
   Locked v1 in `gaps/test.httpx-per-request-cookies-deprecated.md`
   (run after `test-jwt-secret-length`):
-  1. Replace all 17 per-request `cookies=` in `test_auth_routes.py`,
-     `test_hardening.py`, `test_instagram_auth.py`.
-  2. Pattern: jar replace (`Cookies({…})`) or `clear()`+`set` before each
-     explicit-cookie call — never bare `cookies=` on the request.
-  3. Race test: jar=old → won → jar=old for lost → jar=winner for again.
-  4. Verify with `-W error::DeprecationWarning`. No warning filters.
-  Non-goals: product cookie behavior, httpx `<1` pin as DoD, Playwright.
+
+1. Replace all 17 per-request `cookies=` in `test_auth_routes.py`,
+   `test_hardening.py`, `test_instagram_auth.py`.
+2. Pattern: jar replace (`Cookies({…})`) or `clear()`+`set` before each
+   explicit-cookie call — never bare `cookies=` on the request.
+3. Race test: jar=old → won → jar=old for lost → jar=winner for again.
+4. Verify with `-W error::DeprecationWarning`. No warning filters.
+   Non-goals: product cookie behavior, httpx `<1` pin as DoD, Playwright.
 
 stop_if: []
 
@@ -366,27 +397,30 @@ stop_if: []
 
 status: done
 gaps:
-  - posts.stories-unsupported
-approach: |
+
+- posts.stories-unsupported
+  approach: |
   Locked v1 in `gaps/posts.stories-unsupported.md`:
-  1. `metric_sync` discovery: skip insert when `media_product_type == STORY`
-     (optional `skipped_story` in job summary).
-  2. Keep refresh STORY exclusion; autolink already FEED+REELS only.
-  3. `link_post` + `accept_suggestion` reject STORY (stable error code).
-  4. Prefer hide STORY in `list_org_posts` (linker never shows dead rows).
-  5. Admin: exclude STORY from `posts_never_refreshed` + `metric_sync_stale`;
-     update admin label notes.
-  6. Docs: `META.md` + `ARCHITECTURE.md` (Stories out of scope). PRODUCT
-     one-liner only with explicit user OK.
-  7. Tests: discovery skip, link reject, admin counter exclusion.
-  8. Read-only SQL detect existing STORY rows; cleanup only if count > 0.
-  Non-goals: `/stories` poller, `story_insights` webhook, AD refresh skip,
-  PG enum drop, platform observability (`ops.observability-thin`).
+
+1. `metric_sync` discovery: skip insert when `media_product_type == STORY`
+   (optional `skipped_story` in job summary).
+2. Keep refresh STORY exclusion; autolink already FEED+REELS only.
+3. `link_post` + `accept_suggestion` reject STORY (stable error code).
+4. Prefer hide STORY in `list_org_posts` (linker never shows dead rows).
+5. Admin: exclude STORY from `posts_never_refreshed` + `metric_sync_stale`;
+   update admin label notes.
+6. Docs: `META.md` + `ARCHITECTURE.md` (Stories out of scope). PRODUCT
+   one-liner only with explicit user OK.
+7. Tests: discovery skip, link reject, admin counter exclusion.
+8. Read-only SQL detect existing STORY rows; cleanup only if count > 0.
+   Non-goals: `/stories` poller, `story_insights` webhook, AD refresh skip,
+   PG enum drop, platform observability (`ops.observability-thin`).
 
 stop_if:
-  - Expanding into hourly Stories sync or Facebook Login / webhook work.
-  - Skipping AD discovery/refresh without a separate product ask.
-  - Editing PRODUCT.md without explicit user OK.
+
+- Expanding into hourly Stories sync or Facebook Login / webhook work.
+- Skipping AD discovery/refresh without a separate product ask.
+- Editing PRODUCT.md without explicit user OK.
 
 ---
 
@@ -394,9 +428,10 @@ stop_if:
 
 status: done
 gaps:
-  - deploy.samesite-lax-railway-preview
-  - deploy.meta-brand-url-cutover
-approach: |
+
+- deploy.samesite-lax-railway-preview
+- deploy.meta-brand-url-cutover
+  approach: |
   **Done 2026-08-11.** Phase 2 www+api + `SameSite=lax` already archived as
   `gaps/archive/deploy.custom-domain-samesite-lax.md`. Meta §C Hosts paste +
   www IG login smoke closed `deploy.meta-brand-url-cutover` and the samesite
@@ -412,9 +447,9 @@ approach: |
   `deploy.meta-business-verification`; §E Verified 2026-10-26; §F submitted
   2026-10-07 and rejected, resubmission in progress; §G public login still
   open). Graph 100 on the long-lived exchange is the same gap.
-stop_if:
-  - Always pause before mutating Railway/Meta without explicit user OK.
-  - Orange-clouding `www`/`api` on Cloudflare (Railway must terminate TLS).
+  stop_if:
+- Always pause before mutating Railway/Meta without explicit user OK.
+- Orange-clouding `www`/`api` on Cloudflare (Railway must terminate TLS).
 
 ---
 
@@ -422,12 +457,13 @@ stop_if:
 
 status: done
 gaps:
-  - spa.dead-firebase-dependency
-  - spa.unvalidated-post-href
-  - auth.email-link-tokens-linger-in-url
-  - deploy.openapi-ungated
-  - config.environment-dev-bypass
-note: |
+
+- spa.dead-firebase-dependency
+- spa.unvalidated-post-href
+- auth.email-link-tokens-linger-in-url
+- deploy.openapi-ungated
+- config.environment-dev-bypass
+  note: |
   Wave A archived 2026-08-11. firebase removed; safeHttpUrl; token URL strip;
   OpenAPI development-only; ENVIRONMENT Literal + Fernet-default test.
 
@@ -437,10 +473,11 @@ note: |
 
 status: done
 gaps:
-  - auth.spa-logout-drops-bearer
-  - auth.logout-clears-cookie-without-revoke
-  - auth.impersonation-unbound-from-admin
-note: |
+
+- auth.spa-logout-drops-bearer
+- auth.logout-clears-cookie-without-revoke
+- auth.impersonation-unbound-from-admin
+  note: |
   Wave B archived 2026-08-11. SPA Bearer-then-clear logout; cookie clear only
   on bump or present cookie; imp_ver binds View-as to admin token_version.
 
@@ -450,8 +487,9 @@ note: |
 
 status: done
 gaps:
-  - auth.invite-verify-tokens-plaintext
-note: |
+
+- auth.invite-verify-tokens-plaintext
+  note: |
   Wave C archived 2026-08-11. Shared hash_token; Alembic e2f3a4b5c6d7
   token→token_hash with pgcrypto digest migration.
 
@@ -461,10 +499,11 @@ note: |
 
 status: done
 gaps:
-  - auth.rate-limit-trusts-client-xff
-  - jobs.run-job-commits-partial-on-failure
-  - ops.ig-graph-secrets-in-logs
-note: |
+
+- auth.rate-limit-trusts-client-xff
+- jobs.run-job-commits-partial-on-failure
+- ops.ig-graph-secrets-in-logs
+  note: |
   Wave D archived 2026-08-11. X-Real-IP rate buckets; run_job rollback then
   failure JobRun; Graph raise from None + no exc_info token leaks.
 
@@ -474,8 +513,9 @@ note: |
 
 status: done
 gaps:
-  - deploy.spa-missing-csp
-note: |
+
+- deploy.spa-missing-csp
+  note: |
   Wave E archived 2026-08-11. frontend/public/serve.json CSP + hardening
   headers. Live curl verify after deploy to www.
 
@@ -485,8 +525,9 @@ note: |
 
 status: done
 gaps:
-  - product.data-deletion-overpromise
-note: |
+
+- product.data-deletion-overpromise
+  note: |
   Shipped admin org hybrid erase (PRODUCT §3.1.2 / §4.3): IG-handle confirm;
   identity scrub; KPI retention; confirmation email; legal copy align.
   No brand erase / Meta deletion callback.
@@ -498,18 +539,21 @@ note: |
 
 status: done
 gaps:
-  - jobs.metric-sync-omitted-engagement
-approach: |
+
+- jobs.metric-sync-omitted-engagement
+  approach: |
   Locked in gap file. Touch `instagram.py` `fetch_media` (or MediaFields +
   apply path) and `metric_sync._apply_basics` / refresh loop + `test_jobs.py`.
-  1. Omitted `like_count` / `comments_count` in Graph JSON → carry prior DB
-     value (do not write 0).
-  2. Warning log with org_id, post_id, external_id, previous value.
-  3. Job summary counters `likes_omitted` / `comments_omitted`.
-  4. Present fields still overwrite; HTTP errors still skip (unchanged).
-  5. Tests: omit likes, omit comments, both present, exception path.
-stop_if:
-  - Treating real Graph `like_count: 0` as omit (must still apply zeros).
+
+1. Omitted `like_count` / `comments_count` in Graph JSON → carry prior DB
+   value (do not write 0).
+2. Warning log with org_id, post_id, external_id, previous value.
+3. Job summary counters `likes_omitted` / `comments_omitted`.
+4. Present fields still overwrite; HTTP errors still skip (unchanged).
+5. Tests: omit likes, omit comments, both present, exception path.
+   stop_if:
+
+- Treating real Graph `like_count: 0` as omit (must still apply zeros).
 
 ---
 
@@ -517,19 +561,22 @@ stop_if:
 
 status: done
 gaps:
-  - jobs.follower-count-never-refreshed
-approach: |
+
+- jobs.follower-count-never-refreshed
+  approach: |
   Locked in gap file. Daily refresh via a phase inside `metric_sync` (avoid
   new Railway cron): for every org user with a usable IG token, GET Graph
   `followers_count` and write `organizations.follower_count`.
-  1. All tokened orgs — not only `_LIVE_STAGES` campaign eligibility.
-  2. Omit/null/fail → carry prior value + warn + summary counters
-     (`followers_omitted` / `followers_failed`); real 0 overwrites.
-  3. Skip erased / no-token (preserve stored count for brand reach KPIs).
-  4. Extend `fetch_profile` or add fetch; tests + ARCHITECTURE/DEPLOYMENT note.
-stop_if:
-  - Meta scopes cannot return `followers_count` for Instagram Login tokens —
-    pause and report (carry-over path still ships as no-op refresh).
+
+1. All tokened orgs — not only `_LIVE_STAGES` campaign eligibility.
+2. Omit/null/fail → carry prior value + warn + summary counters
+   (`followers_omitted` / `followers_failed`); real 0 overwrites.
+3. Skip erased / no-token (preserve stored count for brand reach KPIs).
+4. Extend `fetch_profile` or add fetch; tests + ARCHITECTURE/DEPLOYMENT note.
+   stop_if:
+
+- Meta scopes cannot return `followers_count` for Instagram Login tokens —
+  pause and report (carry-over path still ships as no-op refresh).
 
 ---
 
@@ -537,42 +584,39 @@ stop_if:
 
 status: parked
 gaps:
-  - ops.brand-mailbox
-  - deploy.npm-workspaces-wontfix
-note: |
+- deploy.npm-workspaces-wontfix
+  note: |
   Required follow-ups for partial v1 clusters (not timeless-complete).
   Do not auto-execute. Create Locked v1 + un-park only when named explicitly.
-  - `ops.email-ledger` — **archived** 2026-10-26. Resend idempotency keys
-    cover the opening-reminder double-send. Durable `email_sends` and Resend
-    webhooks will not be pursued (Lawrence). Send history is the Resend
-    dashboard Emails page (retention depends on plan). Drop denial stays
-    PRODUCT email-only. See `gaps/archive/ops.email-ledger.md`.
-  - `ops.resend-domain-unverified` — **archived** 2026-08-11 (domain Verified +
-    brand invite inbox proof; key rotated onto Railway).
-  - `ops.brand-mailbox` — Google Workspace Business Starter mailbox `melissa@bringthebuzzover.com`
-    is live (apex MX/SPF/DKIM/DMARC published; SPA contact cut over, probed
-    2026-10-26). Still open: confirm `hello@` is a Workspace alias (or record
-    that it must not receive), and name the billing owner / Super Admin in
-    DEPLOYMENT.md. Do not touch Resend `send.`.
-  - `ops.ig-business-discovery-unset` — **archived** 2026-10-26. Lawrence
-    removed the Facebook Login Business Discovery path instead of minting a
-    token. Apply is a typed handle, stored unconfirmed until Connect. Delete
-    `INSTAGRAM_BUSINESS_DISCOVERY_TOKEN`, `INSTAGRAM_BUSINESS_DISCOVERY_IG_USER_ID`,
-    and `FACEBOOK_GRAPH_BASE` from Railway **api** if they are still set.
-  - `deploy.npm-workspaces-wontfix` — Railpack ignores workspaces; keep root
-    package.json scripts + engines (do not retry workspaces without OK).
-  - `deploy.custom-domain-samesite-lax` — **archived** 2026-08-09 (Plan A).
-  - `deploy.meta-brand-url-cutover` + `deploy.samesite-lax-railway-preview` —
-    **archived** 2026-08-11 (Meta §C Hosts + www IG smoke; cluster `ops-samesite`
-    done). Meta §E is Verified; living `deploy.meta-app-review` (was
-    `deploy.meta-business-verification`) is the App Review resubmission
-    (`in_progress`).
-  - `deploy.github-repo-owner-shannon` — **archived** 2026-08-10 (all 8 Sources
-    `bringthebuzzover/buzz` @ `main`; push `e27a7f6` deployed from org).
-  - `deploy.apex-hostinger-forward-blocked` — **archived** 2026-08-10
-    (Cloudflare DNS + apex→www Single Redirect; Hostinger NS flipped).
-  - `deploy.gh-pages-brand-domain-retire` — **archived** 2026-08-11
-    (Shannon cleared Pages `cname`; www still Railway).
+- `ops.email-ledger` — **archived** 2026-10-26. Resend idempotency keys
+  cover the opening-reminder double-send. Durable `email_sends` and Resend
+  webhooks will not be pursued (Lawrence). Send history is the Resend
+  dashboard Emails page (retention depends on plan). Drop denial stays
+  PRODUCT email-only. See `gaps/archive/ops.email-ledger.md`.
+- `ops.resend-domain-unverified` — **archived** 2026-08-11 (domain Verified +
+  brand invite inbox proof; key rotated onto Railway).
+- `ops.brand-mailbox` — **archived** 2026-10-26. `hello@` is an alias on
+  `melissa@`. That address is the only Workspace email, and Google bills it.
+  Resend stays on `send.`. See `gaps/archive/ops.brand-mailbox.md`.
+- `ops.ig-business-discovery-unset` — **archived** 2026-10-26. Lawrence
+  removed the Facebook Login Business Discovery path instead of minting a
+  token. Apply is a typed handle, stored unconfirmed until Connect. Delete
+  `INSTAGRAM_BUSINESS_DISCOVERY_TOKEN`, `INSTAGRAM_BUSINESS_DISCOVERY_IG_USER_ID`,
+  and `FACEBOOK_GRAPH_BASE` from Railway **api** if they are still set.
+- `deploy.npm-workspaces-wontfix` — Railpack ignores workspaces; keep root
+  package.json scripts + engines (do not retry workspaces without OK).
+- `deploy.custom-domain-samesite-lax` — **archived** 2026-08-09 (Plan A).
+- `deploy.meta-brand-url-cutover` + `deploy.samesite-lax-railway-preview` —
+  **archived** 2026-08-11 (Meta §C Hosts + www IG smoke; cluster `ops-samesite`
+  done). Meta §E is Verified; living `deploy.meta-app-review` (was
+  `deploy.meta-business-verification`) is the App Review resubmission
+  (`in_progress`).
+- `deploy.github-repo-owner-shannon` — **archived** 2026-08-10 (all 8 Sources
+  `bringthebuzzover/buzz` @ `main`; push `e27a7f6` deployed from org).
+- `deploy.apex-hostinger-forward-blocked` — **archived** 2026-08-10
+  (Cloudflare DNS + apex→www Single Redirect; Hostinger NS flipped).
+- `deploy.gh-pages-brand-domain-retire` — **archived** 2026-08-11
+  (Shannon cleared Pages `cname`; www still Railway).
 
 ---
 
@@ -580,8 +624,9 @@ note: |
 
 status: in_progress
 gaps:
-  - deploy.meta-app-review
-approach: |
+
+- deploy.meta-app-review
+  approach: |
   Former cluster id: meta-business-verification.
   Former gap ids (archived pointers): deploy.meta-business-verification,
   auth.ig-long-lived-get-unsupported.
@@ -603,10 +648,10 @@ approach: |
   Login” matches the code.
   Agents do not submit App Review, remove permissions, paste tester
   credentials, or switch the app to Live.
-stop_if:
-  - Always pause before mutating Meta / Business Manager without explicit OK.
-  - Do not put tester credentials, tokens, or one-time connect links in git.
-  - Do not change exchange_for_long_lived from GET to POST.
+  stop_if:
+- Always pause before mutating Meta / Business Manager without explicit OK.
+- Do not put tester credentials, tokens, or one-time connect links in git.
+- Do not change exchange_for_long_lived from GET to POST.
 
 ---
 
@@ -614,13 +659,14 @@ stop_if:
 
 status: done
 gaps:
-  - org.verify-email-auto-consumes-token
-approach: |
+
+- org.verify-email-auto-consumes-token
+  approach: |
   **Done.** FE confirm-before-verify on VerifyEmailPage; strip after success;
   unit test; archived `gaps/archive/org.verify-email-auto-consumes-token.md`.
-stop_if:
-  - PRODUCT wants keep auto-verify — ask (unlikely).
-  - Field reports scanners clicking Confirm — pause and ask before OTP.
+  stop_if:
+- PRODUCT wants keep auto-verify — ask (unlikely).
+- Field reports scanners clicking Confirm — pause and ask before OTP.
 
 ---
 
@@ -628,8 +674,9 @@ stop_if:
 
 status: done
 gaps:
-  - org.onboarding-members-category-required
-approach: |
+
+- org.onboarding-members-category-required
+  approach: |
   Locked 2026-08-11 (see gap Intent).
   Required create+edit: member_count, category, city, state, contact_name,
   delivery_address. Add city/state/contact to create form.
@@ -640,8 +687,8 @@ approach: |
   omit leaves prior value.
   At implement: update PRODUCT §3.1/§6.1 required set + §4.3 drop manual
   follower edits.
-stop_if:
-  - (cleared — field set, legacy policy, and Graph-only followers decided)
+  stop_if:
+- (cleared — field set, legacy policy, and Graph-only followers decided)
 
 ---
 
@@ -649,12 +696,13 @@ stop_if:
 
 status: done
 gaps:
-  - brand.delivery-address-all-applicants
-approach: |
+
+- brand.delivery-address-all-applicants
+  approach: |
   API nulls deliveryAddress unless decision is applied or accepted; one
   backend test; no FE privacy branching.
-stop_if:
-  - (none)
+  stop_if:
+- (none)
 
 ---
 
@@ -662,16 +710,17 @@ stop_if:
 
 status: done
 gaps:
-  - org.edu-email-change-after-verify
-approach: |
+
+- org.edu-email-change-after-verify
+  approach: |
   Locked in gap file (PRODUCT asks resolved 2026-08-11).
   Pending-swap: users.pending_edu_email; keep live edu_email until verify;
   then swap + refresh email_verified_at; status unchanged.
   Eligible: active and pending_approval. v1: Resend + Cancel.
   Dedicated rotate/cancel APIs (not PATCH eduEmail). Update PRODUCT §3.1.
   Onboarding verify-email/change typo-fix unchanged.
-stop_if:
-  - (cleared — interim pending-swap, eligibility, resend/cancel locked)
+  stop_if:
+- (cleared — interim pending-swap, eligibility, resend/cancel locked)
 
 ---
 
@@ -679,9 +728,10 @@ stop_if:
 
 status: done
 gaps:
-  - org.signup-instagram-first
-  - org.edu-verify-outlook-junk
-approach: |
+
+- org.signup-instagram-first
+- org.edu-verify-outlook-junk
+  approach: |
   Full lock: [`LAUNCH.md`](../LAUNCH.md) Phase A. Do not re-open forks there.
   Public `/org/apply` → User+Org without IG token; **§6.1.1** typed Instagram
   handle (Business Discovery lookup removed 2026-10-26); verify mints
@@ -694,8 +744,8 @@ approach: |
   Residual ops: Business Discovery was not minted. Path removed 2026-10-26
   (`ops.ig-business-discovery-unset` archived). Set `closed_in` on archive
   files at commit.
-stop_if:
-  - User reverses LAUNCH.md org locks (CSV import, approve→active, IG-first insert).
+  stop_if:
+- User reverses LAUNCH.md org locks (CSV import, approve→active, IG-first insert).
 
 ---
 
@@ -703,18 +753,21 @@ stop_if:
 
 status: done
 gaps:
-  - drops.unconfigured-request-on-org-feed
-approach: |
+
+- drops.unconfigured-request-on-org-feed
+  approach: |
   Full lock: [`LAUNCH.md`](../LAUNCH.md) Phase B + `ideas/archive/admin-drops.md` option B.
-  1. Ticket table (`drop_requests`); unpublished draft Drop; **Publish** (`published_at`).
-  2. Brand POST must not insert a live `drops` row. Intake text is not title/description.
-  3. Admin side-by-side ticket | draft editor; https image only.
-  4. Org feed: published only. Autoclose published only. Tracker starts on publish
-     (`awaiting_products` → `drop_active` → `drop_finished`). No `request_received`
-     or `finalizing_agreements` on drops. Every drop links to a ticket.
-stop_if:
-  - Treating ticket text as drop creative.
-  - Org-visible drops without Publish.
+
+1. Ticket table (`drop_requests`); unpublished draft Drop; **Publish** (`published_at`).
+2. Brand POST must not insert a live `drops` row. Intake text is not title/description.
+3. Admin side-by-side ticket | draft editor; https image only.
+4. Org feed: published only. Autoclose published only. Tracker starts on publish
+   (`awaiting_products` → `drop_active` → `drop_finished`). No `request_received`
+   or `finalizing_agreements` on drops. Every drop links to a ticket.
+   stop_if:
+
+- Treating ticket text as drop creative.
+- Org-visible drops without Publish.
 
 ---
 
@@ -722,16 +775,19 @@ stop_if:
 
 status: done
 gaps:
-  - admin.drops-list-filters-multiselect
-  - admin.drop-detail-logistics-ui
-approach: |
+
+- admin.drops-list-filters-multiselect
+- admin.drop-detail-logistics-ui
+  approach: |
   Both halves archived on merge to main (2026-08-11).
-  1) List filters: Stage+Attention FilterMultiSelect; repeated URL keys;
-     BE multi-value OR-within AND-across.
-  2) Detail logistics: FE polish (padding/labels/copy/local datetime);
-     Applicants Ship to for applied+accepted; Tracking column removed.
-stop_if:
-  - (cleared — cluster complete)
+
+1. List filters: Stage+Attention FilterMultiSelect; repeated URL keys;
+   BE multi-value OR-within AND-across.
+2. Detail logistics: FE polish (padding/labels/copy/local datetime);
+   Applicants Ship to for applied+accepted; Tracking column removed.
+   stop_if:
+
+- (cleared — cluster complete)
 
 ---
 
@@ -739,14 +795,15 @@ stop_if:
 
 status: done
 gaps:
-  - spa.for-orgs-for-brands
-note: |
+
+- spa.for-orgs-for-brands
+  note: |
   [`LAUNCH.md`](../LAUNCH.md) Phase C. Public `/for-orgs` and `/for-brands` with
   requirements, numbered flow, stylized frames, home/footer/login/brand-apply
   links. Archived after ci-local green. Set `closed_in` on the archive at commit.
-stop_if:
-  - Un-parking while brand Plan your Campaign still inserts a live Drop.
-  - Drawing for-brands as self-serve drop create.
+  stop_if:
+- Un-parking while brand Plan your Campaign still inserts a live Drop.
+- Drawing for-brands as self-serve drop create.
 
 ---
 
@@ -754,13 +811,14 @@ stop_if:
 
 status: done
 gaps:
-  - brand.drop-creative-uneditable
-approach: |
+
+- brand.drop-creative-uneditable
+  approach: |
   Archived `gaps/archive/brand.drop-creative-uneditable.md`. Admin creative PATCH
   after publish; `brand_can_edit_creative` default false; brand PATCH when on.
   Admin Config tab; brand Campaign card. Set `closed_in` at commit.
-stop_if:
-  - Brand logistics / blob upload / org notify / ticket PATCH.
+  stop_if:
+- Brand logistics / blob upload / org notify / ticket PATCH.
 
 ---
 
@@ -768,31 +826,33 @@ stop_if:
 
 status: done
 gaps:
-  - drops.apply-capacity-toctou
-  - brand.finalize-ignores-hidden
-approach: |
+
+- drops.apply-capacity-toctou
+- brand.finalize-ignores-hidden
+  approach: |
   Touch `backend/app/services/drops.py` (`apply_to_drop`) +
   `backend/app/services/brands.py` (`finalize_applicants`) +
   `backend/tests/test_apply.py` / `test_drop_hide.py` (and brand finalize tests).
 
-  1. Apply vs last-seat finalize: In `apply_to_drop`, lock the drop row
-     (`SELECT … FOR UPDATE` on `drops.id`) **before** `_accepted_counts` and
-     `drop_apply_eligibility`, so a concurrent finalize that fills capacity or
-     stamps `applicant_selection_finalized_at` cannot insert a new APPLIED row.
-     Surface `CAPACITY_EXCEEDED` or `DROP_NOT_OPEN` as eligibility already does.
-     Do **not** change finalize's accepted-seat math.
-  2. Hidden finalize: `finalize_applicants` must 404 when `hidden_at` is set
-     (same existence-hiding as `resolve_brand_drop`). Prefer adding `hidden_at
-     IS NULL` to the lock query (or call the same gate). POST
-     `/api/brands/me/drops/{id}/finalize-applicants` must not succeed on a
-     hidden UUID.
-  3. Tests: apply+finalize lock-order (or equivalent contract); finalize POST
-     on hidden drop → 404; unhide restores finalize. Sequential capacity tests
-     stay green.
+1. Apply vs last-seat finalize: In `apply_to_drop`, lock the drop row
+   (`SELECT … FOR UPDATE` on `drops.id`) **before** `_accepted_counts` and
+   `drop_apply_eligibility`, so a concurrent finalize that fills capacity or
+   stamps `applicant_selection_finalized_at` cannot insert a new APPLIED row.
+   Surface `CAPACITY_EXCEEDED` or `DROP_NOT_OPEN` as eligibility already does.
+   Do **not** change finalize's accepted-seat math.
+2. Hidden finalize: `finalize_applicants` must 404 when `hidden_at` is set
+   (same existence-hiding as `resolve_brand_drop`). Prefer adding `hidden_at
+IS NULL` to the lock query (or call the same gate). POST
+   `/api/brands/me/drops/{id}/finalize-applicants` must not succeed on a
+   hidden UUID.
+3. Tests: apply+finalize lock-order (or equivalent contract); finalize POST
+   on hidden drop → 404; unhide restores finalize. Sequential capacity tests
+   stay green.
 
 stop_if:
-  - PRODUCT wants apply to remain open after finalize until an explicit Closed
-    feed flag — pause and ask (conflicts with §7.2).
+
+- PRODUCT wants apply to remain open after finalize until an explicit Closed
+  feed flag — pause and ask (conflicts with §7.2).
 
 ---
 
@@ -800,23 +860,26 @@ stop_if:
 
 status: done
 gaps:
-  - jobs.metric-sync-omitted-caption
-approach: |
+
+- jobs.metric-sync-omitted-caption
+  approach: |
   Touch `backend/app/services/instagram.py` (`fetch_media`) +
   `backend/app/jobs/metric_sync.py` (`_apply_basics`) + `backend/tests/test_jobs.py`.
 
-  Mirror archive `jobs.metric-sync-omitted-engagement`:
-  1. `fetch_media` must distinguish omitted caption / media_url / thumbnail_url
-     keys from present empty/`null` (optional fields, not `b.get("caption", "")`).
-  2. `_apply_basics` assigns those fields only when present; omitted → keep
-     prior DB value + warning + job-summary counters. Present `""` caption
-     still overwrites; present `null` URL still clears.
-  3. Tests: omit-caption, omit-URLs, present-empty caption, likes/comments
-     omit still works. Do not invent Graph insight names.
+Mirror archive `jobs.metric-sync-omitted-engagement`:
+
+1. `fetch_media` must distinguish omitted caption / media_url / thumbnail_url
+   keys from present empty/`null` (optional fields, not `b.get("caption", "")`).
+2. `_apply_basics` assigns those fields only when present; omitted → keep
+   prior DB value + warning + job-summary counters. Present `""` caption
+   still overwrites; present `null` URL still clears.
+3. Tests: omit-caption, omit-URLs, present-empty caption, likes/comments
+   omit still works. Do not invent Graph insight names.
 
 stop_if:
-  - Meta docs show caption is always present on `/{media-id}` for FEED/REELS
-    we sync — still ship carry-on-omit; do not skip the guard.
+
+- Meta docs show caption is always present on `/{media-id}` for FEED/REELS
+  we sync — still ship carry-on-omit; do not skip the guard.
 
 ---
 
@@ -824,22 +887,24 @@ stop_if:
 
 status: done
 gaps:
-  - org.apply-handle-unique-race
-approach: |
+
+- org.apply-handle-unique-race
+  approach: |
   Touch `backend/app/models/user.py` + a new Alembic revision +
   `backend/app/services/org_apply.py` IntegrityError mapping +
   `backend/tests/test_org_apply.py` / `test_constraints.py`.
 
-  1. Partial unique index on `lower(instagram_username)` for org rows that are
-     not erased and whose username is not null (erased handle reuse stays).
-  2. Concurrent `POST /api/orgs/apply` with the same handle maps IntegrityError
-     to `INSTAGRAM_HANDLE_TAKEN` (409), same as the SELECT pre-check.
-  3. Keep `assert_handle_available` for the friendly 409 before insert.
-     Do not unique `instagram_user_id` again (already unique).
+1. Partial unique index on `lower(instagram_username)` for org rows that are
+   not erased and whose username is not null (erased handle reuse stays).
+2. Concurrent `POST /api/orgs/apply` with the same handle maps IntegrityError
+   to `INSTAGRAM_HANDLE_TAKEN` (409), same as the SELECT pre-check.
+3. Keep `assert_handle_available` for the friendly 409 before insert.
+   Do not unique `instagram_user_id` again (already unique).
 
 stop_if:
-  - Migration cannot express a case-insensitive partial unique on current PG
-    without a surprise table rewrite — pause and ask before a heavy lock.
+
+- Migration cannot express a case-insensitive partial unique on current PG
+  without a surprise table rewrite — pause and ask before a heavy lock.
 
 ---
 
@@ -847,23 +912,24 @@ stop_if:
 
 status: parked
 gaps:
-  - ops.observability-thin
-  - posts.sibling-dismiss-never-rearms
-note: |
+
+- ops.observability-thin
+- posts.sibling-dismiss-never-rearms
+  note: |
   `deploy.cron-races-api-predeploy` — **archived** (Alembic pre-deploy on all
   six crons + pg_advisory_xact_lock in env.py).
   `ops.observability-thin` — **deferred** (platform readyz/livez/metrics still
   NO_PLAN; STORY slice → pending `posts-stories-unsupported`).
   Sibling dismiss is wontfix. Plus deferred DRY/contract chores from the
   SOT/DRY audit:
-  - `openapi.422-wrong-shape` — **archived** 2026-08-10 (app-level 422 → APIResponse)
-  - `openapi.untyped-success-responses` — **archived** 2026-08-10 (all success
-    routes → DataResponse[T]; FE aliases generated schemas; auth snake_case kept)
-  - `auth.token-version-ig-clear-duplication` — **archived** 2026-08-10
-    (`bump_token_version` + IG clears via `clear_unusable_instagram_token`)
-  - `test.jwt-secret-key-length-warning` — **archived** 2026-08-10
-    (`closed_in: 772305a`, cluster `test-jwt-secret-length`)
-  - `test.httpx-per-request-cookies-deprecated` — **archived**
-    (`closed_in: d5666e3`, cluster `test-httpx-cookies`)
+- `openapi.422-wrong-shape` — **archived** 2026-08-10 (app-level 422 → APIResponse)
+- `openapi.untyped-success-responses` — **archived** 2026-08-10 (all success
+  routes → DataResponse[T]; FE aliases generated schemas; auth snake_case kept)
+- `auth.token-version-ig-clear-duplication` — **archived** 2026-08-10
+  (`bump_token_version` + IG clears via `clear_unusable_instagram_token`)
+- `test.jwt-secret-key-length-warning` — **archived** 2026-08-10
+  (`closed_in: 772305a`, cluster `test-jwt-secret-length`)
+- `test.httpx-per-request-cookies-deprecated` — **archived**
+  (`closed_in: d5666e3`, cluster `test-httpx-cookies`)
   Do not auto-execute. Un-park only with an explicit user request naming the
   gap id after a Locked v1 exists (or product reverses sibling-dismiss).

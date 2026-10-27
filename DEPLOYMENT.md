@@ -10,27 +10,27 @@ Deploy target: **Railway** from branch **`main`** (autodeploy on) — repo **`br
 
 **Live hosts (brand DNS on Railway — app SOT):**
 
-| Role | URL |
-| ---- | --- |
+| Role            | URL                                |
+| --------------- | ---------------------------------- |
 | SPA (site root) | `https://www.bringthebuzzover.com` |
-| API | `https://api.bringthebuzzover.com` |
+| API             | `https://api.bringthebuzzover.com` |
 
 **Secondary Railway-generated hosts** (still deployed; not the cookie/`FRONTEND_URL` SOT):
 
-| Role | URL |
-| ---- | --- |
-| SPA | `https://frontend-production-3819.up.railway.app` |
-| API | `https://api-production-fbbc1.up.railway.app` |
+| Role | URL                                               |
+| ---- | ------------------------------------------------- |
+| SPA  | `https://frontend-production-3819.up.railway.app` |
+| API  | `https://api-production-fbbc1.up.railway.app`     |
 
 Env + cookies use **www/api**. Meta Hosts paste done 2026-08-11 — see [`gaps/archive/deploy.meta-brand-url-cutover.md`](gaps/archive/deploy.meta-brand-url-cutover.md) and [`META.md`](META.md). Remaining Meta launch gate: Business Verification + App Review (META §E–F).
 
 ### Environment vocabulary
 
-| Name | Meaning today |
-| ---- | ------------- |
-| **Local / `development`** | Laptop bring-up (`ENVIRONMENT=development`). Dev secrets, insecure cookies OK, localhost CORS. |
+| Name                         | Meaning today                                                                                                                                                                                                                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Local / `development`**    | Laptop bring-up (`ENVIRONMENT=development`). Dev secrets, insecure cookies OK, localhost CORS.                                                                                                                                                                                                   |
 | **Railway env `production`** | The **only** Railway environment today (project **buzz**). Serves brand hosts `www` / `api.bringthebuzzover.com` plus secondary `*.up.railway.app`. `ENVIRONMENT` for the API is whatever is set on that service (must be `staging` or `production` for the fail-fast path — not `development`). |
-| **Staging** | **Not used.** Decided 2026-10-26: no staging Railway environment and no `dev` / `staging` git branch. `ENVIRONMENT=staging` remains a valid API value (hardened path, same as `production`) but there is no second stack. |
+| **Staging**                  | **Not used.** Decided 2026-10-26: no staging Railway environment and no `dev` / `staging` git branch. `ENVIRONMENT=staging` remains a valid API value (hardened path, same as `production`) but there is no second stack.                                                                        |
 
 **Live hosts (repeat):** `https://www.bringthebuzzover.com` / `https://api.bringthebuzzover.com`
 
@@ -38,20 +38,20 @@ Env + cookies use **www/api**. Meta Hosts paste done 2026-08-11 — see [`gaps/a
 
 ## Launch readiness at a glance
 
-| Area                                                 | State                               | Blocker to launch?                  |
-| ---------------------------------------------------- | ----------------------------------- | ----------------------------------- |
-| Application code (both portals, jobs, auth)          | Done + tested                       | No                                  |
-| Instagram / Meta app (create + credentials)          | **Done** — ID/secret on Railway + local `.env` | No for pilot wiring                     |
-| Instagram / Meta App Review + Business Verification  | Not started                         | **Yes** — gates public (non-tester) org signups |
-| Legal review of Privacy Policy + Terms               | Draft in app (`/privacy`, `/terms`) | **Yes** — required for Meta + PII   |
-| Railway stack (Frontend + API + Postgres + 6 crons)  | **Done** (env `production`; target autodeploy from `bringthebuzzover/buzz` @ `main`) | Reconfirm Railway Source if still on ShannonLin284 |
-| Custom DNS (`www` / `api.bringthebuzzover.com`)      | **Done** (Cloudflare DNS; TLS green; `SameSite=lax`) | No — Meta Hosts paste archived 2026-08-11 |
-| Secrets + env for current hosts                      | **Done** — Railway hosts + real IG creds | Re-check at custom DNS cutover          |
-| Env parity for custom domains (SPA/API URLs, Meta)   | N/A until DNS                       | **Yes** after cutover if any var still uses Railway-only URLs |
-| Resend verified sender domain                        | **Done** (DKIM + `send.` SPF/MX; inbox proof 2026-08-11) | Soft — watch deliverability / DMARC later |
+| Area                                                | State                                                                                | Blocker to launch?                                            |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Application code (both portals, jobs, auth)         | Done + tested                                                                        | No                                                            |
+| Instagram / Meta app (create + credentials)         | **Done** — ID/secret on Railway + local `.env`                                       | No for pilot wiring                                           |
+| Instagram / Meta App Review + Business Verification | Not started                                                                          | **Yes** — gates public (non-tester) org signups               |
+| Legal review of Privacy Policy + Terms              | Draft in app (`/privacy`, `/terms`)                                                  | **Yes** — required for Meta + PII                             |
+| Railway stack (Frontend + API + Postgres + 6 crons) | **Done** (env `production`; target autodeploy from `bringthebuzzover/buzz` @ `main`) | Reconfirm Railway Source if still on ShannonLin284            |
+| Custom DNS (`www` / `api.bringthebuzzover.com`)     | **Done** (Cloudflare DNS; TLS green; `SameSite=lax`)                                 | No — Meta Hosts paste archived 2026-08-11                     |
+| Secrets + env for current hosts                     | **Done** — Railway hosts + real IG creds                                             | Re-check at custom DNS cutover                                |
+| Env parity for custom domains (SPA/API URLs, Meta)  | N/A until DNS                                                                        | **Yes** after cutover if any var still uses Railway-only URLs |
+| Resend verified sender domain                       | **Done** (DKIM + `send.` SPF/MX; inbox proof 2026-08-11)                             | Soft — watch deliverability / DMARC later                     |
 
-| Notify Me cron (`cron-notify-reminders`)             | **Done** (`*/5`, clones autoclose env) | Soft — watch first backlog flush / Resend |
-| Meta dashboard URLs (redirect / deauth / legal)      | **In progress** — finish META.md §C | **Yes** before pilot OAuth E2E         |
+| Notify Me cron (`cron-notify-reminders`) | **Done** (`*/5`, clones autoclose env) | Soft — watch first backlog flush / Resend |
+| Meta dashboard URLs (redirect / deauth / legal) | **In progress** — finish META.md §C | **Yes** before pilot OAuth E2E |
 
 ---
 
@@ -59,7 +59,7 @@ Env + cookies use **www/api**. Meta Hosts paste done 2026-08-11 — see [`gaps/a
 
 - [x] **Meta / Instagram app created + credentials on Railway** (`INSTAGRAM_CLIENT_ID` / `_SECRET`). Live authorize URL uses the real App ID (no longer a placeholder).
 - [ ] **Meta dashboard Business Login URLs** (META.md §C) — OAuth redirect, deauthorize, data deletion, privacy, terms must match **Live** Railway hosts in META.md Hosts table.
-- [ ] **Meta / Instagram App Review + Business Verification.** Org login for *any* org (not just app roles) needs **Advanced Access** on `instagram_business_basic` + `instagram_business_manage_insights`. Advanced Access requires App Review **and** Business Verification. Submit early — critical path (can take weeks).
+- [ ] **Meta / Instagram App Review + Business Verification.** Org login for _any_ org (not just app roles) needs **Advanced Access** on `instagram_business_basic` + `instagram_business_manage_insights`. Advanced Access requires App Review **and** Business Verification. Submit early — critical path (can take weeks).
 
   **App Review requires (Meta docs):** Business Verification (proof the business exists); a screencast of the full login flow _including the OAuth consent screen_ and each scope's data being used; a public Privacy Policy URL + Terms URL (→ Phase 1 legal item); a live, reviewer-accessible test environment; and at least one successful API call per scope before you can submit (so run the flow with a tester first). `instagram_business_manage_insights` is reviewed _separately_ from basic — request only scopes we actually use (least privilege) or review slows down.
 
@@ -79,12 +79,12 @@ You do **not** need App Review to run a small, hand-picked pilot. In **Developme
 
 Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway project (**buzz**). One Railway environment (**`production`**). There is no staging environment and no `dev` / `staging` branch (decided 2026-10-26; [`README.md`](README.md#branching--main-protection)).
 
-| Service                 | What                                                                                      | Notes                                                                                                                                 |
-| ----------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Frontend**            | React SPA under `/frontend` (reads `backend/brand_emails.json` at build)                    | Root Directory `/` (repo root [`package.json`](package.json) → Railpack Node provider + default `build`/`start` scripts; no custom Build/Start overrides); Watch Paths `/frontend/**` + `/backend/brand_emails.json` |
-| **api**                 | FastAPI + Uvicorn (`poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT`)         | Root Directory `/backend`; Watch Paths `/backend/**`; Pre-deploy `poetry run alembic upgrade head`; **1 replica**; Health `/api/health` (DB ping — 503 if Postgres is down) |
-| **PostgreSQL**          | Railway-managed                                                                           | Injects `DATABASE_URL` (`postgres://…` / `postgresql://…`); backend rewrites to `postgresql+asyncpg://` at startup                    |
-| **Cron ×6** | One service per job: `.venv/bin/python scripts/run_job.py <name>` | **Live:** `cron-drop-autoclose`, `cron-metric-sync`, `cron-token-cleanup`, `cron-autolink-scan`, `cron-token-refresh`, `cron-notify-reminders`. Root `/backend`; no public domain; share API env. Pre-deploy `.venv/bin/alembic upgrade head` (same as api) so a git-push cannot run a job against an unmigrated schema. |
+| Service        | What                                                                              | Notes                                                                                                                                                                                                                                                                                                                    |
+| -------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Frontend**   | React SPA under `/frontend` (reads `backend/brand_emails.json` at build)          | Root Directory `/` (repo root [`package.json`](package.json) → Railpack Node provider + default `build`/`start` scripts; no custom Build/Start overrides); Watch Paths `/frontend/**` + `/backend/brand_emails.json`                                                                                                     |
+| **api**        | FastAPI + Uvicorn (`poetry run uvicorn app.main:app --host 0.0.0.0 --port $PORT`) | Root Directory `/backend`; Watch Paths `/backend/**`; Pre-deploy `poetry run alembic upgrade head`; **1 replica**; Health `/api/health` (DB ping — 503 if Postgres is down)                                                                                                                                              |
+| **PostgreSQL** | Railway-managed                                                                   | Injects `DATABASE_URL` (`postgres://…` / `postgresql://…`); backend rewrites to `postgresql+asyncpg://` at startup                                                                                                                                                                                                       |
+| **Cron ×6**    | One service per job: `.venv/bin/python scripts/run_job.py <name>`                 | **Live:** `cron-drop-autoclose`, `cron-metric-sync`, `cron-token-cleanup`, `cron-autolink-scan`, `cron-token-refresh`, `cron-notify-reminders`. Root `/backend`; no public domain; share API env. Pre-deploy `.venv/bin/alembic upgrade head` (same as api) so a git-push cannot run a job against an unmigrated schema. |
 
 - [x] Create the services in one Railway project (Frontend + API + Postgres + 6 crons) — **done**.
 - [x] Add cron service **`cron-notify-reminders`** (`*/5 * * * *`) — Notify Me delivery; env refs autoclose.
@@ -93,11 +93,11 @@ Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway
 
 ### Domain / DNS ownership
 
-| Layer | Owner |
-| ----- | ----- |
-| **Registrar** | Melissa’s **Hostinger** account (`bringthebuzzover.com`) |
+| Layer                 | Owner                                                               |
+| --------------------- | ------------------------------------------------------------------- |
+| **Registrar**         | Melissa’s **Hostinger** account (`bringthebuzzover.com`)            |
 | **Authoritative DNS** | Lawrence’s **Cloudflare** zone (`felipe` / `melody` NS) — Free plan |
-| **App origins** | Railway: `www` + `api` custom domains (TLS on Railway) |
+| **App origins**       | Railway: `www` + `api` custom domains (TLS on Railway)              |
 
 **Cloudflare DNS (SOT):** DNS-only CNAMEs `www` → `p29bzdj1.up.railway.app`, `api` → `74widk71.up.railway.app`, plus Railway verify TXTs. Apex is a **proxied** originless `A` (`192.0.2.1`) with a Single Redirect **301** → `https://www.bringthebuzzover.com` (preserve path/query). Do **not** orange-cloud `www`/`api` (Railway terminates TLS).
 
@@ -107,18 +107,19 @@ Branch: **`main`** (autodeploy on) from **`bringthebuzzover/buzz`**. One Railway
 
 Company mail is Google Workspace Business Starter on the apex. Resend on `send.` is app autosend only. Leave Cloudflare Email Routing off so it does not publish a second apex MX.
 
-| Item | Value |
-| ---- | ----- |
-| **Provider** | Google Workspace Business Starter |
-| **Public contact** | `melissa@bringthebuzzover.com` — `contactEmail` in [`backend/brand_emails.json`](backend/brand_emails.json). Contact modal, privacy, terms, and data deletion read it via `@brandEmails`. |
-| **Webmail** | https://mail.google.com |
-| **Admin console** | https://admin.google.com |
-| **Apex DNS** | Cloudflare. Probed 2026-10-26 with `dig @1.1.1.1`: MX `1 smtp.google.com.`; SPF `v=spf1 include:_spf.google.com ~all`; `google-site-verification` TXT present; DKIM `google._domainkey` present; DMARC `v=DMARC1; p=none; rua=mailto:melissa@bringthebuzzover.com`. |
-| **Transactional From** | `Buzz <hello@bringthebuzzover.com>` via Resend (`send.` SPF/MX + `resend._domainkey`). Every app send sets Reply-To to `contactEmail`. Do not edit those `send.` records when changing the human mailbox. |
-| **`hello@`** | Not confirmed as a Workspace user or alias. Direct mail to `hello@` may not arrive. Tracked in [`gaps/ops.brand-mailbox.md`](gaps/ops.brand-mailbox.md). |
-| **Billing owner / Super Admin** | Not recorded in this repo. |
+| Item                   | Value                                                                                                                                                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Provider**           | Google Workspace Business Starter                                                                                                                                                                                                                                   |
+| **Public contact**     | `melissa@bringthebuzzover.com` — `contactEmail` in [`backend/brand_emails.json`](backend/brand_emails.json). Contact modal, privacy, terms, and data deletion read it via `@brandEmails`.                                                                           |
+| **Webmail**            | https://mail.google.com                                                                                                                                                                                                                                             |
+| **Admin console**      | https://admin.google.com                                                                                                                                                                                                                                            |
+| **Apex DNS**           | Cloudflare. Probed 2026-10-26 with `dig @1.1.1.1`: MX `1 smtp.google.com.`; SPF `v=spf1 include:_spf.google.com ~all`; `google-site-verification` TXT present; DKIM `google._domainkey` present; DMARC `v=DMARC1; p=none; rua=mailto:melissa@bringthebuzzover.com`. |
+| **Transactional From** | `Buzz <hello@bringthebuzzover.com>` via Resend (`send.` SPF/MX + `resend._domainkey`). Every app send sets Reply-To to `contactEmail`. Do not edit those `send.` records when changing the human mailbox.                                                           |
+| **`hello@`**           | Alias on `melissa@` (inbox proof 2026-10-26). Mail to `hello@` lands in that Gmail inbox. Resend still sends From `hello@` on `send.`. See [`gaps/archive/ops.brand-mailbox.md`](gaps/archive/ops.brand-mailbox.md).                                                |
+| **Super Admin**        | Melissa. `melissa@bringthebuzzover.com` is the only Workspace email, and Google bills that address. `hello@` is an alias on it, not a second email.                                                                                                                 |
 
 Meta URL paste after brand cutover: **done** — `gaps/archive/deploy.meta-brand-url-cutover.md`.
+
 - [ ] Enable **Wait for CI** on Frontend + API (CI on `main`/`mvp` includes typecheck/build, backend suite, and Playwright `frontend-e2e`).
 - [ ] Optional: `RAILPACK_PYTHON_VERSION=3.12` on API + cron services (cron siblings already set; confirm API).
 
@@ -139,14 +140,14 @@ REACT_APP_API_URL=https://api.bringthebuzzover.com
 
 Background jobs are one-shot scripts the scheduler invokes — no worker. Each is idempotent (`backend/README.md`, architecture §10). **One Railway cron service per row:**
 
-| Service             | Start command                                         | Cron UTC      | Status | Purpose                                              |
-| ------------------- | ----------------------------------------------------- | ------------- | ------ | ---------------------------------------------------- |
-| cron-drop-autoclose | `poetry run python scripts/run_job.py drop_autoclose` | `*/5 * * * *` | Live   | close drops past their apply window (§10.2)          |
-| cron-metric-sync    | `… metric_sync`                                       | `0 3,11,19 * * *` | Live | IG media/insights + org follower_count refresh (§10.1) |
-| cron-token-cleanup  | `… token_cleanup`                                     | `0 3 * * *`   | Live   | sweep used/expired tokens (§10.3)                    |
-| cron-autolink-scan  | `… autolink_scan`                                     | `30 3 * * *`  | Live   | auto-link suggestion scan, after metric_sync (§10.4) |
-| cron-token-refresh  | `… token_refresh`                                     | `0 4 * * *`   | Live   | IG long-lived token refresh safety net (§10.5.2)     |
-| cron-notify-reminders | `… notify_reminders`                                | `*/5 * * * *` | Live   | email Notify Me subscribers before a drop opens (§10.6) |
+| Service               | Start command                                         | Cron UTC          | Status | Purpose                                                 |
+| --------------------- | ----------------------------------------------------- | ----------------- | ------ | ------------------------------------------------------- |
+| cron-drop-autoclose   | `poetry run python scripts/run_job.py drop_autoclose` | `*/5 * * * *`     | Live   | close drops past their apply window (§10.2)             |
+| cron-metric-sync      | `… metric_sync`                                       | `0 3,11,19 * * *` | Live   | IG media/insights + org follower_count refresh (§10.1)  |
+| cron-token-cleanup    | `… token_cleanup`                                     | `0 3 * * *`       | Live   | sweep used/expired tokens (§10.3)                       |
+| cron-autolink-scan    | `… autolink_scan`                                     | `30 3 * * *`      | Live   | auto-link suggestion scan, after metric_sync (§10.4)    |
+| cron-token-refresh    | `… token_refresh`                                     | `0 4 * * *`       | Live   | IG long-lived token refresh safety net (§10.5.2)        |
+| cron-notify-reminders | `… notify_reminders`                                  | `*/5 * * * *`     | Live   | email Notify Me subscribers before a drop opens (§10.6) |
 
 The primary IG token refresh is **on-login**; `token_refresh` only catches inactive orgs and is optional for a tight MVP. `refresh_due_tokens` only selects still-valid tokens with `now < expires_at < now+14d`; already-expired tokens are never selected and cannot be Meta-refreshed — the org must OAuth reconnect (`/reconnect-instagram`). A 5-minute cadence means the 5-minute reminder option can land up to ~5 minutes late, and the first `notify_reminders` run mails every already-due subscription that predates the job. Confirm each cron run **exits** (Completed, not stuck Active). Each invocation writes a `job_runs` row (`ok` + `summary`); `/api/admin/health` surfaces last-run age on pipeline signals.
 
@@ -159,7 +160,7 @@ railway run -s api -e production -- poetry run python scripts/cleanup_request_re
 railway run -s api -e production -- poetry run python scripts/cleanup_request_received_stubs.py --confirm
 ```
 
-- [ ] Ran `--confirm` on production (date: ____). Production HTTP `POST /api/admin/tools/cleanup-request-received` stays 403.
+- [ ] Ran `--confirm` on production (date: `____`). Production HTTP `POST /api/admin/tools/cleanup-request-received` stays 403.
 
 ---
 
@@ -167,19 +168,19 @@ railway run -s api -e production -- poetry run python scripts/cleanup_request_re
 
 The backend **fails fast at startup** (`backend/app/config.py`) when `ENVIRONMENT != development` if any of these are wrong, so a misconfigured deploy crashes instead of silently shipping an insecure or broken layer:
 
-| Var                                                 | Requirement off-dev                          |
-| --------------------------------------------------- | -------------------------------------------- |
-| `ENVIRONMENT`                                       | Exactly `staging` or `production` (unknown values rejected at load) |
-| `SECRET_KEY`                                        | real value (not the committed dev default)   |
-| `TOKEN_ENCRYPTION_KEY`                              | real Fernet key (not empty / not the development derived key) |
-| `REFRESH_COOKIE_SECURE`                             | `true` (enforced)                            |
-| `FRONTEND_URL`                                      | real SPA host, not `localhost` (enforced)    |
-| `INSTAGRAM_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | real Meta creds (enforced)                   |
-| `RESEND_API_KEY`                                    | real key (enforced; empty would no-op email) |
+| Var                                                 | Requirement off-dev                                                                                                                                                        |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ENVIRONMENT`                                       | Exactly `staging` or `production` (unknown values rejected at load)                                                                                                        |
+| `SECRET_KEY`                                        | real value (not the committed dev default)                                                                                                                                 |
+| `TOKEN_ENCRYPTION_KEY`                              | real Fernet key (not empty / not the development derived key)                                                                                                              |
+| `REFRESH_COOKIE_SECURE`                             | `true` (enforced)                                                                                                                                                          |
+| `FRONTEND_URL`                                      | real SPA host, not `localhost` (enforced)                                                                                                                                  |
+| `INSTAGRAM_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | real Meta creds (enforced)                                                                                                                                                 |
+| `RESEND_API_KEY`                                    | real key (enforced; empty would no-op email)                                                                                                                               |
 | `GOOGLE_ADDRESS_API_KEY`                            | Google Cloud key with Places API (New) + Address Validation (enforced off-dev). Empty in development uses structured-format fallback. Server-side only — never in the SPA. |
-| `DATABASE_URL`                                      | Railway Postgres URL (rewritten to `postgresql+asyncpg://` at startup) |
-| `REFRESH_COOKIE_SAMESITE`                           | **`lax`** on brand www+api (same eTLD+1); historical dual-host Railway used `none` |
-| `RATE_LIMIT_ENABLED`                                | `true`                                                                 |
+| `DATABASE_URL`                                      | Railway Postgres URL (rewritten to `postgresql+asyncpg://` at startup)                                                                                                     |
+| `REFRESH_COOKIE_SAMESITE`                           | **`lax`** on brand www+api (same eTLD+1); historical dual-host Railway used `none`                                                                                         |
+| `RATE_LIMIT_ENABLED`                                | `true`                                                                                                                                                                     |
 
 Generate secrets:
 
@@ -313,7 +314,7 @@ Set the resulting credentials in the backend env: `INSTAGRAM_CLIENT_ID`, `INSTAG
 - API keys dashboard: <https://resend.com/api-keys>
 - Agent ops: Resend MCP row in [`AGENTS.md`](AGENTS.md) (Domains + send debug; no keys in repo)
 
-**Done (2026-08-11):** `bringthebuzzover.com` Verified — DKIM TXT `resend._domainkey` + SPF TXT + MX on `send.` (not apex), Cloudflare DNS-only / grey-cloud. Receiving stays **off** on Resend so it does not fight apex Google MX (human inbox: [Human inbox](#human-inbox-google-workspace) and [`ops.brand-mailbox`](gaps/ops.brand-mailbox.md)). `RESEND_API_KEY` on Railway **api** + **cron-notify-reminders** (send-scoped key for the verified domain). Transactional From and public contact email are committed in [`backend/brand_emails.json`](backend/brand_emails.json) (not env). Delete any leftover `EMAIL_FROM` service variable — it is ignored.
+**Done (2026-08-11):** `bringthebuzzover.com` Verified — DKIM TXT `resend._domainkey` + SPF TXT + MX on `send.` (not apex), Cloudflare DNS-only / grey-cloud. Receiving stays **off** on Resend so it does not fight apex Google MX (human inbox: [Human inbox](#human-inbox-google-workspace) and [`ops.brand-mailbox`](gaps/archive/ops.brand-mailbox.md)). `RESEND_API_KEY` on Railway **api** + **cron-notify-reminders** (send-scoped key for the verified domain). Transactional From and public contact email are committed in [`backend/brand_emails.json`](backend/brand_emails.json) (not env). Delete any leftover `EMAIL_FROM` service variable — it is ignored.
 
 ### Railway (hosting: Frontend + API + Postgres + Cron)
 

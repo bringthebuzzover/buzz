@@ -35,10 +35,10 @@ fix_when: |
 **Split 2026-08-11.** This id is closed as a tracker shell only — Resend and
 mailbox work were **not** completed by this archive. See:
 
-| Child | Scope |
-| ------ | ----- |
-| [`ops.resend-domain-unverified`](ops.resend-domain-unverified.md) | App transactional From via Resend (`send.` + DKIM) |
-| [`ops.brand-mailbox`](../ops.brand-mailbox.md) | Human mailbox send+receive + replace Cornell `contactEmail` |
+| Child                                                             | Scope                                                       |
+| ----------------------------------------------------------------- | ----------------------------------------------------------- |
+| [`ops.resend-domain-unverified`](ops.resend-domain-unverified.md) | App transactional From via Resend (`send.` + DKIM)          |
+| [`ops.brand-mailbox`](ops.brand-mailbox.md)                       | Human mailbox send+receive + replace Cornell `contactEmail` |
 
 Historical body retained below for context.
 
@@ -54,33 +54,33 @@ shows a personal contact address.
 
 ## Two systems (do not conflate)
 
-| System | Purpose | Blocks the other? |
-| ------ | ------- | ----------------- |
+| System                  | Purpose                                                         | Blocks the other?                                         |
+| ----------------------- | --------------------------------------------------------------- | --------------------------------------------------------- |
 | **Outbound (autosend)** | Resend → verify, invite, deny/undeny, Notify Me, password reset | **No** — uses `send.` + DKIM; does not need apex human MX |
-| **Inbound (humans)** | People mail `contact@` / `hello@` / support | **No** — apex MX; does not unblock Resend by itself |
+| **Inbound (humans)**    | People mail `contact@` / `hello@` / support                     | **No** — apex MX; does not unblock Resend by itself       |
 
 Railway hosts the app only — **irrelevant for inbound mailboxes**.
 
 ## Ownership map (verified 2026-08-11)
 
-| Layer | Where | Account |
-| ----- | ----- | ------- |
-| Registrar | Hostinger | Melissa — domain Active, expires 2026-12-21; NS → Cloudflare |
-| Authoritative DNS | Cloudflare zone `9103e4c774707bf5b2f17fbb9d9144cf` | Lawrence — Free; NS `felipe` / `melody` |
-| App hosts | Railway (`www` / `api`) | Lawrence |
-| Transactional send | Resend (`RESEND_API_KEY` on api + crons) | Buzz ops — **sending domain not verified** |
-| Human inbox | **None** on brand domain | Contact = `ae101@example.edu` |
+| Layer              | Where                                              | Account                                                      |
+| ------------------ | -------------------------------------------------- | ------------------------------------------------------------ |
+| Registrar          | Hostinger                                          | Melissa — domain Active, expires 2026-12-21; NS → Cloudflare |
+| Authoritative DNS  | Cloudflare zone `9103e4c774707bf5b2f17fbb9d9144cf` | Lawrence — Free; NS `felipe` / `melody`                      |
+| App hosts          | Railway (`www` / `api`)                            | Lawrence                                                     |
+| Transactional send | Resend (`RESEND_API_KEY` on api + crons)           | Buzz ops — **sending domain not verified**                   |
+| Human inbox        | **None** on brand domain                           | Contact = `ae101@example.edu`                               |
 
 Hostinger DNS zone empty (cleared after CF NS flip). Hostinger mail orders = 0;
 no websites. Do **not** recreate www/api/apex or put MX on Hostinger DNS.
 
 ## What exists today
 
-| Address / path | Role | Reality |
-| -------------- | ---- | ------- |
-| `Buzz <noreply@bringthebuzzover.com>` | Resend `from` (`emailFrom`) | Unverified domain; no Resend DNS in CF → off-dev sends fail in practice |
-| `ae101@example.edu` | Public contact (`contactEmail`) | **To remove** — interim personal Cornell |
-| `*@bringthebuzzover.com` inbound | Support / hello / contact | **No apex MX** → undeliverable |
+| Address / path                        | Role                            | Reality                                                                 |
+| ------------------------------------- | ------------------------------- | ----------------------------------------------------------------------- |
+| `Buzz <noreply@bringthebuzzover.com>` | Resend `from` (`emailFrom`)     | Unverified domain; no Resend DNS in CF → off-dev sends fail in practice |
+| `ae101@example.edu`                  | Public contact (`contactEmail`) | **To remove** — interim personal Cornell                                |
+| `*@bringthebuzzover.com` inbound      | Support / hello / contact       | **No apex MX** → undeliverable                                          |
 
 Code: From loaded from [`backend/brand_emails.json`](../../backend/brand_emails.json)
 ([`backend/app/brand_emails.py`](../../backend/app/brand_emails.py)); dispatch in
@@ -114,28 +114,26 @@ human inbox MX — avoid for contact; subdomain only if we ever want API ingest.
 
 **How to test outbound**
 
-| Where | How |
-| ----- | --- |
-| Local | `ENVIRONMENT=development` → links in API logs; no Resend (`email.py`) |
-| Unit | `backend/tests/test_email.py`, `test_brand_emails.py` (mocked httpx) |
-| Prod | After Verified: one controlled trigger (invite/verify yourself) → log
-`Email dispatched: … resend_id=` + Resend dashboard + destination inbox |
-| Caution | Notify Me cron `*/5` can flush a backlog; don’t blast deny/notify. No
-send ledger yet ([`ops.email-ledger`](ops.email-ledger.md), later archived) |
+| Where                                                                       | How                                                                   |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Local                                                                       | `ENVIRONMENT=development` → links in API logs; no Resend (`email.py`) |
+| Unit                                                                        | `backend/tests/test_email.py`, `test_brand_emails.py` (mocked httpx)  |
+| Prod                                                                        | After Verified: one controlled trigger (invite/verify yourself) → log `Email dispatched: … resend_id=` + Resend dashboard + destination inbox |
+| Caution                                                                     | Notify Me cron `*/5` can flush a backlog; don’t blast deny/notify. No send ledger yet ([`ops.email-ledger`](ops.email-ledger.md), later archived) |
 
 ## Inbound — company addresses (pick one)
 
 Public/UX addresses must be `@bringthebuzzover.com`. DNS SOT = Cloudflare.
 
-| Option | What you get | Human access | Deep-link webmail? | Message-read API for Buzz admin? | Who / cost / effort |
-| ------ | ------------ | ------------ | ------------------ | -------------------------------- | ------------------- |
-| **Cloudflare Email Routing** | Forward-only to personal destination; **public** addr still company | Destination Gmail/etc. (no CF webmail) | No CF inbox URL | **No** (rules API / Workers at receive time only) | Lawrence; free; ~hours |
-| **Google Workspace** | Real mailbox | [mail.google.com](https://mail.google.com) | Yes | Yes — Gmail API (weeks+, OAuth, PRODUCT ask) | Buy seats; Lawrence DNS |
-| **Microsoft 365** | Real mailbox | [outlook.office.com/mail](https://outlook.office.com/mail) | Yes | Yes — Graph (same class as Gmail) | Buy seats; Lawrence DNS |
-| **Zoho Mail** (Lite/Free) | Real mailbox, cheaper suite-like | [mail.zoho.com](https://mail.zoho.com) | Yes | Zoho Mail API exists | Low $; Lawrence DNS |
-| **Hostinger Email** | Real mailbox | [mail.hostinger.com](https://mail.hostinger.com) | Yes | No useful inbox-read API for Buzz | **Melissa buys** order; Lawrence publishes MX on CF |
-| **ImprovMX** | Forward-only | Destination only | No | No | Redundant vs CF Routing here |
-| **Resend Receiving (apex)** | API ingest | Not a support inbox | Dashboard / app | Yes — but **steals apex MX** | Avoid for contact |
+| Option                       | What you get                                                        | Human access                                               | Deep-link webmail? | Message-read API for Buzz admin?                  | Who / cost / effort                                 |
+| ---------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------ | ------------------------------------------------- | --------------------------------------------------- |
+| **Cloudflare Email Routing** | Forward-only to personal destination; **public** addr still company | Destination Gmail/etc. (no CF webmail)                     | No CF inbox URL    | **No** (rules API / Workers at receive time only) | Lawrence; free; ~hours                              |
+| **Google Workspace**         | Real mailbox                                                        | [mail.google.com](https://mail.google.com)                 | Yes                | Yes — Gmail API (weeks+, OAuth, PRODUCT ask)      | Buy seats; Lawrence DNS                             |
+| **Microsoft 365**            | Real mailbox                                                        | [outlook.office.com/mail](https://outlook.office.com/mail) | Yes                | Yes — Graph (same class as Gmail)                 | Buy seats; Lawrence DNS                             |
+| **Zoho Mail** (Lite/Free)    | Real mailbox, cheaper suite-like                                    | [mail.zoho.com](https://mail.zoho.com)                     | Yes                | Zoho Mail API exists                              | Low $; Lawrence DNS                                 |
+| **Hostinger Email**          | Real mailbox                                                        | [mail.hostinger.com](https://mail.hostinger.com)           | Yes                | No useful inbox-read API for Buzz                 | **Melissa buys** order; Lawrence publishes MX on CF |
+| **ImprovMX**                 | Forward-only                                                        | Destination only                                           | No                 | No                                                | Redundant vs CF Routing here                        |
+| **Resend Receiving (apex)**  | API ingest                                                          | Not a support inbox                                        | Dashboard / app    | Yes — but **steals apex MX**                      | Avoid for contact                                   |
 
 **SPF note:** Resend SPF lives on `send.`; apex SPF belongs to the inbound/
 human-send provider. Merge `include:`s on apex only if humans also **send as**
@@ -143,12 +141,12 @@ human-send provider. Merge `include:`s on apex only if humans also **send as**
 
 ### RACI (Cloudflare stays DNS SOT)
 
-| Task | CF Email Routing | Google / Zoho / M365 | Hostinger Email |
-| ---- | ---------------- | -------------------- | --------------- |
-| Buy / subscribe | — | Ops signs up | **Melissa** |
-| Enable / create addresses | **Lawrence** (CF UI or MCP with OK) | Ops admin console | Melissa / Hostinger MCP after order |
-| Publish MX (+ TXT) on Cloudflare | **Lawrence** | **Lawrence** | **Lawrence** (not Hostinger DNS) |
-| Receive test → flip `contactEmail` | Lawrence | Ops + Lawrence | Melissa + Lawrence |
+| Task                               | CF Email Routing                    | Google / Zoho / M365 | Hostinger Email                     |
+| ---------------------------------- | ----------------------------------- | -------------------- | ----------------------------------- |
+| Buy / subscribe                    | —                                   | Ops signs up         | **Melissa**                         |
+| Enable / create addresses          | **Lawrence** (CF UI or MCP with OK) | Ops admin console    | Melissa / Hostinger MCP after order |
+| Publish MX (+ TXT) on Cloudflare   | **Lawrence**                        | **Lawrence**         | **Lawrence** (not Hostinger DNS)    |
+| Receive test → flip `contactEmail` | Lawrence                            | Ops + Lawrence       | Melissa + Lawrence                  |
 
 Cloudflare MCP can CRUD DNS and Email Routing APIs; Hostinger mailbox MCP needs a
 mail **order** first (`mail_listOrdersV1` empty today). Mutate only with explicit OK
@@ -156,11 +154,11 @@ mail **order** first (`mail_listOrdersV1` empty today). Mutate only with explici
 
 ## Cutover order (locked sequence)
 
-1. **Autosend:** Resend DNS on `send.` / DKIM → Verified → one prod send test.  
-2. **Inbound:** pick provider → apex MX in CF → send test to `contact@…` (or chosen addr).  
-3. Set `brand_emails.json` `contactEmail` → deploy → remove Cornell (grep clean).  
-4. Update [`DEPLOYMENT.md`](../../DEPLOYMENT.md) Resend checkbox + inbox ownership.  
-5. **Optional later:** admin “Open inbox” link-out (hours).  
+1. **Autosend:** Resend DNS on `send.` / DKIM → Verified → one prod send test.
+2. **Inbound:** pick provider → apex MX in CF → send test to `contact@…` (or chosen addr).
+3. Set `brand_emails.json` `contactEmail` → deploy → remove Cornell (grep clean).
+4. Update [`DEPLOYMENT.md`](../../DEPLOYMENT.md) Resend checkbox + inbox ownership.
+5. **Optional later:** admin “Open inbox” link-out (hours).
 6. **Not in this gap:** in-app admin inbox.
 
 Steps 1 and 2 can run in parallel (different DNS names). Step 3 requires step 2
@@ -168,11 +166,11 @@ receive-proof. Do not flip contact before mail delivers.
 
 ## Admin panel (later — not archive-blocking)
 
-| Idea | Feasible? | Complexity |
-| ---- | --------- | ---------- |
-| **Open inbox** `<a target="_blank">` in [`AdminSidebar.tsx`](../../frontend/src/components/admin/AdminSidebar.tsx) (near Sign out) | Yes — no `/admin/settings` today; no admin external-link pattern (copy marketing `noopener`) | Hours; config URL to Gmail/Outlook/Hostinger/Zoho |
-| Embed provider webmail iframe | Usually blocked (`X-Frame-Options`) | Dead end |
-| In-app list/read messages | Needs Gmail/Graph/Zoho (or Resend Receiving on a subdomain) + OAuth + encrypted tokens + `/api/admin/*` proxy + SPA | Weeks–months; **PRODUCT/UX ask** ([`AGENTS.md`](../../AGENTS.md) hard stop) |
+| Idea                                                                                                                               | Feasible?                                                                                                           | Complexity                                                                  |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **Open inbox** `<a target="_blank">` in [`AdminSidebar.tsx`](../../frontend/src/components/admin/AdminSidebar.tsx) (near Sign out) | Yes — no `/admin/settings` today; no admin external-link pattern (copy marketing `noopener`)                        | Hours; config URL to Gmail/Outlook/Hostinger/Zoho                           |
+| Embed provider webmail iframe                                                                                                      | Usually blocked (`X-Frame-Options`)                                                                                 | Dead end                                                                    |
+| In-app list/read messages                                                                                                          | Needs Gmail/Graph/Zoho (or Resend Receiving on a subdomain) + OAuth + encrypted tokens + `/api/admin/*` proxy + SPA | Weeks–months; **PRODUCT/UX ask** ([`AGENTS.md`](../../AGENTS.md) hard stop) |
 
 No admin inbox in [`PRODUCT.md`](../../PRODUCT.md). Link-out is internal ops chrome;
 in-app mail client is a product fork.
@@ -198,15 +196,15 @@ dig @1.1.1.1 TXT send.bringthebuzzover.com +short
 
 ## Sources
 
-| Topic | Link / path |
-| ----- | ----------- |
-| Resend send domain | https://resend.com/docs/add-a-domain |
-| Resend verify / `send.` MX | https://resend.com/docs/knowledge-base/what-if-my-domain-is-not-verifying |
-| Resend receiving | https://resend.com/docs/dashboard/receiving/ |
-| Resend retrieve received | https://resend.com/docs/api-reference/emails/retrieve-received-email |
-| Cloudflare Email Routing | https://developers.cloudflare.com/email-routing/ |
-| CF Routing API (rules, not inbox body) | https://developers.cloudflare.com/api/resources/email_routing/ |
-| Deploy / DNS ownership | [`DEPLOYMENT.md`](../../DEPLOYMENT.md) |
-| From / contact SOT | [`backend/brand_emails.json`](../../backend/brand_emails.json) |
-| Send path | [`backend/app/services/email.py`](../../backend/app/services/email.py) |
-| Admin chrome | [`frontend/src/components/admin/AdminSidebar.tsx`](../../frontend/src/components/admin/AdminSidebar.tsx) |
+| Topic                                  | Link / path                                                                                              |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Resend send domain                     | https://resend.com/docs/add-a-domain                                                                     |
+| Resend verify / `send.` MX             | https://resend.com/docs/knowledge-base/what-if-my-domain-is-not-verifying                                |
+| Resend receiving                       | https://resend.com/docs/dashboard/receiving/                                                             |
+| Resend retrieve received               | https://resend.com/docs/api-reference/emails/retrieve-received-email                                     |
+| Cloudflare Email Routing               | https://developers.cloudflare.com/email-routing/                                                         |
+| CF Routing API (rules, not inbox body) | https://developers.cloudflare.com/api/resources/email_routing/                                           |
+| Deploy / DNS ownership                 | [`DEPLOYMENT.md`](../../DEPLOYMENT.md)                                                                   |
+| From / contact SOT                     | [`backend/brand_emails.json`](../../backend/brand_emails.json)                                           |
+| Send path                              | [`backend/app/services/email.py`](../../backend/app/services/email.py)                                   |
+| Admin chrome                           | [`frontend/src/components/admin/AdminSidebar.tsx`](../../frontend/src/components/admin/AdminSidebar.tsx) |

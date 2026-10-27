@@ -37,12 +37,12 @@ After Root Directory `/` for `backend/brand_emails.json`, Railpack needed a root
 
 **Do not** add `"workspaces": ["frontend"]` (or equivalent).
 
-| | `--prefix` (current) | npm workspaces |
-| --- | --- | --- |
-| Fit | Polyglot repo, one JS app | 2+ JS packages that link/share deps |
-| Lockfile | `frontend/package-lock.json` only | Root lockfile + hoist rules |
-| Gain here | Railway Node detection | Cosmetic `-w frontend`; no shared packages today |
-| Cost | None beyond existing shim | CI/cache churn, CRA hoist risk, dual install mental model |
+|           | `--prefix` (current)              | npm workspaces                                            |
+| --------- | --------------------------------- | --------------------------------------------------------- |
+| Fit       | Polyglot repo, one JS app         | 2+ JS packages that link/share deps                       |
+| Lockfile  | `frontend/package-lock.json` only | Root lockfile + hoist rules                               |
+| Gain here | Railway Node detection            | Cosmetic `-w frontend`; no shared packages today          |
+| Cost      | None beyond existing shim         | CI/cache churn, CRA hoist risk, dual install mental model |
 
 Not cleaner, leaner, or easier to maintain for Buzz’s shape today. Revisit only
 if a second JS package (e.g. shared UI/lib) is extracted.
@@ -50,4 +50,4 @@ if a second JS package (e.g. shared UI/lib) is extracted.
 ## Related
 
 - Frontend Railway notes: [`DEPLOYMENT.md`](../DEPLOYMENT.md) (Frontend build / start)
-- Living email ops (unrelated): `ops.resend-domain-unverified`, `ops.brand-mailbox`
+- Email ops (unrelated, both archived): `ops.resend-domain-unverified`, `ops.brand-mailbox`
