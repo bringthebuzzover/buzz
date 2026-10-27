@@ -45,7 +45,7 @@ export const siteIdentity = {
     },
   },
   contact: {
-    primaryPersonName: "Melissa Chowdhury",
+    primaryPersonName: "Buzz team",
     email: brandEmails.contactEmail,
   },
   content: {

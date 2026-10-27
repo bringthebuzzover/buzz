@@ -8,7 +8,7 @@ closed_in: 794f8af
 surface: deploy
 evidence:
   - path: backend/brand_emails.json
-    note: contactEmail melissa@bringthebuzzover.com; emailFrom Buzz <hello@bringthebuzzover.com>; opsCcEmail blank
+    note: contactEmail hello@bringthebuzzover.com; emailFrom Buzz <hello@bringthebuzzover.com>; opsCcEmail blank
   - path: frontend/src/data/siteIdentity.ts
     note: contact.email is brandEmails.contactEmail (Contact modal, privacy, terms, data deletion)
   - path: backend/app/services/email.py
@@ -23,10 +23,10 @@ repro: |
   v=spf1 include:`_spf.google.com` ~all; DMARC p=none rua melissa@;
   `google._domainkey` and `resend._domainkey` present; send MX/SPF are Resend.
 fix_when: |
-  hello@ is an alias on the melissa@ Workspace user, or DEPLOYMENT.md records
-  an explicit decision that hello@ must not receive (Reply-To stays melissa@).
-  Met by the alias plus inbox proof. `melissa@` is the only Workspace
-  email, and Google bills that address. Optional and not archive-blocking: admin sidebar
+  hello@ is an alias on the melissa@ Workspace user.
+  Met by the alias plus inbox proof. Public contact and Reply-To are hello@.
+  `melissa@` is the only Workspace email, and Google bills that address.
+  Optional and not archive-blocking: admin sidebar
   Open inbox link; Gmail MCP.
   Out of scope: in-app admin inbox; Resend on send.
 ---
@@ -35,7 +35,7 @@ fix_when: |
 
 Closed 2026-10-26. Split from [`ops.brand-domain-email-unset`](ops.brand-domain-email-unset.md). Sibling: [`ops.resend-domain-unverified`](ops.resend-domain-unverified.md) (Resend on `send.`, verified 2026-08-11).
 
-`hello@bringthebuzzover.com` is an alias on `melissa@bringthebuzzover.com`. That address is the only Workspace email, and Google bills it. Mail to `hello@` lands in that Gmail inbox. App mail still sends From `Buzz <hello@bringthebuzzover.com>` via Resend and sets Reply-To to `melissa@`. A client that replies to From reaches the same inbox.
+`melissa@bringthebuzzover.com` is the only Workspace email, and Google bills it. `hello@bringthebuzzover.com` is an alias on it. Mail to `hello@` lands in that Gmail inbox. App mail sends From `Buzz <hello@bringthebuzzover.com>` via Resend and sets Reply-To to `hello@`. A client that replies to From or to Reply-To reaches the same inbox.
 
 Send-as (Gmail sending as `hello@`) was not set up. The alias only covers inbound.
 
@@ -44,8 +44,8 @@ Send-as (Gmail sending as `hello@`) was not set up. The alias only covers inboun
 | Decision             | Lock                                                                  |
 | -------------------- | --------------------------------------------------------------------- |
 | **Provider**         | Google Workspace Business Starter                                     |
-| **Public contact**   | `melissa@bringthebuzzover.com`                                        |
-| **`hello@`**         | Alias on that user, not a second seat                                 |
+| **Public contact**   | `hello@bringthebuzzover.com` (alias; Contact modal name “Buzz team”)  |
+| **`hello@`**         | Alias on `melissa@`, not a second seat                                |
 | **DNS SOT**          | Cloudflare only (Hostinger = registrar; never publish MX there)       |
 | **Webmail**          | https://mail.google.com                                               |
 | **Admin**            | https://admin.google.com                                              |
@@ -53,7 +53,7 @@ Send-as (Gmail sending as `hello@`) was not set up. The alias only covers inboun
 | **CF Email Routing** | Stay off (would fight Google MX)                                      |
 | **In-app inbox**     | Out of scope (PRODUCT ask)                                            |
 
-Display name in the Contact modal remains “Melissa Chowdhury” (`siteIdentity.contact.primaryPersonName`).
+Display name in the Contact modal is “Buzz team” (`siteIdentity.contact.primaryPersonName`).
 
 ## Ownership
 
@@ -61,7 +61,7 @@ Display name in the Contact modal remains “Melissa Chowdhury” (`siteIdentity
 | ------------------ | -------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Registrar          | Hostinger                                          | Melissa — Active, expires 2026-12-21; NS → Cloudflare                           |
 | Authoritative DNS  | Cloudflare zone `9103e4c774707bf5b2f17fbb9d9144cf` | Lawrence — Free; NS `felipe` / `melody`                                         |
-| Transactional send | Resend on `send.` + Railway `RESEND_API_KEY`       | From `hello@…`; Reply-To `melissa@…`                                            |
+| Transactional send | Resend on `send.` + Railway `RESEND_API_KEY`       | From `hello@…`; Reply-To `hello@…`                                              |
 | Human inbox        | Google Workspace Business Starter                  | Only email `melissa@` (Super Admin), billed in Google. Alias `hello@`. |
 
 ## Cutover risks
