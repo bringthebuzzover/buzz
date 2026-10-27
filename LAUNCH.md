@@ -388,7 +388,7 @@ Frames match **this** plan. Stylized chrome, not View-as PNGs.
 ### Ops-parallel — mailbox
 
 Gap: [`ops.brand-mailbox`](gaps/archive/ops.brand-mailbox.md) — **done** 2026-10-26.  
-`hello@` is an alias on `melissa@`. `melissa@` is the only Workspace email, and Google bills that address. A message to `hello@` arrived in that inbox. Resend stays on `send.`
+`hello@` is an alias on `melissa@`, and it is the public contact (Reply-To and the site mailto). `melissa@` is the only Workspace email, and Google bills that address. A message to `hello@` arrived in that inbox. Resend stays on `send.`
 
 ### Not a phase
 
