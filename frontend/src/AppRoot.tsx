@@ -58,6 +58,10 @@ import UiKitPage from "./pages/dev/UiKitPage";
 import InspoLayout from "./layouts/InspoLayout";
 import InspoHomePage from "./pages/inspo/InspoHomePage";
 import InspoDropDetailPage from "./pages/inspo/InspoDropDetailPage";
+import PulseLayout from "./layouts/PulseLayout";
+import PulseHomePage from "./pages/pulse/PulseHomePage";
+import PulseTwoLayout from "./layouts/PulseTwoLayout";
+import PulseTwoHomePage from "./pages/pulse2/PulseTwoHomePage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
 function PortalGuard({
@@ -109,6 +113,14 @@ export default function AppRoot(): ReactElement {
           element={<Navigate to="/inspo#getting-started" replace />}
         />
         <Route path="inspo/partner" element={<Navigate to="/inspo#partner" replace />} />
+      </Route>
+
+      <Route element={<PulseLayout />}>
+        <Route path="pulse" element={<PulseHomePage />} />
+      </Route>
+
+      <Route element={<PulseTwoLayout />}>
+        <Route path="pulse2" element={<PulseTwoHomePage />} />
       </Route>
 
       <Route element={<SiteLayout />}>

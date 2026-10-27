@@ -21,6 +21,7 @@ const ALLOWED_RADII = new Set(["0px", "6px", "8px", "16px", "24px", "9999px"]);
 /** Public routes: reachable with no session, so these stay fast and stable. */
 const PUBLIC_ROUTES = [
   "/",
+  "/pulse",
   "/for-orgs",
   "/for-brands",
   "/login",
