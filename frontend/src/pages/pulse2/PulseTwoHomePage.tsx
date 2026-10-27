@@ -2,7 +2,7 @@
  * /pulse2 — yellow and black marketing concept.
  * Copy and media are the live site's. /pulse is a separate page.
  */
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Link } from "react-router-dom";
 import { COLLEGES } from "../../data/colleges";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
@@ -10,10 +10,7 @@ import { siteIdentity } from "../../data/siteIdentity";
 import PulseTwoCampusMap from "../../components/pulse2/PulseTwoCampusMap";
 import { usePrefersReducedMotion } from "../../components/pulse2/usePrefersReducedMotion";
 import { publicLogo } from "../../utils/publicLogo";
-import entUpdate from "../../assets/ent-update-cornell.jpg";
-import sorority from "../../assets/sorority.png";
-import pathOrgs from "./media/path-orgs.jpg";
-import pathBrands from "./media/path-brands.jpg";
+import type { CollegeMarqueeItem } from "../../types/campaign";
 
 const BEE = publicLogo("bee.svg");
 
@@ -40,20 +37,224 @@ const STEPS = [
   },
 ] as const;
 
-const LOGO_COLLEGES = COLLEGES.filter(
-  (college): college is (typeof COLLEGES)[number] & { logoSrc: string } => Boolean(college.logoSrc),
-);
+/** Local mark first, otherwise Clearbit by domain. icon.horse is the onError fallback. */
+function logoSrcFor(item: CollegeMarqueeItem): string {
+  return item.logoSrc ?? `https://logo.clearbit.com/${item.domain}`;
+}
 
 function LogoRow({ hidden }: { hidden?: boolean }) {
   return (
-    <p className="pulse2-marquee__group" aria-hidden={hidden || undefined}>
-      {LOGO_COLLEGES.map((college) => (
-        <span key={college.name} className="pulse2-logo-item">
-          <img className="pulse2-logo" src={college.logoSrc} alt={hidden ? "" : college.name} />
-          <img className="pulse2-logo-bee" src={BEE} alt="" />
-        </span>
+    <ul className="pulse2-marquee__group" aria-hidden={hidden || undefined}>
+      {COLLEGES.map((college) => (
+        <li key={college.domain} className="pulse2-logo-item">
+          <img
+            className="pulse2-logo"
+            src={logoSrcFor(college)}
+            alt={hidden ? "" : college.name}
+            onError={(event) => {
+              const img = event.currentTarget;
+              const fallback = `https://icon.horse/icon/${college.domain}`;
+              if (img.src !== fallback) img.src = fallback;
+            }}
+          />
+        </li>
       ))}
-    </p>
+    </ul>
+  );
+}
+
+function brandName(title: string): string {
+  const parts = title.split(" x ");
+  return parts[parts.length - 1] || title;
+}
+
+function Chevron({ dir }: { dir: "left" | "right" }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d={dir === "left" ? "M10 3 L5 8 L10 13" : "M6 3 L11 8 L6 13"}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function DropsCarousel() {
+  const reduced = usePrefersReducedMotion();
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ x: number; y: number; left: number; moved: boolean; active: boolean } | null>(null);
+  const suppressClick = useRef(false);
+  const [index, setIndex] = useState(0);
+  const count = FEATURED_COLLABS.length;
+
+  const targetLeft = useCallback((el: HTMLDivElement, i: number) => {
+    const slide = el.children[i] as HTMLElement | undefined;
+    if (!slide) return 0;
+    const slideLeft = slide.getBoundingClientRect().left - el.getBoundingClientRect().left + el.scrollLeft;
+    if (i >= count - 1) {
+      return Math.max(0, slideLeft - (el.clientWidth - slide.getBoundingClientRect().width));
+    }
+    return slideLeft;
+  }, [count]);
+
+  const go = (next: number) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const i = Math.max(0, Math.min(count - 1, next));
+    el.scrollTo({ left: targetLeft(el, i), behavior: reduced ? "auto" : "smooth" });
+    setIndex(i);
+  };
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return undefined;
+    const onScroll = () => {
+      let best = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < count; i += 1) {
+        const dist = Math.abs(el.scrollLeft - targetLeft(el, i));
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = i;
+        }
+      }
+      setIndex(best);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [count, targetLeft]);
+
+  const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const el = scrollerRef.current;
+    const state = drag.current;
+    drag.current = null;
+    if (!el || !state) return;
+    el.style.scrollSnapType = "";
+    if (el.hasPointerCapture(event.pointerId)) el.releasePointerCapture(event.pointerId);
+    if (!state.active) return;
+    suppressClick.current = true;
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < count; i += 1) {
+      const dist = Math.abs(el.scrollLeft - targetLeft(el, i));
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = i;
+      }
+    }
+    el.scrollTo({ left: targetLeft(el, best), behavior: reduced ? "auto" : "smooth" });
+    setIndex(best);
+  };
+
+  const active = FEATURED_COLLABS[index] ?? FEATURED_COLLABS[0];
+
+  return (
+    <div className="pulse2-carousel">
+      <div className="pulse2-carousel__head">
+        <h2 id="pulse2-drops">Current drops</h2>
+        <div className="pulse2-carousel__arrows">
+          <button
+            type="button"
+            className="pulse2-carousel__arrow"
+            aria-label="Previous drop"
+            disabled={index === 0}
+            onClick={() => go(index - 1)}
+          >
+            <Chevron dir="left" />
+          </button>
+          <button
+            type="button"
+            className="pulse2-carousel__arrow"
+            aria-label="Next drop"
+            disabled={index === count - 1}
+            onClick={() => go(index + 1)}
+          >
+            <Chevron dir="right" />
+          </button>
+        </div>
+      </div>
+      <div
+        ref={scrollerRef}
+        className="pulse2-carousel__scroller"
+        role="region"
+        aria-roledescription="carousel"
+        aria-label="Current drops"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowRight") {
+            event.preventDefault();
+            go(index + 1);
+          }
+          if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            go(index - 1);
+          }
+        }}
+        onPointerDown={(event) => {
+          if (event.pointerType !== "mouse" || event.button !== 0) return;
+          const el = scrollerRef.current;
+          if (!el) return;
+          drag.current = {
+            x: event.clientX,
+            y: event.clientY,
+            left: el.scrollLeft,
+            moved: false,
+            active: false,
+          };
+        }}
+        onPointerMove={(event) => {
+          const el = scrollerRef.current;
+          const state = drag.current;
+          if (!el || !state || event.pointerType !== "mouse") return;
+          const dx = event.clientX - state.x;
+          const dy = event.clientY - state.y;
+          if (!state.active) {
+            if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+            if (Math.abs(dy) > Math.abs(dx)) {
+              drag.current = null;
+              return;
+            }
+            state.active = true;
+            el.setPointerCapture(event.pointerId);
+            el.style.scrollSnapType = "none";
+          }
+          state.moved = true;
+          el.scrollLeft = state.left - dx;
+        }}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClickCapture={(event) => {
+          if (!suppressClick.current) return;
+          suppressClick.current = false;
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+      >
+        {FEATURED_COLLABS.map((collab, i) => (
+          <article
+            key={collab.id}
+            className="pulse2-carousel__slide"
+            aria-roledescription="slide"
+            aria-label={`${i + 1} of ${count}`}
+          >
+            <Link className="pulse2-carousel__frame" to="/">
+              <img src={collab.image} alt="" />
+              <span className="pulse2-carousel__brand">{brandName(collab.title)}</span>
+            </Link>
+          </article>
+        ))}
+      </div>
+      <div className={`pulse2-carousel__meta${index === count - 1 ? " is-end" : ""}`}>
+        <p>{active.subtitle}</p>
+        <Link className="pulse2-carousel__view" to="/">
+          View drop
+        </Link>
+      </div>
+    </div>
   );
 }
 
@@ -138,29 +339,6 @@ export default function PulseTwoHomePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const publicUrl = process.env.PUBLIC_URL ?? "";
   const { content } = siteIdentity;
-  const yerba = FEATURED_COLLABS[0];
-  const update = FEATURED_COLLABS[1];
-
-  const drops = [
-    {
-      brand: "Yerba Madre",
-      line: yerba.subtitle,
-      image: sorority,
-      alt: yerba.title,
-    },
-    {
-      brand: "UPDATE",
-      line: update.subtitle,
-      image: entUpdate,
-      alt: update.title,
-    },
-    {
-      brand: "Yerba Madre",
-      line: content.heroSpotlightLine,
-      image: pathBrands,
-      alt: "Students holding drinks at a campus event",
-    },
-  ];
 
   useEffect(() => {
     const video = videoRef.current;
@@ -197,14 +375,20 @@ export default function PulseTwoHomePage() {
         <div className="pulse2-hero__copy">
           <h1 className="pulse2-display">
             <span className="pulse2-line" data-reveal="load">
-              <span>Campus</span>
+              <span>Campus marketing,</span>
             </span>
             <span className="pulse2-line" data-reveal="load">
-              <span>marketing.</span>
+              <span>powered by</span>
+            </span>
+            <span className="pulse2-line" data-reveal="load">
+              <span>student communities.</span>
             </span>
           </h1>
           <p className="pulse2-hero__sub pulse2-line" data-reveal="load">
-            <span>powered by student communities.</span>
+            <span>
+              BUZZ connects brands with student organizations to execute large-scale campus
+              activations nationwide.
+            </span>
           </p>
           <div className="pulse2-hero__actions">
             <Link className="pulse2-pill" to="/org/apply">
@@ -302,44 +486,41 @@ export default function PulseTwoHomePage() {
       </section>
 
       <section className="pulse2-band" id="drops" data-theme="paper" aria-labelledby="pulse2-drops">
-        <div className="pulse2-drops__head">
-          <h2 id="pulse2-drops">Current drops</h2>
-          <Link to="/">See all</Link>
-        </div>
-        <div className="pulse2-drops__row">
-          {drops.map((drop) => (
-            <article key={drop.alt} className="pulse2-drop">
-              <Link className="pulse2-drop__link" to="/">
-                <span className="pulse2-drop__media">
-                  <img src={drop.image} alt={drop.alt} />
-                </span>
-                <span className="pulse2-drop__brand">{drop.brand}</span>
-                <span className="pulse2-drop__line">{drop.line}</span>
-                <span className="pulse2-drop__more">View drop</span>
-              </Link>
-            </article>
-          ))}
-        </div>
+        <DropsCarousel />
       </section>
 
-      <section className="pulse2-band" data-theme="paper" aria-label="Two ways in">
-        <div className="pulse2-paths">
-          <article className="pulse2-path" id="students">
-            <div className="pulse2-reveal">
-              <img className="pulse2-reveal__media" src={pathOrgs} alt="Students at a campus gathering" />
-            </div>
-            <h2>Apply with your campus .edu.</h2>
-            <p>Connect Instagram after Buzz review.</p>
-            <Link to="/for-orgs">See how organizations join</Link>
-          </article>
-          <article className="pulse2-path" id="brands">
-            <div className="pulse2-reveal">
-              <img className="pulse2-reveal__media" src={pathBrands} alt="Students holding drinks at a campus event" />
-            </div>
-            <h2>Request a campaign.</h2>
-            <p>Buzz drafts and publishes it.</p>
-            <Link to="/for-brands">See how brands run a campaign</Link>
-          </article>
+      <section className="pulse2-join" data-theme="paper" aria-label="Join">
+        <div className="pulse2-join__half" id="students">
+          <Link className="pulse2-join__main" to="/org/apply">
+            <span className="pulse2-join__kicker">For organizations</span>
+            <span className="pulse2-join__title">
+              Apply with your <span className="pulse2-join__nowrap">campus .edu.</span>
+            </span>
+            <span className="pulse2-join__support">You apply on the website first.</span>
+            <span className="pulse2-join__pill">
+              Apply as an organization
+              <Chevron dir="right" />
+            </span>
+          </Link>
+          <Link className="pulse2-join__quiet" to="/for-orgs">
+            See how organizations join
+          </Link>
+        </div>
+        <div className="pulse2-join__half" id="brands">
+          <Link className="pulse2-join__main" to="/brand/apply">
+            <span className="pulse2-join__kicker">For brands</span>
+            <span className="pulse2-join__title">Request a campaign.</span>
+            <span className="pulse2-join__support">
+              You request a call. Buzz mints and publishes the drop.
+            </span>
+            <span className="pulse2-join__pill">
+              Apply as a brand
+              <Chevron dir="right" />
+            </span>
+          </Link>
+          <Link className="pulse2-join__quiet" to="/for-brands">
+            See how brands run a campaign
+          </Link>
         </div>
       </section>
     </>
