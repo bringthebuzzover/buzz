@@ -1,0 +1,4769 @@
+{
+ "version": "2.21",
+ "children": [
+  {
+   "type": "frame",
+   "id": "uKtnH",
+   "x": 0,
+   "y": -3000,
+   "name": "Pill / Yellow",
+   "reusable": true,
+   "height": 40,
+   "fill": "$yellow",
+   "cornerRadius": "$radius-pill",
+   "padding": [
+    0,
+    "$space-4"
+   ],
+   "justifyContent": "center",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "text",
+     "id": "m3z8Gw",
+     "name": "Label",
+     "fill": "$ink",
+     "content": "Join",
+     "fontFamily": "$font",
+     "fontSize": "$type-small",
+     "fontWeight": "normal"
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "XHmYw",
+   "x": 280,
+   "y": -3000,
+   "name": "Pill / Dark",
+   "reusable": true,
+   "height": 36,
+   "fill": "$ink-btn",
+   "cornerRadius": "$radius-pill",
+   "gap": "$space-2",
+   "padding": [
+    0,
+    14
+   ],
+   "justifyContent": "center",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "text",
+     "id": "o48sD",
+     "name": "Label",
+     "fill": "$paper",
+     "content": "View drop",
+     "fontFamily": "$font",
+     "fontSize": "$type-label",
+     "fontWeight": "normal"
+    },
+    {
+     "type": "icon",
+     "id": "ARbUw",
+     "x": 0,
+     "y": 0,
+     "name": "Chevron",
+     "enabled": false,
+     "width": 16,
+     "height": 16,
+     "icon": "chevron-right",
+     "library": "lucide",
+     "fill": "$paper"
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "H3d268",
+   "x": 560,
+   "y": -3000,
+   "name": "NavBar",
+   "reusable": true,
+   "width": 1152,
+   "height": 66,
+   "fill": "#0b0b0b70",
+   "cornerRadius": "$radius-card",
+   "stroke": "#ffffff08",
+   "strokeWidth": 1,
+   "effect": [
+    {
+     "type": "background_blur",
+     "radius": 16
+    },
+    {
+     "type": "shadow",
+     "shadowType": "outer",
+     "color": "#ffffff01",
+     "offset": {
+      "x": 0,
+      "y": 1.6
+     },
+     "blur": 8
+    }
+   ],
+   "padding": [
+    0,
+    20
+   ],
+   "justifyContent": "space_between",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "frame",
+     "id": "gIbtg",
+     "name": "Logo",
+     "width": 128,
+     "height": 58,
+     "fill": {
+      "type": "image",
+      "enabled": true,
+      "url": "images/pulse-bee/buzz-logo.png",
+      "mode": "contain"
+     }
+    },
+    {
+     "type": "frame",
+     "id": "T0HSLK",
+     "name": "Right",
+     "gap": "$space-6",
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "frame",
+       "id": "bIFjI",
+       "name": "Links",
+       "gap": "$space-5",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "frame",
+         "id": "j8xwA",
+         "name": "Link Organizations",
+         "layout": "vertical",
+         "gap": 3,
+         "children": [
+          {
+           "type": "text",
+           "id": "B1IfW",
+           "name": "Organizations",
+           "fill": "$white",
+           "content": "Organizations",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "v0CnvW",
+         "name": "Link Brands",
+         "layout": "vertical",
+         "gap": 3,
+         "children": [
+          {
+           "type": "text",
+           "id": "ZHSS4",
+           "name": "Brands",
+           "fill": "$white",
+           "content": "Brands",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "p4xG2Z",
+         "name": "Link How it works",
+         "layout": "vertical",
+         "gap": 3,
+         "children": [
+          {
+           "type": "text",
+           "id": "uW6Xc",
+           "name": "How it works",
+           "fill": "$white",
+           "content": "How it works",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          },
+          {
+           "type": "rectangle",
+           "id": "oiiUx",
+           "x": 0,
+           "y": 0,
+           "name": "Active underline",
+           "enabled": false,
+           "fill": "$white",
+           "width": 81,
+           "height": 1
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "gZ55s",
+         "name": "Link Login",
+         "layout": "vertical",
+         "gap": 3,
+         "children": [
+          {
+           "type": "text",
+           "id": "PyO0u",
+           "name": "Login",
+           "fill": "$white",
+           "content": "Login",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "cIN8B",
+       "type": "ref",
+       "ref": "uKtnH",
+       "name": "Join"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "QFtyV",
+   "x": 1792,
+   "y": -3000,
+   "name": "MapPin",
+   "reusable": true,
+   "width": 12,
+   "height": 12,
+   "layout": "none",
+   "children": [
+    {
+     "type": "ellipse",
+     "id": "p20RzZ",
+     "x": 0,
+     "y": 0,
+     "name": "Ring",
+     "fill": "$ink",
+     "width": 12,
+     "height": 12
+    },
+    {
+     "type": "ellipse",
+     "id": "p5JKg3",
+     "x": 3,
+     "y": 3,
+     "name": "Core",
+     "fill": "$yellow",
+     "width": 6,
+     "height": 6
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "lM2vX",
+   "x": 1884,
+   "y": -3000,
+   "name": "LogoItem",
+   "reusable": true,
+   "opacity": 0.78,
+   "width": 48,
+   "height": 48,
+   "fill": {
+    "type": "image",
+    "enabled": true,
+    "url": "images/pulse-bee/logos/princeton.png",
+    "mode": "contain"
+   }
+  },
+  {
+   "type": "frame",
+   "id": "QhHN7",
+   "x": 2012,
+   "y": -3000,
+   "name": "App / Field",
+   "reusable": true,
+   "width": 216,
+   "fill": "$paper",
+   "cornerRadius": "$radius-field",
+   "padding": [
+    10,
+    "$space-3"
+   ],
+   "children": [
+    {
+     "type": "text",
+     "id": "j8gXJp",
+     "name": "Value",
+     "fill": "$ink",
+     "content": "Kappa Alpha Theta",
+     "lineHeight": 1.5,
+     "fontFamily": "$font",
+     "fontSize": "$type-label",
+     "fontWeight": "normal"
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "V6GNvM",
+   "x": 2308,
+   "y": -3000,
+   "name": "App / Button",
+   "reusable": true,
+   "width": 216,
+   "fill": "$ink",
+   "cornerRadius": "$radius-pill",
+   "gap": "$space-2",
+   "padding": [
+    "$space-3",
+    14
+   ],
+   "justifyContent": "center",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "frame",
+     "id": "msriN",
+     "x": 0,
+     "y": 0,
+     "name": "Icon",
+     "enabled": false,
+     "width": 16,
+     "height": 16,
+     "fill": {
+      "type": "image",
+      "enabled": true,
+      "url": "images/pulse-bee/insta-icon-white.png",
+      "mode": "contain"
+     }
+    },
+    {
+     "type": "text",
+     "id": "ojXkO",
+     "name": "Label",
+     "fill": "$paper",
+     "content": "Submit application",
+     "lineHeight": 1.5,
+     "fontFamily": "$font",
+     "fontSize": "$type-label",
+     "fontWeight": "normal"
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "Brjmq",
+   "x": 2604,
+   "y": -3000,
+   "name": "App / Chip",
+   "reusable": true,
+   "width": 105,
+   "fill": "$paper",
+   "cornerRadius": "$radius-card",
+   "layout": "vertical",
+   "padding": [
+    "$space-2",
+    10
+   ],
+   "children": [
+    {
+     "type": "text",
+     "id": "ejNxn",
+     "x": 0,
+     "y": 0,
+     "name": "Value",
+     "enabled": false,
+     "fill": "$ink",
+     "content": "—",
+     "fontFamily": "$font",
+     "fontSize": 18.4,
+     "fontWeight": "500",
+     "letterSpacing": -0.55
+    },
+    {
+     "type": "text",
+     "id": "TwVYg",
+     "name": "Label",
+     "fill": "$ink",
+     "content": "Upcoming",
+     "lineHeight": 1.5,
+     "fontFamily": "$font",
+     "fontSize": "$type-micro",
+     "fontWeight": "normal"
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "N4ul60",
+   "x": 0,
+   "y": -2520,
+   "name": "DropCard",
+   "reusable": true,
+   "clip": true,
+   "width": 1076,
+   "height": 605,
+   "fill": [
+    "$grey-media",
+    {
+     "type": "image",
+     "enabled": true,
+     "url": "images/pulse-bee/yerba-madre.jpg",
+     "mode": "cover"
+    }
+   ],
+   "cornerRadius": "$radius-card",
+   "layout": "none",
+   "children": [
+    {
+     "type": "text",
+     "id": "RGfWE",
+     "x": 28,
+     "y": 28,
+     "name": "Brand",
+     "fill": "$white",
+     "content": "Yerba Madre",
+     "lineHeight": 0.95,
+     "fontFamily": "$font",
+     "fontSize": "$type-title-lg",
+     "fontWeight": "500",
+     "letterSpacing": -2.52
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "RArr7",
+   "x": 1156,
+   "y": -2520,
+   "name": "FooterColumn",
+   "reusable": true,
+   "width": 324,
+   "layout": "vertical",
+   "gap": "$space-3",
+   "children": [
+    {
+     "type": "text",
+     "id": "zEXvC",
+     "name": "Heading",
+     "fill": "$paper",
+     "content": "Organizations",
+     "fontFamily": "$font",
+     "fontSize": "$type-micro",
+     "fontWeight": "normal"
+    },
+    {
+     "type": "frame",
+     "id": "JJbCk",
+     "name": "Links",
+     "layout": "vertical",
+     "children": [
+      {
+       "type": "frame",
+       "id": "wSlOE",
+       "name": "Row How it works",
+       "height": 32,
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "r1ani",
+         "name": "Link",
+         "fill": "$paper-60",
+         "content": "How it works",
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "lLB9N",
+       "name": "Row Apply",
+       "height": 32,
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "YmYei",
+         "name": "Link",
+         "fill": "$paper-60",
+         "content": "Apply",
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "D6Vnf",
+       "name": "Row Login",
+       "height": 32,
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "snibS",
+         "name": "Link",
+         "fill": "$paper-60",
+         "content": "Login",
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "m5oETK",
+       "x": 0,
+       "y": 96,
+       "name": "Row Extra",
+       "enabled": false,
+       "height": 32,
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "rrfzP",
+         "name": "Link",
+         "fill": "$paper-60",
+         "content": "Extra",
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "YSw6B",
+   "x": 1560,
+   "y": -2520,
+   "name": "NavBar / Mobile",
+   "reusable": true,
+   "width": 374,
+   "height": 58,
+   "fill": "#0b0b0b70",
+   "cornerRadius": "$radius-card",
+   "stroke": "#ffffff08",
+   "strokeWidth": 1,
+   "effect": [
+    {
+     "type": "background_blur",
+     "radius": 16
+    },
+    {
+     "type": "shadow",
+     "shadowType": "outer",
+     "color": "#ffffff01",
+     "offset": {
+      "x": 0,
+      "y": 1.6
+     },
+     "blur": 8
+    }
+   ],
+   "padding": [
+    0,
+    6,
+    0,
+    10
+   ],
+   "justifyContent": "space_between",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "frame",
+     "id": "K2pRdS",
+     "name": "Logo",
+     "width": 128,
+     "height": 58,
+     "fill": {
+      "type": "image",
+      "enabled": true,
+      "url": "images/pulse-bee/buzz-logo.png",
+      "mode": "contain"
+     }
+    },
+    {
+     "type": "frame",
+     "id": "VPEdt",
+     "name": "Menu button",
+     "width": 44,
+     "height": 44,
+     "justifyContent": "center",
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "text",
+       "id": "iGXob",
+       "name": "Menu",
+       "fill": "$white",
+       "content": "Menu",
+       "fontFamily": "$font",
+       "fontSize": "$type-small",
+       "fontWeight": "normal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "SecHd",
+   "name": "Section / Head",
+   "reusable": true,
+   "width": 704,
+   "layout": "vertical",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "text",
+     "id": "SecHdT",
+     "name": "Title",
+     "fill": "$on-surface",
+     "content": "Partner with brands",
+     "fontFamily": "$font",
+     "fontSize": "$type-h2",
+     "fontWeight": "500",
+     "lineHeight": 1,
+     "letterSpacing": -1.73,
+     "textAlign": "center",
+     "textGrowth": "fixed-width",
+     "width": "fill_container"
+    },
+    {
+     "type": "frame",
+     "id": "aWCBk",
+     "name": "Support wrap",
+     "width": "fill_container",
+     "padding": [
+      "$space-4",
+      0,
+      0,
+      0
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "SecHdS",
+       "name": "Support",
+       "fill": "$on-surface-muted",
+       "content": "Merch and product samples for your organization.",
+       "fontFamily": "$font",
+       "fontSize": "$type-body",
+       "fontWeight": "normal",
+       "lineHeight": 1.5,
+       "textAlign": "center",
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      }
+     ]
+    }
+   ],
+   "x": 2014,
+   "y": -2520
+  },
+  {
+   "type": "frame",
+   "id": "CardPh",
+   "name": "Card / Numbered / Photo",
+   "reusable": true,
+   "width": 368,
+   "layout": "vertical",
+   "children": [
+    {
+     "type": "frame",
+     "id": "CardPhm",
+     "name": "Media",
+     "width": "fill_container",
+     "height": 345,
+     "clip": true,
+     "cornerRadius": "$radius-card",
+     "fill": [
+      {
+       "type": "color",
+       "enabled": true,
+       "color": "$grey-media"
+      },
+      {
+       "type": "image",
+       "enabled": true,
+       "url": "images/pulse-bee/yerba-madre.jpg",
+       "mode": "fill"
+      }
+     ],
+     "justifyContent": "center",
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "frame",
+       "id": "CardPhbadge",
+       "name": "Number",
+       "layoutPosition": "absolute",
+       "x": 16,
+       "y": 16,
+       "width": 32,
+       "height": 32,
+       "cornerRadius": "$radius-pill",
+       "fill": "$yellow",
+       "justifyContent": "center",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "CardPhn",
+         "name": "N",
+         "fill": "$ink",
+         "content": "1",
+         "fontFamily": "$font",
+         "fontSize": "$type-small",
+         "fontWeight": "500",
+         "lineHeight": 1
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "VH2zd",
+     "name": "Title wrap",
+     "width": "fill_container",
+     "padding": [
+      "$space-5",
+      0,
+      0,
+      0
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "CardPht",
+       "name": "Title",
+       "fill": "$on-surface",
+       "content": "Brand products, shipped to you",
+       "fontFamily": "$font",
+       "fontSize": "$type-h3",
+       "fontWeight": "500",
+       "lineHeight": 1.25,
+       "letterSpacing": -0.2,
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "JfVFc",
+     "name": "Body wrap",
+     "width": "fill_container",
+     "padding": [
+      "$space-2",
+      0,
+      0,
+      0
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "CardPhd",
+       "name": "Body",
+       "fill": "$on-surface-muted",
+       "content": "If you’re accepted on a drop, products ship to the address you gave when you applied.",
+       "fontFamily": "$font",
+       "fontSize": "$type-body",
+       "fontWeight": "normal",
+       "lineHeight": 1.5,
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      }
+     ]
+    }
+   ],
+   "x": 2798,
+   "y": -2520
+  },
+  {
+   "type": "frame",
+   "id": "CardMk",
+   "name": "Card / Numbered / Mark",
+   "reusable": true,
+   "width": 368,
+   "layout": "vertical",
+   "children": [
+    {
+     "type": "frame",
+     "id": "CardMkm",
+     "name": "Media",
+     "width": "fill_container",
+     "height": 345,
+     "clip": true,
+     "cornerRadius": "$radius-card",
+     "fill": "$yellow",
+     "justifyContent": "center",
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "frame",
+       "id": "CardMkb",
+       "name": "Bee",
+       "width": 125,
+       "height": 125,
+       "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "images/pulse-bee/bee.png",
+        "mode": "contain"
+       }
+      },
+      {
+       "type": "frame",
+       "id": "CardMkbadge",
+       "name": "Number",
+       "layoutPosition": "absolute",
+       "x": 16,
+       "y": 16,
+       "width": 32,
+       "height": 32,
+       "cornerRadius": "$radius-pill",
+       "fill": "$ink",
+       "justifyContent": "center",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "CardMkn",
+         "name": "N",
+         "fill": "$yellow",
+         "content": "1",
+         "fontFamily": "$font",
+         "fontSize": "$type-small",
+         "fontWeight": "500",
+         "lineHeight": 1
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "cVSa2",
+     "name": "Title wrap",
+     "width": "fill_container",
+     "padding": [
+      "$space-5",
+      0,
+      0,
+      0
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "CardMkt",
+       "name": "Title",
+       "fill": "$on-surface",
+       "content": "Brand products, shipped to you",
+       "fontFamily": "$font",
+       "fontSize": "$type-h3",
+       "fontWeight": "500",
+       "lineHeight": 1.25,
+       "letterSpacing": -0.2,
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "zARYB",
+     "name": "Body wrap",
+     "width": "fill_container",
+     "padding": [
+      "$space-2",
+      0,
+      0,
+      0
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "CardMkd",
+       "name": "Body",
+       "fill": "$on-surface-muted",
+       "content": "If you’re accepted on a drop, products ship to the address you gave when you applied.",
+       "fontFamily": "$font",
+       "fontSize": "$type-body",
+       "fontWeight": "normal",
+       "lineHeight": 1.5,
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      }
+     ]
+    }
+   ],
+   "x": 0,
+   "y": -1835
+  },
+  {
+   "type": "frame",
+   "id": "FaqCl",
+   "name": "FAQ / Item",
+   "reusable": true,
+   "width": 747,
+   "layout": "vertical",
+   "children": [
+    {
+     "type": "frame",
+     "id": "FaqClh",
+     "name": "Hairline",
+     "width": "fill_container",
+     "height": 1,
+     "fill": "$hairline"
+    },
+    {
+     "type": "frame",
+     "id": "FaqCls",
+     "name": "Summary",
+     "width": "fill_container",
+     "height": 64,
+     "gap": "$space-4",
+     "alignItems": "center",
+     "justifyContent": "space_between",
+     "children": [
+      {
+       "type": "text",
+       "id": "FaqClq",
+       "name": "Question",
+       "fill": "$on-surface",
+       "content": "Who can apply?",
+       "fontFamily": "$font",
+       "fontSize": "$type-h4",
+       "fontWeight": "500",
+       "lineHeight": 1.3,
+       "letterSpacing": -0.19,
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      },
+      {
+       "type": "icon",
+       "id": "FaqCli",
+       "name": "Icon",
+       "width": 14,
+       "height": 14,
+       "icon": "plus",
+       "library": "lucide",
+       "fill": "$on-surface"
+      }
+     ]
+    }
+   ],
+   "x": 448,
+   "y": -1835
+  },
+  {
+   "type": "frame",
+   "id": "FaqOp",
+   "name": "FAQ / Item / Open",
+   "reusable": true,
+   "width": 747,
+   "layout": "vertical",
+   "children": [
+    {
+     "type": "frame",
+     "id": "FaqOph",
+     "name": "Hairline",
+     "width": "fill_container",
+     "height": 1,
+     "fill": "$hairline"
+    },
+    {
+     "type": "frame",
+     "id": "FaqOps",
+     "name": "Summary",
+     "width": "fill_container",
+     "height": 64,
+     "gap": "$space-4",
+     "alignItems": "center",
+     "justifyContent": "space_between",
+     "children": [
+      {
+       "type": "text",
+       "id": "FaqOpq",
+       "name": "Question",
+       "fill": "$on-surface",
+       "content": "Who can apply?",
+       "fontFamily": "$font",
+       "fontSize": "$type-h4",
+       "fontWeight": "500",
+       "lineHeight": 1.3,
+       "letterSpacing": -0.19,
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      },
+      {
+       "type": "icon",
+       "id": "FaqOpi",
+       "name": "Icon",
+       "width": 14,
+       "height": 14,
+       "icon": "x",
+       "library": "lucide",
+       "fill": "$on-surface"
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "FaqOpaw",
+     "name": "Answer wrap",
+     "width": "fill_container",
+     "padding": [
+      0,
+      0,
+      "$space-5",
+      0
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "FaqOpa",
+       "name": "Answer",
+       "fill": "$on-surface-muted",
+       "content": "Student organizations with a campus .edu email you can verify and the organization’s Instagram Business or Creator account.",
+       "fontFamily": "$font",
+       "fontSize": "$type-body",
+       "fontWeight": "normal",
+       "lineHeight": 1.5,
+       "textGrowth": "fixed-width",
+       "width": 540
+      }
+     ]
+    }
+   ],
+   "x": 1275,
+   "y": -1835
+  },
+  {
+   "type": "frame",
+   "id": "Ghost",
+   "name": "Pill / Ghost",
+   "reusable": true,
+   "height": 44,
+   "padding": [
+    0,
+    "$space-5"
+   ],
+   "cornerRadius": "$radius-pill",
+   "stroke": "$on-surface",
+   "strokeWidth": 1,
+   "justifyContent": "center",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "text",
+     "id": "GhostL",
+     "name": "Label",
+     "fill": "$on-surface",
+     "content": "Run a campus activation",
+     "fontFamily": "$font",
+     "fontSize": "$type-small",
+     "fontWeight": "normal"
+    }
+   ],
+   "x": 2102,
+   "y": -1835
+  },
+  {
+   "type": "frame",
+   "id": "ArrowB",
+   "name": "Button / Arrow",
+   "reusable": true,
+   "width": 40,
+   "height": 40,
+   "cornerRadius": "$radius-pill",
+   "stroke": "$on-surface",
+   "strokeWidth": 1,
+   "justifyContent": "center",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "icon",
+     "id": "ArrowI",
+     "name": "Icon",
+     "width": 18,
+     "height": 18,
+     "icon": "chevron-right",
+     "library": "lucide",
+     "fill": "$on-surface"
+    }
+   ],
+   "x": 2382,
+   "y": -1835
+  },
+  {
+   "type": "frame",
+   "id": "M93Sr",
+   "name": "Pulse Bee Orgs / Desktop 1440",
+   "x": 0,
+   "y": 0,
+   "width": 1440,
+   "layout": "vertical",
+   "fill": "$ink",
+   "clip": true,
+   "children": [
+    {
+     "type": "frame",
+     "id": "VywED",
+     "name": "Hero",
+     "clip": true,
+     "width": 1440,
+     "height": 900,
+     "fill": [
+      {
+       "type": "image",
+       "enabled": true,
+       "url": "images/pulse-bee/yerba-madre.jpg",
+       "mode": "cover"
+      },
+      {
+       "type": "gradient",
+       "gradientType": "linear",
+       "enabled": true,
+       "rotation": -32,
+       "size": {
+        "height": 1
+       },
+       "colors": [
+        {
+         "color": "#0b0b0bc7",
+         "position": 0
+        },
+        {
+         "color": "#0b0b0b6b",
+         "position": 0.32
+        },
+        {
+         "color": "$ink-08",
+         "position": 0.62
+        },
+        {
+         "color": "#0b0b0b2e",
+         "position": 1
+        }
+       ]
+      }
+     ],
+     "layout": "none",
+     "children": [
+      {
+       "type": "frame",
+       "id": "TNKDJ",
+       "x": 1139,
+       "y": 198,
+       "name": "Bee",
+       "width": 42,
+       "height": 42,
+       "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "images/pulse-bee/bee.png",
+        "mode": "contain"
+       }
+      },
+      {
+       "type": "text",
+       "id": "amMhL",
+       "x": 48,
+       "y": 471,
+       "name": "Headline",
+       "fill": "$paper",
+       "textGrowth": "fixed-width",
+       "width": 736,
+       "content": "Brand drops\nfor student\norganizations.",
+       "lineHeight": 1,
+       "fontFamily": "$font",
+       "fontSize": "$type-hero",
+       "fontWeight": "500",
+       "letterSpacing": -2.53
+      },
+      {
+       "type": "frame",
+       "id": "RPdrb",
+       "name": "Actions",
+       "x": 48,
+       "y": 748,
+       "gap": "$space-5",
+       "alignItems": "center",
+       "children": [
+        {
+         "id": "mbRqJ",
+         "type": "ref",
+         "ref": "uKtnH",
+         "name": "Join",
+         "height": 44,
+         "padding": [
+          0,
+          21
+         ],
+         "descendants": {
+          "m3z8Gw": {
+           "content": "Join"
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "sPcve",
+         "name": "How it works link",
+         "height": 44,
+         "gap": 6,
+         "alignItems": "center",
+         "children": [
+          {
+           "type": "text",
+           "id": "r4qVi",
+           "name": "Label",
+           "fill": "$paper",
+           "content": "How it works",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          },
+          {
+           "type": "text",
+           "id": "kL2XY",
+           "name": "Arrow",
+           "fill": "$paper",
+           "content": "→",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "text",
+       "id": "RjA8j",
+       "x": 48,
+       "y": 677,
+       "name": "Sub",
+       "fill": "$paper",
+       "textGrowth": "fixed-width",
+       "width": 387,
+       "content": "You apply on the website first. Instagram comes after Buzz approves you.",
+       "lineHeight": 1.4,
+       "fontFamily": "$font",
+       "fontSize": "$type-body",
+       "fontWeight": "normal"
+      },
+      {
+       "type": "frame",
+       "id": "bA9yq",
+       "x": 1136,
+       "y": 745,
+       "name": "Aside",
+       "width": 256,
+       "layout": "vertical",
+       "gap": 7,
+       "children": [
+        {
+         "type": "text",
+         "id": "UCVF9",
+         "name": "Kicker",
+         "opacity": 0.8,
+         "fill": "$paper",
+         "content": "Collaboration",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-small",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "text",
+         "id": "DOiY6",
+         "name": "Line",
+         "fill": "$paper",
+         "content": "Yerba Madre x Cornell University",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-small",
+         "fontWeight": "normal"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "yxASi",
+     "name": "Statement",
+     "width": "fill_container",
+     "fill": "$paper",
+     "layout": "vertical",
+     "padding": [
+      "$section-y",
+      "$side"
+     ],
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "text",
+       "id": "Vanl5",
+       "name": "Line 1",
+       "fill": "$ink",
+       "textGrowth": "fixed-width",
+       "width": 640,
+       "content": "Give your community something extra to show up for",
+       "lineHeight": 1,
+       "textAlign": "center",
+       "fontFamily": "$font",
+       "fontSize": "$type-statement",
+       "fontWeight": "500",
+       "letterSpacing": -2.7
+      },
+      {
+       "type": "text",
+       "id": "ZZ2a5",
+       "name": "Line 2 (quiet)",
+       "fill": "$ink-30",
+       "textGrowth": "fixed-width",
+       "width": 640,
+       "content": "while cutting hosting costs.",
+       "lineHeight": 1,
+       "textAlign": "center",
+       "fontFamily": "$font",
+       "fontSize": "$type-statement",
+       "fontWeight": "500",
+       "letterSpacing": -2.7
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "pxYMX",
+     "name": "Partner with brands (ink)",
+     "width": "fill_container",
+     "layout": "vertical",
+     "alignItems": "center",
+     "fill": "$surface",
+     "padding": [
+      "$section-y",
+      "$side",
+      "$section-y",
+      "$side"
+     ],
+     "children": [
+      {
+       "type": "ref",
+       "id": "XAVRa",
+       "ref": "SecHd",
+       "name": "Head",
+       "width": 704,
+       "descendants": {
+        "SecHdT": {
+         "content": "Partner with brands"
+        },
+        "SecHdS": {
+         "content": "Merch and product samples for your organization."
+        }
+       }
+      },
+      {
+       "type": "frame",
+       "id": "lJyax",
+       "name": "Gap",
+       "width": 10,
+       "height": 48
+      },
+      {
+       "type": "frame",
+       "id": "cikTB",
+       "name": "Cards",
+       "width": 1152,
+       "gap": "$space-5",
+       "children": [
+        {
+         "type": "ref",
+         "id": "F8Lwb",
+         "ref": "CardPh",
+         "name": "Card 1",
+         "width": "fill_container",
+         "descendants": {
+          "CardPhn": {
+           "content": "1"
+          },
+          "CardPht": {
+           "content": "Brand products, shipped to you"
+          },
+          "CardPhd": {
+           "content": "If you’re accepted on a drop, products ship to the address you gave when you applied."
+          },
+          "CardPhm": {
+           "fill": [
+            {
+             "type": "color",
+             "enabled": true,
+             "color": "$grey-media"
+            },
+            {
+             "type": "image",
+             "enabled": true,
+             "url": "images/pulse-bee/yerba-madre.jpg",
+             "mode": "fill"
+            }
+           ]
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "OJdqX",
+         "ref": "CardPh",
+         "name": "Card 2",
+         "width": "fill_container",
+         "descendants": {
+          "CardPhn": {
+           "content": "2"
+          },
+          "CardPht": {
+           "content": "Post from your own account"
+          },
+          "CardPhd": {
+           "content": "Post from the organization’s Instagram and see your posts, likes, comments, and reach in My Campaigns."
+          },
+          "CardPhm": {
+           "fill": [
+            {
+             "type": "color",
+             "enabled": true,
+             "color": "$grey-media"
+            },
+            {
+             "type": "image",
+             "enabled": true,
+             "url": "images/pulse-bee/update.jpg",
+             "mode": "fill"
+            }
+           ]
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "N96nX",
+         "ref": "CardMk",
+         "name": "Card 3",
+         "width": "fill_container",
+         "descendants": {
+          "CardMkn": {
+           "content": "3"
+          },
+          "CardMkt": {
+           "content": "More than one drop"
+          },
+          "CardMkd": {
+           "content": "Your organization can hold spots on more than one drop at the same time."
+          }
+         }
+        }
+       ]
+      }
+     ],
+     "theme": {
+      "surface": "ink"
+     }
+    },
+    {
+     "type": "frame",
+     "id": "BPg1d",
+     "name": "How it works (pinned view, step 1 of 4)",
+     "width": "fill_container",
+     "height": 900,
+     "fill": "$paper",
+     "layout": "none",
+     "children": [
+      {
+       "type": "frame",
+       "id": "u8xd5",
+       "x": 48,
+       "y": 402,
+       "name": "Left caption",
+       "width": 482,
+       "height": 96,
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "lBvAr",
+         "name": "Step",
+         "fill": "$ink",
+         "content": "Apply with your campus .edu email.",
+         "lineHeight": 1.25,
+         "fontFamily": "$font",
+         "fontSize": "$type-h3",
+         "fontWeight": "500",
+         "letterSpacing": -0.2
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "ahYYE",
+       "x": 562,
+       "y": 168,
+       "name": "Phone — Apply",
+       "clip": true,
+       "width": 317,
+       "height": 563,
+       "fill": "$white",
+       "cornerRadius": "$radius-phone",
+       "stroke": "$ink-08",
+       "strokeWidth": 1,
+       "strokeAlignment": "inner",
+       "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "color": "#00000047",
+        "offset": {
+         "x": 0,
+         "y": 2
+        },
+        "blur": 64
+       },
+       "layout": "vertical",
+       "gap": "$space-2",
+       "padding": [
+        28,
+        22
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "MWsiB",
+         "name": "Kicker",
+         "fill": "$ink-30",
+         "content": "Apply",
+         "lineHeight": 1.3,
+         "fontFamily": "$font",
+         "fontSize": "$type-tiny",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "BfE8O",
+         "name": "Label wrap",
+         "padding": [
+          6,
+          0,
+          0,
+          0
+         ],
+         "children": [
+          {
+           "type": "text",
+           "id": "rY0ZK",
+           "name": "Label",
+           "fill": "$ink-30",
+           "content": "Organization name",
+           "lineHeight": 1.3,
+           "fontFamily": "$font",
+           "fontSize": "$type-tiny",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "id": "ORlWh",
+         "type": "ref",
+         "ref": "QhHN7",
+         "name": "Field",
+         "width": "fill_container",
+         "descendants": {
+          "j8gXJp": {
+           "content": "Kappa Alpha Theta",
+           "fill": "$ink"
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "bVNym",
+         "name": "Label wrap",
+         "padding": [
+          6,
+          0,
+          0,
+          0
+         ],
+         "children": [
+          {
+           "type": "text",
+           "id": "cGeFj",
+           "name": "Label",
+           "fill": "$ink-30",
+           "content": "University",
+           "lineHeight": 1.3,
+           "fontFamily": "$font",
+           "fontSize": "$type-tiny",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "id": "mKlgQ",
+         "type": "ref",
+         "ref": "QhHN7",
+         "name": "Field",
+         "width": "fill_container",
+         "descendants": {
+          "j8gXJp": {
+           "content": "Cornell",
+           "fill": "$ink"
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "dzUaS",
+         "name": "Label wrap",
+         "padding": [
+          6,
+          0,
+          0,
+          0
+         ],
+         "children": [
+          {
+           "type": "text",
+           "id": "QCXuC",
+           "name": "Label",
+           "fill": "$ink-30",
+           "content": "School (.edu) email",
+           "lineHeight": 1.3,
+           "fontFamily": "$font",
+           "fontSize": "$type-tiny",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "id": "GjtrO",
+         "type": "ref",
+         "ref": "QhHN7",
+         "name": "Field",
+         "width": "fill_container",
+         "descendants": {
+          "j8gXJp": {
+           "content": "you@university.edu",
+           "fill": "$ink-30"
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "DbRAJ",
+         "name": "Spacer",
+         "width": "fill_container",
+         "height": "fill_container"
+        },
+        {
+         "type": "frame",
+         "id": "GZCML",
+         "name": "Button wrap",
+         "width": "fill_container",
+         "layout": "vertical",
+         "padding": [
+          10,
+          0,
+          0,
+          0
+         ],
+         "children": [
+          {
+           "id": "CMqdk",
+           "type": "ref",
+           "ref": "V6GNvM",
+           "name": "Button",
+           "width": "fill_container",
+           "descendants": {
+            "msriN": {
+             "enabled": false
+            },
+            "ojXkO": {
+             "content": "Submit application"
+            }
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "HH2sq",
+       "type": "ref",
+       "ref": "H3d268",
+       "name": "Nav (light tone over paper)",
+       "x": 144,
+       "y": 8,
+       "fill": "#ffffff70",
+       "stroke": "#0b0b0b0d",
+       "effect": [
+        {
+         "type": "background_blur",
+         "radius": 16
+        },
+        {
+         "type": "shadow",
+         "shadowType": "outer",
+         "color": "#0b0b0b0a",
+         "offset": {
+          "x": 0,
+          "y": 1.6
+         },
+         "blur": 8
+        }
+       ],
+       "descendants": {
+        "gIbtg": {
+         "fill": {
+          "type": "image",
+          "enabled": true,
+          "url": "images/pulse-bee/buzz-logo-black.png",
+          "mode": "contain"
+         }
+        },
+        "B1IfW": {
+         "fill": "$ink"
+        },
+        "ZHSS4": {
+         "fill": "$ink"
+        },
+        "uW6Xc": {
+         "fill": "$ink"
+        },
+        "oiiUx": {
+         "enabled": true,
+         "fill": "$ink"
+        },
+        "PyO0u": {
+         "fill": "$ink"
+        }
+       }
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "yW8RH",
+     "name": "Current drops",
+     "width": "fill_container",
+     "fill": "$paper",
+     "layout": "vertical",
+     "padding": [
+      108,
+      "$space-7"
+     ],
+     "children": [
+      {
+       "type": "frame",
+       "id": "ORhn5",
+       "name": "Head",
+       "width": "fill_container",
+       "justifyContent": "space_between",
+       "children": [
+        {
+         "type": "text",
+         "id": "V9DOu",
+         "name": "Title",
+         "fill": "$ink",
+         "content": "Current drops",
+         "lineHeight": 0.95,
+         "fontFamily": "$font",
+         "fontSize": "$type-title-xl",
+         "fontWeight": "500",
+         "letterSpacing": -2.98
+        },
+        {
+         "type": "frame",
+         "id": "tZnDZ",
+         "name": "Arrows",
+         "gap": "$space-2",
+         "padding": [
+          23,
+          0,
+          0,
+          0
+         ],
+         "children": [
+          {
+           "type": "frame",
+           "id": "mmkGt",
+           "name": "Prev",
+           "opacity": 0.28,
+           "width": 40,
+           "height": 40,
+           "cornerRadius": "$radius-pill",
+           "stroke": "$ink-btn",
+           "strokeWidth": 1,
+           "justifyContent": "center",
+           "alignItems": "center",
+           "children": [
+            {
+             "type": "icon",
+             "id": "QgUrs",
+             "name": "Icon",
+             "width": 18,
+             "height": 18,
+             "icon": "chevron-left",
+             "library": "lucide",
+             "fill": "$ink-btn"
+            }
+           ]
+          },
+          {
+           "type": "frame",
+           "id": "BMjcp",
+           "name": "Next",
+           "width": 40,
+           "height": 40,
+           "cornerRadius": "$radius-pill",
+           "stroke": "$ink-btn",
+           "strokeWidth": 1,
+           "justifyContent": "center",
+           "alignItems": "center",
+           "children": [
+            {
+             "type": "icon",
+             "id": "qT78v",
+             "name": "Icon",
+             "width": 18,
+             "height": 18,
+             "icon": "chevron-right",
+             "library": "lucide",
+             "fill": "$ink-btn"
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "FKUFs",
+       "name": "Slides wrap",
+       "width": "fill_container",
+       "padding": [
+        28,
+        0,
+        0,
+        0
+       ],
+       "children": [
+        {
+         "type": "frame",
+         "id": "AZ5da",
+         "name": "Scroller (clipped)",
+         "clip": true,
+         "width": "fill_container",
+         "height": 605,
+         "layout": "none",
+         "children": [
+          {
+           "id": "wtety",
+           "type": "ref",
+           "ref": "N4ul60",
+           "name": "Slide 1 — Yerba Madre",
+           "x": 0,
+           "y": 0
+          },
+          {
+           "id": "jaHy5",
+           "type": "ref",
+           "ref": "N4ul60",
+           "name": "Slide 2 — UPDATE",
+           "x": 1092,
+           "y": 0,
+           "fill": [
+            "$grey-media",
+            {
+             "type": "image",
+             "enabled": true,
+             "url": "images/pulse-bee/update.jpg",
+             "mode": "cover"
+            }
+           ],
+           "descendants": {
+            "RGfWE": {
+             "content": "UPDATE",
+             "fill": "$ink"
+            }
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "dQ1Xi",
+       "name": "Meta",
+       "width": 1076,
+       "padding": [
+        17,
+        0,
+        0,
+        0
+       ],
+       "justifyContent": "space_between",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "cAIys",
+         "name": "Subtitle",
+         "fill": "$ink",
+         "content": "Collaboration at Cornell University",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-body",
+         "fontWeight": "normal"
+        },
+        {
+         "id": "nmF2j",
+         "type": "ref",
+         "ref": "XHmYw",
+         "name": "View drop"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "cDPN9",
+     "name": "Questions (ink)",
+     "width": "fill_container",
+     "layout": "vertical",
+     "alignItems": "center",
+     "fill": "$surface",
+     "padding": [
+      "$section-y",
+      "$side",
+      "$section-y",
+      "$side"
+     ],
+     "children": [
+      {
+       "type": "frame",
+       "id": "igyZt",
+       "name": "FAQ",
+       "width": 1152,
+       "gap": "$space-6",
+       "children": [
+        {
+         "type": "frame",
+         "id": "c0QpV",
+         "name": "Title col",
+         "width": 373,
+         "children": [
+          {
+           "type": "text",
+           "id": "lIQqe",
+           "name": "Title",
+           "fill": "$on-surface",
+           "content": "Questions",
+           "fontFamily": "$font",
+           "fontSize": "$type-title-xl",
+           "fontWeight": "500",
+           "lineHeight": 0.95,
+           "letterSpacing": -2.98
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "PyjSX",
+         "name": "List col",
+         "width": 747,
+         "children": [
+          {
+           "type": "frame",
+           "id": "cDvBV",
+           "name": "List",
+           "width": "fill_container",
+           "layout": "vertical",
+           "children": [
+            {
+             "type": "ref",
+             "id": "k3MM8",
+             "ref": "FaqOp",
+             "name": "Q1 (open)",
+             "width": "fill_container",
+             "descendants": {
+              "FaqOpq": {
+               "content": "Who can apply?"
+              },
+              "FaqOpa": {
+               "content": "Student organizations with a campus .edu email you can verify and the organization’s Instagram Business or Creator account.",
+               "width": 540
+              }
+             }
+            },
+            {
+             "type": "ref",
+             "id": "wb1p0",
+             "ref": "FaqCl",
+             "name": "Q2",
+             "width": "fill_container",
+             "descendants": {
+              "FaqClq": {
+               "content": "Can we use a personal Instagram account?"
+              }
+             }
+            },
+            {
+             "type": "ref",
+             "id": "yPv3O",
+             "ref": "FaqCl",
+             "name": "Q3",
+             "width": "fill_container",
+             "descendants": {
+              "FaqClq": {
+               "content": "When do we connect Instagram?"
+              }
+             }
+            },
+            {
+             "type": "ref",
+             "id": "qVIqx",
+             "ref": "FaqCl",
+             "name": "Q4",
+             "width": "fill_container",
+             "descendants": {
+              "FaqClq": {
+               "content": "We didn’t get the verification email."
+              }
+             }
+            },
+            {
+             "type": "ref",
+             "id": "HxJrn",
+             "ref": "FaqCl",
+             "name": "Q5",
+             "width": "fill_container",
+             "descendants": {
+              "FaqClq": {
+               "content": "How do we log in later?"
+              }
+             }
+            },
+            {
+             "type": "ref",
+             "id": "xrIOY",
+             "ref": "FaqCl",
+             "name": "Q6",
+             "width": "fill_container",
+             "descendants": {
+              "FaqClq": {
+               "content": "When can we apply to a drop?"
+              }
+             }
+            },
+            {
+             "type": "ref",
+             "id": "GG1ny",
+             "ref": "FaqCl",
+             "name": "Q7",
+             "width": "fill_container",
+             "descendants": {
+              "FaqClq": {
+               "content": "How do we hear back on a drop?"
+              }
+             }
+            },
+            {
+             "type": "ref",
+             "id": "JWQsJ",
+             "ref": "FaqCl",
+             "name": "Q8",
+             "width": "fill_container",
+             "descendants": {
+              "FaqClq": {
+               "content": "Where do products ship?"
+              }
+             }
+            },
+            {
+             "type": "frame",
+             "id": "ygtHs",
+             "name": "Hairline",
+             "width": "fill_container",
+             "height": 1,
+             "fill": "$hairline"
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "theme": {
+      "surface": "ink"
+     }
+    },
+    {
+     "type": "frame",
+     "id": "xBf0S",
+     "name": "Join",
+     "width": "fill_container",
+     "height": 560,
+     "fill": "$paper",
+     "children": [
+      {
+       "type": "frame",
+       "id": "qDYeD",
+       "name": "Half — For organizations",
+       "width": "fill_container",
+       "height": "fill_container",
+       "layout": "vertical",
+       "padding": [
+        "$space-9",
+        "$space-8",
+        72,
+        "$space-8"
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "EH0Vm",
+         "name": "Kicker",
+         "fill": "$ink-btn",
+         "content": "For organizations",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-label",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "Y67zR",
+         "name": "Gap",
+         "width": 10,
+         "height": 28
+        },
+        {
+         "type": "text",
+         "id": "Q4vip",
+         "name": "Title",
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width-height",
+         "width": "fill_container",
+         "height": 112,
+         "content": "Apply with your\ncampus .edu.",
+         "lineHeight": 1.02,
+         "fontFamily": "$font",
+         "fontSize": "$type-join",
+         "fontWeight": "500",
+         "letterSpacing": -2.33
+        },
+        {
+         "type": "frame",
+         "id": "twgGP",
+         "name": "Gap",
+         "width": 10,
+         "height": 20
+        },
+        {
+         "type": "text",
+         "id": "TYqck",
+         "name": "Support",
+         "opacity": 0.64,
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width",
+         "width": 340,
+         "content": "You apply on the website first.",
+         "lineHeight": 1.45,
+         "fontFamily": "$font",
+         "fontSize": "$type-body-lg",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "LPWgg",
+         "name": "Spacer",
+         "width": "fill_container",
+         "height": "fill_container"
+        },
+        {
+         "type": "frame",
+         "id": "l8ofg",
+         "name": "Actions",
+         "width": "fill_container",
+         "justifyContent": "space_between",
+         "alignItems": "center",
+         "children": [
+          {
+           "id": "yjY46",
+           "type": "ref",
+           "ref": "XHmYw",
+           "name": "Pill",
+           "height": 44,
+           "padding": [
+            0,
+            18
+           ],
+           "descendants": {
+            "o48sD": {
+             "content": "Apply as an organization",
+             "fontSize": 15
+            },
+            "ARbUw": {
+             "enabled": true
+            }
+           }
+          },
+          {
+           "type": "text",
+           "id": "KLYDy",
+           "name": "Quiet link",
+           "opacity": 0.72,
+           "fill": "$ink-btn",
+           "content": "Already connected? Log in",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "BL1yu",
+       "name": "Half — For brands",
+       "width": "fill_container",
+       "height": "fill_container",
+       "layout": "vertical",
+       "padding": [
+        "$space-9",
+        "$space-8",
+        72,
+        "$space-8"
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "CYngu",
+         "name": "Kicker",
+         "fill": "$ink-btn",
+         "content": "For brands",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-label",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "wE68z",
+         "name": "Gap",
+         "width": 10,
+         "height": 28
+        },
+        {
+         "type": "text",
+         "id": "xqDsR",
+         "name": "Title",
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width-height",
+         "width": "fill_container",
+         "height": 112,
+         "content": "Request a campaign.",
+         "lineHeight": 1.02,
+         "fontFamily": "$font",
+         "fontSize": "$type-join",
+         "fontWeight": "500",
+         "letterSpacing": -2.33
+        },
+        {
+         "type": "frame",
+         "id": "SE7wQ",
+         "name": "Gap",
+         "width": 10,
+         "height": 20
+        },
+        {
+         "type": "text",
+         "id": "qvulN",
+         "name": "Support",
+         "opacity": 0.64,
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width",
+         "width": 300,
+         "content": "You request a call. Buzz mints and publishes the drop.",
+         "lineHeight": 1.45,
+         "fontFamily": "$font",
+         "fontSize": "$type-body-lg",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "gnaB5",
+         "name": "Spacer",
+         "width": "fill_container",
+         "height": "fill_container"
+        },
+        {
+         "type": "frame",
+         "id": "S9vvB",
+         "name": "Actions",
+         "width": "fill_container",
+         "justifyContent": "space_between",
+         "alignItems": "center",
+         "children": [
+          {
+           "id": "PejNZ",
+           "type": "ref",
+           "ref": "XHmYw",
+           "name": "Pill",
+           "height": 44,
+           "padding": [
+            0,
+            18
+           ],
+           "descendants": {
+            "o48sD": {
+             "content": "See Buzz for brands",
+             "fontSize": 15
+            },
+            "ARbUw": {
+             "enabled": true
+            }
+           }
+          }
+         ]
+        }
+       ],
+       "stroke": "$ink-16",
+       "strokeWidth": {
+        "left": 1
+       }
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "WdWOw",
+     "name": "Footer",
+     "width": "fill_container",
+     "height": 900,
+     "fill": "$ink",
+     "layout": "vertical",
+     "padding": [
+      135,
+      "$space-7",
+      "$space-8",
+      "$space-7"
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "p43FI",
+       "name": "Display",
+       "fill": "$paper",
+       "content": "Want to join?",
+       "lineHeight": 1,
+       "fontFamily": "$font",
+       "fontSize": "$type-display",
+       "fontWeight": "500",
+       "letterSpacing": -4.6
+      },
+      {
+       "type": "frame",
+       "id": "wdbQw",
+       "name": "Actions",
+       "gap": "$space-3",
+       "padding": [
+        "$space-6",
+        0
+       ],
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "frame",
+         "id": "l7mZv",
+         "name": "Ghost pill",
+         "height": 44,
+         "cornerRadius": "$radius-pill",
+         "stroke": "$paper",
+         "strokeWidth": 1,
+         "strokeAlignment": "inner",
+         "padding": [
+          0,
+          18
+         ],
+         "alignItems": "center",
+         "children": [
+          {
+           "type": "text",
+           "id": "athTf",
+           "name": "Label",
+           "fill": "$paper",
+           "content": "Join as a student organization",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "type": "text",
+         "id": "izLTm",
+         "name": "Text link",
+         "fill": "$paper",
+         "content": "Apply as a brand",
+         "fontFamily": "$font",
+         "fontSize": "$type-body",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "text",
+       "id": "cUxyT",
+       "name": "Email",
+       "fill": "$paper",
+       "content": "hello@bringthebuzzover.com",
+       "lineHeight": 1,
+       "fontFamily": "$font",
+       "fontSize": "$type-title-lg",
+       "fontWeight": "500",
+       "letterSpacing": -2.8
+      },
+      {
+       "type": "frame",
+       "id": "SKu1x",
+       "name": "Spacer",
+       "width": "fill_container",
+       "height": "fill_container"
+      },
+      {
+       "type": "frame",
+       "id": "QHyQZ",
+       "name": "Columns",
+       "width": "fill_container",
+       "height": 157,
+       "gap": "$space-4",
+       "children": [
+        {
+         "id": "Hj5ph",
+         "type": "ref",
+         "ref": "RArr7",
+         "name": "Col Organizations",
+         "width": "fill_container",
+         "descendants": {
+          "zEXvC": {
+           "content": "Organizations"
+          },
+          "r1ani": {
+           "content": "How it works"
+          },
+          "YmYei": {
+           "content": "Apply"
+          },
+          "snibS": {
+           "content": "Login"
+          },
+          "m5oETK": {
+           "enabled": false
+          }
+         }
+        },
+        {
+         "id": "DeETW",
+         "type": "ref",
+         "ref": "RArr7",
+         "name": "Col Brands",
+         "width": "fill_container",
+         "descendants": {
+          "zEXvC": {
+           "content": "Brands"
+          },
+          "r1ani": {
+           "content": "How it works"
+          },
+          "YmYei": {
+           "content": "Apply"
+          },
+          "snibS": {
+           "content": "Login"
+          },
+          "m5oETK": {
+           "enabled": false
+          }
+         }
+        },
+        {
+         "id": "FtXFv",
+         "type": "ref",
+         "ref": "RArr7",
+         "name": "Col Social",
+         "width": "fill_container",
+         "descendants": {
+          "zEXvC": {
+           "content": "Social"
+          },
+          "r1ani": {
+           "content": "Instagram"
+          },
+          "YmYei": {
+           "content": "LinkedIn"
+          },
+          "snibS": {
+           "content": "Email"
+          },
+          "m5oETK": {
+           "enabled": false
+          }
+         }
+        },
+        {
+         "id": "zhaLG",
+         "type": "ref",
+         "ref": "RArr7",
+         "name": "Col Legal",
+         "width": "fill_container",
+         "descendants": {
+          "zEXvC": {
+           "content": "Legal"
+          },
+          "r1ani": {
+           "content": "Privacy"
+          },
+          "YmYei": {
+           "content": "Terms"
+          },
+          "snibS": {
+           "content": "Data deletion"
+          },
+          "m5oETK": {
+           "enabled": true
+          },
+          "rrfzP": {
+           "content": "Current site"
+          }
+         }
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "Mw2Bx",
+       "name": "Gap",
+       "width": 10,
+       "height": 117
+      },
+      {
+       "type": "frame",
+       "id": "dIqi9",
+       "name": "Meta",
+       "width": "fill_container",
+       "height": 28,
+       "justifyContent": "space_between",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "frame",
+         "id": "LTmZO",
+         "name": "Bee",
+         "width": 28,
+         "height": 28,
+         "fill": {
+          "type": "image",
+          "enabled": true,
+          "url": "images/pulse-bee/bee.png",
+          "mode": "contain"
+         }
+        },
+        {
+         "type": "text",
+         "id": "r5pEZ",
+         "name": "Tagline",
+         "fill": "$paper-60",
+         "content": "Connecting brands with campus communities for authentic college marketing, at scale.",
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "text",
+         "id": "FIK2J",
+         "name": "Year",
+         "fill": "$paper-60",
+         "content": "2026",
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "gM8YW",
+     "type": "ref",
+     "ref": "H3d268",
+     "name": "Nav",
+     "layoutPosition": "absolute",
+     "x": 144,
+     "y": 8
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "UxJyp",
+   "name": "Pulse Bee Orgs / Mobile 390",
+   "x": 1640,
+   "y": 0,
+   "width": 390,
+   "layout": "vertical",
+   "fill": "$ink",
+   "clip": true,
+   "children": [
+    {
+     "type": "frame",
+     "id": "sV5eL",
+     "name": "Hero",
+     "clip": true,
+     "width": 390,
+     "height": 844,
+     "fill": [
+      {
+       "type": "image",
+       "enabled": true,
+       "url": "images/pulse-bee/yerba-madre.jpg",
+       "mode": "cover"
+      },
+      {
+       "type": "gradient",
+       "gradientType": "linear",
+       "enabled": true,
+       "rotation": -65.2,
+       "size": {
+        "height": 1
+       },
+       "colors": [
+        {
+         "color": "#0b0b0bc7",
+         "position": 0
+        },
+        {
+         "color": "#0b0b0b6b",
+         "position": 0.32
+        },
+        {
+         "color": "$ink-08",
+         "position": 0.62
+        },
+        {
+         "color": "#0b0b0b2e",
+         "position": 1
+        }
+       ]
+      }
+     ],
+     "layout": "none",
+     "children": [
+      {
+       "type": "text",
+       "id": "fIAkb",
+       "x": 16,
+       "y": 480,
+       "name": "Headline",
+       "fill": "$paper",
+       "textGrowth": "fixed-width",
+       "width": 358,
+       "content": "Brand drops\nfor student\norganizations.",
+       "lineHeight": 1,
+       "fontFamily": "$font",
+       "fontSize": "$type-hero",
+       "fontWeight": "500",
+       "letterSpacing": -1.312
+      },
+      {
+       "type": "text",
+       "id": "QuuKR",
+       "x": 16,
+       "y": 595,
+       "name": "Sub",
+       "fill": "$paper",
+       "textGrowth": "fixed-width",
+       "width": 358,
+       "content": "You apply on the website first. Instagram comes after Buzz approves you.",
+       "lineHeight": 1.4,
+       "fontFamily": "$font",
+       "fontSize": "$type-body",
+       "fontWeight": "normal"
+      },
+      {
+       "type": "frame",
+       "id": "SzzKu",
+       "name": "Actions",
+       "x": 16,
+       "y": 688,
+       "gap": "$space-5",
+       "alignItems": "center",
+       "children": [
+        {
+         "id": "ijzQg",
+         "type": "ref",
+         "ref": "uKtnH",
+         "name": "Join",
+         "height": 44,
+         "padding": [
+          0,
+          21
+         ],
+         "descendants": {
+          "m3z8Gw": {
+           "content": "Join"
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "IEr2V",
+         "name": "How it works link",
+         "height": 44,
+         "gap": 6,
+         "alignItems": "center",
+         "children": [
+          {
+           "type": "text",
+           "id": "fpU8U",
+           "name": "Label",
+           "fill": "$paper",
+           "content": "How it works",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          },
+          {
+           "type": "text",
+           "id": "xDvaH",
+           "name": "Arrow",
+           "fill": "$paper",
+           "content": "→",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "R4nZl",
+       "x": 0,
+       "y": 776,
+       "name": "Dock (fixed to viewport bottom)",
+       "width": 390,
+       "height": 68,
+       "fill": "#0b0b0beb",
+       "effect": {
+        "type": "background_blur",
+        "radius": 16
+       },
+       "padding": [
+        "$space-3",
+        "$space-4"
+       ],
+       "justifyContent": "center",
+       "alignItems": "center",
+       "children": [
+        {
+         "id": "YSjIu",
+         "type": "ref",
+         "ref": "uKtnH",
+         "name": "Dock pill",
+         "height": 44,
+         "padding": [
+          0,
+          21
+         ],
+         "descendants": {
+          "m3z8Gw": {
+           "content": "Join as a student organization"
+          }
+         }
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "iC5mI",
+     "name": "Statement",
+     "width": "fill_container",
+     "fill": "$paper",
+     "layout": "vertical",
+     "padding": [
+      "$section-y",
+      "$side"
+     ],
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "text",
+       "id": "AhZ3D",
+       "name": "Line 1",
+       "fill": "$ink",
+       "textGrowth": "fixed-width",
+       "width": 358,
+       "content": "Give your community something extra to show up for",
+       "lineHeight": 1,
+       "textAlign": "center",
+       "fontFamily": "$font",
+       "fontSize": "$type-statement",
+       "fontWeight": "500",
+       "letterSpacing": -1.8
+      },
+      {
+       "type": "text",
+       "id": "hnwcF",
+       "name": "Line 2 (quiet)",
+       "fill": "$ink-30",
+       "textGrowth": "fixed-width",
+       "width": 358,
+       "content": "while cutting hosting costs.",
+       "lineHeight": 1,
+       "textAlign": "center",
+       "fontFamily": "$font",
+       "fontSize": "$type-statement",
+       "fontWeight": "500",
+       "letterSpacing": -1.8
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "iYjoV",
+     "name": "Partner with brands (ink)",
+     "width": "fill_container",
+     "layout": "vertical",
+     "alignItems": "center",
+     "fill": "$surface",
+     "padding": [
+      "$section-y",
+      "$side",
+      "$section-y",
+      "$side"
+     ],
+     "children": [
+      {
+       "type": "ref",
+       "id": "oHaYf",
+       "ref": "SecHd",
+       "name": "Head",
+       "width": "fill_container",
+       "descendants": {
+        "SecHdT": {
+         "content": "Partner with brands"
+        },
+        "SecHdS": {
+         "content": "Merch and product samples for your organization."
+        }
+       }
+      },
+      {
+       "type": "frame",
+       "id": "RUg7b",
+       "name": "Gap",
+       "width": 10,
+       "height": 48
+      },
+      {
+       "type": "frame",
+       "id": "omdcU",
+       "name": "Cards",
+       "width": "fill_container",
+       "layout": "vertical",
+       "gap": "$space-6",
+       "children": [
+        {
+         "type": "ref",
+         "id": "QQl5c",
+         "ref": "CardPh",
+         "name": "Card 1",
+         "width": "fill_container",
+         "descendants": {
+          "CardPhn": {
+           "content": "1"
+          },
+          "CardPht": {
+           "content": "Brand products, shipped to you"
+          },
+          "CardPhd": {
+           "content": "If you’re accepted on a drop, products ship to the address you gave when you applied."
+          },
+          "CardPhm": {
+           "fill": [
+            {
+             "type": "color",
+             "enabled": true,
+             "color": "$grey-media"
+            },
+            {
+             "type": "image",
+             "enabled": true,
+             "url": "images/pulse-bee/yerba-madre.jpg",
+             "mode": "fill"
+            }
+           ],
+           "height": 268.5
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "igCi4",
+         "ref": "CardPh",
+         "name": "Card 2",
+         "width": "fill_container",
+         "descendants": {
+          "CardPhn": {
+           "content": "2"
+          },
+          "CardPht": {
+           "content": "Post from your own account"
+          },
+          "CardPhd": {
+           "content": "Post from the organization’s Instagram and see your posts, likes, comments, and reach in My Campaigns."
+          },
+          "CardPhm": {
+           "fill": [
+            {
+             "type": "color",
+             "enabled": true,
+             "color": "$grey-media"
+            },
+            {
+             "type": "image",
+             "enabled": true,
+             "url": "images/pulse-bee/update.jpg",
+             "mode": "fill"
+            }
+           ],
+           "height": 268.5
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "uP4HH",
+         "ref": "CardMk",
+         "name": "Card 3",
+         "width": "fill_container",
+         "descendants": {
+          "CardMkn": {
+           "content": "3"
+          },
+          "CardMkt": {
+           "content": "More than one drop"
+          },
+          "CardMkd": {
+           "content": "Your organization can hold spots on more than one drop at the same time."
+          },
+          "CardMkm": {
+           "height": 268.5
+          }
+         }
+        }
+       ]
+      }
+     ],
+     "theme": {
+      "surface": "ink"
+     }
+    },
+    {
+     "type": "frame",
+     "id": "Tdf8P",
+     "name": "How it works (pinned view, step 1 of 4)",
+     "width": "fill_container",
+     "height": 844,
+     "fill": "$paper",
+     "layout": "none",
+     "children": [
+      {
+       "type": "frame",
+       "id": "Wzkr3",
+       "x": 70,
+       "y": 128,
+       "name": "Phone — Apply",
+       "clip": true,
+       "width": 250,
+       "height": 444,
+       "fill": "$white",
+       "cornerRadius": "$radius-phone",
+       "stroke": "$ink-08",
+       "strokeWidth": 1,
+       "strokeAlignment": "inner",
+       "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "color": "#00000047",
+        "offset": {
+         "x": 0,
+         "y": 2
+        },
+        "blur": 64
+       },
+       "layout": "vertical",
+       "gap": "$space-2",
+       "padding": [
+        22,
+        18
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "MFga7",
+         "name": "Kicker",
+         "fill": "$ink-30",
+         "content": "Apply",
+         "lineHeight": 1.3,
+         "fontFamily": "$font",
+         "fontSize": "$type-tiny",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "WS1XL",
+         "name": "Label wrap",
+         "padding": [
+          6,
+          0,
+          0,
+          0
+         ],
+         "children": [
+          {
+           "type": "text",
+           "id": "gRLke",
+           "name": "Label",
+           "fill": "$ink-30",
+           "content": "Organization name",
+           "lineHeight": 1.3,
+           "fontFamily": "$font",
+           "fontSize": "$type-tiny",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "id": "v6aa2",
+         "type": "ref",
+         "ref": "QhHN7",
+         "name": "Field",
+         "width": "fill_container",
+         "descendants": {
+          "j8gXJp": {
+           "content": "Kappa Alpha Theta",
+           "fill": "$ink"
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "dDNY4",
+         "name": "Label wrap",
+         "padding": [
+          6,
+          0,
+          0,
+          0
+         ],
+         "children": [
+          {
+           "type": "text",
+           "id": "lNHmp",
+           "name": "Label",
+           "fill": "$ink-30",
+           "content": "University",
+           "lineHeight": 1.3,
+           "fontFamily": "$font",
+           "fontSize": "$type-tiny",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "id": "Mi4K1",
+         "type": "ref",
+         "ref": "QhHN7",
+         "name": "Field",
+         "width": "fill_container",
+         "descendants": {
+          "j8gXJp": {
+           "content": "Cornell",
+           "fill": "$ink"
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "Jxmzr",
+         "name": "Label wrap",
+         "padding": [
+          6,
+          0,
+          0,
+          0
+         ],
+         "children": [
+          {
+           "type": "text",
+           "id": "GHquO",
+           "name": "Label",
+           "fill": "$ink-30",
+           "content": "School (.edu) email",
+           "lineHeight": 1.3,
+           "fontFamily": "$font",
+           "fontSize": "$type-tiny",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "id": "f1cd5",
+         "type": "ref",
+         "ref": "QhHN7",
+         "name": "Field",
+         "width": "fill_container",
+         "descendants": {
+          "j8gXJp": {
+           "content": "you@university.edu",
+           "fill": "$ink-30"
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "GLujP",
+         "name": "Spacer",
+         "width": "fill_container",
+         "height": "fill_container"
+        },
+        {
+         "type": "frame",
+         "id": "z0AkW",
+         "name": "Button wrap",
+         "width": "fill_container",
+         "layout": "vertical",
+         "padding": [
+          10,
+          0,
+          0,
+          0
+         ],
+         "children": [
+          {
+           "id": "CtVML",
+           "type": "ref",
+           "ref": "V6GNvM",
+           "name": "Button",
+           "width": "fill_container",
+           "descendants": {
+            "msriN": {
+             "enabled": false
+            },
+            "ojXkO": {
+             "content": "Submit application"
+            }
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "nZQve",
+       "x": 16,
+       "y": 620,
+       "name": "Caption",
+       "width": 358,
+       "height": 72,
+       "justifyContent": "center",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "MDei8",
+         "name": "Step",
+         "fill": "$ink",
+         "content": "Apply with your campus .edu email.",
+         "lineHeight": 1.25,
+         "textAlign": "center",
+         "fontFamily": "$font",
+         "fontSize": "$type-h3",
+         "fontWeight": "500",
+         "letterSpacing": -0.2
+        }
+       ]
+      },
+      {
+       "id": "migS0",
+       "type": "ref",
+       "ref": "YSw6B",
+       "name": "Nav (light tone over paper)",
+       "x": 8,
+       "y": 8,
+       "fill": "#ffffff70",
+       "stroke": "#0b0b0b0d",
+       "effect": [
+        {
+         "type": "background_blur",
+         "radius": 16
+        },
+        {
+         "type": "shadow",
+         "shadowType": "outer",
+         "color": "#0b0b0b0a",
+         "offset": {
+          "x": 0,
+          "y": 1.6
+         },
+         "blur": 8
+        }
+       ],
+       "descendants": {
+        "K2pRdS": {
+         "fill": {
+          "type": "image",
+          "enabled": true,
+          "url": "images/pulse-bee/buzz-logo-black.png",
+          "mode": "contain"
+         }
+        },
+        "iGXob": {
+         "fill": "$ink"
+        }
+       }
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "iKpCH",
+     "name": "Current drops",
+     "width": "fill_container",
+     "height": 428,
+     "fill": "$paper",
+     "layout": "vertical",
+     "padding": [
+      67.52,
+      "$space-4"
+     ],
+     "children": [
+      {
+       "type": "frame",
+       "id": "uCu3V",
+       "name": "Head",
+       "width": "fill_container",
+       "justifyContent": "space_between",
+       "children": [
+        {
+         "type": "frame",
+         "id": "HAoSt",
+         "name": "Title wrap",
+         "padding": [
+          "$space-1",
+          0,
+          0,
+          0
+         ],
+         "children": [
+          {
+           "type": "text",
+           "id": "HdCJB",
+           "name": "Title",
+           "fill": "$ink",
+           "content": "Current drops",
+           "lineHeight": 0.95,
+           "fontFamily": "$font",
+           "fontSize": "$type-title-xl",
+           "fontWeight": "500",
+           "letterSpacing": -1.728
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "cjO9o",
+         "name": "Arrows",
+         "gap": "$space-2",
+         "children": [
+          {
+           "type": "frame",
+           "id": "BJztY",
+           "name": "Prev",
+           "opacity": 0.28,
+           "width": 40,
+           "height": 40,
+           "cornerRadius": "$radius-pill",
+           "stroke": "$ink-btn",
+           "strokeWidth": 1,
+           "justifyContent": "center",
+           "alignItems": "center",
+           "children": [
+            {
+             "type": "icon",
+             "id": "E7PT0",
+             "name": "Icon",
+             "width": 18,
+             "height": 18,
+             "icon": "chevron-left",
+             "library": "lucide",
+             "fill": "$ink-btn"
+            }
+           ]
+          },
+          {
+           "type": "frame",
+           "id": "ews7n",
+           "name": "Next",
+           "width": 40,
+           "height": 40,
+           "cornerRadius": "$radius-pill",
+           "stroke": "$ink-btn",
+           "strokeWidth": 1,
+           "justifyContent": "center",
+           "alignItems": "center",
+           "children": [
+            {
+             "type": "icon",
+             "id": "wxaCH",
+             "name": "Icon",
+             "width": 18,
+             "height": 18,
+             "icon": "chevron-right",
+             "library": "lucide",
+             "fill": "$ink-btn"
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "hkspP",
+       "name": "Slides wrap",
+       "width": "fill_container",
+       "padding": [
+        28,
+        0,
+        0,
+        0
+       ],
+       "children": [
+        {
+         "type": "frame",
+         "id": "MUDKM",
+         "name": "Scroller (clipped)",
+         "clip": true,
+         "width": "fill_container",
+         "height": 173,
+         "layout": "none",
+         "children": [
+          {
+           "id": "qgpNG",
+           "type": "ref",
+           "ref": "N4ul60",
+           "name": "Slide 1 — Yerba Madre",
+           "x": 0,
+           "y": 0,
+           "width": 308,
+           "height": 173,
+           "descendants": {
+            "RGfWE": {
+             "x": 16,
+             "y": 16,
+             "fontSize": 28,
+             "letterSpacing": -1.26
+            }
+           }
+          },
+          {
+           "id": "KEAM6",
+           "type": "ref",
+           "ref": "N4ul60",
+           "name": "Slide 2 — UPDATE",
+           "x": 324,
+           "y": 0,
+           "width": 308,
+           "height": 173,
+           "fill": [
+            "$grey-media",
+            {
+             "type": "image",
+             "enabled": true,
+             "url": "images/pulse-bee/update.jpg",
+             "mode": "cover"
+            }
+           ],
+           "descendants": {
+            "RGfWE": {
+             "x": 16,
+             "y": 16,
+             "fontSize": 28,
+             "letterSpacing": -1.26,
+             "content": "UPDATE",
+             "fill": "$ink"
+            }
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "p2HIg",
+       "name": "Meta",
+       "width": 308,
+       "padding": [
+        "$space-4",
+        0,
+        0,
+        0
+       ],
+       "justifyContent": "space_between",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "tz2A8",
+         "name": "Subtitle (truncated)",
+         "fill": "$ink",
+         "content": "Collaboration at Cornell Un…",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-body",
+         "fontWeight": "normal"
+        },
+        {
+         "id": "eChiI",
+         "type": "ref",
+         "ref": "XHmYw",
+         "name": "View drop"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "UcMdT",
+     "name": "Questions (ink)",
+     "width": "fill_container",
+     "layout": "vertical",
+     "alignItems": "center",
+     "fill": "$surface",
+     "padding": [
+      "$section-y",
+      "$side",
+      "$section-y",
+      "$side"
+     ],
+     "children": [
+      {
+       "type": "frame",
+       "id": "HY3Sw",
+       "name": "FAQ",
+       "width": "fill_container",
+       "layout": "vertical",
+       "gap": "$space-5",
+       "children": [
+        {
+         "type": "text",
+         "id": "ltgsC",
+         "name": "Title",
+         "fill": "$on-surface",
+         "content": "Questions",
+         "fontFamily": "$font",
+         "fontSize": "$type-title-xl",
+         "fontWeight": "500",
+         "lineHeight": 0.95,
+         "letterSpacing": -2.98
+        },
+        {
+         "type": "frame",
+         "id": "YXZSZ",
+         "name": "List",
+         "width": "fill_container",
+         "layout": "vertical",
+         "children": [
+          {
+           "type": "ref",
+           "id": "xka3v",
+           "ref": "FaqOp",
+           "name": "Q1 (open)",
+           "width": "fill_container",
+           "descendants": {
+            "FaqOpq": {
+             "content": "Who can apply?"
+            },
+            "FaqOpa": {
+             "content": "Student organizations with a campus .edu email you can verify and the organization’s Instagram Business or Creator account.",
+             "width": "fill_container"
+            }
+           }
+          },
+          {
+           "type": "ref",
+           "id": "Y62RE",
+           "ref": "FaqCl",
+           "name": "Q2",
+           "width": "fill_container",
+           "descendants": {
+            "FaqClq": {
+             "content": "Can we use a personal Instagram account?"
+            }
+           }
+          },
+          {
+           "type": "ref",
+           "id": "UD8Iq",
+           "ref": "FaqCl",
+           "name": "Q3",
+           "width": "fill_container",
+           "descendants": {
+            "FaqClq": {
+             "content": "When do we connect Instagram?"
+            }
+           }
+          },
+          {
+           "type": "ref",
+           "id": "bFWJw",
+           "ref": "FaqCl",
+           "name": "Q4",
+           "width": "fill_container",
+           "descendants": {
+            "FaqClq": {
+             "content": "We didn’t get the verification email."
+            }
+           }
+          },
+          {
+           "type": "ref",
+           "id": "GlUQn",
+           "ref": "FaqCl",
+           "name": "Q5",
+           "width": "fill_container",
+           "descendants": {
+            "FaqClq": {
+             "content": "How do we log in later?"
+            }
+           }
+          },
+          {
+           "type": "ref",
+           "id": "tSxbq",
+           "ref": "FaqCl",
+           "name": "Q6",
+           "width": "fill_container",
+           "descendants": {
+            "FaqClq": {
+             "content": "When can we apply to a drop?"
+            }
+           }
+          },
+          {
+           "type": "ref",
+           "id": "ExyFz",
+           "ref": "FaqCl",
+           "name": "Q7",
+           "width": "fill_container",
+           "descendants": {
+            "FaqClq": {
+             "content": "How do we hear back on a drop?"
+            }
+           }
+          },
+          {
+           "type": "ref",
+           "id": "zeFW5",
+           "ref": "FaqCl",
+           "name": "Q8",
+           "width": "fill_container",
+           "descendants": {
+            "FaqClq": {
+             "content": "Where do products ship?"
+            }
+           }
+          },
+          {
+           "type": "frame",
+           "id": "r48MG",
+           "name": "Hairline",
+           "width": "fill_container",
+           "height": 1,
+           "fill": "$hairline"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "theme": {
+      "surface": "ink"
+     }
+    },
+    {
+     "type": "frame",
+     "id": "VQxca",
+     "name": "Join",
+     "width": "fill_container",
+     "fill": "$paper",
+     "layout": "vertical",
+     "children": [
+      {
+       "type": "frame",
+       "id": "ceUuF",
+       "name": "Half — For organizations",
+       "width": "fill_container",
+       "height": 383,
+       "layout": "vertical",
+       "padding": [
+        "$space-8",
+        "$space-5",
+        "$space-7",
+        "$space-5"
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "PWVbR",
+         "name": "Kicker",
+         "fill": "$ink-btn",
+         "content": "For organizations",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-label",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "W8SD7",
+         "name": "Gap",
+         "width": 10,
+         "height": 28
+        },
+        {
+         "type": "text",
+         "id": "HsLWJ",
+         "name": "Title",
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width-height",
+         "width": "fill_container",
+         "height": 76,
+         "content": "Apply with your\ncampus .edu.",
+         "lineHeight": 1.02,
+         "fontFamily": "$font",
+         "fontSize": "$type-join",
+         "fontWeight": "500",
+         "letterSpacing": -1.58
+        },
+        {
+         "type": "frame",
+         "id": "RDlUB",
+         "name": "Gap",
+         "width": 10,
+         "height": 20
+        },
+        {
+         "type": "text",
+         "id": "s1mFU",
+         "name": "Support",
+         "opacity": 0.64,
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width-height",
+         "width": 300,
+         "height": 49,
+         "content": "You apply on the website first.",
+         "lineHeight": 1.45,
+         "fontFamily": "$font",
+         "fontSize": "$type-body-lg",
+         "fontWeight": "normal"
+        },
+        {
+         "id": "MRp5h",
+         "type": "ref",
+         "ref": "XHmYw",
+         "name": "Pill",
+         "height": 44,
+         "padding": [
+          0,
+          18
+         ],
+         "descendants": {
+          "o48sD": {
+           "content": "Apply as an organization",
+           "fontSize": 15
+          },
+          "ARbUw": {
+           "enabled": true
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "vqFeh",
+         "name": "Gap",
+         "width": 10,
+         "height": 16
+        },
+        {
+         "type": "text",
+         "id": "VPKwD",
+         "name": "Quiet link",
+         "opacity": 0.72,
+         "fill": "$ink-btn",
+         "content": "Already connected? Log in",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-small",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "xjaf6",
+       "name": "Half — For brands",
+       "width": "fill_container",
+       "height": 384,
+       "layout": "vertical",
+       "padding": [
+        "$space-8",
+        "$space-5",
+        "$space-7",
+        "$space-5"
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "yMplR",
+         "name": "Kicker",
+         "fill": "$ink-btn",
+         "content": "For brands",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-label",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "DAHSt",
+         "name": "Gap",
+         "width": 10,
+         "height": 28
+        },
+        {
+         "type": "text",
+         "id": "iXrpR",
+         "name": "Title",
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width-height",
+         "width": "fill_container",
+         "height": 76,
+         "content": "Request a campaign.",
+         "lineHeight": 1.02,
+         "fontFamily": "$font",
+         "fontSize": "$type-join",
+         "fontWeight": "500",
+         "letterSpacing": -1.58
+        },
+        {
+         "type": "frame",
+         "id": "ZhDQr",
+         "name": "Gap",
+         "width": 10,
+         "height": 20
+        },
+        {
+         "type": "text",
+         "id": "MRtZp",
+         "name": "Support",
+         "opacity": 0.64,
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width",
+         "width": 333,
+         "content": "You request a call. Buzz mints and publishes the drop.",
+         "lineHeight": 1.45,
+         "fontFamily": "$font",
+         "fontSize": "$type-body-lg",
+         "fontWeight": "normal"
+        },
+        {
+         "id": "LlqLM",
+         "type": "ref",
+         "ref": "XHmYw",
+         "name": "Pill",
+         "height": 44,
+         "padding": [
+          0,
+          18
+         ],
+         "descendants": {
+          "o48sD": {
+           "content": "See Buzz for brands",
+           "fontSize": 15
+          },
+          "ARbUw": {
+           "enabled": true
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "wKygp",
+         "name": "Gap",
+         "width": 10,
+         "height": 16
+        }
+       ],
+       "stroke": "$ink-16",
+       "strokeWidth": {
+        "top": 1
+       }
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "FZqAM",
+     "name": "Footer",
+     "width": "fill_container",
+     "height": 957,
+     "fill": "$ink",
+     "layout": "vertical",
+     "padding": [
+      126,
+      "$space-4",
+      "$space-8",
+      "$space-4"
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "vMiF9",
+       "name": "Display",
+       "fill": "$paper",
+       "content": "Want to join?",
+       "lineHeight": 1,
+       "fontFamily": "$font",
+       "fontSize": "$type-display",
+       "fontWeight": "500",
+       "letterSpacing": -1.92
+      },
+      {
+       "type": "frame",
+       "id": "DNQY3",
+       "name": "Actions",
+       "layout": "vertical",
+       "gap": "$space-3",
+       "padding": [
+        "$space-6",
+        0
+       ],
+       "children": [
+        {
+         "type": "frame",
+         "id": "HNCWB",
+         "name": "Ghost pill",
+         "height": 44,
+         "cornerRadius": "$radius-pill",
+         "stroke": "$paper",
+         "strokeWidth": 1,
+         "strokeAlignment": "inner",
+         "padding": [
+          0,
+          21
+         ],
+         "alignItems": "center",
+         "children": [
+          {
+           "type": "text",
+           "id": "hp6E2",
+           "name": "Label",
+           "fill": "$paper",
+           "content": "Join as a student organization",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "type": "text",
+         "id": "YwlWT",
+         "name": "Text link",
+         "fill": "$paper",
+         "content": "Apply as a brand",
+         "lineHeight": 1.5,
+         "fontFamily": "$font",
+         "fontSize": "$type-body",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "text",
+       "id": "ZwTnA",
+       "name": "Email",
+       "fill": "$paper",
+       "content": "hello@bringthebuzzover.com",
+       "lineHeight": 1.05,
+       "fontFamily": "$font",
+       "fontSize": "$type-title-lg",
+       "fontWeight": "500",
+       "letterSpacing": -1.08
+      },
+      {
+       "type": "frame",
+       "id": "GpKV8",
+       "name": "Gap",
+       "width": 10,
+       "height": 64
+      },
+      {
+       "type": "frame",
+       "id": "e3I8k",
+       "name": "Columns (2×2)",
+       "width": "fill_container",
+       "layout": "vertical",
+       "children": [
+        {
+         "type": "frame",
+         "id": "ZpNoT",
+         "name": "Row 1",
+         "width": "fill_container",
+         "height": 157,
+         "gap": "$space-4",
+         "children": [
+          {
+           "id": "gCGQE",
+           "type": "ref",
+           "ref": "RArr7",
+           "name": "Col Organizations",
+           "width": "fill_container",
+           "descendants": {
+            "zEXvC": {
+             "content": "Organizations"
+            },
+            "r1ani": {
+             "content": "How it works"
+            },
+            "YmYei": {
+             "content": "Apply"
+            },
+            "snibS": {
+             "content": "Login"
+            },
+            "m5oETK": {
+             "enabled": false
+            }
+           }
+          },
+          {
+           "id": "cPSi7",
+           "type": "ref",
+           "ref": "RArr7",
+           "name": "Col Brands",
+           "width": "fill_container",
+           "descendants": {
+            "zEXvC": {
+             "content": "Brands"
+            },
+            "r1ani": {
+             "content": "How it works"
+            },
+            "YmYei": {
+             "content": "Apply"
+            },
+            "snibS": {
+             "content": "Login"
+            },
+            "m5oETK": {
+             "enabled": false
+            }
+           }
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "f86cz",
+         "name": "Row 2",
+         "width": "fill_container",
+         "height": 157,
+         "gap": "$space-4",
+         "children": [
+          {
+           "id": "EacZh",
+           "type": "ref",
+           "ref": "RArr7",
+           "name": "Col Social",
+           "width": "fill_container",
+           "descendants": {
+            "zEXvC": {
+             "content": "Social"
+            },
+            "r1ani": {
+             "content": "Instagram"
+            },
+            "YmYei": {
+             "content": "LinkedIn"
+            },
+            "snibS": {
+             "content": "Email"
+            },
+            "m5oETK": {
+             "enabled": false
+            }
+           }
+          },
+          {
+           "id": "hTzHe",
+           "type": "ref",
+           "ref": "RArr7",
+           "name": "Col Legal",
+           "width": "fill_container",
+           "descendants": {
+            "zEXvC": {
+             "content": "Legal"
+            },
+            "r1ani": {
+             "content": "Privacy"
+            },
+            "YmYei": {
+             "content": "Terms"
+            },
+            "snibS": {
+             "content": "Data deletion"
+            },
+            "m5oETK": {
+             "enabled": true
+            },
+            "rrfzP": {
+             "content": "Current site"
+            }
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "Xb8cN",
+       "name": "Spacer",
+       "width": "fill_container",
+       "height": "fill_container"
+      },
+      {
+       "type": "frame",
+       "id": "QTQyj",
+       "name": "Meta",
+       "width": "fill_container",
+       "layout": "vertical",
+       "gap": "$space-4",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "frame",
+         "id": "i1ETp",
+         "name": "Bee",
+         "width": 28,
+         "height": 28,
+         "fill": {
+          "type": "image",
+          "enabled": true,
+          "url": "images/pulse-bee/bee.png",
+          "mode": "contain"
+         }
+        },
+        {
+         "type": "text",
+         "id": "krMHD",
+         "name": "Tagline",
+         "fill": "$paper-60",
+         "textGrowth": "fixed-width",
+         "width": "fill_container",
+         "content": "Connecting brands with campus communities for authentic college marketing, at scale.",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "text",
+         "id": "vFaCE",
+         "name": "Year",
+         "fill": "$paper-60",
+         "content": "2026",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "c5KFc",
+     "type": "ref",
+     "ref": "YSw6B",
+     "name": "Nav",
+     "layoutPosition": "absolute",
+     "x": 8,
+     "y": 8
+    }
+   ],
+   "theme": {
+    "device": "mobile"
+   }
+  }
+ ],
+ "variables": {
+  "ink": {
+   "type": "color",
+   "value": "#0b0b0b"
+  },
+  "ink-raised": {
+   "type": "color",
+   "value": "#121212"
+  },
+  "ink-pop": {
+   "type": "color",
+   "value": "#161616"
+  },
+  "ink-btn": {
+   "type": "color",
+   "value": "#111111"
+  },
+  "paper": {
+   "type": "color",
+   "value": "#f0f0f0"
+  },
+  "white": {
+   "type": "color",
+   "value": "#ffffff"
+  },
+  "grey-media": {
+   "type": "color",
+   "value": "#dddddd"
+  },
+  "yellow": {
+   "type": "color",
+   "value": "#f6d32a"
+  },
+  "yellow-hover": {
+   "type": "color",
+   "value": "#e0be16"
+  },
+  "yellow-faded": {
+   "type": "color",
+   "value": "#f6d32a24"
+  },
+  "ink-64": {
+   "type": "color",
+   "value": "#0b0b0ba3"
+  },
+  "ink-30": {
+   "type": "color",
+   "value": "#0b0b0b4d"
+  },
+  "ink-16": {
+   "type": "color",
+   "value": "#11111129"
+  },
+  "ink-08": {
+   "type": "color",
+   "value": "#0b0b0b14"
+  },
+  "paper-60": {
+   "type": "color",
+   "value": "#f0f0f099"
+  },
+  "paper-52": {
+   "type": "color",
+   "value": "#f0f0f085"
+  },
+  "paper-30": {
+   "type": "color",
+   "value": "#f0f0f04d"
+  },
+  "paper-09": {
+   "type": "color",
+   "value": "#f0f0f017"
+  },
+  "paper-08": {
+   "type": "color",
+   "value": "#f0f0f014"
+  },
+  "paper-04": {
+   "type": "color",
+   "value": "#f0f0f00a"
+  },
+  "success": {
+   "type": "color",
+   "value": "#166534"
+  },
+  "success-wash": {
+   "type": "color",
+   "value": "#f0fdf4"
+  },
+  "warn": {
+   "type": "color",
+   "value": "#b45309"
+  },
+  "warn-wash": {
+   "type": "color",
+   "value": "#fffbeb"
+  },
+  "danger": {
+   "type": "color",
+   "value": "#b91c1c"
+  },
+  "danger-wash": {
+   "type": "color",
+   "value": "#fef2f2"
+  },
+  "surface": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#f0f0f0",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#0b0b0b",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "on-surface": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#0b0b0b",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#f0f0f0",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "on-surface-muted": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#0b0b0ba3",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#f0f0f099",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "on-surface-quiet": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#0b0b0b4d",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#f0f0f04d",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "hairline": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#11111129",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#f0f0f017",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "card-surface": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#ffffff",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#121212",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "pill-ghost-fill": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#0b0b0b14",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#f0f0f014",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "space-1": {
+   "type": "number",
+   "value": 4
+  },
+  "space-2": {
+   "type": "number",
+   "value": 8
+  },
+  "space-3": {
+   "type": "number",
+   "value": 12
+  },
+  "space-4": {
+   "type": "number",
+   "value": 16
+  },
+  "space-5": {
+   "type": "number",
+   "value": 24
+  },
+  "space-6": {
+   "type": "number",
+   "value": 32
+  },
+  "space-7": {
+   "type": "number",
+   "value": 48
+  },
+  "space-8": {
+   "type": "number",
+   "value": 64
+  },
+  "space-9": {
+   "type": "number",
+   "value": 96
+  },
+  "radius-control": {
+   "type": "number",
+   "value": 8
+  },
+  "radius-card": {
+   "type": "number",
+   "value": 8
+  },
+  "radius-field": {
+   "type": "number",
+   "value": 10
+  },
+  "radius-board": {
+   "type": "number",
+   "value": 16
+  },
+  "radius-phone": {
+   "type": "number",
+   "value": 32
+  },
+  "radius-pill": {
+   "type": "number",
+   "value": 999
+  },
+  "side": {
+   "type": "number",
+   "value": [
+    {
+     "value": 48,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 16,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-display": {
+   "type": "number",
+   "value": [
+    {
+     "value": 115.2,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 48,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-title-xl": {
+   "type": "number",
+   "value": [
+    {
+     "value": 66.24,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 38.4,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-statement": {
+   "type": "number",
+   "value": [
+    {
+     "value": 54,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 36,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-h2": {
+   "type": "number",
+   "value": [
+    {
+     "value": 43.2,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 32,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-h3": {
+   "type": "number",
+   "value": [
+    {
+     "value": 20,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 20,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-body-lg": {
+   "type": "number",
+   "value": [
+    {
+     "value": 17,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 17,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-body": {
+   "type": "number",
+   "value": [
+    {
+     "value": 16,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 16,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-small": {
+   "type": "number",
+   "value": [
+    {
+     "value": 14,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 14,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-label": {
+   "type": "number",
+   "value": [
+    {
+     "value": 13,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 13,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-micro": {
+   "type": "number",
+   "value": [
+    {
+     "value": 12,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 12,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-tiny": {
+   "type": "number",
+   "value": [
+    {
+     "value": 11,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 11,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "section-y": {
+   "type": "number",
+   "value": [
+    {
+     "value": 108,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 68,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-hero": {
+   "type": "number",
+   "value": [
+    {
+     "value": 63.36,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 32.8,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-join": {
+   "type": "number",
+   "value": [
+    {
+     "value": 51.84,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 35.1,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-title-lg": {
+   "type": "number",
+   "value": [
+    {
+     "value": 56,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 21.6,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-h4": {
+   "type": "number",
+   "value": [
+    {
+     "value": 18.72,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 17,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "font": {
+   "type": "string",
+   "value": "Switzer"
+  }
+ },
+ "themes": {
+  "surface": [
+   "paper",
+   "ink"
+  ],
+  "device": [
+   "desktop",
+   "mobile"
+  ]
+ },
+ "fileToken": "b7ccb089-beb4-445c-9c21-87ee6532791c",
+ "fonts": [
+  {
+   "name": "Switzer",
+   "url": "fonts/switzer-400.woff2"
+  },
+  {
+   "name": "Switzer",
+   "url": "fonts/switzer-500.woff2",
+   "weight": 500
+  }
+ ]
+}

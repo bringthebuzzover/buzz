@@ -23,8 +23,8 @@ export type FeaturedCollab = {
 export type CollegeMarqueeItem = {
   name: string;
   domain: string;
-  /** Local asset; when absent, Clearbit / icon fallback is used in the UI */
-  logoSrc?: string;
+  /** Local logo (bundled asset or a file under public/colleges). */
+  logoSrc: string;
   /** Campus latitude (Wikipedia article coordinates). */
   lat: number;
   /** Campus longitude (Wikipedia article coordinates). */

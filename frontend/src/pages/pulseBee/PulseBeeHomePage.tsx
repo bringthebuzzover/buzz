@@ -17,13 +17,13 @@ import { siteIdentity } from "../../data/siteIdentity";
 import PulseBeeCampusMap from "../../components/pulseBee/PulseBeeCampusMap";
 import { usePrefersReducedMotion } from "../../components/pulseBee/usePrefersReducedMotion";
 import { publicLogo } from "../../utils/publicLogo";
-import type { CollegeMarqueeItem, FeaturedCollab } from "../../types/campaign";
+import type { FeaturedCollab } from "../../types/campaign";
 import { useTitleTone } from "./useTitleTone";
 import type { FrameRegion } from "./titleTone";
 
 const BEE = publicLogo("bee.svg");
 
-const STEPS = [
+export const STEPS = [
   {
     index: 0,
     side: "left",
@@ -46,25 +46,15 @@ const STEPS = [
   },
 ] as const;
 
-/** Local mark first, otherwise Clearbit by domain. icon.horse is the onError fallback. */
-function logoSrcFor(item: CollegeMarqueeItem): string {
-  return item.logoSrc ?? `https://logo.clearbit.com/${item.domain}`;
-}
-
-function LogoRow({ hidden }: { hidden?: boolean }) {
+export function LogoRow({ hidden }: { hidden?: boolean }) {
   return (
     <ul className="pulse2-marquee__group" aria-hidden={hidden || undefined}>
       {COLLEGES.map((college) => (
         <li key={college.domain} className="pulse2-logo-item">
           <img
             className="pulse2-logo"
-            src={logoSrcFor(college)}
+            src={college.logoSrc}
             alt={hidden ? "" : college.name}
-            onError={(event) => {
-              const img = event.currentTarget;
-              const fallback = `https://icon.horse/icon/${college.domain}`;
-              if (img.src !== fallback) img.src = fallback;
-            }}
           />
         </li>
       ))}
@@ -160,7 +150,7 @@ function Chevron({ dir }: { dir: "left" | "right" }) {
   );
 }
 
-function DropsCarousel() {
+export function DropsCarousel() {
   const reduced = usePrefersReducedMotion();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; left: number; moved: boolean; active: boolean } | null>(null);
@@ -409,7 +399,7 @@ function DropScreen() {
   );
 }
 
-const SCREENS = [ApplyScreen, InstagramScreen, ConnectScreen, DropScreen];
+export const SCREENS = [ApplyScreen, InstagramScreen, ConnectScreen, DropScreen];
 
 export default function PulseBeeHomePage() {
   const reduced = usePrefersReducedMotion();
