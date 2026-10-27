@@ -116,7 +116,7 @@ Company mail is Google Workspace Business Starter on the apex. Resend on `send.`
 | **Apex DNS**           | Cloudflare. Probed 2026-10-26 with `dig @1.1.1.1`: MX `1 smtp.google.com.`; SPF `v=spf1 include:_spf.google.com ~all`; `google-site-verification` TXT present; DKIM `google._domainkey` present; DMARC `v=DMARC1; p=none; rua=mailto:melissa@bringthebuzzover.com`. |
 | **Transactional From** | `Buzz <hello@bringthebuzzover.com>` via Resend (`send.` SPF/MX + `resend._domainkey`). Every app send sets Reply-To to `contactEmail`. Do not edit those `send.` records when changing the human mailbox.                                                           |
 | **`hello@`**           | Alias on `melissa@` (inbox proof 2026-10-26). Mail to `hello@` lands in that Gmail inbox. Resend still sends From `hello@` on `send.`. See [`gaps/archive/ops.brand-mailbox.md`](gaps/archive/ops.brand-mailbox.md).                                                |
-| **Super Admin**        | Melissa, sole Workspace user `melissa@bringthebuzzover.com`. Billing profile was not opened.                                                                                                                                                                        |
+| **Super Admin**        | Melissa. `melissa@bringthebuzzover.com` is the only Workspace email, and Google bills that address. `hello@` is an alias on it, not a second email.                                                                                                                 |
 
 Meta URL paste after brand cutover: **done** — `gaps/archive/deploy.meta-brand-url-cutover.md`.
 
@@ -160,7 +160,7 @@ railway run -s api -e production -- poetry run python scripts/cleanup_request_re
 railway run -s api -e production -- poetry run python scripts/cleanup_request_received_stubs.py --confirm
 ```
 
-- [ ] Ran `--confirm` on production (date: \_\_\_\_). Production HTTP `POST /api/admin/tools/cleanup-request-received` stays 403.
+- [ ] Ran `--confirm` on production (date: `____`). Production HTTP `POST /api/admin/tools/cleanup-request-received` stays 403.
 
 ---
 
