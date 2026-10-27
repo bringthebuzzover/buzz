@@ -34,9 +34,9 @@ repro: |
   "Instagram long-lived token exchange failed."
   API log 2026-09-17 20:32–20:34Z:
   status=400 type=IGApiException message=Unsupported request - method type: get code=100
-  Code: INSTAGRAM_SCOPES in backend/app/config.py. Git history on main has
-  never contained instagram_business_manage_messages, manage_comments, or
-  content_publish.
+  Code requests only instagram_business_basic and
+  instagram_business_manage_insights (INSTAGRAM_SCOPES in
+  backend/app/config.py).
 fix_when: |
   Advanced Access is approved for instagram_business_basic and
   instagram_business_manage_insights, and the app is in Live mode. A
@@ -53,9 +53,7 @@ fix_when: |
   Instagram Reach, and the feed/reel metrics in instagram.py. Reviewers use
   the test-credentials field (accepted tester + a Buzz test org), not their
   own account.
-  instagram_business_manage_messages, manage_comments, and content_publish
-  are removed, or Lawrence keeps one and the submission says so while Buzz
-  still does not call it.
+  All other permissions and features were removed on 2026-10-27 (reversible).
   Business Verification is already Verified (2026-10-26) and is not the
   remaining gate. Do not archive on submit alone.
   Do not commit tester passwords, access tokens, or one-time connect links.
@@ -109,8 +107,8 @@ archived `ops.ig-business-discovery-unset`) do not match this check.
 | Deauthorize callback | `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize` |
 
 Advanced settings shows a notice recommending a **Data Deletion Callback
-URL**. Only the instructions URL is set. Adding the callback is optional
-on the checklist below (Lawrence).
+URL**. Only the instructions URL is set. Lawrence skipped the callback on
+2026-10-27 (checklist 2b). It is not required.
 
 ### Instagram Testers
 
@@ -120,34 +118,22 @@ Development on Standard Access. A pending invite fails the same way as a
 non-tester: Graph 100 on the long-lived exchange (below). Handles are not
 listed here.
 
-### Permissions (Standard Access, last 30 days)
+### Permissions
 
-| Permission | State | API calls | App Review |
-| --- | --- | ---: | --- |
-| `instagram_business_basic` | Active | 946 | Rejected |
-| `instagram_business_manage_insights` | Active | 285 | Rejected |
-| `instagram_business_manage_messages` | Active | 285 | Not requested |
-| `manage_comments` | Ready to use | 0 | — |
-| `content_publish` | Ready to use | 0 | — |
+Rechecked **2026-10-27**. Both are Active and **App Review rejected**, pending resubmission. Last 30 days: `instagram_business_basic` 968 calls, `instagram_business_manage_insights` 291.
 
-Buzz requests only the first two. `INSTAGRAM_SCOPES` in
-`backend/app/config.py` is
-`instagram_business_basic,instagram_business_manage_insights`. That default
-was set in `0e46e63` and has not changed. Git history on `main` has no
-`instagram_business_manage_messages`, `manage_comments`, or
-`content_publish`.
+Requested via `INSTAGRAM_SCOPES` in `backend/app/config.py`.
 
-`instagram_business_manage_messages` was auto-added by Meta with the
-Instagram use case
-([create a Meta app with Instagram](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/create-a-meta-app-with-instagram/)).
-Its 285 calls equal the insights count, so Meta may be attributing insights
-calls to the messaging permission as well. That is an inference, not
-confirmed. [PR #8](https://github.com/bringthebuzzover/buzz/pull/8) is merged
-(`12f8850`). It records the `permissions` field Meta returns on each login
-so the next real grant is visible without guessing.
+| Permission | Why we need it | Where in code |
+| --- | --- | --- |
+| `instagram_business_basic` | Identify the connected org account (`id` or `user_id`, `username`, `account_type`, `followers_count`). List its media (`id`, `timestamp`). For linked posts, read `like_count`, `comments_count`, `caption`, `media_type`, `media_product_type`, `permalink`, `thumbnail_url`, `media_url`, `timestamp`. Shown on the org profile and campaign. | `fetch_profile`, `fetch_user_media`, `fetch_media` in `backend/app/services/instagram.py` |
+| `instagram_business_manage_insights` | Post insights for linked posts. Feed: `reach`, `views`, `saved`, `shares`, `total_interactions`, `profile_visits`, `profile_activity`, `follows`. Reels: `reach`, `views`, `saved`, `shares`, `total_interactions`, `ig_reels_avg_watch_time`, `ig_reels_video_view_total_time`, `reels_skip_rate`. Shown as Instagram Reach on the org campaign and the brand view. | `_FEED_INSIGHT_METRICS` and `_REEL_INSIGHT_METRICS` in `instagram.py` (`fetch_media_insights`) |
 
-Removing a Standard Access permission is reversible
-([access levels](https://developers.facebook.com/docs/graph-api/overview/access-levels/)).
+`public_profile` is a Meta default. It can't be removed, has 0 calls, and is not requested.
+
+All other permissions and features were removed on 2026-10-27 (reversible).
+
+There are no `graph.facebook.com` calls.
 
 ### Submission
 
@@ -213,20 +199,21 @@ The written answers contradict the product:
 
 ## Resubmission checklist
 
-Do the steps in order. Recording and form text depend on the dashboard
-cleanup and on the Facebook Login decision. Do not put tester passwords,
-session cookies, or one-time connect links in this repo.
+Do the steps in order. Recording and form text depended on the dashboard
+cleanup and the Facebook Login decision; both are done (checklist 1c and
+2a). Do not put tester passwords, session cookies, or one-time connect
+links in this repo.
 
 | # | Work | Owner | Status |
 | --- | --- | --- | --- |
 | 1a | Rename **Est. Reach** → **Instagram Reach** on the org campaign | Engineering | **Done.** [PR #7](https://github.com/bringthebuzzover/buzz/pull/7) merged. Record from a www build that serves this label. |
 | 1b | Pin Graph `v26.0` on Instagram reads and store granted permissions per login | Engineering | **Done.** [PR #8](https://github.com/bringthebuzzover/buzz/pull/8) merged as `12f8850`. |
 | 1c | Decide: remove the unused Facebook Login Business Discovery path, or disclose it on the form | Lawrence + engineering | **Done.** Path removed in [`8266712`](https://github.com/bringthebuzzover/buzz/pull/15). Apply is a typed handle, stored unconfirmed. |
-| 2a | Remove auto-added `instagram_business_manage_messages`, `manage_comments`, and `content_publish` | Lawrence | **Not started.** Needs Lawrence’s approval. Reversible per the access-levels doc above. |
-| 2b | Consider a Data Deletion Callback URL (instructions URL already set) | Lawrence | **Not started.** |
+| 2a | Remove unused permissions and features | Lawrence | **Done (2026-10-27).** Only the two permissions above remain. |
+| 2b | Consider a Data Deletion Callback URL (instructions URL already set) | Lawrence | **Skipped (Lawrence, 2026-10-27).** Data deletion instructions URL is set; callback not required. |
 | 3 | Put an **accepted** tester’s Instagram credentials and a Buzz test org in the test-credentials field. Do not tell reviewers to use their own account. | Lawrence | **Not started.** Credentials stay in the Meta form, not in git. |
-| 4 | Record two captioned videos (English). Each file contains its own login, grant, and that permission’s data. See the recording bar below. | Lawrence | **Not started.** After 1a is on www, after 2a (so consent lists only the two permissions), and after 1c (so the script matches the Facebook Login answer). |
-| 5 | Rewrite each permission’s usage description. Name the fields and metrics. Say “comment counts,” not that Buzz has no access to comments. Say the messaging permission was auto-added and removed (after 2a). | Engineering drafts; Lawrence confirms | **Not started.** |
+| 4 | Record two captioned videos (English). Each file contains its own login, grant, and that permission’s data. See the recording bar below. | Lawrence | **Not started.** Confirm Instagram Reach shows on www while recording. 1c and 2a are done. |
+| 5 | Rewrite each permission’s usage description. Name the fields and metrics. Say “comment counts,” not that Buzz has no access to comments. Say only these two permissions are requested. | Engineering drafts; Lawrence confirms | **Not started.** |
 | 6 | Submit | Lawrence | **Not started.** |
 
 **Recording bar.** Use an accepted tester whose Instagram account is not
@@ -263,10 +250,8 @@ After Lawrence submits, re-check App Review status before claiming §F done.
 
 ## Docs left on the old story
 
-Not edited here. They still disagree with this file:
+Not edited here. It still disagrees with this file:
 
-- [`DEPLOYMENT.md`](../DEPLOYMENT.md) launch table still says App Review +
-  Business Verification are “Not started.”
 - [`ideas/org-bind-at-signup.md`](../ideas/org-bind-at-signup.md) still cites
   `business_verification_passes: false` (2026-09-14). The link to this gap
   is updated; that 2026-09-14 sentence is not. Ideas are not SOT.
@@ -360,9 +345,8 @@ Buzz connects campus organizations to brand campaigns. Each organization logs in
 
 **Resubmission change.** Replace “reach and related insights” with the feed
 and reel metric names in the table above, and say the org campaign label is
-**Instagram Reach**. Keep likes/comments as counts. State that
-`instagram_business_manage_messages` was auto-added and then removed (after
-checklist 2a). Do not imply Buzz reads message content.
+**Instagram Reach**. Keep likes/comments as counts. Say only these two
+permissions are requested.
 
 ### 5. `instagram_business_manage_insights` — video
 
@@ -552,8 +536,8 @@ the screencast: an accepted tester, **Connect with Instagram** (not
 Continue with Instagram on `/login`), then the profile and the campaign.
 Delete “use your own account,” the one-time connect link, and “we will add
 you as a tester.” The test-credentials field holds the accepted tester.
-Say comment **counts**, not “no access to comments.” Mention that the
-messaging permission was auto-added and removed (after checklist 2a).
+Say comment **counts**, not “no access to comments.” Say only these two
+permissions are requested.
 The Facebook Login sentence is accurate. Checklist 1c removed the unused
 Business Discovery path, so “Buzz does not use Facebook Login” matches the
 code. Org sign-in is Instagram Login only.
