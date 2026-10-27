@@ -59,6 +59,7 @@ import InspoHomePage from "./pages/inspo/InspoHomePage";
 import InspoDropDetailPage from "./pages/inspo/InspoDropDetailPage";
 import PulseHomePage from "./pages/pulse/PulseHomePage";
 import PulseTwoHomePage from "./pages/pulse2/PulseTwoHomePage";
+import LabHomePage from "./lab/LabHomePage";
 
 const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["HomePage", HomePage],
@@ -100,6 +101,7 @@ const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["InspoDropDetailPage", InspoDropDetailPage],
   ["PulseHomePage", PulseHomePage],
   ["PulseTwoHomePage", PulseTwoHomePage],
+  ["LabHomePage", LabHomePage],
 ];
 
 describe("page render smoke (API tree)", () => {

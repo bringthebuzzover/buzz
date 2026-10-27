@@ -21,6 +21,12 @@ module.exports = {
       webpackConfig.resolve.plugins = (
         webpackConfig.resolve.plugins || []
       ).filter((plugin) => plugin.constructor.name !== "ModuleScopePlugin");
+      // Lab preview only. Unset, this branch does not run and the entry stays
+      // src/index.tsx, so `npm run build` matches a build from before this file
+      // grew the branch.
+      if (process.env.VITE_LAB === "1") {
+        webpackConfig.entry = path.resolve(__dirname, "src/lab/index.tsx");
+      }
       return webpackConfig;
     },
   },

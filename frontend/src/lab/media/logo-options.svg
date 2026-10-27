@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" color="#1C1917" role="img" aria-labelledby="herald-title herald-desc">
+  <title id="herald-title">Herald</title>
+  <desc id="herald-desc">Front-facing bee. One black silhouette, wings swept up, two honey stripes.</desc>
+  <defs>
+    <clipPath id="herald-body">
+      <path d="M64 33C75 33 81 41 81 51C81 57 87 63 87 78C87 98 77 111 64 111C51 111 41 98 41 78C41 63 47 57 47 51C47 41 53 33 64 33Z"/>
+    </clipPath>
+  </defs>
+  <path fill="currentColor" d="M54 55C38 40 16 32 11 47C6 60 24 74 49 66C53 64 56 59 54 55Z"/>
+  <path fill="currentColor" d="M74 55C90 40 112 32 117 47C122 60 104 74 79 66C75 64 72 59 74 55Z"/>
+  <path fill="#1C1917" stroke="currentColor" stroke-width="3" stroke-linejoin="round" d="M64 33C75 33 81 41 81 51C81 57 87 63 87 78C87 98 77 111 64 111C51 111 41 98 41 78C41 63 47 57 47 51C47 41 53 33 64 33Z"/>
+  <g clip-path="url(#herald-body)">
+    <rect x="38" y="72" width="52" height="9" fill="#F9D940"/>
+    <rect x="38" y="90" width="52" height="9" fill="#F9D940"/>
+  </g>
+  <path d="M57 41C49 29 39 22 31 20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="29.2" cy="19.2" r="3.7" fill="currentColor"/>
+  <path d="M71 41C79 29 89 22 97 20" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="98.8" cy="19.2" r="3.7" fill="currentColor"/>
+</svg>
