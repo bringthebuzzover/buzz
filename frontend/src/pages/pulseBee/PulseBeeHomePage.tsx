@@ -23,7 +23,7 @@ import type { FrameRegion } from "./titleTone";
 
 const BEE = publicLogo("bee.svg");
 
-const STEPS = [
+export const STEPS = [
   {
     index: 0,
     side: "left",
@@ -51,7 +51,7 @@ function logoSrcFor(item: CollegeMarqueeItem): string {
   return item.logoSrc ?? `https://logo.clearbit.com/${item.domain}`;
 }
 
-function LogoRow({ hidden }: { hidden?: boolean }) {
+export function LogoRow({ hidden }: { hidden?: boolean }) {
   return (
     <ul className="pulse2-marquee__group" aria-hidden={hidden || undefined}>
       {COLLEGES.map((college) => (
@@ -160,7 +160,7 @@ function Chevron({ dir }: { dir: "left" | "right" }) {
   );
 }
 
-function DropsCarousel() {
+export function DropsCarousel() {
   const reduced = usePrefersReducedMotion();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; left: number; moved: boolean; active: boolean } | null>(null);
@@ -409,7 +409,7 @@ function DropScreen() {
   );
 }
 
-const SCREENS = [ApplyScreen, InstagramScreen, ConnectScreen, DropScreen];
+export const SCREENS = [ApplyScreen, InstagramScreen, ConnectScreen, DropScreen];
 
 export default function PulseBeeHomePage() {
   const reduced = usePrefersReducedMotion();

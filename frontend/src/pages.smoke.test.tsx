@@ -61,6 +61,8 @@ import PulseHomePage from "./pages/pulse/PulseHomePage";
 import PulseTwoHomePage from "./pages/pulse2/PulseTwoHomePage";
 import DropEditorPage from "./pages/drop-editor/DropEditorPage";
 import PulseBeeHomePage from "./pages/pulseBee/PulseBeeHomePage";
+import PulseBeeOrgsPage from "./pages/pulseBee/PulseBeeOrgsPage";
+import PulseBeeBrandsPage from "./pages/pulseBee/PulseBeeBrandsPage";
 import LabHomePage from "./lab/LabHomePage";
 
 const PAGES: ReadonlyArray<[string, ComponentType]> = [
@@ -105,6 +107,8 @@ const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["PulseTwoHomePage", PulseTwoHomePage],
   ["DropEditorPage", DropEditorPage],
   ["PulseBeeHomePage", PulseBeeHomePage],
+  ["PulseBeeOrgsPage", PulseBeeOrgsPage],
+  ["PulseBeeBrandsPage", PulseBeeBrandsPage],
   ["LabHomePage", LabHomePage],
 ];
 
