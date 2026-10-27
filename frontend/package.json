@@ -23,6 +23,7 @@
   "scripts": {
     "start": "craco start",
     "build": "craco build",
+    "build:lab": "node scripts/build-lab.mjs",
     "build:prod": "node scripts/check-deploy-env.js && npm run build",
     "start:prod": "serve -s build -l $PORT",
     "test": "craco test",
