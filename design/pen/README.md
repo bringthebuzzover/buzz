@@ -2,20 +2,20 @@
 
 Every BUZZ brainstorm design has a pen file here. All the files use one set of tokens and one component set.
 
-**/pulse-bee is the reference.** Its pen (`pulse-bee.pen`) is a faithful recreation of the live `/pulse-bee` route. The other pages were brought in line with it, including how it uses black. **`/pulse-bee` should get no React changes, or only very small ones.** The only allowed work there is swapping raw values for the shared token names. It must look exactly the same afterwards.
+**/pulse-bee is the reference.** Its pen (`pulse-bee.pen`) is a faithful recreation of the live `/pulse-bee` route. The other pages were brought in line with it, including how it uses black. **`/pulse-bee` should get no React changes, or only very small ones.** The only allowed work there is swapping raw values for the shared token names, plus the type consolidation below (1–4 px size nudges). Layout, colors and copy must stay the same.
 
 ## Files
 
 | File | What it holds |
 |---|---|
 | `buzz-design-system.pen` | All tokens and every component. A **Foundations** board covers palette, semantic paper/ink colors, black usage, type scale, spacing and radii. A **Components** board shows each component on paper and on ink. |
-| `pulse-bee.pen` | `/pulse-bee` at desktop 1440 and mobile 390, plus the four "How it works" pinned states and the hover state for "Current drops". Only refactored onto tokens: a pixel diff against the earlier pen shows no change. The one exception is the logo strip, which now uses the repo's current local logos, the same as React. |
+| `pulse-bee.pen` | `/pulse-bee` at desktop 1440 and mobile 390, plus the four "How it works" pinned states and the hover state for "Current drops". Only refactored onto tokens and the 8-step type scale. Against the original, the only changes are the 1–4 px type nudges and the logo strip, which now uses the repo's current local logos, the same as React. |
 | `pulse-bee-orgs.pen` | `/pulse-bee/orgs` at 1440 and 390, with **more black** (see the page diffs below). |
 | `pulse-bee-brands.pen` | `/pulse-bee/brands` at 1440 and 390, with **more black**. |
-| `drop-editor.pen` | `/drop-editor`: admin, brand ("Request a drop"), date-range popover open, and drop-name edit. Refactored onto the shared tokens with a pixel-identical result. |
+| `drop-editor.pen` | `/drop-editor`: admin, brand ("Request a drop"), date-range popover open, and drop-name edit. Refactored onto the shared tokens and type scale. Layout is unchanged; only the type sizes moved onto the shared steps. |
 | `renders/*.png` | Exports of every board at 1x, reduced to 256 colors to keep the repo small. |
 | `images/`, `fonts/` | The local images and Switzer 400/500 (with `Switzer-FFL.txt`) that the pens use. These are real files, not symlinks. |
-| `tools/` | The Python that tokenised and generated these files. `tokens.py` is the canonical token list. |
+| `tools/` | The Python that tokenised and generated these files. `tokens.py` is the canonical token list. `retype.py` moved the pens from the old 15-step type scale to the 8-step one. |
 
 pen.dev can't share components across files, so each page file carries its own copy of the same components with the same ids. `buzz-design-system.pen` is the master copy.
 
@@ -63,25 +63,53 @@ In React, use `[data-theme="paper"|"ink"]` on each section, which pulse-bee alre
 
 ### Type (Switzer; 500 for display text, 400 for body; theme axis `device`: desktop 1440 | mobile 390)
 
-| Token | 1440 | 390 | CSS source | Used for |
-|---|---|---|---|---|
-| type-display | 115.2 | 48 | `.pulse2-display` clamp(3rem, 8vw, 8rem), ls -0.04em | footer "Want to join?" |
-| type-title-xl | 66.24 | 38.4 | clamp(2.4rem, 4.6vw, 4.25rem), ls -0.045em | Current drops, Questions |
-| type-hero | 63.36 | 32.8 | `.pulse2-hero .pulse2-display` clamp(2.05rem, 4.4vw, 4.5rem) | hero headline |
-| type-title-lg | 56 | 21.6 | footer email, drop card brand | |
-| type-statement | 54 | 36 | `.pulse2-statement` clamp(2.25rem, 3.75vw, 3.5rem), ls -0.05em | statements, goals |
-| type-join | 51.84 | 35.1 | join title clamp(2.5rem, 3.6vw, 3.75rem) / clamp(2.15rem, 9vw, 2.75rem) | join halves |
-| type-h2 | 43.2 | 32 | clamp(2rem, 3vw, 2.75rem), ls -0.04em | section heads, College network |
-| type-h3 | 20 | 20 | 1.25rem, ls -0.01em | card titles, step captions |
-| type-h4 | 18.72 | 17 | clamp(1.0625rem, 1.3vw, 1.25rem) | FAQ questions |
-| type-body-lg | 17 | 17 | | join support |
-| type-body | 16 | 16 | | body, support lines |
-| type-small | 14 | 14 | | nav, pills, drop-editor base |
-| type-label | 13 | 13 | | kickers, small pills |
-| type-micro | 12 | 12 | `.pulse2-support` (small) | footer meta, captions |
-| type-tiny | 11 | 11 | | drop-editor micro labels |
+Eight steps. They were consolidated from 15 near-duplicate sizes; every pen uses only these.
 
-Display line-height is 1 (0.95 for title-xl). Body line-height is 1.4–1.5.
+| Token | 1440 | 390 | Weight | Suggested CSS (linear between 390 and 1440) | Used for |
+|---|---|---|---|---|---|
+| type-display | 115 | 48 | 500, ls -0.04em | clamp(3rem, 1.445rem + 6.381vw, 7.1875rem) | footer "Want to join?" |
+| type-title | 64 | 36 | 500, ls -0.045em | clamp(2.25rem, 1.6rem + 2.667vw, 4rem) | hero headline, Current drops, Questions, drop poster lockup |
+| type-statement | 54 | 32 | 500, ls -0.05em | clamp(2rem, 1.489rem + 2.095vw, 3.375rem) | statement bands, goals, join halves, drop card brand, footer email (desktop) |
+| type-h2 | 44 | 28 | 500, ls -0.04em | clamp(1.75rem, 1.379rem + 1.524vw, 2.75rem) | section heads, College network, stat values |
+| type-h3 | 20 | 20 | 500, ls -0.01em | 1.25rem | card titles, FAQ questions, step captions, phone-mock titles, footer email (mobile) |
+| type-body | 16 | 16 | 400 | 1rem | body, support lines, join support |
+| type-small | 14 | 14 | 400/500 | 0.875rem | nav links, pills, buttons, drop-editor base |
+| type-label | 12 | 12 | 400/500 | 0.75rem | kickers, small pills, footer meta, field labels, drop-editor micro labels |
+
+Display line-height is 1 (0.95 for title). Body line-height is 1.4–1.5. Letter-spacing is in em, so it scales with the size.
+
+**Old → new mapping** (desktop / mobile px; the change is new minus old)
+
+| Old token or raw size | Old 1440 / 390 | New token | Change |
+|---|---|---|---|
+| type-display | 115.2 / 48 | type-display | −0.2 / 0 |
+| type-title-xl | 66.24 / 38.4 | type-title | −2.2 / −2.4 |
+| type-hero | 63.36 / 32.8 | type-title | +0.6 / +3.2 |
+| type-title-lg | 56 / 21.6 | type-statement (desktop), type-h3 (mobile footer email) | −2 / −1.6 |
+| type-statement | 54 / 36 | type-statement | 0 / −4 |
+| type-join | 51.84 / 35.1 | type-statement | +2.2 / −3.1 |
+| type-h2 | 43.2 / 32 | type-h2 | +0.8 / −4 |
+| type-h3 | 20 / 20 | type-h3 | 0 |
+| type-h4 | 18.72 / 17 | type-h3 | +1.3 / +3 |
+| type-body-lg | 17 / 17 | type-body | −1 |
+| type-body | 16 | type-body | 0 |
+| type-small | 14 | type-small | 0 |
+| type-label | 13 | type-label | −1 |
+| type-micro | 12 | type-label | 0 |
+| type-tiny | 11 | type-label | +1 |
+| raw 15 (join pill labels, drop-editor buttons and month labels) | 15 | type-small | −1 |
+| raw 18.4 / 22 / 23.04 (hidden chip value, drop-editor section title, phone-mock titles) | | type-h3 | +1.6 / −2 / −3 |
+| raw 28 (mobile drop card brand) | – / 28 | type-h2 | 0 |
+| raw 28 (notes board heading, desktop) | 28 | type-h3 | −8 (annotation only, not a page) |
+| raw 40 (drop-editor stat value) | 40 | type-h2 | +4 |
+| raw 68 (drop-editor poster lockup) | 68 | type-title | −4 |
+| raw 30 (drop-editor small preview title) | 30 | type-h2 at mobile (28) | −2 |
+| raw 9 (calendar "TODAY") | 9 | type-label | +3 (still fits the 44 cell) |
+
+**Exceptions and why:**
+- **Footer email on mobile uses type-h3 (20), not type-statement (32).** "hello@bringthebuzzover.com" is 26 characters, so it would overflow 358 at 32. On desktop it moves from 56 to 54.
+- **The mobile scale squeezes title, statement and h2 to 36 / 32 / 28.** On mobile the old hero (32.8) was smaller than the old statement (36), so keeping their order needed a 3–4 px nudge there. The visible effect: on mobile, "Our platform makes it easy" now fits on one line instead of wrapping "easy".
+- **The hover slide in `pulse-bee.pen` (o79EN) shows the brand at 55.08.** That is type-statement × 1.02, the hover transform; it is not a step.
 
 ### Space, radius, layout
 
@@ -118,7 +146,7 @@ The ids are the same in every file.
 | Section / Head | `SecHd` | Centered `type-h2` title plus a `type-body` muted support line, 16 apart, 704 wide, 48 above the content. |
 | Card / Numbered / Photo | `CardPh` | Media 16:15 (4:3 on mobile), radius 8, grey-media under a cover image, and a yellow 32 badge with ink text 14/500 at 16,16. Title `type-h3` 24 below the media; body `type-body` muted 8 below the title. Three across with a 24 gap at 1152, stacked with a 32 gap on mobile. |
 | Card / Numbered / Mark | `CardMk` | Same as Photo, but the media is a yellow fill with the bee at 34% and the badge is ink with yellow text. |
-| FAQ / Item, FAQ / Item / Open | `FaqCl` / `FaqOp` | 1px hairline on top, then a 64 row with the question in `type-h4` 500 and a 14 plus icon (an x when open). The answer is `type-body` muted, max 540 (60ch), with 24 below. The list ends with a hairline. Desktop layout is the title column at 1fr ("Questions", `type-title-xl`) and the list at 2fr, with a 32 gap. |
+| FAQ / Item, FAQ / Item / Open | `FaqCl` / `FaqOp` | 1px hairline on top, then a 64 row with the question in `type-h3` 500 and a 14 plus icon (an x when open). The answer is `type-body` muted, max 540 (60ch), with 24 below. The list ends with a hairline. Desktop layout is the title column at 1fr ("Questions", `type-title-xl`) and the list at 2fr, with a 32 gap. |
 | DropCard | `N4ul60` | Current drops slide. |
 | FooterColumn | `RArr7` | Footer link column. |
 | LogoItem / MapPin | `lM2vX` / `QFtyV` | Marquee logo (48) and campus pin. |
@@ -131,9 +159,9 @@ Sections that are whole bands (Hero, Statement, College network, How it works, C
 
 The React work is mostly naming and themes, not layout.
 
-### /pulse-bee: no change
-- Visually it stays as it is.
-- Optional: swap the raw values in `pulseBee.css` for the shared `--buzz-*` tokens. This must look exactly the same afterwards.
+### /pulse-bee: no layout change, type sizes only
+- Move every font-size in `pulseBee.css` / `pulse2.css` onto the eight `--buzz-type-*` steps above (see the mapping). On desktop these are 0–2 px nudges. On mobile, title/statement/h2 move by up to 4 px and the footer email goes to 20.
+- Nothing else changes: colors, spacing, sections and copy stay as they are. `renders/pulse-bee-*.png` show the result.
 
 ### /pulse-bee/orgs (`renders/orgs-*.png`)
 1. Set **"Partner with brands" (`#gets`) to `data-theme="ink"`**:
@@ -156,10 +184,10 @@ The React work is mostly naming and themes, not layout.
 
 ### Shared audience CSS (`pulseBeeAudience.css`)
 - Replace the hard-coded `rgba(17,17,17,.16)` and `opacity: .64` with `hairline` and `on-surface-muted`. That way the cards and FAQ work on both themes.
-- The FAQ question size becomes `type-h4`. The value doesn't change.
+- The FAQ question size becomes `type-h3` (20, was 18.72 / 17). Join support copy becomes `type-body` (16, was 17).
 
 ### /drop-editor (`renders/drop-editor-*.png`)
-- Visually it stays as it is.
+- Layout stays as it is. Type moves onto the shared steps: base 13/12/11 labels → `type-label` 12. 15 buttons and month labels → `type-small` 14. 22 section titles → `type-h3` 20. The 40 stat → `type-h2` 44. The 68 poster lockup → `type-title` 64. The 30 preview title → 28. "TODAY" 9 → 12.
 - Rename its CSS vars to the shared tokens:
 
   | Current | New |
