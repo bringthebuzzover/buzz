@@ -148,10 +148,10 @@ Reference: [Business Login](https://developers.facebook.com/docs/instagram-platf
    - `instagram_business_manage_insights`  
    Do not add publishing, comments, or messaging scopes in code (`INSTAGRAM_SCOPES`).
 
-   **Dashboard (2026-10-26):** those two are Active (Standard Access) and were **rejected** in App Review. Meta also shows `instagram_business_manage_messages` (Active, no review requested; auto-added with the Instagram use case), plus `manage_comments` and `content_publish` (Ready to use, 0 calls). Removal is on the resubmission checklist (Lawrence). Buzz has never requested those three.
+   **Dashboard (2026-10-27):** those two are Active and **App Review rejected**, pending resubmission. All other permissions and features were removed on 2026-10-27 (reversible). `public_profile` is a Meta default. It can't be removed, has 0 calls, and is not requested. Fields the code reads: [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md).
 4. **Deauthorize callback URL:** `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize`
 5. **Data deletion instructions URL:** `https://www.bringthebuzzover.com/data-deletion`  
-   Advanced settings also recommends a **Data Deletion Callback URL**. As of 2026-10-26 only this instructions URL is set. Adding the callback is optional (living gap, Lawrence).
+   Advanced settings also recommends a **Data Deletion Callback URL**. The instructions URL is set. Lawrence skipped the callback on 2026-10-27; it is not required.
 6. **Save.** Confirm the saved redirect string with engineering (dashboard may add a trailing slash).
 7. **App settings → Basic:** Privacy + Terms → `https://www.bringthebuzzover.com/privacy` and `…/terms`.
 
@@ -301,5 +301,5 @@ Details: `DEPLOYMENT.md`.
 
 - Instagram accounts must be **Business or Creator**.
 - Redirect URI in Meta and `INSTAGRAM_REDIRECT_URI` must match character-for-character.
-- Code requests only the two listed permissions. Dashboard extras (messaging, comments, content publish) are on the resubmission gap for removal.
+- Code requests only the two listed permissions (`INSTAGRAM_SCOPES` in `backend/app/config.py`). All other permissions and features were removed on 2026-10-27 (reversible). `public_profile` is a Meta default, 0 calls, not requested. There are no `graph.facebook.com` calls.
 - Public launch still needs Advanced Access on both permissions. Business Verification is already Verified. Testers alone are the seeded pilot.
