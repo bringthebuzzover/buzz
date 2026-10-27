@@ -16,7 +16,8 @@ const badgeCss = fs.readFileSync(
   path.join(frontendRoot, "src/lab/badge.css"),
   "utf8",
 );
-const BADGE = `<p class="buzz-lab-badge">Design preview</p><style>${badgeCss}</style>`;
+// Same pill as the React design routes: one tap back to the directory.
+const BADGE = `<a class="buzz-lab-badge lab-badge--back" href="/" title="Design preview. Back to all designs."><span aria-hidden="true">←</span> All designs</a><style>${badgeCss}</style>`;
 
 const ROBOTS = '<meta name="robots" content="noindex, nofollow">';
 
