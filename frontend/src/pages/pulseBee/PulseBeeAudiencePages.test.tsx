@@ -32,6 +32,8 @@ describe("Pulse Bee audience pages", () => {
     expect(html).toContain('href="/pulse-bee/brands"');
     expect(html).toContain('href="/login"');
     expect(html).toContain("pulse2-footer");
+    expect(html).toMatch(/id="gets"[^>]*data-theme="ink"/);
+    expect(html).toMatch(/id="faq"[^>]*data-theme="ink"/);
     expect(html).not.toMatch(PLACEHOLDERS);
   });
 
@@ -47,6 +49,8 @@ describe("Pulse Bee audience pages", () => {
     expect(html).toContain('href="/brand/login"');
     expect(html).toContain('href="/pulse-bee/orgs"');
     expect(html).toContain('id="pulsebee-flight"');
+    expect(html).toMatch(/id="faq"[^>]*data-theme="ink"/);
+    expect(html).toMatch(/id="goals"[^>]*data-theme="ink"/);
     expect(html).not.toMatch(PLACEHOLDERS);
   });
 

@@ -1,0 +1,87 @@
+/* BUZZ design tokens. Contract: design/pen/README.md and design/pen/tools/tokens.py.
+   Pages read these as --buzz-*. Semantic colors follow [data-theme="paper"|"ink"]. */
+
+:root {
+  --buzz-ink: #0b0b0b;
+  --buzz-ink-raised: #121212;
+  --buzz-ink-pop: #161616;
+  --buzz-ink-btn: #111111;
+  --buzz-paper: #f0f0f0;
+  --buzz-white: #ffffff;
+  --buzz-grey-media: #dddddd;
+  --buzz-yellow: #f6d32a;
+  --buzz-yellow-hover: #e0be16;
+  --buzz-yellow-faded: color-mix(in srgb, var(--buzz-yellow) 14%, transparent);
+  --buzz-ink-64: color-mix(in srgb, var(--buzz-ink) 64%, transparent);
+  --buzz-ink-30: color-mix(in srgb, var(--buzz-ink) 30%, transparent);
+  /* Hairlines are #111 at 16%, not #0b0b0b. */
+  --buzz-ink-16: color-mix(in srgb, var(--buzz-ink-btn) 16%, transparent);
+  --buzz-ink-08: color-mix(in srgb, var(--buzz-ink) 8%, transparent);
+  --buzz-paper-60: color-mix(in srgb, var(--buzz-paper) 60%, transparent);
+  --buzz-paper-52: color-mix(in srgb, var(--buzz-paper) 52%, transparent);
+  --buzz-paper-30: color-mix(in srgb, var(--buzz-paper) 30%, transparent);
+  --buzz-paper-09: color-mix(in srgb, var(--buzz-paper) 9%, transparent);
+  --buzz-paper-08: color-mix(in srgb, var(--buzz-paper) 8%, transparent);
+  --buzz-paper-04: color-mix(in srgb, var(--buzz-paper) 4%, transparent);
+  --buzz-success: #166534;
+  --buzz-success-wash: #f0fdf4;
+  --buzz-warn: #b45309;
+  --buzz-warn-wash: #fffbeb;
+  --buzz-danger: #b91c1c;
+  --buzz-danger-wash: #fef2f2;
+
+  --buzz-space-1: 4px;
+  --buzz-space-2: 8px;
+  --buzz-space-3: 12px;
+  --buzz-space-4: 16px;
+  --buzz-space-5: 24px;
+  --buzz-space-6: 32px;
+  --buzz-space-7: 48px;
+  --buzz-space-8: 64px;
+  --buzz-space-9: 96px;
+  --buzz-side: clamp(1rem, 3.3vw, 3rem);
+
+  --buzz-radius-pill: 999px;
+  --buzz-radius-card: 8px;
+  --buzz-radius-control: 8px;
+  --buzz-radius-field: 10px;
+  --buzz-radius-board: 16px;
+  --buzz-radius-phone: 32px;
+
+  --buzz-content: 1152px;
+  --buzz-measure: 704px;
+  --buzz-statement-measure: 640px;
+
+  /* Linear between 390 and 1440. See design/pen/README.md. */
+  --buzz-type-display: clamp(3rem, 1.445rem + 6.381vw, 7.1875rem);
+  --buzz-type-title: clamp(2.25rem, 1.6rem + 2.667vw, 4rem);
+  --buzz-type-statement: clamp(2rem, 1.489rem + 2.095vw, 3.375rem);
+  --buzz-type-h2: clamp(1.75rem, 1.379rem + 1.524vw, 2.75rem);
+  --buzz-type-h3: 1.25rem;
+  --buzz-type-body: 1rem;
+  --buzz-type-small: 0.875rem;
+  --buzz-type-label: 0.75rem;
+
+  --buzz-font: Switzer, ui-sans-serif, system-ui, sans-serif;
+}
+
+:root,
+[data-theme="paper"] {
+  --buzz-surface: var(--buzz-paper);
+  --buzz-on-surface: var(--buzz-ink);
+  --buzz-on-surface-muted: var(--buzz-ink-64);
+  --buzz-on-surface-quiet: var(--buzz-ink-30);
+  --buzz-hairline: var(--buzz-ink-16);
+  --buzz-card-surface: var(--buzz-white);
+  --buzz-pill-ghost-fill: var(--buzz-ink-08);
+}
+
+[data-theme="ink"] {
+  --buzz-surface: var(--buzz-ink);
+  --buzz-on-surface: var(--buzz-paper);
+  --buzz-on-surface-muted: var(--buzz-paper-60);
+  --buzz-on-surface-quiet: var(--buzz-paper-30);
+  --buzz-hairline: var(--buzz-paper-09);
+  --buzz-card-surface: var(--buzz-ink-raised);
+  --buzz-pill-ghost-fill: var(--buzz-paper-08);
+}

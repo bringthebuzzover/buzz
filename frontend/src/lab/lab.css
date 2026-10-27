@@ -1,5 +1,6 @@
 /* BUZZ Lab directory. Switzer is the /pulse webfont. See pages/pulse/fonts/Switzer-FFL.txt.
    The preview badge lives in badge.css so static mockups can inline the same file. */
+@import "../styles/buzz-tokens.css";
 
 @font-face {
   font-family: Switzer;
@@ -18,16 +19,16 @@
 }
 
 body:has(.lab) {
-  background: #0b0b0b;
+  background: var(--buzz-ink);
 }
 
 .lab {
-  --ink: #0b0b0b;
-  --paper: #f0f0f0;
-  --yellow: #f6d32a;
-  --faint: color-mix(in srgb, var(--paper) 52%, transparent);
+  --ink: var(--buzz-ink);
+  --paper: var(--buzz-paper);
+  --yellow: var(--buzz-yellow);
+  --faint: var(--buzz-paper-52);
   --line: color-mix(in srgb, var(--paper) 12%, transparent);
-  --lift: color-mix(in srgb, var(--paper) 4%, transparent);
+  --lift: var(--buzz-paper-04);
   min-height: 100svh;
   padding: 56px clamp(16px, 3.3vw, 48px) 80px;
   background: var(--ink);
@@ -132,7 +133,7 @@ body:has(.lab) {
 
 .lab-thumb {
   aspect-ratio: 16 / 10;
-  background: #141414;
+  background: var(--buzz-ink-raised);
 }
 
 .lab-thumb img {
@@ -143,7 +144,7 @@ body:has(.lab) {
 }
 
 .lab-thumb--contain {
-  background: #fffcf5;
+  background: var(--buzz-paper);
 }
 
 .lab-thumb--contain img {
