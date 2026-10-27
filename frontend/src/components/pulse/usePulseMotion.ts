@@ -103,9 +103,9 @@ export function usePulseMotion(rootRef: RefObject<HTMLElement | null>): void {
 
         gsap.fromTo(
           ".pulse-hero__shade",
-          { scaleY: 0 },
+          { opacity: 0 },
           {
-            scaleY: 1,
+            opacity: 1,
             ease: "none",
             scrollTrigger: {
               trigger: ".pulse-hero",
@@ -115,6 +115,12 @@ export function usePulseMotion(rootRef: RefObject<HTMLElement | null>): void {
             },
           },
         );
+
+        const marquee = document.querySelector<HTMLElement>(".pulse-marquee__track");
+        if (marquee) {
+          const distance = marquee.scrollWidth / 2;
+          if (distance > 0) marquee.style.animationDuration = `${distance / 32}s`;
+        }
 
         gsap.utils.toArray<HTMLElement>(".pulse-reveal").forEach((frame) => {
           const media = frame.querySelector(".pulse-reveal__media");
@@ -137,36 +143,37 @@ export function usePulseMotion(rootRef: RefObject<HTMLElement | null>): void {
         const steps = gsap.utils.toArray<HTMLElement>(".pulse-step");
         const screens = gsap.utils.toArray<HTMLElement>(".pulse-phone__screen");
         const how = document.querySelector(".pulse-how");
-        if (how && steps.length) {
-          const apply = (index: number) => {
-            steps.forEach((el) => {
+        if (how && steps.length > 1) {
+          let active = -1;
+          const paint = (progress: number) => {
+            const index = Math.min(steps.length - 1, Math.round(progress * (steps.length - 1)));
+            if (index === active) return;
+            active = index;
+            const setOpacity = (el: HTMLElement) => {
               el.style.opacity = Number(el.dataset.index) === index ? "1" : "0";
-            });
-            screens.forEach((el) => {
-              el.style.opacity = Number(el.dataset.index) === index ? "1" : "0";
-            });
+            };
+            steps.forEach(setOpacity);
+            screens.forEach(setOpacity);
           };
-          apply(0);
+          paint(0);
           ScrollTrigger.create({
             trigger: how,
             start: "top top",
             end: "bottom bottom",
             scrub: true,
-            onUpdate: (self) => {
-              const index = Math.min(steps.length - 1, Math.floor(self.progress * steps.length));
-              apply(index);
-            },
+            onUpdate: (self) => paint(self.progress),
           });
         }
 
         const cards = gsap.utils.toArray<HTMLElement>(".pulse-card");
         cards.forEach((card, index) => {
           const next = cards[index + 1];
-          const media = card.querySelector(".pulse-card__media");
-          if (!next || !media) return;
-          gsap.to(media, {
+          const layers = card.querySelectorAll(".pulse-card__media, .pulse-card__copy");
+          if (!next || !layers.length) return;
+          gsap.to(layers, {
             scale: 0.85,
             rotate: -3,
+            transformOrigin: "center top",
             ease: "none",
             scrollTrigger: {
               trigger: next,
@@ -177,20 +184,25 @@ export function usePulseMotion(rootRef: RefObject<HTMLElement | null>): void {
           });
         });
 
+        let surface = "";
+        const paintSurface = (next: string) => {
+          if (next === surface) return;
+          surface = next;
+          gsap.to(root, {
+            backgroundColor: next === "paper" ? "#f0f0f0" : "#0b0b0b",
+            duration: 1,
+            ease: "power2.out",
+            overwrite: "auto",
+          });
+        };
         gsap.utils.toArray<HTMLElement>("[data-theme]").forEach((section) => {
-          const paper = section.dataset.theme === "paper";
           ScrollTrigger.create({
             trigger: section,
-            start: "top 65%",
-            end: "bottom 35%",
+            start: "top center",
+            end: "bottom center",
             onToggle: (self) => {
               if (!self.isActive) return;
-              gsap.to(root, {
-                backgroundColor: paper ? "#f0f0f0" : "#0b0b0b",
-                duration: 1,
-                ease: "power2.out",
-                overwrite: "auto",
-              });
+              paintSurface(section.dataset.theme === "paper" ? "paper" : "ink");
             },
           });
         });
