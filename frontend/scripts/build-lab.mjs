@@ -62,12 +62,12 @@ if (build.status !== 0) {
 fs.cpSync(
   path.join(frontendRoot, "lab-static/drop-editor"),
   path.join(buildDir, "lab/drop-editor"),
-  { recursive: true },
+  { recursive: true, dereference: true },
 );
 fs.cpSync(
   path.join(repoRoot, "design/logo-options"),
   path.join(buildDir, "lab/logo-options"),
-  { recursive: true },
+  { recursive: true, dereference: true },
 );
 
 for (const file of walkHtml(path.join(buildDir, "lab"))) {
