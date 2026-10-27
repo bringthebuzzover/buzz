@@ -3,7 +3,7 @@
  */
 import { Link } from "react-router-dom";
 import sorority from "../../assets/sorority.png";
-import ztaLacroix from "../../assets/zta-lacroix.png";
+import ztaLacroix from "../../assets/sorority.png";
 import { LinkButton } from "../../components/forms/controls";
 import { GAP, SECTION_Y, SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
@@ -21,15 +21,14 @@ const DROPS: ReadonlyArray<{
   { name: "Hydrate", fill: "wash" },
 ];
 
-const STORIES = [
-  "$6,000 earned",
-  "Full-time offer",
-  "$2,200 earned",
-] as const;
+const STORIES = ["$6,000 earned", "Full-time offer", "$2,200 earned"] as const;
 
 export function InspoOpportunities() {
   return (
-    <section id="opportunities" className={cn("mx-auto max-w-6xl scroll-mt-20 px-6", SECTION_Y)}>
+    <section
+      id="opportunities"
+      className={cn("mx-auto max-w-6xl scroll-mt-20 px-6", SECTION_Y)}
+    >
       <div className={cn("mb-10 grid md:grid-cols-2", GAP.default)}>
         <div className="flex min-h-[140px] flex-col items-center justify-center rounded-buzzModal bg-gradient-to-br from-buzz-butter to-buzz-cream">
           <p className={cn(TEXT.meta, "mb-3")}>Drops</p>
@@ -54,14 +53,20 @@ export function InspoOpportunities() {
           >
             <div className="flex h-36 items-center justify-center overflow-hidden bg-buzz-paper">
               {drop.image ? (
-                <img src={drop.image} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={drop.image}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
               ) : drop.fill === "geo" ? (
                 <span className="h-full w-full bg-gradient-to-br from-buzz-coral to-buzz-coralDark" />
               ) : (
                 <span className="h-full w-full bg-buzz-butter" />
               )}
             </div>
-            <p className={cn(TEXT.body, "py-3 text-center font-medium")}>{drop.name}</p>
+            <p className={cn(TEXT.body, "py-3 text-center font-medium")}>
+              {drop.name}
+            </p>
           </Link>
         ))}
       </div>

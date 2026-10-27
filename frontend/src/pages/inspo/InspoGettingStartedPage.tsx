@@ -3,7 +3,7 @@
  */
 import PhoneBezel from "../../components/inspo/PhoneBezel";
 import sorority from "../../assets/sorority.png";
-import ztaLacroix from "../../assets/zta-lacroix.png";
+import ztaLacroix from "../../assets/sorority.png";
 import { GAP, SECTION_Y, SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
@@ -41,8 +41,8 @@ function PhoneInner({ kind }: { kind: (typeof STEPS)[number]["inner"] }) {
         <p className={TEXT.meta}>Event manager</p>
         <p className={cn(TEXT.meta, "mt-2")}>East Islip, New York, USA</p>
         <p className={cn(TEXT.meta, "mt-4 text-left leading-relaxed")}>
-          We&apos;re passionate about sharing meaningful products and experiences
-          that celebrate modern hosting.
+          We&apos;re passionate about sharing meaningful products and
+          experiences that celebrate modern hosting.
         </p>
       </div>
     );
@@ -74,7 +74,10 @@ function PhoneInner({ kind }: { kind: (typeof STEPS)[number]["inner"] }) {
 
 export function InspoGettingStarted() {
   return (
-    <section id="getting-started" className={cn("mx-auto max-w-6xl scroll-mt-20 px-6", SECTION_Y)}>
+    <section
+      id="getting-started"
+      className={cn("mx-auto max-w-6xl scroll-mt-20 px-6", SECTION_Y)}
+    >
       <h2 className={cn(TEXT.h1, "text-center")}>
         Getting started
         <br />
@@ -95,7 +98,12 @@ export function InspoGettingStarted() {
               <span className="text-buzz-inkFaint">{i + 1} </span>
               {step.title}
             </h3>
-            <p className={cn(TEXT.body, "mt-2 leading-relaxed text-buzz-inkMuted")}>
+            <p
+              className={cn(
+                TEXT.body,
+                "mt-2 leading-relaxed text-buzz-inkMuted",
+              )}
+            >
               {step.body}
             </p>
           </div>

@@ -3,7 +3,7 @@
  */
 import { Search } from "lucide-react";
 import sorority from "../../assets/sorority.png";
-import ztaLacroix from "../../assets/zta-lacroix.png";
+import ztaLacroix from "../../assets/sorority.png";
 import { LinkButton } from "../../components/forms/controls";
 import { Card } from "../../components/ui/Card";
 import { GAP, PAD, SECTION_Y, SURFACE, TEXT } from "../../theme/tokens";
@@ -36,7 +36,10 @@ const STUDENTS = [
 
 export function InspoHowItWorks() {
   return (
-    <section id="how-it-works" className={cn("mx-auto max-w-6xl scroll-mt-20 px-6", SECTION_Y)}>
+    <section
+      id="how-it-works"
+      className={cn("mx-auto max-w-6xl scroll-mt-20 px-6", SECTION_Y)}
+    >
       <h2 className={cn(TEXT.h1, "mb-8 text-center")}>
         How it <span className="text-buzz-coral">works</span>
       </h2>
@@ -46,7 +49,12 @@ export function InspoHowItWorks() {
           PAD.roomy,
         )}
       >
-        <p className={cn(TEXT.micro, "mb-6 text-center font-semibold tracking-wide text-buzz-inkMuted")}>
+        <p
+          className={cn(
+            TEXT.micro,
+            "mb-6 text-center font-semibold tracking-wide text-buzz-inkMuted",
+          )}
+        >
           Campaign
         </p>
         <div className="flex flex-col items-center gap-10 md:flex-row">
@@ -75,7 +83,12 @@ export function InspoHowItWorks() {
                   className={cn(SURFACE.inset, "overflow-hidden p-0")}
                 >
                   <div className={cn("h-16", student.wash)} />
-                  <p className={cn(TEXT.micro, "px-1 py-1 text-center font-medium normal-case tracking-normal")}>
+                  <p
+                    className={cn(
+                      TEXT.micro,
+                      "px-1 py-1 text-center font-medium normal-case tracking-normal",
+                    )}
+                  >
                     {student.name}
                   </p>
                 </div>
@@ -85,11 +98,22 @@ export function InspoHowItWorks() {
         </div>
         <div className={cn("mt-10 grid md:grid-cols-3", GAP.default)}>
           {CARDS.map((card) => (
-            <Card key={card.title} kind="cardFlat" pad="none" className="overflow-hidden">
-              <img src={card.image} alt="" className="h-40 w-full object-cover" />
+            <Card
+              key={card.title}
+              kind="cardFlat"
+              pad="none"
+              className="overflow-hidden"
+            >
+              <img
+                src={card.image}
+                alt=""
+                className="h-40 w-full object-cover"
+              />
               <div className={PAD.default}>
                 <h3 className={TEXT.h3}>{card.title}</h3>
-                <p className={cn(TEXT.body, "mt-1 text-buzz-inkMuted")}>{card.body}</p>
+                <p className={cn(TEXT.body, "mt-1 text-buzz-inkMuted")}>
+                  {card.body}
+                </p>
               </div>
             </Card>
           ))}

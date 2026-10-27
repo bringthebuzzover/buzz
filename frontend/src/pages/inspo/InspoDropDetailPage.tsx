@@ -2,7 +2,7 @@
  * Campaign detail overlay — hero, brief, about rail, apply CTA.
  */
 import { Link } from "react-router-dom";
-import ztaLacroix from "../../assets/zta-lacroix.png";
+import ztaLacroix from "../../assets/sorority.png";
 import { LinkButton } from "../../components/forms/controls";
 import { Chip } from "../../components/ui/Chip";
 import { siteIdentity } from "../../data/siteIdentity";
@@ -58,7 +58,11 @@ export default function InspoDropDetailPage() {
               Product + merch
             </Chip>
             {META.map((item) => (
-              <Chip key={item} tone="neutral" className="normal-case tracking-normal">
+              <Chip
+                key={item}
+                tone="neutral"
+                className="normal-case tracking-normal"
+              >
                 {item}
               </Chip>
             ))}
@@ -68,12 +72,19 @@ export default function InspoDropDetailPage() {
             Purchase the kit, host a tasting, and post from the organization
             Instagram while the drop is open.
           </p>
-          <p className={cn(TEXT.body, "mt-3 leading-relaxed text-buzz-inkMuted")}>
+          <p
+            className={cn(TEXT.body, "mt-3 leading-relaxed text-buzz-inkMuted")}
+          >
             You are responsible for buying the kit, using the product, and
             posting a review once it arrives.
           </p>
           <h2 className={cn(TEXT.h3, "mt-8")}>Expected outputs</h2>
-          <ul className={cn(TEXT.body, "mt-3 list-disc space-y-2 pl-5 text-buzz-inkMuted")}>
+          <ul
+            className={cn(
+              TEXT.body,
+              "mt-3 list-disc space-y-2 pl-5 text-buzz-inkMuted",
+            )}
+          >
             <li>Search the product on campus retail or the brand store</li>
             <li>Host a tasting with members and capture the moment</li>
             <li>Leave an honest review from the org Instagram</li>
@@ -85,7 +96,12 @@ export default function InspoDropDetailPage() {
               ZTA
             </div>
             <h2 className={TEXT.h3}>About this drop</h2>
-            <p className={cn(TEXT.body, "mt-2 leading-relaxed text-buzz-inkMuted")}>
+            <p
+              className={cn(
+                TEXT.body,
+                "mt-2 leading-relaxed text-buzz-inkMuted",
+              )}
+            >
               Sparkling water sampling for Greek orgs. Hypoallergenic merch,
               campus-ready kits, and a short posting window.
             </p>
