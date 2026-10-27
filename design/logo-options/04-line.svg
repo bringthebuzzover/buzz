@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" color="#1C1917" role="img" aria-labelledby="line-title line-desc">
+  <title id="line-title">Line</title>
+  <desc id="line-desc">Outline bee. Black contour, honey stripes only inside the abdomen.</desc>
+  <defs>
+    <clipPath id="line-body">
+      <path d="M64 33C75 33 81 41 81 51C81 57 87 63 87 78C87 98 77 111 64 111C51 111 41 98 41 78C41 63 47 57 47 51C47 41 53 33 64 33Z"/>
+    </clipPath>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-width="4.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M44 62C26 48 8 52 12 64C16 76 28 78 42 74"/>
+    <path d="M84 62C102 48 120 52 116 64C112 76 100 78 86 74"/>
+    <path d="M57 41C49 29 39 22 31 20"/>
+    <path d="M71 41C79 29 89 22 97 20"/>
+  </g>
+  <g clip-path="url(#line-body)">
+    <rect x="30" y="66" width="68" height="50" fill="#F9D940"/>
+    <rect x="36" y="78" width="56" height="6" fill="currentColor"/>
+    <rect x="36" y="92" width="56" height="6" fill="currentColor"/>
+  </g>
+  <path d="M64 33C75 33 81 41 81 51C81 57 87 63 87 78C87 98 77 111 64 111C51 111 41 98 41 78C41 63 47 57 47 51C47 41 53 33 64 33Z" fill="none" stroke="currentColor" stroke-width="4.25" stroke-linejoin="round"/>
+  <g fill="currentColor">
+    <circle cx="29.2" cy="19.2" r="3.7"/>
+    <circle cx="98.8" cy="19.2" r="3.7"/>
+  </g>
+</svg>
