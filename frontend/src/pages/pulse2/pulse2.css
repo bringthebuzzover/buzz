@@ -1419,12 +1419,33 @@ html.lenis body {
   top: 28px;
   left: 28px;
   max-width: calc(100% - 56px);
-  color: #fff;
+  color: #ffffff;
   font-size: clamp(2rem, 4vw, 3.5rem);
   font-weight: 500;
   letter-spacing: -0.045em;
   line-height: 0.95;
-  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  text-shadow: 0 1px 2px rgba(11, 11, 11, 0.35);
+  transition: opacity 200ms ease;
+}
+
+.pulse2-carousel__brand.is-ready {
+  opacity: 1;
+}
+
+.pulse2-carousel__brand.is-ready[data-tone="light"] {
+  color: #ffffff;
+  text-shadow: none;
+}
+
+.pulse2-carousel__brand.is-ready[data-tone="dark"] {
+  color: var(--ink);
+  text-shadow: none;
+}
+
+.pulse2-carousel__brand.is-ready.is-fallback {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(11, 11, 11, 0.35);
 }
 
 .pulse2-carousel__meta {
@@ -1613,6 +1634,7 @@ html.lenis body {
   .pulse2-logo,
   .pulse2-textlink span,
   .pulse2-bee,
+  .pulse2-carousel__brand,
   .pulse2-join__half,
   .pulse2-join__pill,
   .pulse2-join__pill svg {

@@ -2,7 +2,14 @@
  * /pulse2 — yellow and black marketing concept.
  * Copy and media are the live site's. /pulse is a separate page.
  */
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { Link } from "react-router-dom";
 import { COLLEGES } from "../../data/colleges";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
@@ -10,7 +17,9 @@ import { siteIdentity } from "../../data/siteIdentity";
 import PulseTwoCampusMap from "../../components/pulse2/PulseTwoCampusMap";
 import { usePrefersReducedMotion } from "../../components/pulse2/usePrefersReducedMotion";
 import { publicLogo } from "../../utils/publicLogo";
-import type { CollegeMarqueeItem } from "../../types/campaign";
+import type { CollegeMarqueeItem, FeaturedCollab } from "../../types/campaign";
+import { useTitleTone } from "./useTitleTone";
+import type { FrameRegion } from "./titleTone";
 
 const BEE = publicLogo("bee.svg");
 
@@ -66,6 +75,74 @@ function LogoRow({ hidden }: { hidden?: boolean }) {
 function brandName(title: string): string {
   const parts = title.split(" x ");
   return parts[parts.length - 1] || title;
+}
+
+function regionsClose(a: FrameRegion, b: FrameRegion): boolean {
+  return (
+    Math.abs(a.x - b.x) < 0.01 &&
+    Math.abs(a.y - b.y) < 0.01 &&
+    Math.abs(a.width - b.width) < 0.01 &&
+    Math.abs(a.height - b.height) < 0.01
+  );
+}
+
+function CarouselBrand({ collab, name }: { collab: FeaturedCollab; name: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [region, setRegion] = useState<FrameRegion | null>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const frame = el?.parentElement;
+    if (!el || !frame) return undefined;
+
+    let cancelled = false;
+    const measure = () => {
+      if (cancelled) return;
+      const box = el.getBoundingClientRect();
+      const frameBox = frame.getBoundingClientRect();
+      if (box.width < 1 || box.height < 1 || frameBox.width < 1 || frameBox.height < 1) return;
+      const x = Math.min(1, Math.max(0, (box.left - frameBox.left) / frameBox.width));
+      const y = Math.min(1, Math.max(0, (box.top - frameBox.top) / frameBox.height));
+      const next: FrameRegion = {
+        x,
+        y,
+        width: Math.min(1 - x, box.width / frameBox.width),
+        height: Math.min(1 - y, box.height / frameBox.height),
+      };
+      setRegion((prev) => (prev && regionsClose(prev, next) ? prev : next));
+    };
+
+    const fonts = document.fonts;
+    if (!fonts || fonts.status === "loaded") {
+      measure();
+    } else {
+      fonts.ready.then(measure).catch(() => measure());
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [name]);
+
+  const tone = useTitleTone(collab.image, region, collab.titleTone);
+  const className = [
+    "pulse2-carousel__brand",
+    tone.ready ? "is-ready" : "",
+    tone.failed ? "is-fallback" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <span
+      ref={ref}
+      className={className}
+      data-tone={tone.ready ? tone.tone : undefined}
+      data-luminance={tone.luminance != null ? tone.luminance.toFixed(3) : undefined}
+    >
+      {name}
+    </span>
+  );
 }
 
 function Chevron({ dir }: { dir: "left" | "right" }) {
@@ -243,7 +320,7 @@ function DropsCarousel() {
           >
             <Link className="pulse2-carousel__frame" to="/">
               <img src={collab.image} alt="" />
-              <span className="pulse2-carousel__brand">{brandName(collab.title)}</span>
+              <CarouselBrand collab={collab} name={brandName(collab.title)} />
             </Link>
           </article>
         ))}
