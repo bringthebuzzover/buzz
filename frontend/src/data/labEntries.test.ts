@@ -39,14 +39,18 @@ describe("lab directory data", () => {
     }
   });
 
-  it("points Pulse 2 at PR 20 and the pulse branch preview", () => {
+  it("points Pulse and Pulse 2 at their routes on this branch", () => {
+    const pulse = labEntries.find((entry) => entry.id === "pulse");
     const pulse2 = labEntries.find((entry) => entry.id === "pulse2");
+    expect(pulse?.status).toBe("Frozen");
+    expect(pulse?.href).toBe("/pulse");
+    expect(pulse?.branch).toBeUndefined();
     expect(pulse2?.status).toBe("Live");
+    expect(pulse2?.href).toBe("/pulse2");
+    expect(pulse2?.branch).toBeUndefined();
     expect(pulse2?.prUrl).toBe(
       "https://github.com/bringthebuzzover/buzz/pull/20",
     );
-    expect(pulse2?.branch).toBe("cursor/pulse-yellow-black-2572");
-    expect(pulse2?.href).toBe("/pulse2");
   });
 
   it("exposes the drop editor query states", () => {

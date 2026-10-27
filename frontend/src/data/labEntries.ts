@@ -45,7 +45,6 @@ export type LabEntry = {
 };
 
 const DROP_EDITOR = "/lab/drop-editor/";
-const PULSE_BRANCH = "cursor/pulse-yellow-black-2572";
 
 /**
  * Cloudflare branch alias: lowercased, every non-alphanumeric run becomes
@@ -79,7 +78,6 @@ export const labEntries: readonly LabEntry[] = [
     note: "Original approved marketing page. Black, off-white, and yellow.",
     status: "Frozen",
     href: "/pulse",
-    branch: PULSE_BRANCH,
     thumbnail: pulseThumb,
     thumbnailAlt:
       "Students carrying Yerba Madre cases outside a stone campus building.",
@@ -91,7 +89,6 @@ export const labEntries: readonly LabEntry[] = [
     status: "Live",
     href: "/pulse2",
     prUrl: "https://github.com/bringthebuzzover/buzz/pull/20",
-    branch: PULSE_BRANCH,
     thumbnail: pulseTwoThumb,
     thumbnailAlt: "Two students holding Yerba Madre cans indoors.",
   },
