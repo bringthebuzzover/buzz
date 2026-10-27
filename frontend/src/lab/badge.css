@@ -1,0 +1,20 @@
+.lab-badge,
+.buzz-lab-badge {
+  position: fixed;
+  z-index: 80;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f6d32a;
+  color: #0b0b0b;
+  font-family: Switzer, ui-sans-serif, system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  pointer-events: none;
+}
