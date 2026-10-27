@@ -110,6 +110,14 @@ export function projectColleges(): CampusPin[] {
   });
 }
 
+/**
+ * Which way the pause label grows from its pin. Pins right of center grow
+ * left, so long names like UPenn and Cornell stay inside a 375px map.
+ */
+export function labelAlign(pin: Pt): "start" | "end" {
+  return pin.x > VIEW_W / 2 ? "end" : "start";
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -246,11 +254,13 @@ export function renderFlightSvg(plan: FlightPlan, beeSrc: string, mapWidth = 880
   const motion = (begin: string, rotate: "auto" | "0") =>
     `<animateMotion dur="${dur}" repeatCount="indefinite" begin="${begin}" calcMode="paced" rotate="${rotate}"><mpath href="#pulsebee-flight" xlink:href="#pulsebee-flight"/></animateMotion>`;
 
+  // Inline style, not an opacity attribute: the shared `.pulse2-map circle`
+  // rule outranks presentation attributes and would flatten the fade.
   const dotsMarkup = plan.trail
     .map((dotStep) => {
       const behind = (plan.flightSeconds - dotStep.lag).toFixed(3);
       const radius = (dot * dotStep.scale).toFixed(2);
-      return `<circle data-scale="${dotStep.scale}" r="${radius}" fill="${INK}" opacity="${dotStep.opacity.toFixed(3)}">${motion(`-${behind}s`, "0")}</circle>`;
+      return `<circle data-scale="${dotStep.scale}" r="${radius}" fill="${INK}" style="opacity:${dotStep.opacity.toFixed(3)}">${motion(`-${behind}s`, "0")}</circle>`;
     })
     .join("");
 

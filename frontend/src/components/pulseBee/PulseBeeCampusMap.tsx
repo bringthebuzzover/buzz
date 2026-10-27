@@ -13,6 +13,7 @@ import {
   VIEW_W,
   applyFlightScale,
   buildFlight,
+  labelAlign,
   pinAlongPath,
   renderFlightSvg,
   shouldDwell,
@@ -225,7 +226,7 @@ export default function PulseBeeCampusMap() {
   const parked = plan.pins.find((pin) => pin.domain === REDUCED_MOTION_DOMAIN) ?? null;
 
   return (
-    <div className="pulse2-map" ref={mapRef} data-visiting={visitDomain ?? ""}>
+    <div className="pulse2-map pulsebee-map" ref={mapRef} data-visiting={visitDomain ?? ""}>
       <svg
         className="pulse2-map__land"
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
@@ -264,7 +265,11 @@ export default function PulseBeeCampusMap() {
       {visit ? (
         <>
           <span className="pulsebee-ring" style={{ left: visit.left, top: visit.top }} />
-          <span className="pulsebee-label" aria-hidden="true" style={{ left: visit.left, top: visit.top }}>
+          <span
+            className="pulsebee-label"
+            aria-hidden="true"
+            data-align={labelAlign(visit)}
+            style={{ left: visit.left, top: visit.top }}>
             {visit.name}
           </span>
         </>
