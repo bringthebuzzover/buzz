@@ -130,6 +130,7 @@ function onPublicMarketingRoute(): boolean {
     p === "/" ||
     p.startsWith("/for-orgs") ||
     p.startsWith("/for-brands") ||
+    p.startsWith("/pulse") ||
     p.startsWith("/privacy") ||
     p.startsWith("/terms") ||
     p.startsWith("/data-deletion") ||
