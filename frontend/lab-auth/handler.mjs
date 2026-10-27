@@ -1,6 +1,8 @@
 // BUZZ Lab login gate for Cloudflare Pages Functions.
 //
-// Off unless LAB_AUTH=1. When on, every request needs a signed session
+// On by default: LAB_AUTH unset or empty fails closed on any non-localhost
+// host; only an explicit LAB_AUTH=0/false/off/no turns it off (localhost
+// keeps unset = off for local dev). When on, every request needs a signed session
 // cookie, except the /__lab/* login routes and their assets. Missing secrets
 // fail closed. Stateless: the pending code lives in a signed cookie (only an
 // HMAC of the code, never the code itself). Rate limits and the per-code
@@ -15,10 +17,12 @@ import {
   loginPage,
   misconfiguredPage,
   notFoundPage,
+  signOutPage,
   signedOutPage,
 } from "./pages.mjs";
 
-export const SESSION_COOKIE = "lab_session";
+// __Host- prefix: browsers only accept it with Secure, Path=/ and no Domain.
+export const SESSION_COOKIE = "__Host-lab_session";
 export const CHALLENGE_COOKIE = "lab_challenge";
 export const SESSION_TTL = 24 * 60 * 60;
 export const CODE_TTL = 10 * 60;
@@ -32,15 +36,20 @@ export const LIMITS = {
 };
 
 const ON = new Set(["1", "true", "yes", "on"]);
-const OFF = new Set(["", "0", "false", "no", "off"]);
+const OFF = new Set(["0", "false", "no", "off"]);
+// The only files served from /__lab/assets/ (see scripts/copy-lab-login-assets.mjs).
+export const LOGIN_ASSETS = new Set(["switzer-400.woff2", "switzer-500.woff2", "buzz-logo.svg", "bee.svg"]);
+const FROM_DOMAIN = "bringthebuzzover.com";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
 
 // ---------- config ----------
 
-export function readConfig(env = {}) {
+export function readConfig(env = {}, hostname = "") {
   const raw = String(env.LAB_AUTH ?? "").trim().toLowerCase();
   if (OFF.has(raw)) return { enabled: false };
-  if (!ON.has(raw)) return { enabled: true, missing: ["LAB_AUTH (use 1)"] };
+  // Unset/empty: off only for local dev; everywhere else the gate stays on.
+  if (raw === "" && LOCAL_HOSTS.has(String(hostname).toLowerCase())) return { enabled: false };
+  if (raw !== "" && !ON.has(raw)) return { enabled: true, missing: ["LAB_AUTH (use 1)"] };
   const missing = [];
   const secret = String(env.LAB_SESSION_SECRET ?? "");
   if (secret.length < MIN_SECRET_LENGTH) missing.push(`LAB_SESSION_SECRET (${MIN_SECRET_LENGTH}+ chars)`);
@@ -54,9 +63,21 @@ export function readConfig(env = {}) {
     secret,
     allowed,
     resendKey,
-    from: String(env.LAB_EMAIL_FROM ?? "").trim() || DEFAULT_FROM,
+    from: validFrom(env.LAB_EMAIL_FROM) || DEFAULT_FROM,
     devLogCode: String(env.LAB_DEV_LOG_CODE ?? "") === "1",
   };
+}
+
+// LAB_EMAIL_FROM must be "addr@bringthebuzzover.com" or "Name <addr@bringthebuzzover.com>".
+// Anything else is ignored so the default sender is used.
+export function validFrom(value) {
+  const v = String(value ?? "").trim();
+  if (!v || v.length > 200 || /[\r\n]/.test(v)) return "";
+  const m = v.match(/^(?:([^<>"]{1,80}?)\s*<([^\s<>@]+@[^\s<>@]+)>|([^\s<>@]+@[^\s<>@]+))$/);
+  if (!m) return "";
+  const addr = (m[2] || m[3]).toLowerCase();
+  if (!/^[a-z0-9._%+-]+@bringthebuzzover\.com$/.test(addr)) return "";
+  return v;
 }
 
 export function parseAllowlist(value) {
@@ -279,12 +300,12 @@ async function postLogin(ctx, cfg, url) {
       console.log(`[lab-auth] dev code for ${email}: ${code}`);
     } else {
       if (cfg.devLogCode) console.warn("[lab-auth] LAB_DEV_LOG_CODE ignored: not a localhost request.");
-      try {
-        await sendCodeEmail({ apiKey: cfg.resendKey, from: cfg.from, to: email, code, fetchImpl: ctx.fetch ?? fetch });
-      } catch (err) {
-        // Same response either way, so the page never reveals the allowlist.
-        console.error(`[lab-auth] code email failed: ${err && err.message}`);
-      }
+      // Send after the response (waitUntil), so allowed and decoy requests
+      // answer in the same time and the allowlist can't be probed by timing.
+      const sending = Promise.resolve()
+        .then(() => sendCodeEmail({ apiKey: cfg.resendKey, from: cfg.from, to: email, code, fetchImpl: fetch }))
+        .catch((err) => console.error(`[lab-auth] code email failed: ${err && err.message}`));
+      if (typeof ctx.waitUntil === "function") ctx.waitUntil(sending);
     }
   } else {
     // Decoy: a challenge no code can satisfy. Same cookie, same page.
@@ -370,8 +391,13 @@ async function handleLabRoute(ctx, cfg, url) {
     if (method === "GET" || method === "HEAD") return getVerify(cfg, request, url);
     if (method === "POST") return postVerify(ctx, cfg, url);
   }
-  if (path === "/__lab/logout" && (method === "GET" || method === "POST")) {
-    return html(signedOutPage(), 200, { "Set-Cookie": [clearSession(), clearChallenge()] });
+  if (path === "/__lab/logout") {
+    // GET only shows a button; signing out is a same-origin POST (checked above).
+    if (method === "GET" || method === "HEAD") return html(signOutPage());
+    if (method === "POST") {
+      return html(signedOutPage(), 200, { "Set-Cookie": [clearSession(), clearChallenge()] });
+    }
+    return html(notFoundPage(), 405, { Allow: "GET, POST" });
   }
   return html(notFoundPage(), 404);
 }
@@ -384,7 +410,8 @@ function withNoindex(response) {
 
 /** Pages Functions entry (used by functions/_middleware.js). */
 export async function onRequest(context) {
-  const cfg = readConfig(context.env);
+  const url = new URL(context.request.url);
+  const cfg = readConfig(context.env, url.hostname);
   if (!cfg.enabled) return context.next();
 
   if (cfg.missing.length) {
@@ -392,11 +419,12 @@ export async function onRequest(context) {
     return html(misconfiguredPage(cfg.missing), 503, { "Retry-After": "300" });
   }
 
-  const url = new URL(context.request.url);
   const path = url.pathname;
 
-  // Login assets (fonts, logo) are public; nothing else under /__lab is.
+  // The 4 login assets (fonts, logos) are public; nothing else under /__lab is.
   if (path.startsWith("/__lab/assets/")) {
+    const name = path.slice("/__lab/assets/".length);
+    if (!LOGIN_ASSETS.has(name)) return html(notFoundPage(), 404);
     return withNoindex(await context.next());
   }
   if (path === "/__lab" || path.startsWith("/__lab/")) {

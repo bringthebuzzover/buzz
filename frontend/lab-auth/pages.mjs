@@ -117,6 +117,19 @@ export function codePage({ next = "/", email = "", message = "", kind = "info" }
   });
 }
 
+export function signOutPage() {
+  return layout({
+    title: "Sign out",
+    body: `    <p class="kicker">BUZZ Lab</p>
+    <h1>Sign out?</h1>
+    <p class="lede">This signs you out of the Lab on this browser.</p>
+    <form method="post" action="/__lab/logout">
+      <button type="submit">Sign out</button>
+    </form>
+    <p class="links"><a href="/">Back to the Lab</a></p>`,
+  });
+}
+
 export function signedOutPage() {
   return layout({
     title: "Signed out",

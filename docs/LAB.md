@@ -178,26 +178,26 @@ Code: `frontend/functions/_middleware.js` (Pages deploys `functions/` from the p
 
 ### Environment variables (Pages → lab-buzz → Settings → Variables and Secrets)
 
-Set on **Production** (and **Preview** too if branch previews should be reachable; without them previews fail closed, see below). Use **Secret** (encrypted) for the last two.
+Set on **Production** and **Preview**. With `LAB_AUTH` unset, the gate fails closed (503) on every host except `localhost`, so a deployment missing these variables is locked, not open. Use **Secret** (encrypted) for the last two.
 
 | Name | Value | Notes |
 | --- | --- | --- |
-| `LAB_AUTH` | `1` | Turns the gate on. Unset, `0` or `false`: the middleware does nothing. Any other value fails closed. |
+| `LAB_AUTH` | `1` | The gate is on unless this is explicitly `0`, `false`, `off` or `no`. Unset or empty fails closed (503) on any non-localhost host; on `localhost` / `127.0.0.1` unset means off, for local dev. Any other value fails closed. |
 | `LAB_ALLOWED_EMAILS` | `hello@bringthebuzzover.com` | Comma-separated, case-insensitive. Only these get a code. Removing an address also ends its open sessions. |
 | `LAB_SESSION_SECRET` | 32+ random characters (`openssl rand -base64 48`) | Signs session and code cookies. Rotating it signs everyone out. |
 | `RESEND_API_KEY` | a send-only Resend key for `bringthebuzzover.com` | Sends the code email. |
-| `LAB_EMAIL_FROM` | optional | Defaults to `BUZZ Lab <lab@bringthebuzzover.com>`. Must be on the verified Resend domain `bringthebuzzover.com`. |
+| `LAB_EMAIL_FROM` | optional | Defaults to `BUZZ Lab <lab@bringthebuzzover.com>`. Must be `addr@bringthebuzzover.com` or `Name <addr@bringthebuzzover.com>` (the verified Resend domain); anything else is ignored and the default is used. |
 | `LAB_DEV_LOG_CODE` | never set in Pages | Local testing only: logs the code instead of emailing it, and only for requests to `localhost` / `127.0.0.1`. |
 
 Variables apply on the next deploy. Re-run the latest production deploy after changing them.
 
 ### How it works
 
-- With `LAB_AUTH=1`, every request needs a valid `lab_session` cookie except `/__lab/login`, `/__lab/verify`, `/__lab/logout`, `/__lab/assets/*` and `/robots.txt`. Signed-out `GET`s redirect to `/__lab/login?next=<path>`; other methods get 401.
-- `LAB_AUTH=1` with a missing or short secret, an empty allowlist or no Resend key: every path, login included, returns a 503 "Lab is locked" page naming the missing variables (never their values).
+- With the gate on, every request needs a valid `__Host-lab_session` cookie except `/__lab/login`, `/__lab/verify`, `/__lab/logout`, the four login assets (`/__lab/assets/switzer-400.woff2`, `switzer-500.woff2`, `buzz-logo.svg`, `bee.svg`; anything else under `/__lab/assets/` is a 404) and `/robots.txt`. Signed-out `GET`s redirect to `/__lab/login?next=<path>`; other methods get 401.
+- Gate on with a missing or short secret, an empty allowlist or no Resend key: every path, login included, returns a 503 "Lab is locked" page naming the missing variables (never their values).
 - The code is 6 random digits, valid 10 minutes, 5 tries. It is never stored: the `lab_challenge` cookie (Path `/__lab`) holds an HMAC of it, signed with `LAB_SESSION_SECRET`. A used or exhausted challenge is refused.
-- Any other email gets the same "if this address is allowed, a code is on its way" screen and a decoy challenge no code can satisfy. No email is sent.
-- Session: `lab_session`, HMAC-signed, `HttpOnly; Secure; SameSite=Lax`, 24 hours. `/__lab/logout` clears it.
+- Any other email gets the same "if this address is allowed, a code is on its way" screen and a decoy challenge no code can satisfy. No email is sent. The real email is sent after the response (`waitUntil`), so both paths answer in the same time; send failures are logged.
+- Session: `__Host-lab_session` (Secure, `Path=/`, no Domain), HMAC-signed, `HttpOnly; SameSite=Lax`, 24 hours. To sign out, open `/__lab/logout` and press **Sign out**: the cookie is only cleared by a same-origin `POST /__lab/logout`; a `GET` just shows the button.
 - Limits (best effort, per Cloudflare location, via the Workers Cache API): 10 code requests per IP and 3 per email per 10 minutes; 30 code checks per IP per 10 minutes; the per-code attempt count is kept server-side as well as in the cookie. For a hard global limit, add a WAF rate-limiting rule on `lab.bringthebuzzover.com/__lab/*`.
 - Login pages send `X-Robots-Tag: noindex`, `Cache-Control: no-store`, a no-script CSP, and refuse cross-origin POSTs. Every gated response also gets `X-Robots-Tag: noindex`.
 
@@ -219,6 +219,14 @@ npx wrangler pages dev build \
 ```
 
 Open `http://localhost:8788/`, enter the allowed email, and read the code from the wrangler log line `[lab-auth] dev code for …`.
+
+### Rollout
+
+- **Keep Access app `a84f66d1` (`*.lab-buzz.pages.dev`) permanently.** Deployments built before the login landed, and branch previews of branches without `functions/`, have no gate at all; Access is what keeps them private.
+- Remove Access apps `26079ea0` and `72d63f46` (the `lab.bringthebuzzover.com` ones) **only after** the live test of the Lab login passes.
+- Pending Lawrence's OK, not done yet:
+  - set the Pages Functions runtime to **fail closed** (so a Functions error or exceeded limit blocks requests instead of serving static files ungated);
+  - add a Cloudflare WAF rate-limiting rule on `lab.bringthebuzzover.com/__lab/*`.
 
 ### Revoke someone (Lab login)
 
