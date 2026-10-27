@@ -2,9 +2,11 @@
  * Public home only: two role-tour cards into /for-orgs and /for-brands
  * (LAUNCH.md Phase C), above the Join Us section.
  */
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { Card } from "../ui/Card";
 import HomeFlyingBee from "./HomeFlyingBee";
+import { publicLogo } from "../../utils/publicLogo";
 import { GAP, SECTION_Y, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
@@ -24,14 +26,19 @@ const CARDS = [
 ] as const;
 
 export default function HomeBringBuzzSection() {
+  const sectionRef = useRef<HTMLElement>(null);
   return (
-    <section className={cn("bg-buzz-cream px-8", SECTION_Y)}>
+    <section ref={sectionRef} className={cn("relative bg-buzz-cream px-8", SECTION_Y)}>
       <div className="mx-auto max-w-5xl">
         <div className="relative mx-auto w-fit max-w-full">
           <h2 className={cn(TEXT.h2, "text-center text-buzz-coral md:text-4xl")}>
             How to Bring the Buzz Over
           </h2>
-          <HomeFlyingBee />
+          <img
+            src={publicLogo("bee.svg")}
+            alt=""
+            className="absolute right-0 top-0 hidden h-[19px] w-[19px] motion-reduce:block md:h-[29px] md:w-[29px]"
+          />
         </div>
         <p className={cn(TEXT.bodyLong, "mx-auto mt-14 max-w-2xl text-center font-medium text-buzz-inkMuted")}>
           Our platform makes it easy for brands to connect with student
@@ -59,6 +66,7 @@ export default function HomeBringBuzzSection() {
           ))}
         </div>
       </div>
+      <HomeFlyingBee sectionRef={sectionRef} />
     </section>
   );
 }

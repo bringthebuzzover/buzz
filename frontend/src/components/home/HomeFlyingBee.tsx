@@ -1,20 +1,19 @@
 /**
- * Decorative flight over the “How to Bring the Buzz Over” heading.
+ * Decorative flight across the public home section.
  *
- * One 16s document clock (`dur="16s"`, `calcMode="paced"`) drives the bee
- * and the bright trail, so they stay attached and move at constant speed.
- * Waypoints become a periodic cubic spline: every join, including the loop
- * seam, matches position, tangent, and curvature. A faint dotted copy of
- * that whole route sits under a shorter three-step trail.
- * The markup is parsed as SVG (not built by React) so SMIL actually starts.
- * prefers-reduced-motion parks a still bee at the top-right of the title.
+ * The route is one closed cubic spline from the section’s left edge to its
+ * right edge and back, weaving through the heading on the way. A single
+ * paced clock moves the bee and a comet of coral dots; older dots are
+ * farther behind and fade to nothing, so the path itself is not drawn.
+ * The markup is parsed as SVG (not built by React) so SMIL starts.
+ * prefers-reduced-motion hides this overlay; the heading keeps a still bee.
  */
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { publicLogo } from "../../utils/publicLogo";
 import { tailwindThemeExtend } from "../../theme/palette";
 
 const BEE_SRC = publicLogo("bee.svg");
 const CORAL = tailwindThemeExtend.colors.buzz.coral;
-const LOOP_SECONDS = 16;
 
 /**
  * Logo head points up-right (~50° above +x). Clockwise 50° lays that
@@ -25,91 +24,32 @@ const NOSE_CLOCKWISE_DEG = 50;
 const BODY_X = 0.454;
 const BODY_Y = 0.586;
 
+/** Pixel speed of the longer loops. Narrower sections stay at least 16s. */
+const PX_PER_SEC = 72;
+const MIN_LOOP_SECONDS = 16;
+
 type Pt = [number, number];
 type Bezier = { p0: Pt; p1: Pt; p2: Pt; p3: Pt };
 
+type Flight = {
+  svgTop: number;
+  svgHeight: number;
+  markup: string;
+};
+
 /**
- * Word boxes were measured on the live heading (system semibold,
- * tracking-tight). Wide viewBox 0 0 1000 360 is centered on the one-line
- * title, so y=180 is the line box. Phone viewBox 0 0 311 180 is centered
- * on the wrapped title (~375px): “Over” sits alone on line two.
- * The title wraps only below ~380px; from there up the proportions hold.
- * Screen-clockwise degrees: 0 right, 90 down, 180 left, 270 up.
+ * Newest dot is closest to the bee. Opacity falls off with lag and the
+ * last dot is nearly clear, so the tail disappears instead of staining
+ * the route.
  */
-function ring(cx: number, cy: number, rx: number, ry: number, fromDeg: number, toDeg: number, n: number): Pt[] {
-  const pts: Pt[] = [];
-  for (let i = 0; i < n; i++) {
-    const t = ((fromDeg + ((toDeg - fromDeg) * i) / n) * Math.PI) / 180;
-    pts.push([cx + rx * Math.cos(t), cy + ry * Math.sin(t)]);
-  }
-  return pts;
-}
-
-const WIDE_POINTS: Pt[] = [
-  [236, 52],
-  [310, 64],
-  [378, 108],
-  [430, 158],
-  [452, 188],
-  [500, 208],
-  [560, 188],
-  [630, 142],
-  [688, 112],
-  ...ring(720, 178, 108, 70, 268, 268 + 360, 12),
-  [724, 96],
-  [800, 108],
-  [870, 114],
-  [940, 124],
-  [990, 136],
-  ...ring(1016, 186, 46, 46, 268, 268 + 330, 11),
-  [990, 196],
-  [950, 210],
-  [860, 212],
-  [750, 208],
-  [630, 200],
-  [510, 188],
-  [400, 168],
-  [310, 136],
-  [250, 100],
-  [214, 70],
-];
-
-const NARROW_POINTS: Pt[] = [
-  [108, 28],
-  [134, 42],
-  [156, 60],
-  [170, 78],
-  [196, 96],
-  [224, 92],
-  ...ring(255, 72, 32, 20, 120, 120 + 360, 10),
-  [228, 102],
-  [186, 98],
-  [148, 104],
-  [118, 114],
-  [114, 124],
-  [140, 128],
-  [178, 124],
-  [216, 116],
-  [248, 110],
-  ...ring(284, 108, 15, 15, 170, 170 + 360, 8),
-  [266, 122],
-  [214, 126],
-  [156, 124],
-  [100, 114],
-  [68, 96],
-  [64, 62],
-  [84, 36],
-];
-
-/** Seconds behind the bee. Three opacity steps, two dots each. */
-const TRAIL = [
-  { lag: 0.4, opacity: 0.95, scale: 1 },
-  { lag: 0.75, opacity: 0.95, scale: 0.9 },
-  { lag: 1.15, opacity: 0.55, scale: 0.78 },
-  { lag: 1.55, opacity: 0.55, scale: 0.68 },
-  { lag: 2.0, opacity: 0.26, scale: 0.58 },
-  { lag: 2.45, opacity: 0.26, scale: 0.48 },
-] as const;
+const TRAIL = Array.from({ length: 13 }, (_, i) => {
+  const t = (i + 1) / 14;
+  return {
+    lag: 0.14 + t * 2.2,
+    opacity: 0.92 * (1 - t) ** 1.5,
+    scale: 1 - t * 0.62,
+  };
+}).filter((step) => step.opacity >= 0.03);
 
 function solvePeriodic(lower: number[], diag: number[], upper: number[], rhs: number[]): number[] {
   const n = rhs.length;
@@ -190,108 +130,224 @@ function pathData(beziers: Bezier[]): string {
 function pointAt(b: Bezier, u: number): Pt {
   const m = 1 - u;
   const c = (axis: 0 | 1) =>
-    m * m * m * b.p0[axis] +
-    3 * m * m * u * b.p1[axis] +
-    3 * m * u * u * b.p2[axis] +
-    u * u * u * b.p3[axis];
+    m * m * m * b.p0[axis] + 3 * m * m * u * b.p1[axis] + 3 * m * u * u * b.p2[axis] + u * u * u * b.p3[axis];
   return [c(0), c(1)];
 }
 
-/** Evenly spaced samples of the closed route, for the faint dotted path. */
-function routeDots(beziers: Bezier[], spacing: number): Pt[] {
-  const dense: Pt[] = [beziers[0].p0];
+function arcLength(beziers: Bezier[]): number {
+  let len = 0;
   for (const b of beziers) {
-    for (let s = 1; s <= 16; s++) dense.push(pointAt(b, s / 16));
-  }
-  const dots: Pt[] = [dense[0]];
-  let acc = 0;
-  let prev = dense[0];
-  for (let i = 1; i < dense.length; i++) {
-    acc += Math.hypot(dense[i][0] - prev[0], dense[i][1] - prev[1]);
-    prev = dense[i];
-    if (acc >= spacing) {
-      dots.push(dense[i]);
-      acc = 0;
+    let prev = b.p0;
+    for (let s = 1; s <= 20; s++) {
+      const p = pointAt(b, s / 20);
+      len += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
+      prev = p;
     }
   }
-  const first = dots[0];
-  const last = dots[dots.length - 1];
-  if (dots.length > 1 && Math.hypot(last[0] - first[0], last[1] - first[1]) < spacing * 0.65) {
-    dots.pop();
+  return len;
+}
+
+function arc(cx: number, cy: number, rx: number, ry: number, fromDeg: number, toDeg: number, n: number): Pt[] {
+  const pts: Pt[] = [];
+  for (let i = 0; i < n; i++) {
+    const t = ((fromDeg + ((toDeg - fromDeg) * i) / n) * Math.PI) / 180;
+    pts.push([cx + rx * Math.cos(t), cy + ry * Math.sin(t)]);
   }
-  return dots;
+  return pts;
 }
 
-function attr(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+function pushToward(pts: Pt[], target: Pt, step: number) {
+  const prev = pts[pts.length - 1];
+  const dist = Math.hypot(target[0] - prev[0], target[1] - prev[1]);
+  const n = Math.max(1, Math.round(dist / step));
+  for (let i = 1; i <= n; i++) {
+    const t = i / n;
+    pts.push([prev[0] + (target[0] - prev[0]) * t, prev[1] + (target[1] - prev[1]) * t]);
+  }
 }
 
-function flightMarkup(opts: {
-  points: Pt[];
-  pathId: string;
-  bee: number;
-  dot: number;
-  routeSpacing: number;
-  routeRadius: number;
-  viewBox: string;
-  className: string;
-}): string {
-  const { points, pathId, bee, dot, routeSpacing, routeRadius, viewBox, className } = opts;
-  const beziers = splineBeziers(points);
+/** Even spacing so the long edge-to-edge legs don’t flatten the loops. */
+function resample(pts: Pt[], step: number): Pt[] {
+  const out: Pt[] = [pts[0]];
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    let a = pts[i - 1];
+    const b = pts[i];
+    let dist = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (dist === 0) continue;
+    while (acc + dist >= step) {
+      const t = (step - acc) / dist;
+      a = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+      out.push(a);
+      dist = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      acc = 0;
+    }
+    acc += dist;
+  }
+  const last = pts[pts.length - 1];
+  const prev = out[out.length - 1];
+  if (Math.hypot(last[0] - prev[0], last[1] - prev[1]) > step * 0.35) out.push(last);
+  if (out.length > 3 && Math.hypot(out[0][0] - out[out.length - 1][0], out[0][1] - out[out.length - 1][1]) < step) {
+    out.pop();
+  }
+  return out;
+}
+
+type Word = { c: Pt; halfW: number; halfH: number; top: number };
+
+type Words = {
+  width: number;
+  headingTop: number;
+  headingHeight: number;
+  bring: Word;
+  buzz: Word;
+  over: Word;
+};
+
+/**
+ * Section-pixel waypoints. Y grows downward. The outbound lane runs through
+ * the heading; the return lane sits just below it. U-turns at the two
+ * edges are semicircles so the loop can close without a corner.
+ */
+function routePoints(w: Words): Pt[] {
+  const bee = w.headingHeight > 52 ? 19 : 29;
+  const inset = Math.ceil(bee * 0.75) + 12;
+  const left = inset;
+  const right = w.width - inset;
+  const wrapped = w.over.c[1] > w.bring.c[1] + 8;
+  const lane = w.bring.c[1];
+  const headingBottom = w.headingTop + w.headingHeight;
+  const returnY = headingBottom + 12;
+  const radius = Math.max(18, (returnY - lane) / 2);
+  const turnCy = lane + radius;
+  const step = 48;
+
+  const pts: Pt[] = [[left + radius, lane]];
+  pushToward(pts, [w.bring.c[0], lane], step);
+
+  const rx = Math.min(w.buzz.halfW + (wrapped ? 8 : 18), Math.max(28, Math.abs(w.buzz.c[0] - w.bring.c[0]) * 0.55));
+  const ry = wrapped
+    ? Math.max(10, Math.min(w.buzz.halfH - 2, w.over.top - w.buzz.c[1] - 4))
+    : Math.max(18, Math.min(w.buzz.halfH + 14, returnY - w.buzz.c[1] - 10));
+  pts.push(...arc(w.buzz.c[0], w.buzz.c[1], rx, ry, 160, 160 + 360, 18));
+
+  if (!wrapped) {
+    const above = w.over.top - 12;
+    pushToward(pts, [(w.buzz.c[0] + w.over.c[0]) / 2, above], 24);
+    pushToward(pts, [w.over.c[0], above], 24);
+    pushToward(pts, [(w.over.c[0] + right - radius) / 2, lane], step);
+  }
+  pushToward(pts, [right - radius, lane], step);
+  pts.push(...arc(right - radius, turnCy, radius, radius, 270, 270 + 180, 12));
+  pushToward(pts, [left + radius, returnY], step);
+  pts.push(...arc(left + radius, turnCy, radius, radius, 90, 90 + 180, 12));
+  return resample(pts, 16);
+}
+
+function flightMarkup(words: Words): { markup: string; svgTop: number; svgHeight: number } {
+  const bee = words.headingHeight > 52 ? 19 : 29;
+  const dot = bee === 19 ? 3.1 : 4.6;
+  const raw = routePoints(words);
+  const ys = raw.map((p) => p[1]);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const svgTop = Math.max(0, Math.floor(minY - bee - 8));
+  const svgHeight = Math.ceil(maxY + bee + 10 - svgTop);
+  const local = raw.map(([x, y]): Pt => [x, y - svgTop]);
+  const beziers = splineBeziers(local);
+  const seconds = Math.max(MIN_LOOP_SECONDS, Math.round((arcLength(beziers) / PX_PER_SEC) * 10) / 10);
   const path = pathData(beziers);
-  const [, , width, height] = viewBox.split(" ");
-  const route = routeDots(beziers, routeSpacing)
-    .map(
-      ([x, y]) =>
-        `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${routeRadius.toFixed(2)}" fill="${CORAL}" opacity="0.2"/>`,
-    )
-    .join("");
   const trail = TRAIL.map((step) => {
-    const behind = (LOOP_SECONDS - step.lag).toFixed(2);
+    const behind = (seconds - step.lag).toFixed(2);
     const radius = (dot * step.scale).toFixed(2);
-    return `<circle r="${radius}" fill="${CORAL}" opacity="${step.opacity}"><animateMotion dur="${LOOP_SECONDS}s" repeatCount="indefinite" begin="-${behind}s" calcMode="paced" rotate="0"><mpath href="#${pathId}" xlink:href="#${pathId}"/></animateMotion></circle>`;
+    const opacity = step.opacity.toFixed(3);
+    return `<circle r="${radius}" fill="${CORAL}" opacity="${opacity}"><animateMotion dur="${seconds}s" repeatCount="indefinite" begin="-${behind}s" calcMode="paced" rotate="0"><mpath href="#home-bee-flight" xlink:href="#home-bee-flight"/></animateMotion></circle>`;
   }).join("");
-  const beeUrl = attr(BEE_SRC);
-  return `<svg viewBox="${viewBox}" width="${width}" height="${height}" class="${className}" overflow="visible" focusable="false"><path id="${pathId}" d="${path}" fill="none"/>${route}${trail}<g><animateMotion dur="${LOOP_SECONDS}s" repeatCount="indefinite" begin="0s" calcMode="paced" rotate="auto"><mpath href="#${pathId}" xlink:href="#${pathId}"/></animateMotion><g transform="rotate(${NOSE_CLOCKWISE_DEG})"><image href="${beeUrl}" xlink:href="${beeUrl}" x="${(-bee * BODY_X).toFixed(2)}" y="${(-bee * BODY_Y).toFixed(2)}" width="${bee}" height="${bee}"/></g></g></svg>`;
+  const beeUrl = BEE_SRC.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  const markup = `<svg viewBox="0 0 ${words.width} ${svgHeight}" width="${words.width}" height="${svgHeight}" overflow="visible" focusable="false" data-bee-dur="${seconds}"><path id="home-bee-flight" d="${path}" fill="none"/>${trail}<g><animateMotion dur="${seconds}s" repeatCount="indefinite" begin="0s" calcMode="paced" rotate="auto"><mpath href="#home-bee-flight" xlink:href="#home-bee-flight"/></animateMotion><g transform="rotate(${NOSE_CLOCKWISE_DEG})"><image href="${beeUrl}" xlink:href="${beeUrl}" x="${(-bee * BODY_X).toFixed(2)}" y="${(-bee * BODY_Y).toFixed(2)}" width="${bee}" height="${bee}"/></g></g></svg>`;
+  return { markup, svgTop, svgHeight };
 }
 
-const NARROW_SVG = flightMarkup({
-  points: NARROW_POINTS,
-  pathId: "home-bee-path-narrow",
-  bee: 19,
-  dot: 3.3,
-  routeSpacing: 14,
-  routeRadius: 2,
-  viewBox: "0 0 311 180",
-  className:
-    "pointer-events-none absolute left-0 top-1/2 h-auto w-full -translate-y-1/2 overflow-visible min-[380px]:hidden",
-});
+function wordBox(heading: HTMLElement, phrase: string, originLeft: number, originTop: number): Word | null {
+  const node = [...heading.childNodes].find((child) => child.nodeType === Node.TEXT_NODE && child.textContent?.includes(phrase));
+  if (!node?.textContent) return null;
+  const start = node.textContent.indexOf(phrase);
+  const range = document.createRange();
+  range.setStart(node, start);
+  range.setEnd(node, start + phrase.length);
+  const box = range.getBoundingClientRect();
+  range.detach();
+  return {
+    c: [box.left + box.width / 2 - originLeft, box.top + box.height / 2 - originTop],
+    halfW: box.width / 2,
+    halfH: box.height / 2,
+    top: box.top - originTop,
+  };
+}
 
-const WIDE_SVG = flightMarkup({
-  points: WIDE_POINTS,
-  pathId: "home-bee-path-wide",
-  bee: 62,
-  dot: 7.6,
-  routeSpacing: 40,
-  routeRadius: 4.6,
-  viewBox: "0 0 1000 360",
-  className:
-    "pointer-events-none absolute left-0 top-1/2 h-auto w-full -translate-y-1/2 overflow-visible hidden min-[380px]:block",
-});
+function readFlight(section: HTMLElement): Flight | null {
+  const heading = section.querySelector("h2");
+  if (!heading) return null;
+  const sectionBox = section.getBoundingClientRect();
+  const headingBox = heading.getBoundingClientRect();
+  const width = Math.round(section.clientWidth);
+  if (width < 40) return null;
+  const bring = wordBox(heading, "Bring the", sectionBox.left, sectionBox.top);
+  const buzz = wordBox(heading, "Buzz", sectionBox.left, sectionBox.top);
+  const over = wordBox(heading, "Over", sectionBox.left, sectionBox.top);
+  if (!bring || !buzz || !over) return null;
+  const words: Words = {
+    width,
+    headingTop: headingBox.top - sectionBox.top,
+    headingHeight: headingBox.height,
+    bring,
+    buzz,
+    over,
+  };
+  const drawn = flightMarkup(words);
+  return { svgTop: drawn.svgTop, svgHeight: drawn.svgHeight, markup: drawn.markup };
+}
 
-export default function HomeFlyingBee() {
+export default function HomeFlyingBee({ sectionRef }: { sectionRef: RefObject<HTMLElement | null> }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [flight, setFlight] = useState<Flight | null>(null);
+
+  useLayoutEffect(() => {
+    const section = sectionRef.current ?? rootRef.current?.parentElement;
+    if (!(section instanceof HTMLElement)) return;
+    const measure = () => {
+      const next = readFlight(section);
+      setFlight((prev) => {
+        if (!next) return null;
+        if (
+          prev &&
+          prev.markup === next.markup &&
+          prev.svgTop === next.svgTop &&
+          prev.svgHeight === next.svgHeight
+        ) {
+          return prev;
+        }
+        return next;
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(section);
+    const heading = section.querySelector("h2");
+    if (heading) observer.observe(heading);
+    return () => observer.disconnect();
+  }, [sectionRef]);
+
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-visible">
-      <div
-        className="motion-reduce:hidden"
-        // Static decorative SVG. Parsed by the browser so the SMIL clock starts.
-        dangerouslySetInnerHTML={{ __html: NARROW_SVG + WIDE_SVG }}
-      />
-      <img
-        src={BEE_SRC}
-        alt=""
-        className="absolute right-0 top-0 hidden h-[19px] w-[19px] motion-reduce:block md:h-[29px] md:w-[29px]"
-      />
+    <div ref={rootRef} aria-hidden="true" className="pointer-events-none absolute inset-0">
+      {flight ? (
+        <div
+          className="motion-reduce:hidden"
+          style={{ position: "absolute", left: 0, top: flight.svgTop, width: "100%", height: flight.svgHeight }}
+          // Parsed by the browser so the SMIL clock starts.
+          dangerouslySetInnerHTML={{ __html: flight.markup }}
+        />
+      ) : null}
     </div>
   );
 }
