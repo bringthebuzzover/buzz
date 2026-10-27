@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 128" color="#1C1917" role="img" aria-labelledby="arc-title arc-desc">
+  <title id="arc-title">Arc</title>
+  <desc id="arc-desc">A dotted flight trail behind a profile bee.</desc>
+  <defs>
+    <clipPath id="arc-abdomen">
+      <ellipse cx="124" cy="70" rx="26" ry="15" transform="rotate(-12 128 70)"/>
+    </clipPath>
+  </defs>
+  <path d="M14 108C44 114 66 92 90 78" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="0.8 9"/>
+  <g transform="rotate(-12 128 70)">
+    <path fill="currentColor" d="M124 58C106 42 84 36 78 48C72 58 96 66 122 60Z"/>
+    <ellipse cx="124" cy="70" rx="26" ry="15" fill="#1C1917" stroke="currentColor" stroke-width="2.5"/>
+    <circle cx="152" cy="64" r="12" fill="#1C1917" stroke="currentColor" stroke-width="2.5"/>
+    <path d="M148 56C154 50 160 46 163 44" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="164" cy="43.2" r="2.5" fill="currentColor"/>
+    <circle cx="157" cy="61" r="2.7" fill="#F9D940"/>
+  </g>
+  <g clip-path="url(#arc-abdomen)">
+    <g transform="rotate(-12 128 70)">
+      <rect x="96" y="64" width="52" height="6" fill="#F9D940"/>
+      <rect x="96" y="76" width="52" height="6" fill="#F9D940"/>
+    </g>
+  </g>
+</svg>
