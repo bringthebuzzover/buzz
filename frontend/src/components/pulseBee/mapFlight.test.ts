@@ -1,4 +1,5 @@
 import {
+  FLIGHT_SPEED,
   FLIGHT_STOPS,
   LOOP_SECONDS,
   PAUSE_SECONDS,
@@ -60,10 +61,12 @@ describe("map flight", () => {
     );
   });
 
-  it("keeps a constant pace and a 600ms landing inside a 15s loop", () => {
+  it("keeps a constant pace and a 400ms landing inside a 10s loop", () => {
+    expect(FLIGHT_SPEED).toBe(1.5);
+    expect(plan.flightSeconds).toBeCloseTo(7.6, 5);
     expect(plan.flightSeconds).toBeCloseTo(LOOP_SECONDS - PAUSE_SECONDS * FLIGHT_STOPS.length, 5);
-    expect(plan.loopSeconds).toBe(15);
-    expect(PAUSE_SECONDS).toBe(0.6);
+    expect(plan.loopSeconds).toBe(10);
+    expect(PAUSE_SECONDS).toBe(0.4);
     expect(plan.arrivals[0]).toBe(0);
     const speed = plan.pathLength / plan.flightSeconds;
     plan.arrivals.forEach((arrival, index) => {
@@ -76,6 +79,8 @@ describe("map flight", () => {
     expect(plan.trail.length).toBeGreaterThanOrEqual(8);
     expect(plan.trail.length).toBeLessThanOrEqual(10);
     plan.trail.forEach((dot, index) => {
+      const t = (index + 1) / (plan.trail.length + 1);
+      expect(dot.lag).toBeCloseTo((0.07 + t * 0.8) / FLIGHT_SPEED, 5);
       expect(dot.lag).toBeGreaterThan(0);
       expect(dot.lag).toBeLessThan(plan.flightSeconds);
       expect(dot.opacity).toBeGreaterThan(0);

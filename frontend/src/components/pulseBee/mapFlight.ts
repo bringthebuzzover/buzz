@@ -5,7 +5,7 @@
  * The bee and a comet of ink dots share that path and one SMIL clock:
  * calcMode="paced", rotate="auto", and negative `begin` lags, the same
  * idea as the old home-page bee. Paced motion cannot hold still (it ignores
- * keyTimes), so each landing freezes that shared clock for 600ms.
+ * keyTimes), so each landing freezes that shared clock for 400ms.
  */
 import { geoAlbersUsa } from "d3-geo";
 import { COLLEGES } from "../../data/colleges";
@@ -25,8 +25,10 @@ export const FLIGHT_STOPS = [
 ] as const;
 
 export const REDUCED_MOTION_DOMAIN = "cornell.edu";
-export const PAUSE_SECONDS = 0.6;
-export const LOOP_SECONDS = 15;
+/** 1.5× the original 15s loop: 7.6s of paced flight and a 400ms pause on each pin. */
+export const FLIGHT_SPEED = 1.5;
+export const PAUSE_SECONDS = 0.4;
+export const LOOP_SECONDS = 10;
 export const INK = "#0b0b0b";
 
 /** How close the paced bee must be, in viewBox units, before a landing counts. */
@@ -42,6 +44,9 @@ export const BEE_BODY_X = 0.454;
 export const BEE_BODY_Y = 0.586;
 
 const TRAIL_COUNT = 9;
+/** Seconds behind the bee at 1× speed. Divided by FLIGHT_SPEED so the comet covers the same path length. */
+const TRAIL_LAG_HEAD = 0.07;
+const TRAIL_LAG_SPAN = 0.8;
 
 export type Pt = { x: number; y: number };
 
@@ -158,7 +163,7 @@ function trailDots(flightSeconds: number): TrailDot[] {
     const t = (index + 1) / (TRAIL_COUNT + 1);
     const opacity = 0.92 * (1 - t) ** 1.15;
     return {
-      lag: Math.min(flightSeconds * 0.45, 0.07 + t * 0.8),
+      lag: Math.min(flightSeconds * 0.45, (TRAIL_LAG_HEAD + t * TRAIL_LAG_SPAN) / FLIGHT_SPEED),
       opacity: Math.round(opacity * 1000) / 1000,
       scale: Math.round((1 - t * 0.68) * 1000) / 1000,
     };
