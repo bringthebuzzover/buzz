@@ -62,6 +62,7 @@ import PulseLayout from "./layouts/PulseLayout";
 import PulseHomePage from "./pages/pulse/PulseHomePage";
 import PulseTwoLayout from "./layouts/PulseTwoLayout";
 import PulseTwoHomePage from "./pages/pulse2/PulseTwoHomePage";
+import DropEditorPage from "./pages/drop-editor/DropEditorPage";
 import PulseBeeLayout from "./layouts/PulseBeeLayout";
 import PulseBeeHomePage from "./pages/pulseBee/PulseBeeHomePage";
 
@@ -125,6 +126,8 @@ export default function AppRoot(): ReactElement {
         <Route path="pulse2" element={<PulseTwoHomePage />} />
       </Route>
 
+      {/* Design build of the drop editor. Local state only, example values. */}
+      <Route path="drop-editor" element={<DropEditorPage />} />
       <Route element={<PulseBeeLayout />}>
         <Route path="pulse-bee" element={<PulseBeeHomePage />} />
       </Route>
