@@ -29,6 +29,7 @@ describe("lab directory data", () => {
       "pulse2",
       "inspo",
       "drop-editor",
+      "drop-editor-react",
       "logo-options",
     ]);
     expect(new Set(ids).size).toBe(ids.length);
@@ -61,6 +62,17 @@ describe("lab directory data", () => {
       "/lab/drop-editor/?pop=1",
       "/lab/drop-editor/?desc=1",
       "/lab/drop-editor/?edit=1",
+    ]);
+  });
+
+  it("points the React drop editor at its app route and states", () => {
+    const drop = labEntries.find((entry) => entry.id === "drop-editor-react");
+    expect(drop?.href).toBe("/drop-editor");
+    expect(drop?.quickLinks?.map((link) => link.href)).toEqual([
+      "/drop-editor?mode=brand",
+      "/drop-editor?pop=1",
+      "/drop-editor?desc=1",
+      "/drop-editor?edit=1",
     ]);
   });
 
