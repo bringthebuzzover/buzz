@@ -63,6 +63,8 @@ import PulseHomePage from "./pages/pulse/PulseHomePage";
 import PulseTwoLayout from "./layouts/PulseTwoLayout";
 import PulseTwoHomePage from "./pages/pulse2/PulseTwoHomePage";
 import DropEditorPage from "./pages/drop-editor/DropEditorPage";
+import PulseBeeLayout from "./layouts/PulseBeeLayout";
+import PulseBeeHomePage from "./pages/pulseBee/PulseBeeHomePage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
 function PortalGuard({
@@ -126,6 +128,9 @@ export default function AppRoot(): ReactElement {
 
       {/* Design build of the drop editor. Local state only, example values. */}
       <Route path="drop-editor" element={<DropEditorPage />} />
+      <Route element={<PulseBeeLayout />}>
+        <Route path="pulse-bee" element={<PulseBeeHomePage />} />
+      </Route>
 
       <Route element={<SiteLayout />}>
         <Route index element={<HomePage />} />
