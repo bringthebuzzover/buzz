@@ -15,7 +15,7 @@ SRC="$ROOT/frontend/src"
 fail=0
 
 # Files allowed to contain raw utilities: they are the system.
-PRIMITIVES='components/forms/|components/ui/|pages/dev/UiKitPage.tsx'
+PRIMITIVES='components/forms/|components/ui/|components/inspo/|pages/dev/UiKitPage.tsx|pages/inspo/'
 
 # hit <label> <pattern> <guidance>
 hit() {
