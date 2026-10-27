@@ -14,7 +14,7 @@ Checked against Cloudflare’s docs on 27 Oct 2026. Dashboard labels drift; the 
 
 `npm run build:lab` (`frontend/scripts/build-lab.mjs`) does five things:
 
-1. Sets `VITE_LAB=1` and runs craco. `frontend/craco.config.js` then uses `src/lab/index.tsx` instead of `src/index.tsx`. `/` and `/lab` render the directory. Every other route is the normal app, with a fixed **Design preview** badge.
+1. Sets `VITE_LAB=1` and runs craco. `frontend/craco.config.js` then uses `src/lab/index.tsx` instead of `src/index.tsx`. `/` and `/lab` render the directory. Every other route is the normal app, with a fixed **← All designs** pill in the bottom-left corner that links back to the directory (raised on phones to clear the pulse pages' bottom dock). The directory itself shows a **Design preview** badge at the top centre.
 2. Copies `frontend/lab-static/drop-editor/` to `/lab/drop-editor/` and `design/logo-options/` to `/lab/logo-options/`, resolving symlinks to real files (Pages rejects links in the output, and `fs.cpSync`'s `dereference` is ignored on Node 22).
 3. Adds `<meta name="robots" content="noindex, nofollow">` to HTML, writes `robots.txt` (`Disallow: /`), and writes `_headers` with `X-Robots-Tag: noindex, nofollow`.
 4. Writes `_redirects` with two trailing-slash 301s, for `/lab/drop-editor` and `/lab/logo-options`. It does not write a `/* /index.html 200` splat, and it does not write a top-level `404.html`.
@@ -155,7 +155,7 @@ Edit `frontend/src/data/labEntries.ts` and append one object to `labEntries`:
 | `quickLinks` | no | Extra links, as on the drop editor |
 | `thumbnailFit` | no | `"contain"` for a mark on a plain field |
 
-Put a new static mockup in `frontend/lab-static/<name>/` (an `index.html` plus its assets, relative URLs). `build:lab` copies that folder to `/lab/<name>/` and adds the badge and `noindex`. A React route that already exists only needs the object.
+Put a new static mockup in `frontend/lab-static/<name>/` (an `index.html` plus its assets, relative URLs). `build:lab` copies that folder to `/lab/<name>/` and adds the **← All designs** pill and `noindex`. A React route that already exists only needs the object.
 
 Open a pull request into `design/brainstorm`. Pages rebuilds the production branch when it merges. Do not merge to `main` for a lab-only change.
 
