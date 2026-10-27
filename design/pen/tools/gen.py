@@ -65,7 +65,7 @@ def comp_defs():
     # FAQ item
     def faq(cid,name,open_):
         ch=[FR('Hairline',id=cid+'h',width='fill_container',height=1,fill='$hairline'),
-            FR('Summary',[T('Question','Who can apply?','$type-h4',weight='500',lineHeight=1.3,letterSpacing=-0.19,textGrowth='fixed-width',width='fill_container',id=cid+'q'),
+            FR('Summary',[T('Question','Who can apply?','$type-h3',weight='500',lineHeight=1.3,letterSpacing=-0.19,textGrowth='fixed-width',width='fill_container',id=cid+'q'),
                           {'type':'icon','id':cid+'i','name':'Icon','width':14,'height':14,'icon':'x' if open_ else 'plus','library':'lucide','fill':'$on-surface'}],
                id=cid+'s',width='fill_container',height=64,gap='$space-4',alignItems='center',justifyContent='space_between')]
         if open_:
@@ -163,7 +163,7 @@ def faq_section(qas,mobile,ink):
             rows.append(REF('FaqCl',f'Q{i+1}',width='fill_container',descendants={'FaqClq':{'content':q}}))
     rows.append(FR('Hairline',width='fill_container',height=1,fill='$hairline'))
     lst=FR('List',rows,width='fill_container',layout='vertical')
-    title=T('Title','Questions','$type-title-xl',weight='500',lineHeight=0.95,letterSpacing=-2.98)
+    title=T('Title','Questions','$type-title',weight='500',lineHeight=0.95,letterSpacing=-2.98)
     if mobile:
         body=FR('FAQ',[title,lst],width='fill_container',layout='vertical',gap='$space-5')
     else:

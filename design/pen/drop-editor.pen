@@ -171,9 +171,9 @@
           "fill": "$paper",
           "content": "Campuses",
           "fontFamily": "$font",
-          "fontSize": 22,
+          "fontSize": "$type-h3",
           "fontWeight": "500",
-          "letterSpacing": -0.66
+          "letterSpacing": -0.6
         },
         {
           "type": "frame",
@@ -233,7 +233,7 @@
           "fill": "$paper-30",
           "content": "GMT-4",
           "fontFamily": "$font",
-          "fontSize": "$type-micro",
+          "fontSize": "$type-label",
           "fontWeight": "normal"
         },
         {
@@ -350,9 +350,9 @@
               "content": "8",
               "lineHeight": 1,
               "fontFamily": "$font",
-              "fontSize": 40,
+              "fontSize": "$type-h2",
               "fontWeight": "500",
-              "letterSpacing": -1.8
+              "letterSpacing": -1.98
             },
             {
               "type": "text",
@@ -541,7 +541,7 @@
                   "fill": "$ink",
                   "content": "LG",
                   "fontFamily": "$font",
-                  "fontSize": "$type-micro",
+                  "fontSize": "$type-label",
                   "fontWeight": "500"
                 }
               ]
@@ -676,9 +676,9 @@
                           "content": "Yerba Madre",
                           "lineHeight": 0.98,
                           "fontFamily": "$font",
-                          "fontSize": 68,
+                          "fontSize": "$type-title",
                           "fontWeight": "500",
-                          "letterSpacing": -3.06
+                          "letterSpacing": -2.88
                         },
                         {
                           "type": "text",
@@ -689,9 +689,9 @@
                           "content": "x",
                           "lineHeight": 0.98,
                           "fontFamily": "$font",
-                          "fontSize": 68,
+                          "fontSize": "$type-title",
                           "fontWeight": "500",
-                          "letterSpacing": -3.06
+                          "letterSpacing": -2.88
                         },
                         {
                           "type": "text",
@@ -701,9 +701,9 @@
                           "content": "BUZZ",
                           "lineHeight": 0.98,
                           "fontFamily": "$font",
-                          "fontSize": 68,
+                          "fontSize": "$type-title",
                           "fontWeight": "500",
-                          "letterSpacing": -3.06
+                          "letterSpacing": -2.88
                         }
                       ]
                     }
@@ -1492,7 +1492,7 @@
                                       "fill": "$ink",
                                       "content": "Applications open Nov 2",
                                       "fontFamily": "$font",
-                                      "fontSize": "$type-micro",
+                                      "fontSize": "$type-label",
                                       "fontWeight": "500"
                                     }
                                   ]
@@ -1521,7 +1521,7 @@
                                       "fill": "$paper",
                                       "content": "Replace cover",
                                       "fontFamily": "$font",
-                                      "fontSize": "$type-micro",
+                                      "fontSize": "$type-label",
                                       "fontWeight": "normal"
                                     }
                                   ]
@@ -1576,9 +1576,12 @@
                                   "content": "Yerba Madre\nx BUZZ",
                                   "lineHeight": 1,
                                   "fontFamily": "$font",
-                                  "fontSize": 30,
+                                  "fontSize": "$type-h2",
                                   "fontWeight": "500",
-                                  "letterSpacing": -1.2
+                                  "letterSpacing": -1.12,
+                                  "theme": {
+                                    "device": "mobile"
+                                  }
                                 }
                               ]
                             }
@@ -1789,7 +1792,7 @@
                       "fill": "$ink",
                       "content": "Save drop",
                       "fontFamily": "$font",
-                      "fontSize": 15,
+                      "fontSize": "$type-small",
                       "fontWeight": "500"
                     }
                   ]
@@ -1814,7 +1817,7 @@
                       "fill": "$paper-30",
                       "content": "Autosaves as you go. Publishing moves it to Open.",
                       "fontFamily": "$font",
-                      "fontSize": "$type-micro",
+                      "fontSize": "$type-label",
                       "fontWeight": "normal"
                     }
                   ]
@@ -1970,7 +1973,7 @@
                   "fill": "$ink",
                   "content": "LG",
                   "fontFamily": "$font",
-                  "fontSize": "$type-micro",
+                  "fontSize": "$type-label",
                   "fontWeight": "500"
                 }
               ]
@@ -2105,9 +2108,9 @@
                           "content": "Yerba Madre",
                           "lineHeight": 0.98,
                           "fontFamily": "$font",
-                          "fontSize": 68,
+                          "fontSize": "$type-title",
                           "fontWeight": "500",
-                          "letterSpacing": -3.06
+                          "letterSpacing": -2.88
                         },
                         {
                           "type": "text",
@@ -2118,9 +2121,9 @@
                           "content": "x",
                           "lineHeight": 0.98,
                           "fontFamily": "$font",
-                          "fontSize": 68,
+                          "fontSize": "$type-title",
                           "fontWeight": "500",
-                          "letterSpacing": -3.06
+                          "letterSpacing": -2.88
                         },
                         {
                           "type": "text",
@@ -2130,9 +2133,9 @@
                           "content": "BUZZ",
                           "lineHeight": 0.98,
                           "fontFamily": "$font",
-                          "fontSize": 68,
+                          "fontSize": "$type-title",
                           "fontWeight": "500",
-                          "letterSpacing": -3.06
+                          "letterSpacing": -2.88
                         }
                       ]
                     }
@@ -2823,7 +2826,7 @@
                                       "fill": "$ink",
                                       "content": "Applications open Nov 2",
                                       "fontFamily": "$font",
-                                      "fontSize": "$type-micro",
+                                      "fontSize": "$type-label",
                                       "fontWeight": "500"
                                     }
                                   ]
@@ -2852,7 +2855,7 @@
                                       "fill": "$paper",
                                       "content": "Replace cover",
                                       "fontFamily": "$font",
-                                      "fontSize": "$type-micro",
+                                      "fontSize": "$type-label",
                                       "fontWeight": "normal"
                                     }
                                   ]
@@ -2907,9 +2910,12 @@
                                   "content": "Yerba Madre\nx BUZZ",
                                   "lineHeight": 1,
                                   "fontFamily": "$font",
-                                  "fontSize": 30,
+                                  "fontSize": "$type-h2",
                                   "fontWeight": "500",
-                                  "letterSpacing": -1.2
+                                  "letterSpacing": -1.12,
+                                  "theme": {
+                                    "device": "mobile"
+                                  }
                                 }
                               ]
                             }
@@ -3120,7 +3126,7 @@
                       "fill": "$ink",
                       "content": "Send request",
                       "fontFamily": "$font",
-                      "fontSize": 15,
+                      "fontSize": "$type-small",
                       "fontWeight": "500"
                     }
                   ]
@@ -3145,7 +3151,7 @@
                       "fill": "$paper-30",
                       "content": "Buzz reviews it and reaches out within a few days.",
                       "fontFamily": "$font",
-                      "fontSize": "$type-micro",
+                      "fontSize": "$type-label",
                       "fontWeight": "normal"
                     }
                   ]
@@ -3233,9 +3239,9 @@
                   "fill": "$paper-30",
                   "content": "QUICK PICK",
                   "fontFamily": "$font",
-                  "fontSize": "$type-tiny",
+                  "fontSize": "$type-label",
                   "fontWeight": "normal",
-                  "letterSpacing": 0.66
+                  "letterSpacing": 0.72
                 }
               ]
             },
@@ -3426,7 +3432,7 @@
                       "fill": "$paper-52",
                       "content": "Today, Oct 27",
                       "fontFamily": "$font",
-                      "fontSize": "$type-micro",
+                      "fontSize": "$type-label",
                       "fontWeight": "normal"
                     }
                   ]
@@ -3487,7 +3493,7 @@
                           "fill": "$paper",
                           "content": "October 2026",
                           "fontFamily": "$font",
-                          "fontSize": 15,
+                          "fontSize": "$type-small",
                           "fontWeight": "500"
                         }
                       ]
@@ -3519,9 +3525,9 @@
                               "content": "Su",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             },
                             {
                               "type": "text",
@@ -3533,9 +3539,9 @@
                               "content": "Mo",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             },
                             {
                               "type": "text",
@@ -3547,9 +3553,9 @@
                               "content": "Tu",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             },
                             {
                               "type": "text",
@@ -3561,9 +3567,9 @@
                               "content": "We",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             },
                             {
                               "type": "text",
@@ -3575,9 +3581,9 @@
                               "content": "Th",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             },
                             {
                               "type": "text",
@@ -3589,9 +3595,9 @@
                               "content": "Fr",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             },
                             {
                               "type": "text",
@@ -3603,9 +3609,9 @@
                               "content": "Sa",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             }
                           ]
                         },
@@ -5197,9 +5203,9 @@
                                       "content": "TODAY",
                                       "lineHeight": 1,
                                       "fontFamily": "$font",
-                                      "fontSize": 9,
+                                      "fontSize": "$type-label",
                                       "fontWeight": "500",
-                                      "letterSpacing": 0.5
+                                      "letterSpacing": 0.67
                                     }
                                   ]
                                 }
@@ -5447,7 +5453,7 @@
                           "fill": "$paper",
                           "content": "November 2026",
                           "fontFamily": "$font",
-                          "fontSize": 15,
+                          "fontSize": "$type-small",
                           "fontWeight": "500"
                         }
                       ]
@@ -5479,9 +5485,9 @@
                               "content": "Su",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             },
                             {
                               "type": "text",
@@ -5493,9 +5499,9 @@
                               "content": "Mo",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             },
                             {
                               "type": "text",
@@ -5507,9 +5513,9 @@
                               "content": "Tu",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             },
                             {
                               "type": "text",
@@ -5521,9 +5527,9 @@
                               "content": "We",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             },
                             {
                               "type": "text",
@@ -5535,9 +5541,9 @@
                               "content": "Th",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             },
                             {
                               "type": "text",
@@ -5549,9 +5555,9 @@
                               "content": "Fr",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             },
                             {
                               "type": "text",
@@ -5563,9 +5569,9 @@
                               "content": "Sa",
                               "textAlign": "center",
                               "fontFamily": "$font",
-                              "fontSize": "$type-tiny",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal",
-                              "letterSpacing": 0.22
+                              "letterSpacing": 0.24
                             }
                           ]
                         },
@@ -7336,9 +7342,9 @@
                           "fill": "$paper-30",
                           "content": "OPENS",
                           "fontFamily": "$font",
-                          "fontSize": "$type-tiny",
+                          "fontSize": "$type-label",
                           "fontWeight": "normal",
-                          "letterSpacing": 0.55
+                          "letterSpacing": 0.6
                         },
                         {
                           "type": "text",
@@ -7347,7 +7353,7 @@
                           "fill": "$paper",
                           "content": "Mon, Nov 2",
                           "fontFamily": "$font",
-                          "fontSize": "$type-micro",
+                          "fontSize": "$type-label",
                           "fontWeight": "500"
                         },
                         {
@@ -7368,7 +7374,7 @@
                               "fill": "$paper-52",
                               "content": "9:00 AM",
                               "fontFamily": "$font",
-                              "fontSize": "$type-micro",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal"
                             }
                           ]
@@ -7399,9 +7405,9 @@
                           "fill": "$paper-30",
                           "content": "CLOSES",
                           "fontFamily": "$font",
-                          "fontSize": "$type-tiny",
+                          "fontSize": "$type-label",
                           "fontWeight": "normal",
-                          "letterSpacing": 0.55
+                          "letterSpacing": 0.6
                         },
                         {
                           "type": "text",
@@ -7410,7 +7416,7 @@
                           "fill": "$paper",
                           "content": "Fri, Nov 13",
                           "fontFamily": "$font",
-                          "fontSize": "$type-micro",
+                          "fontSize": "$type-label",
                           "fontWeight": "500"
                         },
                         {
@@ -7431,7 +7437,7 @@
                               "fill": "$paper-52",
                               "content": "11:59 PM",
                               "fontFamily": "$font",
-                              "fontSize": "$type-micro",
+                              "fontSize": "$type-label",
                               "fontWeight": "normal"
                             }
                           ]
@@ -7651,7 +7657,7 @@
                   "fill": "$ink",
                   "content": "LG",
                   "fontFamily": "$font",
-                  "fontSize": "$type-micro",
+                  "fontSize": "$type-label",
                   "fontWeight": "500"
                 }
               ]
@@ -7786,9 +7792,9 @@
                           "content": "Yerba Madre",
                           "lineHeight": 0.98,
                           "fontFamily": "$font",
-                          "fontSize": 68,
+                          "fontSize": "$type-title",
                           "fontWeight": "500",
-                          "letterSpacing": -3.06
+                          "letterSpacing": -2.88
                         },
                         {
                           "type": "text",
@@ -7799,9 +7805,9 @@
                           "content": "x",
                           "lineHeight": 0.98,
                           "fontFamily": "$font",
-                          "fontSize": 68,
+                          "fontSize": "$type-title",
                           "fontWeight": "500",
-                          "letterSpacing": -3.06
+                          "letterSpacing": -2.88
                         },
                         {
                           "type": "text",
@@ -7811,9 +7817,9 @@
                           "content": "BUZZ",
                           "lineHeight": 0.98,
                           "fontFamily": "$font",
-                          "fontSize": 68,
+                          "fontSize": "$type-title",
                           "fontWeight": "500",
-                          "letterSpacing": -3.06
+                          "letterSpacing": -2.88
                         }
                       ]
                     }
@@ -8609,7 +8615,7 @@
                                       "fill": "$ink",
                                       "content": "Applications open Nov 2",
                                       "fontFamily": "$font",
-                                      "fontSize": "$type-micro",
+                                      "fontSize": "$type-label",
                                       "fontWeight": "500"
                                     }
                                   ]
@@ -8638,7 +8644,7 @@
                                       "fill": "$paper",
                                       "content": "Replace cover",
                                       "fontFamily": "$font",
-                                      "fontSize": "$type-micro",
+                                      "fontSize": "$type-label",
                                       "fontWeight": "normal"
                                     }
                                   ]
@@ -8693,9 +8699,12 @@
                                   "content": "Yerba Madre\nx BUZZ",
                                   "lineHeight": 1,
                                   "fontFamily": "$font",
-                                  "fontSize": 30,
+                                  "fontSize": "$type-h2",
                                   "fontWeight": "500",
-                                  "letterSpacing": -1.2
+                                  "letterSpacing": -1.12,
+                                  "theme": {
+                                    "device": "mobile"
+                                  }
                                 }
                               ]
                             }
@@ -8906,7 +8915,7 @@
                       "fill": "$ink",
                       "content": "Save drop",
                       "fontFamily": "$font",
-                      "fontSize": 15,
+                      "fontSize": "$type-small",
                       "fontWeight": "500"
                     }
                   ]
@@ -8931,7 +8940,7 @@
                       "fill": "$paper-30",
                       "content": "Autosaves as you go. Publishing moves it to Open.",
                       "fontFamily": "$font",
-                      "fontSize": "$type-micro",
+                      "fontSize": "$type-label",
                       "fontWeight": "normal"
                     }
                   ]
@@ -9096,7 +9105,7 @@
                   "fill": "$ink",
                   "content": "LG",
                   "fontFamily": "$font",
-                  "fontSize": "$type-micro",
+                  "fontSize": "$type-label",
                   "fontWeight": "500"
                 }
               ]
@@ -9238,9 +9247,9 @@
                           "content": "Yerba Madre",
                           "lineHeight": 0.98,
                           "fontFamily": "$font",
-                          "fontSize": 68,
+                          "fontSize": "$type-title",
                           "fontWeight": "500",
-                          "letterSpacing": -3.06
+                          "letterSpacing": -2.88
                         },
                         {
                           "type": "text",
@@ -9251,9 +9260,9 @@
                           "content": "x",
                           "lineHeight": 0.98,
                           "fontFamily": "$font",
-                          "fontSize": 68,
+                          "fontSize": "$type-title",
                           "fontWeight": "500",
-                          "letterSpacing": -3.06
+                          "letterSpacing": -2.88
                         },
                         {
                           "type": "frame",
@@ -9270,9 +9279,9 @@
                               "content": "BUZZ",
                               "lineHeight": 0.98,
                               "fontFamily": "$font",
-                              "fontSize": 68,
+                              "fontSize": "$type-title",
                               "fontWeight": "500",
-                              "letterSpacing": -3.06
+                              "letterSpacing": -2.88
                             },
                             {
                               "type": "rectangle",
@@ -10133,7 +10142,7 @@
                                       "fill": "$ink",
                                       "content": "Applications open Nov 2",
                                       "fontFamily": "$font",
-                                      "fontSize": "$type-micro",
+                                      "fontSize": "$type-label",
                                       "fontWeight": "500"
                                     }
                                   ]
@@ -10162,7 +10171,7 @@
                                       "fill": "$paper",
                                       "content": "Replace cover",
                                       "fontFamily": "$font",
-                                      "fontSize": "$type-micro",
+                                      "fontSize": "$type-label",
                                       "fontWeight": "normal"
                                     }
                                   ]
@@ -10217,9 +10226,12 @@
                                   "content": "Yerba Madre\nx BUZZ",
                                   "lineHeight": 1,
                                   "fontFamily": "$font",
-                                  "fontSize": 30,
+                                  "fontSize": "$type-h2",
                                   "fontWeight": "500",
-                                  "letterSpacing": -1.2
+                                  "letterSpacing": -1.12,
+                                  "theme": {
+                                    "device": "mobile"
+                                  }
                                 }
                               ]
                             }
@@ -10430,7 +10442,7 @@
                       "fill": "$ink",
                       "content": "Save drop",
                       "fontFamily": "$font",
-                      "fontSize": 15,
+                      "fontSize": "$type-small",
                       "fontWeight": "500"
                     }
                   ]
@@ -10455,7 +10467,7 @@
                       "fill": "$paper-30",
                       "content": "Autosaves as you go. Publishing moves it to Open.",
                       "fontFamily": "$font",
-                      "fontSize": "$type-micro",
+                      "fontSize": "$type-label",
                       "fontWeight": "normal"
                     }
                   ]
@@ -10768,11 +10780,28 @@
         }
       ]
     },
+    "section-y": {
+      "type": "number",
+      "value": [
+        {
+          "value": 108,
+          "theme": {
+            "device": "desktop"
+          }
+        },
+        {
+          "value": 68,
+          "theme": {
+            "device": "mobile"
+          }
+        }
+      ]
+    },
     "type-display": {
       "type": "number",
       "value": [
         {
-          "value": 115.2,
+          "value": 115,
           "theme": {
             "device": "desktop"
           }
@@ -10785,17 +10814,17 @@
         }
       ]
     },
-    "type-title-xl": {
+    "type-title": {
       "type": "number",
       "value": [
         {
-          "value": 66.24,
+          "value": 64,
           "theme": {
             "device": "desktop"
           }
         },
         {
-          "value": 38.4,
+          "value": 36,
           "theme": {
             "device": "mobile"
           }
@@ -10812,7 +10841,7 @@
           }
         },
         {
-          "value": 36,
+          "value": 32,
           "theme": {
             "device": "mobile"
           }
@@ -10823,13 +10852,13 @@
       "type": "number",
       "value": [
         {
-          "value": 43.2,
+          "value": 44,
           "theme": {
             "device": "desktop"
           }
         },
         {
-          "value": 32,
+          "value": 28,
           "theme": {
             "device": "mobile"
           }
@@ -10847,23 +10876,6 @@
         },
         {
           "value": 20,
-          "theme": {
-            "device": "mobile"
-          }
-        }
-      ]
-    },
-    "type-body-lg": {
-      "type": "number",
-      "value": [
-        {
-          "value": 17,
-          "theme": {
-            "device": "desktop"
-          }
-        },
-        {
-          "value": 17,
           "theme": {
             "device": "mobile"
           }
@@ -10908,23 +10920,6 @@
       "type": "number",
       "value": [
         {
-          "value": 13,
-          "theme": {
-            "device": "desktop"
-          }
-        },
-        {
-          "value": 13,
-          "theme": {
-            "device": "mobile"
-          }
-        }
-      ]
-    },
-    "type-micro": {
-      "type": "number",
-      "value": [
-        {
           "value": 12,
           "theme": {
             "device": "desktop"
@@ -10932,40 +10927,6 @@
         },
         {
           "value": 12,
-          "theme": {
-            "device": "mobile"
-          }
-        }
-      ]
-    },
-    "type-tiny": {
-      "type": "number",
-      "value": [
-        {
-          "value": 11,
-          "theme": {
-            "device": "desktop"
-          }
-        },
-        {
-          "value": 11,
-          "theme": {
-            "device": "mobile"
-          }
-        }
-      ]
-    },
-    "section-y": {
-      "type": "number",
-      "value": [
-        {
-          "value": 108,
-          "theme": {
-            "device": "desktop"
-          }
-        },
-        {
-          "value": 68,
           "theme": {
             "device": "mobile"
           }
@@ -10975,74 +10936,6 @@
     "font": {
       "type": "string",
       "value": "Switzer"
-    },
-    "type-hero": {
-      "type": "number",
-      "value": [
-        {
-          "value": 63.36,
-          "theme": {
-            "device": "desktop"
-          }
-        },
-        {
-          "value": 32.8,
-          "theme": {
-            "device": "mobile"
-          }
-        }
-      ]
-    },
-    "type-join": {
-      "type": "number",
-      "value": [
-        {
-          "value": 51.84,
-          "theme": {
-            "device": "desktop"
-          }
-        },
-        {
-          "value": 35.1,
-          "theme": {
-            "device": "mobile"
-          }
-        }
-      ]
-    },
-    "type-title-lg": {
-      "type": "number",
-      "value": [
-        {
-          "value": 56,
-          "theme": {
-            "device": "desktop"
-          }
-        },
-        {
-          "value": 21.6,
-          "theme": {
-            "device": "mobile"
-          }
-        }
-      ]
-    },
-    "type-h4": {
-      "type": "number",
-      "value": [
-        {
-          "value": 18.72,
-          "theme": {
-            "device": "desktop"
-          }
-        },
-        {
-          "value": 17,
-          "theme": {
-            "device": "mobile"
-          }
-        }
-      ]
     }
   },
   "fonts": [
