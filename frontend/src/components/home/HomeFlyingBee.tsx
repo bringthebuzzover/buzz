@@ -24,9 +24,9 @@ const NOSE_CLOCKWISE_DEG = 50;
 const BODY_X = 0.454;
 const BODY_Y = 0.586;
 
-/** Pixel speed of the longer loops. Narrower sections stay at least 16s. */
-const PX_PER_SEC = 72;
-const MIN_LOOP_SECONDS = 16;
+/** Pixel speed of the longer loops. Narrower sections stay at least 8s. */
+const PX_PER_SEC = 144;
+const MIN_LOOP_SECONDS = 8;
 
 type Pt = [number, number];
 type Bezier = { p0: Pt; p1: Pt; p2: Pt; p3: Pt };
@@ -45,7 +45,7 @@ type Flight = {
 const TRAIL = Array.from({ length: 13 }, (_, i) => {
   const t = (i + 1) / 14;
   return {
-    lag: 0.14 + t * 2.2,
+    lag: 0.07 + t * 1.1,
     opacity: 0.92 * (1 - t) ** 1.5,
     scale: 1 - t * 0.62,
   };
