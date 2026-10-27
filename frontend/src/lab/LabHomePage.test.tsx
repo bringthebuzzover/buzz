@@ -21,6 +21,7 @@ describe("LabShell", () => {
     for (const path of ["/", "/lab"]) {
       const html = renderAt(path);
       expect(html).toContain("Design preview");
+      expect(html).not.toContain("lab-badge--back");
       expect(html).toContain("BUZZ Lab");
       expect(html).toContain("Pulse 2");
       expect(html).toContain("Frozen");
@@ -34,11 +35,21 @@ describe("LabShell", () => {
     }
   });
 
-  it("keeps other routes on the app and still shows the badge", () => {
+  it("keeps other routes on the app with a link back to the directory", () => {
     const html = renderAt("/inspo");
-    expect(html).toContain("Design preview");
+    expect(html).toMatch(/<a class="lab-badge lab-badge--back" href="\/"[^>]*>/);
+    expect(html).toContain("All designs");
     expect(html).toContain("Tap into Gen Z");
     expect(html).not.toContain("lab-grid");
+  });
+
+  it("links back to the directory from every non-directory route", () => {
+    for (const path of ["/pulse", "/pulse-bee", "/inspo", "/drop-editor"]) {
+      const html = renderAt(path);
+      expect(html).toContain('href="/"');
+      expect(html).toContain("lab-badge--back");
+      expect(html).not.toContain("lab-grid");
+    }
   });
 
   it("mounts without AuthProvider", () => {
@@ -49,14 +60,14 @@ describe("LabShell", () => {
 
   it("serves /pulse2 from the app", () => {
     const html = renderAt("/pulse2");
-    expect(html).toContain("Design preview");
+    expect(html).toContain("All designs");
     expect(html).toContain("pulse2-display");
     expect(html).not.toContain("lab-grid");
   });
 
   it("serves /drop-editor from the app", () => {
     const html = renderAt("/drop-editor");
-    expect(html).toContain("Design preview");
+    expect(html).toContain("All designs");
     expect(html).toContain("drop-editor");
     expect(html).toContain("Application window");
     expect(html).not.toContain("lab-grid");
