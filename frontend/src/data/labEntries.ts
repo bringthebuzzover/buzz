@@ -7,6 +7,8 @@ import pulseTwoThumb from "../lab/media/pulse2.jpg";
 import inspoThumb from "../lab/media/inspo.jpg";
 import dropEditorThumb from "../lab/media/drop-editor.jpg";
 import logoThumb from "../lab/media/logo-options.svg";
+import pulseBeeOrgsThumb from "../lab/media/pulse-bee-orgs.jpg";
+import pulseBeeBrandsThumb from "../lab/media/pulse-bee-brands.jpg";
 
 /**
  * Cloudflare Pages project subdomain, the label before `.pages.dev`.
@@ -102,6 +104,24 @@ export const labEntries: readonly LabEntry[] = [
     thumbnail: inspoThumb,
     thumbnailAlt:
       "Inspo hero: Tap into Gen Z everywhere, beside a dotted campus map.",
+  },
+  {
+    id: "pulse-bee-orgs",
+    name: "Pulse Bee: Organizations",
+    note: "Pulse Bee page for student organizations. What they get, steps, drops, FAQ.",
+    status: "Mockup",
+    href: "/pulse-bee/orgs",
+    thumbnail: pulseBeeOrgsThumb,
+    thumbnailAlt: "Pulse Bee organizations hero over the Kappa Alpha Theta x Yerba Madre photo.",
+  },
+  {
+    id: "pulse-bee-brands",
+    name: "Pulse Bee: Brands",
+    note: "Pulse Bee page for brands. Steps, goals, college network, FAQ.",
+    status: "Mockup",
+    href: "/pulse-bee/brands",
+    thumbnail: pulseBeeBrandsThumb,
+    thumbnailAlt: "Pulse Bee brands hero over the Epsilon Nu Tau x UPDATE photo.",
   },
   {
     id: "drop-editor",

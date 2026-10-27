@@ -1,0 +1,255 @@
+/* /pulse-bee/orgs and /pulse-bee/brands only. Every class is new
+   (.pulsebee-aud-*), so /pulse-bee renders exactly as before. Tokens come
+   from .pulse2 in pulseBee.css. */
+
+.pulsebee-aud-hero__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pulsebee-aud-head {
+  width: min(100%, 44rem);
+  margin: 0 auto var(--s7);
+  text-align: center;
+}
+
+.pulsebee-aud-head h2 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-wrap: balance;
+}
+
+.pulsebee-aud-head .pulse2-support {
+  color: color-mix(in srgb, var(--ink) 64%, transparent);
+}
+
+.pulsebee-aud-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s6) var(--s5);
+  width: min(100%, 1152px);
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.pulsebee-aud-card {
+  min-width: 0;
+}
+
+.pulsebee-aud-card__media {
+  position: relative;
+  aspect-ratio: 16 / 15;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #ddd;
+}
+
+.pulsebee-aud-card__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pulsebee-aud-card__media--mark {
+  display: grid;
+  place-items: center;
+  background: var(--yellow);
+}
+
+.pulsebee-aud-card__media--mark img {
+  width: 34%;
+  height: auto;
+  object-fit: contain;
+}
+
+.pulsebee-aud-card__media--ink {
+  background: var(--ink);
+}
+
+.pulsebee-aud-card__n {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--yellow);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.pulsebee-aud-card__media--mark .pulsebee-aud-card__n {
+  background: var(--ink);
+  color: var(--yellow);
+}
+
+.pulsebee-aud-card h3 {
+  margin: var(--s5) 0 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.pulsebee-aud-card p {
+  max-width: 36ch;
+  margin: var(--s2) 0 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  opacity: 0.64;
+}
+
+/* Goal chips on ink. */
+
+.pulsebee-aud-goals {
+  padding: 14svh var(--side);
+  background: var(--ink);
+  color: var(--paper);
+  text-align: center;
+}
+
+.pulsebee-aud-goals h2 {
+  width: min(100%, 40rem);
+  margin: 0 auto;
+}
+
+.pulsebee-aud-goals .pulse2-support {
+  color: var(--paper-60);
+}
+
+.pulsebee-aud-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s3);
+  width: min(100%, 48rem);
+  margin: var(--s7) auto 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pulsebee-aud-goals__cta {
+  margin-top: var(--s7);
+}
+
+/* FAQ: native <details>, no script. */
+
+.pulsebee-aud-faq {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--s7) var(--s6);
+  width: min(100%, 1152px);
+  margin: 0 auto;
+}
+
+.pulsebee-aud-faq__title {
+  margin: 0;
+  font-size: clamp(2.4rem, 4.6vw, 4.25rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+
+.pulsebee-aud-faq__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.16);
+}
+
+.pulsebee-aud-faq__item {
+  border-top: 1px solid rgba(17, 17, 17, 0.16);
+}
+
+.pulsebee-aud-faq__item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  min-height: 64px;
+  padding: var(--s4) 0;
+  font-size: clamp(1.0625rem, 1.3vw, 1.25rem);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  list-style: none;
+  cursor: pointer;
+}
+
+.pulsebee-aud-faq__item summary::-webkit-details-marker {
+  display: none;
+}
+
+.pulsebee-aud-faq__icon {
+  position: relative;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  transition: transform 0.3s var(--ease);
+}
+
+.pulsebee-aud-faq__icon::before,
+.pulsebee-aud-faq__icon::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  margin-top: -0.75px;
+  background: currentcolor;
+}
+
+.pulsebee-aud-faq__icon::after {
+  transform: rotate(90deg);
+}
+
+.pulsebee-aud-faq__item[open] .pulsebee-aud-faq__icon {
+  transform: rotate(45deg);
+}
+
+.pulsebee-aud-faq__item p {
+  max-width: 60ch;
+  margin: 0;
+  padding: 0 0 var(--s5);
+  font-size: 1rem;
+  line-height: 1.5;
+  opacity: 0.64;
+}
+
+@media (max-width: 900px) {
+  .pulsebee-aud-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .pulsebee-aud-card__media {
+    aspect-ratio: 4 / 3;
+  }
+
+  .pulsebee-aud-faq {
+    grid-template-columns: 1fr;
+    gap: var(--s5);
+  }
+
+  .pulsebee-aud-goals {
+    padding-block: 10svh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulsebee-aud-faq__icon {
+    transition: none;
+  }
+}
