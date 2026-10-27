@@ -49,6 +49,8 @@ describe("PulseBeeHomePage", () => {
     expect(html).toContain('id="pulsebee-flight"');
     expect(html).toContain('calcMode="paced"');
     expect(html).toContain('rotate="auto"');
+    expect(html).toContain('dur="7.6s"');
+    expect(html).toContain('data-loop-seconds="10"');
     expect(html).toContain("Stanford");
     expect(html).toContain("Rice");
     expect(html).toContain("Duke");
