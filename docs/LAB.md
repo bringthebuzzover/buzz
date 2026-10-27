@@ -12,12 +12,13 @@ Checked against Cloudflare’s docs on 27 Oct 2026. Dashboard labels drift; the 
 
 `npm run build` is the production build. It does not read `VITE_LAB`, does not swap the webpack entry, and does not emit `robots.txt`, `_headers`, or `_redirects`.
 
-`npm run build:lab` (`frontend/scripts/build-lab.mjs`) does four things:
+`npm run build:lab` (`frontend/scripts/build-lab.mjs`) does five things:
 
 1. Sets `VITE_LAB=1` and runs craco. `frontend/craco.config.js` then uses `src/lab/index.tsx` instead of `src/index.tsx`. `/` and `/lab` render the directory. Every other route is the normal app, with a fixed **Design preview** badge.
-2. Copies `frontend/lab-static/drop-editor/` to `/lab/drop-editor/` and `design/logo-options/` to `/lab/logo-options/`.
+2. Copies `frontend/lab-static/drop-editor/` to `/lab/drop-editor/` and `design/logo-options/` to `/lab/logo-options/`, resolving symlinks to real files (Pages rejects links in the output, and `fs.cpSync`'s `dereference` is ignored on Node 22).
 3. Adds `<meta name="robots" content="noindex, nofollow">` to HTML, writes `robots.txt` (`Disallow: /`), and writes `_headers` with `X-Robots-Tag: noindex, nofollow`.
 4. Writes `_redirects` with two trailing-slash 301s, for `/lab/drop-editor` and `/lab/logo-options`. It does not write a `/* /index.html 200` splat, and it does not write a top-level `404.html`.
+5. Removes `hero.mp4` and `hero-h264.mp4` from the output and adds `_redirects` 302s for them to the identical files on `https://www.bringthebuzzover.com`. Pages rejects files over 25 MiB. The build fails if any other file is over 25 MiB or any symlink is left.
 
 Pages follows every line in `_redirects` whether or not a file matches ([redirects](https://developers.cloudflare.com/pages/configuration/redirects/)). A splat onto `/index.html` would serve the SPA shell for `robots.txt`, the JS bundles, and the drop-editor assets. Do not add one.
 
