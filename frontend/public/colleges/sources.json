@@ -1,0 +1,90 @@
+[
+  {
+    "file": "babson.svg",
+    "school": "Babson",
+    "source": "https://commons.wikimedia.org/wiki/File:Logo-Babson-College-Horizontal-RGB_(2).svg",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/d/db/Logo-Babson-College-Horizontal-RGB_%282%29.svg",
+    "license": "Public domain",
+    "processing": "svgo --multipass"
+  },
+  {
+    "file": "berkeley.png",
+    "school": "UC Berkeley",
+    "source": "https://commons.wikimedia.org/wiki/File:Seal_of_University_of_California,_Berkeley.svg",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Seal_of_University_of_California%2C_Berkeley.svg",
+    "license": "Public domain",
+    "processing": "rendered from the SVG at 256x256, 128-colour PNG (the SVG was over 50 KB)"
+  },
+  {
+    "file": "caltech.svg",
+    "school": "Caltech",
+    "source": "https://commons.wikimedia.org/wiki/File:Caltech_Logo.svg",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/7/75/Caltech_Logo.svg",
+    "license": "Public domain",
+    "processing": "svgo --multipass"
+  },
+  {
+    "file": "duke.svg",
+    "school": "Duke",
+    "source": "https://commons.wikimedia.org/wiki/File:Duke_University_logo.svg",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Duke_University_logo.svg",
+    "license": "Public domain",
+    "processing": "svgo --multipass"
+  },
+  {
+    "file": "jhu.png",
+    "school": "Johns Hopkins",
+    "source": "https://commons.wikimedia.org/wiki/File:Johns_Hopkins_University_logo.png",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/5/51/Johns_Hopkins_University_logo.png",
+    "license": "Public domain",
+    "processing": "trimmed, resized to 256px wide, 128-colour PNG"
+  },
+  {
+    "file": "northwestern.png",
+    "school": "Northwestern",
+    "source": "https://commons.wikimedia.org/wiki/File:Northwestern_University_seal.svg",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/5/56/Northwestern_University_seal.svg",
+    "license": "Public domain",
+    "processing": "rendered from the SVG at 256x256, 128-colour PNG (the SVG was over 50 KB)"
+  },
+  {
+    "file": "rice.svg",
+    "school": "Rice",
+    "source": "https://commons.wikimedia.org/wiki/File:Rice_Owls_logo.svg",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/b/bc/Rice_Owls_logo.svg",
+    "license": "Public domain",
+    "processing": "svgo --multipass"
+  },
+  {
+    "file": "stanford.png",
+    "school": "Stanford",
+    "source": "https://commons.wikimedia.org/wiki/File:Seal_of_Leland_Stanford_Junior_University.svg",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/b/b5/Seal_of_Leland_Stanford_Junior_University.svg",
+    "license": "Public domain",
+    "processing": "rendered from the SVG at 256x256, 128-colour PNG (the SVG was over 50 KB)"
+  },
+  {
+    "file": "ucla.svg",
+    "school": "UCLA",
+    "source": "https://commons.wikimedia.org/wiki/File:UCLA_Bruins_primary_logo.svg",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/d/d1/UCLA_Bruins_primary_logo.svg",
+    "license": "Public domain",
+    "processing": "svgo --multipass"
+  },
+  {
+    "file": "unc.png",
+    "school": "UNC",
+    "source": "https://commons.wikimedia.org/wiki/File:University_of_North_Carolina_at_Chapel_Hill_seal.svg",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/5/5c/University_of_North_Carolina_at_Chapel_Hill_seal.svg",
+    "license": "Public domain",
+    "processing": "rendered from the SVG at 256x256, 128-colour PNG (the SVG was over 50 KB)"
+  },
+  {
+    "file": "usc.svg",
+    "school": "USC",
+    "source": "https://commons.wikimedia.org/wiki/File:USC_Trojans_logo.svg",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/9/94/USC_Trojans_logo.svg",
+    "license": "Public domain",
+    "processing": "svgo --multipass"
+  }
+]
