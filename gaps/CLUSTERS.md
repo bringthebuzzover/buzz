@@ -188,7 +188,8 @@ Priority rationale (2026-08-11 delivery order — code first, then ops parallel)
 3. `brand-delivery-address` — **done** (null denied applicants' deliveryAddress)
 4. `org-edu-email-change` — **done** (pending-swap `.edu` rotate)
 5. `admin-drops-ops-ui` — **done** (list multiselect + detail logistics)
-   Ops (not auto-pick): `meta-app-review` (`in_progress` — App Review resubmission; was `meta-business-verification`; human dashboard). `ops.brand-mailbox` archived 2026-10-26 (`hello@` alias on `melissa@`; Google bills that only email).
+
+Ops (not auto-pick): `meta-app-review` (`in_progress` — App Review resubmission; was `meta-business-verification`; human dashboard). `ops.brand-mailbox` archived 2026-10-26 (`hello@` is an alias on `melissa@`, the only Workspace email, which Google bills).
 
 ---
 

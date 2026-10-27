@@ -118,10 +118,8 @@ human inbox MX — avoid for contact; subdomain only if we ever want API ingest.
 | --------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | Local                                                                       | `ENVIRONMENT=development` → links in API logs; no Resend (`email.py`) |
 | Unit                                                                        | `backend/tests/test_email.py`, `test_brand_emails.py` (mocked httpx)  |
-| Prod                                                                        | After Verified: one controlled trigger (invite/verify yourself) → log |
-| `Email dispatched: … resend_id=` + Resend dashboard + destination inbox     |
-| Caution                                                                     | Notify Me cron `*/5` can flush a backlog; don’t blast deny/notify. No |
-| send ledger yet ([`ops.email-ledger`](ops.email-ledger.md), later archived) |
+| Prod                                                                        | After Verified: one controlled trigger (invite/verify yourself) → log `Email dispatched: … resend_id=` + Resend dashboard + destination inbox |
+| Caution                                                                     | Notify Me cron `*/5` can flush a backlog; don’t blast deny/notify. No send ledger yet ([`ops.email-ledger`](ops.email-ledger.md), later archived) |
 
 ## Inbound — company addresses (pick one)
 
