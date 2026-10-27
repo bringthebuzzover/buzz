@@ -2,7 +2,7 @@
  * Partner with brands — three numbered photo cards.
  */
 import sorority from "../../assets/sorority.png";
-import ztaLacroix from "../../assets/zta-lacroix.png";
+import ztaLacroix from "../../assets/sorority.png";
 import { LinkButton } from "../../components/forms/controls";
 import { GAP, SECTION_Y, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
@@ -33,14 +33,25 @@ const STEPS = [
 
 export function InspoPartner() {
   return (
-    <section id="partner" className={cn("mx-auto max-w-5xl scroll-mt-20 px-6 text-center", SECTION_Y)}>
+    <section
+      id="partner"
+      className={cn(
+        "mx-auto max-w-5xl scroll-mt-20 px-6 text-center",
+        SECTION_Y,
+      )}
+    >
       <h2 className={TEXT.h1}>
         Partner with <span className="text-buzz-coral">brands</span>
       </h2>
-      <p className={cn(TEXT.bodyLong, "mx-auto mt-4 max-w-xl text-buzz-inkMuted")}>
-        Give your community something extra to show up for while cutting
-        hosting costs. Partner with food, beverage, apparel, or tech brands
-        for merch and product samples.
+      <p
+        className={cn(
+          TEXT.bodyLong,
+          "mx-auto mt-4 max-w-xl text-buzz-inkMuted",
+        )}
+      >
+        Give your community something extra to show up for while cutting hosting
+        costs. Partner with food, beverage, apparel, or tech brands for merch
+        and product samples.
       </p>
       <LinkButton to="/org/apply" className="mt-6">
         Get sponsored
@@ -49,7 +60,11 @@ export function InspoPartner() {
         {STEPS.map((step) => (
           <article key={step.n} className="text-left">
             <div className="relative overflow-hidden rounded-buzzModal">
-              <img src={step.image} alt="" className="h-72 w-full object-cover" />
+              <img
+                src={step.image}
+                alt=""
+                className="h-72 w-full object-cover"
+              />
               <span className="absolute left-4 top-4 flex h-7 w-7 items-center justify-center rounded-full bg-buzz-coral text-xs font-semibold text-buzz-paper">
                 {step.n}
               </span>
@@ -60,7 +75,12 @@ export function InspoPartner() {
               ) : null}
             </div>
             <h3 className={cn(TEXT.h3, "mt-5")}>{step.title}</h3>
-            <p className={cn(TEXT.body, "mt-2 leading-relaxed text-buzz-inkMuted")}>
+            <p
+              className={cn(
+                TEXT.body,
+                "mt-2 leading-relaxed text-buzz-inkMuted",
+              )}
+            >
               {step.body}
             </p>
           </article>
