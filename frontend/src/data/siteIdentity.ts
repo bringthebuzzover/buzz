@@ -45,7 +45,7 @@ export const siteIdentity = {
     },
   },
   contact: {
-    primaryPersonName: "Avery Example",
+    primaryPersonName: "Buzz team",
     email: brandEmails.contactEmail,
   },
   content: {
