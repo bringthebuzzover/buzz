@@ -1,0 +1,163 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:Switzer;src:url(a/switzer-400.woff2) format("woff2");font-weight:400}
+@font-face{font-family:Switzer;src:url(a/switzer-500.woff2) format("woff2");font-weight:500}
+:root{--ink:#0b0b0b;--paper:#f0f0f0;--y:#f6d32a;
+--mut:color-mix(in srgb,#f0f0f0 52%,transparent);--faint:color-mix(in srgb,#f0f0f0 30%,transparent);
+--line:color-mix(in srgb,#f0f0f0 9%,transparent);--s1:color-mix(in srgb,#f0f0f0 4%,transparent);--s2:color-mix(in srgb,#f0f0f0 8%,transparent);
+--ease:cubic-bezier(.19,1,.22,1)}
+*{box-sizing:border-box;margin:0}
+body{font-family:Switzer,system-ui,sans-serif;background:var(--ink);color:var(--paper);font-size:14px;-webkit-font-smoothing:antialiased}
+.bar{position:sticky;top:8px;margin:8px auto 0;width:calc(100% - 16px);max-width:1152px;min-height:56px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:rgba(11,11,11,.44);backdrop-filter:blur(16px);box-shadow:0 4px 32px 4px rgb(0 0 0/.3);display:flex;align-items:center;padding:6px 12px 6px 16px;gap:18px;z-index:5}
+.bar img{height:24px}
+.crumb{color:var(--mut)}.crumb b{color:var(--paper);font-weight:500}
+.sp{flex:1}.saved{color:var(--mut);font-size:13px;display:flex;align-items:center;gap:6px}.dot{width:6px;height:6px;border-radius:9px;background:var(--y)}
+.av{width:32px;height:32px;border-radius:999px;background:var(--y);color:var(--ink);display:grid;place-items:center;font-size:12px;font-weight:500}
+.wrap{max-width:1152px;margin:44px auto 80px;padding:0 16px;display:grid;grid-template-columns:1fr 400px;gap:64px}
+.seg{display:inline-flex;background:var(--s1);border:1px solid var(--line);border-radius:99px;padding:3px}.seg span{padding:7px 16px;border-radius:99px;color:var(--mut)}.seg .on{background:var(--paper);color:var(--ink)}
+.title{font-size:68px;line-height:.98;letter-spacing:-.045em;font-weight:500;margin:32px 0 16px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:7px 13px;color:var(--mut)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.sec{border-top:1px solid var(--line);padding:30px 0}
+.sec:first-of-type{margin-top:34px}
+.h{display:flex;align-items:baseline;gap:10px;font-size:22px;letter-spacing:-.03em;font-weight:500;margin-bottom:16px}.h .ic{display:none}
+.h .n{font-size:13px;letter-spacing:0;color:var(--faint);font-weight:400;font-variant-numeric:tabular-nums}
+.h .r{margin-left:auto;font-weight:400;color:var(--faint);font-size:13px;letter-spacing:0}
+.rows{background:var(--s1);border-radius:8px;border:1px solid var(--line);overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;padding:0 16px;height:52px;border-top:1px solid var(--line);transition:background .3s var(--ease)}.row:first-child{border-top:0}
+.row .l{flex:1}.row .m{color:var(--mut)}.row .ar{color:var(--faint);transition:transform .3s var(--ease)}
+.row.hov{background:color-mix(in srgb,#f6d32a 14%,transparent);color:var(--paper)}.row.hov .m{color:color-mix(in srgb,#f0f0f0 72%,transparent)}.row.hov .ar{color:var(--y);transform:translateX(3px)}
+.pill{background:var(--s2);border-radius:999px;padding:6px 12px;font-weight:500}
+.pill.y{background:var(--y);color:var(--ink)}
+.tz{color:var(--faint);font-size:12px}
+.uni{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--s1);border-radius:99px;padding:5px 12px 5px 5px}
+.uni img{width:26px;height:26px;object-fit:contain;border-radius:99px;background:#fff;padding:2px}
+.uni .x{color:var(--faint);margin-left:2px}
+.add{border:1px dashed color-mix(in srgb,#f0f0f0 22%,transparent);color:var(--mut);border-radius:99px;padding:7px 14px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:var(--s1);border:1px solid var(--line);border-radius:8px;padding:16px}.stat small{color:var(--mut);display:block;margin-bottom:12px}
+.stat b{font-size:40px;font-weight:500;letter-spacing:-.045em;line-height:1}.stat i{font-style:normal;color:var(--faint);font-size:13px;margin-left:4px}
+.stat.focus{border-color:var(--y);box-shadow:0 0 0 3px color-mix(in srgb,#f6d32a 18%,transparent)}
+.tog{width:36px;height:22px;border-radius:99px;background:var(--y);position:relative}.tog:after{content:"";position:absolute;right:3px;top:3px;width:16px;height:16px;border-radius:99px;background:var(--ink)}
+.tog.off{background:var(--s2)}.tog.off:after{left:3px;right:auto;background:var(--mut)}
+.side{position:sticky;top:92px;align-self:start}
+.lab{color:var(--faint);font-size:13px;margin-bottom:12px;display:flex;justify-content:space-between}
+.dcard{border-radius:8px;overflow:hidden;border:1px solid var(--line);background:#121212;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.cov{height:380px;background:#222 center/cover;position:relative}
+.cov:after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(11,11,11,.85),rgba(11,11,11,.1) 55%,rgba(11,11,11,.25))}
+.cov .up{position:absolute;right:12px;top:12px;background:rgba(11,11,11,.5);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);border-radius:99px;padding:6px 12px;font-size:12px;z-index:2}
+.cov .st{position:absolute;left:12px;top:12px;background:var(--y);color:var(--ink);border-radius:99px;padding:5px 10px;font-size:12px;font-weight:500;z-index:2}
+.cov .ov{position:absolute;left:16px;right:16px;bottom:16px;z-index:2}
+.cov .b{display:flex;align-items:center;gap:8px;color:rgba(240,240,240,.75);font-size:13px}.cov .b img{width:20px;height:20px;border-radius:99px}
+.cov h3{font-size:30px;font-weight:500;margin-top:8px;letter-spacing:-.04em;line-height:1}
+.dc{padding:16px}.dc p{color:var(--mut);line-height:1.45}
+.meta{display:grid;grid-template-columns:repeat(3,1fr);margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px}.meta span{color:var(--faint)}
+.apply{margin-top:16px;background:var(--paper);color:var(--ink);border-radius:99px;text-align:center;padding:10px;font-weight:500}
+.cta{margin-top:16px;background:var(--y);color:var(--ink);border-radius:99px;text-align:center;padding:16px;font-weight:500;font-size:15px;box-shadow:0 12px 48px color-mix(in srgb,#f6d32a 18%,transparent)}
+.note{color:var(--faint);font-size:12px;text-align:center;margin-top:10px}
+.pop{position:absolute;width:290px;background:#161616;border-radius:8px;box-shadow:0 30px 80px rgba(0,0,0,.7);border:1px solid var(--line);padding:14px;z-index:4}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px}.cal div{padding:7px 0;border-radius:999px}.cal .dim{color:var(--faint)}.cal .sel{background:var(--y);color:var(--ink);font-weight:500}.cal .rng{background:color-mix(in srgb,#f6d32a 14%,transparent);color:var(--paper)}.cal .hd{color:var(--faint)}.cal .today{position:relative;box-shadow:inset 0 0 0 1px var(--y);color:var(--y);font-weight:500}.cal .today:after{content:"";position:absolute;left:50%;bottom:2px;width:3px;height:3px;margin-left:-1.5px;border-radius:9px;background:var(--y)}.nb{width:26px;height:26px;border-radius:99px;display:grid;place-items:center;background:var(--s2)}.tdy{border:1px solid var(--line);border-radius:99px;padding:4px 10px;font-size:12px}
+.ex{position:fixed;left:16px;bottom:12px;font-size:11px;color:var(--faint);border:1px solid var(--line);background:var(--ink);border-radius:6px;padding:4px 8px}
+.brand-only{display:none}.h span.admin-only{display:inline}
+body.brand .admin-only{display:none!important}body.brand .brand-only{display:block}body.brand .seg.brand-only{display:inline-flex}body.brand .h span.brand-only{display:inline}body.brand .row.brand-only{display:flex}
+.tw{position:relative}.caret{display:none;width:3px;height:58px;background:var(--y);margin-left:4px;vertical-align:-6px}
+.thint{display:none;color:var(--faint);font-size:13px;margin:-6px 0 14px;gap:8px;align-items:center}.thint b{color:var(--mut);font-weight:500}
+.reset{margin-left:10px;color:var(--y);text-decoration:underline;text-underline-offset:3px}
+body.edit .title{box-shadow:0 0 0 1px color-mix(in srgb,#f6d32a 45%,transparent);background:color-mix(in srgb,#f6d32a 7%,transparent);border-radius:8px;padding:6px 10px;margin-left:-10px;display:inline-block}
+body.edit .caret{display:inline-block}body.edit .thint{display:flex}
+.cp{width:auto;display:flex;padding:0;background:linear-gradient(180deg,#191919,#121212);border-radius:16px;border:1px solid color-mix(in srgb,#f0f0f0 10%,transparent);box-shadow:0 40px 100px rgba(0,0,0,.75),0 0 0 1px rgba(0,0,0,.4);overflow:hidden}
+.pre{width:150px;padding:18px 10px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.pl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:0 10px 8px}
+.pi{font-size:13px;padding:8px 10px;border-radius:8px;color:var(--mut)}.pi.on{background:color-mix(in srgb,#f6d32a 14%,transparent);color:var(--y)}
+.cm{padding:18px 22px 16px}.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.tdy{display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:5px 12px;border-radius:99px;border:1px solid var(--line);color:var(--mut)}.tdy i{width:6px;height:6px;border-radius:9px;background:var(--y);box-shadow:0 0 8px var(--y)}
+.nb{width:30px;height:30px;border-radius:99px;display:grid;place-items:center;border:1px solid var(--line);color:var(--paper)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:34px}.mt{font-size:15px;font-weight:500;margin:4px 0 12px 6px}
+.cp .cal{gap:3px 0;font-size:13px}.cp .cal .hd{font-size:11px;color:var(--faint);padding:0 0 6px;letter-spacing:.02em}
+.cp .cal .c{padding:0;height:36px;display:grid;place-items:center;border-radius:0;position:relative}
+.cp .cal .c span{width:34px;height:34px;display:grid;place-items:center;border-radius:99px;position:relative;z-index:1}
+.cp .cal .past{color:color-mix(in srgb,#f0f0f0 22%,transparent)}
+.cp .cal .rng{background:color-mix(in srgb,#f6d32a 14%,transparent)}
+.cp .cal .st{background:linear-gradient(90deg,transparent 50%,color-mix(in srgb,#f6d32a 14%,transparent) 50%)}
+.cp .cal .en{background:linear-gradient(90deg,color-mix(in srgb,#f6d32a 14%,transparent) 50%,transparent 50%)}
+.cp .cal .st span,.cp .cal .en span{background:var(--y);color:var(--ink);font-weight:500;box-shadow:0 0 18px color-mix(in srgb,#f6d32a 45%,transparent)}
+.cp .cal .l{border-radius:99px 0 0 99px}.cp .cal .r{border-radius:0 99px 99px 0}
+.cp .cal .today span{box-shadow:inset 0 0 0 1.5px var(--y);color:var(--y);font-weight:500}
+.cp .cal .today:after{content:"Today";position:absolute;bottom:-9px;font-size:8.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--y)}
+.cf{display:flex;align-items:center;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.tm{display:flex;align-items:center;gap:8px;font-size:13px}.tl{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.05em}.tm b{font-weight:500}
+.tc{padding:4px 9px;border-radius:7px;background:var(--s2);color:var(--mut);font-size:12px}.dash{color:var(--faint)}
+.ghost{font-size:13px;color:var(--mut);padding:8px 10px}.apply{font-size:13px;font-weight:500;background:var(--y);color:var(--ink);padding:9px 16px;border-radius:99px}
+.cp .cal .today{box-shadow:none;color:inherit}.cp .cal .today:after{left:0;right:0;width:auto;height:auto;margin:0;background:none;border-radius:0;text-align:center;bottom:-8px}
+.cf{white-space:nowrap}.cp .cm{width:640px}.cf .tm b{font-size:12.5px}.apply{padding:9px 14px}
+</style></head>
+<body>
+<div class="bar"><img src="a/buzz-logo.svg"><div class="crumb admin-only">Drops / <b>New drop</b></div><div class="crumb brand-only">Dashboard / <b>Request a drop</b></div><div class="sp"></div><div class="saved"><span class="dot"></span>Draft saved</div><div class="av">LG</div></div>
+<div class="wrap">
+<div>
+ <div class="seg admin-only" style="display:inline-flex"><span class="on">Product drop</span><span>Event activation</span><span>Content only</span></div>
+ <div class="seg brand-only"><span class="on">Product drop</span><span>Event activation</span><span>Not sure yet</span></div>
+ <div class="tw"><div class="title" id="ttl">Yerba Madre <span style="opacity:.3">x</span> BUZZ<span class="caret"></span></div><div class="thint"><span class="pen">✎</span> Click to rename · Default is <b>[Brand] x BUZZ</b><span class="reset">Reset to default</span></div></div>
+ <div class="chips"><span class="chip">+ Short summary</span><span class="chip"><img src="a/yerbamate.jpg" style="width:18px;height:18px;border-radius:99px">Yerba Madre</span></div>
+
+ <div class="sec"><div class="h"><span class="ic"></span><span class="n">01</span>Campuses<span class="r">Pins appear on the map</span></div>
+  <div class="chips"><span class="uni"><img src="a/cornell.png">Cornell <span class="x">×</span></span><span class="uni"><img src="a/upenn.png">UPenn <span class="x">×</span></span><span class="uni"><img src="a/brown.png">Brown <span class="x">×</span></span><span class="add">+ Add campus</span></div></div>
+
+ <div class="sec" style="position:relative"><div class="h"><span class="ic"></span><span class="n">02</span><span class="admin-only">Application window</span><span class="brand-only">Preferred timing</span><span class="r">ET</span></div>
+  <div class="rows">
+   <div class="row"><span class="l">Apply opens</span><span class="tz">GMT-4</span><span class="pill" id="d1">Mon, Nov 2</span><span class="pill">9:00am</span></div>
+   <div class="row"><span class="l">Apply closes</span><span class="tz">GMT-4</span><span class="pill">Fri, Nov 13</span><span class="pill">11:59pm</span></div>
+  </div>
+  <div class="pop cp" id="pop" style="display:none;left:120px;top:84px"><div class="pre"><div class="pl">Quick pick</div><div class="pi">Starts today</div><div class="pi">This week</div><div class="pi on">Next 2 weeks</div><div class="pi">This month</div><div class="pi">Custom</div></div><div class="cm"><div class="ch"><span class="nb">‹</span><span class="tdy"><i></i>Today, Oct 27</span><span class="nb">›</span></div><div class="two"><div class="mo"><div class="mt">October 2026</div><div class="cal"><div class="hd">Su</div><div class="hd">Mo</div><div class="hd">Tu</div><div class="hd">We</div><div class="hd">Th</div><div class="hd">Fr</div><div class="hd">Sa</div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c past"><span>1</span></div><div class="c past"><span>2</span></div><div class="c past r"><span>3</span></div><div class="c past l"><span>4</span></div><div class="c past"><span>5</span></div><div class="c past"><span>6</span></div><div class="c past"><span>7</span></div><div class="c past"><span>8</span></div><div class="c past"><span>9</span></div><div class="c past r"><span>10</span></div><div class="c past l"><span>11</span></div><div class="c past"><span>12</span></div><div class="c past"><span>13</span></div><div class="c past"><span>14</span></div><div class="c past"><span>15</span></div><div class="c past"><span>16</span></div><div class="c past r"><span>17</span></div><div class="c past l"><span>18</span></div><div class="c past"><span>19</span></div><div class="c past"><span>20</span></div><div class="c past"><span>21</span></div><div class="c past"><span>22</span></div><div class="c past"><span>23</span></div><div class="c past r"><span>24</span></div><div class="c past l"><span>25</span></div><div class="c past"><span>26</span></div><div class="c today"><span>27</span></div><div class="c "><span>28</span></div><div class="c "><span>29</span></div><div class="c "><span>30</span></div><div class="c "><span>31</span></div></div></div><div class="mo"><div class="mt">November 2026</div><div class="cal"><div class="hd">Su</div><div class="hd">Mo</div><div class="hd">Tu</div><div class="hd">We</div><div class="hd">Th</div><div class="hd">Fr</div><div class="hd">Sa</div><div class="c "><span>1</span></div><div class="c st"><span>2</span></div><div class="c rng"><span>3</span></div><div class="c rng"><span>4</span></div><div class="c rng"><span>5</span></div><div class="c rng"><span>6</span></div><div class="c rng r"><span>7</span></div><div class="c rng l"><span>8</span></div><div class="c rng"><span>9</span></div><div class="c rng"><span>10</span></div><div class="c rng"><span>11</span></div><div class="c rng"><span>12</span></div><div class="c en"><span>13</span></div><div class="c "><span>14</span></div><div class="c "><span>15</span></div><div class="c "><span>16</span></div><div class="c "><span>17</span></div><div class="c "><span>18</span></div><div class="c "><span>19</span></div><div class="c "><span>20</span></div><div class="c "><span>21</span></div><div class="c "><span>22</span></div><div class="c "><span>23</span></div><div class="c "><span>24</span></div><div class="c "><span>25</span></div><div class="c "><span>26</span></div><div class="c "><span>27</span></div><div class="c "><span>28</span></div><div class="c "><span>29</span></div><div class="c "><span>30</span></div></div></div></div><div class="cf"><div class="tm"><span class="tl">Opens</span><b>Mon, Nov 2</b><span class="tc">9:00 AM</span></div><span class="dash">→</span><div class="tm"><span class="tl">Closes</span><b>Fri, Nov 13</b><span class="tc">11:59 PM</span></div><span style="flex:1"></span><span class="ghost">Clear</span><span class="apply">Apply · 12 days</span></div></div></div></div>
+
+ <div class="sec"><div class="h"><span class="ic"></span><span class="n">03</span>Details</div>
+  <div class="rows">
+   <div class="row hov"><span class="l">Description</span><span class="m">Sample a new flavor at chapter events…</span><span class="ar">→</span></div>
+   <div class="row"><span class="l">What you're sending</span><span class="m">Cans, 12 flavors</span><span class="ar">→</span></div>
+   <div class="row"><span class="l">Location</span><span class="m">On campus</span><span class="ar">→</span></div>
+   <div class="row"><span class="l">Campaign hashtag</span><span class="m">#yerbaxtheta</span><span class="ar">→</span></div>
+  </div></div>
+
+ <div class="sec"><div class="h"><span class="ic"></span><span class="n">04</span>Reach<span class="r admin-only">Tap a number to edit</span><span class="r brand-only">Ballpark is fine</span></div>
+  <div class="stats"><div class="stat"><small>Organizations</small><b>8</b></div><div class="stat focus"><small>Units per org</small><b>48</b></div><div class="stat"><small>Unit budget</small><b>$2</b><i>/ unit</i></div></div></div>
+
+ <div class="sec admin-only"><div class="h"><span class="ic"></span><span class="n">05</span>Settings</div>
+  <div class="rows">
+   <div class="row"><span class="l">Show in org drop feed</span><div class="tog"></div></div>
+   <div class="row"><span class="l">Brand can edit details</span><div class="tog off"></div></div>
+   <div class="row"><span class="l">Stage</span><span class="pill y">Draft</span></div>
+  </div></div>
+ <div class="sec brand-only"><div class="h"><span class="ic"></span><span class="n">06</span>Anything else?</div>
+  <div class="rows"><div class="row"><span class="m">Goals, launches, campuses you care about…</span></div></div></div>
+</div>
+
+<div class="side">
+ <div class="lab"><span>How orgs will see it</span><span>Drop feed</span></div>
+ <div class="dcard"><div class="cov" style="background-image:url(a/sorority.jpg)"><span class="st">Applications open Nov 2</span><span class="up">Replace cover</span><div class="ov"><div class="b"><img src="a/yerbamate.jpg">Yerba Madre · Product drop</div><h3>Yerba Madre<br>x BUZZ</h3></div></div>
+  <div class="dc"><p>Sample a new flavor at chapter events and share it on Instagram.</p>
+  <div class="meta"><div><span>Campuses</span><br>3</div><div><span>Spots</span><br>8 orgs</div><div><span>Closes</span><br>Nov 13</div></div>
+  <div class="apply">Apply</div></div></div>
+ <div class="cta admin-only">Save drop</div><div class="cta brand-only">Send request</div>
+ <div class="note admin-only">Autosaves as you go. Publishing moves it to Open.</div>
+ <div class="note brand-only">Buzz reviews it and reaches out within a few days.</div>
+</div>
+</div>
+
+<div id="scrim" style="display:none;position:fixed;inset:0;background:rgba(5,5,5,.62);backdrop-filter:blur(6px);z-index:8"></div>
+<div id="modal" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:620px;background:#141414;border:1px solid var(--line);border-radius:8px;box-shadow:0 40px 120px rgba(0,0,0,.8);z-index:9">
+ <div style="display:flex;align-items:baseline;padding:20px 22px 0"><div style="font-size:24px;font-weight:500;letter-spacing:-.035em">Description</div><div style="margin-left:auto;color:var(--faint);font-size:20px;line-height:1">×</div></div>
+ <div style="color:var(--mut);padding:6px 22px 16px">What orgs will read on the drop page before they apply.</div>
+ <div style="margin:0 22px;border:1px solid var(--line);border-radius:8px;background:var(--s1)">
+  <div style="display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--line);color:var(--mut);font-size:13px">
+   <span class="tb on">Aa</span><span class="tb" style="font-weight:500">B</span><span class="tb" style="font-style:italic">I</span><span class="tb">Link</span><span class="tb">• List</span></div>
+  <div style="padding:16px 16px 12px;line-height:1.6;min-height:190px">
+   <p>Sample a new flavor at chapter events and share it on Instagram.</p>
+   <p style="margin-top:10px">Each accepted chapter gets cans for an event of their choice. Post one photo or Reel from the event, tag the brand, and use the campaign hashtag<span style="display:inline-block;width:2px;height:17px;background:var(--y);vertical-align:-3px;margin-left:2px"></span></p>
+  </div>
+  <div style="display:flex;justify-content:space-between;padding:0 16px 12px;color:var(--faint);font-size:12px"><span>Shown on the drop card: first line only</span><span>212 / 600</span></div>
+ </div>
+ <div style="display:flex;align-items:center;justify-content:flex-end;gap:16px;padding:18px 22px 20px"><span style="color:var(--mut)">Cancel</span><span style="background:var(--y);color:var(--ink);border-radius:99px;padding:11px 22px;font-weight:500">Save</span></div>
+</div>
+<style>.tb{padding:5px 10px;border-radius:6px}.tb.on{background:var(--s2);color:var(--paper)}</style>
+<div class="ex">Mockup · example values</div>
+<script>const q=new URLSearchParams(location.search);if(q.get('mode')==='brand')document.body.classList.add('brand');if(q.get('edit'))document.body.classList.add('edit');if(q.get('desc')){document.getElementById('scrim').style.display='block';document.getElementById('modal').style.display='block'};if(q.get('pop'))document.getElementById('pop').style.display='flex';</script>
+</body></html>
