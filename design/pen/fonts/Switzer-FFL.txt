@@ -1,0 +1,26 @@
+Switzer
+Copyright 2015-2021 Indian Type Foundry. All rights reserved.
+Designed by Jeremie Hornus. Distributed by Fontshare.
+https://www.fontshare.com/fonts/switzer
+
+These files are the official Fontshare webfonts (Regular and Medium),
+unmodified. They are self-hosted for this site's own pages via CSS
+@font-face.
+
+License: ITF Free Font License (FFL) Version 2.0 — 17 Aug 2026
+https://www.fontshare.com/licenses/ffl
+
+Operative terms (verified against the license page on 27 Oct 2026):
+
+01 Grant. Free, non-exclusive license for personal or commercial use,
+in any media, worldwide, including websites. Self-hosting on your own
+servers for your own websites and applications, including CSS
+@font-face, is permitted and recommended.
+
+02 Limits. Do not modify, subset, rename, or reverse engineer the font
+files. Do not redistribute the font files on their own (font libraries,
+marketplaces, or as a download). Do not offer the font as a selectable
+face for third parties to create their own content.
+
+The full FFL on Fontshare is the license. This note is not a substitute
+for it.
