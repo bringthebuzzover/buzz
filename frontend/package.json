@@ -23,10 +23,11 @@
   "scripts": {
     "start": "craco start",
     "build": "craco build",
-    "build:lab": "node scripts/build-lab.mjs",
+    "build:lab": "node scripts/build-lab.mjs && node scripts/copy-lab-login-assets.mjs",
     "build:prod": "node scripts/check-deploy-env.js && npm run build",
     "start:prod": "serve -s build -l $PORT",
     "test": "craco test",
+    "test:lab-auth": "node --test lab-auth/handler.test.mjs",
     "gen:api": "npx -y openapi-typescript@7.13.0 ../openapi.json -o src/api/generated/schema.ts",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
