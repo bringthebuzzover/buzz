@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import AppRoot from "../AppRoot";
 import { isLabDirectoryPath } from "../data/labEntries";
 import LabHomePage from "./LabHomePage";
+import "./badge.css";
 import "./lab.css";
 
 /**

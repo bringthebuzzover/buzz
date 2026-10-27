@@ -17,7 +17,11 @@ Checked against Cloudflare’s docs on 27 Oct 2026. Dashboard labels drift; the 
 1. Sets `VITE_LAB=1` and runs craco. `frontend/craco.config.js` then uses `src/lab/index.tsx` instead of `src/index.tsx`. `/` and `/lab` render the directory. Every other route is the normal app, with a fixed **Design preview** badge.
 2. Copies `frontend/lab-static/drop-editor/` to `/lab/drop-editor/` and `design/logo-options/` to `/lab/logo-options/`.
 3. Adds `<meta name="robots" content="noindex, nofollow">` to HTML, writes `robots.txt` (`Disallow: /`), and writes `_headers` with `X-Robots-Tag: noindex, nofollow`.
-4. Writes `_redirects` so unknown paths fall through to the SPA. Real files win first, including the drop editor.
+4. Writes `_redirects` with two trailing-slash 301s, for `/lab/drop-editor` and `/lab/logo-options`. It does not write a `/* /index.html 200` splat, and it does not write a top-level `404.html`.
+
+Pages follows every line in `_redirects` whether or not a file matches ([redirects](https://developers.cloudflare.com/pages/configuration/redirects/)). A splat onto `/index.html` would serve the SPA shell for `robots.txt`, the JS bundles, and the drop-editor assets. Do not add one.
+
+With no top-level `404.html`, Pages treats the project as a single-page app and serves `/index.html` only when the path is not a static asset ([Serving Pages](https://developers.cloudflare.com/pages/configuration/serving-pages/), updated 10 Oct 2026). That is how `/lab`, `/pulse`, `/pulse2`, and `/inspo` reach the app. A real file, including `robots.txt`, `static/js/main.*.js`, and `/lab/drop-editor/index.html`, is served as that file.
 
 Pages only sends `X-Robots-Tag: noindex` on **preview** deployments. `design/brainstorm` is this project’s production branch, so `lab.bringthebuzzover.com` would be indexable without our own meta, `robots.txt`, and `_headers`.
 
@@ -27,7 +31,7 @@ Docs: [Git integration](https://developers.cloudflare.com/pages/get-started/git-
 
 1. Dashboard → **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**.
 2. Choose the GitHub repo `bringthebuzzover/buzz`. Authorize Pages for that repo if asked.
-3. **Production branch:** `design/brainstorm`. Not `main`. Commits to `main` must not deploy this project. Other branches become preview deployments.
+3. **Production branch:** `design/brainstorm`. Not `main`. After the project exists, open **Settings** → **Builds** → **Branch control** ([GitHub integration](https://developers.cloudflare.com/pages/configuration/git-integration/github-integration/)). Confirm **Production branch** is `design/brainstorm`. Under **Preview branch**, exclude `main` (Custom branches). To build no other branches, set preview deployments to **None (Disable automatic branch deployments)**. Choosing `design/brainstorm` at create time does not stop Pages from previewing `main`.
 4. **Framework preset:** None.
 5. **Root directory (advanced):** `frontend`. Pages still clones the whole repo; craco reads `../backend/brand_emails.json`, so the root has to be `frontend` and the parent file has to be in the clone.
 6. **Build command:** `npm run build:lab`
@@ -39,7 +43,7 @@ Docs: [Git integration](https://developers.cloudflare.com/pages/get-started/git-
 
 `VITE_LAB` on Preview means a later branch that contains this craco hook also builds as a lab (badge, noindex, directory). A branch that does not contain the hook ignores the variable.
 
-Leave `REACT_APP_API_URL` unset. Plain `npm run build` does not require it, and the lab should not be a second client of the production API. Design routes in this directory do not call the API.
+Leave `REACT_APP_API_URL` unset. Plain `npm run build` does not require it, and the lab should not be a second client of the production API. The lab entry does not mount `AuthProvider`, and the lab webpack build replaces `src/api/config.ts`, so the production “URL is unset” log does not run and the preview does not call `/refresh`. Design routes still render.
 
 ## Custom domain
 
@@ -80,25 +84,32 @@ Include without an email domain or an email list lets anyone request a PIN. Keep
 
 Cover all three. A branch alias such as `fix-api.<project>.pages.dev` is a preview hostname. If only the custom domain is locked, that alias is public.
 
-**1. Preview wildcard** (`<hash>.<project>.pages.dev` and branch aliases):
+**1. Preview wildcard** (`*.<project>.pages.dev`):
+
+This hostname covers hash previews (`<hash>.<project>.pages.dev`) and branch aliases (`fix-api.<project>.pages.dev`). It does not cover `<project>.pages.dev` or `lab.bringthebuzzover.com`.
 
 1. Pages project → **Settings** → **General** → **Enable access policy**.
 
-That protects hash preview URLs only. It does not protect `<project>.pages.dev` or the custom domain.
+That creates an Access application for the wildcard and an Allow policy for Cloudflare account members. A member who is not on the email list would still get in, and one-time PIN would not be the only login method. On that application, remove the generated allow policy. Attach only `BUZZ Lab allow`, and select **One-time PIN**.
 
 **2. The project hostname** `<project>.pages.dev`, while keeping the wildcard:
 
-Follow [Known issues → Enable Access on your `*.pages.dev` domain](https://developers.cloudflare.com/pages/platform/known-issues/). In short: open the Access application Pages just created, remove the `*` subdomain and save, then on the Pages project choose **Enable access policy** again. You should end with two applications: one for `<project>.pages.dev` and one for `*.<project>.pages.dev`.
+Follow [Known issues → Enable Access on your `*.pages.dev` domain](https://developers.cloudflare.com/pages/platform/known-issues/). In short:
+
+1. Open the Access application Pages just created → **Configure**.
+2. Change the **Application name** before saving. Save can fail while the name still belongs to the wildcard application.
+3. Under **Public hostname**, delete the `*` subdomain and **Save**.
+4. On the Pages project, **Settings** → **General** → **Enable access policy** again.
+
+You should end with two applications: one for `<project>.pages.dev` and one for `*.<project>.pages.dev`. On the new application, remove the generated account-members allow policy and attach only `BUZZ Lab allow` with **One-time PIN** selected.
 
 **3. Custom domain:**
 
 1. **Zero Trust** → **Access controls** → **Applications** → **Create new application** → **Self-hosted and private** → **Add public hostname**.
 2. Domain: `bringthebuzzover.com`. Subdomain: `lab`.
-3. Attach the `BUZZ Lab allow` policy.
+3. Attach only the `BUZZ Lab allow` policy.
 4. Identity providers: **One-time PIN**. Leave instant authentication off so the Access login page asks for an email.
 5. Session duration: 24 hours. Create.
-
-Attach `BUZZ Lab allow` to the Pages-created applications as well, and select One-time PIN on those applications, so preview URLs use the same list.
 
 Confirm:
 
@@ -149,11 +160,12 @@ Open a pull request into `design/brainstorm`. Pages rebuilds the production bran
 
 ## Revoke someone
 
-Access keeps an existing login until the application session ends (24 hours above). Taking an email off the policy stops the next login. It does not cut a session that is already open.
+Taking an email off `BUZZ Lab allow` stops the next login. It does not end a session that is already open. Docs: [session management](https://developers.cloudflare.com/cloudflare-one/access-controls/access-settings/session-management/#revoke-user-sessions).
 
-- Guest who was listed under **Emails:** edit `BUZZ Lab allow` and delete that Include row.
-- Person at `@bringthebuzzover.com`: the domain rule still matches them. Add a **Block** policy, Include → **Emails** → that address, and put the Block policy **above** Allow on every Lab application. Access stops at the first matching policy.
-- To end it sooner than 24 hours, shorten the session duration on each application. There is no separate “revoke this OTP session now” switch. New logins follow the edited policy immediately.
+- Every open session for one application: **Zero Trust** → **Access controls** → **Applications** → that application → **Configure** → **Revoke existing tokens**. Do this on the wildcard, the project hostname, and the custom domain.
+- One person, across applications: **Zero Trust** → **Team & Resources** → **Users** → select them → **Action** → **Revoke**.
+- Guest listed under **Emails:** also delete that Include row, or they can sign in again.
+- Person at `@bringthebuzzover.com`: the domain rule still matches them, so a revoke does not keep them out. Add a **Block** policy, Include → **Emails** → that address, and put the Block policy **above** Allow on every Lab application. Access stops at the first matching policy.
 
 Removing `@bringthebuzzover.com` from Include locks out the whole company, not one person.
 
@@ -170,12 +182,12 @@ npm run build:lab
 
 `npm run build` must not contain `Design preview` in `build/static/js`, and must not contain `robots.txt`, `_headers`, or `_redirects`.
 
-Serve the lab build from `frontend/build` with a static file server that leaves directory indexes alone (Python does; `npx serve -s` rewrites them to the SPA and hides the mockup):
+Check the lab output the way Pages serves it, from `frontend/`:
 
 ```bash
-python3 -m http.server 4173
+npx wrangler pages dev build
 ```
 
-Directory: `/` and the same page at `/lab` once the SPA is on Pages (`_redirects`). Drop editor: `/lab/drop-editor/`, plus `?mode=brand`, `?pop=1`, `?desc=1`, `?edit=1`. Logo sketches: `/lab/logo-options/`.
+`/robots.txt` is `Disallow: /`. `/static/js/main.*.js` is the script. `/lab/drop-editor/` is the mockup, and a file under `/lab/drop-editor/a/` is the image, not the SPA shell. `/pulse` and `/inspo` fall back to `index.html` because there is no top-level `404.html`.
 
-On Cloudflare, a request for a real file or a folder `index.html` is served as that file. `_redirects` runs only when nothing on disk matches, which is how `/pulse` and `/inspo` reach the SPA.
+`python3 -m http.server` serves real files and directory indexes. It does not apply that SPA fallback, so `/pulse` and `/lab` 404 there. `npx serve -s` rewrites directory indexes to the SPA and hides the mockup.

@@ -1,4 +1,5 @@
 const path = require("path");
+const webpack = require("webpack");
 
 const brandEmailsJson = path.resolve(__dirname, "../backend/brand_emails.json");
 
@@ -26,6 +27,14 @@ module.exports = {
       // grew the branch.
       if (process.env.VITE_LAB === "1") {
         webpackConfig.entry = path.resolve(__dirname, "src/lab/index.tsx");
+        // Keep src/api/config.ts (and its production misconfiguration log)
+        // out of this build. The lab entry also skips AuthProvider.
+        webpackConfig.plugins.push(
+          new webpack.NormalModuleReplacementPlugin(
+            /[/\\]src[/\\]api[/\\]config\.ts$/,
+            path.resolve(__dirname, "src/lab/labApiConfig.ts"),
+          ),
+        );
       }
       return webpackConfig;
     },
