@@ -17,7 +17,7 @@ evidence:
     note: Apply copy is review-then-setup-email only; no drop / monitor / finalize explanation
   - path: frontend/src/components/home/HomeJoinSection.tsx
     note: Join CTAs go straight to /login and /brand/apply with no “see how it works” path
-  - path:   PRODUCT.md
+  - path: PRODUCT.md
     note: §5.1–5.3 and §6.1–6.3 define both motions; public tour routes are unspecified (LAUNCH.md Phase C)
 repro: |
   Open / as a logged-out prospect. “How to Bring the Buzz Over” lists benefits.
@@ -62,12 +62,12 @@ until that motion is replaced.**
 
 Two pages, not one with tabs.
 
-| | Orgs | Brands |
-| --- | --- | --- |
-| Route | `/for-orgs` | `/for-brands` |
-| Requirements | **Instagram Business or Creator** for the **organization** (not a member’s personal account). Campus `.edu`, profile fields in PRODUCT §3.1/§6.1, **§6.1.1** handle confirm card on apply, then Buzz review | Company name + email; Buzz reviews; setup-password email ([`PRODUCT.md`](../../PRODUCT.md) §5.1) |
+|                    | Orgs                                                                                                                                                                                                                                  | Brands                                                                                                                                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Route              | `/for-orgs`                                                                                                                                                                                                                           | `/for-brands`                                                                                                                                                                                                        |
+| Requirements       | **Instagram Business or Creator** for the **organization** (not a member’s personal account). Campus `.edu`, profile fields in PRODUCT §3.1/§6.1, **§6.1.1** handle confirm card on apply, then Buzz review                           | Company name + email; Buzz reviews; setup-password email ([`PRODUCT.md`](../../PRODUCT.md) §5.1)                                                                                                                     |
 | Flow to illustrate | Public apply → type handle → **same-page confirm card** (photo + @handle) → `.edu` verify → pending approval → accept tester invite → Connect Instagram → Drop Feed / apply → if accepted, products ship → post from that org account | Apply or invite → password → **Plan your Campaign** (ticket) → sales call out of band → admin drafts drop → **Publish** → brand **monitors** applicants / KPIs / tracker → **batch-finalize after `apply_close_at`** |
-| CTA | `/org/apply` (returning orgs: `/login`) | `/brand/apply` |
+| CTA                | `/org/apply` (returning orgs: `/login`)                                                                                                                                                                                               | `/brand/apply`                                                                                                                                                                                                       |
 
 Home [`HomeBringBuzzSection.tsx`](../../frontend/src/components/home/HomeBringBuzzSection.tsx)
 becomes two cards into these routes. Footer Get Started links the same. v1
@@ -115,7 +115,7 @@ Copy constraints (not full blockers):
 
 ## Related, not blockers
 
-- [`ops.brand-mailbox.md`](../ops.brand-mailbox.md) — invite / “campaign is up”
+- [`ops.brand-mailbox.md`](ops.brand-mailbox.md) — invite / “campaign is up”
   mail still works via Resend; public Contact mailto is still Cornell.
   Tour CTAs should not depend on a company inbox existing.
 - [`ideas/paper-ui.md`](../../ideas/paper-ui.md) — visual workshop for frames,
