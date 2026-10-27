@@ -8,6 +8,7 @@ import {
   VIEW_H,
   VIEW_W,
   buildFlight,
+  labelAlign,
   pinAlongPath,
   renderFlightSvg,
   shouldDwell,
@@ -104,6 +105,21 @@ describe("map flight", () => {
     expect(markup.match(/begin="-[\d.]+s"/g)?.length).toBe(plan.trail.length);
     expect(markup).toContain(`data-loop-seconds="${plan.loopSeconds}"`);
     expect(markup).toContain(`dur="${plan.flightSeconds}s"`);
+    // The fade must be inline style; `.pulse2-map circle` outranks an attribute.
+    expect(markup).not.toMatch(/<circle[^>]* opacity="/);
+    expect(markup.match(/style="opacity:[\d.]+"/g)).toHaveLength(plan.trail.length);
+  });
+
+  it("grows the pause label inward so east-coast names stay on the map", () => {
+    const align = (domain: string) => {
+      const pin = plan.pins.find((p) => p.domain === domain);
+      if (!pin) throw new Error(domain);
+      return labelAlign(pin);
+    };
+    expect(align("stanford.edu")).toBe("start");
+    expect(align("upenn.edu")).toBe("end");
+    expect(align("cornell.edu")).toBe("end");
+    expect(align(REDUCED_MOTION_DOMAIN)).toBe("end");
   });
 
   it("starts a landing only when the bee reaches a pin it has not already visited", () => {

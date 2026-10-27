@@ -1246,7 +1246,6 @@ html.lenis body {
 
 .pulse2-map {
   position: relative;
-  isolation: isolate;
   width: min(100%, 880px);
   aspect-ratio: 960 / 600;
   margin: 0 auto var(--s8);
@@ -1300,7 +1299,7 @@ html.lenis body {
 
 .pulse2-map__pin:hover,
 .pulse2-map__pin:focus-visible {
-  z-index: 5;
+  z-index: 2;
 }
 
 .pulse2-map__pin:hover span,
@@ -1645,7 +1644,18 @@ html.lenis body {
   }
 }
 
-/* Map bee. The flight SVG shares the land viewBox, so arcs stay on the pins. */
+/* Map bee. The flight SVG shares the land viewBox, so arcs stay on the pins.
+   Scoped to .pulsebee-map: this file loads on every route, and the
+   .pulse2-map rules above must stay identical to /pulse2. */
+.pulsebee-map {
+  isolation: isolate;
+}
+
+.pulsebee-map .pulse2-map__pin:hover,
+.pulsebee-map .pulse2-map__pin:focus-visible {
+  z-index: 5;
+}
+
 .pulsebee-flight,
 .pulsebee-still,
 .pulsebee-ring,
@@ -1696,6 +1706,10 @@ html.lenis body {
   line-height: 1.3;
   white-space: nowrap;
   transform: translate(0, calc(-100% - 14px));
+}
+
+.pulsebee-label[data-align="end"] {
+  transform: translate(-100%, calc(-100% - 14px));
 }
 
 @keyframes pulsebee-ring {
