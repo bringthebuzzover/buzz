@@ -12,15 +12,11 @@ const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 
 const repoRoot = path.resolve(frontendRoot, "..");
 const buildDir = path.join(frontendRoot, "build");
 
-/* Keep the badge rules aligned with .lab-badge in src/lab/lab.css. */
-const BADGE =
-  '<p class="buzz-lab-badge">Design preview</p>' +
-  "<style>" +
-  ".buzz-lab-badge{position:fixed;z-index:80;top:10px;left:50%;transform:translateX(-50%);" +
-  "margin:0;padding:4px 10px;border-radius:999px;background:#f6d32a;color:#0b0b0b;" +
-  "font-family:Switzer,ui-sans-serif,system-ui,sans-serif;font-size:11px;font-weight:500;" +
-  "letter-spacing:.04em;line-height:1.4;text-transform:uppercase;pointer-events:none}" +
-  "</style>";
+const badgeCss = fs.readFileSync(
+  path.join(frontendRoot, "src/lab/badge.css"),
+  "utf8",
+);
+const BADGE = `<p class="buzz-lab-badge">Design preview</p><style>${badgeCss}</style>`;
 
 const ROBOTS = '<meta name="robots" content="noindex, nofollow">';
 
@@ -95,15 +91,20 @@ fs.writeFileSync(
   path.join(buildDir, "_headers"),
   "/*\n  X-Robots-Tag: noindex, nofollow\n",
 );
-fs.writeFileSync(
-  path.join(buildDir, "_redirects"),
-  [
-    "/lab/drop-editor  /lab/drop-editor/  301",
-    "/lab/logo-options  /lab/logo-options/  301",
-    "/*  /index.html  200",
-    "",
-  ].join("\n"),
-);
+// Trailing-slash only. Pages follows every redirect even when a file
+// matches, so a `/* /index.html 200` splat would hide robots.txt, the JS
+// bundles, and the mockup. No top-level 404.html: Pages falls back to the
+// SPA for paths that are not files. See docs/LAB.md.
+const redirects = [
+  "/lab/drop-editor  /lab/drop-editor/  301",
+  "/lab/logo-options  /lab/logo-options/  301",
+  "",
+].join("\n");
+if (redirects.includes("/index.html")) {
+  console.error("Lab _redirects must not rewrite paths to index.html.");
+  process.exit(1);
+}
+fs.writeFileSync(path.join(buildDir, "_redirects"), redirects);
 
 const mainJs = fs
   .readdirSync(path.join(buildDir, "static/js"))
@@ -113,6 +114,10 @@ const bundled = mainJs
   : "";
 if (!bundled.includes("Design preview") || !bundled.includes("BUZZ Lab")) {
   console.error("Lab entry was not bundled. VITE_LAB did not swap the entry.");
+  process.exit(1);
+}
+if (bundled.includes("REACT_APP_API_URL is unset")) {
+  console.error("Lab bundle still contains the production API URL warning.");
   process.exit(1);
 }
 

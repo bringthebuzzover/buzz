@@ -1,17 +1,16 @@
+import fs from "node:fs";
+import path from "node:path";
 import { renderToString } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AuthProvider } from "../contexts/AuthContext";
 import LabShell from "./LabShell";
 
-function renderAt(path: string): string {
+function renderAt(pathname: string): string {
   const queryClient = new QueryClient();
   return renderToString(
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter initialEntries={[pathname]}>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <LabShell />
-        </AuthProvider>
+        <LabShell />
       </QueryClientProvider>
     </MemoryRouter>,
   );
@@ -40,6 +39,12 @@ describe("LabShell", () => {
     expect(html).toContain("Design preview");
     expect(html).toContain("Tap into Gen Z");
     expect(html).not.toContain("lab-grid");
+  });
+
+  it("mounts without AuthProvider", () => {
+    const src = fs.readFileSync(path.join(__dirname, "index.tsx"), "utf8");
+    expect(src).toContain('from "../bootstrap"');
+    expect(src).not.toMatch(/<AuthProvider|from ["'].*AuthContext["']/);
   });
 
   it("serves /pulse2 from the app", () => {

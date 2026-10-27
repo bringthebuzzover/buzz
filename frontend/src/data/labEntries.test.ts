@@ -85,5 +85,15 @@ describe("lab directory data", () => {
     expect(html).toContain("q.get('edit')");
     expect(html).not.toContain("buzz-lab-badge");
     expect(html).not.toContain("noindex");
+    expect(html).toContain("a/sorority.jpg");
+    expect(html).toContain("a/yerbamate.jpg");
+    expect(html).not.toContain("sorority.png");
+    expect(html).not.toContain("yerbamate.png");
+    for (const name of ["a/sorority.jpg", "a/yerbamate.jpg"]) {
+      const bytes = fs.statSync(
+        path.join(__dirname, "../../lab-static/drop-editor", name),
+      ).size;
+      expect(bytes).toBeLessThan(500 * 1024);
+    }
   });
 });
