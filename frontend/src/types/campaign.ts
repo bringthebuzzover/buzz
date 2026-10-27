@@ -20,4 +20,8 @@ export type CollegeMarqueeItem = {
   domain: string;
   /** Local asset; when absent, Clearbit / icon fallback is used in the UI */
   logoSrc?: string;
+  /** Campus latitude (Wikipedia article coordinates). */
+  lat: number;
+  /** Campus longitude (Wikipedia article coordinates). */
+  lng: number;
 };

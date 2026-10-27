@@ -19,16 +19,22 @@ describe("PulseTwoHomePage", () => {
       </MemoryRouter>,
     );
 
-    expect(html).toMatch(/Campus/);
-    expect(html).toMatch(/marketing/);
+    expect(html).toMatch(/Campus marketing,/);
     expect(html).toMatch(/powered by/);
+    expect(html).toMatch(/student communities/);
+    expect(html).toMatch(/large-scale campus activations nationwide/);
     expect(html).toMatch(/How it works/);
     expect(html).toMatch(/College network/);
     expect(html).toMatch(/Current drops/);
     expect(html).toMatch(/Yerba Madre/);
     expect(html).toMatch(/UPDATE/);
     expect(html).toMatch(/View drop/);
-    expect(html).toMatch(/See all/);
+    expect(html).toMatch(/Apply as an organization/);
+    expect(html).toMatch(/Apply as a brand/);
+    expect(html).toMatch(/For organizations/);
+    expect(html).toMatch(/For brands/);
+    expect(html).toContain("logo.clearbit.com/stanford.edu");
+    expect(html).toMatch(/Stanford/);
     expect(html).toMatch(/Princeton/);
     expect(html).toMatch(/School \(\.edu\) email/);
     expect(html).toMatch(/Connect with Instagram/);

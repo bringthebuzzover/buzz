@@ -33,6 +33,10 @@ module.exports = {
       // with "Cannot find module 'react-router-dom'". CRA doesn't allow a
       // custom jest `resolver`, so map the affected entry points to their real
       // CJS files. (`react-router` itself resolves fine via its `main`.)
+      config.transformIgnorePatterns = [
+        "[/\\\\]node_modules[/\\\\](?!(d3-geo|d3-array|internmap)[/\\\\]).+\\.(js|jsx|mjs|cjs|ts|tsx)$",
+        "^.+\\.module\\.(css|sass|scss)$",
+      ];
       config.moduleNameMapper = {
         ...config.moduleNameMapper,
         "^@brandEmails$": brandEmailsJson,

@@ -122,24 +122,6 @@ export function usePulseTwoMotion(rootRef: RefObject<HTMLElement | null>): void 
           if (distance > 0) marquee.style.animationDuration = `${distance / 32}s`;
         }
 
-        gsap.utils.toArray<HTMLElement>(".pulse2-reveal").forEach((frame) => {
-          const media = frame.querySelector(".pulse2-reveal__media");
-          const reveal = () => ({
-            trigger: frame,
-            start: "top bottom",
-            end: "top 50%",
-            scrub: 0.8,
-          });
-          gsap.fromTo(
-            frame,
-            { clipPath: "inset(100% 0 0 0 round 8px)" },
-            { clipPath: "inset(0% 0 0 0 round 8px)", ease: "none", scrollTrigger: reveal() },
-          );
-          if (media) {
-            gsap.fromTo(media, { scale: 1.15 }, { scale: 1, ease: "none", scrollTrigger: reveal() });
-          }
-        });
-
         const steps = gsap.utils.toArray<HTMLElement>(".pulse2-step");
         const screens = gsap.utils.toArray<HTMLElement>(".pulse2-phone__screen");
         const how = document.querySelector(".pulse2-how");
