@@ -100,15 +100,15 @@ export default function PulseHomePage() {
               <span>marketing.</span>
             </span>
           </h1>
-          <p className="pulse-hero__sub pulse-line" data-reveal="load">
-            <span>powered by student communities.</span>
-          </p>
           <div className="pulse-hero__actions">
             <Link className="pulse-ghost" to="/brand/apply">
               Apply as a brand
             </Link>
           </div>
         </div>
+        <p className="pulse-hero__sub pulse-line" data-reveal="load">
+          <span>powered by student communities.</span>
+        </p>
       </section>
 
       <section className="pulse-band" data-theme="paper" aria-labelledby="pulse-statement">
@@ -189,7 +189,7 @@ export default function PulseHomePage() {
         <div className="pulse-paths">
           <article className="pulse-path" id="students">
             <div className="pulse-reveal">
-              <img className="pulse-reveal__media" src={pathOrgs} alt="Students walking across a campus lawn" />
+              <img className="pulse-reveal__media" src={pathOrgs} alt="Students at a campus gathering" />
             </div>
             <h2>Apply with your campus .edu.</h2>
             <p>Connect Instagram after Buzz review.</p>
@@ -197,7 +197,7 @@ export default function PulseHomePage() {
           </article>
           <article className="pulse-path" id="brands">
             <div className="pulse-reveal">
-              <img className="pulse-reveal__media" src={pathBrands} alt="A crowd at a campus event" />
+              <img className="pulse-reveal__media" src={pathBrands} alt="Students holding drinks at a campus event" />
             </div>
             <h2>Request a campaign.</h2>
             <p>Buzz drafts and publishes it.</p>

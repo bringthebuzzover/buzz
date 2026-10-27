@@ -113,6 +113,8 @@ html.lenis body {
 .pulse-line {
   display: block;
   overflow: hidden;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
 }
 
 .pulse-line > span {
@@ -380,8 +382,7 @@ html.lenis body {
 .pulse-hero__shade {
   z-index: 2;
   background: var(--ink);
-  transform: scaleY(0);
-  transform-origin: center top;
+  opacity: 0;
   pointer-events: none;
 }
 
@@ -392,7 +393,13 @@ html.lenis body {
 }
 
 .pulse-hero__sub {
-  margin: var(--s5) auto 0;
+  position: absolute;
+  z-index: 1;
+  right: var(--side);
+  bottom: var(--s8);
+  left: var(--side);
+  margin: 0;
+  text-align: center;
   font-size: clamp(1rem, 1.1vw, 1.125rem);
   font-weight: 400;
   line-height: 1.5;
@@ -405,6 +412,11 @@ html.lenis body {
   justify-content: center;
   gap: var(--s3);
   margin-top: var(--s6);
+}
+
+.pulse-band,
+.pulse-how {
+  background: var(--paper);
 }
 
 .pulse-band {
@@ -491,15 +503,18 @@ html.lenis body {
 .pulse.is-motion .pulse-step,
 .pulse.is-motion .pulse-phone__screen {
   opacity: 0;
+  transition: opacity 0.35s var(--ease);
 }
 
 .pulse-phone {
   width: min(100%, 280px);
   margin-inline: auto;
-  background: var(--paper);
+  background: #fff;
   color: var(--ink);
-  border-radius: 8px;
-  box-shadow: 0 2px 64px rgba(0, 0, 0, 0.35);
+  border-radius: 32px;
+  box-shadow:
+    0 2px 64px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px rgba(11, 11, 11, 0.08);
   overflow: hidden;
 }
 
@@ -554,7 +569,7 @@ html.lenis body {
 }
 
 .pulse-card__shade {
-  background: linear-gradient(to top, rgba(11, 11, 11, 0.62), rgba(11, 11, 11, 0.12) 42%, rgba(11, 11, 11, 0.18));
+  background: linear-gradient(to top, rgba(11, 11, 11, 0.55), rgba(11, 11, 11, 0.32) 46%, rgba(11, 11, 11, 0.38));
 }
 
 .pulse-card__copy {
@@ -575,13 +590,17 @@ html.lenis body {
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.05em;
+  text-wrap: balance;
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.45);
 }
 
 .pulse-card__tag {
   margin: 0;
-  font-size: 0.75rem;
+  color: #fff;
+  font-size: 14px;
   line-height: 1.4;
   text-align: left;
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.7);
 }
 
 .pulse-card__tag--end {
@@ -766,7 +785,7 @@ html.lenis body {
     position: sticky;
     top: 0;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) min(22vw, 280px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) min(22vw, 360px) minmax(0, 1fr);
     align-items: center;
     gap: var(--s6);
     height: 100svh;
@@ -778,12 +797,7 @@ html.lenis body {
     height: 6rem;
   }
 
-  .pulse.is-motion .pulse-step,
-.pulse.is-motion .pulse-phone__screen {
-  opacity: 0;
-}
-
-.pulse.is-motion .pulse-step {
+  .pulse.is-motion .pulse-step {
     position: absolute;
     inset: 0;
     display: flex;
@@ -800,7 +814,7 @@ html.lenis body {
     position: relative;
     aspect-ratio: 9 / 16;
     height: auto;
-    width: min(22vw, 280px);
+    width: min(22vw, 360px);
   }
 
   .pulse.is-motion .pulse-phone__screen {
@@ -808,7 +822,7 @@ html.lenis body {
     inset: 0;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
+    justify-content: center;
   }
 
   .pulse.is-motion .pulse-phone__screen + .pulse-phone__screen {
@@ -879,6 +893,10 @@ html.lenis body {
     padding-bottom: 96px;
   }
 
+  .pulse-hero__sub {
+    bottom: 104px;
+  }
+
   .pulse-paths {
     flex-direction: column;
   }
@@ -891,6 +909,7 @@ html.lenis body {
     grid-template-columns: 1fr;
     align-content: end;
     text-align: left;
+    padding-bottom: 112px;
   }
 
   .pulse-card__tag,
@@ -955,7 +974,7 @@ html.lenis body {
     inset: 0;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
+    justify-content: center;
   }
 
   .pulse.is-motion .pulse-phone__screen + .pulse-phone__screen {
@@ -1011,6 +1030,8 @@ html.lenis body {
   .pulse-pill,
   .pulse-ghost,
   .pulse-path,
+  .pulse-step,
+  .pulse-phone__screen,
   .pulse-nav__label::after {
     transition: none;
   }
