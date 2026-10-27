@@ -59,6 +59,7 @@ import InspoHomePage from "./pages/inspo/InspoHomePage";
 import InspoDropDetailPage from "./pages/inspo/InspoDropDetailPage";
 import PulseHomePage from "./pages/pulse/PulseHomePage";
 import PulseTwoHomePage from "./pages/pulse2/PulseTwoHomePage";
+import DropEditorPage from "./pages/drop-editor/DropEditorPage";
 import PulseBeeHomePage from "./pages/pulseBee/PulseBeeHomePage";
 import LabHomePage from "./lab/LabHomePage";
 
@@ -102,6 +103,7 @@ const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["InspoDropDetailPage", InspoDropDetailPage],
   ["PulseHomePage", PulseHomePage],
   ["PulseTwoHomePage", PulseTwoHomePage],
+  ["DropEditorPage", DropEditorPage],
   ["PulseBeeHomePage", PulseBeeHomePage],
   ["LabHomePage", LabHomePage],
 ];
