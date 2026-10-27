@@ -12,6 +12,11 @@ export type FeaturedCollab = {
   title: string;
   subtitle: string;
   image: string;
+  /**
+   * Manual title color on the drop photo. "light" is white, "dark" is ink.
+   * When set, it wins over the sampled tone.
+   */
+  titleTone?: "light" | "dark";
 };
 
 /** One school row in the scrolling college network; optional local logo overrides remote URLs. */
@@ -20,4 +25,8 @@ export type CollegeMarqueeItem = {
   domain: string;
   /** Local asset; when absent, Clearbit / icon fallback is used in the UI */
   logoSrc?: string;
+  /** Campus latitude (Wikipedia article coordinates). */
+  lat: number;
+  /** Campus longitude (Wikipedia article coordinates). */
+  lng: number;
 };
