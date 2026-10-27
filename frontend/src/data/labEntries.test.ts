@@ -28,6 +28,7 @@ describe("lab directory data", () => {
       "pulse",
       "pulse2",
       "inspo",
+      "pulse-bee",
       "pulse-bee-orgs",
       "pulse-bee-brands",
       "drop-editor",
