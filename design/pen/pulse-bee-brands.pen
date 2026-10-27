@@ -1,0 +1,5475 @@
+{
+ "version": "2.21",
+ "children": [
+  {
+   "type": "frame",
+   "id": "uKtnH",
+   "x": 0,
+   "y": -3000,
+   "name": "Pill / Yellow",
+   "reusable": true,
+   "height": 40,
+   "fill": "$yellow",
+   "cornerRadius": "$radius-pill",
+   "padding": [
+    0,
+    "$space-4"
+   ],
+   "justifyContent": "center",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "text",
+     "id": "m3z8Gw",
+     "name": "Label",
+     "fill": "$ink",
+     "content": "Join",
+     "fontFamily": "$font",
+     "fontSize": "$type-small",
+     "fontWeight": "normal"
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "XHmYw",
+   "x": 280,
+   "y": -3000,
+   "name": "Pill / Dark",
+   "reusable": true,
+   "height": 36,
+   "fill": "$ink-btn",
+   "cornerRadius": "$radius-pill",
+   "gap": "$space-2",
+   "padding": [
+    0,
+    14
+   ],
+   "justifyContent": "center",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "text",
+     "id": "o48sD",
+     "name": "Label",
+     "fill": "$paper",
+     "content": "View drop",
+     "fontFamily": "$font",
+     "fontSize": "$type-label",
+     "fontWeight": "normal"
+    },
+    {
+     "type": "icon",
+     "id": "ARbUw",
+     "x": 0,
+     "y": 0,
+     "name": "Chevron",
+     "enabled": false,
+     "width": 16,
+     "height": 16,
+     "icon": "chevron-right",
+     "library": "lucide",
+     "fill": "$paper"
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "H3d268",
+   "x": 560,
+   "y": -3000,
+   "name": "NavBar",
+   "reusable": true,
+   "width": 1152,
+   "height": 66,
+   "fill": "#0b0b0b70",
+   "cornerRadius": "$radius-card",
+   "stroke": "#ffffff08",
+   "strokeWidth": 1,
+   "effect": [
+    {
+     "type": "background_blur",
+     "radius": 16
+    },
+    {
+     "type": "shadow",
+     "shadowType": "outer",
+     "color": "#ffffff01",
+     "offset": {
+      "x": 0,
+      "y": 1.6
+     },
+     "blur": 8
+    }
+   ],
+   "padding": [
+    0,
+    20
+   ],
+   "justifyContent": "space_between",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "frame",
+     "id": "gIbtg",
+     "name": "Logo",
+     "width": 128,
+     "height": 58,
+     "fill": {
+      "type": "image",
+      "enabled": true,
+      "url": "images/pulse-bee/buzz-logo.png",
+      "mode": "contain"
+     }
+    },
+    {
+     "type": "frame",
+     "id": "T0HSLK",
+     "name": "Right",
+     "gap": "$space-6",
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "frame",
+       "id": "bIFjI",
+       "name": "Links",
+       "gap": "$space-5",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "frame",
+         "id": "j8xwA",
+         "name": "Link Organizations",
+         "layout": "vertical",
+         "gap": 3,
+         "children": [
+          {
+           "type": "text",
+           "id": "B1IfW",
+           "name": "Organizations",
+           "fill": "$white",
+           "content": "Organizations",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "v0CnvW",
+         "name": "Link Brands",
+         "layout": "vertical",
+         "gap": 3,
+         "children": [
+          {
+           "type": "text",
+           "id": "ZHSS4",
+           "name": "Brands",
+           "fill": "$white",
+           "content": "Brands",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "p4xG2Z",
+         "name": "Link How it works",
+         "layout": "vertical",
+         "gap": 3,
+         "children": [
+          {
+           "type": "text",
+           "id": "uW6Xc",
+           "name": "How it works",
+           "fill": "$white",
+           "content": "How it works",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          },
+          {
+           "type": "rectangle",
+           "id": "oiiUx",
+           "x": 0,
+           "y": 0,
+           "name": "Active underline",
+           "enabled": false,
+           "fill": "$white",
+           "width": 81,
+           "height": 1
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "gZ55s",
+         "name": "Link Login",
+         "layout": "vertical",
+         "gap": 3,
+         "children": [
+          {
+           "type": "text",
+           "id": "PyO0u",
+           "name": "Login",
+           "fill": "$white",
+           "content": "Login",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "cIN8B",
+       "type": "ref",
+       "ref": "uKtnH",
+       "name": "Join"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "QFtyV",
+   "x": 1792,
+   "y": -3000,
+   "name": "MapPin",
+   "reusable": true,
+   "width": 12,
+   "height": 12,
+   "layout": "none",
+   "children": [
+    {
+     "type": "ellipse",
+     "id": "p20RzZ",
+     "x": 0,
+     "y": 0,
+     "name": "Ring",
+     "fill": "$ink",
+     "width": 12,
+     "height": 12
+    },
+    {
+     "type": "ellipse",
+     "id": "p5JKg3",
+     "x": 3,
+     "y": 3,
+     "name": "Core",
+     "fill": "$yellow",
+     "width": 6,
+     "height": 6
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "lM2vX",
+   "x": 1884,
+   "y": -3000,
+   "name": "LogoItem",
+   "reusable": true,
+   "opacity": 0.78,
+   "width": 48,
+   "height": 48,
+   "fill": {
+    "type": "image",
+    "enabled": true,
+    "url": "images/pulse-bee/logos/princeton.png",
+    "mode": "contain"
+   }
+  },
+  {
+   "type": "frame",
+   "id": "QhHN7",
+   "x": 2012,
+   "y": -3000,
+   "name": "App / Field",
+   "reusable": true,
+   "width": 216,
+   "fill": "$paper",
+   "cornerRadius": "$radius-field",
+   "padding": [
+    10,
+    "$space-3"
+   ],
+   "children": [
+    {
+     "type": "text",
+     "id": "j8gXJp",
+     "name": "Value",
+     "fill": "$ink",
+     "content": "Kappa Alpha Theta",
+     "lineHeight": 1.5,
+     "fontFamily": "$font",
+     "fontSize": "$type-label",
+     "fontWeight": "normal"
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "V6GNvM",
+   "x": 2308,
+   "y": -3000,
+   "name": "App / Button",
+   "reusable": true,
+   "width": 216,
+   "fill": "$ink",
+   "cornerRadius": "$radius-pill",
+   "gap": "$space-2",
+   "padding": [
+    "$space-3",
+    14
+   ],
+   "justifyContent": "center",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "frame",
+     "id": "msriN",
+     "x": 0,
+     "y": 0,
+     "name": "Icon",
+     "enabled": false,
+     "width": 16,
+     "height": 16,
+     "fill": {
+      "type": "image",
+      "enabled": true,
+      "url": "images/pulse-bee/insta-icon-white.png",
+      "mode": "contain"
+     }
+    },
+    {
+     "type": "text",
+     "id": "ojXkO",
+     "name": "Label",
+     "fill": "$paper",
+     "content": "Submit application",
+     "lineHeight": 1.5,
+     "fontFamily": "$font",
+     "fontSize": "$type-label",
+     "fontWeight": "normal"
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "Brjmq",
+   "x": 2604,
+   "y": -3000,
+   "name": "App / Chip",
+   "reusable": true,
+   "width": 105,
+   "fill": "$paper",
+   "cornerRadius": "$radius-card",
+   "layout": "vertical",
+   "padding": [
+    "$space-2",
+    10
+   ],
+   "children": [
+    {
+     "type": "text",
+     "id": "ejNxn",
+     "x": 0,
+     "y": 0,
+     "name": "Value",
+     "enabled": false,
+     "fill": "$ink",
+     "content": "—",
+     "fontFamily": "$font",
+     "fontSize": 18.4,
+     "fontWeight": "500",
+     "letterSpacing": -0.55
+    },
+    {
+     "type": "text",
+     "id": "TwVYg",
+     "name": "Label",
+     "fill": "$ink",
+     "content": "Upcoming",
+     "lineHeight": 1.5,
+     "fontFamily": "$font",
+     "fontSize": "$type-micro",
+     "fontWeight": "normal"
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "N4ul60",
+   "x": 0,
+   "y": -2520,
+   "name": "DropCard",
+   "reusable": true,
+   "clip": true,
+   "width": 1076,
+   "height": 605,
+   "fill": [
+    "$grey-media",
+    {
+     "type": "image",
+     "enabled": true,
+     "url": "images/pulse-bee/yerba-madre.jpg",
+     "mode": "cover"
+    }
+   ],
+   "cornerRadius": "$radius-card",
+   "layout": "none",
+   "children": [
+    {
+     "type": "text",
+     "id": "RGfWE",
+     "x": 28,
+     "y": 28,
+     "name": "Brand",
+     "fill": "$white",
+     "content": "Yerba Madre",
+     "lineHeight": 0.95,
+     "fontFamily": "$font",
+     "fontSize": "$type-title-lg",
+     "fontWeight": "500",
+     "letterSpacing": -2.52
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "RArr7",
+   "x": 1156,
+   "y": -2520,
+   "name": "FooterColumn",
+   "reusable": true,
+   "width": 324,
+   "layout": "vertical",
+   "gap": "$space-3",
+   "children": [
+    {
+     "type": "text",
+     "id": "zEXvC",
+     "name": "Heading",
+     "fill": "$paper",
+     "content": "Organizations",
+     "fontFamily": "$font",
+     "fontSize": "$type-micro",
+     "fontWeight": "normal"
+    },
+    {
+     "type": "frame",
+     "id": "JJbCk",
+     "name": "Links",
+     "layout": "vertical",
+     "children": [
+      {
+       "type": "frame",
+       "id": "wSlOE",
+       "name": "Row How it works",
+       "height": 32,
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "r1ani",
+         "name": "Link",
+         "fill": "$paper-60",
+         "content": "How it works",
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "lLB9N",
+       "name": "Row Apply",
+       "height": 32,
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "YmYei",
+         "name": "Link",
+         "fill": "$paper-60",
+         "content": "Apply",
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "D6Vnf",
+       "name": "Row Login",
+       "height": 32,
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "snibS",
+         "name": "Link",
+         "fill": "$paper-60",
+         "content": "Login",
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "m5oETK",
+       "x": 0,
+       "y": 96,
+       "name": "Row Extra",
+       "enabled": false,
+       "height": 32,
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "rrfzP",
+         "name": "Link",
+         "fill": "$paper-60",
+         "content": "Extra",
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "YSw6B",
+   "x": 1560,
+   "y": -2520,
+   "name": "NavBar / Mobile",
+   "reusable": true,
+   "width": 374,
+   "height": 58,
+   "fill": "#0b0b0b70",
+   "cornerRadius": "$radius-card",
+   "stroke": "#ffffff08",
+   "strokeWidth": 1,
+   "effect": [
+    {
+     "type": "background_blur",
+     "radius": 16
+    },
+    {
+     "type": "shadow",
+     "shadowType": "outer",
+     "color": "#ffffff01",
+     "offset": {
+      "x": 0,
+      "y": 1.6
+     },
+     "blur": 8
+    }
+   ],
+   "padding": [
+    0,
+    6,
+    0,
+    10
+   ],
+   "justifyContent": "space_between",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "frame",
+     "id": "K2pRdS",
+     "name": "Logo",
+     "width": 128,
+     "height": 58,
+     "fill": {
+      "type": "image",
+      "enabled": true,
+      "url": "images/pulse-bee/buzz-logo.png",
+      "mode": "contain"
+     }
+    },
+    {
+     "type": "frame",
+     "id": "VPEdt",
+     "name": "Menu button",
+     "width": 44,
+     "height": 44,
+     "justifyContent": "center",
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "text",
+       "id": "iGXob",
+       "name": "Menu",
+       "fill": "$white",
+       "content": "Menu",
+       "fontFamily": "$font",
+       "fontSize": "$type-small",
+       "fontWeight": "normal"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "SecHd",
+   "name": "Section / Head",
+   "reusable": true,
+   "width": 704,
+   "layout": "vertical",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "text",
+     "id": "SecHdT",
+     "name": "Title",
+     "fill": "$on-surface",
+     "content": "Partner with brands",
+     "fontFamily": "$font",
+     "fontSize": "$type-h2",
+     "fontWeight": "500",
+     "lineHeight": 1,
+     "letterSpacing": -1.73,
+     "textAlign": "center",
+     "textGrowth": "fixed-width",
+     "width": "fill_container"
+    },
+    {
+     "type": "frame",
+     "id": "jX1Xh",
+     "name": "Support wrap",
+     "width": "fill_container",
+     "padding": [
+      "$space-4",
+      0,
+      0,
+      0
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "SecHdS",
+       "name": "Support",
+       "fill": "$on-surface-muted",
+       "content": "Merch and product samples for your organization.",
+       "fontFamily": "$font",
+       "fontSize": "$type-body",
+       "fontWeight": "normal",
+       "lineHeight": 1.5,
+       "textAlign": "center",
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      }
+     ]
+    }
+   ],
+   "x": 2014,
+   "y": -2520
+  },
+  {
+   "type": "frame",
+   "id": "CardPh",
+   "name": "Card / Numbered / Photo",
+   "reusable": true,
+   "width": 368,
+   "layout": "vertical",
+   "children": [
+    {
+     "type": "frame",
+     "id": "CardPhm",
+     "name": "Media",
+     "width": "fill_container",
+     "height": 345,
+     "clip": true,
+     "cornerRadius": "$radius-card",
+     "fill": [
+      {
+       "type": "color",
+       "enabled": true,
+       "color": "$grey-media"
+      },
+      {
+       "type": "image",
+       "enabled": true,
+       "url": "images/pulse-bee/yerba-madre.jpg",
+       "mode": "fill"
+      }
+     ],
+     "justifyContent": "center",
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "frame",
+       "id": "CardPhbadge",
+       "name": "Number",
+       "layoutPosition": "absolute",
+       "x": 16,
+       "y": 16,
+       "width": 32,
+       "height": 32,
+       "cornerRadius": "$radius-pill",
+       "fill": "$yellow",
+       "justifyContent": "center",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "CardPhn",
+         "name": "N",
+         "fill": "$ink",
+         "content": "1",
+         "fontFamily": "$font",
+         "fontSize": "$type-small",
+         "fontWeight": "500",
+         "lineHeight": 1
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "zoOla",
+     "name": "Title wrap",
+     "width": "fill_container",
+     "padding": [
+      "$space-5",
+      0,
+      0,
+      0
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "CardPht",
+       "name": "Title",
+       "fill": "$on-surface",
+       "content": "Brand products, shipped to you",
+       "fontFamily": "$font",
+       "fontSize": "$type-h3",
+       "fontWeight": "500",
+       "lineHeight": 1.25,
+       "letterSpacing": -0.2,
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "BqJJf",
+     "name": "Body wrap",
+     "width": "fill_container",
+     "padding": [
+      "$space-2",
+      0,
+      0,
+      0
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "CardPhd",
+       "name": "Body",
+       "fill": "$on-surface-muted",
+       "content": "If you’re accepted on a drop, products ship to the address you gave when you applied.",
+       "fontFamily": "$font",
+       "fontSize": "$type-body",
+       "fontWeight": "normal",
+       "lineHeight": 1.5,
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      }
+     ]
+    }
+   ],
+   "x": 2798,
+   "y": -2520
+  },
+  {
+   "type": "frame",
+   "id": "CardMk",
+   "name": "Card / Numbered / Mark",
+   "reusable": true,
+   "width": 368,
+   "layout": "vertical",
+   "children": [
+    {
+     "type": "frame",
+     "id": "CardMkm",
+     "name": "Media",
+     "width": "fill_container",
+     "height": 345,
+     "clip": true,
+     "cornerRadius": "$radius-card",
+     "fill": "$yellow",
+     "justifyContent": "center",
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "frame",
+       "id": "CardMkb",
+       "name": "Bee",
+       "width": 125,
+       "height": 125,
+       "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "images/pulse-bee/bee.png",
+        "mode": "contain"
+       }
+      },
+      {
+       "type": "frame",
+       "id": "CardMkbadge",
+       "name": "Number",
+       "layoutPosition": "absolute",
+       "x": 16,
+       "y": 16,
+       "width": 32,
+       "height": 32,
+       "cornerRadius": "$radius-pill",
+       "fill": "$ink",
+       "justifyContent": "center",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "text",
+         "id": "CardMkn",
+         "name": "N",
+         "fill": "$yellow",
+         "content": "1",
+         "fontFamily": "$font",
+         "fontSize": "$type-small",
+         "fontWeight": "500",
+         "lineHeight": 1
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "osG4r",
+     "name": "Title wrap",
+     "width": "fill_container",
+     "padding": [
+      "$space-5",
+      0,
+      0,
+      0
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "CardMkt",
+       "name": "Title",
+       "fill": "$on-surface",
+       "content": "Brand products, shipped to you",
+       "fontFamily": "$font",
+       "fontSize": "$type-h3",
+       "fontWeight": "500",
+       "lineHeight": 1.25,
+       "letterSpacing": -0.2,
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "mq8aK",
+     "name": "Body wrap",
+     "width": "fill_container",
+     "padding": [
+      "$space-2",
+      0,
+      0,
+      0
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "CardMkd",
+       "name": "Body",
+       "fill": "$on-surface-muted",
+       "content": "If you’re accepted on a drop, products ship to the address you gave when you applied.",
+       "fontFamily": "$font",
+       "fontSize": "$type-body",
+       "fontWeight": "normal",
+       "lineHeight": 1.5,
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      }
+     ]
+    }
+   ],
+   "x": 0,
+   "y": -1835
+  },
+  {
+   "type": "frame",
+   "id": "FaqCl",
+   "name": "FAQ / Item",
+   "reusable": true,
+   "width": 747,
+   "layout": "vertical",
+   "children": [
+    {
+     "type": "frame",
+     "id": "FaqClh",
+     "name": "Hairline",
+     "width": "fill_container",
+     "height": 1,
+     "fill": "$hairline"
+    },
+    {
+     "type": "frame",
+     "id": "FaqCls",
+     "name": "Summary",
+     "width": "fill_container",
+     "height": 64,
+     "gap": "$space-4",
+     "alignItems": "center",
+     "justifyContent": "space_between",
+     "children": [
+      {
+       "type": "text",
+       "id": "FaqClq",
+       "name": "Question",
+       "fill": "$on-surface",
+       "content": "Who can apply?",
+       "fontFamily": "$font",
+       "fontSize": "$type-h4",
+       "fontWeight": "500",
+       "lineHeight": 1.3,
+       "letterSpacing": -0.19,
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      },
+      {
+       "type": "icon",
+       "id": "FaqCli",
+       "name": "Icon",
+       "width": 14,
+       "height": 14,
+       "icon": "plus",
+       "library": "lucide",
+       "fill": "$on-surface"
+      }
+     ]
+    }
+   ],
+   "x": 448,
+   "y": -1835
+  },
+  {
+   "type": "frame",
+   "id": "FaqOp",
+   "name": "FAQ / Item / Open",
+   "reusable": true,
+   "width": 747,
+   "layout": "vertical",
+   "children": [
+    {
+     "type": "frame",
+     "id": "FaqOph",
+     "name": "Hairline",
+     "width": "fill_container",
+     "height": 1,
+     "fill": "$hairline"
+    },
+    {
+     "type": "frame",
+     "id": "FaqOps",
+     "name": "Summary",
+     "width": "fill_container",
+     "height": 64,
+     "gap": "$space-4",
+     "alignItems": "center",
+     "justifyContent": "space_between",
+     "children": [
+      {
+       "type": "text",
+       "id": "FaqOpq",
+       "name": "Question",
+       "fill": "$on-surface",
+       "content": "Who can apply?",
+       "fontFamily": "$font",
+       "fontSize": "$type-h4",
+       "fontWeight": "500",
+       "lineHeight": 1.3,
+       "letterSpacing": -0.19,
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      },
+      {
+       "type": "icon",
+       "id": "FaqOpi",
+       "name": "Icon",
+       "width": 14,
+       "height": 14,
+       "icon": "x",
+       "library": "lucide",
+       "fill": "$on-surface"
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "FaqOpaw",
+     "name": "Answer wrap",
+     "width": "fill_container",
+     "padding": [
+      0,
+      0,
+      "$space-5",
+      0
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "FaqOpa",
+       "name": "Answer",
+       "fill": "$on-surface-muted",
+       "content": "Student organizations with a campus .edu email you can verify and the organization’s Instagram Business or Creator account.",
+       "fontFamily": "$font",
+       "fontSize": "$type-body",
+       "fontWeight": "normal",
+       "lineHeight": 1.5,
+       "textGrowth": "fixed-width",
+       "width": 540
+      }
+     ]
+    }
+   ],
+   "x": 1275,
+   "y": -1835
+  },
+  {
+   "type": "frame",
+   "id": "Ghost",
+   "name": "Pill / Ghost",
+   "reusable": true,
+   "height": 44,
+   "padding": [
+    0,
+    "$space-5"
+   ],
+   "cornerRadius": "$radius-pill",
+   "stroke": "$on-surface",
+   "strokeWidth": 1,
+   "justifyContent": "center",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "text",
+     "id": "GhostL",
+     "name": "Label",
+     "fill": "$on-surface",
+     "content": "Run a campus activation",
+     "fontFamily": "$font",
+     "fontSize": "$type-small",
+     "fontWeight": "normal"
+    }
+   ],
+   "x": 2102,
+   "y": -1835
+  },
+  {
+   "type": "frame",
+   "id": "ArrowB",
+   "name": "Button / Arrow",
+   "reusable": true,
+   "width": 40,
+   "height": 40,
+   "cornerRadius": "$radius-pill",
+   "stroke": "$on-surface",
+   "strokeWidth": 1,
+   "justifyContent": "center",
+   "alignItems": "center",
+   "children": [
+    {
+     "type": "icon",
+     "id": "ArrowI",
+     "name": "Icon",
+     "width": 18,
+     "height": 18,
+     "icon": "chevron-right",
+     "library": "lucide",
+     "fill": "$on-surface"
+    }
+   ],
+   "x": 2382,
+   "y": -1835
+  },
+  {
+   "type": "frame",
+   "id": "n1SoG",
+   "name": "Pulse Bee Brands / Desktop 1440",
+   "x": 0,
+   "y": 0,
+   "width": 1440,
+   "layout": "vertical",
+   "fill": "$ink",
+   "clip": true,
+   "children": [
+    {
+     "type": "frame",
+     "id": "doOqe",
+     "name": "Hero",
+     "clip": true,
+     "width": 1440,
+     "height": 900,
+     "fill": [
+      {
+       "type": "image",
+       "enabled": true,
+       "url": "images/pulse-bee/update.jpg",
+       "mode": "cover"
+      },
+      {
+       "type": "gradient",
+       "gradientType": "linear",
+       "enabled": true,
+       "rotation": -32,
+       "size": {
+        "height": 1
+       },
+       "colors": [
+        {
+         "color": "#0b0b0bc7",
+         "position": 0
+        },
+        {
+         "color": "#0b0b0b6b",
+         "position": 0.32
+        },
+        {
+         "color": "$ink-08",
+         "position": 0.62
+        },
+        {
+         "color": "#0b0b0b2e",
+         "position": 1
+        }
+       ]
+      }
+     ],
+     "layout": "none",
+     "children": [
+      {
+       "type": "frame",
+       "id": "T2LMo",
+       "x": 1139,
+       "y": 198,
+       "name": "Bee",
+       "width": 42,
+       "height": 42,
+       "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "images/pulse-bee/bee.png",
+        "mode": "contain"
+       }
+      },
+      {
+       "type": "text",
+       "id": "bfniM",
+       "x": 48,
+       "y": 471,
+       "name": "Headline",
+       "fill": "$paper",
+       "textGrowth": "fixed-width",
+       "width": 736,
+       "content": "Authentic college\nmarketing,\nat scale.",
+       "lineHeight": 1,
+       "fontFamily": "$font",
+       "fontSize": "$type-hero",
+       "fontWeight": "500",
+       "letterSpacing": -2.53
+      },
+      {
+       "type": "frame",
+       "id": "Rp0vZ",
+       "name": "Actions",
+       "x": 48,
+       "y": 748,
+       "gap": "$space-5",
+       "alignItems": "center",
+       "children": [
+        {
+         "id": "ONXDk",
+         "type": "ref",
+         "ref": "uKtnH",
+         "name": "Join",
+         "height": 44,
+         "padding": [
+          0,
+          21
+         ],
+         "descendants": {
+          "m3z8Gw": {
+           "content": "Apply as a brand"
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "k5AB3",
+         "name": "How it works link",
+         "height": 44,
+         "gap": 6,
+         "alignItems": "center",
+         "children": [
+          {
+           "type": "text",
+           "id": "z9Etx",
+           "name": "Label",
+           "fill": "$paper",
+           "content": "How it works",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          },
+          {
+           "type": "text",
+           "id": "QWey4",
+           "name": "Arrow",
+           "fill": "$paper",
+           "content": "→",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "text",
+       "id": "nu4dT",
+       "x": 48,
+       "y": 677,
+       "name": "Sub",
+       "fill": "$paper",
+       "textGrowth": "fixed-width",
+       "width": 387,
+       "content": "BUZZ connects brands with student organizations to execute large-scale campus activations nationwide.",
+       "lineHeight": 1.4,
+       "fontFamily": "$font",
+       "fontSize": "$type-body",
+       "fontWeight": "normal"
+      },
+      {
+       "type": "frame",
+       "id": "Av8mE",
+       "x": 1136,
+       "y": 745,
+       "name": "Aside",
+       "width": 256,
+       "layout": "vertical",
+       "gap": 7,
+       "children": [
+        {
+         "type": "text",
+         "id": "c3OB8",
+         "name": "Kicker",
+         "opacity": 0.8,
+         "fill": "$paper",
+         "content": "Collaboration",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-small",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "text",
+         "id": "MPakr",
+         "name": "Line",
+         "fill": "$paper",
+         "content": "Epsilon Nu Tau x UPDATE",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-small",
+         "fontWeight": "normal"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "b6Qyj",
+     "name": "Statement",
+     "width": "fill_container",
+     "fill": "$paper",
+     "layout": "vertical",
+     "padding": [
+      "$section-y",
+      "$side"
+     ],
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "text",
+       "id": "J5MG1",
+       "name": "Line 1",
+       "fill": "$ink",
+       "textGrowth": "fixed-width",
+       "width": 640,
+       "content": "You request a call.",
+       "lineHeight": 1,
+       "textAlign": "center",
+       "fontFamily": "$font",
+       "fontSize": "$type-statement",
+       "fontWeight": "500",
+       "letterSpacing": -2.7
+      },
+      {
+       "type": "text",
+       "id": "vDsMt",
+       "name": "Line 2 (quiet)",
+       "fill": "$ink-30",
+       "textGrowth": "fixed-width",
+       "width": 640,
+       "content": "Buzz mints and publishes the drop.",
+       "lineHeight": 1,
+       "textAlign": "center",
+       "fontFamily": "$font",
+       "fontSize": "$type-statement",
+       "fontWeight": "500",
+       "letterSpacing": -2.7
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "ZD6D1",
+     "name": "How it works",
+     "width": "fill_container",
+     "layout": "vertical",
+     "alignItems": "center",
+     "fill": "$surface",
+     "padding": [
+      0,
+      "$side",
+      "$section-y",
+      "$side"
+     ],
+     "children": [
+      {
+       "type": "ref",
+       "id": "DbbaK",
+       "ref": "SecHd",
+       "name": "Head",
+       "width": 704,
+       "descendants": {
+        "SecHdT": {
+         "content": "How it works"
+        },
+        "SecHdS": {
+         "content": "Request a campaign. Buzz runs the drop. Organizations post."
+        }
+       }
+      },
+      {
+       "type": "frame",
+       "id": "KqQA8",
+       "name": "Gap",
+       "width": 10,
+       "height": 48
+      },
+      {
+       "type": "frame",
+       "id": "dLMKf",
+       "name": "Cards",
+       "width": 1152,
+       "gap": "$space-5",
+       "children": [
+        {
+         "type": "ref",
+         "id": "OonXk",
+         "ref": "CardMk",
+         "name": "Card 1",
+         "width": "fill_container",
+         "descendants": {
+          "CardMkn": {
+           "content": "1"
+          },
+          "CardMkt": {
+           "content": "Request a call"
+          },
+          "CardMkd": {
+           "content": "Apply as a brand and request a campaign. A representative will contact you."
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "ocMjm",
+         "ref": "CardPh",
+         "name": "Card 2",
+         "width": "fill_container",
+         "descendants": {
+          "CardPhn": {
+           "content": "2"
+          },
+          "CardPht": {
+           "content": "Buzz mints and publishes the drop"
+          },
+          "CardPhd": {
+           "content": "Buzz writes the drop. Once it’s published, vetted student organizations see it on the Drop Feed."
+          },
+          "CardPhm": {
+           "fill": [
+            {
+             "type": "color",
+             "enabled": true,
+             "color": "$grey-media"
+            },
+            {
+             "type": "image",
+             "enabled": true,
+             "url": "images/pulse-bee/update.jpg",
+             "mode": "fill"
+            }
+           ]
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "Tushd",
+         "ref": "CardPh",
+         "name": "Card 3",
+         "width": "fill_container",
+         "descendants": {
+          "CardPhn": {
+           "content": "3"
+          },
+          "CardPht": {
+           "content": "Organizations post"
+          },
+          "CardPhd": {
+           "content": "Organizations apply while the drop is Open, then post from their Instagram Business or Creator account."
+          },
+          "CardPhm": {
+           "fill": [
+            {
+             "type": "color",
+             "enabled": true,
+             "color": "$grey-media"
+            },
+            {
+             "type": "image",
+             "enabled": true,
+             "url": "images/pulse-bee/yerba-madre.jpg",
+             "mode": "fill"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "pWzUz",
+     "name": "Goals (ink)",
+     "width": "fill_container",
+     "layout": "vertical",
+     "alignItems": "center",
+     "fill": "$surface",
+     "padding": [
+      126,
+      "$side"
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "Hk20R",
+       "name": "Title",
+       "fill": "$on-surface",
+       "content": "What are you hoping\nto do on Buzz?",
+       "fontFamily": "$font",
+       "fontSize": "$type-statement",
+       "fontWeight": "500",
+       "lineHeight": 1,
+       "letterSpacing": -2.7,
+       "textAlign": "center",
+       "textGrowth": "fixed-width",
+       "width": 640
+      },
+      {
+       "type": "frame",
+       "id": "GFRze",
+       "name": "Support wrap",
+       "padding": [
+        "$space-4",
+        0,
+        0,
+        0
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "ExWuj",
+         "name": "Support",
+         "fill": "$on-surface-muted",
+         "content": "Tell us in your application.",
+         "fontFamily": "$font",
+         "fontSize": "$type-body",
+         "fontWeight": "normal",
+         "lineHeight": 1.5,
+         "textAlign": "center"
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "LBvgf",
+       "name": "Chips",
+       "gap": "$space-3",
+       "padding": [
+        "$space-7",
+        0,
+        0,
+        0
+       ],
+       "justifyContent": "center",
+       "children": [
+        {
+         "type": "ref",
+         "id": "cv20X",
+         "ref": "Ghost",
+         "name": "Run a campus activation",
+         "descendants": {
+          "GhostL": {
+           "content": "Run a campus activation"
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "jUdBO",
+         "ref": "Ghost",
+         "name": "Get product to student organizations",
+         "descendants": {
+          "GhostL": {
+           "content": "Get product to student organizations"
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "aHaI7",
+         "ref": "Ghost",
+         "name": "Grow Instagram engagement",
+         "descendants": {
+          "GhostL": {
+           "content": "Grow Instagram engagement"
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "Dcb4y",
+         "ref": "Ghost",
+         "name": "Reach more campuses",
+         "descendants": {
+          "GhostL": {
+           "content": "Reach more campuses"
+          }
+         }
+        }
+       ]
+      }
+     ],
+     "theme": {
+      "surface": "ink"
+     }
+    },
+    {
+     "type": "frame",
+     "id": "ew24v",
+     "name": "College network",
+     "width": "fill_container",
+     "fill": "$paper",
+     "layout": "vertical",
+     "padding": [
+      108,
+      0
+     ],
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "text",
+       "id": "QL481",
+       "name": "Title",
+       "fill": "$ink",
+       "content": "College network",
+       "lineHeight": 1,
+       "fontFamily": "$font",
+       "fontSize": "$type-h2",
+       "fontWeight": "500",
+       "letterSpacing": -1.73
+      },
+      {
+       "type": "frame",
+       "id": "jKyQL",
+       "name": "Support wrap",
+       "padding": [
+        "$space-4",
+        0,
+        "$space-7",
+        0
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "r1SzW",
+         "name": "Support",
+         "fill": "$ink-30",
+         "content": "Vetted student organizations powering authentic campus marketing nationwide.",
+         "lineHeight": 1.5,
+         "fontFamily": "$font",
+         "fontSize": "$type-body",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "DjsRo",
+       "name": "US map",
+       "clip": true,
+       "width": 880,
+       "height": 550,
+       "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "images/pulse-bee/us-dots.png",
+        "mode": "stretch"
+       },
+       "layout": "none",
+       "children": [
+        {
+         "type": "frame",
+         "id": "OgdFI",
+         "x": 0,
+         "y": 0,
+         "name": "Pins",
+         "width": 880,
+         "height": 550,
+         "layout": "none",
+         "children": [
+          {
+           "id": "R31yI",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Princeton",
+           "x": 781.6,
+           "y": 198.5
+          },
+          {
+           "id": "TmgGM",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin MIT",
+           "x": 821.6,
+           "y": 148.5
+          },
+          {
+           "id": "VkASK",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Harvard",
+           "x": 821.2,
+           "y": 148.3
+          },
+          {
+           "id": "k1vlJ",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Stanford",
+           "x": 85,
+           "y": 235.6
+          },
+          {
+           "id": "NlKHy",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Yale",
+           "x": 801.5,
+           "y": 174.5
+          },
+          {
+           "id": "HuldX",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Columbia",
+           "x": 789.3,
+           "y": 187.5
+          },
+          {
+           "id": "JUBGk",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin UPenn",
+           "x": 775.6,
+           "y": 207.7
+          },
+          {
+           "id": "HRkY2",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Caltech",
+           "x": 129.3,
+           "y": 312.9
+          },
+          {
+           "id": "cm9B7",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Johns Hopkins",
+           "x": 757.8,
+           "y": 223.9
+          },
+          {
+           "id": "Wlbmk",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Dartmouth",
+           "x": 798.9,
+           "y": 127.6
+          },
+          {
+           "id": "vMxpS",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin UChicago",
+           "x": 594,
+           "y": 199.9
+          },
+          {
+           "id": "iNljr",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Northwestern",
+           "x": 592.5,
+           "y": 194.9
+          },
+          {
+           "id": "IfAMF",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Brown",
+           "x": 820,
+           "y": 159.6
+          },
+          {
+           "id": "fAUtI",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Vanderbilt",
+           "x": 615.8,
+           "y": 307.6
+          },
+          {
+           "id": "uTGWJ",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Cornell",
+           "x": 747.4,
+           "y": 164.4
+          },
+          {
+           "id": "Wao5k",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Rice",
+           "x": 484.8,
+           "y": 438.5
+          },
+          {
+           "id": "uuq1J",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin UC Berkeley",
+           "x": 86,
+           "y": 227
+          },
+          {
+           "id": "SPEB5",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin UCLA",
+           "x": 124.2,
+           "y": 313
+          },
+          {
+           "id": "CHQU1",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin UMichigan",
+           "x": 647.3,
+           "y": 184.6
+          },
+          {
+           "id": "rRYZn",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Duke",
+           "x": 735.8,
+           "y": 293.8
+          },
+          {
+           "id": "r20LP",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin USC",
+           "x": 126.4,
+           "y": 314.5
+          },
+          {
+           "id": "uKe8r",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin UNC",
+           "x": 734.5,
+           "y": 295.8
+          },
+          {
+           "id": "CD41c",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Babson",
+           "x": 819.6,
+           "y": 150.2
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "SIbIy",
+         "x": 0,
+         "y": 0,
+         "name": "Bee flight (mid-flight Rice → Duke)",
+         "width": 880,
+         "height": 550,
+         "layout": "none",
+         "children": [
+          {
+           "type": "ellipse",
+           "id": "C6Kor",
+           "x": 634.9,
+           "y": 329.8,
+           "name": "Trail dot 1",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 8.6,
+           "height": 8.6
+          },
+          {
+           "type": "ellipse",
+           "id": "hlrqd",
+           "x": 625.4,
+           "y": 334.9,
+           "name": "Trail dot 2",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 8,
+           "height": 8
+          },
+          {
+           "type": "ellipse",
+           "id": "dmLAs",
+           "x": 615.7,
+           "y": 340.3,
+           "name": "Trail dot 3",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 7.3,
+           "height": 7.3
+          },
+          {
+           "type": "ellipse",
+           "id": "vkuzM",
+           "x": 606.4,
+           "y": 345.9,
+           "name": "Trail dot 4",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 6.7,
+           "height": 6.7
+          },
+          {
+           "type": "ellipse",
+           "id": "XRBWy",
+           "x": 597.2,
+           "y": 351.7,
+           "name": "Trail dot 5",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 6.1,
+           "height": 6.1
+          },
+          {
+           "type": "ellipse",
+           "id": "Wp5mM",
+           "x": 587.9,
+           "y": 357.8,
+           "name": "Trail dot 6",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 5.4,
+           "height": 5.4
+          },
+          {
+           "type": "ellipse",
+           "id": "UZXda",
+           "x": 579,
+           "y": 364,
+           "name": "Trail dot 7",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 4.8,
+           "height": 4.8
+          },
+          {
+           "type": "ellipse",
+           "id": "mZgcA",
+           "x": 570.2,
+           "y": 370.5,
+           "name": "Trail dot 8",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 4.2,
+           "height": 4.2
+          },
+          {
+           "type": "ellipse",
+           "id": "rAk4m",
+           "x": 561.4,
+           "y": 377.3,
+           "name": "Trail dot 9",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 3.6,
+           "height": 3.6
+          },
+          {
+           "type": "frame",
+           "id": "gUByM",
+           "x": 654.25,
+           "y": 307.72,
+           "name": "Bee",
+           "rotation": -27.5,
+           "width": 26,
+           "height": 26,
+           "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "images/pulse-bee/bee.png",
+            "mode": "contain"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "voJRY",
+       "name": "Marquee wrap",
+       "width": "fill_container",
+       "padding": [
+        "$space-8",
+        "$space-7",
+        0,
+        "$space-7"
+       ],
+       "children": [
+        {
+         "type": "frame",
+         "id": "zD5d4",
+         "name": "Logo marquee",
+         "clip": true,
+         "width": "fill_container",
+         "height": 48,
+         "layout": "none",
+         "children": [
+          {
+           "type": "frame",
+           "id": "L8s6Y",
+           "x": 0,
+           "y": 0,
+           "name": "Track (drifts left, 100s loop)",
+           "gap": 56,
+           "padding": [
+            0,
+            28
+           ],
+           "alignItems": "center",
+           "children": [
+            {
+             "id": "XpAXj",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Princeton",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/princeton.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "wyoc0",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "MIT",
+             "width": 85,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/mit.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "ysFHu",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Harvard",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/harvard.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "UTEM9",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Stanford",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/stanford.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "cw8gf",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Yale",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/yale.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "otPTA",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Columbia",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/columbia.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "qBriR",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "UPenn",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/upenn.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "Q5Mni",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Caltech",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/caltech.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "pBtf0",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Johns Hopkins",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/johnshopkins.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "E7RBs",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Dartmouth",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/dartmouth.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "A9ih8",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "UChicago",
+             "width": 64,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/uchicago.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "ia4xt",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Northwestern",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/northwestern.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "D0jMt",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Brown",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/brown.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "WCCKU",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Vanderbilt",
+             "width": 68,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/vanderbilt.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "o3ML7",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Cornell",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/cornell.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "KxRM4",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Rice",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/rice.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "l2lHQ",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "UC Berkeley",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/ucberkeley.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "KlDYb",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "UCLA",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/ucla.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "N3GJy",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "UMichigan",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/umichigan.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "XOMss",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Duke",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/duke.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "kLMVq",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "USC",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/usc.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "pm2dP",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "UNC",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/unc.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "ayAp1",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Babson",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/babson.png",
+              "mode": "contain"
+             }
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "lFqRU",
+     "name": "Questions (ink)",
+     "width": "fill_container",
+     "layout": "vertical",
+     "alignItems": "center",
+     "fill": "$surface",
+     "padding": [
+      "$section-y",
+      "$side",
+      "$section-y",
+      "$side"
+     ],
+     "children": [
+      {
+       "type": "frame",
+       "id": "no9EV",
+       "name": "FAQ",
+       "width": 1152,
+       "gap": "$space-6",
+       "children": [
+        {
+         "type": "frame",
+         "id": "uraEg",
+         "name": "Title col",
+         "width": 373,
+         "children": [
+          {
+           "type": "text",
+           "id": "jDR0g",
+           "name": "Title",
+           "fill": "$on-surface",
+           "content": "Questions",
+           "fontFamily": "$font",
+           "fontSize": "$type-title-xl",
+           "fontWeight": "500",
+           "lineHeight": 0.95,
+           "letterSpacing": -2.98
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "hsIIx",
+         "name": "List col",
+         "width": 747,
+         "children": [
+          {
+           "type": "frame",
+           "id": "dephp",
+           "name": "List",
+           "width": "fill_container",
+           "layout": "vertical",
+           "children": [
+            {
+             "type": "ref",
+             "id": "PqbHG",
+             "ref": "FaqOp",
+             "name": "Q1 (open)",
+             "width": "fill_container",
+             "descendants": {
+              "FaqOpq": {
+               "content": "How do we get started?"
+              },
+              "FaqOpa": {
+               "content": "Apply as a brand with your brand name and company email. Buzz reviews it, then emails you a setup link to set your password.",
+               "width": 540
+              }
+             }
+            },
+            {
+             "type": "ref",
+             "id": "s6Gu2",
+             "ref": "FaqCl",
+             "name": "Q2",
+             "width": "fill_container",
+             "descendants": {
+              "FaqClq": {
+               "content": "Do we build the campaign ourselves?"
+              }
+             }
+            },
+            {
+             "type": "ref",
+             "id": "NuTjs",
+             "ref": "FaqCl",
+             "name": "Q3",
+             "width": "fill_container",
+             "descendants": {
+              "FaqClq": {
+               "content": "Who handles logistics?"
+              }
+             }
+            },
+            {
+             "type": "ref",
+             "id": "g5pkP",
+             "ref": "FaqCl",
+             "name": "Q4",
+             "width": "fill_container",
+             "descendants": {
+              "FaqClq": {
+               "content": "Who posts about our brand?"
+              }
+             }
+            },
+            {
+             "type": "ref",
+             "id": "NRRhe",
+             "ref": "FaqCl",
+             "name": "Q5",
+             "width": "fill_container",
+             "descendants": {
+              "FaqClq": {
+               "content": "Do we choose the organizations?"
+              }
+             }
+            },
+            {
+             "type": "ref",
+             "id": "W6wzK",
+             "ref": "FaqCl",
+             "name": "Q6",
+             "width": "fill_container",
+             "descendants": {
+              "FaqClq": {
+               "content": "What can we see after the drop is published?"
+              }
+             }
+            },
+            {
+             "type": "frame",
+             "id": "x3vqR",
+             "name": "Hairline",
+             "width": "fill_container",
+             "height": 1,
+             "fill": "$hairline"
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "theme": {
+      "surface": "ink"
+     }
+    },
+    {
+     "type": "frame",
+     "id": "I4F0J",
+     "name": "Join",
+     "width": "fill_container",
+     "height": 560,
+     "fill": "$paper",
+     "children": [
+      {
+       "type": "frame",
+       "id": "GFlnz",
+       "name": "Half — For brands",
+       "width": "fill_container",
+       "height": "fill_container",
+       "layout": "vertical",
+       "padding": [
+        "$space-9",
+        "$space-8",
+        72,
+        "$space-8"
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "yGA2b",
+         "name": "Kicker",
+         "fill": "$ink-btn",
+         "content": "For brands",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-label",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "QMMj8",
+         "name": "Gap",
+         "width": 10,
+         "height": 28
+        },
+        {
+         "type": "text",
+         "id": "JJDlZ",
+         "name": "Title",
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width-height",
+         "width": "fill_container",
+         "height": 112,
+         "content": "Request a campaign.",
+         "lineHeight": 1.02,
+         "fontFamily": "$font",
+         "fontSize": "$type-join",
+         "fontWeight": "500",
+         "letterSpacing": -2.33
+        },
+        {
+         "type": "frame",
+         "id": "xEW0L",
+         "name": "Gap",
+         "width": 10,
+         "height": 20
+        },
+        {
+         "type": "text",
+         "id": "qTzMO",
+         "name": "Support",
+         "opacity": 0.64,
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width",
+         "width": 300,
+         "content": "You request a call. Buzz mints and publishes the drop.",
+         "lineHeight": 1.45,
+         "fontFamily": "$font",
+         "fontSize": "$type-body-lg",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "qyJrz",
+         "name": "Spacer",
+         "width": "fill_container",
+         "height": "fill_container"
+        },
+        {
+         "type": "frame",
+         "id": "HHRGC",
+         "name": "Actions",
+         "width": "fill_container",
+         "justifyContent": "space_between",
+         "alignItems": "center",
+         "children": [
+          {
+           "id": "fOAbJ",
+           "type": "ref",
+           "ref": "XHmYw",
+           "name": "Pill",
+           "height": 44,
+           "padding": [
+            0,
+            18
+           ],
+           "descendants": {
+            "o48sD": {
+             "content": "Apply as a brand",
+             "fontSize": 15
+            },
+            "ARbUw": {
+             "enabled": true
+            }
+           }
+          },
+          {
+           "type": "text",
+           "id": "iwn4e",
+           "name": "Quiet link",
+           "opacity": 0.72,
+           "fill": "$ink-btn",
+           "content": "Already have an account? Log in",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "ctsK0",
+       "name": "Half — For organizations",
+       "width": "fill_container",
+       "height": "fill_container",
+       "layout": "vertical",
+       "padding": [
+        "$space-9",
+        "$space-8",
+        72,
+        "$space-8"
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "I8yLR",
+         "name": "Kicker",
+         "fill": "$ink-btn",
+         "content": "For organizations",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-label",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "xSP0y",
+         "name": "Gap",
+         "width": 10,
+         "height": 28
+        },
+        {
+         "type": "text",
+         "id": "qjphV",
+         "name": "Title",
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width-height",
+         "width": "fill_container",
+         "height": 112,
+         "content": "Apply with your\ncampus .edu.",
+         "lineHeight": 1.02,
+         "fontFamily": "$font",
+         "fontSize": "$type-join",
+         "fontWeight": "500",
+         "letterSpacing": -2.33
+        },
+        {
+         "type": "frame",
+         "id": "wQ36Z",
+         "name": "Gap",
+         "width": 10,
+         "height": 20
+        },
+        {
+         "type": "text",
+         "id": "f1ytu",
+         "name": "Support",
+         "opacity": 0.64,
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width",
+         "width": 340,
+         "content": "You apply on the website first.",
+         "lineHeight": 1.45,
+         "fontFamily": "$font",
+         "fontSize": "$type-body-lg",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "qNxHe",
+         "name": "Spacer",
+         "width": "fill_container",
+         "height": "fill_container"
+        },
+        {
+         "type": "frame",
+         "id": "uCaJT",
+         "name": "Actions",
+         "width": "fill_container",
+         "justifyContent": "space_between",
+         "alignItems": "center",
+         "children": [
+          {
+           "id": "QRDHM",
+           "type": "ref",
+           "ref": "XHmYw",
+           "name": "Pill",
+           "height": 44,
+           "padding": [
+            0,
+            18
+           ],
+           "descendants": {
+            "o48sD": {
+             "content": "See Buzz for organizations",
+             "fontSize": 15
+            },
+            "ARbUw": {
+             "enabled": true
+            }
+           }
+          }
+         ]
+        }
+       ],
+       "stroke": "$ink-16",
+       "strokeWidth": {
+        "left": 1
+       }
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "y00CJ",
+     "name": "Footer",
+     "width": "fill_container",
+     "height": 900,
+     "fill": "$ink",
+     "layout": "vertical",
+     "padding": [
+      135,
+      "$space-7",
+      "$space-8",
+      "$space-7"
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "TDDIj",
+       "name": "Display",
+       "fill": "$paper",
+       "content": "Want to join?",
+       "lineHeight": 1,
+       "fontFamily": "$font",
+       "fontSize": "$type-display",
+       "fontWeight": "500",
+       "letterSpacing": -4.6
+      },
+      {
+       "type": "frame",
+       "id": "SdWBV",
+       "name": "Actions",
+       "gap": "$space-3",
+       "padding": [
+        "$space-6",
+        0
+       ],
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "frame",
+         "id": "gXrgX",
+         "name": "Ghost pill",
+         "height": 44,
+         "cornerRadius": "$radius-pill",
+         "stroke": "$paper",
+         "strokeWidth": 1,
+         "strokeAlignment": "inner",
+         "padding": [
+          0,
+          18
+         ],
+         "alignItems": "center",
+         "children": [
+          {
+           "type": "text",
+           "id": "KVsVb",
+           "name": "Label",
+           "fill": "$paper",
+           "content": "Join as a student organization",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "type": "text",
+         "id": "MiWcn",
+         "name": "Text link",
+         "fill": "$paper",
+         "content": "Apply as a brand",
+         "fontFamily": "$font",
+         "fontSize": "$type-body",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "text",
+       "id": "EreqA",
+       "name": "Email",
+       "fill": "$paper",
+       "content": "hello@bringthebuzzover.com",
+       "lineHeight": 1,
+       "fontFamily": "$font",
+       "fontSize": "$type-title-lg",
+       "fontWeight": "500",
+       "letterSpacing": -2.8
+      },
+      {
+       "type": "frame",
+       "id": "KukXF",
+       "name": "Spacer",
+       "width": "fill_container",
+       "height": "fill_container"
+      },
+      {
+       "type": "frame",
+       "id": "VdGvy",
+       "name": "Columns",
+       "width": "fill_container",
+       "height": 157,
+       "gap": "$space-4",
+       "children": [
+        {
+         "id": "ZBNWq",
+         "type": "ref",
+         "ref": "RArr7",
+         "name": "Col Organizations",
+         "width": "fill_container",
+         "descendants": {
+          "zEXvC": {
+           "content": "Organizations"
+          },
+          "r1ani": {
+           "content": "How it works"
+          },
+          "YmYei": {
+           "content": "Apply"
+          },
+          "snibS": {
+           "content": "Login"
+          },
+          "m5oETK": {
+           "enabled": false
+          }
+         }
+        },
+        {
+         "id": "do37r",
+         "type": "ref",
+         "ref": "RArr7",
+         "name": "Col Brands",
+         "width": "fill_container",
+         "descendants": {
+          "zEXvC": {
+           "content": "Brands"
+          },
+          "r1ani": {
+           "content": "How it works"
+          },
+          "YmYei": {
+           "content": "Apply"
+          },
+          "snibS": {
+           "content": "Login"
+          },
+          "m5oETK": {
+           "enabled": false
+          }
+         }
+        },
+        {
+         "id": "AQHGd",
+         "type": "ref",
+         "ref": "RArr7",
+         "name": "Col Social",
+         "width": "fill_container",
+         "descendants": {
+          "zEXvC": {
+           "content": "Social"
+          },
+          "r1ani": {
+           "content": "Instagram"
+          },
+          "YmYei": {
+           "content": "LinkedIn"
+          },
+          "snibS": {
+           "content": "Email"
+          },
+          "m5oETK": {
+           "enabled": false
+          }
+         }
+        },
+        {
+         "id": "yAra6",
+         "type": "ref",
+         "ref": "RArr7",
+         "name": "Col Legal",
+         "width": "fill_container",
+         "descendants": {
+          "zEXvC": {
+           "content": "Legal"
+          },
+          "r1ani": {
+           "content": "Privacy"
+          },
+          "YmYei": {
+           "content": "Terms"
+          },
+          "snibS": {
+           "content": "Data deletion"
+          },
+          "m5oETK": {
+           "enabled": true
+          },
+          "rrfzP": {
+           "content": "Current site"
+          }
+         }
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "q5OjN",
+       "name": "Gap",
+       "width": 10,
+       "height": 117
+      },
+      {
+       "type": "frame",
+       "id": "Itn5M",
+       "name": "Meta",
+       "width": "fill_container",
+       "height": 28,
+       "justifyContent": "space_between",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "frame",
+         "id": "NWbEs",
+         "name": "Bee",
+         "width": 28,
+         "height": 28,
+         "fill": {
+          "type": "image",
+          "enabled": true,
+          "url": "images/pulse-bee/bee.png",
+          "mode": "contain"
+         }
+        },
+        {
+         "type": "text",
+         "id": "EtLzn",
+         "name": "Tagline",
+         "fill": "$paper-60",
+         "content": "Connecting brands with campus communities for authentic college marketing, at scale.",
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "text",
+         "id": "nszMI",
+         "name": "Year",
+         "fill": "$paper-60",
+         "content": "2026",
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "MUTho",
+     "type": "ref",
+     "ref": "H3d268",
+     "name": "Nav",
+     "layoutPosition": "absolute",
+     "x": 144,
+     "y": 8,
+     "descendants": {
+      "cIN8B/m3z8Gw": {
+       "content": "Apply"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "type": "frame",
+   "id": "lZ8oo",
+   "name": "Pulse Bee Brands / Mobile 390",
+   "x": 1640,
+   "y": 0,
+   "width": 390,
+   "layout": "vertical",
+   "fill": "$ink",
+   "clip": true,
+   "children": [
+    {
+     "type": "frame",
+     "id": "R4kG6",
+     "name": "Hero",
+     "clip": true,
+     "width": 390,
+     "height": 844,
+     "fill": [
+      {
+       "type": "image",
+       "enabled": true,
+       "url": "images/pulse-bee/update.jpg",
+       "mode": "cover"
+      },
+      {
+       "type": "gradient",
+       "gradientType": "linear",
+       "enabled": true,
+       "rotation": -65.2,
+       "size": {
+        "height": 1
+       },
+       "colors": [
+        {
+         "color": "#0b0b0bc7",
+         "position": 0
+        },
+        {
+         "color": "#0b0b0b6b",
+         "position": 0.32
+        },
+        {
+         "color": "$ink-08",
+         "position": 0.62
+        },
+        {
+         "color": "#0b0b0b2e",
+         "position": 1
+        }
+       ]
+      }
+     ],
+     "layout": "none",
+     "children": [
+      {
+       "type": "text",
+       "id": "UcExZ",
+       "x": 16,
+       "y": 480,
+       "name": "Headline",
+       "fill": "$paper",
+       "textGrowth": "fixed-width",
+       "width": 358,
+       "content": "Authentic college\nmarketing,\nat scale.",
+       "lineHeight": 1,
+       "fontFamily": "$font",
+       "fontSize": "$type-hero",
+       "fontWeight": "500",
+       "letterSpacing": -1.312
+      },
+      {
+       "type": "text",
+       "id": "hhtJY",
+       "x": 16,
+       "y": 595,
+       "name": "Sub",
+       "fill": "$paper",
+       "textGrowth": "fixed-width",
+       "width": 358,
+       "content": "BUZZ connects brands with student organizations to execute large-scale campus activations nationwide.",
+       "lineHeight": 1.4,
+       "fontFamily": "$font",
+       "fontSize": "$type-body",
+       "fontWeight": "normal"
+      },
+      {
+       "type": "frame",
+       "id": "aOoE3",
+       "name": "Actions",
+       "x": 16,
+       "y": 688,
+       "gap": "$space-5",
+       "alignItems": "center",
+       "children": [
+        {
+         "id": "IlIEX",
+         "type": "ref",
+         "ref": "uKtnH",
+         "name": "Join",
+         "height": 44,
+         "padding": [
+          0,
+          21
+         ],
+         "descendants": {
+          "m3z8Gw": {
+           "content": "Apply as a brand"
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "UxLby",
+         "name": "How it works link",
+         "height": 44,
+         "gap": 6,
+         "alignItems": "center",
+         "children": [
+          {
+           "type": "text",
+           "id": "ye824",
+           "name": "Label",
+           "fill": "$paper",
+           "content": "How it works",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          },
+          {
+           "type": "text",
+           "id": "V2NSw",
+           "name": "Arrow",
+           "fill": "$paper",
+           "content": "→",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "TvYLU",
+       "x": 0,
+       "y": 776,
+       "name": "Dock (fixed to viewport bottom)",
+       "width": 390,
+       "height": 68,
+       "fill": "#0b0b0beb",
+       "effect": {
+        "type": "background_blur",
+        "radius": 16
+       },
+       "padding": [
+        "$space-3",
+        "$space-4"
+       ],
+       "justifyContent": "center",
+       "alignItems": "center",
+       "children": [
+        {
+         "id": "kasd5",
+         "type": "ref",
+         "ref": "uKtnH",
+         "name": "Dock pill",
+         "height": 44,
+         "padding": [
+          0,
+          21
+         ],
+         "descendants": {
+          "m3z8Gw": {
+           "content": "Apply as a brand"
+          }
+         }
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "dPdi0",
+     "name": "Statement",
+     "width": "fill_container",
+     "fill": "$paper",
+     "layout": "vertical",
+     "padding": [
+      "$section-y",
+      "$side"
+     ],
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "text",
+       "id": "BpaYH",
+       "name": "Line 1",
+       "fill": "$ink",
+       "textGrowth": "fixed-width",
+       "width": 358,
+       "content": "You request a call.",
+       "lineHeight": 1,
+       "textAlign": "center",
+       "fontFamily": "$font",
+       "fontSize": "$type-statement",
+       "fontWeight": "500",
+       "letterSpacing": -1.8
+      },
+      {
+       "type": "text",
+       "id": "mjVSO",
+       "name": "Line 2 (quiet)",
+       "fill": "$ink-30",
+       "textGrowth": "fixed-width",
+       "width": 358,
+       "content": "Buzz mints and publishes the drop.",
+       "lineHeight": 1,
+       "textAlign": "center",
+       "fontFamily": "$font",
+       "fontSize": "$type-statement",
+       "fontWeight": "500",
+       "letterSpacing": -1.8
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "k5zSl",
+     "name": "How it works",
+     "width": "fill_container",
+     "layout": "vertical",
+     "alignItems": "center",
+     "fill": "$surface",
+     "padding": [
+      0,
+      "$side",
+      "$section-y",
+      "$side"
+     ],
+     "children": [
+      {
+       "type": "ref",
+       "id": "QUpZu",
+       "ref": "SecHd",
+       "name": "Head",
+       "width": "fill_container",
+       "descendants": {
+        "SecHdT": {
+         "content": "How it works"
+        },
+        "SecHdS": {
+         "content": "Request a campaign. Buzz runs the drop. Organizations post."
+        }
+       }
+      },
+      {
+       "type": "frame",
+       "id": "iHgaC",
+       "name": "Gap",
+       "width": 10,
+       "height": 48
+      },
+      {
+       "type": "frame",
+       "id": "rPAkL",
+       "name": "Cards",
+       "width": "fill_container",
+       "layout": "vertical",
+       "gap": "$space-6",
+       "children": [
+        {
+         "type": "ref",
+         "id": "xqWNT",
+         "ref": "CardMk",
+         "name": "Card 1",
+         "width": "fill_container",
+         "descendants": {
+          "CardMkn": {
+           "content": "1"
+          },
+          "CardMkt": {
+           "content": "Request a call"
+          },
+          "CardMkd": {
+           "content": "Apply as a brand and request a campaign. A representative will contact you."
+          },
+          "CardMkm": {
+           "height": 268.5
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "UvDuO",
+         "ref": "CardPh",
+         "name": "Card 2",
+         "width": "fill_container",
+         "descendants": {
+          "CardPhn": {
+           "content": "2"
+          },
+          "CardPht": {
+           "content": "Buzz mints and publishes the drop"
+          },
+          "CardPhd": {
+           "content": "Buzz writes the drop. Once it’s published, vetted student organizations see it on the Drop Feed."
+          },
+          "CardPhm": {
+           "fill": [
+            {
+             "type": "color",
+             "enabled": true,
+             "color": "$grey-media"
+            },
+            {
+             "type": "image",
+             "enabled": true,
+             "url": "images/pulse-bee/update.jpg",
+             "mode": "fill"
+            }
+           ],
+           "height": 268.5
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "PK5cV",
+         "ref": "CardPh",
+         "name": "Card 3",
+         "width": "fill_container",
+         "descendants": {
+          "CardPhn": {
+           "content": "3"
+          },
+          "CardPht": {
+           "content": "Organizations post"
+          },
+          "CardPhd": {
+           "content": "Organizations apply while the drop is Open, then post from their Instagram Business or Creator account."
+          },
+          "CardPhm": {
+           "fill": [
+            {
+             "type": "color",
+             "enabled": true,
+             "color": "$grey-media"
+            },
+            {
+             "type": "image",
+             "enabled": true,
+             "url": "images/pulse-bee/yerba-madre.jpg",
+             "mode": "fill"
+            }
+           ],
+           "height": 268.5
+          }
+         }
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "FqJ1o",
+     "name": "Goals (ink)",
+     "width": "fill_container",
+     "layout": "vertical",
+     "alignItems": "center",
+     "fill": "$surface",
+     "padding": [
+      84,
+      "$side"
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "whyoz",
+       "name": "Title",
+       "fill": "$on-surface",
+       "content": "What are you hoping\nto do on Buzz?",
+       "fontFamily": "$font",
+       "fontSize": "$type-statement",
+       "fontWeight": "500",
+       "lineHeight": 1,
+       "letterSpacing": -1.8,
+       "textAlign": "center",
+       "textGrowth": "fixed-width",
+       "width": "fill_container"
+      },
+      {
+       "type": "frame",
+       "id": "P6Tfk",
+       "name": "Support wrap",
+       "padding": [
+        "$space-4",
+        0,
+        0,
+        0
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "pfalU",
+         "name": "Support",
+         "fill": "$on-surface-muted",
+         "content": "Tell us in your application.",
+         "fontFamily": "$font",
+         "fontSize": "$type-body",
+         "fontWeight": "normal",
+         "lineHeight": 1.5,
+         "textAlign": "center"
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "xc1qR",
+       "name": "Chips",
+       "layout": "vertical",
+       "gap": "$space-3",
+       "alignItems": "center",
+       "padding": [
+        "$space-7",
+        0,
+        0,
+        0
+       ],
+       "children": [
+        {
+         "type": "ref",
+         "id": "KIf86",
+         "ref": "Ghost",
+         "name": "Run a campus activation",
+         "descendants": {
+          "GhostL": {
+           "content": "Run a campus activation"
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "pssZj",
+         "ref": "Ghost",
+         "name": "Get product to student organizations",
+         "descendants": {
+          "GhostL": {
+           "content": "Get product to student organizations"
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "JxsN6",
+         "ref": "Ghost",
+         "name": "Grow Instagram engagement",
+         "descendants": {
+          "GhostL": {
+           "content": "Grow Instagram engagement"
+          }
+         }
+        },
+        {
+         "type": "ref",
+         "id": "sv9MR",
+         "ref": "Ghost",
+         "name": "Reach more campuses",
+         "descendants": {
+          "GhostL": {
+           "content": "Reach more campuses"
+          }
+         }
+        }
+       ]
+      }
+     ],
+     "theme": {
+      "surface": "ink"
+     }
+    },
+    {
+     "type": "frame",
+     "id": "xYtew",
+     "name": "College network",
+     "width": "fill_container",
+     "height": 615,
+     "fill": "$paper",
+     "layout": "vertical",
+     "padding": [
+      67.52,
+      "$space-4"
+     ],
+     "alignItems": "center",
+     "children": [
+      {
+       "type": "text",
+       "id": "S9RtO",
+       "name": "Title",
+       "fill": "$ink",
+       "content": "College network",
+       "lineHeight": 1,
+       "fontFamily": "$font",
+       "fontSize": "$type-h2",
+       "fontWeight": "500",
+       "letterSpacing": -1.28
+      },
+      {
+       "type": "frame",
+       "id": "H1PwM",
+       "name": "Support wrap",
+       "width": "fill_container",
+       "padding": [
+        "$space-4",
+        0,
+        "$space-7",
+        0
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "u5VaY",
+         "name": "Support",
+         "fill": "$ink-30",
+         "textGrowth": "fixed-width",
+         "width": "fill_container",
+         "content": "Vetted student organizations powering authentic campus marketing nationwide.",
+         "lineHeight": 1.5,
+         "textAlign": "center",
+         "fontFamily": "$font",
+         "fontSize": "$type-body",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "RJXAp",
+       "name": "US map",
+       "clip": true,
+       "width": 358,
+       "height": 224,
+       "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "images/pulse-bee/us-dots.png",
+        "mode": "stretch"
+       },
+       "layout": "none",
+       "children": [
+        {
+         "type": "frame",
+         "id": "YruPJ",
+         "x": 0,
+         "y": 0,
+         "name": "Pins",
+         "width": 358,
+         "height": 224,
+         "layout": "none",
+         "children": [
+          {
+           "id": "LlxFI",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Princeton",
+           "x": 314.4,
+           "y": 77.2
+          },
+          {
+           "id": "kbUW4",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin MIT",
+           "x": 330.7,
+           "y": 56.9
+          },
+          {
+           "id": "Hcl2v",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Harvard",
+           "x": 330.5,
+           "y": 56.8
+          },
+          {
+           "id": "ZvIWu",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Stanford",
+           "x": 31,
+           "y": 92.3
+          },
+          {
+           "id": "Wc5Ah",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Yale",
+           "x": 322.5,
+           "y": 67.4
+          },
+          {
+           "id": "mlVE3",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Columbia",
+           "x": 317.5,
+           "y": 72.7
+          },
+          {
+           "id": "ZWdV5",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin UPenn",
+           "x": 312,
+           "y": 80.9
+          },
+          {
+           "id": "hJkzn",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Caltech",
+           "x": 49,
+           "y": 123.7
+          },
+          {
+           "id": "YDBmO",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Johns Hopkins",
+           "x": 304.7,
+           "y": 87.5
+          },
+          {
+           "id": "vfjRT",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Dartmouth",
+           "x": 321.4,
+           "y": 48.4
+          },
+          {
+           "id": "yNMbL",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin UChicago",
+           "x": 238.1,
+           "y": 77.8
+          },
+          {
+           "id": "O4qMg",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Northwestern",
+           "x": 237.5,
+           "y": 75.7
+          },
+          {
+           "id": "pmSXE",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Brown",
+           "x": 330,
+           "y": 61.4
+          },
+          {
+           "id": "Ls7KA",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Vanderbilt",
+           "x": 247,
+           "y": 121.6
+          },
+          {
+           "id": "B9wix",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Cornell",
+           "x": 300.5,
+           "y": 63.3
+          },
+          {
+           "id": "dg7rn",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Rice",
+           "x": 193.7,
+           "y": 174.8
+          },
+          {
+           "id": "zMrgq",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin UC Berkeley",
+           "x": 31.4,
+           "y": 88.8
+          },
+          {
+           "id": "MVhib",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin UCLA",
+           "x": 47,
+           "y": 123.8
+          },
+          {
+           "id": "Zg3z3",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin UMichigan",
+           "x": 259.8,
+           "y": 71.5
+          },
+          {
+           "id": "nijp3",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Duke",
+           "x": 295.8,
+           "y": 116
+          },
+          {
+           "id": "VEPbJ",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin USC",
+           "x": 47.9,
+           "y": 124.4
+          },
+          {
+           "id": "cpO6C",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin UNC",
+           "x": 295.2,
+           "y": 116.8
+          },
+          {
+           "id": "IWQy0",
+           "type": "ref",
+           "ref": "QFtyV",
+           "name": "Pin Babson",
+           "x": 329.9,
+           "y": 57.5
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "fAiT7",
+         "x": 0,
+         "y": 0,
+         "name": "Bee flight (mid-flight Rice → Duke)",
+         "width": 358,
+         "height": 224,
+         "layout": "none",
+         "children": [
+          {
+           "type": "ellipse",
+           "id": "WpwgO",
+           "x": 257.05,
+           "y": 132.93,
+           "name": "Trail dot 1",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 5.98,
+           "height": 5.98
+          },
+          {
+           "type": "ellipse",
+           "id": "oSWZS",
+           "x": 253.27,
+           "y": 135.09,
+           "name": "Trail dot 2",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 5.57,
+           "height": 5.57
+          },
+          {
+           "type": "ellipse",
+           "id": "yjWzQ",
+           "x": 249.42,
+           "y": 137.39,
+           "name": "Trail dot 3",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 5.08,
+           "height": 5.08
+          },
+          {
+           "type": "ellipse",
+           "id": "kb9Lf",
+           "x": 245.73,
+           "y": 139.75,
+           "name": "Trail dot 4",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 4.66,
+           "height": 4.66
+          },
+          {
+           "type": "ellipse",
+           "id": "U6JPW",
+           "x": 242.07,
+           "y": 142.2,
+           "name": "Trail dot 5",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 4.24,
+           "height": 4.24
+          },
+          {
+           "type": "ellipse",
+           "id": "nW8I1",
+           "x": 238.39,
+           "y": 144.78,
+           "name": "Trail dot 6",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 3.76,
+           "height": 3.76
+          },
+          {
+           "type": "ellipse",
+           "id": "qw2CN",
+           "x": 234.85,
+           "y": 147.39,
+           "name": "Trail dot 7",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 3.34,
+           "height": 3.34
+          },
+          {
+           "type": "ellipse",
+           "id": "hpDqv",
+           "x": 231.36,
+           "y": 150.12,
+           "name": "Trail dot 8",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 2.92,
+           "height": 2.92
+          },
+          {
+           "type": "ellipse",
+           "id": "qMFlw",
+           "x": 227.87,
+           "y": 152.97,
+           "name": "Trail dot 9",
+           "opacity": 0.34,
+           "fill": "$ink",
+           "width": 2.5,
+           "height": 2.5
+          },
+          {
+           "type": "frame",
+           "id": "CUvw6",
+           "x": 263.24,
+           "y": 121.42,
+           "name": "Bee",
+           "rotation": -27.5,
+           "width": 17,
+           "height": 17,
+           "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "images/pulse-bee/bee.png",
+            "mode": "contain"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "YfQ5h",
+       "name": "Marquee wrap",
+       "width": "fill_container",
+       "padding": [
+        63,
+        0,
+        0,
+        0
+       ],
+       "children": [
+        {
+         "type": "frame",
+         "id": "YNtNy",
+         "name": "Logo marquee",
+         "clip": true,
+         "width": "fill_container",
+         "height": 48,
+         "layout": "none",
+         "children": [
+          {
+           "type": "frame",
+           "id": "KtQTa",
+           "x": 0,
+           "y": 0,
+           "name": "Track (drifts left, 100s loop)",
+           "gap": 56,
+           "padding": [
+            0,
+            28
+           ],
+           "alignItems": "center",
+           "children": [
+            {
+             "id": "uLVhG",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Princeton",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/princeton.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "K562d",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "MIT",
+             "width": 85,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/mit.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "Cgckk",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Harvard",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/harvard.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "Bkhvb",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Stanford",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/stanford.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "SmF7C",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Yale",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/yale.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "YGQB4",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Columbia",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/columbia.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "u3OKv",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "UPenn",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/upenn.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "Y5Jj9",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Caltech",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/caltech.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "YtoAu",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Johns Hopkins",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/johnshopkins.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "HOee0",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Dartmouth",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/dartmouth.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "HQmbl",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "UChicago",
+             "width": 64,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/uchicago.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "UdQfJ",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Northwestern",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/northwestern.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "sOdlz",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Brown",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/brown.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "YuQBR",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Vanderbilt",
+             "width": 68,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/vanderbilt.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "mniuw",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Cornell",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/cornell.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "WlcE4",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Rice",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/rice.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "FfNAX",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "UC Berkeley",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/ucberkeley.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "J0nXG",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "UCLA",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/ucla.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "Km23M",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "UMichigan",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/umichigan.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "u8zGq",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Duke",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/duke.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "vX8sO",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "USC",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/usc.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "cWBFx",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "UNC",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/unc.png",
+              "mode": "contain"
+             }
+            },
+            {
+             "id": "Owb1o",
+             "type": "ref",
+             "ref": "lM2vX",
+             "name": "Babson",
+             "width": 48,
+             "fill": {
+              "type": "image",
+              "enabled": true,
+              "url": "images/pulse-bee/logos/babson.png",
+              "mode": "contain"
+             }
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "IWDiD",
+     "name": "Questions (ink)",
+     "width": "fill_container",
+     "layout": "vertical",
+     "alignItems": "center",
+     "fill": "$surface",
+     "padding": [
+      "$section-y",
+      "$side",
+      "$section-y",
+      "$side"
+     ],
+     "children": [
+      {
+       "type": "frame",
+       "id": "oDMR4",
+       "name": "FAQ",
+       "width": "fill_container",
+       "layout": "vertical",
+       "gap": "$space-5",
+       "children": [
+        {
+         "type": "text",
+         "id": "svG4o",
+         "name": "Title",
+         "fill": "$on-surface",
+         "content": "Questions",
+         "fontFamily": "$font",
+         "fontSize": "$type-title-xl",
+         "fontWeight": "500",
+         "lineHeight": 0.95,
+         "letterSpacing": -2.98
+        },
+        {
+         "type": "frame",
+         "id": "KHzRZ",
+         "name": "List",
+         "width": "fill_container",
+         "layout": "vertical",
+         "children": [
+          {
+           "type": "ref",
+           "id": "ABMUm",
+           "ref": "FaqOp",
+           "name": "Q1 (open)",
+           "width": "fill_container",
+           "descendants": {
+            "FaqOpq": {
+             "content": "How do we get started?"
+            },
+            "FaqOpa": {
+             "content": "Apply as a brand with your brand name and company email. Buzz reviews it, then emails you a setup link to set your password.",
+             "width": "fill_container"
+            }
+           }
+          },
+          {
+           "type": "ref",
+           "id": "q9MCd",
+           "ref": "FaqCl",
+           "name": "Q2",
+           "width": "fill_container",
+           "descendants": {
+            "FaqClq": {
+             "content": "Do we build the campaign ourselves?"
+            }
+           }
+          },
+          {
+           "type": "ref",
+           "id": "rfmcW",
+           "ref": "FaqCl",
+           "name": "Q3",
+           "width": "fill_container",
+           "descendants": {
+            "FaqClq": {
+             "content": "Who handles logistics?"
+            }
+           }
+          },
+          {
+           "type": "ref",
+           "id": "Z1uca",
+           "ref": "FaqCl",
+           "name": "Q4",
+           "width": "fill_container",
+           "descendants": {
+            "FaqClq": {
+             "content": "Who posts about our brand?"
+            }
+           }
+          },
+          {
+           "type": "ref",
+           "id": "ZVbe1",
+           "ref": "FaqCl",
+           "name": "Q5",
+           "width": "fill_container",
+           "descendants": {
+            "FaqClq": {
+             "content": "Do we choose the organizations?"
+            }
+           }
+          },
+          {
+           "type": "ref",
+           "id": "N4Fhr",
+           "ref": "FaqCl",
+           "name": "Q6",
+           "width": "fill_container",
+           "descendants": {
+            "FaqClq": {
+             "content": "What can we see after the drop is published?"
+            }
+           }
+          },
+          {
+           "type": "frame",
+           "id": "LZiLv",
+           "name": "Hairline",
+           "width": "fill_container",
+           "height": 1,
+           "fill": "$hairline"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "theme": {
+      "surface": "ink"
+     }
+    },
+    {
+     "type": "frame",
+     "id": "P72F1",
+     "name": "Join",
+     "width": "fill_container",
+     "fill": "$paper",
+     "layout": "vertical",
+     "children": [
+      {
+       "type": "frame",
+       "id": "CVi9P",
+       "name": "Half — For brands",
+       "width": "fill_container",
+       "height": 384,
+       "layout": "vertical",
+       "padding": [
+        "$space-8",
+        "$space-5",
+        "$space-7",
+        "$space-5"
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "Qb8s1",
+         "name": "Kicker",
+         "fill": "$ink-btn",
+         "content": "For brands",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-label",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "gE5cT",
+         "name": "Gap",
+         "width": 10,
+         "height": 28
+        },
+        {
+         "type": "text",
+         "id": "okLj9",
+         "name": "Title",
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width-height",
+         "width": "fill_container",
+         "height": 76,
+         "content": "Request a campaign.",
+         "lineHeight": 1.02,
+         "fontFamily": "$font",
+         "fontSize": "$type-join",
+         "fontWeight": "500",
+         "letterSpacing": -1.58
+        },
+        {
+         "type": "frame",
+         "id": "UrrMY",
+         "name": "Gap",
+         "width": 10,
+         "height": 20
+        },
+        {
+         "type": "text",
+         "id": "V0a4R",
+         "name": "Support",
+         "opacity": 0.64,
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width",
+         "width": 333,
+         "content": "You request a call. Buzz mints and publishes the drop.",
+         "lineHeight": 1.45,
+         "fontFamily": "$font",
+         "fontSize": "$type-body-lg",
+         "fontWeight": "normal"
+        },
+        {
+         "id": "NJ18u",
+         "type": "ref",
+         "ref": "XHmYw",
+         "name": "Pill",
+         "height": 44,
+         "padding": [
+          0,
+          18
+         ],
+         "descendants": {
+          "o48sD": {
+           "content": "Apply as a brand",
+           "fontSize": 15
+          },
+          "ARbUw": {
+           "enabled": true
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "owJNU",
+         "name": "Gap",
+         "width": 10,
+         "height": 16
+        },
+        {
+         "type": "text",
+         "id": "lxbQx",
+         "name": "Quiet link",
+         "opacity": 0.72,
+         "fill": "$ink-btn",
+         "content": "Already have an account? Log in",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-small",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "FAY08",
+       "name": "Half — For organizations",
+       "width": "fill_container",
+       "height": 383,
+       "layout": "vertical",
+       "padding": [
+        "$space-8",
+        "$space-5",
+        "$space-7",
+        "$space-5"
+       ],
+       "children": [
+        {
+         "type": "text",
+         "id": "Ji6qn",
+         "name": "Kicker",
+         "fill": "$ink-btn",
+         "content": "For organizations",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-label",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "frame",
+         "id": "v4Bc2",
+         "name": "Gap",
+         "width": 10,
+         "height": 28
+        },
+        {
+         "type": "text",
+         "id": "FP84m",
+         "name": "Title",
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width-height",
+         "width": "fill_container",
+         "height": 76,
+         "content": "Apply with your\ncampus .edu.",
+         "lineHeight": 1.02,
+         "fontFamily": "$font",
+         "fontSize": "$type-join",
+         "fontWeight": "500",
+         "letterSpacing": -1.58
+        },
+        {
+         "type": "frame",
+         "id": "If5bJ",
+         "name": "Gap",
+         "width": 10,
+         "height": 20
+        },
+        {
+         "type": "text",
+         "id": "KAdbn",
+         "name": "Support",
+         "opacity": 0.64,
+         "fill": "$ink-btn",
+         "textGrowth": "fixed-width-height",
+         "width": 300,
+         "height": 49,
+         "content": "You apply on the website first.",
+         "lineHeight": 1.45,
+         "fontFamily": "$font",
+         "fontSize": "$type-body-lg",
+         "fontWeight": "normal"
+        },
+        {
+         "id": "q53SY",
+         "type": "ref",
+         "ref": "XHmYw",
+         "name": "Pill",
+         "height": 44,
+         "padding": [
+          0,
+          18
+         ],
+         "descendants": {
+          "o48sD": {
+           "content": "See Buzz for organizations",
+           "fontSize": 15
+          },
+          "ARbUw": {
+           "enabled": true
+          }
+         }
+        },
+        {
+         "type": "frame",
+         "id": "WLpx8",
+         "name": "Gap",
+         "width": 10,
+         "height": 16
+        }
+       ],
+       "stroke": "$ink-16",
+       "strokeWidth": {
+        "top": 1
+       }
+      }
+     ]
+    },
+    {
+     "type": "frame",
+     "id": "mJfLF",
+     "name": "Footer",
+     "width": "fill_container",
+     "height": 957,
+     "fill": "$ink",
+     "layout": "vertical",
+     "padding": [
+      126,
+      "$space-4",
+      "$space-8",
+      "$space-4"
+     ],
+     "children": [
+      {
+       "type": "text",
+       "id": "Y63DQ",
+       "name": "Display",
+       "fill": "$paper",
+       "content": "Want to join?",
+       "lineHeight": 1,
+       "fontFamily": "$font",
+       "fontSize": "$type-display",
+       "fontWeight": "500",
+       "letterSpacing": -1.92
+      },
+      {
+       "type": "frame",
+       "id": "wTeVe",
+       "name": "Actions",
+       "layout": "vertical",
+       "gap": "$space-3",
+       "padding": [
+        "$space-6",
+        0
+       ],
+       "children": [
+        {
+         "type": "frame",
+         "id": "CnyE3",
+         "name": "Ghost pill",
+         "height": 44,
+         "cornerRadius": "$radius-pill",
+         "stroke": "$paper",
+         "strokeWidth": 1,
+         "strokeAlignment": "inner",
+         "padding": [
+          0,
+          21
+         ],
+         "alignItems": "center",
+         "children": [
+          {
+           "type": "text",
+           "id": "RcrJH",
+           "name": "Label",
+           "fill": "$paper",
+           "content": "Join as a student organization",
+           "fontFamily": "$font",
+           "fontSize": "$type-small",
+           "fontWeight": "normal"
+          }
+         ]
+        },
+        {
+         "type": "text",
+         "id": "hwVgx",
+         "name": "Text link",
+         "fill": "$paper",
+         "content": "Apply as a brand",
+         "lineHeight": 1.5,
+         "fontFamily": "$font",
+         "fontSize": "$type-body",
+         "fontWeight": "normal"
+        }
+       ]
+      },
+      {
+       "type": "text",
+       "id": "XNOdk",
+       "name": "Email",
+       "fill": "$paper",
+       "content": "hello@bringthebuzzover.com",
+       "lineHeight": 1.05,
+       "fontFamily": "$font",
+       "fontSize": "$type-title-lg",
+       "fontWeight": "500",
+       "letterSpacing": -1.08
+      },
+      {
+       "type": "frame",
+       "id": "oBQPr",
+       "name": "Gap",
+       "width": 10,
+       "height": 64
+      },
+      {
+       "type": "frame",
+       "id": "qCBJt",
+       "name": "Columns (2×2)",
+       "width": "fill_container",
+       "layout": "vertical",
+       "children": [
+        {
+         "type": "frame",
+         "id": "CUakK",
+         "name": "Row 1",
+         "width": "fill_container",
+         "height": 157,
+         "gap": "$space-4",
+         "children": [
+          {
+           "id": "u2By1",
+           "type": "ref",
+           "ref": "RArr7",
+           "name": "Col Organizations",
+           "width": "fill_container",
+           "descendants": {
+            "zEXvC": {
+             "content": "Organizations"
+            },
+            "r1ani": {
+             "content": "How it works"
+            },
+            "YmYei": {
+             "content": "Apply"
+            },
+            "snibS": {
+             "content": "Login"
+            },
+            "m5oETK": {
+             "enabled": false
+            }
+           }
+          },
+          {
+           "id": "jALey",
+           "type": "ref",
+           "ref": "RArr7",
+           "name": "Col Brands",
+           "width": "fill_container",
+           "descendants": {
+            "zEXvC": {
+             "content": "Brands"
+            },
+            "r1ani": {
+             "content": "How it works"
+            },
+            "YmYei": {
+             "content": "Apply"
+            },
+            "snibS": {
+             "content": "Login"
+            },
+            "m5oETK": {
+             "enabled": false
+            }
+           }
+          }
+         ]
+        },
+        {
+         "type": "frame",
+         "id": "liRRY",
+         "name": "Row 2",
+         "width": "fill_container",
+         "height": 157,
+         "gap": "$space-4",
+         "children": [
+          {
+           "id": "LjuO5",
+           "type": "ref",
+           "ref": "RArr7",
+           "name": "Col Social",
+           "width": "fill_container",
+           "descendants": {
+            "zEXvC": {
+             "content": "Social"
+            },
+            "r1ani": {
+             "content": "Instagram"
+            },
+            "YmYei": {
+             "content": "LinkedIn"
+            },
+            "snibS": {
+             "content": "Email"
+            },
+            "m5oETK": {
+             "enabled": false
+            }
+           }
+          },
+          {
+           "id": "WqG8L",
+           "type": "ref",
+           "ref": "RArr7",
+           "name": "Col Legal",
+           "width": "fill_container",
+           "descendants": {
+            "zEXvC": {
+             "content": "Legal"
+            },
+            "r1ani": {
+             "content": "Privacy"
+            },
+            "YmYei": {
+             "content": "Terms"
+            },
+            "snibS": {
+             "content": "Data deletion"
+            },
+            "m5oETK": {
+             "enabled": true
+            },
+            "rrfzP": {
+             "content": "Current site"
+            }
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "type": "frame",
+       "id": "ceMLW",
+       "name": "Spacer",
+       "width": "fill_container",
+       "height": "fill_container"
+      },
+      {
+       "type": "frame",
+       "id": "hJNYW",
+       "name": "Meta",
+       "width": "fill_container",
+       "layout": "vertical",
+       "gap": "$space-4",
+       "alignItems": "center",
+       "children": [
+        {
+         "type": "frame",
+         "id": "Z357E",
+         "name": "Bee",
+         "width": 28,
+         "height": 28,
+         "fill": {
+          "type": "image",
+          "enabled": true,
+          "url": "images/pulse-bee/bee.png",
+          "mode": "contain"
+         }
+        },
+        {
+         "type": "text",
+         "id": "h69B9",
+         "name": "Tagline",
+         "fill": "$paper-60",
+         "textGrowth": "fixed-width",
+         "width": "fill_container",
+         "content": "Connecting brands with campus communities for authentic college marketing, at scale.",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        },
+        {
+         "type": "text",
+         "id": "VgoLO",
+         "name": "Year",
+         "fill": "$paper-60",
+         "content": "2026",
+         "lineHeight": 1.4,
+         "fontFamily": "$font",
+         "fontSize": "$type-micro",
+         "fontWeight": "normal"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "CgrK9",
+     "type": "ref",
+     "ref": "YSw6B",
+     "name": "Nav",
+     "layoutPosition": "absolute",
+     "x": 8,
+     "y": 8
+    }
+   ],
+   "theme": {
+    "device": "mobile"
+   }
+  }
+ ],
+ "variables": {
+  "ink": {
+   "type": "color",
+   "value": "#0b0b0b"
+  },
+  "ink-raised": {
+   "type": "color",
+   "value": "#121212"
+  },
+  "ink-pop": {
+   "type": "color",
+   "value": "#161616"
+  },
+  "ink-btn": {
+   "type": "color",
+   "value": "#111111"
+  },
+  "paper": {
+   "type": "color",
+   "value": "#f0f0f0"
+  },
+  "white": {
+   "type": "color",
+   "value": "#ffffff"
+  },
+  "grey-media": {
+   "type": "color",
+   "value": "#dddddd"
+  },
+  "yellow": {
+   "type": "color",
+   "value": "#f6d32a"
+  },
+  "yellow-hover": {
+   "type": "color",
+   "value": "#e0be16"
+  },
+  "yellow-faded": {
+   "type": "color",
+   "value": "#f6d32a24"
+  },
+  "ink-64": {
+   "type": "color",
+   "value": "#0b0b0ba3"
+  },
+  "ink-30": {
+   "type": "color",
+   "value": "#0b0b0b4d"
+  },
+  "ink-16": {
+   "type": "color",
+   "value": "#11111129"
+  },
+  "ink-08": {
+   "type": "color",
+   "value": "#0b0b0b14"
+  },
+  "paper-60": {
+   "type": "color",
+   "value": "#f0f0f099"
+  },
+  "paper-52": {
+   "type": "color",
+   "value": "#f0f0f085"
+  },
+  "paper-30": {
+   "type": "color",
+   "value": "#f0f0f04d"
+  },
+  "paper-09": {
+   "type": "color",
+   "value": "#f0f0f017"
+  },
+  "paper-08": {
+   "type": "color",
+   "value": "#f0f0f014"
+  },
+  "paper-04": {
+   "type": "color",
+   "value": "#f0f0f00a"
+  },
+  "success": {
+   "type": "color",
+   "value": "#166534"
+  },
+  "success-wash": {
+   "type": "color",
+   "value": "#f0fdf4"
+  },
+  "warn": {
+   "type": "color",
+   "value": "#b45309"
+  },
+  "warn-wash": {
+   "type": "color",
+   "value": "#fffbeb"
+  },
+  "danger": {
+   "type": "color",
+   "value": "#b91c1c"
+  },
+  "danger-wash": {
+   "type": "color",
+   "value": "#fef2f2"
+  },
+  "surface": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#f0f0f0",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#0b0b0b",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "on-surface": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#0b0b0b",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#f0f0f0",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "on-surface-muted": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#0b0b0ba3",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#f0f0f099",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "on-surface-quiet": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#0b0b0b4d",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#f0f0f04d",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "hairline": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#11111129",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#f0f0f017",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "card-surface": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#ffffff",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#121212",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "pill-ghost-fill": {
+   "type": "color",
+   "value": [
+    {
+     "value": "#0b0b0b14",
+     "theme": {
+      "surface": "paper"
+     }
+    },
+    {
+     "value": "#f0f0f014",
+     "theme": {
+      "surface": "ink"
+     }
+    }
+   ]
+  },
+  "space-1": {
+   "type": "number",
+   "value": 4
+  },
+  "space-2": {
+   "type": "number",
+   "value": 8
+  },
+  "space-3": {
+   "type": "number",
+   "value": 12
+  },
+  "space-4": {
+   "type": "number",
+   "value": 16
+  },
+  "space-5": {
+   "type": "number",
+   "value": 24
+  },
+  "space-6": {
+   "type": "number",
+   "value": 32
+  },
+  "space-7": {
+   "type": "number",
+   "value": 48
+  },
+  "space-8": {
+   "type": "number",
+   "value": 64
+  },
+  "space-9": {
+   "type": "number",
+   "value": 96
+  },
+  "radius-control": {
+   "type": "number",
+   "value": 8
+  },
+  "radius-card": {
+   "type": "number",
+   "value": 8
+  },
+  "radius-field": {
+   "type": "number",
+   "value": 10
+  },
+  "radius-board": {
+   "type": "number",
+   "value": 16
+  },
+  "radius-phone": {
+   "type": "number",
+   "value": 32
+  },
+  "radius-pill": {
+   "type": "number",
+   "value": 999
+  },
+  "side": {
+   "type": "number",
+   "value": [
+    {
+     "value": 48,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 16,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-display": {
+   "type": "number",
+   "value": [
+    {
+     "value": 115.2,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 48,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-title-xl": {
+   "type": "number",
+   "value": [
+    {
+     "value": 66.24,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 38.4,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-statement": {
+   "type": "number",
+   "value": [
+    {
+     "value": 54,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 36,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-h2": {
+   "type": "number",
+   "value": [
+    {
+     "value": 43.2,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 32,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-h3": {
+   "type": "number",
+   "value": [
+    {
+     "value": 20,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 20,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-body-lg": {
+   "type": "number",
+   "value": [
+    {
+     "value": 17,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 17,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-body": {
+   "type": "number",
+   "value": [
+    {
+     "value": 16,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 16,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-small": {
+   "type": "number",
+   "value": [
+    {
+     "value": 14,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 14,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-label": {
+   "type": "number",
+   "value": [
+    {
+     "value": 13,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 13,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-micro": {
+   "type": "number",
+   "value": [
+    {
+     "value": 12,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 12,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-tiny": {
+   "type": "number",
+   "value": [
+    {
+     "value": 11,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 11,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "section-y": {
+   "type": "number",
+   "value": [
+    {
+     "value": 108,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 68,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-hero": {
+   "type": "number",
+   "value": [
+    {
+     "value": 63.36,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 32.8,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-join": {
+   "type": "number",
+   "value": [
+    {
+     "value": 51.84,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 35.1,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-title-lg": {
+   "type": "number",
+   "value": [
+    {
+     "value": 56,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 21.6,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "type-h4": {
+   "type": "number",
+   "value": [
+    {
+     "value": 18.72,
+     "theme": {
+      "device": "desktop"
+     }
+    },
+    {
+     "value": 17,
+     "theme": {
+      "device": "mobile"
+     }
+    }
+   ]
+  },
+  "font": {
+   "type": "string",
+   "value": "Switzer"
+  }
+ },
+ "themes": {
+  "surface": [
+   "paper",
+   "ink"
+  ],
+  "device": [
+   "desktop",
+   "mobile"
+  ]
+ },
+ "fileToken": "d8d4b347-dbac-4eea-9bbf-2c4df79554aa",
+ "fonts": [
+  {
+   "name": "Switzer",
+   "url": "fonts/switzer-400.woff2"
+  },
+  {
+   "name": "Switzer",
+   "url": "fonts/switzer-500.woff2",
+   "weight": 500
+  }
+ ]
+}
