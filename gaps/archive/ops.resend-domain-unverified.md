@@ -34,7 +34,7 @@ fix_when: |
 # Resend sender domain unverified
 
 Split from [`ops.brand-domain-email-unset`](archive/ops.brand-domain-email-unset.md)
-(2026-08-11). Sibling: [`ops.brand-mailbox`](../ops.brand-mailbox.md) (human send+receive).
+(2026-08-11). Sibling: [`ops.brand-mailbox`](ops.brand-mailbox.md) (human send+receive).
 
 Parked under `follow-ups` in [`CLUSTERS.md`](CLUSTERS.md) — do not auto-execute;
 un-park only when named explicitly.
@@ -47,35 +47,35 @@ required for `noreply@` — it is a From identity only.
 
 **Flows on this path** (all use `_dispatch` off-dev):
 
-| Kind | Helper | Caller |
-| ---- | ------ | ------ |
-| Org verify | `send_verification_email` | `onboarding.py` |
-| Brand invite | `send_brand_invite_email` | `admin.py` |
-| Org approved | `send_org_approved_email` | `admin.py` |
-| Org / brand deny & undeny | `send_*_denied/undenied_email` | `admin.py` |
-| Drop application denied | `send_application_denied_email` | `brands.py` |
-| Notify Me reminder | `send_drop_opening_reminder_email` | `jobs/notify_reminders.py` |
-| Password reset | `send_password_reset_email` | `password_reset.py` |
+| Kind                      | Helper                             | Caller                     |
+| ------------------------- | ---------------------------------- | -------------------------- |
+| Org verify                | `send_verification_email`          | `onboarding.py`            |
+| Brand invite              | `send_brand_invite_email`          | `admin.py`                 |
+| Org approved              | `send_org_approved_email`          | `admin.py`                 |
+| Org / brand deny & undeny | `send_*_denied/undenied_email`     | `admin.py`                 |
+| Drop application denied   | `send_application_denied_email`    | `brands.py`                |
+| Notify Me reminder        | `send_drop_opening_reminder_email` | `jobs/notify_reminders.py` |
+| Password reset            | `send_password_reset_email`        | `password_reset.py`        |
 
 ## Why it fails today (not “missing API key”)
 
-| Layer | Reality |
-| ----- | ------- |
-| Code | `_dispatch` → `https://api.resend.com/emails` with JSON `from` = `EMAIL_FROM` |
-| Boot | Off-dev **requires** `RESEND_API_KEY` (`config.py` fail-fast) — api already boots |
-| Railway | `RESEND_API_KEY` present on **api** + **cron-notify-reminders** (name confirmed) |
-| DNS | No DKIM / `send.` SPF / `send.` MX in Cloudflare → Resend domain **not Verified** |
-| Send outcome | Provider reject → `_dispatch` logs + returns `False` (never raises) |
+| Layer        | Reality                                                                           |
+| ------------ | --------------------------------------------------------------------------------- |
+| Code         | `_dispatch` → `https://api.resend.com/emails` with JSON `from` = `EMAIL_FROM`     |
+| Boot         | Off-dev **requires** `RESEND_API_KEY` (`config.py` fail-fast) — api already boots |
+| Railway      | `RESEND_API_KEY` present on **api** + **cron-notify-reminders** (name confirmed)  |
+| DNS          | No DKIM / `send.` SPF / `send.` MX in Cloudflare → Resend domain **not Verified** |
+| Send outcome | Provider reject → `_dispatch` logs + returns `False` (never raises)               |
 
 Dev (`ENVIRONMENT=development`) never calls Resend — logs links, returns `True`.
 
 ## Independent of human mail
 
-| | This gap | [`ops.brand-mailbox`](../ops.brand-mailbox.md) |
-| --- | --- | --- |
-| DNS | `resend._domainkey` + `send.` SPF/MX | Apex MX (+ provider records) |
-| Blocks the other? | **No** (different names) | **No** |
-| contactEmail / Cornell | Out of scope | Required |
+|                        | This gap                             | [`ops.brand-mailbox`](ops.brand-mailbox.md) |
+| ---------------------- | ------------------------------------ | ------------------------------------------- |
+| DNS                    | `resend._domainkey` + `send.` SPF/MX | Apex MX (+ provider records)                |
+| Blocks the other?      | **No** (different names)             | **No**                                      |
+| contactEmail / Cornell | Out of scope                         | Required                                    |
 
 **Do not** put Resend MX on apex. **Do not** enable Resend Receiving on apex
 (steals human MX). Buzz stays Resend **send-only**.
@@ -86,12 +86,12 @@ mailbox cutover, not domain verify.
 
 ## Ownership (re-verified 2026-08-11)
 
-| Layer | Where | Account |
-| ----- | ----- | ------- |
-| Registrar | Hostinger | Melissa — NS → Cloudflare |
-| Authoritative DNS | Cloudflare zone `9103e4c774707bf5b2f17fbb9d9144cf` | Lawrence — Free; NS `felipe` / `melody` |
-| Transactional send | Resend | Buzz ops — **domain not verified** |
-| App | Railway (`www` / `api`) | Lawrence |
+| Layer              | Where                                              | Account                                 |
+| ------------------ | -------------------------------------------------- | --------------------------------------- |
+| Registrar          | Hostinger                                          | Melissa — NS → Cloudflare               |
+| Authoritative DNS  | Cloudflare zone `9103e4c774707bf5b2f17fbb9d9144cf` | Lawrence — Free; NS `felipe` / `melody` |
+| Transactional send | Resend                                             | Buzz ops — **domain not verified**      |
+| App                | Railway (`www` / `api`)                            | Lawrence                                |
 
 Resend Domains via Cursor MCP `plugin-resend-resend` (user/plugin; see
 [`AGENTS.md`](../AGENTS.md) MCP table). Mutate Cloudflare / Resend / Railway
@@ -99,19 +99,19 @@ only with explicit OK.
 
 ## Required DNS (exact values from Resend UI)
 
-| Type | Name | Purpose |
-| ---- | ---- | ------- |
-| `TXT` | `resend._domainkey…` | DKIM |
-| `TXT` | `send` | SPF |
-| `MX` | `send` | Return-path / bounce feedback (**not** human inbox) |
-| Optional later | `_dmarc` | Policy / deliverability |
+| Type           | Name                 | Purpose                                             |
+| -------------- | -------------------- | --------------------------------------------------- |
+| `TXT`          | `resend._domainkey…` | DKIM                                                |
+| `TXT`          | `send`               | SPF                                                 |
+| `MX`           | `send`               | Return-path / bounce feedback (**not** human inbox) |
+| Optional later | `_dmarc`             | Policy / deliverability                             |
 
 Publish in **Cloudflare** only (DNS-only / grey-cloud). Pitfalls from Resend KB:
 trailing FQDN / auto-append on MX; region mismatch on `feedback-smtp.<region>…`;
 adding records at Hostinger (NS already points to CF — wrong place).
 
 **SPF coexistence:** Resend SPF stays on `send.`. Future mailbox SPF lives on
-**apex** ([`ops.brand-mailbox`](../ops.brand-mailbox.md)). Do not copy Resend
+**apex** ([`ops.brand-mailbox`](ops.brand-mailbox.md)). Do not copy Resend
 `include:` onto apex “just in case.”
 
 ## Steps
@@ -131,26 +131,26 @@ resend. **Avoid** Notify Me cron (`*/5`) for first proof — retries leave
 
 ## Honesty (context — not this gap’s work)
 
-| Flow | On send `False` |
-| ---- | --------------- |
-| Onboarding submit | Profile kept; `email_sent: false`; token deleted |
-| Verify resend / change edu | `EMAIL_SEND_FAILED` 502 |
-| Brand approve | Returns `email_sent`; brand stays approved |
-| Brand resend invite | `EMAIL_SEND_FAILED` 502 |
-| Org approve / deny·undeny | Fire-and-forget (bool ignored) |
-| Drop denial | Structured log only |
-| Notify cron | Leave `sent_at` NULL → retry |
-| Password reset | Always `{ok: true}`; burn token + warn |
+| Flow                       | On send `False`                                  |
+| -------------------------- | ------------------------------------------------ |
+| Onboarding submit          | Profile kept; `email_sent: false`; token deleted |
+| Verify resend / change edu | `EMAIL_SEND_FAILED` 502                          |
+| Brand approve              | Returns `email_sent`; brand stays approved       |
+| Brand resend invite        | `EMAIL_SEND_FAILED` 502                          |
+| Org approve / deny·undeny  | Fire-and-forget (bool ignored)                   |
+| Drop denial                | Structured log only                              |
+| Notify cron                | Leave `sent_at` NULL → retry                     |
+| Password reset             | Always `{ok: true}`; burn token + warn           |
 
 Ledger / remaining honesty polish → [`ops.email-ledger`](ops.email-ledger.md) (archived 2026-10-26).
 
 ## How to test
 
-| Where | How |
-| ----- | --- |
-| Local | `ENVIRONMENT=development` → links in API logs; no Resend |
-| Unit | `backend/tests/test_email.py`, `test_brand_emails.py`, hardening missing-key |
-| Prod | After Verified: controlled invite/verify → `Email dispatched … resend_id=` + inbox |
+| Where | How                                                                                |
+| ----- | ---------------------------------------------------------------------------------- |
+| Local | `ENVIRONMENT=development` → links in API logs; no Resend                           |
+| Unit  | `backend/tests/test_email.py`, `test_brand_emails.py`, hardening missing-key       |
+| Prod  | After Verified: controlled invite/verify → `Email dispatched … resend_id=` + inbox |
 
 `EMAIL_FROM` as a Railway env var is **ignored** — From is JSON-only
 (`test_brand_emails.py`).
@@ -170,12 +170,12 @@ dig @1.1.1.1 MX bringthebuzzover.com +short   # apex human MX — other gap; exp
 
 ## Sources
 
-| Topic | Link / path |
-| ----- | ----------- |
-| Add domain | https://resend.com/docs/add-a-domain |
-| Verify / `send.` MX | https://resend.com/docs/knowledge-base/what-if-my-domain-is-not-verifying |
+| Topic                        | Link / path                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| Add domain                   | https://resend.com/docs/add-a-domain                                                 |
+| Verify / `send.` MX          | https://resend.com/docs/knowledge-base/what-if-my-domain-is-not-verifying            |
 | MX conflicts (apex vs send.) | https://resend.com/docs/knowledge-base/how-do-i-avoid-conflicting-with-my-mx-records |
-| Deploy checklist | [`DEPLOYMENT.md`](../DEPLOYMENT.md) |
-| From SOT | [`backend/brand_emails.json`](../backend/brand_emails.json) |
-| Send path | [`backend/app/services/email.py`](../backend/app/services/email.py) |
-| Fail-fast | [`backend/app/config.py`](../backend/app/config.py) |
+| Deploy checklist             | [`DEPLOYMENT.md`](../DEPLOYMENT.md)                                                  |
+| From SOT                     | [`backend/brand_emails.json`](../backend/brand_emails.json)                          |
+| Send path                    | [`backend/app/services/email.py`](../backend/app/services/email.py)                  |
+| Fail-fast                    | [`backend/app/config.py`](../backend/app/config.py)                                  |
