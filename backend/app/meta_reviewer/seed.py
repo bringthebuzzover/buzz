@@ -45,16 +45,35 @@ class ReviewerSeedResult(TypedDict):
     created_application: bool
 
 
-def reviewer_drop_id() -> uuid.UUID:
+class ReviewerSetupStatus(TypedDict):
+    enabled: bool
+    seeded: bool
+    org_id: uuid.UUID | None
+    user_id: uuid.UUID | None
+    drop_id: uuid.UUID | None
+
+
+def parse_reviewer_drop_id() -> uuid.UUID | None:
+    """Configured drop UUID, or None when it is unset or not a UUID."""
+
     raw = (settings.META_REVIEWER_DROP_ID or "").strip()
+    if not raw:
+        return None
     try:
         return uuid.UUID(raw)
-    except ValueError as exc:
+    except ValueError:
+        return None
+
+
+def reviewer_drop_id() -> uuid.UUID:
+    parsed = parse_reviewer_drop_id()
+    if parsed is None:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
             "Reviewer drop is not configured.",
             status_code=400,
-        ) from exc
+        )
+    return parsed
 
 
 async def _reviewer_user(db: AsyncSession) -> User | None:
@@ -62,9 +81,7 @@ async def _reviewer_user(db: AsyncSession) -> User | None:
     return found
 
 
-async def load_ready_reviewer(db: AsyncSession) -> tuple[User, Organization]:
-    """Active reviewer user + org, or 400 when seed has not been run."""
-
+async def _ready_reviewer(db: AsyncSession) -> tuple[User, Organization] | None:
     user = await _reviewer_user(db)
     org = None
     if user is not None and user.portal_role == PortalRole.ORG.value:
@@ -75,12 +92,35 @@ async def load_ready_reviewer(db: AsyncSession) -> tuple[User, Organization]:
         or org.org_name != REVIEWER_ORG_NAME
         or user.status != OrgUserStatus.ACTIVE.value
     ):
+        return None
+    return user, org
+
+
+async def load_ready_reviewer(db: AsyncSession) -> tuple[User, Organization]:
+    """Active reviewer user + org, or 400 when seed has not been run."""
+
+    pair = await _ready_reviewer(db)
+    if pair is None:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
             "Reviewer organization is not set up.",
             status_code=400,
         )
-    return user, org
+    return pair
+
+
+async def reviewer_setup_status(db: AsyncSession) -> ReviewerSetupStatus:
+    """Read-only snapshot for the admin card. Does not create rows or read the link secret."""
+
+    require_reviewer_access()
+    pair = await _ready_reviewer(db)
+    return {
+        "enabled": True,
+        "seeded": pair is not None,
+        "org_id": pair[1].id if pair else None,
+        "user_id": pair[0].id if pair else None,
+        "drop_id": parse_reviewer_drop_id(),
+    }
 
 
 async def seed_reviewer_org(db: AsyncSession) -> ReviewerSeedResult:
