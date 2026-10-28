@@ -59,7 +59,7 @@ from app.models.organization import Organization
 from app.models.social_post import SocialPost
 from app.models.user import User
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
-from app.services.instagram import InstagramClient, MediaFields
+from app.services.instagram import InstagramClient, MediaFields, merge_follower_count
 from app.services.instagram_token import clear_unusable_instagram_token
 
 logger = logging.getLogger(__name__)
@@ -281,13 +281,14 @@ async def _refresh_follower_counts(
         if profile.followers_count is None:
             omitted += 1
             logger.warning(
-                "metric sync followers_omitted org_id=%s user_id=%s previous=%s reason=omitted",
+                "metric sync followers_omitted org_id=%s user_id=%s previous=%s reason=%s",
                 org.id,
                 user.id,
                 org.follower_count,
+                "invalid" if profile.followers_count_invalid else "omitted",
             )
             continue
-        org.follower_count = profile.followers_count
+        org.follower_count = merge_follower_count(org.follower_count, profile.followers_count)
         refreshed += 1
 
     await db.flush()

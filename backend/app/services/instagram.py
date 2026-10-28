@@ -14,6 +14,7 @@ Only the long-lived token is persisted (encrypted) by the caller.
 from __future__ import annotations
 
 import logging
+import math
 from collections.abc import Awaitable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -162,12 +163,86 @@ class InstagramProfile:
 
     ``followers_count`` is ``None`` when Graph omits/nulls the key so jobs can
     carry prior ``organizations.follower_count`` (distinct from a present ``0``).
+    ``followers_count_invalid`` is set when the key was present but not a
+    storable integer (so ``None`` here must not be treated as a real ``0``).
     """
 
     id: str
     username: str
     account_type: str
     followers_count: int | None = None
+    followers_count_invalid: bool = False
+
+
+# ``organizations.follower_count`` is PostgreSQL INTEGER. Values outside this
+# range abort the request flush, which would fail Instagram login.
+_PG_INTEGER_MIN = -2_147_483_648
+_PG_INTEGER_MAX = 2_147_483_647
+
+
+def storable_follower_count(raw: object) -> int | None:
+    """Integer safe to assign to ``organizations.follower_count``, or ``None``.
+
+    ``None`` means the value must not be written: missing, boolean, non-integral,
+    or outside PostgreSQL INTEGER. A present ``0`` is kept. Never raises.
+    """
+
+    if raw is None or isinstance(raw, bool):
+        return None
+    if isinstance(raw, int):
+        value = raw
+    elif isinstance(raw, float):
+        if not math.isfinite(raw) or not raw.is_integer():
+            return None
+        value = int(raw)
+    elif isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return None
+        try:
+            as_float = float(text)
+        except ValueError:
+            return None
+        if not math.isfinite(as_float) or not as_float.is_integer():
+            return None
+        value = int(as_float)
+    else:
+        return None
+    if value < _PG_INTEGER_MIN or value > _PG_INTEGER_MAX:
+        return None
+    return value
+
+
+def merge_follower_count(current: int | None, incoming: int | None) -> int | None:
+    """Count to store after a Graph read.
+
+    ``None`` (field omitted or null) keeps ``current``, including an existing
+    null. A present integer, including ``0``, replaces it.
+    """
+
+    if incoming is None:
+        return current
+    return incoming
+
+
+def _parse_followers_count(payload: dict[str, Any]) -> tuple[int | None, bool]:
+    """``(count, invalid)`` from a Graph ``/me`` body. Never raises."""
+
+    if "followers_count" not in payload:
+        return None, False
+    raw = payload["followers_count"]
+    if raw is None:
+        return None, False
+    parsed = storable_follower_count(raw)
+    if parsed is None:
+        # Type only — the raw value can be a non-numeric string and must not
+        # be written to logs (public repo, and this runs on the login path).
+        logger.warning(
+            "instagram profile followers_count ignored reason=invalid type=%s",
+            type(raw).__name__,
+        )
+        return None, True
+    return parsed, False
 
 
 @dataclass(frozen=True)
@@ -477,11 +552,13 @@ class HttpInstagramClient:
                 "Instagram profile lookup returned no account.",
                 body=payload,
             )
+        followers_count, followers_invalid = _parse_followers_count(payload)
         return InstagramProfile(
             id=str(ig_id),
             username=str(payload.get("username", "")),
             account_type=str(account_type),
-            followers_count=_optional_int_field(payload, "followers_count"),
+            followers_count=followers_count,
+            followers_count_invalid=followers_invalid,
         )
 
     # --- Stage 8: media sync (§10.1) + token refresh (§10.5) -----------------

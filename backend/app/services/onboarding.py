@@ -30,6 +30,7 @@ from app.services.email import KIND_VERIFICATION, build_idempotency_key, send_ve
 from app.services.instagram import (
     InstagramClient,
     canonical_instagram_handle,
+    merge_follower_count,
     require_instagram_handle,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
@@ -242,12 +243,13 @@ async def _seed_follower_count_from_graph(
         return
     if profile.followers_count is None:
         logger.warning(
-            "onboarding followers_seed_failed org_id=%s user_id=%s reason=omitted",
+            "onboarding followers_seed_failed org_id=%s user_id=%s reason=%s",
             org.id,
             user.id,
+            "invalid" if profile.followers_count_invalid else "omitted",
         )
         return
-    org.follower_count = profile.followers_count
+    org.follower_count = merge_follower_count(org.follower_count, profile.followers_count)
 
 
 async def submit_org_onboarding(
