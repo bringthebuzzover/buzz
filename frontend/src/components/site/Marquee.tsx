@@ -1,9 +1,10 @@
 /**
  * Infinite horizontal scroll of college logos for the “Our College Network” section.
  * Duplicates `items` in the DOM for CSS marquee; optional `reverse` animation direction.
- * Images use `logoSrcFor` (local asset or Clearbit); `onError` falls back to icon.horse.
+ * Logos are committed assets. A failed file falls back to initials via RemoteImage.
  */
 import type { CollegeMarqueeItem } from "../../types/campaign";
+import { RemoteImage } from "../ui/RemoteImage";
 import { SECTION_Y, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
@@ -19,11 +20,6 @@ type MarqueeProps = {
   /** Omit bottom border when the next section should visually blend (e.g. public home). */
   hideBottomBorder?: boolean;
 };
-
-/** Logo URL: local `logoSrc` when set, otherwise Clearbit by email domain. */
-function logoSrcFor(item: CollegeMarqueeItem): string {
-  return item.logoSrc ?? `https://logo.clearbit.com/${item.domain}`;
-}
 
 export default function Marquee({
   items,
@@ -59,17 +55,11 @@ export default function Marquee({
               className="group flex h-20 w-20 flex-col items-center justify-center opacity-80 transition duration-300 hover:opacity-100 sm:h-32 sm:w-32"
             >
               <div className="mb-2 flex h-12 w-12 items-center justify-center sm:mb-3 sm:h-20 sm:w-20">
-                <img
-                  src={logoSrcFor(item)}
+                <RemoteImage
+                  src={item.logoSrc}
+                  label={item.name}
                   alt={item.name}
                   className="h-full w-full object-contain drop-shadow-buzz grayscale transition duration-300 group-hover:grayscale-0"
-                  onError={(e) => {
-                    const target = e.currentTarget;
-                    const fallback = `https://icon.horse/icon/${item.domain}`;
-                    if (target.src !== fallback) {
-                      target.src = fallback;
-                    }
-                  }}
                 />
               </div>
               <span className="block whitespace-nowrap text-center text-buzzMicro font-medium text-buzz-inkMuted">
