@@ -164,21 +164,15 @@ async def unclaimed_prefill_count(db: AsyncSession) -> int:
 
 
 async def delete_leftover_prefills(db: AsyncSession, notices: Sequence[ErasureNotice]) -> int:
-    """Delete the current match set. Does not commit."""
+    """Delete the current match set in one statement. Does not commit.
 
-    ids = await leftover_prefill_ids(db, notices)
-    if not ids:
-        return 0
+    The email, cutoff, and live-user checks are inside this ``DELETE``, so a
+    user who signs up after an earlier count and before this statement keeps
+    their draft.
+    """
+
     result = await db.execute(
-        delete(OrgApplyPrefill)
-        .where(
-            OrgApplyPrefill.id.in_(ids),
-            or_(
-                OrgApplyPrefill.used_by_user_id.is_(None),
-                OrgApplyPrefill.used_by_user_id.in_(_erased_org_user_ids()),
-            ),
-        )
-        .returning(OrgApplyPrefill.id)
+        delete(OrgApplyPrefill).where(or_(*_match_filters(notices))).returning(OrgApplyPrefill.id)
     )
     return len(list(result.scalars()))
 
@@ -210,6 +204,25 @@ def _recipient_emails(value: object) -> list[str]:
     return emails
 
 
+def _list_permission_error(payload: object) -> ErasureScanError:
+    """401 from a key that cannot list sent mail. The body is not echoed."""
+
+    name = ""
+    if isinstance(payload, dict):
+        raw = payload.get("name")
+        if isinstance(raw, str):
+            name = raw.strip()
+    if name == "restricted_api_key":
+        return ErasureScanError(
+            "RESEND_API_KEY is missing permission to list sent emails "
+            "(restricted_api_key). A sending-only key cannot be used. "
+            "Nothing was deleted."
+        )
+    return ErasureScanError(
+        "RESEND_API_KEY cannot list sent emails (status=401). Nothing was deleted."
+    )
+
+
 def _email_id(value: object) -> str:
     if not isinstance(value, str):
         raise ErasureScanError("Resend list entry is missing an id. Nothing was deleted.")
@@ -237,6 +250,14 @@ async def _get_json(
             await asyncio.sleep(delay)
             delay *= 2
             continue
+        if resp.status_code == 401:
+            body: object = None
+            try:
+                body = resp.json()
+            except ValueError:
+                body = None
+            logger.error("resend request failed status=401")
+            raise _list_permission_error(body) from None
         if resp.status_code != 200:
             logger.error("resend request failed status=%s", resp.status_code)
             raise ErasureScanError(
@@ -264,9 +285,9 @@ async def fetch_org_erasure_notices(client: httpx.AsyncClient) -> list[ErasureNo
         if after is not None:
             params["after"] = after
         payload = await _get_json(client, RESEND_EMAILS_URL, params)
-        data = payload.get("data")
-        if data is None:
-            data = []
+        if "data" not in payload:
+            raise ErasureScanError("Resend list page is missing data. Nothing was deleted.")
+        data = payload["data"]
         if not isinstance(data, list):
             raise ErasureScanError("Resend returned an unexpected list. Nothing was deleted.")
         if not data:
