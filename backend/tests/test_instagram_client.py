@@ -632,14 +632,14 @@ async def test_fetch_media_insights_reels_excludes_feed_only_metrics() -> None:
                 "data": [
                     {"name": "reach", "values": [{"value": 500}]},
                     {"name": "saved", "values": [{"value": 9}]},
-                    {"name": "reels_skip_rate", "values": [{"value": 0.37}]},
+                    {"name": "reels_skip_rate", "values": [{"value": 62.8}]},
                     {"name": "empty", "values": []},
                 ]
             },
         )
 
     insights = await _client(handler).fetch_media_insights("tok", "m1", is_reel=True)
-    assert insights == {"reach": 500, "saved": 9, "reels_skip_rate": 0.37}
+    assert insights == {"reach": 500, "saved": 9, "reels_skip_rate": 62.8}
     assert "ig_reels_avg_watch_time" in captured["metric"]
     assert "reels_skip_rate" in captured["metric"]
     assert "profile_visits" not in captured["metric"]

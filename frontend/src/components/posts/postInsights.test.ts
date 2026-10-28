@@ -27,11 +27,24 @@ describe("formatWatchMs", () => {
 });
 
 describe("formatSkipRate", () => {
-  it("renders the stored ratio as a percent", () => {
+  it("renders Graph's percentage without scaling it again", () => {
     expect(formatSkipRate(null)).toBe(INSIGHT_MISSING);
+    expect(formatSkipRate(undefined)).toBe(INSIGHT_MISSING);
+    expect(formatSkipRate(Number.NaN)).toBe(INSIGHT_MISSING);
     expect(formatSkipRate(0)).toBe("0%");
-    expect(formatSkipRate(0.37)).toBe("37%");
-    expect(formatSkipRate(0.185)).toBe("18.5%");
+    expect(formatSkipRate(0.4)).toBe("0.4%");
+    expect(formatSkipRate(18.5)).toBe("18.5%");
+    expect(formatSkipRate(37)).toBe("37%");
+    // The live bug: 62.8 percentage points were shown as 6280%.
+    expect(formatSkipRate(62.8)).toBe("62.8%");
+    expect(formatSkipRate(100)).toBe("100%");
+  });
+
+  it("never renders a skip rate above 100%", () => {
+    expect(formatSkipRate(100.04)).toBe("100%");
+    expect(formatSkipRate(100.06)).toBe("100%");
+    expect(formatSkipRate(6280)).toBe("100%");
+    expect(formatSkipRate(-4)).toBe("0%");
   });
 });
 
@@ -62,7 +75,7 @@ describe("insightMetricsFor", () => {
       mediaProductType: "REELS",
       reach: 500,
       igReelsAvgWatchTime: 1200,
-      reelsSkipRate: 0.18,
+      reelsSkipRate: 62.8,
     });
     expect(metrics?.map((metric) => metric.label)).toEqual([
       "Reach",
@@ -78,7 +91,7 @@ describe("insightMetricsFor", () => {
       "1.2s",
     );
     expect(metrics?.find((metric) => metric.key === "views")?.value).toBe(INSIGHT_MISSING);
-    expect(metrics?.find((metric) => metric.key === "reelsSkipRate")?.value).toBe("18%");
+    expect(metrics?.find((metric) => metric.key === "reelsSkipRate")?.value).toBe("62.8%");
   });
 
   it("skips non-Instagram posts", () => {

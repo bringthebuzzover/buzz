@@ -1251,12 +1251,12 @@ async def test_metric_sync_applies_reel_insights(db_session) -> None:
     db_session.add(reel)
     await db_session.flush()
     fake = FakeInstagramClient()
-    fake.insights = {"reach": 300, "ig_reels_avg_watch_time": 1200, "reels_skip_rate": 0.42}
+    fake.insights = {"reach": 300, "ig_reels_avg_watch_time": 1200, "reels_skip_rate": 62.8}
     await sync_metrics(db_session, fake)
     await db_session.refresh(reel)
     assert reel.reach == 300
     assert reel.ig_reels_avg_watch_time == 1200
-    assert reel.reels_skip_rate == 0.42
+    assert reel.reels_skip_rate == pytest.approx(62.8)
 
 
 async def test_metric_sync_keeps_basics_when_insights_fail(db_session) -> None:

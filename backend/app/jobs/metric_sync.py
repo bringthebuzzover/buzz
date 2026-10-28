@@ -41,6 +41,7 @@ awaiting_products gap remains a media-sync blackout only.
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -62,6 +63,7 @@ from app.models.organization import Organization
 from app.models.social_post import SocialPost
 from app.models.user import User
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
+from app.services.insight_units import clamp_reels_skip_rate
 from app.services.instagram import InstagramClient, MediaFields, merge_follower_count
 from app.services.instagram_token import clear_unusable_instagram_token
 
@@ -182,13 +184,43 @@ def _apply_basics(post: SocialPost, fields: MediaFields) -> tuple[bool, bool, bo
     )
 
 
+def _json_safe_skip_rate(raw: object) -> bool:
+    """True when ``raw`` can be stored in JSON (finite number, including out of range)."""
+
+    return not isinstance(raw, bool) and isinstance(raw, (int, float)) and math.isfinite(raw)
+
+
+def _skip_rate_out_of_range(raw: object) -> bool:
+    """True when a Graph skip rate is outside 0–100 or is not a finite number."""
+
+    if not _json_safe_skip_rate(raw):
+        return True
+    number = float(raw)  # type: ignore[arg-type]
+    return number < 0 or number > 100
+
+
 def _apply_insights(post: SocialPost, insights: dict[str, int | float]) -> None:
+    stored = dict(insights)
     for col in _INSIGHT_COLUMNS:
-        if col in insights:
-            setattr(post, col, insights[col])
-    if "reels_skip_rate" in insights:
-        post.reels_skip_rate = float(insights["reels_skip_rate"])
-    post.insights_raw = dict(insights)
+        if col in stored:
+            setattr(post, col, stored[col])
+    if "reels_skip_rate" in stored:
+        raw = stored["reels_skip_rate"]
+        if _skip_rate_out_of_range(raw):
+            # post id + media id + the Graph number. No caption, handle, or token.
+            logger.warning(
+                "metric sync reels_skip_rate outside 0-100 "
+                "post_id=%s external_id=%s reels_skip_rate=%s",
+                post.id,
+                post.external_id,
+                raw,
+            )
+        # Column is what the UI reads. insights_raw keeps Graph's number.
+        # NaN and Inf are not JSON, so they are only in the warning above.
+        post.reels_skip_rate = clamp_reels_skip_rate(raw)
+        if not _json_safe_skip_rate(raw):
+            stored.pop("reels_skip_rate")
+    post.insights_raw = stored
 
 
 def _apply_metrics(
