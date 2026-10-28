@@ -65,6 +65,7 @@ Delete the marked `META-REVIEWER-PATH` lines in:
 - `backend/app/services/ig_change_requests.py` — import and the call in `submit_request`
 - `backend/app/routes/orgs.py` — import and the call in `update_my_org`
 - `frontend/src/AppRoot.tsx` — the import and the `/meta-review` route
+- `frontend/src/contexts/AuthContext.tsx` — `/meta-review` in `onAuthRoute` (skip local dev auto-login)
 
 Delete the tests:
 
