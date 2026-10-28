@@ -70,7 +70,9 @@ old link fails on the next boot. Flag off 404s the routes immediately.
 The link is `{FRONTEND_URL}/meta-review#{secret}`. The secret is in the
 fragment so API access logs do not see it. After connect, the reviewer is
 the seeded org only: no admin, no other org's campaigns, no apply / notify /
-profile edit / IG-change ticket. A later connect with a different Instagram
+profile edit / IG-change ticket, and no `.edu` email change. That sandbox
+follows the seeded email until purge, so turning the flag off does not turn
+the account into a normal org. A later connect with a different Instagram
 account replaces the handle and drops the previous account's posts. That
 handle is free again; `/login` with the old account is `ORG_APPLY_REQUIRED`.
 

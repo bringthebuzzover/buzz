@@ -70,12 +70,13 @@ def link_secret_matches(presented: str) -> bool:
 def reject_reviewer_mutation(user: User) -> None:
     """Block reviewer-org writes that are not own-post linking.
 
-    No-op unless the flag is on and ``user`` is the configured reviewer org.
-    Flag off does not read the database and does not change the response.
+    The seeded account stays sandboxed until purge, including after the flag
+    is turned off. A still-valid session must not rotate its email: that
+    would drop this check and hide the row from purge. Identification is the
+    configured email only (no database read). Every other account is unchanged,
+    and flag-off routes still 404.
     """
 
-    if not reviewer_access_enabled():
-        return
     email = (user.edu_email or "").strip().lower()
     if email != reviewer_org_email():
         return
