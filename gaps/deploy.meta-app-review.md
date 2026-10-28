@@ -1,6 +1,6 @@
 ---
 id: deploy.meta-app-review
-title: "Meta App Review (Instagram Login) — resubmission in progress"
+title: "Meta App Review (Instagram Login) — review in progress"
 kind: ops
 severity: P0
 status: in_progress
@@ -24,9 +24,10 @@ repro: |
   Read-only Meta dashboard check, 2026-10-26 (do not paste tokens or tester
   credentials into git or chat). Facebook app BUZZ 1589568552810678 and
   Instagram app BUZZ - IG 2056969808271074. App mode Development. Standard
-  Access. App Review for instagram_business_basic and
-  instagram_business_manage_insights submitted 2026-10-07, rejected under
-  Developer Policy 1.6.
+  Access. The previous submission (2026-10-19, 22:11 PDT) was not approved
+  for instagram_business_basic or instagram_business_manage_insights
+  (Developer Policy 1.6). Resubmitted 2026-10-28, about 1:14 PM ET
+  (17:14 UTC). Review in progress.
   Instagram Testers: 3 accepted, 11 pending. The 11 pending invites are
   blocked the same way as non-testers. Handles are not listed.
   After 1f389a9, org Connect on www.bringthebuzzover.com.
@@ -60,19 +61,22 @@ fix_when: |
   Do not commit tester passwords, access tokens, or one-time connect links.
 ---
 
-# Meta App Review (Instagram Login) — resubmission in progress
+# Meta App Review (Instagram Login) — review in progress
+
+**Status: Review in progress.** Submitted 2026-10-28, about 1:14 PM ET (17:14 UTC). Meta says most reviews finish within 20 days. Severity stays **P0**. Tracker `status` stays `in_progress` until Advanced Access is approved and the app is Live (`fix_when`). Do not archive on submit alone.
 
 Retired ids: `deploy.meta-business-verification`, `auth.ig-long-lived-get-unsupported`.
 Both are pointers in [`gaps/archive/`](archive/). This file is the living gap.
 
 Business Verification is **Verified**. Public org login is still blocked on
-**App Review**. Meta rejected the 2026-10-07 submission for
-`instagram_business_basic` and `instagram_business_manage_insights`
-(Developer Policy 1.6 — reviewers could not verify the use case / login
-flow). That rejection matches the screencasts and the form text. The same
-gate is why non-testers, and the **11 pending** tester invites, get Graph
-**100** on the long-lived token exchange. Approval (Advanced Access) plus
-**Live** mode is the fix. This file is that workstream.
+**App Review**. The previous submission, **2026-10-19 (22:11 PDT)**, was
+**not approved** for `instagram_business_basic` or
+`instagram_business_manage_insights` (Developer Policy 1.6 — reviewers could
+not verify the use case / login flow). That rejection matches the screencasts
+and the form text in the appendix. The same gate is why non-testers, and the
+**11 pending** tester invites, get Graph **100** on the long-lived token
+exchange. Approval (Advanced Access) plus **Live** mode is the fix. This
+file is that workstream. The resubmission below is what Meta has now.
 
 Human Meta dashboard only. Agents verify; do not mutate Meta, submit App
 Review, or paste tester credentials without an explicit OK.
@@ -84,8 +88,163 @@ App Review is the exception. Reviewers do not get Buzz tester credentials
 and do not wait for admin approval. They open the reusable link in
 [`deploy.meta-reviewer-path`](deploy.meta-reviewer-path.md), consent with
 their own Instagram professional account, and land in the pre-accepted
-reviewer org. That path is off unless `META_REVIEWER_ACCESS_ENABLED` is
-true. It does not change `/login` or `/org/apply` for anyone else.
+reviewer org. The code default is off. For this submission
+`META_REVIEWER_ACCESS_ENABLED` is **on** and must stay on until Meta
+finishes. It does not change `/login` or `/org/apply` for anyone else.
+
+## Resubmission 2026-10-28 (submitted)
+
+**Submitted 2026-10-28, about 1:14 PM ET (17:14 UTC). Status: Review in progress.** Meta says most reviews finish within 20 days. Do not send another submission while this one is open.
+
+| | |
+| --- | --- |
+| Facebook app | BUZZ `1589568552810678` |
+| Instagram app | BUZZ - IG `2056969808271074` |
+| Submission id | `1664493731984826` |
+| Permissions | `instagram_business_basic`, `instagram_business_manage_insights` |
+| Dashboard | [App Review submission](https://developers.facebook.com/apps/1589568552810678/app-review/submissions/?submission_id=1664493731984826&business_id=1622729072857749) |
+
+The previous submission was **2026-10-19 (22:11 PDT)** and was **not approved** for both permissions. This file previously dated that request 2026-10-07. The appendix is still that rejected form. The blocks below are the fields saved on the 2026-10-28 draft and submitted that afternoon. Brand login values and the reviewer-link secret are not in this repo.
+
+### What changed vs the rejection
+
+1. Reviewers get a reusable reviewer link into a pre-approved test organization already in "Meta Review Test Drop", plus a brand login in the credentials field. The rejected form used a one-time connect link, told reviewers they could not finish without a tester role, and left credentials blank.
+2. Each screencast shows Instagram Login, the first-time **BUZZ - IG** consent screen listing both permissions, and English captions. The rejected videos showed a re-authorization screen with no permission list; the insights video had no login or captions.
+3. Usage text says comment counts only, never comment text.
+4. Usage text names every feed and reel metric.
+5. The brand view is a real brand sign-in at `/brand/login`.
+6. A short walkthrough of the reviewer steps is the supporting documentation. The old signup demo was removed. This submission has no notes-to-reviewer box.
+
+### App settings
+
+- App category: Business and pages
+- Privacy policy URL: `https://www.bringthebuzzover.com/privacy`
+- Primary contact email: `<primary contact email (kept off-repo)>`
+- Business: Bring the Buzz Over (verified)
+
+### Allowed usage — `instagram_business_basic`
+
+Tell us how you're using this permission or feature:
+
+```text
+BUZZ (bringthebuzzover.com, Bring the Buzz Over Inc.) is a website that connects brands with student organizations for sponsored Instagram campaigns ("drops"). A brand ships product to student organizations, and each organization posts about it on its own Instagram professional account. The organization connects that account to BUZZ with Instagram Login (Business Login for Instagram). BUZZ does not use Facebook Login.
+
+We use instagram_business_basic for three things, all for the account the organization itself connected:
+1. Identify the account: user id, username, account type and follower count. The organization's Profile page in BUZZ shows them as "Instagram identity" and "Instagram followers (from Instagram)". We use the account type to accept only Business or Creator accounts.
+2. List the account's own recent media (id and timestamp), so the organization can pick, from its existing posts, the one it made for a campaign. Under the campaign's "Linked posts", the organization clicks Link on that post.
+3. For a linked post, read its like count, comment count, caption, media type, permalink, thumbnail or media URL and timestamp. The organization sees these on its campaign page, and the sponsoring brand sees the same post and counts in that campaign's reporting.
+
+Why we need it: without it, BUZZ cannot confirm which Instagram account belongs to the organization, cannot show the organization its own posts to choose from, and cannot show the brand which post was made for its campaign. Brands would have to trust screenshots, and organizations would have to copy numbers by hand.
+
+What we do not do: we read comment counts only, never comment text. We never publish, edit or delete content, never comment or reply, and never read or send messages. We only read the account that the organization connected and approved.
+
+How to test: follow the Web reviewer instructions (App Verification). Open the reviewer link, sign in with your own Instagram professional account and click Allow. You land in our pre-approved test organization "Meta App Review". Open Profile to see your @username and follower count, then open My Campaigns > Meta Review Test Drop, where Linked posts lists your own recent posts with like and comment counts. Click Link on one. The attached video shows the same Instagram Login, consent and data for a real student organization that signed up through our normal apply and approval process.
+
+```
+
+- Screencast: Facebook video `1809141633545591` (`video-A-basic-2026-10-28.mp4`)
+- Allowed-usage agreement: ticked
+
+### Allowed usage — `instagram_business_manage_insights`
+
+Tell us how you're using this permission or feature:
+
+```text
+Brands pay for BUZZ campaigns and need to know how the posts made for them performed. When a student organization links one of its own Instagram posts to a brand campaign in BUZZ, we use instagram_business_manage_insights to read that one post's media insights from the organization's own professional account:
+- Feed posts: reach, views, saved, shares, total_interactions, profile_visits, profile_activity, follows.
+- Reels: reach, views, saved, shares, total_interactions, ig_reels_avg_watch_time, ig_reels_video_view_total_time, reels_skip_rate.
+
+Where it is shown:
+- The organization's campaign page shows an "Instagram insights" row under each linked post (Reach, Views, Saves, Shares, Total interactions, and Profile visits, Profile activity and Follows for feed posts), plus an "Instagram Reach" summary tile for the campaign.
+- The sponsoring brand's campaign page shows the same post with the same insights row, so the brand sees verified results for its campaign.
+
+Value to users: organizations prove the reach of the posts they made without sending screenshots, and brands get accurate, comparable results for each campaign. Without this permission BUZZ could show likes and comments only, which does not tell a brand how many people a post reached.
+
+Limits: we read insights only for posts the organization linked to a campaign, only from the account it connected, and only to report on that campaign to that organization and that brand. We do not read account-level audience demographics. We never publish content, comment, or read or send messages.
+
+How to test: after the steps in the Web reviewer instructions, open My Campaigns > Meta Review Test Drop and look at one of your recent posts under Linked posts. Its Instagram insights row shows that post's metrics from Instagram. Click Link, and the campaign's Instagram Reach total updates. Then log out and sign in as the brand (credentials field). The brand's Meta Review Test Drop page shows the posts linked to that campaign, including the one you linked, with the same insights. The attached video shows the same steps for a real student organization and a real brand sign-in.
+
+```
+
+- Screencast: Facebook video `1439926917470842` (`video-B-insights-2026-10-28.mp4`)
+- Allowed-usage agreement: ticked
+
+### Data handling
+
+Prefilled from the previous submission and confirmed unchanged.
+
+| Question | Submitted answer |
+| --- | --- |
+| Data processors with access to Platform Data? | Yes |
+| Which processor | Railway |
+| Processor category | IT solutions and services, including cloud storage and processing |
+| Processor countries | United States of America |
+| Responsible entity | Bring the Buzz Over Inc. |
+| Entity country | United States of America |
+| National-security / public-authority requests, last 12 months | No |
+| Policies for public-authority requests | None of the above |
+
+### Verification / reviewer instructions (Web)
+
+- Platform: Web
+- Site URL: `https://www.bringthebuzzover.com/`
+- Is Facebook Login integrated? No
+- Supporting documentation: `how-to-test-buzz-2026-10-28.mp4` (the old `buzz-signup-login-demo.mp4` was removed)
+- Gift codes: blank
+- Geographic restrictions: blank
+- No notes-to-reviewer box and no custom form step
+
+Step-by-step instructions for reviewers:
+
+```text
+BUZZ is a website: https://www.bringthebuzzover.com. Please use a desktop browser. No payment or membership is needed. BUZZ does not use Facebook Login. Student organizations sign in only with Instagram Login (Business Login for Instagram), and we request only instagram_business_basic and instagram_business_manage_insights. BUZZ never posts, comments or sends messages on Instagram.
+
+You need your own Instagram professional account (Business or Creator) with at least one post published in the last 30 days. BUZZ reads recent posts only, so older posts will not appear in the list. If your account has no posts from the last 30 days, the Linked posts list will be empty. You can still see both permissions in use: Profile shows your @username and follower count, and the brand view in steps 8-9 shows a post already linked by our other test organization, BUZZ Review Test Org, with its like and comment counts and its Instagram insights.
+
+Normally an organization applies, verifies a .edu email and waits for our approval before it connects Instagram. To save you that wait, we prepared an approved test organization named "Meta App Review" that is already accepted into a test campaign, "Meta Review Test Drop". The reviewer link in the test credentials field connects your Instagram account to that organization.
+
+instagram_business_basic and instagram_business_manage_insights (organization side):
+1. Open the reviewer link from the test credentials field. BUZZ sends you to Instagram.
+2. If Instagram asks, sign in with your own Instagram professional account.
+3. Instagram shows its consent screen: "BUZZ - IG is requesting access to" your account, listing "View profile and access media" (instagram_business_basic) and "Access and manage insights" (instagram_business_manage_insights). Click Allow.
+4. BUZZ finishes the login and signs you in to the "Meta App Review" organization. BUZZ reads your recent posts right away.
+5. Click Profile. "Instagram identity" shows your @username, and "Instagram followers" shows your follower count from Instagram (instagram_business_basic).
+6. Open My Campaigns, then Meta Review Test Drop. Under Linked posts, BUZZ lists your own recent posts with their like and comment counts (instagram_business_basic). Each post has an Instagram insights row with its reach, views, saves, shares, total interactions and, for feed posts, profile visits, profile activity and follows (instagram_business_manage_insights). A dash means Instagram returned no value for that metric.
+7. Click Link on one existing post. BUZZ only records the link to the campaign; nothing is created or changed on Instagram. The campaign totals (posts, likes, comments, Instagram Reach) update.
+
+instagram_business_manage_insights (brand side):
+8. Click Logout. Go to https://www.bringthebuzzover.com/brand/login and sign in with the brand account from the test credentials field.
+9. Open Meta Review Test Drop. The brand sees each linked post, including the one you just linked, with its like and comment counts and its Instagram insights row.
+
+A short walkthrough video of these steps is attached under supporting documentation and is also here: https://drive.google.com/file/d/1XinyIPC_2PK4-jjMshzpIJQrXGJx7Mc3/view
+
+If Instagram shows "Insufficient developer role", send us your Instagram username and we'll add it as a tester. You can reply in this App Review request or email hello@bringthebuzzover.com. Then accept the invite at https://www.instagram.com/accounts/manage_access/ (Tester Invites) and open the reviewer link again.
+
+Metrics come from Instagram and can take up to 48 hours to update, so numbers may differ slightly from the videos. To sign in again later, open the reviewer link again.
+```
+
+Test credentials (the link secret and the brand login are kept off-repo):
+
+```text
+1) Reviewer link (connects your own Instagram professional account to our approved test organization "Meta App Review"; reusable during the review): https://www.bringthebuzzover.com/meta-review#<TOKEN>
+2) BUZZ brand account "BUZZ Review Test Brand", sign in at https://www.bringthebuzzover.com/brand/login
+Email: <brand test account email (kept off-repo)>
+Password: <brand test account password (kept off-repo)>
+No Instagram or Facebook credentials are needed or provided. Please use your own Instagram professional account.
+```
+
+### While Meta is reviewing
+
+`META_REVIEWER_ACCESS_ENABLED` stays **on**. Leave the reviewer secret hash set. Do not turn the flag off until Meta finishes.
+
+### After approval
+
+1. Turn `META_REVIEWER_ACCESS_ENABLED` off.
+2. Purge the reviewer org (`Meta App Review`) with the purge step in [`backend/app/meta_reviewer/REMOVAL.md`](../backend/app/meta_reviewer/REMOVAL.md).
+3. Unset the reviewer secret hash (`META_REVIEWER_LINK_SECRET_HASH`).
+4. Keep the reviewer-path code. Delete those files per `REMOVAL.md` only if asked later.
+
+Then switch the app to Live and confirm a non-tester login (META.md §G, `fix_when` above). Do not archive this gap on submit alone.
 
 ## Verified 2026-10-26 (dashboard, read-only)
 
@@ -128,7 +287,7 @@ listed here.
 
 ### Permissions
 
-Rechecked **2026-10-27**. Both are Active and **App Review rejected**, pending resubmission. Last 30 days: `instagram_business_basic` 968 calls, `instagram_business_manage_insights` 291.
+Rechecked **2026-10-27**, both were Active and **App Review rejected**. Resubmitted **2026-10-28, about 1:14 PM ET (17:14 UTC)**; **Review in progress**. Last 30 days as of that 2026-10-27 check: `instagram_business_basic` 968 calls, `instagram_business_manage_insights` 291.
 
 Requested via `INSTAGRAM_SCOPES` in `backend/app/config.py`.
 
@@ -145,10 +304,15 @@ There are no `graph.facebook.com` calls.
 
 ### Submission
 
-Submitted **2026-10-07** for `instagram_business_basic` and
-`instagram_business_manage_insights`. **Rejected** (Developer Policy 1.6).
-The export reproduced in the appendix was downloaded 2026-10-26, 9:34 AM PDT.
-The one-time connect token in that export is `[REDACTED]`.
+The previous submission was **2026-10-19 (22:11 PDT)** for
+`instagram_business_basic` and `instagram_business_manage_insights`. It was
+**not approved** for either permission (Developer Policy 1.6). The export
+reproduced in the appendix was downloaded 2026-10-26, 9:34 AM PDT. This file
+previously dated that request 2026-10-07. The one-time connect token in that
+export is `[REDACTED]`.
+
+The replacement request was **submitted 2026-10-28, about 1:14 PM ET (17:14 UTC)**.
+Status: **Review in progress.** See [Resubmission 2026-10-28 (submitted)](#resubmission-2026-10-28-submitted).
 
 ## Graph 100 on the documented long-lived GET
 
@@ -219,10 +383,12 @@ links in this repo.
 | 1c | Decide: remove the unused Facebook Login Business Discovery path, or disclose it on the form | Lawrence + engineering | **Done.** Path removed in [`8266712`](https://github.com/bringthebuzzover/buzz/pull/15). Apply is a typed handle, stored unconfirmed. |
 | 2a | Remove unused permissions and features | Lawrence | **Done (2026-10-27).** Only the two permissions above remain. |
 | 2b | Consider a Data Deletion Callback URL (instructions URL already set) | Lawrence | **Skipped (Lawrence, 2026-10-27).** Data deletion instructions URL is set; callback not required. |
-| 3 | Give Meta the reviewer link from [`deploy.meta-reviewer-path`](deploy.meta-reviewer-path.md). Reviewers use their own Instagram Business or Creator account. Do not put Instagram passwords in the test-credentials field. | Lawrence | **Not started.** The link secret stays out of git. The flag stays off until the recording window. |
-| 4 | Record two captioned videos (English). Each file contains its own login, grant, and that permission’s data. See the recording bar below. | Lawrence | **Not started.** Confirm Instagram Reach shows on www while recording. 1c and 2a are done. |
-| 5 | Rewrite each permission’s usage description. Name the fields and metrics. Say “comment counts,” not that Buzz has no access to comments. Say only these two permissions are requested. | Engineering drafts; Lawrence confirms | **Not started.** |
-| 6 | Submit | Lawrence | **Not started.** |
+| 3 | Give Meta the reviewer link from [`deploy.meta-reviewer-path`](deploy.meta-reviewer-path.md). Reviewers use their own Instagram Business or Creator account. Do not put Instagram passwords in the test-credentials field. | Lawrence | **Done (submitted 2026-10-28).** The credentials field uses `https://www.bringthebuzzover.com/meta-review#<TOKEN>`. The secret stays out of git. `META_REVIEWER_ACCESS_ENABLED` stays **on** until Meta finishes. After approval: turn the flag off, purge the reviewer org, unset the reviewer secret hash. Keep the reviewer-path code unless removal is asked for. |
+| 4 | Record two captioned videos (English). Each file contains its own login, grant, and that permission’s data. See the recording bar below. | Lawrence | **Done.** Facebook videos `1809141633545591` (basic) and `1439926917470842` (insights), plus supporting `how-to-test-buzz-2026-10-28.mp4`. |
+| 5 | Rewrite each permission’s usage description. Name the fields and metrics. Say “comment counts,” not that Buzz has no access to comments. Say only these two permissions are requested. | Engineering drafts; Lawrence confirms | **Done.** Text is in [Resubmission 2026-10-28 (submitted)](#resubmission-2026-10-28-submitted). |
+| 6 | Submit | Lawrence | **Done.** Submitted 2026-10-28, about 1:14 PM ET (17:14 UTC). Submission `1664493731984826`. **Review in progress.** Do not archive on submit alone. |
+
+Items 3–6 are the 2026-10-28 submission. The recording bar below is the earlier plan. The uploaded permission screencasts show the normal organization path (apply, approval, Instagram Login, consent, and that permission’s data). The supporting video shows the reviewer link. The written instructions tell the reviewer to use the link.
 
 **Recording bar.** Use the reviewer link
 ([`deploy.meta-reviewer-path`](deploy.meta-reviewer-path.md)), not a Buzz
@@ -252,12 +418,14 @@ login. Each file, in English, with captions, must show:
 Dashboard → both apps above → App mode = Development
 Settings → Basic → Verification = Verified
 App Review → instagram_business_basic and instagram_business_manage_insights
-  = rejected until the new submission is approved
+  = Review in progress (submitted 2026-10-28, about 1:14 PM ET / 17:14 UTC)
+  until Meta approves or rejects
 Instagram Testers → accepted count is what can log in
 ```
 
-After Lawrence submits, re-check App Review status before claiming §F done.
-§G (non-tester login on www) is still required to archive.
+Re-check App Review status before claiming §F done. While this review is
+open, `META_REVIEWER_ACCESS_ENABLED` stays on. §G (non-tester login on www)
+is still required to archive.
 
 ## Docs left on the old story
 
@@ -269,12 +437,19 @@ Not edited here. It still disagrees with this file:
 
 ## Related
 
-- [`META.md`](../META.md) — dashboard guide; §E done; §F is this resubmission.
+- [`META.md`](../META.md) — dashboard guide; §E done; §F is Review in progress.
 - [`archive/ops.ig-business-discovery-unset`](archive/ops.ig-business-discovery-unset.md) — path removed (checklist 1c). Delete leftover Railway vars if present.
 - [`archive/auth.ig-long-lived-get-unsupported.md`](archive/auth.ig-long-lived-get-unsupported.md) — absorbed id.
 - [`archive/deploy.meta-business-verification.md`](archive/deploy.meta-business-verification.md) — renamed id.
 
-## Appendix: Submitted form — full questions and our answers (2026-10-07)
+## Appendix: Rejected form — full questions and our answers
+
+Historical. This is the previous submission, **2026-10-19 (22:11 PDT)**, which
+was **not approved** for `instagram_business_basic` or
+`instagram_business_manage_insights`. This file previously dated that request
+2026-10-07. Each **Resubmission change** note was a draft instruction and is
+not the text that was submitted. The submitted text is
+[Resubmission 2026-10-28 (submitted)](#resubmission-2026-10-28-submitted).
 
 Source: Meta “App review request for BUZZ (app ID 1589568552810678)”,
 downloaded October 26, 2026, 9:34 AM PDT. Question labels and answers are
