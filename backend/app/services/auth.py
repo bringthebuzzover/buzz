@@ -30,6 +30,7 @@ from app.services.instagram import (
     ALLOWED_ACCOUNT_TYPES,
     InstagramClient,
     canonical_instagram_handle,
+    merge_follower_count,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.org_apply import assert_handle_available, flag_ig_bind_mismatch
@@ -53,6 +54,9 @@ async def handle_instagram_callback(
     * ``bind_user_id`` set (Connect flow) → update that pending_instagram user.
     * Graph id already on a user → refresh tokens (returning login).
     * Unknown Graph id, no bind → ``ORG_APPLY_REQUIRED`` (no INSERT).
+
+    When an org row exists and Graph sent ``followers_count``, it is stored
+    on that org. A missing or failed count leaves the stored value alone.
     """
 
     short = await ig.exchange_code(code)
@@ -155,6 +159,8 @@ async def handle_instagram_callback(
         became_active = True
     if org is not None:
         org.instagram_handle_confirmed = True
+        # Graph-owned. Missing/failed counts must not fail the login.
+        _apply_callback_follower_count(org, profile)
 
     try:
         await db.flush()
@@ -171,6 +177,40 @@ async def handle_instagram_callback(
     if became_active:
         await promote_drop_apply_intents(db, user)
     return user
+
+
+def _apply_callback_follower_count(org: Organization, profile: object) -> None:
+    """Persist ``followers_count`` from the OAuth ``/me`` already fetched.
+
+    Best-effort: a missing, non-integer, or unreadable count is logged and
+    ignored. ``None`` does not clear a count already on the org.
+    """
+
+    try:
+        raw = getattr(profile, "followers_count", None)
+        if raw is None:
+            logger.warning(
+                "instagram callback followers_seed_failed org_id=%s user_id=%s reason=omitted",
+                org.id,
+                org.user_id,
+            )
+            return
+        # ``bool`` is an ``int`` subclass; reject it so flush cannot coerce it.
+        if isinstance(raw, bool) or not isinstance(raw, int):
+            logger.warning(
+                "instagram callback followers_seed_failed org_id=%s user_id=%s reason=invalid",
+                org.id,
+                org.user_id,
+            )
+            return
+        org.follower_count = merge_follower_count(org.follower_count, raw)
+    except Exception:  # noqa: BLE001 — count failures must not break login
+        logger.warning(
+            "instagram callback followers_seed_failed org_id=%s user_id=%s reason=error",
+            org.id,
+            org.user_id,
+            exc_info=False,
+        )
 
 
 def _apply_ig_credentials(
