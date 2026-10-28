@@ -13,6 +13,7 @@ from pydantic import ConfigDict, field_serializer, field_validator
 from pydantic.alias_generators import to_camel
 
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
+from app.schemas.posts import ReelsSkipRate
 from app.schemas.shipments import ShipmentItem
 
 
@@ -127,7 +128,7 @@ class BrandDropPostItem(CamelModel):
     follows: int | None
     ig_reels_avg_watch_time: int | None
     ig_reels_video_view_total_time: int | None
-    reels_skip_rate: float | None
+    reels_skip_rate: ReelsSkipRate
 
     @field_serializer("posted_at")
     def _epoch_required(self, value: datetime) -> int:

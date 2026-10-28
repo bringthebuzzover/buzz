@@ -384,7 +384,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         total_interactions=90,
         ig_reels_avg_watch_time=1200,
         ig_reels_video_view_total_time=125000,
-        reels_skip_rate=0.18,
+        reels_skip_rate=18,
         metrics_updated_at=now,
     )
     post_feed = SocialPost(
