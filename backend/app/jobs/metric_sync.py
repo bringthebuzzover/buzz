@@ -281,10 +281,11 @@ async def _refresh_follower_counts(
         if profile.followers_count is None:
             omitted += 1
             logger.warning(
-                "metric sync followers_omitted org_id=%s user_id=%s previous=%s reason=omitted",
+                "metric sync followers_omitted org_id=%s user_id=%s previous=%s reason=%s",
                 org.id,
                 user.id,
                 org.follower_count,
+                "invalid" if profile.followers_count_invalid else "omitted",
             )
             continue
         org.follower_count = merge_follower_count(org.follower_count, profile.followers_count)

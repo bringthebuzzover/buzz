@@ -243,9 +243,10 @@ async def _seed_follower_count_from_graph(
         return
     if profile.followers_count is None:
         logger.warning(
-            "onboarding followers_seed_failed org_id=%s user_id=%s reason=omitted",
+            "onboarding followers_seed_failed org_id=%s user_id=%s reason=%s",
             org.id,
             user.id,
+            "invalid" if profile.followers_count_invalid else "omitted",
         )
         return
     org.follower_count = merge_follower_count(org.follower_count, profile.followers_count)
