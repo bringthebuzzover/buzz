@@ -3714,7 +3714,10 @@ export interface components {
             profileVisits: number | null;
             /** Reach */
             reach: number | null;
-            /** Reelsskiprate */
+            /**
+             * Reelsskiprate
+             * @description Instagram reels skip rate as a percentage in [0, 100]. 62.8 means 62.8% of initial views skipped in the first 3 seconds. Not a 0–1 ratio.
+             */
             reelsSkipRate: number | null;
             /** Saved */
             saved: number | null;
@@ -5318,7 +5321,10 @@ export interface components {
             profileVisits: number | null;
             /** Reach */
             reach: number | null;
-            /** Reelsskiprate */
+            /**
+             * Reelsskiprate
+             * @description Instagram reels skip rate as a percentage in [0, 100]. 62.8 means 62.8% of initial views skipped in the first 3 seconds. Not a 0–1 ratio.
+             */
             reelsSkipRate: number | null;
             /** Reposts */
             reposts: number | null;

@@ -206,7 +206,7 @@ async def test_social_post_roundtrip(db_session: AsyncSession) -> None:
         posted_at=_now(),
         likes=10,
         comments=2,
-        reels_skip_rate=0.42,
+        reels_skip_rate=62.8,
         insights_raw={"impressions": 1000, "reach": 800},
     )
     db_session.add(post)
@@ -216,7 +216,7 @@ async def test_social_post_roundtrip(db_session: AsyncSession) -> None:
     assert fetched is not None
     assert fetched.platform == Platform.INSTAGRAM.value
     assert fetched.media_product_type == SocialMediaProductType.REELS.value
-    assert fetched.reels_skip_rate == pytest.approx(0.42)
+    assert fetched.reels_skip_rate == pytest.approx(62.8)
     assert fetched.insights_raw == {"impressions": 1000, "reach": 800}
     assert fetched.metrics_updated_at is None
 

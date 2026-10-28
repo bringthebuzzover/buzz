@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
@@ -243,7 +244,7 @@ class TestGetBrandDropDetail:
         reel.total_interactions = 6
         reel.ig_reels_avg_watch_time = 1200
         reel.ig_reels_video_view_total_time = 48000
-        reel.reels_skip_rate = 0.37
+        reel.reels_skip_rate = 62.8
         await db_session.flush()
         await make_post_link(db_session, feed, app)
         await make_post_link(db_session, reel, app)
@@ -265,7 +266,7 @@ class TestGetBrandDropDetail:
         assert posts["reel post"]["saved"] == 0
         assert posts["reel post"]["igReelsAvgWatchTime"] == 1200
         assert posts["reel post"]["igReelsVideoViewTotalTime"] == 48000
-        assert posts["reel post"]["reelsSkipRate"] == 0.37
+        assert posts["reel post"]["reelsSkipRate"] == pytest.approx(62.8)
         assert posts["reel post"]["profileVisits"] is None
         assert posts["reel post"]["follows"] is None
 
