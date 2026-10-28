@@ -28,6 +28,7 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
   useDeleteApplicantShipment: () => idleMutation(),
   useFinalizeAdminApplicants: () => idleMutation(),
   useHideDrop: () => idleMutation(),
+  useRemoveParticipant: () => idleMutation(),
   useUnhideDrop: () => idleMutation(),
   useAdminOrgs: () => ({ data: [], isPending: false, isError: false }),
   useAddOrgToDrop: () => idleMutation(),
@@ -270,7 +271,7 @@ describe("AdminDropDetailPage", () => {
     expect(addTracking.disabled).toBe(true);
   });
 
-  it("does not restamp Account deleted next to a tombstone org name", () => {
+  it("shows an erased org as a frozen participant with remove", () => {
     mockUseAdminDrop.mockReturnValue({
       data: adminDrop({
         publishedAt: now,
@@ -280,7 +281,8 @@ describe("AdminDropDetailPage", () => {
             orgId: "org-2",
             userId: "user-2",
             orgName: "Deleted organization",
-            university: "Cornell University",
+            university: "",
+            metricsFrozenAt: now,
             instagramHandle: null,
             followerCount: 100,
             deliveryAddress: null,
@@ -303,8 +305,12 @@ describe("AdminDropDetailPage", () => {
     renderAt("/admin/drops/drop-1");
 
     expect(container.textContent).toContain("Deleted organization");
-    expect(container.textContent).toContain("Cornell University");
+    expect(container.textContent).toContain("Metrics frozen");
+    expect(container.textContent).not.toContain("Cornell University");
     expect(container.textContent).not.toContain("Account deleted");
+    expect(
+      container.querySelector('[data-testid="remove-participant-app-2"]'),
+    ).toBeTruthy();
   });
 
   it("opens a hide dialog that asks the admin to type hide", () => {

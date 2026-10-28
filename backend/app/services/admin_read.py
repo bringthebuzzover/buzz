@@ -51,6 +51,7 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.drop_apply_intents import list_intents_for_drop
+from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.instagram_token import REFRESH_WINDOW_DAYS
 from app.services.shipments import (
     awaiting_products_no_tracking_clause,
@@ -421,7 +422,10 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
             select(OrgIgChangeRequest, Organization, User)
             .join(Organization, Organization.id == OrgIgChangeRequest.org_id)
             .join(User, User.id == OrgIgChangeRequest.user_id)
-            .where(OrgIgChangeRequest.status == "pending")
+            .where(
+                OrgIgChangeRequest.status == "pending",
+                User.status != OrgUserStatus.ERASED.value,
+            )
         )
     )
     for req, org, user in change_rows:
@@ -724,36 +728,45 @@ async def get_org_detail(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
         ),
     )
 
+    erased = user.status == OrgUserStatus.ERASED.value
     return {
         "user_id": user.id,
         "org_id": org.id if org is not None else None,
         "status": user.status,
-        "org_name": org.org_name if org is not None else None,
-        "university": org.university if org is not None else None,
-        "category": org.category if org is not None else None,
-        "instagram_handle": user.instagram_username,
+        "org_name": ((TOMBSTONE_ORG_NAME if erased else org.org_name) if org is not None else None),
+        "university": "" if erased else (org.university if org is not None else None),
+        "category": None if erased else (org.category if org is not None else None),
+        "instagram_handle": None if erased else user.instagram_username,
         "instagram_handle_confirmed": (
-            org.instagram_handle_confirmed if org is not None else False
+            False if erased else (org.instagram_handle_confirmed if org is not None else False)
         ),
-        "claimed_instagram_username": (org.claimed_instagram_username if org is not None else None),
-        "ig_bind_graph_username": org.ig_bind_graph_username if org is not None else None,
-        "ig_bind_mismatched_at": org.ig_bind_mismatched_at if org is not None else None,
-        "ig_bind_mismatch_acked_at": (org.ig_bind_mismatch_acked_at if org is not None else None),
-        "instagram_username": user.instagram_username,
-        "tiktok_handle": org.tiktok_handle if org is not None else None,
-        "follower_count": org.follower_count if org is not None else None,
-        "member_count": org.member_count if org is not None else None,
-        "city": org.city if org is not None else None,
-        "state": org.state if org is not None else None,
-        "contact_name": org.contact_name if org is not None else None,
-        "delivery_address": org.delivery_address if org is not None else None,
-        "edu_email": user.edu_email,
-        "email_verified_at": user.email_verified_at,
-        "approved_at": org.approved_at if org is not None else None,
+        "claimed_instagram_username": (
+            None if erased else (org.claimed_instagram_username if org is not None else None)
+        ),
+        "ig_bind_graph_username": (
+            None if erased else (org.ig_bind_graph_username if org is not None else None)
+        ),
+        "ig_bind_mismatched_at": (
+            None if erased else (org.ig_bind_mismatched_at if org is not None else None)
+        ),
+        "ig_bind_mismatch_acked_at": (
+            None if erased else (org.ig_bind_mismatch_acked_at if org is not None else None)
+        ),
+        "instagram_username": None if erased else user.instagram_username,
+        "tiktok_handle": None if erased else (org.tiktok_handle if org is not None else None),
+        "follower_count": None if erased else (org.follower_count if org is not None else None),
+        "member_count": None if erased else (org.member_count if org is not None else None),
+        "city": None if erased else (org.city if org is not None else None),
+        "state": None if erased else (org.state if org is not None else None),
+        "contact_name": None if erased else (org.contact_name if org is not None else None),
+        "delivery_address": None if erased else (org.delivery_address if org is not None else None),
+        "edu_email": None if erased else user.edu_email,
+        "email_verified_at": None if erased else user.email_verified_at,
+        "approved_at": None if erased else (org.approved_at if org is not None else None),
         "created_at": user.created_at,
         "last_login_at": user.last_login_at,
-        "instagram_token_expires_at": user.instagram_token_expires_at,
-        "instagram_token_refreshed_at": user.instagram_token_refreshed_at,
+        "instagram_token_expires_at": None if erased else user.instagram_token_expires_at,
+        "instagram_token_refreshed_at": None if erased else user.instagram_token_refreshed_at,
         "impersonatable": user.status == OrgUserStatus.ACTIVE.value,
         "applications": {
             "applied": decisions.get(ApplicationDecision.APPLIED.value, 0),
@@ -1000,42 +1013,63 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
         .group_by(PostCampaignLink.application_id)
         .subquery()
     )
+    frozen_sq = (
+        select(
+            PostCampaignLink.application_id,
+            func.max(SocialPost.metrics_frozen_at).label("frozen_at"),
+        )
+        .join(SocialPost, SocialPost.id == PostCampaignLink.post_id)
+        .join(DropApplication, DropApplication.id == PostCampaignLink.application_id)
+        .where(DropApplication.drop_id == drop.id)
+        .group_by(PostCampaignLink.application_id)
+        .subquery()
+    )
     applicant_rows = (
         await db.execute(
-            select(DropApplication, Organization, User, func.coalesce(links_sq.c.n, 0))
+            select(
+                DropApplication,
+                Organization,
+                User,
+                func.coalesce(links_sq.c.n, 0),
+                frozen_sq.c.frozen_at,
+            )
             .join(Organization, Organization.id == DropApplication.org_id)
             .join(User, User.id == Organization.user_id)
             .outerjoin(links_sq, links_sq.c.application_id == DropApplication.id)
+            .outerjoin(frozen_sq, frozen_sq.c.application_id == DropApplication.id)
             .where(DropApplication.drop_id == drop.id)
             .order_by(DropApplication.applied_at.asc())
         )
     ).all()
     shipment_map = await shipments_by_application_ids(
-        db, [application.id for application, _, _, _ in applicant_rows]
+        db, [application.id for application, _, _, _, _ in applicant_rows]
     )
-    applicants = [
-        {
-            "id": application.id,
-            "org_id": org.id,
-            "user_id": org.user_id,
-            "org_name": org.org_name,
-            "university": org.university,
-            "instagram_handle": org_user.instagram_username,
-            "follower_count": org.follower_count,
-            "delivery_address": org.delivery_address,
-            "shipping_city": org.shipping_city,
-            "shipping_state": org.shipping_state,
-            "account_erased": org_user.status == OrgUserStatus.ERASED.value,
-            "decision": application.decision,
-            "allocated_units": application.allocated_units,
-            "pitch": application.pitch,
-            "shipments": shipment_map.get(application.id, []),
-            "linked_post_count": int(linked or 0),
-            "applied_at": application.applied_at,
-            "decision_at": application.decision_at,
-        }
-        for application, org, org_user, linked in applicant_rows
-    ]
+    applicants = []
+    for application, org, org_user, linked, frozen_at in applicant_rows:
+        erased = org_user.status == OrgUserStatus.ERASED.value
+        applicants.append(
+            {
+                "id": application.id,
+                "org_id": org.id,
+                "user_id": org.user_id,
+                "org_name": TOMBSTONE_ORG_NAME if erased else org.org_name,
+                "university": "" if erased else org.university,
+                "instagram_handle": None if erased else org_user.instagram_username,
+                "follower_count": None if erased else org.follower_count,
+                "delivery_address": None if erased else org.delivery_address,
+                "shipping_city": None if erased else org.shipping_city,
+                "shipping_state": None if erased else org.shipping_state,
+                "account_erased": erased,
+                "metrics_frozen_at": frozen_at,
+                "decision": application.decision,
+                "allocated_units": application.allocated_units,
+                "pitch": None if erased else application.pitch,
+                "shipments": shipment_map.get(application.id, []),
+                "linked_post_count": int(linked or 0),
+                "applied_at": application.applied_at,
+                "decision_at": application.decision_at,
+            }
+        )
 
     intent_rows = await list_intents_for_drop(db, drop)
     intent_org_ids = [intent.org_id for intent in intent_rows]

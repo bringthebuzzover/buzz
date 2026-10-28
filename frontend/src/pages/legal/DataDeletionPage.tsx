@@ -14,7 +14,7 @@ export default function DataDeletionPage() {
   const { contact, brand, social } = siteIdentity;
   const mailtoHref = `mailto:${contact.email}?subject=${encodeURIComponent(DELETION_SUBJECT)}`;
   return (
-    <LegalLayout title="Data Deletion" lastUpdated="August 11, 2026">
+    <LegalLayout title="Data Deletion" lastUpdated="October 28, 2026">
       <p>
         You can ask {brand.displayName} (“Buzz”) to delete the personal data we
         hold about you at any time. This page explains how.
@@ -45,16 +45,32 @@ export default function DataDeletionPage() {
           for you).
         </li>
         <li>
-          Identifiable post content tied to your account (permalinks, captions,
-          and media), which we anonymize or remove.
+          Identifiable Instagram data tied to your account: handle, user id,
+          access tokens, post permalinks, captions, media URLs, thumbnails, and
+          media ids.
         </li>
       </ul>
       <p>
-        Campaign participation metrics (for example attributed likes, comments,
-        and engagement used in brand reporting) may remain in anonymized form
-        after your identity is removed. We may also retain a minimal record
-        where required by law (for example, tax or fraud-prevention
-        obligations).
+        If you are an organization that already ran a campaign, the brand keeps
+        an anonymized record of that participation (shown as “Deleted
+        organization”) and the last likes, comments, reach, views, saves, and
+        shares from your linked posts, plus the time and media type of each
+        post. Those numbers stay in the brand’s campaign totals. They are
+        frozen on the deletion date and are not refreshed from Instagram. We
+        do not keep profile visits, follows, watch time, skip rate, the post
+        content, your handle, or your profile (name, campus, contact, or
+        shipping address). Carrier tracking numbers already recorded on a
+        campaign shipment may remain so the brand can see what was sent.
+      </p>
+      <p>
+        If you are a brand, drops stay up for organizations that already
+        joined. Those organizations may still see an anonymized brand name on
+        campaigns they participated in. A brand deletion does not delete those
+        organizations’ posts or metrics.
+      </p>
+      <p>
+        We may retain a minimal record where required by law (for example, tax
+        or fraud-prevention obligations).
       </p>
       <p>
         When an email address is on file at the time of deletion, we may send a

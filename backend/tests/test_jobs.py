@@ -1040,6 +1040,137 @@ async def test_refresh_instagram_token_rotates(monkeypatch) -> None:
                 await s.commit()
 
 
+async def test_refresh_instagram_token_skips_erased_org(monkeypatch) -> None:
+    import app.services.instagram_token as itok
+    from app.deps.db import async_session_factory, engine
+
+    await engine.dispose()
+    uid = uuid.uuid4()
+    original = encrypt_token("old")
+    async with async_session_factory() as s:
+        s.add(
+            User(
+                id=uid,
+                portal_role="org",
+                status="erased",
+                instagram_user_id=f"ig_er_{uid.hex[:8]}",
+                instagram_access_token=original,
+                instagram_token_expires_at=_now() + timedelta(days=10),
+            )
+        )
+        await s.commit()
+
+    class Boom(FakeInstagramClient):
+        async def refresh_long_lived(self, long_token: str):  # type: ignore[override]
+            raise AssertionError("erased org must not refresh")
+
+    monkeypatch.setattr(itok, "get_instagram_client", lambda: Boom())
+    try:
+        assert await refresh_instagram_token(uid) is False
+        async with async_session_factory() as s:
+            row = await s.get(User, uid)
+            assert row is not None
+            assert row.instagram_access_token == original
+            assert row.instagram_username is None
+    finally:
+        async with async_session_factory() as s:
+            row = await s.get(User, uid)
+            if row is not None:
+                await s.delete(row)
+                await s.commit()
+
+
+async def test_refresh_instagram_token_does_not_restore_token_after_erase(monkeypatch) -> None:
+    import app.services.instagram_token as itok
+    from app.deps.db import async_session_factory, engine
+
+    await engine.dispose()
+    uid = uuid.uuid4()
+    async with async_session_factory() as s:
+        s.add(
+            User(
+                id=uid,
+                portal_role="org",
+                status="active",
+                instagram_user_id=f"ig_mid_{uid.hex[:8]}",
+                instagram_access_token=encrypt_token("old"),
+                instagram_token_expires_at=_now() + timedelta(days=10),
+            )
+        )
+        await s.commit()
+
+    class EraseMidRefresh(FakeInstagramClient):
+        async def refresh_long_lived(self, long_token: str):  # type: ignore[override]
+            async with async_session_factory() as s:
+                row = await s.get(User, uid)
+                assert row is not None
+                row.status = "erased"
+                row.instagram_access_token = None
+                await s.commit()
+            return await super().refresh_long_lived(long_token)
+
+    monkeypatch.setattr(itok, "get_instagram_client", lambda: EraseMidRefresh())
+    try:
+        assert await refresh_instagram_token(uid) is False
+        async with async_session_factory() as s:
+            row = await s.get(User, uid)
+            assert row is not None
+            assert row.status == "erased"
+            assert row.instagram_access_token is None
+    finally:
+        async with async_session_factory() as s:
+            row = await s.get(User, uid)
+            if row is not None:
+                await s.delete(row)
+                await s.commit()
+
+
+async def test_token_refresh_cron_does_not_restore_token_after_erase() -> None:
+    from app.deps.db import async_session_factory, engine
+
+    await engine.dispose()
+    uid = uuid.uuid4()
+    async with async_session_factory() as s:
+        s.add(
+            User(
+                id=uid,
+                portal_role="org",
+                status="active",
+                instagram_user_id=f"ig_cron_{uid.hex[:8]}",
+                instagram_access_token=encrypt_token("old"),
+                instagram_token_expires_at=_now() + timedelta(days=10),
+            )
+        )
+        await s.commit()
+
+    class EraseMidRefresh(FakeInstagramClient):
+        async def refresh_long_lived(self, long_token: str):  # type: ignore[override]
+            async with async_session_factory() as s:
+                row = await s.get(User, uid)
+                assert row is not None
+                row.status = "erased"
+                row.instagram_access_token = None
+                await s.commit()
+            return await super().refresh_long_lived(long_token)
+
+    try:
+        async with async_session_factory() as s:
+            result = await refresh_due_tokens(s, EraseMidRefresh())
+            await s.commit()
+        assert result["refreshed"] == 0
+        async with async_session_factory() as s:
+            row = await s.get(User, uid)
+            assert row is not None
+            assert row.status == "erased"
+            assert row.instagram_access_token is None
+    finally:
+        async with async_session_factory() as s:
+            row = await s.get(User, uid)
+            if row is not None:
+                await s.delete(row)
+                await s.commit()
+
+
 # --- metric sync edge cases ---
 
 

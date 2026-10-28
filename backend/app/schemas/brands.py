@@ -111,6 +111,7 @@ class BrandDropPostItem(CamelModel):
     media_type: str
     media_product_type: str
     posted_at: datetime
+    metrics_frozen_at: datetime | None = None
     likes: int
     comments: int
     platform: str
@@ -131,6 +132,10 @@ class BrandDropPostItem(CamelModel):
     @field_serializer("posted_at")
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
+
+    @field_serializer("metrics_frozen_at")
+    def _epoch_frozen(self, value: datetime | None) -> int | None:
+        return to_epoch_ms(value)
 
 
 class BrandDropDetailApplicant(CamelModel):
@@ -154,6 +159,7 @@ class BrandDropDetailApplicant(CamelModel):
     category: str | None
     delivery_address: str | None
     account_erased: bool = False
+    metrics_frozen_at: datetime | None = None
     # Attributed campaign totals (likes/comments from linked posts)
     attributed_post_count: int
     attributed_likes: int
@@ -166,7 +172,7 @@ class BrandDropDetailApplicant(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("decision_at")
+    @field_serializer("decision_at", "metrics_frozen_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 

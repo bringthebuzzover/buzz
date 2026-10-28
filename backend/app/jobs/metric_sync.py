@@ -201,8 +201,9 @@ def _apply_metrics(
 async def _eligible_orgs(db: AsyncSession, now: datetime) -> list[Organization]:
     """Orgs with at least one accepted application on a live-stage drop.
 
-    Erased accounts are excluded so Meta cannot rehydrate scrubbed identity
-    via discovery (PRODUCT §3.1.2).
+    Erased accounts are excluded. Their posts stay linked with last-known
+    numbers and ``metrics_frozen_at`` set, and this job must not call
+    Instagram for them (PRODUCT §3.1.2).
     """
     org_ids = (
         select(DropApplication.org_id)
@@ -321,6 +322,8 @@ async def sync_metrics_for_orgs(
 
     for org in orgs:
         user = await db.get(User, org.user_id)
+        if user is not None and user.status == OrgUserStatus.ERASED.value:
+            continue
         token = _token_for(user, now)
         if token is None:
             # Present-but-unusable token → non-clean run (expired / undecryptable).
@@ -416,6 +419,9 @@ async def sync_metrics_for_orgs(
                     SocialPost.posted_at >= window_start,
                     SocialPost.platform == Platform.INSTAGRAM.value,
                     SocialPost.media_product_type != SocialMediaProductType.STORY.value,
+                    SocialPost.metrics_frozen_at.is_(None),
+                    SocialPost.external_id.notlike("frozen-%"),
+                    SocialPost.external_id.notlike("erased-%"),
                 )
             )
         )

@@ -20,6 +20,14 @@ import { cn } from "../../theme/cn";
 import ShipmentList from "../shipments/ShipmentList";
 import type { Shipment } from "../../utils/shipments";
 
+function formatFrozenDate(epochMs: number): string {
+  return new Date(epochMs).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 type Props = {
   applicants: BrandDropApplicant[];
   /** Override the section heading (e.g. roster-only before live). */
@@ -87,17 +95,22 @@ export default function ApiDropOrgTable({
                 <p className={cn(TEXT.body, "font-semibold text-buzz-ink")}>
                   {a.orgName}
                 </p>
-                <p className={cn(TEXT.meta, "flex flex-wrap items-center gap-2")}>
-                  {a.university}
-                  {a.category ? (
-                    <Chip>{orgCategoryLabel(a.category)}</Chip>
-                  ) : null}
-                </p>
                 {a.accountErased ? (
-                  <p className={cn(TEXT.meta, "mt-1")}>
-                    Shipping details removed
+                  <p className={cn(TEXT.meta, "mt-1 flex flex-wrap items-center gap-2")}>
+                    <Chip>Metrics frozen</Chip>
+                    {a.metricsFrozenAt != null
+                      ? `Frozen ${formatFrozenDate(a.metricsFrozenAt)}`
+                      : null}
                   </p>
-                ) : a.deliveryAddress ? (
+                ) : (
+                  <p className={cn(TEXT.meta, "flex flex-wrap items-center gap-2")}>
+                    {a.university}
+                    {a.category ? (
+                      <Chip>{orgCategoryLabel(a.category)}</Chip>
+                    ) : null}
+                  </p>
+                )}
+                {a.accountErased ? null : a.deliveryAddress ? (
                   <p className={cn(TEXT.meta, "mt-1")}>
                     Ship to: {a.deliveryAddress}
                   </p>

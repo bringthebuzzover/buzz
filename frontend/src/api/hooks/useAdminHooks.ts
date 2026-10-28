@@ -767,6 +767,19 @@ export function usePublishDrop(dropId: string) {
   );
 }
 
+export function useRemoveParticipant(dropId: string) {
+  return useAdminMutation((input: { applicationId: string; confirm: string }) =>
+    apiFetch(
+      `/api/admin/drops/${dropId}/applications/${input.applicationId}/remove`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: input.confirm }),
+      },
+    ),
+  );
+}
+
 export function useHideDrop(dropId: string) {
   return useAdminMutation((input: { confirm: string; notifyBrand?: boolean }) =>
     apiFetch(`/api/admin/drops/${dropId}/hide`, {
