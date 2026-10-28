@@ -12329,9 +12329,59 @@
         ]
       }
     },
+    "/api/admin/impersonate/resume": {
+      "post": {
+        "description": "Remint View as from the httpOnly intent cookie.\n\nRequires the caller's own admin access token. The cookie alone is not a\nsession. Missing cookie is 404 (nothing to resume). A cookie minted for a\ndifferent admin, or a target that can no longer be impersonated, is\nrejected and the cookie is cleared.",
+        "operationId": "resume_impersonation_endpoint_api_admin_impersonate_resume_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_ImpersonateResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Resume Impersonation Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/impersonate/{user_id}": {
       "post": {
-        "description": "Mint a short-lived access token that acts as ``user_id``.\n\nIntentionally does NOT set a refresh cookie: the admin's own refresh session\nmust survive so exiting impersonation is a client-side token drop.",
+        "description": "Mint a short-lived access token that acts as ``user_id``.\n\nIntentionally does NOT set a refresh cookie: the admin's own refresh session\nmust survive so exiting impersonation does not require a second login.\nIt does set an httpOnly intent cookie so a full page load can remint.",
         "operationId": "impersonate_endpoint_api_admin_impersonate__user_id__post",
         "parameters": [
           {
@@ -14596,6 +14646,38 @@
           }
         },
         "summary": "Rotate Edu Email Endpoint",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/view-as/end": {
+      "post": {
+        "description": "Drop the View-as intent cookie without touching the admin refresh cookie.\n\nExit cannot clear an httpOnly cookie from script. SameSite=Lax keeps a\ncross-site POST from sending the cookie. Idempotent when it is already gone.",
+        "operationId": "end_view_as_api_auth_view_as_end_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "End View As",
         "tags": [
           "auth"
         ]

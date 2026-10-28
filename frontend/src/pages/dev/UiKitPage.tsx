@@ -4,9 +4,9 @@
  * (disabled, error, empty, loading).
  *
  * It exists so the revamp can be reviewed and regression-shot in a single
- * screenshot instead of hunting states across 40 routes. Local `npm start`
- * only: `AppRoot` mounts it at `/admin/ui-kit` when `NODE_ENV === "development"`,
- * behind the admin PortalGuard. Production builds do not register the route.
+ * screenshot instead of hunting states across 40 routes. `AppRoot` mounts it
+ * at `/admin/ui-kit` behind the admin PortalGuard in every build. There is no
+ * public link; guests are sent to admin login.
  */
 import { useState } from "react";
 import PageShell from "../../components/site/PageShell";
@@ -51,8 +51,8 @@ export default function UiKitPage() {
       <header>
         <h1 className={TEXT.h1}>UI kit</h1>
         <p className={cx(TEXT.meta, "mt-1")}>
-          Every shared primitive and state. Local admin only — omitted from
-          production builds.
+          Every shared primitive and state. Admin-only — not linked from the
+          public site.
         </p>
       </header>
 

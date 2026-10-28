@@ -319,12 +319,10 @@ export default function AppRoot(): ReactElement {
         <Route path="drops" element={<AdminDropsPage />} />
         <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />
-        {/* Primitive gallery. CRA production builds omit this route
-            (`NODE_ENV !== "development"`), and the parent PortalGuard keeps
-            even local access admin-only. */}
-        {process.env.NODE_ENV === "development" && (
-          <Route path="ui-kit" element={<UiKitPage />} />
-        )}
+        {/* Primitive gallery. PortalGuard keeps it admin-only in every build;
+            production used to omit the route, so signed-in admins hit the
+            public 404. */}
+        <Route path="ui-kit" element={<UiKitPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

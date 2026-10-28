@@ -7,6 +7,7 @@ can be replayed as another:
 * ``access``      — short-lived bearer for ``Authorization: Bearer`` (1h).
 * ``refresh``     — long-lived, ridden in the httpOnly cookie (7d).
 * ``oauth_state`` — short-lived CSRF token for the Instagram OAuth round-trip.
+* ``view_as``     — httpOnly intent naming the admin and the target. Not a bearer.
 
 The ``type`` claim on the *access* token intentionally extends §5.3 (which
 lists it only on refresh); the symmetry is what makes a refresh/state token
@@ -28,6 +29,7 @@ from app.config import settings
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
 OAUTH_STATE_TOKEN_TYPE = "oauth_state"
+VIEW_AS_TOKEN_TYPE = "view_as"
 
 # Instagram OAuth ``state.next``: public drop page only (PRODUCT §6.3.4).
 _PUBLIC_DROP_NEXT = re.compile(
@@ -119,6 +121,32 @@ def create_access_token(
         claims["imp"] = str(impersonated_by)
         claims["imp_ver"] = impersonator_token_version
         claims["imp_readonly"] = readonly
+    return _encode(claims)
+
+
+def create_view_as_intent_token(
+    admin_id: uuid.UUID | str,
+    target_id: uuid.UUID | str,
+    role: str,
+) -> str:
+    """Mint the httpOnly View-as intent.
+
+    ``sub`` is the target user and ``imp`` is the admin. ``type`` is
+    ``view_as`` so the value cannot be presented as an access or refresh token.
+    Resume still requires a live admin access token; this cookie only names
+    who to remint.
+    """
+
+    issued = _now()
+    claims: dict[str, Any] = {
+        "sub": str(target_id),
+        "type": VIEW_AS_TOKEN_TYPE,
+        "imp": str(admin_id),
+        "role": role,
+        "iat": issued,
+        "exp": issued + timedelta(hours=settings.VIEW_AS_INTENT_TTL_HOURS),
+        "jti": uuid.uuid4().hex,
+    }
     return _encode(claims)
 
 
