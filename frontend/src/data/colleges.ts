@@ -31,14 +31,16 @@ import vanderbilt from "../assets/unis/vanderbilt.png";
 import yale from "../assets/unis/yale.png";
 
 /**
- * Width of a wide wordmark relative to the square logo box.
+ * Max width of a wide wordmark as a fraction of the square logo box.
+ * 160% equals the tile, so nothing wider can leave the cell. Each cap is
+ * the largest width that keeps the letter height near half a seal.
  * Percent strings stay literal so Tailwind can see them.
  */
 const WIDE_WORDMARK = {
-  mit: "w-[160%]",
-  babson: "w-[180%]",
-  duke: "w-[210%]",
-  caltech: "w-[320%]",
+  mit: "max-w-[90%]",
+  duke: "max-w-[130%]",
+  babson: "max-w-[160%]",
+  caltech: "max-w-[160%]",
 } as const;
 
 /** Ordered schools duplicated in the marquee animation for seamless scroll. */

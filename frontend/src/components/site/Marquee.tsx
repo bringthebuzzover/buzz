@@ -62,7 +62,7 @@ export default function Marquee({
                   className={cn(
                     "object-contain drop-shadow-buzz grayscale transition duration-300 group-hover:grayscale-0",
                     item.logoClassName
-                      ? "absolute left-1/2 top-1/2 h-auto max-w-none -translate-x-1/2 -translate-y-1/2"
+                      ? "absolute left-1/2 top-1/2 h-auto w-auto max-h-full -translate-x-1/2 -translate-y-1/2"
                       : "h-full w-full",
                     item.logoClassName,
                   )}
