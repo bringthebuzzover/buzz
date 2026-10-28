@@ -22,7 +22,7 @@ Deploy target: **Railway** from branch **`main`** (autodeploy on) — repo **`br
 | SPA  | `https://frontend-production-3819.up.railway.app` |
 | API  | `https://api-production-fbbc1.up.railway.app`     |
 
-Env + cookies use **www/api**. Meta Hosts paste done 2026-08-11 — see [`gaps/archive/deploy.meta-brand-url-cutover.md`](gaps/archive/deploy.meta-brand-url-cutover.md) and [`META.md`](META.md). Remaining Meta launch gate: App Review (META §F). Business Verification is Verified (META §E, 2026-10-26).
+Env + cookies use **www/api**. Meta Hosts paste done 2026-08-11 — see [`gaps/archive/deploy.meta-brand-url-cutover.md`](gaps/archive/deploy.meta-brand-url-cutover.md) and [`META.md`](META.md). Remaining Meta launch gate: App Review, submitted 2026-10-28, about 1:14 PM ET (17:14 UTC), review in progress (META §F). Business Verification is Verified (META §E, 2026-10-26).
 
 ### Environment vocabulary
 
@@ -42,7 +42,7 @@ Env + cookies use **www/api**. Meta Hosts paste done 2026-08-11 — see [`gaps/a
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | Application code (both portals, jobs, auth)         | Done + tested                                                                                       | No                                                            |
 | Instagram / Meta app (create + credentials)         | **Done** — ID/secret on Railway + local `.env`                                                      | No for pilot wiring                                           |
-| Instagram / Meta App Review                         | In progress — resubmission (see [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md)) | **Yes** — gates public (non-tester) org signups               |
+| Instagram / Meta App Review                         | Submitted 2026-10-28, about 1:14 PM ET (17:14 UTC) — **Review in progress** (see [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md)) | **Yes** — gates public (non-tester) org signups               |
 | Business Verification                               | Verified (2026-10-26)                                                                               | No                                                            |
 | Legal review of Privacy Policy + Terms              | Draft in app (`/privacy`, `/terms`)                                                                 | **Yes** — required for Meta + PII                             |
 | Railway stack (Frontend + API + Postgres + 6 crons) | **Done** (env `production`; target autodeploy from `bringthebuzzover/buzz` @ `main`)                | Reconfirm Railway Source if still on ShannonLin284            |
@@ -61,7 +61,7 @@ Env + cookies use **www/api**. Meta Hosts paste done 2026-08-11 — see [`gaps/a
 - [x] **Meta / Instagram app created + credentials on Railway** (`INSTAGRAM_CLIENT_ID` / `_SECRET`). Live authorize URL uses the real App ID (no longer a placeholder).
 - [ ] **Meta dashboard Business Login URLs** (META.md §C) — OAuth redirect, deauthorize, data deletion, privacy, terms must match **Live** Railway hosts in META.md Hosts table.
 - [x] **Business Verification.** Verified (2026-10-26).
-- [ ] **Meta / Instagram App Review.** In progress — resubmission (see [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md)). Org login for _any_ org (not just app roles) needs **Advanced Access** on `instagram_business_basic` + `instagram_business_manage_insights`. Advanced Access requires App Review **and** Business Verification. Submit early — critical path (can take weeks).
+- [ ] **Meta / Instagram App Review.** Submitted 2026-10-28, about 1:14 PM ET (17:14 UTC). **Review in progress** — Meta says most reviews finish within 20 days (see [`gaps/deploy.meta-app-review.md`](gaps/deploy.meta-app-review.md)). The previous submission (2026-10-19, 22:11 PDT) was not approved for both permissions. Org login for _any_ org (not just app roles) needs **Advanced Access** on `instagram_business_basic` + `instagram_business_manage_insights`. Advanced Access requires App Review **and** Business Verification.
 
   **App Review requires (Meta docs):** Business Verification (proof the business exists); a screencast of the full login flow _including the OAuth consent screen_ and each scope's data being used; a public Privacy Policy URL + Terms URL (→ Phase 1 legal item); a live, reviewer-accessible test environment; and at least one successful API call per scope before you can submit (so run the flow with a tester first). `instagram_business_manage_insights` is reviewed _separately_ from basic — request only scopes we actually use (least privilege) or review slows down.
 
@@ -196,7 +196,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 - [ ] `GOOGLE_ADDRESS_API_KEY` on Railway **api** (Places API New + Address Validation enabled on the key). Until set, off-dev API will fail fast at startup. Do not put this key in the SPA.
 - [x] Frontend built via `npm run build:prod` with `REACT_APP_API_URL=https://api.bringthebuzzover.com` (guard: `frontend/scripts/check-deploy-env.js`).
 - [ ] `BRAND_SELF_REGISTRATION_ENABLED` set intentionally (`true` = public `POST /api/brands/apply`; `false` = admin-provisioned brands only).
-- [ ] Meta reviewer path stays **off** until a recording window: `META_REVIEWER_ACCESS_ENABLED` (default false), `META_REVIEWER_LINK_SECRET_HASH` (hash only), `META_REVIEWER_DROP_ID`, optional `META_REVIEWER_ORG_EMAIL`. Setup and removal: [`gaps/deploy.meta-reviewer-path.md`](gaps/deploy.meta-reviewer-path.md). Do not commit the link secret.
+- [ ] Meta reviewer path stays **on** until Meta finishes the 2026-10-28 review: `META_REVIEWER_ACCESS_ENABLED` (on for this review; default false), `META_REVIEWER_LINK_SECRET_HASH` (hash only), `META_REVIEWER_DROP_ID`, optional `META_REVIEWER_ORG_EMAIL`. After approval, turn the flag off, purge the reviewer org, and unset the hash. Keep the code unless removal is asked for. Setup and removal: [`gaps/deploy.meta-reviewer-path.md`](gaps/deploy.meta-reviewer-path.md). Do not commit the link secret.
 - [x] Meta dashboard URLs → brand www/api (archived [`gaps/archive/deploy.meta-brand-url-cutover.md`](gaps/archive/deploy.meta-brand-url-cutover.md)):
   - OAuth redirect: `https://www.bringthebuzzover.com/auth/instagram/callback`
   - Deauthorize: `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize`
