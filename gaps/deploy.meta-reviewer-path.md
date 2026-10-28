@@ -13,8 +13,9 @@ evidence:
   - path: gaps/deploy.meta-app-review.md
     note: Resubmission should use this link instead of Buzz tester credentials
 repro: |
-  With META_REVIEWER_ACCESS_ENABLED unset or false, POST /api/meta-reviewer/start
-  and POST /api/meta-reviewer/seed return 404 and do not write users.
+  With META_REVIEWER_ACCESS_ENABLED unset or false, POST /api/meta-reviewer/start,
+  POST /api/meta-reviewer/seed, and GET /api/meta-reviewer/status return 404 and
+  do not write users.
   With the flag true, a SHA-256 hash in META_REVIEWER_LINK_SECRET_HASH, and
   META_REVIEWER_DROP_ID set to an existing drop, an admin POST
   /api/meta-reviewer/seed creates one active org named "Meta App Review" and
@@ -57,11 +58,24 @@ cd backend && poetry run python -m app.meta_reviewer.cli mint-link
 ```
 
 Seed (idempotent; does not create the drop). Flag must be on and the drop
-must already exist. Admin HTTP is the same operation:
+must already exist.
+
+When the flag is on, an active admin sees a **Meta App Review reviewer** card
+on `/admin`. The card calls `GET /api/meta-reviewer/status` (enabled, seeded,
+org id, user id, drop id) and **Set up reviewer org** calls
+`POST /api/meta-reviewer/seed` with the signed-in admin session. It shows
+whether the org is set up, a link to that organization (`/admin/orgs/{userId}`),
+and the drop id. It does not show the link secret. Do not replay the seed
+request from browser DevTools.
+
+`GET /api/meta-reviewer/status` is admin-only. It 404s when the flag is off,
+before auth, same as the other reviewer routes. `userId` is only there so the
+card can link to the admin org page, which is keyed by user.
+
+The same seed from a shell, when you have database access:
 
 ```bash
 cd backend && poetry run python -m app.meta_reviewer.cli seed
-# or POST /api/meta-reviewer/seed as an active admin
 ```
 
 Rotate by minting again and replacing `META_REVIEWER_LINK_SECRET_HASH`. The
