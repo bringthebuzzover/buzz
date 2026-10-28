@@ -17,9 +17,10 @@ describe("COLLEGES", () => {
     expect(html).not.toMatch(/clearbit|icon\.horse/i);
     expect(html).toContain("Stanford");
     expect(html).toContain("Johns Hopkins");
-    expect(html).toContain("w-[320%]");
-    expect(html).toContain("w-[210%]");
-    expect(html).toContain("w-[180%]");
-    expect(html).toContain("w-[160%]");
+    expect(html).toContain("max-w-[160%]");
+    expect(html).toContain("max-w-[130%]");
+    expect(html).toContain("max-w-[90%]");
+    expect(html).not.toContain("w-[320%]");
+    expect(html).not.toContain("max-w-none");
   });
 });

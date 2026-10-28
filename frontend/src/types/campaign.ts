@@ -21,8 +21,8 @@ export type CollegeMarqueeItem = {
   /** Committed logo asset. The marquee does not fetch a remote logo. */
   logoSrc: string;
   /**
-   * Width classes for a wide wordmark. The square logo box would otherwise
-   * letterbox it down to a sliver; these let it grow into the gap between tiles.
+   * Max-width classes for a wide wordmark. Caps the mark inside its tile so
+   * the letters sit near half a seal instead of filling the square.
    */
   logoClassName?: string;
 };
