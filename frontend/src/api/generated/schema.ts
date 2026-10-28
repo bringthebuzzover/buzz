@@ -559,6 +559,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/impersonate/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Impersonation Endpoint
+         * @description Remint View as from the httpOnly intent cookie.
+         *
+         *     Requires the caller's own admin access token. The cookie alone is not a
+         *     session. Missing cookie is 404 (nothing to resume). A cookie whose role
+         *     does not match ``body.role`` is also 404 and is left in place, so opening
+         *     an org URL does not mint a brand session or destroy it. A cookie minted
+         *     for a different admin, a stale ``imp_ver``, or a target that can no longer
+         *     be impersonated is rejected and the cookie is cleared.
+         *
+         *     Does not rewrite the cookie. The 8h cap is fixed at the first mint;
+         *     refresh rotation updates ``imp_ver`` without extending ``exp``.
+         */
+        post: operations["resume_impersonation_endpoint_api_admin_impersonate_resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/impersonate/{user_id}": {
         parameters: {
             query?: never;
@@ -573,7 +603,13 @@ export interface paths {
          * @description Mint a short-lived access token that acts as ``user_id``.
          *
          *     Intentionally does NOT set a refresh cookie: the admin's own refresh session
-         *     must survive so exiting impersonation is a client-side token drop.
+         *     must survive so exiting impersonation does not require a second login.
+         *     It does set an httpOnly intent cookie so a full page load can remint.
+         *
+         *     A body ``started_at`` is a continuation of a session that already started
+         *     (the same-tab latch). The cookie then expires at that start plus the
+         *     intent TTL, and a start older than the TTL is refused. Omitting it starts
+         *     a new 8h window (the admin clicked View as).
          */
         post: operations["impersonate_endpoint_api_admin_impersonate__user_id__post"];
         delete?: never;
@@ -1433,6 +1469,29 @@ export interface paths {
          * @description Start a pending-swap .edu rotate (active / pending_approval orgs).
          */
         post: operations["rotate_edu_email_endpoint_api_auth_verify_email_rotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/view-as/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End View As
+         * @description Drop the View-as intent cookie without touching the admin refresh cookie.
+         *
+         *     Exit cannot clear an httpOnly cookie from script. SameSite=Lax keeps a
+         *     cross-site POST from sending the cookie. Idempotent when it is already gone.
+         */
+        post: operations["end_view_as_api_auth_view_as_end_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4801,6 +4860,19 @@ export interface components {
             version: string;
         };
         /**
+         * ImpersonateRequest
+         * @description Optional continuation of an existing View-as session.
+         *
+         *     ``started_at`` is the original mint time in epoch milliseconds. When it is
+         *     set, the intent cookie expires at that time plus the intent TTL, and a
+         *     continuation past the window is refused. Omit it to start a new session
+         *     (the admin View-as button).
+         */
+        ImpersonateRequest: {
+            /** Startedat */
+            startedAt?: number | null;
+        };
+        /**
          * ImpersonateResponse
          * @description Result of ``POST /api/admin/impersonate/{user_id}``.
          *
@@ -5484,6 +5556,20 @@ export interface components {
             user?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /**
+         * ViewAsResumeRequest
+         * @description Portal the page is asking to restore.
+         *
+         *     Resume mints only when the intent cookie's role matches. A brand intent
+         *     opened on an org URL is not a session for that page.
+         */
+        ViewAsResumeRequest: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "org" | "brand";
         };
     };
     responses: never;
@@ -6631,6 +6717,41 @@ export interface operations {
             };
         };
     };
+    resume_impersonation_endpoint_api_admin_impersonate_resume_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ViewAsResumeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_ImpersonateResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     impersonate_endpoint_api_admin_impersonate__user_id__post: {
         parameters: {
             query?: never;
@@ -6642,7 +6763,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ImpersonateRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -8044,6 +8169,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_RotateEduEmailResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    end_view_as_api_auth_view_as_end_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

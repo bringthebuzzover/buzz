@@ -28,12 +28,15 @@ import {
   clearImpersonationSession,
   clearInstagramReconnectLatch,
   clearViewAsLatch,
+  endViewAsIntent,
   hasInstagramReconnectLatch,
   isAdminPath,
   peekViewAsLatch,
   refreshAccessToken,
   resumeImpersonation,
+  resumeViewAs,
   setAccessToken,
+  setViewAsLatch,
   getAccessToken,
   devLogin,
   fetchMe,
@@ -172,6 +175,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userRef.current = null;
     setUser(null);
     setStatus("error");
+    // Do not POST /view-as/end here. A rotation-race loser gets a
+    // non-revoking 401 and must not clear the winner tab's intent. A truly
+    // dead refresh already clears the cookie on the server.
   }, []);
 
   const failSoft = useCallback(() => {
@@ -255,9 +261,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const latch = peekViewAsLatch();
             const path = window.location.pathname;
             const pathRole = viewAsPortalRoleFromPath(path);
-            if (latch && pathRole === latch.portalRole) {
-              const resumed = await resumeImpersonation(latch.userId);
+            if (pathRole) {
+              // Cookie first so a new tab (no sessionStorage) still remints,
+              // but only for this page's portal. A brand intent on /org or
+              // /campaigns is not a session for that page (404, cookie kept).
+              // Latch is the fallback when the cookie was not stored or does
+              // not match. A denied cookie already cleared itself.
+              const cookieResume = await resumeViewAs(pathRole);
               if (!bootstrapStillOwner()) return;
+              let resumed = cookieResume === "ok";
+              if (
+                !resumed &&
+                cookieResume !== "denied" &&
+                latch &&
+                pathRole === latch.portalRole
+              ) {
+                resumed = await resumeImpersonation(latch.userId, latch.setAt);
+                if (!bootstrapStillOwner()) return;
+              }
               if (resumed) {
                 // Impersonate response returns access_token + target user from
                 // the same transaction (auth.ci-session-restore-flake), so no
@@ -270,10 +291,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 if (!bootstrapStillOwner()) return;
                 if (targetMe.kind === "user") {
                   sessionUser = targetMe.user;
+                  if (
+                    sessionUser.portalRole === "org" ||
+                    sessionUser.portalRole === "brand"
+                  ) {
+                    setViewAsLatch(sessionUser.id, sessionUser.portalRole);
+                  }
                 } else {
                   // Imp token installed but /me fallback failed — drop View as
                   // and remint admin access from the refresh cookie.
                   clearImpersonationSession();
+                  await endViewAsIntent();
                   const restored = await refreshAccessToken();
                   if (!bootstrapStillOwner()) return;
                   if (!restored) {
@@ -281,11 +309,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     return;
                   }
                 }
-              } else {
+              } else if (
+                cookieResume === "denied" ||
+                (latch && pathRole === latch.portalRole)
+              ) {
                 clearViewAsLatch();
               }
             } else if (latch && isAdminPath(path)) {
+              // This tab started View as and landed on the admin shell.
               clearViewAsLatch();
+              await endViewAsIntent();
+              if (!bootstrapStillOwner()) return;
             }
           }
           userRef.current = sessionUser;
@@ -420,6 +454,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userRef.current = null;
     setUser(null);
     setStatus("authenticating");
+    await endViewAsIntent();
 
     const refreshed = await refreshAccessToken();
     if (gen !== genRef.current) {
