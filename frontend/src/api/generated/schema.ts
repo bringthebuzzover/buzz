@@ -3507,11 +3507,17 @@ export interface components {
             caption: string;
             /** Comments */
             comments: number;
+            /** Follows */
+            follows: number | null;
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Igreelsavgwatchtime */
+            igReelsAvgWatchTime: number | null;
+            /** Igreelsvideoviewtotaltime */
+            igReelsVideoViewTotalTime: number | null;
             /** Likes */
             likes: number;
             /** Mediaproducttype */
@@ -3520,12 +3526,30 @@ export interface components {
             mediaType: string;
             /** Mediaurl */
             mediaUrl: string | null;
+            /** Platform */
+            platform: string;
             /** Postedat */
             postedAt: number;
+            /** Profileactivity */
+            profileActivity: number | null;
+            /** Profilevisits */
+            profileVisits: number | null;
+            /** Reach */
+            reach: number | null;
+            /** Reelsskiprate */
+            reelsSkipRate: number | null;
+            /** Saved */
+            saved: number | null;
+            /** Shares */
+            shares: number | null;
             /** Thumbnailurl */
             thumbnailUrl: string | null;
+            /** Totalinteractions */
+            totalInteractions: number | null;
             /** Url */
             url: string;
+            /** Views */
+            views: number | null;
         };
         /**
          * BrandDropRequestCreate

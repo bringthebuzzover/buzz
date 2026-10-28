@@ -22,6 +22,8 @@ import {
   type Suggestion,
 } from "../../api/hooks/useOrgHooks";
 import { Button, ErrorBanner } from "../forms/controls";
+import PostInsights from "../posts/PostInsights";
+import { formatInsightCount } from "../posts/postInsights";
 import { Card, CardHeader } from "../ui/Card";
 import { Chip } from "../ui/Chip";
 import { StatePanel } from "../ui/StatePanel";
@@ -157,18 +159,21 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
                   className={cn(
                     SURFACE.inset,
                     PAD.tight,
-                    "flex items-center justify-between gap-3",
+                    "flex items-start justify-between gap-3",
                   )}
                 >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <PlatformIcon platform={post.platform} />
-                    <div className="min-w-0">
+                  <div className="flex min-w-0 flex-1 items-start gap-2">
+                    <span className="mt-0.5">
+                      <PlatformIcon platform={post.platform} />
+                    </span>
+                    <div className="min-w-0 flex-1">
                       <p className={cn(TEXT.body, "truncate font-medium text-buzz-ink")}>
                         {post.caption || "(no caption)"}
                       </p>
-                      <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>
-                        {post.likes} likes · {post.comments} comments
+                      <p className={TEXT.meta}>
+                        {`${formatInsightCount(post.likes)} likes · ${formatInsightCount(post.comments)} comments`}
                       </p>
+                      <PostInsights post={post} />
                     </div>
                   </div>
                   {readOnly ? (
