@@ -605,6 +605,11 @@ export interface paths {
          *     Intentionally does NOT set a refresh cookie: the admin's own refresh session
          *     must survive so exiting impersonation does not require a second login.
          *     It does set an httpOnly intent cookie so a full page load can remint.
+         *
+         *     A body ``started_at`` is a continuation of a session that already started
+         *     (the same-tab latch). The cookie then expires at that start plus the
+         *     intent TTL, and a start older than the TTL is refused. Omitting it starts
+         *     a new 8h window (the admin clicked View as).
          */
         post: operations["impersonate_endpoint_api_admin_impersonate__user_id__post"];
         delete?: never;
@@ -4855,6 +4860,19 @@ export interface components {
             version: string;
         };
         /**
+         * ImpersonateRequest
+         * @description Optional continuation of an existing View-as session.
+         *
+         *     ``started_at`` is the original mint time in epoch milliseconds. When it is
+         *     set, the intent cookie expires at that time plus the intent TTL, and a
+         *     continuation past the window is refused. Omit it to start a new session
+         *     (the admin View-as button).
+         */
+        ImpersonateRequest: {
+            /** Startedat */
+            startedAt?: number | null;
+        };
+        /**
          * ImpersonateResponse
          * @description Result of ``POST /api/admin/impersonate/{user_id}``.
          *
@@ -6745,7 +6763,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ImpersonateRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

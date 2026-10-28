@@ -39,6 +39,7 @@ import {
   notifyApiSessionLost,
   peekViewAsLatch,
   refreshAccessToken,
+  VIEW_AS_LATCH,
   resumeImpersonation,
   resumeViewAs,
   endViewAsIntent,
@@ -534,7 +535,7 @@ describe("AuthProvider bootstrap resolution", () => {
     });
 
     await waitForStatus(container, "authenticated");
-    expect(resumeMock).toHaveBeenCalledWith("org-target");
+    expect(resumeMock).toHaveBeenCalledWith("org-target", expect.any(Number));
     expect(userText(container)).toBe("org-target");
     expect(peekViewAsLatch()?.userId).toBe("org-target");
   });
@@ -574,6 +575,62 @@ describe("AuthProvider bootstrap resolution", () => {
     expect(resumeMock).not.toHaveBeenCalled();
     expect(userText(container)).toBe("org-target");
     expect(peekViewAsLatch()?.portalRole).toBe("org");
+  });
+
+  it("does not refresh latch setAt when cookie resume succeeds", async () => {
+    window.history.pushState({}, "", "/org/browse");
+    const setAt = Date.now() - 60 * 60 * 1000;
+    sessionStorage.setItem(
+      VIEW_AS_LATCH,
+      JSON.stringify({ userId: "org-target", portalRole: "org", setAt }),
+    );
+    refreshMock.mockImplementation(async () => {
+      setAccessToken("admin-access");
+      return true;
+    });
+    fetchMeMock.mockResolvedValue({
+      kind: "user",
+      user: {
+        id: "admin-1",
+        portalRole: "admin",
+        status: "active",
+      },
+    });
+    resumeViewAsMock.mockResolvedValue("ok");
+    takeImpersonatedUserMock.mockReturnValue({
+      id: "org-target",
+      portalRole: "org",
+      status: "active",
+      impersonatedBy: "admin-1",
+    });
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+
+    await waitForStatus(container, "authenticated");
+    expect(peekViewAsLatch()?.setAt).toBe(setAt);
+    expect(resumeMock).not.toHaveBeenCalled();
+  });
+
+  it("does not clear the view-as intent when refresh loses a rotation race", async () => {
+    refreshMock.mockResolvedValue(false);
+    devLoginMock.mockResolvedValue(null);
+
+    await act(async () => {
+      root.render(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      );
+    });
+
+    await waitForStatus(container, "error");
+    expect(endViewAsMock).not.toHaveBeenCalled();
   });
 
   it("clears latch on /admin without reminting", async () => {
@@ -634,7 +691,7 @@ describe("AuthProvider bootstrap resolution", () => {
 
     await waitForStatus(container, "authenticated");
     expect(resumeMock).toHaveBeenCalledTimes(1);
-    expect(resumeMock).toHaveBeenCalledWith("org-target");
+    expect(resumeMock).toHaveBeenCalledWith("org-target", expect.any(Number));
     expect(userText(container)).toBe("admin-1");
     expect(peekViewAsLatch()).toBeNull();
   });

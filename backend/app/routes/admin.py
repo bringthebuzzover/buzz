@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import JSONResponse
@@ -65,6 +66,7 @@ from app.schemas.admin import (
     AdminPendingBrandItem,
     AdminPendingOrgItem,
     AdminUserItem,
+    ImpersonateRequest,
     ImpersonateResponse,
     TrackerAdvanceRequest,
     ViewAsResumeRequest,
@@ -961,27 +963,67 @@ async def resume_impersonation_endpoint(
     return api_response(data=_impersonate_body(token, target))
 
 
+def _continuation_expiry(started_at_ms: int) -> datetime:
+    """Cookie deadline for a latch remint. Refuses a start outside the window."""
+
+    try:
+        started = datetime.fromtimestamp(started_at_ms / 1000.0, tz=timezone.utc)
+    except (OverflowError, OSError, ValueError) as exc:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "View-as start time is invalid.",
+            status_code=400,
+        ) from exc
+    now = datetime.now(timezone.utc)
+    if started > now + timedelta(minutes=5):
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "View-as start time is invalid.",
+            status_code=400,
+        )
+    deadline = started + timedelta(hours=settings.VIEW_AS_INTENT_TTL_HOURS)
+    if deadline <= now:
+        raise BuzzAPIException(
+            errors.VIEW_AS_INVALID,
+            "View-as session has expired.",
+            status_code=403,
+        )
+    return deadline
+
+
 @router.post("/impersonate/{user_id}", response_model=DataResponse[ImpersonateResponse])
 async def impersonate_endpoint(
     user_id: uuid.UUID,
     response: Response,
     user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
+    body: ImpersonateRequest | None = None,
 ) -> APIResponse:
     """Mint a short-lived access token that acts as ``user_id``.
 
     Intentionally does NOT set a refresh cookie: the admin's own refresh session
     must survive so exiting impersonation does not require a second login.
     It does set an httpOnly intent cookie so a full page load can remint.
+
+    A body ``started_at`` is a continuation of a session that already started
+    (the same-tab latch). The cookie then expires at that start plus the
+    intent TTL, and a start older than the TTL is refused. Omitting it starts
+    a new 8h window (the admin clicked View as).
     """
+    expires_at: datetime | None = None
+    max_age: int | None = None
+    if body is not None and body.started_at is not None:
+        expires_at = _continuation_expiry(body.started_at)
+        max_age = max(1, int((expires_at - datetime.now(timezone.utc)).total_seconds()))
     token, target = await mint_impersonation_token(db, user, user_id)
     intent = jwt.create_view_as_intent_token(
         user.id,
         target.id,
         target.portal_role,
         impersonator_token_version=user.token_version or 0,
+        expires_at=expires_at,
     )
-    set_view_as_cookie(response, intent)
+    set_view_as_cookie(response, intent, max_age=max_age)
     logger.info(
         "view-as mint admin=%s target=%s role=%s",
         user.id,
