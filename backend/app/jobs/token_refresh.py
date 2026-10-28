@@ -77,6 +77,12 @@ async def refresh_due_tokens(db: AsyncSession, ig: InstagramClient) -> dict[str,
             )
             failed += 1
             continue
+        # Erase may have committed while Graph was in flight. Reload before
+        # writing so this refresh cannot restore a token the wipe just cleared.
+        await db.refresh(user)
+        if user.status == OrgUserStatus.ERASED.value or not user.instagram_access_token:
+            skipped += 1
+            continue
         user.instagram_access_token = encrypt_token(new.access_token)
         user.instagram_token_issued_at = now
         user.instagram_token_expires_at = now + timedelta(seconds=new.expires_in)
