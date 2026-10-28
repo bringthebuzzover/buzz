@@ -45,6 +45,39 @@ async def test_list_posts_flattened_camelcase(app_client: AsyncClient, db_sessio
     assert isinstance(post["postedAt"], int)
     assert "mediaProductType" in post
     assert post["linkedApplicationId"] is None
+    assert post["reach"] is None
+    assert post["views"] is None
+    assert post["saved"] is None
+    assert post["shares"] is None
+    assert post["totalInteractions"] is None
+    assert post["profileVisits"] is None
+    assert post["profileActivity"] is None
+    assert post["follows"] is None
+
+
+async def test_list_posts_returns_stored_insights(app_client: AsyncClient, db_session) -> None:
+    _, org, headers = await _ctx(db_session)
+    post = await make_social_post(db_session, org, likes=10, comments=3, reach=80)
+    post.views = 200
+    post.saved = 0
+    post.shares = 4
+    post.total_interactions = 17
+    post.profile_visits = 5
+    post.profile_activity = 1
+    post.follows = 2
+    await db_session.flush()
+
+    resp = await app_client.get("/api/orgs/me/posts", headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()["data"][0]
+    assert body["reach"] == 80
+    assert body["views"] == 200
+    assert body["saved"] == 0
+    assert body["shares"] == 4
+    assert body["totalInteractions"] == 17
+    assert body["profileVisits"] == 5
+    assert body["profileActivity"] == 1
+    assert body["follows"] == 2
 
 
 async def test_list_posts_link_indicator(app_client: AsyncClient, db_session) -> None:
