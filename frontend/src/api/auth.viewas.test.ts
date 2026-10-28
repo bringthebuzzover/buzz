@@ -305,8 +305,8 @@ describe("fetchMe during View-as", () => {
       value: hrefAssign,
     });
     setImpersonationToken("imp-expired");
-    global.fetch = jest.fn(async (url: string) => {
-      order.push(String(url));
+    global.fetch = jest.fn(async (input: RequestInfo | URL) => {
+      order.push(String(input));
       return jsonResponse(401, {
         data: null,
         error: { code: "TOKEN_EXPIRED", message: "expired" },
