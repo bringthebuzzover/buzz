@@ -1061,11 +1061,13 @@ function Applicants({
           <Cell muted>{applicant.linkedPostCount}</Cell>
           <Cell muted>{formatDate(applicant.appliedAt)}</Cell>
           <Cell muted>
-            {adminApplicantShipTo(
-              applicant.decision,
-              applicant.shippingCity,
-              applicant.shippingState,
-            )}
+            {applicant.accountErased
+              ? "—"
+              : adminApplicantShipTo(
+                  applicant.decision,
+                  applicant.shippingCity,
+                  applicant.shippingState,
+                )}
           </Cell>
           <Cell>
             {applicant.decision === "accepted" ? (

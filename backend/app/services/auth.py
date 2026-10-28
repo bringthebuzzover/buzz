@@ -126,6 +126,14 @@ async def handle_instagram_callback(
     else:
         user = existing
 
+    if user.status == OrgUserStatus.ERASED.value:
+        # Do not write Graph ids, the handle, or a token back onto a tombstone.
+        raise BuzzAPIException(
+            errors.ACCOUNT_DENIED,
+            "This account has been deleted.",
+            status_code=403,
+        )
+
     graph_handle = canonical_instagram_handle(getattr(profile, "username", None) or "")
     if graph_handle:
         await assert_handle_available(db, graph_handle, exclude_user_id=user.id)

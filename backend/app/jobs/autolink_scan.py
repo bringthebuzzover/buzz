@@ -26,7 +26,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import Select, delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,12 +36,15 @@ from app.models.drop import Drop
 from app.models.enums import (
     ApplicationDecision,
     BrandTrackerStage,
+    OrgUserStatus,
     SocialMediaProductType,
     SuggestionMatchReason,
 )
+from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
+from app.models.user import User
 
 # Stages where new suggestions are mintable and actionable in org UI.
 # Independent of metric_sync._LIVE_STAGES (which also includes drop_finished).
@@ -94,6 +97,25 @@ def _match(caption: str, handle: str, hashtag: str | None) -> tuple[str, str] | 
     return None
 
 
+def _frozen_post_ids() -> Select[tuple[UUID]]:
+    return select(SocialPost.id).where(
+        or_(
+            SocialPost.metrics_frozen_at.is_not(None),
+            SocialPost.external_id.like("frozen-%"),
+            SocialPost.external_id.like("erased-%"),
+        )
+    )
+
+
+async def _drop_frozen_suggestions(db: AsyncSession) -> int:
+    """Delete suggestions whose caption evidence belongs to a frozen post."""
+
+    result = await db.execute(
+        delete(PostCampaignSuggestion).where(PostCampaignSuggestion.post_id.in_(_frozen_post_ids()))
+    )
+    return getattr(result, "rowcount", 0) or 0
+
+
 async def _heal_dangling(db: AsyncSession, now: datetime) -> int:
     """Dismiss pending suggestions that could only ever 409 or 410.
 
@@ -134,11 +156,14 @@ async def scan_autolink(db: AsyncSession, *, drop_id: UUID | None = None) -> dic
         select(DropApplication, Drop, Brand)
         .join(Drop, Drop.id == DropApplication.drop_id)
         .join(Brand, Brand.id == Drop.brand_id)
+        .join(Organization, Organization.id == DropApplication.org_id)
+        .join(User, User.id == Organization.user_id)
         .where(
             DropApplication.decision == ApplicationDecision.ACCEPTED.value,
             Drop.brand_tracker_stage.in_(_MINT_STAGES),
             Drop.hidden_at.is_(None),
             Brand.instagram_handle.isnot(None),
+            User.status != OrgUserStatus.ERASED.value,
         )
     )
     if drop_id is not None:
@@ -162,6 +187,8 @@ async def scan_autolink(db: AsyncSession, *, drop_id: UUID | None = None) -> dic
                     SocialPost.posted_at <= now,
                     SocialPost.media_product_type.in_(_SUGGESTABLE),
                     SocialPost.metrics_frozen_at.is_(None),
+                    SocialPost.external_id.notlike("frozen-%"),
+                    SocialPost.external_id.notlike("erased-%"),
                 )
             )
         )
@@ -207,7 +234,8 @@ async def scan_autolink(db: AsyncSession, *, drop_id: UUID | None = None) -> dic
                 continue
             created += 1
 
-    healed = await _heal_dangling(db, now)
+    healed = await _drop_frozen_suggestions(db)
+    healed += await _heal_dangling(db, now)
 
     await db.flush()
     return {

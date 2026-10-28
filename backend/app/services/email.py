@@ -1325,11 +1325,13 @@ def _org_erased_body(org_name: str) -> str:
         "on file have been removed. Instagram post links, captions, media, and "
         "media ids for your account are removed. Brands you already ran a "
         "campaign with may still see an anonymized participant (Deleted "
-        "organization) and the last likes, comments, reach, views, saves, "
-        "shares, and similar counts from that campaign. Those numbers are "
-        "frozen and are not refreshed from Instagram. We do not keep the post "
+        "organization) and the last likes, comments, reach, views, saves, and "
+        "shares from that campaign, plus the time and media type of each post. "
+        "Those numbers are frozen and are not refreshed from Instagram. We do "
+        "not keep profile visits, follows, watch time, skip rate, the post "
         "content, your handle, or your profile (name, campus, contact, or "
-        "shipping).\n\n"
+        "shipping address). Carrier tracking numbers already recorded on a "
+        "campaign shipment may remain.\n\n"
         "If you have questions, reply to this email."
     )
 

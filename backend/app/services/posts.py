@@ -32,10 +32,22 @@ from app.schemas.posts import (
     SuggestionResponse,
 )
 from app.services.campaigns import resolve_owned_application
+from app.services.erased_org_participation import post_metrics_are_frozen
 
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _reject_if_metrics_frozen(post: SocialPost) -> None:
+    """Frozen posts stay on the campaign they were linked to at erase."""
+
+    if post_metrics_are_frozen(post):
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "This post's metrics are frozen and can no longer be linked or unlinked.",
+            status_code=400,
+        )
 
 
 def _reject_if_story(post: SocialPost) -> None:
@@ -249,6 +261,7 @@ async def link_post(
     if post is None or post.org_id != application.org_id:
         raise BuzzAPIException(errors.NOT_FOUND, "Post not found.", status_code=404)
     _reject_if_story(post)
+    _reject_if_metrics_frozen(post)
 
     existing = await db.scalar(select(PostCampaignLink).where(PostCampaignLink.post_id == post_id))
     if existing is not None:
@@ -307,6 +320,9 @@ async def unlink_post(
 
     application = await resolve_owned_application(db, org_user, application_id)
     await _reject_if_drop_finished(db, application.drop_id)
+    post = await db.get(SocialPost, post_id)
+    if post is not None:
+        _reject_if_metrics_frozen(post)
     link = await db.scalar(
         select(PostCampaignLink).where(
             PostCampaignLink.post_id == post_id,
@@ -429,6 +445,15 @@ async def accept_suggestion(
             db,
             suggestion,
             BuzzAPIException(errors.POST_DELETED, "This post no longer exists.", status_code=410),
+        )
+    if post_metrics_are_frozen(post):
+        # Drop the suggestion so its caption snippet does not remain.
+        await db.delete(suggestion)
+        await db.commit()
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "This post's metrics are frozen and can no longer be linked or unlinked.",
+            status_code=400,
         )
     if post.media_product_type == SocialMediaProductType.STORY.value:
         # Autolink never mints STORY suggestions; reject if a row exists anyway.
