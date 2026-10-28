@@ -18,9 +18,12 @@ and a valid long-lived token:
    only on insights success.
 3. **Follower counts** — after media sync, refresh ``organizations.follower_count``
    from Graph ``followers_count`` for **every** non-erased org user with a usable
-   token (not only live-stage campaign orgs). Omit/null/fail keep prior values;
-   summary counters ``followers_refreshed`` / ``followers_omitted`` /
-   ``followers_failed``.
+   token (not only live-stage campaign orgs). Omit/null/fail keep prior values.
+   A live-campaign org whose user the candidate query missed is still refreshed
+   from the same user row media sync uses. Token, missing-org, and
+   candidate-query misses are warned and counted. Summary counters
+   ``followers_refreshed`` / ``followers_omitted`` / ``followers_failed`` /
+   ``followers_skipped``.
 
 Stories are unsupported (v1): discovery skips ``media_product_type == STORY``;
 there is no ``/stories`` poller. See ``gaps/posts.stories-unsupported`` / META.md.
@@ -221,36 +224,116 @@ async def _eligible_orgs(db: AsyncSession, now: datetime) -> list[Organization]:
     return list(await db.scalars(select(Organization).where(Organization.id.in_(org_ids))))
 
 
-def _token_for(user: User | None, now: datetime) -> str | None:
-    if user is None or not user.instagram_access_token:
-        return None
+def _resolve_token(user: User | None, now: datetime) -> tuple[str | None, str]:
+    """Return ``(plaintext, "ok")`` or ``(None, reason)``.
+
+    Reasons: ``missing_user``, ``missing_token``, ``expired``,
+    ``undecryptable``, ``decrypt_error``. Undecryptable ciphertext is cleared.
+    Callers that skip must log the reason — this function does not.
+    """
+
+    if user is None:
+        return None, "missing_user"
+    if not user.instagram_access_token:
+        return None, "missing_token"
     exp = user.instagram_token_expires_at
     if exp is not None:
         if exp.tzinfo is None:
             exp = exp.replace(tzinfo=timezone.utc)
         if exp <= now:
-            return None  # expired — skip; on-login flow flags for re-auth
+            return None, "expired"  # on-login flow flags for re-auth
     try:
-        return decrypt_token(user.instagram_access_token)
+        return decrypt_token(user.instagram_access_token), "ok"
     except TokenDecryptionError:
         clear_unusable_instagram_token(user)
-        return None
+        return None, "undecryptable"
     except Exception:  # noqa: BLE001
-        return None
+        return None, "decrypt_error"
+
+
+def _token_for(user: User | None, now: datetime) -> str | None:
+    token, _reason = _resolve_token(user, now)
+    return token
+
+
+def _log_follower_skip(
+    *,
+    org: Organization | None,
+    user_id: Any,
+    reason: str,
+) -> None:
+    logger.warning(
+        "metric sync followers_skipped org_id=%s user_id=%s previous=%s reason=%s",
+        org.id if org is not None else None,
+        user_id,
+        org.follower_count if org is not None else None,
+        reason,
+    )
+
+
+async def _store_follower_count(
+    org: Organization, user: User, token: str, ig: InstagramClient
+) -> str:
+    """Write a present Graph count. Return ``refreshed``, ``omitted``, or ``failed``.
+
+    Omit and fetch errors keep the stored count (never overwrite with null).
+    """
+
+    try:
+        profile = await ig.fetch_profile(token)
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "metric sync followers_failed org_id=%s user_id=%s previous=%s reason=fetch_error",
+            org.id,
+            user.id,
+            org.follower_count,
+        )
+        return "failed"
+    if profile.followers_count is None:
+        logger.warning(
+            "metric sync followers_omitted org_id=%s user_id=%s previous=%s reason=%s",
+            org.id,
+            user.id,
+            org.follower_count,
+            "invalid" if profile.followers_count_invalid else "omitted",
+        )
+        return "omitted"
+    org.follower_count = merge_follower_count(org.follower_count, profile.followers_count)
+    return "refreshed"
 
 
 async def _refresh_follower_counts(
-    db: AsyncSession, ig: InstagramClient, now: datetime
+    db: AsyncSession,
+    ig: InstagramClient,
+    now: datetime,
+    media_orgs: list[Organization] | None = None,
 ) -> dict[str, int]:
     """Refresh ``organizations.follower_count`` from Graph for tokened orgs.
 
-    Walks all non-erased org users with a usable token (not only live-stage
-    campaign eligibility). Omit/null/fail keep the prior DB value.
+    Walks all non-erased org users with a non-null token (not only live-stage
+    campaign eligibility), then any media-sync org whose user that query
+    missed. Media sync never filters on ``portal_role``; this second pass uses
+    the same ``organizations.user_id`` load so a post refresh cannot finish
+    with a silent follower skip. Omit/null/fail keep the prior DB value.
+    Erased accounts are not sent to Graph.
     """
 
     refreshed = 0
     omitted = 0
     failed = 0
+    skipped = 0
+    attempted: set[object] = set()
+
+    def _tally(outcome: str) -> None:
+        nonlocal refreshed, omitted, failed, skipped
+        if outcome == "refreshed":
+            refreshed += 1
+        elif outcome == "omitted":
+            omitted += 1
+        elif outcome == "failed":
+            failed += 1
+        else:
+            skipped += 1
 
     users = list(
         await db.scalars(
@@ -262,41 +345,53 @@ async def _refresh_follower_counts(
         )
     )
     for user in users:
-        token = _token_for(user, now)
-        if token is None:
-            continue
+        attempted.add(user.id)
         org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
-        if org is None:
-            continue
-        try:
-            profile = await ig.fetch_profile(token)
-        except Exception:  # noqa: BLE001
-            failed += 1
-            logger.warning(
-                "metric sync followers_failed org_id=%s user_id=%s previous=%s reason=fetch_error",
-                org.id,
-                user.id,
-                org.follower_count,
+        token, reason = _resolve_token(user, now)
+        if token is None or org is None:
+            _log_follower_skip(
+                org=org,
+                user_id=user.id,
+                reason=reason if token is None else "no_org",
             )
+            _tally("skipped")
             continue
-        if profile.followers_count is None:
-            omitted += 1
-            logger.warning(
-                "metric sync followers_omitted org_id=%s user_id=%s previous=%s reason=%s",
-                org.id,
-                user.id,
-                org.follower_count,
-                "invalid" if profile.followers_count_invalid else "omitted",
-            )
+        _tally(await _store_follower_count(org, user, token, ig))
+
+    for org in media_orgs or []:
+        owner = await db.get(User, org.user_id)
+        if owner is None:
+            _log_follower_skip(org=org, user_id=org.user_id, reason="missing_user")
+            _tally("skipped")
             continue
-        org.follower_count = merge_follower_count(org.follower_count, profile.followers_count)
-        refreshed += 1
+        if owner.id in attempted or owner.status == OrgUserStatus.ERASED.value:
+            continue
+        token, reason = _resolve_token(owner, now)
+        if token is None:
+            # No ciphertext at all: media sync also skips quietly (no posts moved).
+            if reason == "missing_token":
+                continue
+            _log_follower_skip(org=org, user_id=owner.id, reason=reason)
+            _tally("skipped")
+            continue
+        # Media sync never filters portal_role. A usable token with any other
+        # role is absent from the candidate query above and would otherwise
+        # finish at followers_refreshed 0 with no warning.
+        logger.warning(
+            "metric sync followers candidate missed org_id=%s user_id=%s portal_role=%s status=%s",
+            org.id,
+            owner.id,
+            owner.portal_role,
+            owner.status,
+        )
+        _tally(await _store_follower_count(org, owner, token, ig))
 
     await db.flush()
     return {
         "followers_refreshed": refreshed,
         "followers_omitted": omitted,
         "followers_failed": failed,
+        "followers_skipped": skipped,
     }
 
 
@@ -492,5 +587,5 @@ async def sync_metrics(db: AsyncSession, ig: InstagramClient) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     orgs = await _eligible_orgs(db, now)
     media = await sync_metrics_for_orgs(db, ig, orgs)
-    follower_stats = await _refresh_follower_counts(db, ig, now)
+    follower_stats = await _refresh_follower_counts(db, ig, now, orgs)
     return {**media, **follower_stats}
