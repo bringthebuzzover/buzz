@@ -31,6 +31,7 @@ from app.services.instagram import (
     InstagramClient,
     canonical_instagram_handle,
     merge_follower_count,
+    storable_follower_count,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.org_apply import assert_handle_available, flag_ig_bind_mismatch
@@ -182,28 +183,27 @@ async def handle_instagram_callback(
 def _apply_callback_follower_count(org: Organization, profile: object) -> None:
     """Persist ``followers_count`` from the OAuth ``/me`` already fetched.
 
-    Best-effort: a missing, non-integer, or unreadable count is logged and
-    ignored. ``None`` does not clear a count already on the org.
+    Best-effort: a missing, non-integer, out-of-range, or unreadable count is
+    logged and ignored. ``None`` does not clear a count already on the org.
+    A boolean is not stored (``False`` must not become a real ``0``).
     """
 
     try:
+        invalid = getattr(profile, "followers_count_invalid", False) is True
         raw = getattr(profile, "followers_count", None)
-        if raw is None:
+        # Re-check the value. ``fetch_profile`` already drops unstorable counts,
+        # but a stand-in profile can still hand us a bool or an int PostgreSQL
+        # will reject — assigning that aborts the login flush.
+        parsed = None if invalid else storable_follower_count(raw)
+        if parsed is None:
             logger.warning(
-                "instagram callback followers_seed_failed org_id=%s user_id=%s reason=omitted",
+                "instagram callback followers_seed_failed org_id=%s user_id=%s reason=%s",
                 org.id,
                 org.user_id,
+                "invalid" if invalid or raw is not None else "omitted",
             )
             return
-        # ``bool`` is an ``int`` subclass; reject it so flush cannot coerce it.
-        if isinstance(raw, bool) or not isinstance(raw, int):
-            logger.warning(
-                "instagram callback followers_seed_failed org_id=%s user_id=%s reason=invalid",
-                org.id,
-                org.user_id,
-            )
-            return
-        org.follower_count = merge_follower_count(org.follower_count, raw)
+        org.follower_count = merge_follower_count(org.follower_count, parsed)
     except Exception:  # noqa: BLE001 — count failures must not break login
         logger.warning(
             "instagram callback followers_seed_failed org_id=%s user_id=%s reason=error",
