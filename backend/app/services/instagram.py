@@ -170,6 +170,18 @@ class InstagramProfile:
     followers_count: int | None = None
 
 
+def merge_follower_count(current: int | None, incoming: int | None) -> int | None:
+    """Count to store after a Graph read.
+
+    ``None`` (field omitted or null) keeps ``current``, including an existing
+    null. A present integer, including ``0``, replaces it.
+    """
+
+    if incoming is None:
+        return current
+    return incoming
+
+
 @dataclass(frozen=True)
 class MediaRef:
     """Lightweight ``/me/media`` discovery row (§10.1): id + post time."""
