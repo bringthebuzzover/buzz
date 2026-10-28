@@ -1932,6 +1932,8 @@ export interface paths {
          *
          *     Returns whether the reviewer org exists, its admin-page user id, and the
          *     configured drop id. Never returns the link secret, its hash, or the email.
+         *     Not rate-limited: the admin overview reads it on each visit. Flag-off
+         *     still 404s before auth, so that probe never reaches the handler body.
          */
         get: operations["meta_reviewer_status_api_meta_reviewer_status_get"];
         put?: never;

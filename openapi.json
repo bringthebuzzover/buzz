@@ -16101,7 +16101,7 @@
     },
     "/api/meta-reviewer/status": {
       "get": {
-        "description": "Admin-only setup status. 404 when the flag is off, before auth.\n\nReturns whether the reviewer org exists, its admin-page user id, and the\nconfigured drop id. Never returns the link secret, its hash, or the email.",
+        "description": "Admin-only setup status. 404 when the flag is off, before auth.\n\nReturns whether the reviewer org exists, its admin-page user id, and the\nconfigured drop id. Never returns the link secret, its hash, or the email.\nNot rate-limited: the admin overview reads it on each visit. Flag-off\nstill 404s before auth, so that probe never reaches the handler body.",
         "operationId": "meta_reviewer_status_api_meta_reviewer_status_get",
         "parameters": [
           {
