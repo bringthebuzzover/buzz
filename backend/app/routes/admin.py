@@ -8,16 +8,21 @@ without a product path stay in ``gaps/``.
 
 from __future__ import annotations
 
+import logging
 import uuid
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import errors
 from app.config import settings
 from app.deps.auth import CurrentAdmin
 from app.deps.db import get_db
+from app.exceptions import BuzzAPIException
 from app.models.enums import BrandStatus, OrgUserStatus
-from app.response import APIResponse, DataResponse, api_response
+from app.response import APIResponse, DataResponse, api_error_response, api_response
 from app.schemas.acks import (
     AdminAddOrgRequest,
     AdminAddOrgResponse,
@@ -61,8 +66,10 @@ from app.schemas.admin import (
     AdminPendingBrandItem,
     AdminPendingOrgItem,
     AdminUserItem,
+    ImpersonateRequest,
     ImpersonateResponse,
     TrackerAdvanceRequest,
+    ViewAsResumeRequest,
 )
 from app.schemas.admin_tables import (
     AdminTableInfo,
@@ -71,8 +78,11 @@ from app.schemas.admin_tables import (
     AdminTableQueryResponse,
     AdminTableRowResponse,
 )
+from app.schemas.auth import UserResponse
 from app.schemas.brands import FinalizeApplicantsRequest
 from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
+from app.security import jwt
+from app.security.view_as import clear_view_as_cookie, set_view_as_cookie
 from app.services.address import AddressClient, get_address_client
 from app.services.admin import (
     ack_ig_bind_mismatch,
@@ -136,6 +146,8 @@ from app.services.ig_change_requests import (
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.remove_participant import remove_participant_from_drop
 from app.services.shipments import add_shipment, delete_shipment
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -853,22 +865,169 @@ async def list_users_endpoint(
     return api_response(data=[AdminUserItem(**r) for r in rows])
 
 
+def _impersonate_body(token: str, target: UserResponse) -> ImpersonateResponse:
+    return ImpersonateResponse(
+        access_token=token,
+        user=target,
+        readonly=settings.IMPERSONATION_READONLY,
+    )
+
+
+def _view_as_error(status_code: int, code: str, message: str, *, clear: bool) -> JSONResponse:
+    body = api_error_response(code=code, message=message)
+    resp = JSONResponse(status_code=status_code, content=body.model_dump())
+    if clear:
+        clear_view_as_cookie(resp)
+    return resp
+
+
+@router.post("/impersonate/resume", response_model=DataResponse[ImpersonateResponse])
+async def resume_impersonation_endpoint(
+    body: ViewAsResumeRequest,
+    request: Request,
+    user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse | JSONResponse:
+    """Remint View as from the httpOnly intent cookie.
+
+    Requires the caller's own admin access token. The cookie alone is not a
+    session. Missing cookie is 404 (nothing to resume). A cookie whose role
+    does not match ``body.role`` is also 404 and is left in place, so opening
+    an org URL does not mint a brand session or destroy it. A cookie minted
+    for a different admin, a stale ``imp_ver``, or a target that can no longer
+    be impersonated is rejected and the cookie is cleared.
+
+    Does not rewrite the cookie. The 8h cap is fixed at the first mint;
+    refresh rotation updates ``imp_ver`` without extending ``exp``.
+    """
+
+    raw = request.cookies.get(settings.VIEW_AS_COOKIE_NAME)
+    if not raw:
+        return _view_as_error(
+            404,
+            errors.NOT_FOUND,
+            "No view-as session.",
+            clear=False,
+        )
+    try:
+        payload = jwt.decode_token(raw, expected_type=jwt.VIEW_AS_TOKEN_TYPE)
+    except jwt.TokenError:
+        return _view_as_error(
+            401,
+            errors.VIEW_AS_INVALID,
+            "View-as session is no longer valid.",
+            clear=True,
+        )
+    if payload.role != body.role:
+        return _view_as_error(
+            404,
+            errors.NOT_FOUND,
+            "No view-as session for this page.",
+            clear=False,
+        )
+    if payload.imp != str(user.id) or payload.sub is None:
+        return _view_as_error(
+            403,
+            errors.FORBIDDEN,
+            "View-as session does not belong to this admin.",
+            clear=True,
+        )
+    if payload.imp_ver is None or payload.imp_ver != (user.token_version or 0):
+        return _view_as_error(
+            401,
+            errors.VIEW_AS_INVALID,
+            "View-as session is no longer valid.",
+            clear=True,
+        )
+    try:
+        target_id = uuid.UUID(payload.sub)
+    except ValueError:
+        return _view_as_error(
+            401,
+            errors.VIEW_AS_INVALID,
+            "View-as session is no longer valid.",
+            clear=True,
+        )
+    try:
+        token, target = await mint_impersonation_token(db, user, target_id)
+    except BuzzAPIException as exc:
+        if exc.status_code in (403, 404):
+            return _view_as_error(exc.status_code, exc.code, exc.message, clear=True)
+        raise
+    logger.info(
+        "view-as resume admin=%s target=%s role=%s",
+        user.id,
+        target.id,
+        target.portal_role,
+    )
+    return api_response(data=_impersonate_body(token, target))
+
+
+def _continuation_expiry(started_at_ms: int) -> datetime:
+    """Cookie deadline for a latch remint. Refuses a start outside the window."""
+
+    try:
+        started = datetime.fromtimestamp(started_at_ms / 1000.0, tz=timezone.utc)
+    except (OverflowError, OSError, ValueError) as exc:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "View-as start time is invalid.",
+            status_code=400,
+        ) from exc
+    now = datetime.now(timezone.utc)
+    if started > now + timedelta(minutes=5):
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "View-as start time is invalid.",
+            status_code=400,
+        )
+    deadline = started + timedelta(hours=settings.VIEW_AS_INTENT_TTL_HOURS)
+    if deadline <= now:
+        raise BuzzAPIException(
+            errors.VIEW_AS_INVALID,
+            "View-as session has expired.",
+            status_code=403,
+        )
+    return deadline
+
+
 @router.post("/impersonate/{user_id}", response_model=DataResponse[ImpersonateResponse])
 async def impersonate_endpoint(
     user_id: uuid.UUID,
+    response: Response,
     user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
+    body: ImpersonateRequest | None = None,
 ) -> APIResponse:
     """Mint a short-lived access token that acts as ``user_id``.
 
     Intentionally does NOT set a refresh cookie: the admin's own refresh session
-    must survive so exiting impersonation is a client-side token drop.
+    must survive so exiting impersonation does not require a second login.
+    It does set an httpOnly intent cookie so a full page load can remint.
+
+    A body ``started_at`` is a continuation of a session that already started
+    (the same-tab latch). The cookie then expires at that start plus the
+    intent TTL, and a start older than the TTL is refused. Omitting it starts
+    a new 8h window (the admin clicked View as).
     """
+    expires_at: datetime | None = None
+    max_age: int | None = None
+    if body is not None and body.started_at is not None:
+        expires_at = _continuation_expiry(body.started_at)
+        max_age = max(1, int((expires_at - datetime.now(timezone.utc)).total_seconds()))
     token, target = await mint_impersonation_token(db, user, user_id)
-    return api_response(
-        data=ImpersonateResponse(
-            access_token=token,
-            user=target,
-            readonly=settings.IMPERSONATION_READONLY,
-        )
+    intent = jwt.create_view_as_intent_token(
+        user.id,
+        target.id,
+        target.portal_role,
+        impersonator_token_version=user.token_version or 0,
+        expires_at=expires_at,
     )
+    set_view_as_cookie(response, intent, max_age=max_age)
+    logger.info(
+        "view-as mint admin=%s target=%s role=%s",
+        user.id,
+        target.id,
+        target.portal_role,
+    )
+    return api_response(data=_impersonate_body(token, target))

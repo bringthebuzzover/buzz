@@ -17,6 +17,7 @@ import {
   TextField,
 } from "../../components/forms/controls";
 import type { PortalRole } from "../../types/auth";
+import { pathForUser } from "../../utils/landing";
 import { stripTokenFromUrl } from "../../utils/stripTokenFromUrl";
 
 export default function BrandSetupPage() {
@@ -24,7 +25,7 @@ export default function BrandSetupPage() {
   // Capture once so stripping the query does not Navigate away.
   const [token] = useState(() => searchParams.get("token"));
   const navigate = useNavigate();
-  const { acceptSession } = useAuth();
+  const { acceptSession, status, user } = useAuth();
   const setPassword = useBrandSetPassword();
 
   const [password, setPasswordValue] = useState("");
@@ -36,6 +37,39 @@ export default function BrandSetupPage() {
       stripTokenFromUrl();
     }
   }, [token]);
+
+  // Wait for bootstrap. Redirecting on the first paint races View-as resume
+  // and used to dump an admin on the public home.
+  if (status === "idle" || status === "authenticating") {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-sm font-medium text-buzz-inkMuted">
+          Restoring your session…
+        </p>
+      </div>
+    );
+  }
+
+  if (status === "authenticated" && user && (!token || user.impersonatedBy)) {
+    // No invite in hand: send the session where it belongs. View-as must not
+    // submit this form either. A signed-in invitee (or an admin opening a
+    // real invite link) keeps the form — the token stays in state.
+    if (user.impersonatedBy) {
+      return (
+        <Navigate
+          to={user.portalRole === "brand" ? "/brand/dashboard" : pathForUser(user)}
+          replace
+        />
+      );
+    }
+    if (user.portalRole === "brand") {
+      return <Navigate to="/brand/dashboard" replace />;
+    }
+    if (user.portalRole === "admin") {
+      return <Navigate to="/admin" replace />;
+    }
+    return <Navigate to={pathForUser(user)} replace />;
+  }
 
   if (!token) {
     return <Navigate to="/" replace />;

@@ -13,16 +13,21 @@ import {
   viewAsPortalRoleFromPath,
   isAdminPath,
   resumeImpersonation,
+  resumeViewAs,
   getAccessToken,
   isImpersonating,
 } from "./auth";
 
 function jsonResponse(status: number, body: unknown): Response {
-  return {
+  const resp = {
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
-  } as unknown as Response;
+    clone() {
+      return resp;
+    },
+  };
+  return resp as unknown as Response;
 }
 
 describe("View-as latch", () => {
@@ -35,6 +40,21 @@ describe("View-as latch", () => {
   afterEach(() => {
     global.fetch = realFetch;
     clearImpersonationSession();
+  });
+
+  it("does not refresh setAt when the same target is latched again", () => {
+    const setAt = Date.now() - 5 * 60 * 1000;
+    sessionStorage.setItem(
+      VIEW_AS_LATCH,
+      JSON.stringify({ userId: "target-1", portalRole: "org", setAt }),
+    );
+    setViewAsLatch("target-1", "org");
+    expect(peekViewAsLatch()?.setAt).toBe(setAt);
+
+    setViewAsLatch("target-2", "brand");
+    const next = peekViewAsLatch();
+    expect(next?.userId).toBe("target-2");
+    expect(next?.setAt).not.toBe(setAt);
   });
 
   it("set/peek round-trips", () => {
@@ -75,7 +95,17 @@ describe("View-as latch", () => {
 
   it("viewAsPortalRoleFromPath and isAdminPath", () => {
     expect(viewAsPortalRoleFromPath("/org/browse")).toBe("org");
+    expect(viewAsPortalRoleFromPath("/org/campaigns/abc")).toBe("org");
+    expect(viewAsPortalRoleFromPath("/campaigns")).toBe("org");
+    expect(viewAsPortalRoleFromPath("/campaigns/abc")).toBe("org");
+    expect(viewAsPortalRoleFromPath("/org/apply")).toBeNull();
     expect(viewAsPortalRoleFromPath("/brand/dashboard")).toBe("brand");
+    expect(viewAsPortalRoleFromPath("/brand/setup")).toBe("brand");
+    expect(viewAsPortalRoleFromPath("/brand/drops/abc")).toBe("brand");
+    expect(viewAsPortalRoleFromPath("/brand/login")).toBeNull();
+    expect(viewAsPortalRoleFromPath("/brand/apply")).toBeNull();
+    expect(viewAsPortalRoleFromPath("/brand/forgot-password")).toBeNull();
+    expect(viewAsPortalRoleFromPath("/brand/reset-password")).toBeNull();
     expect(viewAsPortalRoleFromPath("/admin")).toBeNull();
     expect(isAdminPath("/admin")).toBe(true);
     expect(isAdminPath("/admin/orgs")).toBe(true);
@@ -137,6 +167,87 @@ describe("View-as latch", () => {
     expect(getAccessToken()).toBe("imp-from-resume");
     expect(isImpersonating()).toBe(true);
   });
+
+  it("drops the bearer when the refresh retry fails", async () => {
+    setAccessToken("admin-token");
+    global.fetch = jest.fn(async () =>
+      jsonResponse(401, { data: null, error: { code: "UNAUTHORIZED" } }),
+    );
+    await expect(resumeImpersonation("target-1")).resolves.toBe(false);
+    expect(getAccessToken()).toBeNull();
+    expect(isImpersonating()).toBe(false);
+  });
+
+  it("resumeViewAs installs from the cookie endpoint for the page role", async () => {
+    setAccessToken("admin-token");
+    global.fetch = jest.fn(async () =>
+      jsonResponse(200, {
+        data: {
+          accessToken: "imp-from-cookie",
+          user: {
+            id: "target-1",
+            portal_role: "org",
+            status: "active",
+            impersonated_by: "admin-1",
+          },
+        },
+      }),
+    );
+    await expect(resumeViewAs("org")).resolves.toBe("ok");
+    expect(getAccessToken()).toBe("imp-from-cookie");
+    expect(isImpersonating()).toBe(true);
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(String(url)).toContain("/api/admin/impersonate/resume");
+    expect(JSON.parse(String(init.body))).toEqual({ role: "org" });
+  });
+
+  it("resumeViewAs does not install a target that does not match the page", async () => {
+    setAccessToken("admin-token");
+    global.fetch = jest.fn(async () =>
+      jsonResponse(200, {
+        data: {
+          accessToken: "imp-brand",
+          user: {
+            id: "brand-1",
+            portal_role: "brand",
+            status: "active",
+            impersonated_by: "admin-1",
+          },
+        },
+      }),
+    );
+    await expect(resumeViewAs("org")).resolves.toBe("none");
+    expect(getAccessToken()).toBe("admin-token");
+    expect(isImpersonating()).toBe(false);
+  });
+
+  it("resumeViewAs treats a missing cookie as none and does not refresh", async () => {
+    setAccessToken("admin-token");
+    global.fetch = jest.fn(async () =>
+      jsonResponse(404, { data: null, error: { code: "NOT_FOUND" } }),
+    );
+    await expect(resumeViewAs("org")).resolves.toBe("none");
+    expect(getAccessToken()).toBe("admin-token");
+    expect(
+      (global.fetch as jest.Mock).mock.calls.every(
+        (c) => !String(c[0]).includes("/api/auth/refresh"),
+      ),
+    ).toBe(true);
+  });
+
+  it("resumeViewAs does not refresh when the intent itself is invalid", async () => {
+    setAccessToken("admin-token");
+    global.fetch = jest.fn(async () =>
+      jsonResponse(401, { data: null, error: { code: "VIEW_AS_INVALID" } }),
+    );
+    await expect(resumeViewAs("brand")).resolves.toBe("denied");
+    expect(getAccessToken()).toBe("admin-token");
+    expect(
+      (global.fetch as jest.Mock).mock.calls.every(
+        (c) => !String(c[0]).includes("/api/auth/refresh"),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("fetchMe during View-as", () => {
@@ -178,21 +289,39 @@ describe("fetchMe during View-as", () => {
   });
 
   it("ends View-as on TOKEN_EXPIRED", async () => {
-    const hrefAssign = { href: "http://localhost/org/browse" };
+    const order: string[] = [];
+    const hrefAssign = {
+      _href: "http://localhost/org/browse",
+      get href() {
+        return this._href;
+      },
+      set href(value: string) {
+        order.push(`nav:${value}`);
+        this._href = value;
+      },
+    };
     Object.defineProperty(window, "location", {
       configurable: true,
       value: hrefAssign,
     });
     setImpersonationToken("imp-expired");
-    global.fetch = jest.fn(async () =>
-      jsonResponse(401, {
+    global.fetch = jest.fn(async (input: RequestInfo | URL) => {
+      order.push(String(input));
+      return jsonResponse(401, {
         data: null,
         error: { code: "TOKEN_EXPIRED", message: "expired" },
-      }),
-    );
+      });
+    });
 
     await expect(fetchMe()).resolves.toEqual({ kind: "unauthenticated" });
     expect(isImpersonating()).toBe(false);
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
     expect(hrefAssign.href).toBe("/admin?impersonation=expired");
+    const endAt = order.findIndex((entry) => entry.includes("/api/auth/view-as/end"));
+    const navAt = order.indexOf("nav:/admin?impersonation=expired");
+    expect(endAt).toBeGreaterThanOrEqual(0);
+    expect(navAt).toBeGreaterThan(endAt);
   });
 });

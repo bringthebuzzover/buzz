@@ -39,8 +39,9 @@ export function hasInstagramReconnectLatch(): boolean {
 }
 
 /**
- * Same-tab View-as intent. Access JWT stays memory-only; after reload bootstrap
- * remints via POST /impersonate when this latch is present on a portal URL.
+ * Same-tab fallback for the httpOnly View-as intent cookie. Access JWT stays
+ * memory-only. Bootstrap remints from the cookie first (so a new tab or a
+ * pasted URL works); this latch covers a browser that dropped the cookie.
  */
 export const VIEW_AS_LATCH = "buzz.viewAsTarget";
 /** Independent of the ~15m impersonation access TTL. */
@@ -52,11 +53,38 @@ export type ViewAsLatch = {
   setAt: number;
 };
 
+function existingLatchSetAt(
+  userId: string,
+  portalRole: "org" | "brand",
+): number | null {
+  const raw = sessionStorage.getItem(VIEW_AS_LATCH);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<ViewAsLatch>;
+    if (
+      parsed.userId === userId &&
+      parsed.portalRole === portalRole &&
+      typeof parsed.setAt === "number"
+    ) {
+      return parsed.setAt;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function setViewAsLatch(
   userId: string,
   portalRole: "org" | "brand",
 ): void {
-  const payload: ViewAsLatch = { userId, portalRole, setAt: Date.now() };
+  // Reloads call this after every successful resume. Keep the original start
+  // so the 8h latch window cannot slide. A new target stamps a new start.
+  const payload: ViewAsLatch = {
+    userId,
+    portalRole,
+    setAt: existingLatchSetAt(userId, portalRole) ?? Date.now(),
+  };
   sessionStorage.setItem(VIEW_AS_LATCH, JSON.stringify(payload));
 }
 
@@ -93,11 +121,31 @@ export function peekViewAsLatch(): ViewAsLatch | null {
   }
 }
 
-/** Portal role implied by a View-as resume URL, or null if not a portal path. */
+function pathIs(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+/**
+ * Portal role implied by a View-as resume URL, or null if this URL must not
+ * remint. Public auth pages (`/brand/login`, `/org/apply`, …) are excluded.
+ * `/brand/setup` is included: it is a real invite route, and a full load
+ * while viewing as a brand has to remint before the page leaves the form.
+ * Legacy `/campaigns` is the org portal.
+ */
 export function viewAsPortalRoleFromPath(
   pathname: string,
 ): "org" | "brand" | null {
+  if (pathIs(pathname, "/org/apply")) return null;
   if (pathname === "/org" || pathname.startsWith("/org/")) return "org";
+  if (pathname === "/campaigns" || pathname.startsWith("/campaigns/")) return "org";
+  if (
+    pathIs(pathname, "/brand/login") ||
+    pathIs(pathname, "/brand/apply") ||
+    pathIs(pathname, "/brand/forgot-password") ||
+    pathIs(pathname, "/brand/reset-password")
+  ) {
+    return null;
+  }
   if (pathname === "/brand" || pathname.startsWith("/brand/")) return "brand";
   return null;
 }
@@ -121,18 +169,108 @@ export function takeImpersonatedUser(): AuthUser | null {
   return u;
 }
 
+async function errorCode(resp: Response): Promise<string | undefined> {
+  try {
+    const body = (await resp.clone().json()) as { error?: { code?: string } };
+    return body.error?.code;
+  } catch {
+    return undefined;
+  }
+}
+
+async function installImpersonationBody(
+  resp: Response,
+  expectedRole?: "org" | "brand",
+): Promise<boolean> {
+  const body = (await resp.json()) as {
+    data:
+      | {
+          accessToken?: string;
+          access_token?: string;
+          user?: UserWire;
+        }
+      | null;
+  };
+  const access = body.data?.accessToken ?? body.data?.access_token;
+  const wire = body.data?.user;
+  if (!access) return false;
+  // Do not swap the admin bearer for a target that does not match the page.
+  if (expectedRole && wire?.portal_role !== expectedRole) return false;
+  setImpersonationToken(access);
+  lastImpersonatedUser = wire ? authUserFromWire(wire) : null;
+  return true;
+}
+
+/** Cookie resume: installed, nothing to resume, or the intent was rejected. */
+export type ResumeViewAsResult = "ok" | "none" | "denied";
+
 /**
- * Re-mint View as using the current admin bearer. Does not touch the latch
- * (caller clears on failure). Returns whether an impersonation token was
- * installed. On success also stashes the target user for
- * {@link takeImpersonatedUser}.
+ * Remint View as from the httpOnly intent cookie using the current admin
+ * bearer. Does not clear the latch. 404 means there is no cookie.
  */
-export async function resumeImpersonation(userId: string): Promise<boolean> {
+export async function resumeViewAs(
+  expectedRole: "org" | "brand",
+): Promise<ResumeViewAsResult> {
+  const post = (token: string) =>
+    fetch(`${API_BASE_URL}/api/admin/impersonate/resume`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ role: expectedRole }),
+    });
+
+  let token = getAccessToken();
+  if (!token) return "none";
+  try {
+    let resp = await post(token);
+    if (resp.status === 404) return "none";
+    if (resp.status === 401 && (await errorCode(resp)) === "VIEW_AS_INVALID") {
+      return "denied";
+    }
+    if (resp.status === 401) {
+      if (!(await refreshAccessToken())) return "none";
+      token = getAccessToken();
+      if (!token) return "none";
+      resp = await post(token);
+    }
+    if (
+      resp.status === 403 ||
+      (resp.status === 401 && (await errorCode(resp)) === "VIEW_AS_INVALID")
+    ) {
+      return "denied";
+    }
+    if (!resp.ok) return "none";
+    return (await installImpersonationBody(resp, expectedRole)) ? "ok" : "none";
+  } catch {
+    lastImpersonatedUser = null;
+    return "none";
+  }
+}
+
+/**
+ * Re-mint View as for a known target using the current admin bearer. Does not
+ * touch the latch (caller clears on failure). On success stashes the target
+ * user for {@link takeImpersonatedUser}.
+ *
+ * ``startedAt`` is the original latch mint (epoch ms). The server keeps the
+ * cookie inside that window and refuses a continuation past it.
+ */
+export async function resumeImpersonation(
+  userId: string,
+  startedAt?: number,
+): Promise<boolean> {
   const postImpersonate = (token: string) =>
     fetch(`${API_BASE_URL}/api/admin/impersonate/${userId}`, {
       method: "POST",
       credentials: "include",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(startedAt != null ? { "Content-Type": "application/json" } : {}),
+      },
+      body: startedAt != null ? JSON.stringify({ startedAt }) : undefined,
     });
 
   let token = getAccessToken();
@@ -148,28 +286,26 @@ export async function resumeImpersonation(userId: string): Promise<boolean> {
       resp = await postImpersonate(token);
     }
     if (!resp.ok) return false;
-    // ImpersonateResponse uses camelCase (accessToken); legacy snake_case
-    // fallback kept for older mocks. ``user`` is always present in the current
-    // schema and mirrors what ``GET /me`` would return for the target.
-    const body = (await resp.json()) as {
-      data:
-        | {
-            accessToken?: string;
-            access_token?: string;
-            user?: UserWire;
-          }
-        | null;
-    };
-    const access = body.data?.accessToken ?? body.data?.access_token;
-    if (!access) return false;
-    setImpersonationToken(access);
-    lastImpersonatedUser = body.data?.user
-      ? authUserFromWire(body.data.user)
-      : null;
-    return true;
+    return await installImpersonationBody(resp);
   } catch {
     lastImpersonatedUser = null;
     return false;
+  }
+}
+
+/** How long Exit waits for the intent clear before loading `/admin`. */
+const VIEW_AS_CLEAR_BEFORE_NAV_MS = 2_000;
+
+/** Clear the httpOnly View-as intent. Safe to fire during a navigation. */
+export async function endViewAsIntent(): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/api/auth/view-as/end`, {
+      method: "POST",
+      credentials: "include",
+      keepalive: true,
+    });
+  } catch {
+    // Best-effort — Exit still drops the in-memory token.
   }
 }
 
@@ -208,8 +344,16 @@ export function clearImpersonationSession(): void {
  * clear). This hard path remains for non-React callers such as `apiFetch`, which
  * must not import Router or QueryClient.
  */
-export function endImpersonation(reason?: "expired"): void {
+export async function endImpersonation(reason?: "expired"): Promise<void> {
   clearImpersonationSession();
+  // The next document refreshes immediately. If the old intent is still in
+  // the jar, that refresh rebinds it. Wait for the clear, then navigate.
+  await Promise.race([
+    endViewAsIntent(),
+    new Promise<void>((resolve) => {
+      window.setTimeout(resolve, VIEW_AS_CLEAR_BEFORE_NAV_MS);
+    }),
+  ]);
   const suffix = reason === "expired" ? "?impersonation=expired" : "";
   window.location.href = `/admin${suffix}`;
 }
