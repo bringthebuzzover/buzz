@@ -216,7 +216,7 @@ instagram_business_manage_insights (brand side):
 8. Click Logout. Go to https://www.bringthebuzzover.com/brand/login and sign in with the brand account from the test credentials field.
 9. Open Meta Review Test Drop. The brand sees each linked post, including the one you just linked, with its like and comment counts and its Instagram insights row.
 
-A short walkthrough video of these steps is attached under supporting documentation and is also here: https://drive.google.com/file/d/1XinyIPC_2PK4-jjMshzpIJQrXGJx7Mc3/view
+A short walkthrough video of these steps is attached under supporting documentation and is also here: <walkthrough video link (Google Drive, anyone-with-link; kept off-repo)>
 
 If Instagram shows "Insufficient developer role", send us your Instagram username and we'll add it as a tester. You can reply in this App Review request or email hello@bringthebuzzover.com. Then accept the invite at https://www.instagram.com/accounts/manage_access/ (Tester Invites) and open the reviewer link again.
 
