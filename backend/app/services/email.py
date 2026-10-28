@@ -1322,8 +1322,8 @@ def _org_erased_body(org_name: str) -> str:
     return (
         f"We've completed your data deletion request for {name} on Buzz.\n\n"
         "Your Buzz login identity, contact details, and Instagram credentials "
-        "on file have been removed or anonymized. Campaign participation metrics "
-        "tied to past drops may be retained in anonymized form for brand reporting.\n\n"
+        "on file have been removed. This organization is no longer listed on "
+        "campaigns, and its posts and metrics are not included in brand reporting.\n\n"
         "If you have questions, reply to this email."
     )
 

@@ -803,7 +803,9 @@ function FinalizeSelection({
   applicants: AdminApplicant[];
 }) {
   const finalize = useFinalizeAdminApplicants(drop.id);
-  const pending = applicants.filter((row) => row.decision === "applied");
+  const pending = applicants.filter(
+    (row) => row.decision === "applied" && !row.accountErased,
+  );
   const showUnits = drop.totalProductUnits != null;
   const [accepted, setAccepted] = useState<Record<string, boolean>>({});
   const [units, setUnits] = useState<Record<string, number>>({});
@@ -932,13 +934,14 @@ function Applicants({
   dropId: string;
   applicants: AdminApplicant[];
 }) {
+  const visible = applicants.filter((applicant) => !applicant.accountErased);
   return (
     <AdminTable
       headers={APPLICANT_HEADERS}
-      isEmpty={applicants.length === 0}
+      isEmpty={visible.length === 0}
       empty="Nobody has applied to this drop."
     >
-      {applicants.map((applicant) => (
+      {visible.map((applicant) => (
         <Row key={applicant.id}>
           <Cell>
             <Link
@@ -1188,7 +1191,8 @@ export default function AdminDropDetailPage() {
   const activeTab: DropTabId =
     tabParam && isDropTabId(tabParam) ? tabParam : defaultTab;
   const acceptedCount =
-    data?.applicants.filter((a) => a.decision === "accepted").length ?? 0;
+    data?.applicants.filter((a) => a.decision === "accepted" && !a.accountErased)
+      .length ?? 0;
   const [addOrgOpen, setAddOrgOpen] = useState(false);
 
   return (

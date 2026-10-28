@@ -270,7 +270,7 @@ describe("AdminDropDetailPage", () => {
     expect(addTracking.disabled).toBe(true);
   });
 
-  it("does not restamp Account deleted next to a tombstone org name", () => {
+  it("omits an erased org from the applicant table", () => {
     mockUseAdminDrop.mockReturnValue({
       data: adminDrop({
         publishedAt: now,
@@ -302,8 +302,9 @@ describe("AdminDropDetailPage", () => {
     });
     renderAt("/admin/drops/drop-1");
 
-    expect(container.textContent).toContain("Deleted organization");
-    expect(container.textContent).toContain("Cornell University");
+    expect(container.textContent).toContain("Nobody has applied to this drop.");
+    expect(container.textContent).not.toContain("Deleted organization");
+    expect(container.textContent).not.toContain("Cornell University");
     expect(container.textContent).not.toContain("Account deleted");
   });
 

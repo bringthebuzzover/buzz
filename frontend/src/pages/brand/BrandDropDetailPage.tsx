@@ -76,11 +76,13 @@ function ApiApplicantTable({
 
   // After reopen, prior accepted/denied rows remain — selection only mutates applied.
   const pending = useMemo(
-    () => applicants.filter((a) => a.decision === "applied"),
+    () =>
+      applicants.filter((a) => a.decision === "applied" && !a.accountErased),
     [applicants],
   );
   const priorAccepted = useMemo(
-    () => applicants.filter((a) => a.decision === "accepted"),
+    () =>
+      applicants.filter((a) => a.decision === "accepted" && !a.accountErased),
     [applicants],
   );
   const seatsTaken = priorAccepted.length;
@@ -126,9 +128,7 @@ function ApiApplicantTable({
     .reduce((s, a) => s + (allocations[a.orgId] ?? 0), 0);
 
   const shipToLine = (app: BrandDropApplicant) =>
-    app.accountErased ? (
-      <p className={cn(TEXT.meta, "mt-0.5")}>Shipping details removed</p>
-    ) : app.deliveryAddress ? (
+    app.deliveryAddress ? (
       <p className={cn(TEXT.meta, "mt-0.5")}>
         Ship to: {app.deliveryAddress}
       </p>
@@ -407,7 +407,9 @@ function FinalizedRoster({
   applicants: BrandDropApplicant[];
   capacityTotal: number;
 }) {
-  const accepted = applicants.filter((a) => a.decision === "accepted");
+  const accepted = applicants.filter(
+    (a) => a.decision === "accepted" && !a.accountErased,
+  );
   return (
     <div className={STACK.tight}>
       <div>

@@ -12626,7 +12626,7 @@
     },
     "/api/admin/orgs/{user_id}/erase": {
       "post": {
-        "description": "Hybrid erase: scrub identity/PII; keep campaign KPIs (PRODUCT \u00a73.1.2 / \u00a74.3).",
+        "description": "Erase an org: scrub identity and remove its seats, posts, and metrics.",
         "operationId": "erase_org_endpoint_api_admin_orgs__user_id__erase_post",
         "parameters": [
           {

@@ -1,4 +1,4 @@
-"""Admin org hybrid erase (PRODUCT.md §3.1.2 / §4.3)."""
+"""Admin org erase removes identity and campaign participation (PRODUCT §3.1.2)."""
 
 from __future__ import annotations
 
@@ -10,8 +10,7 @@ from sqlalchemy import func, select
 
 from app.config import settings
 from app.jobs.metric_sync import _eligible_orgs
-from app.models.brand import Brand
-from app.models.drop import Drop
+from app.models.application import DropApplication
 from app.models.enums import (
     ApplicationDecision,
     BrandTrackerStage,
@@ -20,9 +19,13 @@ from app.models.enums import (
     PortalRole,
 )
 from app.models.notify_me import NotifyMe
+from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
+from app.models.shipment import DropApplicationShipment
+from app.models.social_post import SocialPost
 from app.models.user import User
 from app.security import jwt
+from app.services.erased_org_participation import withdraw_org_campaign_participation
 from tests.conftest import (
     make_application,
     make_brand,
@@ -31,6 +34,7 @@ from tests.conftest import (
     make_org,
     make_post_link,
     make_social_post,
+    make_suggestion,
     make_user,
     mint_access_token,
     persist,
@@ -86,7 +90,7 @@ async def _seed_erasable_org(db_session, *, with_email: bool = True):
 
 
 class TestAdminOrgErase:
-    async def test_erase_scrubs_identity_keeps_kpis(
+    async def test_erase_scrubs_identity_and_drops_participation(
         self, app_client: AsyncClient, db_session, monkeypatch
     ):
         send = AsyncMock(return_value=True)
@@ -108,9 +112,6 @@ class TestAdminOrgErase:
 
         await db_session.refresh(user)
         await db_session.refresh(org)
-        await db_session.refresh(post)
-        await db_session.refresh(accepted)
-        await db_session.refresh(applied)
 
         assert user.status == OrgUserStatus.ERASED.value
         assert user.instagram_username is None
@@ -124,7 +125,7 @@ class TestAdminOrgErase:
         assert org.ig_bind_mismatched_at is None
         assert org.ig_bind_graph_username is None
         assert org.ig_bind_mismatch_acked_at is None
-        assert org.follower_count == 1500
+        assert org.follower_count is None
         assert org.university == "State U"
         assert org.delivery_address is None
         assert org.shipping_line1 is None
@@ -132,21 +133,22 @@ class TestAdminOrgErase:
         assert org.shipping_state is None
         assert org.shipping_postal_code is None
         assert org.contact_name is None
-        assert accepted.decision == ApplicationDecision.ACCEPTED.value
-        assert accepted.pitch is None
-        assert applied.decision == ApplicationDecision.DENIED.value
-        assert post.likes == 12
-        assert post.comments == 3
-        assert post.external_id == f"erased-{post.id}"
-        assert post.url == f"erased://post/{post.id}"
-        assert post.caption == "[removed]"
-        assert post.thumbnail_url is None
+        app_count = await db_session.scalar(
+            select(func.count())
+            .select_from(DropApplication)
+            .where(DropApplication.org_id == org.id)
+        )
+        assert app_count == 0
+        post_count = await db_session.scalar(
+            select(func.count()).select_from(SocialPost).where(SocialPost.org_id == org.id)
+        )
+        assert post_count == 0
         link_count = await db_session.scalar(
             select(func.count())
             .select_from(PostCampaignLink)
             .where(PostCampaignLink.post_id == post.id)
         )
-        assert link_count == 1
+        assert link_count == 0
         notify_count = await db_session.scalar(
             select(func.count()).select_from(NotifyMe).where(NotifyMe.org_id == org.id)
         )
@@ -315,39 +317,201 @@ class TestAdminOrgErase:
         )
         assert res.status_code == 409
 
-    async def test_account_erased_on_brand_and_admin_drop(
+    async def test_erased_org_excluded_from_participants_and_totals(
         self, app_client: AsyncClient, db_session, monkeypatch
     ):
+        """Deleted org is absent from drop participants, drop totals, and dashboard."""
+
         monkeypatch.setattr(
             "app.services.admin_erase.send_org_erased_email",
             AsyncMock(return_value=True),
         )
-        user, org, accepted, _, _ = await _seed_erasable_org(db_session)
-        headers = await _admin_headers(db_session)
-        await app_client.post(
-            f"/api/admin/orgs/{user.id}/erase",
-            headers=headers,
-            json={"confirm": "CampusGreeks"},
+        erased_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        erased_user.instagram_username = "GhostOrg"
+        erased_user.edu_email = "ghost@school.edu"
+        ghost = await make_org(db_session, erased_user, org_name="Ghost Greeks")
+        ghost.university = "Ghost Campus"
+        ghost.follower_count = 9000
+
+        live_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        live_user.instagram_username = "LiveOrg"
+        live = await make_org(db_session, live_user, org_name="Live Club")
+        live.university = "Live Campus"
+        live.follower_count = 100
+
+        brand = await make_brand(db_session)
+        drop = await make_drop(
+            db_session,
+            brand,
+            stage=BrandTrackerStage.DROP_ACTIVE,
+            total_product_units=20,
         )
+        ghost_app = await make_application(
+            db_session, drop, ghost, decision=ApplicationDecision.ACCEPTED
+        )
+        ghost_app.allocated_units = 7
+        live_app = await make_application(
+            db_session, drop, live, decision=ApplicationDecision.ACCEPTED
+        )
+        live_app.allocated_units = 3
+        ghost_post = await make_social_post(db_session, ghost, likes=400, comments=23, reach=2039)
+        live_post = await make_social_post(db_session, live, likes=8, comments=2, reach=100)
+        await make_post_link(db_session, ghost_post, ghost_app)
+        await make_post_link(db_session, live_post, live_app)
+        await make_suggestion(db_session, ghost_post, ghost_app)
+        db_session.add(
+            DropApplicationShipment(
+                application_id=ghost_app.id,
+                tracking_number="1Z999",
+                carrier="ups",
+            )
+        )
+        await db_session.flush()
+        drop_id = drop.id
+        ghost_id = ghost.id
+        live_id = live.id
 
-        admin_drop = await app_client.get(f"/api/admin/drops/{accepted.drop_id}", headers=headers)
-        applicants = admin_drop.json()["data"]["applicants"]
-        mine = next(a for a in applicants if a["orgId"] == str(org.id))
-        assert mine["accountErased"] is True
+        headers = await _admin_headers(db_session)
+        erased = await app_client.post(
+            f"/api/admin/orgs/{erased_user.id}/erase",
+            headers=headers,
+            json={"confirm": "@GhostOrg"},
+        )
+        assert erased.status_code == 200, erased.text
 
-        drop = await db_session.get(Drop, accepted.drop_id)
-        assert drop is not None
-        brand = await db_session.get(Brand, drop.brand_id)
-        assert brand is not None
+        admin_drop = await app_client.get(f"/api/admin/drops/{drop_id}", headers=headers)
+        assert admin_drop.status_code == 200, admin_drop.text
+        admin_body = admin_drop.json()["data"]
+        admin_orgs = {row["orgId"] for row in admin_body["applicants"]}
+        assert str(ghost_id) not in admin_orgs
+        assert str(live_id) in admin_orgs
+        assert admin_body["linkedPostCount"] == 1
+        assert admin_body["allocatedUnits"] == 3
+
+        admin_brand = await app_client.get(f"/api/admin/brands/{brand.id}", headers=headers)
+        assert admin_brand.status_code == 200, admin_brand.text
+        brand_drops = admin_brand.json()["data"]["drops"]
+        listed = next(row for row in brand_drops if row["id"] == str(drop_id))
+        assert listed["acceptedCount"] == 1
+
         brand_owner = await db_session.get(User, brand.user_id)
         assert brand_owner is not None
         brand_headers = {"Authorization": f"Bearer {mint_access_token(brand_owner)}"}
-        brand_res = await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=brand_headers)
-        assert brand_res.status_code == 200
-        brand_apps = brand_res.json()["data"]["applications"]
-        brand_mine = next(a for a in brand_apps if a["orgId"] == str(org.id))
-        assert brand_mine["accountErased"] is True
-        assert brand_mine["attributedLikes"] == 12
+
+        brand_drop = await app_client.get(f"/api/brands/me/drops/{drop_id}", headers=brand_headers)
+        assert brand_drop.status_code == 200, brand_drop.text
+        detail = brand_drop.json()["data"]
+        detail_orgs = {row["orgId"] for row in detail["applications"]}
+        assert str(ghost_id) not in detail_orgs
+        assert str(live_id) in detail_orgs
+        assert detail["totalPosts"] == 1
+        assert detail["totalEngagement"] == 10
+        assert detail["totalReach"] == 100
+        assert all(row["accountErased"] is False for row in detail["applications"])
+
+        campaign_list = await app_client.get("/api/brands/me/drops", headers=brand_headers)
+        assert campaign_list.status_code == 200, campaign_list.text
+        campaign = next(row for row in campaign_list.json()["data"] if row["id"] == str(drop_id))
+        assert campaign["totalEngagement"] == 10
+        assert campaign["totalReach"] == 100
+        assert campaign["totalPosts"] == 1
+
+        dashboard = await app_client.get("/api/brands/me/aggregate", headers=brand_headers)
+        assert dashboard.status_code == 200, dashboard.text
+        agg = dashboard.json()["data"]
+        assert agg["totalEngagement"] == 10
+        assert agg["totalReach"] == 100
+        assert agg["totalPosts"] == 1
+        assert agg["totalOrgs"] == 1
+        assert agg["totalCampuses"] == 1
+
+        series = await app_client.get("/api/brands/me/engagement-series", headers=brand_headers)
+        assert series.status_code == 200, series.text
+        points = series.json()["data"]
+        assert points
+        assert max(point["engagement"] for point in points) == 10
+
+        assert (
+            await db_session.scalar(
+                select(func.count()).select_from(SocialPost).where(SocialPost.org_id == ghost_id)
+            )
+            == 0
+        )
+        assert (
+            await db_session.scalar(
+                select(func.count())
+                .select_from(DropApplicationShipment)
+                .where(DropApplicationShipment.application_id == ghost_app.id)
+            )
+            == 0
+        )
+        assert (
+            await db_session.scalar(
+                select(func.count()).select_from(SocialPost).where(SocialPost.id == live_post.id)
+            )
+            == 1
+        )
+
+    async def test_orphan_erased_participation_cleanup_is_idempotent(self, db_session):
+        """Rows left by the old keep-KPI erase are removed, and a second run is a no-op."""
+
+        erased_user = await persist(
+            db_session, make_user(role=PortalRole.ORG, status=OrgUserStatus.ERASED)
+        )
+        erased_user.instagram_username = None
+        ghost = await make_org(db_session, erased_user, org_name="Deleted organization")
+        ghost.university = "Ghost Campus"
+        ghost.follower_count = 1500
+
+        live_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        live_user.instagram_username = "StillHere"
+        live = await make_org(db_session, live_user, org_name="Still Here")
+        live.follower_count = 40
+
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+        ghost_app = await make_application(
+            db_session, drop, ghost, decision=ApplicationDecision.ACCEPTED
+        )
+        live_app = await make_application(
+            db_session, drop, live, decision=ApplicationDecision.ACCEPTED
+        )
+        ghost_post = await make_social_post(db_session, ghost, likes=400, comments=23, reach=2039)
+        live_post = await make_social_post(db_session, live, likes=5, comments=1, reach=20)
+        await make_post_link(db_session, ghost_post, ghost_app)
+        await make_post_link(db_session, live_post, live_app)
+        await db_session.flush()
+
+        await withdraw_org_campaign_participation(db_session)
+        await withdraw_org_campaign_participation(db_session)
+
+        assert (
+            await db_session.scalar(
+                select(func.count())
+                .select_from(DropApplication)
+                .where(DropApplication.org_id == ghost.id)
+            )
+            == 0
+        )
+        assert (
+            await db_session.scalar(
+                select(func.count()).select_from(SocialPost).where(SocialPost.org_id == ghost.id)
+            )
+            == 0
+        )
+        assert (
+            await db_session.scalar(
+                select(func.count())
+                .select_from(PostCampaignLink)
+                .where(PostCampaignLink.post_id == live_post.id)
+            )
+            == 1
+        )
+        await db_session.refresh(ghost)
+        await db_session.refresh(live)
+        assert ghost.follower_count is None
+        assert live.follower_count == 40
+        assert await db_session.get(Organization, ghost.id) is not None
 
     async def test_metric_sync_skips_erased(self, db_session):
         user, org, *_ = await _seed_erasable_org(db_session)

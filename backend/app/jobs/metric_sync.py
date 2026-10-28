@@ -202,7 +202,8 @@ async def _eligible_orgs(db: AsyncSession, now: datetime) -> list[Organization]:
     """Orgs with at least one accepted application on a live-stage drop.
 
     Erased accounts are excluded so Meta cannot rehydrate scrubbed identity
-    via discovery (PRODUCT §3.1.2).
+    (PRODUCT §3.1.2). Erase also deletes their posts, so there is nothing
+    left here to refresh or to add back into campaign totals.
     """
     org_ids = (
         select(DropApplication.org_id)
