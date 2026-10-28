@@ -5,7 +5,7 @@ kind: ux_hole
 severity: P3
 status: fixed
 surface: admin
-closed_in:
+closed_in: d2d1086
 evidence:
   - path: backend/app/services/remove_participant.py
     note: Confirmed delete of one seat, its shipments, link, and linked post

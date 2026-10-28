@@ -5,7 +5,7 @@ kind: invariant_break
 severity: P1
 status: fixed
 surface: drops
-closed_in:
+closed_in: d2d1086
 evidence:
   - path: backend/app/services/admin_erase.py
     note: Org erase freezes linked posts and strips Instagram identifiers
