@@ -31,7 +31,8 @@ export default function ApiDropOrgTable({
   title = "Posts by organization",
 }: Props) {
   const accepted = useMemo(
-    () => applicants.filter((a) => a.decision === "accepted"),
+    () =>
+      applicants.filter((a) => a.decision === "accepted" && !a.accountErased),
     [applicants],
   );
   const [category, setCategory] = useState<string>("all");
@@ -93,11 +94,7 @@ export default function ApiDropOrgTable({
                     <Chip>{orgCategoryLabel(a.category)}</Chip>
                   ) : null}
                 </p>
-                {a.accountErased ? (
-                  <p className={cn(TEXT.meta, "mt-1")}>
-                    Shipping details removed
-                  </p>
-                ) : a.deliveryAddress ? (
+                {a.deliveryAddress ? (
                   <p className={cn(TEXT.meta, "mt-1")}>
                     Ship to: {a.deliveryAddress}
                   </p>

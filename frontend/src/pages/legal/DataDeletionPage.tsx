@@ -14,7 +14,7 @@ export default function DataDeletionPage() {
   const { contact, brand, social } = siteIdentity;
   const mailtoHref = `mailto:${contact.email}?subject=${encodeURIComponent(DELETION_SUBJECT)}`;
   return (
-    <LegalLayout title="Data Deletion" lastUpdated="August 11, 2026">
+    <LegalLayout title="Data Deletion" lastUpdated="October 28, 2026">
       <p>
         You can ask {brand.displayName} (“Buzz”) to delete the personal data we
         hold about you at any time. This page explains how.
@@ -46,15 +46,24 @@ export default function DataDeletionPage() {
         </li>
         <li>
           Identifiable post content tied to your account (permalinks, captions,
-          and media), which we anonymize or remove.
+          and media).
         </li>
       </ul>
       <p>
-        Campaign participation metrics (for example attributed likes, comments,
-        and engagement used in brand reporting) may remain in anonymized form
-        after your identity is removed. We may also retain a minimal record
-        where required by law (for example, tax or fraud-prevention
-        obligations).
+        If you are an organization, we also remove you from campaign
+        participant lists. Your posts and metrics (likes, comments, reach, and
+        other insights) are not counted in brand, admin, or aggregate totals
+        after deletion.
+      </p>
+      <p>
+        If you are a brand, drops stay up for organizations that already
+        joined. Those organizations may still see an anonymized brand name on
+        campaigns they participated in. A brand deletion does not delete those
+        organizations’ posts or metrics.
+      </p>
+      <p>
+        We may retain a minimal record where required by law (for example, tax
+        or fraud-prevention obligations).
       </p>
       <p>
         When an email address is on file at the time of deletion, we may send a

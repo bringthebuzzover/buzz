@@ -218,7 +218,7 @@ async def erase_org_endpoint(
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Hybrid erase: scrub identity/PII; keep campaign KPIs (PRODUCT §3.1.2 / §4.3)."""
+    """Erase an org: scrub identity and remove its seats, posts, and metrics."""
     result = await erase_org_user(db, user_id, body.confirm)
     return api_response(data=AdminOrgEraseResponse.model_validate(result))
 

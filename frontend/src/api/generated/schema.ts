@@ -754,7 +754,7 @@ export interface paths {
         put?: never;
         /**
          * Erase Org Endpoint
-         * @description Hybrid erase: scrub identity/PII; keep campaign KPIs (PRODUCT §3.1.2 / §4.3).
+         * @description Erase an org: scrub identity and remove its seats, posts, and metrics.
          */
         post: operations["erase_org_endpoint_api_admin_orgs__user_id__erase_post"];
         delete?: never;

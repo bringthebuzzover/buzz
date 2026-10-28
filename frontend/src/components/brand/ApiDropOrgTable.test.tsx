@@ -1,6 +1,6 @@
 /**
- * Tombstone orgs keep university + shipping-removed copy; do not restamp
- * "Account deleted" next to the deleted display name.
+ * Erased orgs are omitted from the participant list. A live org still shows
+ * its linked post and insights.
  */
 import { renderToString } from "react-dom/server";
 import ApiDropOrgTable from "./ApiDropOrgTable";
@@ -58,13 +58,13 @@ const linkedPost: BrandDropPost = {
 };
 
 describe("ApiDropOrgTable", () => {
-  it("does not restamp Account deleted next to a tombstone org name", () => {
+  it("omits an erased org from participating organizations", () => {
     const html = renderToString(
       <ApiDropOrgTable applicants={[erased]} />,
     );
-    expect(html).toContain("Deleted organization");
-    expect(html).toContain("Cornell University");
-    expect(html).toContain("Shipping details removed");
+    expect(html).toContain("No participating organizations yet.");
+    expect(html).not.toContain("Deleted organization");
+    expect(html).not.toContain("Cornell University");
     expect(html).not.toContain("Account deleted");
   });
 
