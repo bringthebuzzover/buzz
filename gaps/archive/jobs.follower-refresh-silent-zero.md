@@ -5,6 +5,7 @@ kind: ops
 severity: P3
 status: fixed
 surface: jobs
+closed_in: fa420ff
 evidence:
   - path: backend/app/jobs/metric_sync.py
     note: _refresh_follower_counts logs only on fetch error or omitted followers_count; token skip and missing org row are silent
