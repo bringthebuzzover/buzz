@@ -127,7 +127,7 @@ Requested via `INSTAGRAM_SCOPES` in `backend/app/config.py`.
 | Permission | Why we need it | Where in code |
 | --- | --- | --- |
 | `instagram_business_basic` | Identify the connected org account (`id` or `user_id`, `username`, `account_type`, `followers_count`). List its media (`id`, `timestamp`). For linked posts, read `like_count`, `comments_count`, `caption`, `media_type`, `media_product_type`, `permalink`, `thumbnail_url`, `media_url`, `timestamp`. Shown on the org profile and campaign. | `fetch_profile`, `fetch_user_media`, `fetch_media` in `backend/app/services/instagram.py` |
-| `instagram_business_manage_insights` | Post insights for linked posts. Feed: `reach`, `views`, `saved`, `shares`, `total_interactions`, `profile_visits`, `profile_activity`, `follows`. Reels: `reach`, `views`, `saved`, `shares`, `total_interactions`, `ig_reels_avg_watch_time`, `ig_reels_video_view_total_time`, `reels_skip_rate`. Shown as Instagram Reach on the org campaign and the brand view. | `_FEED_INSIGHT_METRICS` and `_REEL_INSIGHT_METRICS` in `instagram.py` (`fetch_media_insights`) |
+| `instagram_business_manage_insights` | Post insights for linked posts. Feed: `reach`, `views`, `saved`, `shares`, `total_interactions`, `profile_visits`, `profile_activity`, `follows`. Reels: `reach`, `views`, `saved`, `shares`, `total_interactions`, `ig_reels_avg_watch_time`, `ig_reels_video_view_total_time`, `reels_skip_rate`. Each Instagram post on the org campaign Linked posts card and the brand drop posts list shows an Instagram insights row for the metrics requested for that media type (admin View as uses those pages). Summed reach still appears as Instagram Reach / Total reach. A missing value is an em dash. | `_FEED_INSIGHT_METRICS` and `_REEL_INSIGHT_METRICS` in `instagram.py` (`fetch_media_insights`) |
 
 `public_profile` is a Meta default. It can't be removed, has 0 calls, and is not requested.
 
@@ -344,9 +344,10 @@ Buzz connects campus organizations to brand campaigns. Each organization logs in
 ```
 
 **Resubmission change.** Replace “reach and related insights” with the feed
-and reel metric names in the table above, and say the org campaign label is
-**Instagram Reach**. Keep likes/comments as counts. Say only these two
-permissions are requested.
+and reel metric names in the table above. Say those metrics are shown on
+each linked post’s **Instagram insights** row (org campaign and brand drop),
+and that the campaign total is labeled **Instagram Reach**. Keep
+likes/comments as counts. Say only these two permissions are requested.
 
 ### 5. `instagram_business_manage_insights` — video
 
@@ -365,8 +366,11 @@ video
 **Resubmission change.** Replace Video B. This file has its own login, its
 own Allow on a consent screen that lists
 `instagram_business_manage_insights` under **BUZZ - IG**, then a live
-campaign showing **Instagram Reach** and the metrics named in the usage
-text. English captions. Do not use a clip that starts after login.
+campaign. Hold on the org Linked posts card so **Instagram insights**
+(reach, views, saves, shares, and the other metrics for that post type) is
+readable, and show the same row on the brand drop. The **Instagram Reach**
+total can stay in frame. English captions. Do not use a clip that starts
+after login.
 
 ### 6. `instagram_business_manage_insights` — allowed-usage attestation
 

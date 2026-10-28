@@ -288,7 +288,9 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         apply_open_at=now - timedelta(days=30),
         apply_close_at=now - timedelta(days=5),
         manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
+        # drop_active so the brand drop page shows linked-post insights
+        # (awaiting_products hides that list until the drop is live).
+        brand_tracker_stage=BrandTrackerStage.DROP_ACTIVE.value,
         total_product_units=400,
         campaign_hashtag="NorthwindGameDay",
         applicant_selection_finalized_at=now - timedelta(days=6),
@@ -375,7 +377,13 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         posted_at=now - timedelta(days=4),
         likes=820,
         comments=53,
+        reach=4100,
         views=12400,
+        saved=40,
+        shares=12,
+        total_interactions=90,
+        ig_reels_avg_watch_time=1200,
+        ig_reels_video_view_total_time=125000,
         reels_skip_rate=0.18,
         metrics_updated_at=now,
     )
@@ -391,6 +399,14 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         posted_at=now - timedelta(days=10),
         likes=410,
         comments=22,
+        reach=900,
+        views=2100,
+        saved=7,
+        shares=0,
+        total_interactions=30,
+        profile_visits=4,
+        profile_activity=None,
+        follows=2,
         metrics_updated_at=now,
     )
     post_unlinked = SocialPost(
@@ -399,7 +415,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         platform=Platform.INSTAGRAM.value,
         external_id="ig_seed_feed_2",
         url="https://instagram.com/p/seed3",
-        caption="Sunset row on the bay.",
+        caption="Sunset row on the bay — thanks @acmecoffee",
         media_type=SocialMediaType.CAROUSEL_ALBUM.value,
         media_product_type=SocialMediaProductType.FEED.value,
         posted_at=now - timedelta(days=1),
@@ -415,9 +431,16 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         source=PostLinkSource.ORG_MANUAL.value,
         linked_at=now - timedelta(days=3),
     )
+    link_feed = PostCampaignLink(
+        id=_uuid(61),
+        post_id=post_feed.id,
+        application_id=app_accepted.id,
+        source=PostLinkSource.ORG_MANUAL.value,
+        linked_at=now - timedelta(days=2),
+    )
     suggestion = PostCampaignSuggestion(
         id=_uuid(70),
-        post_id=post_feed.id,
+        post_id=post_unlinked.id,
         application_id=app_accepted.id,
         match_reason=SuggestionMatchReason.BRAND_HANDLE_CAPTION.value,
         match_evidence="@acmecoffee",
@@ -475,7 +498,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
             ),
         ],
         "social_posts": [post_reels, post_feed, post_unlinked],
-        "post_campaign_links": [link],
+        "post_campaign_links": [link, link_feed],
         "post_campaign_suggestions": [suggestion],
         "drop_tracker_events": [tracker_brief],
         "notify_me": [notify],
