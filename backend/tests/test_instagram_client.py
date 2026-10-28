@@ -13,7 +13,7 @@ import pytest
 
 from app.config import Settings, settings
 from app.exceptions import BuzzAPIException
-from app.services.instagram import HttpInstagramClient, instagram_graph_url
+from app.services.instagram import HttpInstagramClient, instagram_graph_url, storable_follower_count
 
 
 def test_build_authorize_url_stays_in_browser() -> None:
@@ -338,6 +338,82 @@ async def test_fetch_profile_omitted_followers_is_none() -> None:
 
     profile = await _client(handler).fetch_profile("tok")
     assert profile.followers_count is None
+    assert profile.followers_count_invalid is False
+
+
+async def test_fetch_profile_null_followers_is_none() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "id": "ig1",
+                "username": "campus",
+                "account_type": "BUSINESS",
+                "followers_count": None,
+            },
+        )
+
+    profile = await _client(handler).fetch_profile("tok")
+    assert profile.followers_count is None
+    assert profile.followers_count_invalid is False
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (None, None),
+        (0, 0),
+        (5150, 5150),
+        (-1, -1),
+        (True, None),
+        (False, None),
+        (1.0, 1),
+        (1.5, None),
+        (float("nan"), None),
+        (float("inf"), None),
+        (2_147_483_647, 2_147_483_647),
+        (2_147_483_648, None),
+        (-2_147_483_649, None),
+        ("4242", 4242),
+        ("0", 0),
+        ("4242.0", 4242),
+        ("false", None),
+        ("nope", None),
+        ("", None),
+        ({"n": 1}, None),
+    ],
+)
+def test_storable_follower_count(raw: object, expected: int | None) -> None:
+    assert storable_follower_count(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [False, True, "nope", 1.5, 3_000_000_000, "IGQVJ-not-a-count"],
+)
+async def test_fetch_profile_bad_followers_does_not_raise(raw: object, caplog) -> None:
+    """An unusable followers_count must not fail profile parse or land in logs."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["access_token"] == "IGQVJ-secret-profile-token"
+        return httpx.Response(
+            200,
+            json={
+                "id": "ig1",
+                "username": "campus",
+                "account_type": "BUSINESS",
+                "followers_count": raw,
+            },
+        )
+
+    with caplog.at_level("WARNING"):
+        profile = await _client(handler).fetch_profile("IGQVJ-secret-profile-token")
+    assert profile.followers_count is None
+    assert profile.followers_count_invalid is True
+    assert "reason=invalid" in caplog.text
+    assert f"type={type(raw).__name__}" in caplog.text
+    assert "IGQVJ-secret-profile-token" not in caplog.text
+    assert "IGQVJ-not-a-count" not in caplog.text
 
 
 async def test_refresh_long_lived_parses_token() -> None:
