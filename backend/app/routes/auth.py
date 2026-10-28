@@ -58,6 +58,7 @@ from app.security import jwt
 from app.security.rate_limit import enforce_account_limit, rate_limited
 from app.security.session import bump_token_version, commit_revocation
 from app.security.signed_request import SignedRequestError, parse_signed_request
+from app.security.view_as import clear_view_as_cookie
 from app.services.admin_auth import login_admin
 from app.services.auth import (
     StaleRefreshToken,
@@ -393,6 +394,20 @@ async def refresh(
     return api_response(data=RefreshResponse(access_token=access, user=build_user_response(user)))
 
 
+@router.post("/view-as/end", response_model=DataResponse[OkResponse])
+async def end_view_as(request: Request, response: Response) -> APIResponse:
+    """Drop the View-as intent cookie without touching the admin refresh cookie.
+
+    Exit cannot clear an httpOnly cookie from script. SameSite=Lax keeps a
+    cross-site POST from sending the cookie. Idempotent when it is already gone.
+    """
+
+    if settings.VIEW_AS_COOKIE_NAME in request.cookies:
+        clear_view_as_cookie(response)
+        logger.info("view-as end")
+    return api_response(data=OkResponse())
+
+
 @router.post("/logout", response_model=DataResponse[OkResponse])
 async def logout(
     request: Request,
@@ -414,6 +429,7 @@ async def logout(
 
     bumped = False
     had_refresh_cookie = settings.REFRESH_COOKIE_NAME in request.cookies
+    had_view_as_cookie = settings.VIEW_AS_COOKIE_NAME in request.cookies
 
     authorization = request.headers.get("Authorization")
     if authorization and authorization.startswith("Bearer "):
@@ -446,6 +462,11 @@ async def logout(
         await commit_revocation(db)
     if bumped or had_refresh_cookie:
         _clear_refresh_cookie(response)
+    # Same browser jar as the admin session. Clear only when this request
+    # actually carried a session cookie, matching the refresh-cookie rule so a
+    # cookieless cross-site POST cannot blank someone else's View as.
+    if had_view_as_cookie and (bumped or had_refresh_cookie):
+        clear_view_as_cookie(response)
     return api_response(data=OkResponse())
 
 

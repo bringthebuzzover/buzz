@@ -13,16 +13,21 @@ import {
   viewAsPortalRoleFromPath,
   isAdminPath,
   resumeImpersonation,
+  resumeViewAs,
   getAccessToken,
   isImpersonating,
 } from "./auth";
 
 function jsonResponse(status: number, body: unknown): Response {
-  return {
+  const resp = {
     ok: status >= 200 && status < 300,
     status,
     json: async () => body,
-  } as unknown as Response;
+    clone() {
+      return resp;
+    },
+  };
+  return resp as unknown as Response;
 }
 
 describe("View-as latch", () => {
@@ -75,7 +80,17 @@ describe("View-as latch", () => {
 
   it("viewAsPortalRoleFromPath and isAdminPath", () => {
     expect(viewAsPortalRoleFromPath("/org/browse")).toBe("org");
+    expect(viewAsPortalRoleFromPath("/org/campaigns/abc")).toBe("org");
+    expect(viewAsPortalRoleFromPath("/campaigns")).toBe("org");
+    expect(viewAsPortalRoleFromPath("/campaigns/abc")).toBe("org");
+    expect(viewAsPortalRoleFromPath("/org/apply")).toBeNull();
     expect(viewAsPortalRoleFromPath("/brand/dashboard")).toBe("brand");
+    expect(viewAsPortalRoleFromPath("/brand/setup")).toBe("brand");
+    expect(viewAsPortalRoleFromPath("/brand/drops/abc")).toBe("brand");
+    expect(viewAsPortalRoleFromPath("/brand/login")).toBeNull();
+    expect(viewAsPortalRoleFromPath("/brand/apply")).toBeNull();
+    expect(viewAsPortalRoleFromPath("/brand/forgot-password")).toBeNull();
+    expect(viewAsPortalRoleFromPath("/brand/reset-password")).toBeNull();
     expect(viewAsPortalRoleFromPath("/admin")).toBeNull();
     expect(isAdminPath("/admin")).toBe(true);
     expect(isAdminPath("/admin/orgs")).toBe(true);
@@ -136,6 +151,67 @@ describe("View-as latch", () => {
     await expect(resumeImpersonation("target-1")).resolves.toBe(true);
     expect(getAccessToken()).toBe("imp-from-resume");
     expect(isImpersonating()).toBe(true);
+  });
+
+  it("keeps the admin bearer when the refresh retry fails", async () => {
+    setAccessToken("admin-token");
+    global.fetch = jest.fn(async () =>
+      jsonResponse(401, { data: null, error: { code: "UNAUTHORIZED" } }),
+    );
+    await expect(resumeImpersonation("target-1")).resolves.toBe(false);
+    expect(getAccessToken()).toBe("admin-token");
+    expect(isImpersonating()).toBe(false);
+  });
+
+  it("resumeViewAs installs from the cookie endpoint", async () => {
+    setAccessToken("admin-token");
+    global.fetch = jest.fn(async () =>
+      jsonResponse(200, {
+        data: {
+          accessToken: "imp-from-cookie",
+          user: {
+            id: "target-1",
+            portal_role: "org",
+            status: "active",
+            impersonated_by: "admin-1",
+          },
+        },
+      }),
+    );
+    await expect(resumeViewAs()).resolves.toBe("ok");
+    expect(getAccessToken()).toBe("imp-from-cookie");
+    expect(isImpersonating()).toBe(true);
+    expect(String((global.fetch as jest.Mock).mock.calls[0][0])).toContain(
+      "/api/admin/impersonate/resume",
+    );
+  });
+
+  it("resumeViewAs treats a missing cookie as none and does not refresh", async () => {
+    setAccessToken("admin-token");
+    global.fetch = jest.fn(async () =>
+      jsonResponse(404, { data: null, error: { code: "NOT_FOUND" } }),
+    );
+    await expect(resumeViewAs()).resolves.toBe("none");
+    expect(getAccessToken()).toBe("admin-token");
+    expect(
+      (global.fetch as jest.Mock).mock.calls.every(
+        (c) => !String(c[0]).includes("/api/auth/refresh"),
+      ),
+    ).toBe(true);
+  });
+
+  it("resumeViewAs does not refresh when the intent itself is invalid", async () => {
+    setAccessToken("admin-token");
+    global.fetch = jest.fn(async () =>
+      jsonResponse(401, { data: null, error: { code: "VIEW_AS_INVALID" } }),
+    );
+    await expect(resumeViewAs()).resolves.toBe("denied");
+    expect(getAccessToken()).toBe("admin-token");
+    expect(
+      (global.fetch as jest.Mock).mock.calls.every(
+        (c) => !String(c[0]).includes("/api/auth/refresh"),
+      ),
+    ).toBe(true);
   });
 });
 

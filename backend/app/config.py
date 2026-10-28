@@ -120,6 +120,17 @@ class Settings(BaseSettings):
             "admin re-mints to continue."
         ),
     )
+    VIEW_AS_COOKIE_NAME: str = Field(
+        default="buzz_view_as",
+        description=(
+            "HttpOnly intent cookie so a full page load can remint View as. "
+            "It is not a bearer: resume still requires an admin access token."
+        ),
+    )
+    VIEW_AS_INTENT_TTL_HOURS: int = Field(
+        default=8,
+        description="Lifetime of the View-as intent cookie, independent of the access TTL.",
+    )
 
     # --- Refresh cookie (architecture.md §11.1) ---
     REFRESH_COOKIE_NAME: str = Field(default="buzz_refresh")

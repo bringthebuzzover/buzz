@@ -8,16 +8,20 @@ without a product path stay in ``gaps/``.
 
 from __future__ import annotations
 
+import logging
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import errors
 from app.config import settings
 from app.deps.auth import CurrentAdmin
 from app.deps.db import get_db
+from app.exceptions import BuzzAPIException
 from app.models.enums import BrandStatus, OrgUserStatus
-from app.response import APIResponse, DataResponse, api_response
+from app.response import APIResponse, DataResponse, api_error_response, api_response
 from app.schemas.acks import (
     AdminAddOrgRequest,
     AdminAddOrgResponse,
@@ -71,8 +75,11 @@ from app.schemas.admin_tables import (
     AdminTableQueryResponse,
     AdminTableRowResponse,
 )
+from app.schemas.auth import UserResponse
 from app.schemas.brands import FinalizeApplicantsRequest
 from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
+from app.security import jwt
+from app.security.view_as import clear_view_as_cookie, set_view_as_cookie
 from app.services.address import AddressClient, get_address_client
 from app.services.admin import (
     ack_ig_bind_mismatch,
@@ -136,6 +143,8 @@ from app.services.ig_change_requests import (
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.remove_participant import remove_participant_from_drop
 from app.services.shipments import add_shipment, delete_shipment
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -853,22 +862,107 @@ async def list_users_endpoint(
     return api_response(data=[AdminUserItem(**r) for r in rows])
 
 
+def _impersonate_body(token: str, target: UserResponse) -> ImpersonateResponse:
+    return ImpersonateResponse(
+        access_token=token,
+        user=target,
+        readonly=settings.IMPERSONATION_READONLY,
+    )
+
+
+def _view_as_error(status_code: int, code: str, message: str, *, clear: bool) -> JSONResponse:
+    body = api_error_response(code=code, message=message)
+    resp = JSONResponse(status_code=status_code, content=body.model_dump())
+    if clear:
+        clear_view_as_cookie(resp)
+    return resp
+
+
+@router.post("/impersonate/resume", response_model=DataResponse[ImpersonateResponse])
+async def resume_impersonation_endpoint(
+    request: Request,
+    response: Response,
+    user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse | JSONResponse:
+    """Remint View as from the httpOnly intent cookie.
+
+    Requires the caller's own admin access token. The cookie alone is not a
+    session. Missing cookie is 404 (nothing to resume). A cookie minted for a
+    different admin, or a target that can no longer be impersonated, is
+    rejected and the cookie is cleared.
+    """
+
+    raw = request.cookies.get(settings.VIEW_AS_COOKIE_NAME)
+    if not raw:
+        return _view_as_error(
+            404,
+            errors.NOT_FOUND,
+            "No view-as session.",
+            clear=False,
+        )
+    try:
+        payload = jwt.decode_token(raw, expected_type=jwt.VIEW_AS_TOKEN_TYPE)
+    except jwt.TokenError:
+        return _view_as_error(
+            401,
+            errors.VIEW_AS_INVALID,
+            "View-as session is no longer valid.",
+            clear=True,
+        )
+    if payload.imp != str(user.id) or payload.sub is None:
+        return _view_as_error(
+            403,
+            errors.FORBIDDEN,
+            "View-as session does not belong to this admin.",
+            clear=True,
+        )
+    try:
+        target_id = uuid.UUID(payload.sub)
+    except ValueError:
+        return _view_as_error(
+            401,
+            errors.VIEW_AS_INVALID,
+            "View-as session is no longer valid.",
+            clear=True,
+        )
+    try:
+        token, target = await mint_impersonation_token(db, user, target_id)
+    except BuzzAPIException as exc:
+        if exc.status_code in (403, 404):
+            return _view_as_error(exc.status_code, exc.code, exc.message, clear=True)
+        raise
+    intent = jwt.create_view_as_intent_token(user.id, target.id, target.portal_role)
+    set_view_as_cookie(response, intent)
+    logger.info(
+        "view-as resume admin=%s target=%s role=%s",
+        user.id,
+        target.id,
+        target.portal_role,
+    )
+    return api_response(data=_impersonate_body(token, target))
+
+
 @router.post("/impersonate/{user_id}", response_model=DataResponse[ImpersonateResponse])
 async def impersonate_endpoint(
     user_id: uuid.UUID,
+    response: Response,
     user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Mint a short-lived access token that acts as ``user_id``.
 
     Intentionally does NOT set a refresh cookie: the admin's own refresh session
-    must survive so exiting impersonation is a client-side token drop.
+    must survive so exiting impersonation does not require a second login.
+    It does set an httpOnly intent cookie so a full page load can remint.
     """
     token, target = await mint_impersonation_token(db, user, user_id)
-    return api_response(
-        data=ImpersonateResponse(
-            access_token=token,
-            user=target,
-            readonly=settings.IMPERSONATION_READONLY,
-        )
+    intent = jwt.create_view_as_intent_token(user.id, target.id, target.portal_role)
+    set_view_as_cookie(response, intent)
+    logger.info(
+        "view-as mint admin=%s target=%s role=%s",
+        user.id,
+        target.id,
+        target.portal_role,
     )
+    return api_response(data=_impersonate_body(token, target))

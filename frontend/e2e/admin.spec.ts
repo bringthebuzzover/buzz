@@ -182,6 +182,10 @@ test("the UI kit is admin-only and omitted from the public tree", async ({
   await loginAsAdmin(page);
   await page.goto("/admin/ui-kit");
   await expect(page.getByRole("heading", { name: "UI kit" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "404" })).toHaveCount(0);
+  await expect(
+    sidebar(page).getByRole("link", { name: /organizations/i }),
+  ).toBeVisible();
 });
 
 test("sidebar reaches every section", async ({ page }) => {
@@ -284,6 +288,51 @@ test("admin views as an org from a row and can exit", async ({ page }) => {
   await page.goto("/org/browse");
   await waitForAuthSettled(page, "admin-overview");
   await expect(page.getByTestId("impersonation-banner")).toHaveCount(0);
+});
+
+test("view as survives a direct URL and a new tab", async ({ page }) => {
+  await loginAsAdmin(page);
+  await sidebar(page).getByRole("link", { name: /organizations/i }).click();
+  const orgRow = page.getByRole("row", { name: new RegExp(TEST_ORG) });
+  await orgRow.getByRole("button", { name: /view as/i }).click();
+  await expect(page).toHaveURL(/\/org\/browse$/);
+  await waitForAuthSettled(page, "org");
+  await expect(page.getByTestId("impersonation-banner")).toBeVisible();
+
+  // Drop the same-tab latch so only the httpOnly intent cookie can remint.
+  await page.evaluate(() => sessionStorage.clear());
+  await page.goto("/campaigns");
+  await expect(page).toHaveURL(/\/org\/browse$/);
+  await waitForAuthSettled(page, "org");
+  await expect(page.getByTestId("impersonation-banner")).toBeVisible();
+  await expect(page).not.toHaveURL(/\/login/);
+
+  const fresh = await page.context().newPage();
+  await fresh.goto("/org/campaigns");
+  await waitForAuthSettled(fresh, "org");
+  await expect(fresh).toHaveURL(/\/org\/campaigns$/);
+  await expect(fresh.getByTestId("impersonation-banner")).toBeVisible();
+  await fresh.close();
+});
+
+test("view as a brand survives /brand/setup", async ({ page }) => {
+  await loginAsAdmin(page);
+  await sidebar(page).getByRole("link", { name: /brands/i }).click();
+  await expect(page).toHaveURL(/\/admin\/brands$/);
+  const brandRow = page.getByRole("row", { name: new RegExp(TEST_BRAND) });
+  await brandRow.getByRole("button", { name: /view as/i }).click();
+
+  await expect(page).toHaveURL(/\/brand\/dashboard$/);
+  await expect(page.getByText("Brand Portal")).toBeVisible();
+  await expect(page.getByTestId("impersonation-banner")).toBeVisible();
+
+  await page.evaluate(() => sessionStorage.clear());
+  await page.goto("/brand/setup");
+  await expect(page).toHaveURL(/\/brand\/dashboard$/);
+  await expect(page.getByTestId("impersonation-banner")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /activate account/i }),
+  ).toHaveCount(0);
 });
 
 async function horizontalOverflowPx(page: Page): Promise<number> {

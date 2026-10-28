@@ -62,7 +62,7 @@ Commit both `openapi.json` and `frontend/src/api/generated/schema.ts` when route
 - **Refresh** (~7d) httpOnly cookie `buzz_refresh`, path `/api/auth`. OAuth CSRF: `buzz_oauth_state` cookie on IG login.
 - Both access and refresh JWTs carry `ver`; API compares to `users.token_version` (revocation on logout, deny, password reset, re-login/refresh rotation, IG token clear/deauth, etc.). Refresh rotation is compare-and-swap: a superseded cookie 401s without bumping so it cannot revoke the winner.
 - Guards: `get_current_user` → `require_role` / `require_status` → aliases `CurrentOrg` / `CurrentBrand` / `CurrentAdmin`.
-- Impersonation: short-lived access token (default ~15m); admin refresh cookie untouched; default `IMPERSONATION_READONLY=true`. Same-tab reload remints via a `sessionStorage` View-as latch (Exit / logout clear it); access JWT stays memory-only.
+- Impersonation: short-lived access token (default ~15m); admin refresh cookie untouched; default `IMPERSONATION_READONLY=true`. A full load or a new tab remints from a signed httpOnly intent cookie (`buzz_view_as`, path `/api`, not a bearer) via `POST /api/admin/impersonate/resume`, which still requires the admin access token. Exit, logout, and a full load of `/admin` in the tab that started View as clear it. Access JWT stays memory-only. A same-tab `sessionStorage` latch is only the fallback if the cookie was not stored.
 - Org portal access statuses on `users.status` (**as-built today**): `pending_org_profile` → `pending_email_verification` → `pending_approval` → `active` | `denied` | `erased`. `erased` is terminal after admin org erase (identity scrubbed; campaign metrics frozen — PRODUCT §3.1.2). Brand review lives on `brands.status` (`pending_review` / `approved` / `denied` / `erased`); brand hybrid erase also sets the brand user’s `users.status` to `erased` (PRODUCT §3.1.3).
 
 **Seeded-launch target** ([`LAUNCH.md`](LAUNCH.md) Phase A): after admin Approve → `pending_instagram` (until IG bind) → `active`; legacy rows with Graph already on file may skip to `active`. Public `/org/apply` creates the account without IG OAuth; returning login is Instagram on the bound account. Full status machine: LAUNCH §4.
@@ -112,7 +112,7 @@ Mounted in `backend/app/main.py`:
 | `/api/drops/*` | `routes/drops.py` | Org feed, public/optional-auth detail, apply, Notify Me |
 | `/api/campaigns/*` | `routes/campaigns.py` | My campaigns, link/unlink, suggestions, aggregate |
 | `/api/brands/*` | `routes/brands.py` | Apply, brand profile, drops, finalize, aggregates |
-| `/api/admin/*` | `routes/admin.py` | Queues + Overview `items` (IG identity work), lifecycle, org/brand erase, org IG identity-change review, bind-mismatch ack, compose email, bulk Connect Instagram email, late-add org, sync+autolink on Awaiting Products or Active, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate |
+| `/api/admin/*` | `routes/admin.py` | Queues + Overview `items` (IG identity work), lifecycle, org/brand erase, org IG identity-change review, bind-mismatch ack, compose email, bulk Connect Instagram email, late-add org, sync+autolink on Awaiting Products or Active, drop config/tracker/hide/unhide, shipments, table inspect/patch, health, impersonate, impersonate/resume |
 
 Thin routes; business logic in `backend/app/services/`. Admin table inspect (`/api/admin/tables`) redacts secrets; generic PATCH is allowlisted — see [`ideas/archive/admin-mcp.md`](ideas/archive/admin-mcp.md). Operator stdio MCP: [`tools/buzz-admin-mcp/`](tools/buzz-admin-mcp/).
 
@@ -126,7 +126,7 @@ Thin routes; business logic in `backend/app/services/`. Admin table inspect (`/a
 - Guards: `RequireAuth` → `RequireStatus` → `RequireRole`.
 - HTTP: hand-written `apiFetch` (`frontend/src/api/client.ts`) + TanStack Query hooks; OpenAPI types for typing (`schema.ts`), not a generated runtime SDK.
 - Access token in memory; refresh via cookie; IG reconnect latch → `/reconnect-instagram`.
-- `GET /logout` is a public SPA route that runs the same sign-out as the header Logout control (View-as exits impersonation; otherwise `POST /api/auth/logout` then home).
+- `GET /logout` is a public SPA route that runs the same sign-out as the header Logout control (View-as exits impersonation; otherwise `POST /api/auth/logout` then home). `POST /api/auth/view-as/end` clears only the View-as intent cookie.
 
 ---
 
