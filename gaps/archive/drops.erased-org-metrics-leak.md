@@ -5,6 +5,7 @@ kind: invariant_break
 severity: P1
 status: fixed
 surface: drops
+closed_in: 0188dc7
 evidence:
   - path: backend/app/services/admin_erase.py
     note: Org erase used to keep accepted applications, links, and numeric post metrics
