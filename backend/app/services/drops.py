@@ -23,6 +23,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from app import errors
 from app.exceptions import BuzzAPIException
+from app.meta_reviewer.gate import reject_reviewer_mutation
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
@@ -322,6 +323,8 @@ async def apply_to_drop(
     capacity remains (``drop_apply_eligibility``, mirrors feed UX).
     """
 
+    # META-REVIEWER-PATH: reviewer org cannot apply (pre-accepted on one drop).
+    reject_reviewer_mutation(org_user)
     org = await _require_org(db, org_user)
     drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
     if drop is None:
@@ -392,6 +395,8 @@ async def set_notify(
 ) -> NotifyMe:
     """Upsert the caller org's reminder for a drop (one row per org+drop)."""
 
+    # META-REVIEWER-PATH: reviewer org cannot subscribe to other drops.
+    reject_reviewer_mutation(org_user)
     org = await _require_org(db, org_user)
     drop = await get_drop_or_404(db, drop_id)
     await _require_browsable_drop(db, drop)
@@ -417,6 +422,8 @@ async def set_notify(
 async def clear_notify(db: AsyncSession, org_user: User, drop_id: uuid.UUID) -> None:
     """Remove the caller org's reminder for a drop (idempotent)."""
 
+    # META-REVIEWER-PATH: reviewer org cannot change notify rows.
+    reject_reviewer_mutation(org_user)
     org = await _require_org(db, org_user)
     drop = await get_drop_or_404(db, drop_id)
     await _require_browsable_drop(db, drop)

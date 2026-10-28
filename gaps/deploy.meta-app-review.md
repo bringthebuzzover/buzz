@@ -51,8 +51,9 @@ fix_when: |
   The resubmission’s screencasts and usage text must match the code: consent
   under the app name BUZZ - IG, both permissions listed, org campaign label
   Instagram Reach, and the feed/reel metrics in instagram.py. Reviewers use
-  the test-credentials field (accepted tester + a Buzz test org), not their
-  own account.
+  their own Instagram Business or Creator account through the temporary
+  reviewer link in gaps/deploy.meta-reviewer-path.md (flag off by default).
+  Do not put Instagram passwords or a one-time Connect link in the form.
   All other permissions and features were removed on 2026-10-27 (reversible).
   Business Verification is already Verified (2026-10-26) and is not the
   remaining gate. Do not archive on submit alone.
@@ -78,6 +79,13 @@ Review, or paste tester credentials without an explicit OK.
 [`LAUNCH.md`](../LAUNCH.md) still treats Advanced Access as outside the
 seeded revamp: accepted testers can log in without it. Seeded onboarding
 stays “add the handle as an Instagram Tester, then Connect.”
+
+App Review is the exception. Reviewers do not get Buzz tester credentials
+and do not wait for admin approval. They open the reusable link in
+[`deploy.meta-reviewer-path`](deploy.meta-reviewer-path.md), consent with
+their own Instagram professional account, and land in the pre-accepted
+reviewer org. That path is off unless `META_REVIEWER_ACCESS_ENABLED` is
+true. It does not change `/login` or `/org/apply` for anyone else.
 
 ## Verified 2026-10-26 (dashboard, read-only)
 
@@ -211,17 +219,20 @@ links in this repo.
 | 1c | Decide: remove the unused Facebook Login Business Discovery path, or disclose it on the form | Lawrence + engineering | **Done.** Path removed in [`8266712`](https://github.com/bringthebuzzover/buzz/pull/15). Apply is a typed handle, stored unconfirmed. |
 | 2a | Remove unused permissions and features | Lawrence | **Done (2026-10-27).** Only the two permissions above remain. |
 | 2b | Consider a Data Deletion Callback URL (instructions URL already set) | Lawrence | **Skipped (Lawrence, 2026-10-27).** Data deletion instructions URL is set; callback not required. |
-| 3 | Put an **accepted** tester’s Instagram credentials and a Buzz test org in the test-credentials field. Do not tell reviewers to use their own account. | Lawrence | **Not started.** Credentials stay in the Meta form, not in git. |
+| 3 | Give Meta the reviewer link from [`deploy.meta-reviewer-path`](deploy.meta-reviewer-path.md). Reviewers use their own Instagram Business or Creator account. Do not put Instagram passwords in the test-credentials field. | Lawrence | **Not started.** The link secret stays out of git. The flag stays off until the recording window. |
 | 4 | Record two captioned videos (English). Each file contains its own login, grant, and that permission’s data. See the recording bar below. | Lawrence | **Not started.** Confirm Instagram Reach shows on www while recording. 1c and 2a are done. |
 | 5 | Rewrite each permission’s usage description. Name the fields and metrics. Say “comment counts,” not that Buzz has no access to comments. Say only these two permissions are requested. | Engineering drafts; Lawrence confirms | **Not started.** |
 | 6 | Submit | Lawrence | **Not started.** |
 
-**Recording bar.** Use an accepted tester whose Instagram account is not
-already authorized for Buzz (remove the app first, or use an account that
-has never approved it). A first bind starts on the connect page and uses
-**Connect with Instagram**, not **Continue with Instagram** on `/login`.
-Continue with Instagram is only the returning path, and only after that
-account is already the org’s login.
+**Recording bar.** Use the reviewer link
+([`deploy.meta-reviewer-path`](deploy.meta-reviewer-path.md)), not a Buzz
+tester password and not `/login`. The Instagram account must be Business or
+Creator and not already authorized for Buzz (remove the app first, or use
+an account that has never approved it). The link runs Instagram Login and
+the consent screen, then signs in as the pre-accepted reviewer org.
+**Continue with Instagram** on `/login` is only the returning path, and
+only after that account is already the org’s login. An unknown account on
+`/login` is still `ORG_APPLY_REQUIRED`.
 
 Record two files. Do not cut one session so that either file loses the
 login. Each file, in English, with captions, must show:

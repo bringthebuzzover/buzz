@@ -148,7 +148,12 @@ async def _heal_dangling(db: AsyncSession, now: datetime) -> int:
     return getattr(result, "rowcount", 0) or 0
 
 
-async def scan_autolink(db: AsyncSession, *, drop_id: UUID | None = None) -> dict[str, Any]:
+async def scan_autolink(
+    db: AsyncSession,
+    *,
+    drop_id: UUID | None = None,
+    org_id: UUID | None = None,
+) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
 
     # Accepted applications on live drops whose brand has a handle to match on.
@@ -168,6 +173,9 @@ async def scan_autolink(db: AsyncSession, *, drop_id: UUID | None = None) -> dic
     )
     if drop_id is not None:
         stmt = stmt.where(Drop.id == drop_id)
+    # META-REVIEWER-PATH: optional so a reviewer connect does not scan other orgs.
+    if org_id is not None:
+        stmt = stmt.where(DropApplication.org_id == org_id)
     rows = list(await db.execute(stmt))
 
     created = 0
@@ -234,8 +242,14 @@ async def scan_autolink(db: AsyncSession, *, drop_id: UUID | None = None) -> dic
                 continue
             created += 1
 
-    healed = await _drop_frozen_suggestions(db)
-    healed += await _heal_dangling(db, now)
+    # META-REVIEWER-PATH: a scoped scan (reviewer connect) must not dismiss
+    # other orgs' suggestions. The cron and admin scans pass no org_id and
+    # still drop frozen caption evidence and heal dangling rows.
+    if org_id is None:
+        healed = await _drop_frozen_suggestions(db)
+        healed += await _heal_dangling(db, now)
+    else:
+        healed = 0
 
     await db.flush()
     return {

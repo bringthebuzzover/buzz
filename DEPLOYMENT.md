@@ -196,6 +196,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 - [ ] `GOOGLE_ADDRESS_API_KEY` on Railway **api** (Places API New + Address Validation enabled on the key). Until set, off-dev API will fail fast at startup. Do not put this key in the SPA.
 - [x] Frontend built via `npm run build:prod` with `REACT_APP_API_URL=https://api.bringthebuzzover.com` (guard: `frontend/scripts/check-deploy-env.js`).
 - [ ] `BRAND_SELF_REGISTRATION_ENABLED` set intentionally (`true` = public `POST /api/brands/apply`; `false` = admin-provisioned brands only).
+- [ ] Meta reviewer path stays **off** until a recording window: `META_REVIEWER_ACCESS_ENABLED` (default false), `META_REVIEWER_LINK_SECRET_HASH` (hash only), `META_REVIEWER_DROP_ID`, optional `META_REVIEWER_ORG_EMAIL`. Setup and removal: [`gaps/deploy.meta-reviewer-path.md`](gaps/deploy.meta-reviewer-path.md). Do not commit the link secret.
 - [x] Meta dashboard URLs → brand www/api (archived [`gaps/archive/deploy.meta-brand-url-cutover.md`](gaps/archive/deploy.meta-brand-url-cutover.md)):
   - OAuth redirect: `https://www.bringthebuzzover.com/auth/instagram/callback`
   - Deauthorize: `https://api.bringthebuzzover.com/api/auth/instagram/deauthorize`
