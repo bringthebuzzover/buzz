@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.exceptions import BuzzAPIException
+from app.meta_reviewer.gate import reject_reviewer_mutation
 from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.enums import ApplicationDecision, BrandTrackerStage, OrgUserStatus, PortalRole
@@ -131,6 +132,8 @@ async def submit_request(
     reason: str,
     kind: str = "account_switch",
 ) -> dict[str, Any]:
+    # META-REVIEWER-PATH: a reconnect rebinds this org; it does not open a ticket.
+    reject_reviewer_mutation(user)
     if kind not in _KINDS:
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,

@@ -6203,6 +6203,44 @@
         "title": "DataResponse[InstagramDeauthorizeResponse]",
         "type": "object"
       },
+      "DataResponse_MetaReviewerSeedResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetaReviewerSeedResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[MetaReviewerSeedResponse]",
+        "type": "object"
+      },
       "DataResponse_OkResponse_": {
         "properties": {
           "data": {
@@ -8056,6 +8094,44 @@
           "postId"
         ],
         "title": "LinkPostRequest",
+        "type": "object"
+      },
+      "MetaReviewerSeedResponse": {
+        "properties": {
+          "applicationId": {
+            "title": "Applicationid",
+            "type": "string"
+          },
+          "createdApplication": {
+            "title": "Createdapplication",
+            "type": "boolean"
+          },
+          "createdUser": {
+            "title": "Createduser",
+            "type": "boolean"
+          },
+          "dropId": {
+            "title": "Dropid",
+            "type": "string"
+          },
+          "orgId": {
+            "title": "Orgid",
+            "type": "string"
+          },
+          "userId": {
+            "title": "Userid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "orgId",
+          "dropId",
+          "applicationId",
+          "createdUser",
+          "createdApplication"
+        ],
+        "title": "MetaReviewerSeedResponse",
         "type": "object"
       },
       "NotifyRequest": {
@@ -15824,6 +15900,109 @@
         "summary": "Get Health",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/meta-reviewer/seed": {
+      "post": {
+        "description": "Admin-only idempotent seed. 404 when the flag is off, before auth.",
+        "operationId": "meta_reviewer_seed_api_meta_reviewer_seed_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_MetaReviewerSeedResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Meta Reviewer Seed",
+        "tags": [
+          "meta-reviewer"
+        ]
+      }
+    },
+    "/api/meta-reviewer/start": {
+      "post": {
+        "description": "Verify the reusable link secret and mint a reviewer OAuth state.\n\nThe state cookie is the same CSRF binding as Connect. ``next`` is not\ntaken from the client (no open redirect).",
+        "operationId": "meta_reviewer_start_api_meta_reviewer_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "token": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_InstagramBindStartResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Meta Reviewer Start",
+        "tags": [
+          "meta-reviewer"
         ]
       }
     },
