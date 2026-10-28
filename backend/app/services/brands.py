@@ -40,6 +40,7 @@ from app.services.email import (
     build_idempotency_key,
     send_application_denied_email,
 )
+from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.shipments import shipments_by_application_ids
 
 logger = logging.getLogger(__name__)
@@ -82,6 +83,34 @@ async def resolve_brand_drop(db: AsyncSession, brand: Brand, drop_id: UUID) -> D
     return drop
 
 
+def _metrics_frozen_at(posts: Sequence[SocialPost]) -> datetime | None:
+    stamps = [post.metrics_frozen_at for post in posts if post.metrics_frozen_at is not None]
+    return max(stamps) if stamps else None
+
+
+# Brand wire shape for a frozen post: no permalink, media, or profile insights.
+_FROZEN_POST_WIRE = {
+    "url": "",
+    "caption": "",
+    "media_url": None,
+    "thumbnail_url": None,
+    "total_interactions": None,
+    "profile_visits": None,
+    "profile_activity": None,
+    "follows": None,
+    "ig_reels_avg_watch_time": None,
+    "ig_reels_video_view_total_time": None,
+    "reels_skip_rate": None,
+}
+
+
+def _brand_post_item(post: SocialPost, *, anonymize: bool) -> BrandDropPostItem:
+    item = BrandDropPostItem.model_validate(post, from_attributes=True)
+    if anonymize or post.metrics_frozen_at is not None:
+        return item.model_copy(update=_FROZEN_POST_WIRE)
+    return item
+
+
 async def build_brand_drop_detail(
     db: AsyncSession, brand: Brand, drop: Drop
 ) -> BrandDropDetailResponse:
@@ -102,40 +131,44 @@ async def build_brand_drop_detail(
     for app, org, org_user in rows:
         attr = await _org_attributed_totals(db, app.id)
         posts = await _application_linked_posts(db, app.id)
+        erased = org_user.status == OrgUserStatus.ERASED.value
         applicants.append(
             BrandDropDetailApplicant(
                 id=app.id,
                 drop_id=app.drop_id,
                 org_id=app.org_id,
                 decision=app.decision,
-                pitch=app.pitch,
+                pitch=None if erased else app.pitch,
                 shipments=shipment_map.get(app.id, []),
                 allocated_units=app.allocated_units,
                 applied_at=app.applied_at,
                 decision_at=app.decision_at,
-                org_name=org.org_name,
-                university=org.university,
-                instagram_handle=org_user.instagram_username or "",
-                follower_count=org.follower_count,
-                member_count=org.member_count,
-                category=org.category,
+                org_name=TOMBSTONE_ORG_NAME if erased else org.org_name,
+                university="" if erased else org.university,
+                instagram_handle="" if erased else (org_user.instagram_username or ""),
+                follower_count=None if erased else org.follower_count,
+                member_count=None if erased else org.member_count,
+                category=None if erased else org.category,
                 delivery_address=(
-                    org.delivery_address
-                    if app.decision
-                    in (
-                        ApplicationDecision.APPLIED.value,
-                        ApplicationDecision.ACCEPTED.value,
+                    None
+                    if erased
+                    else (
+                        org.delivery_address
+                        if app.decision
+                        in (
+                            ApplicationDecision.APPLIED.value,
+                            ApplicationDecision.ACCEPTED.value,
+                        )
+                        else None
                     )
-                    else None
                 ),
-                account_erased=org_user.status == OrgUserStatus.ERASED.value,
+                account_erased=erased,
+                metrics_frozen_at=_metrics_frozen_at(posts),
                 attributed_post_count=attr["attributed_post_count"],
                 attributed_likes=attr["attributed_likes"],
                 attributed_comments=attr["attributed_comments"],
                 attributed_engagement=attr["attributed_engagement"],
-                posts=[
-                    BrandDropPostItem.model_validate(post, from_attributes=True) for post in posts
-                ],
+                posts=[_brand_post_item(post, anonymize=erased) for post in posts],
             )
         )
 
@@ -355,7 +388,8 @@ async def compute_brand_aggregate(db: AsyncSession, brand: Brand) -> dict[str, i
         )
         for org_id, university in rows:
             org_ids_all.add(org_id)
-            campus_set.add(university)
+            if university:
+                campus_set.add(university)
 
     return {
         "total_drops": total_drops,

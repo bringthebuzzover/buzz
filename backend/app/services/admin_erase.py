@@ -1,6 +1,8 @@
 """Admin hybrid erase for orgs (PRODUCT §3.1.2) and brands (PRODUCT §3.1.3).
 
-Scrubs identity and contact PII; keeps campaign graph and numeric KPIs.
+Org erase scrubs identity, freezes campaign metrics, and keeps the accepted
+seat. Brand erase scrubs identity and keeps drops and org campaign history
+under a tombstone brand name.
 """
 
 from __future__ import annotations
@@ -9,7 +11,7 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import delete, or_, select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -18,11 +20,8 @@ from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import ApplicationDecision, BrandStatus, OrgUserStatus, PortalRole
-from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
-from app.models.post_suggestion import PostCampaignSuggestion
-from app.models.social_post import SocialPost
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.session import bump_token_version, commit_revocation
@@ -34,13 +33,17 @@ from app.services.email import (
     send_brand_erased_email,
     send_org_erased_email,
 )
+from app.services.erased_org_participation import (
+    TOMBSTONE_ORG_NAME,
+    freeze_org_campaign_metrics,
+    purge_erased_identity_rows,
+)
 from app.services.instagram import canonical_instagram_handle
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.org_apply import clear_ig_bind_mismatch
 
 logger = logging.getLogger(__name__)
 
-_TOMBSTONE_ORG_NAME = "Deleted organization"
 _TOMBSTONE_BRAND_NAME = "Deleted brand"
 
 
@@ -58,6 +61,14 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
         raise BuzzAPIException(errors.NOT_FOUND, "Organization user not found.", status_code=404)
 
     if user.status == OrgUserStatus.ERASED.value:
+        # Re-erase heals posts and any identity rows a previous pass left behind.
+        org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+        now = datetime.now(timezone.utc)
+        await purge_erased_identity_rows(db, user=user, org=org)
+        if org is not None:
+            await _scrub_campaign_and_profile(db, org, now)
+        _clear_user_identity(user, bump=False)
+        await db.flush()
         return {
             "user_id": str(user.id),
             "status": OrgUserStatus.ERASED.value,
@@ -86,23 +97,10 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
     display_name = org.org_name if org is not None else stored_handle
 
     now = datetime.now(timezone.utc)
+    await purge_erased_identity_rows(db, user=user, org=org)
     if org is not None:
-        await _auto_deny_applied(db, org.id, now)
-        await _scrub_posts(db, org.id)
-        await _delete_org_side_rows(db, org.id)
-        await expire_and_clear_intents_for_org(db, org.id)
-        _scrub_org_profile(org)
-        await _scrub_application_pitches(db, org.id)
-
-    await _delete_user_tokens(db, user.id)
-    clear_unusable_instagram_token(user)
-    user.instagram_user_id = None
-    user.instagram_token_user_id = None
-    user.instagram_username = None
-    user.edu_email = None
-    user.pending_edu_email = None
-    user.email_verified_at = None
-    user.password_hash = None
+        await _scrub_campaign_and_profile(db, org, now)
+    _clear_user_identity(user, bump=True)
     user.status = OrgUserStatus.ERASED.value
 
     await db.flush()
@@ -129,52 +127,32 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
     }
 
 
-async def _auto_deny_applied(db: AsyncSession, org_id: UUID, now: datetime) -> None:
-    await db.execute(
-        update(DropApplication)
-        .where(
-            DropApplication.org_id == org_id,
-            DropApplication.decision == ApplicationDecision.APPLIED.value,
-        )
-        .values(decision=ApplicationDecision.DENIED.value, decision_at=now)
-    )
+async def _scrub_campaign_and_profile(db: AsyncSession, org: Organization, now: datetime) -> None:
+    await _auto_deny_applied(db, org.id, now)
+    await expire_and_clear_intents_for_org(db, org.id)
+    await freeze_org_campaign_metrics(db, org_id=org.id, now=now)
+    _scrub_org_profile(org)
 
 
-async def _scrub_posts(db: AsyncSession, org_id: UUID) -> None:
-    posts = list(await db.scalars(select(SocialPost).where(SocialPost.org_id == org_id)))
-    for post in posts:
-        post.external_id = f"erased-{post.id}"
-        post.url = f"erased://post/{post.id}"
-        post.caption = "[removed]"
-        post.media_url = None
-        post.thumbnail_url = None
-        post.insights_raw = None
+def _clear_user_identity(user: User, *, bump: bool) -> None:
+    """Drop login and Instagram identity. Bump sessions on the first erase."""
 
-
-async def _delete_org_side_rows(db: AsyncSession, org_id: UUID) -> None:
-    app_ids = list(
-        await db.scalars(select(DropApplication.id).where(DropApplication.org_id == org_id))
-    )
-    post_ids = list(await db.scalars(select(SocialPost.id).where(SocialPost.org_id == org_id)))
-    sug_conds = []
-    if app_ids:
-        sug_conds.append(PostCampaignSuggestion.application_id.in_(app_ids))
-    if post_ids:
-        sug_conds.append(PostCampaignSuggestion.post_id.in_(post_ids))
-    if sug_conds:
-        await db.execute(delete(PostCampaignSuggestion).where(or_(*sug_conds)))
-    await db.execute(delete(NotifyMe).where(NotifyMe.org_id == org_id))
-    # Links intentionally kept for KPI retention (PRODUCT §4.3).
-
-
-async def _scrub_application_pitches(db: AsyncSession, org_id: UUID) -> None:
-    await db.execute(
-        update(DropApplication).where(DropApplication.org_id == org_id).values(pitch=None)
-    )
+    had_token = bool(user.instagram_access_token)
+    clear_unusable_instagram_token(user, bump_session=False)
+    user.instagram_user_id = None
+    user.instagram_token_user_id = None
+    user.instagram_username = None
+    user.instagram_granted_permissions = None
+    user.edu_email = None
+    user.pending_edu_email = None
+    user.email_verified_at = None
+    user.password_hash = None
+    if bump or had_token:
+        bump_token_version(user)
 
 
 def _scrub_org_profile(org: Organization) -> None:
-    org.org_name = _TOMBSTONE_ORG_NAME
+    org.org_name = TOMBSTONE_ORG_NAME
     org.tiktok_handle = None
     org.member_count = None
     org.category = None
@@ -191,7 +169,21 @@ def _scrub_org_profile(org: Organization) -> None:
     org.claimed_instagram_username = None
     org.instagram_handle_confirmed = False
     clear_ig_bind_mismatch(org)
-    # Keep follower_count and university for brand reach / campus KPIs.
+    org.follower_count = None
+    org.university = ""
+
+
+async def _auto_deny_applied(db: AsyncSession, org_id: UUID, now: datetime) -> None:
+    """Pending applications are not accepted seats. Deny them so they leave the queue."""
+
+    await db.execute(
+        update(DropApplication)
+        .where(
+            DropApplication.org_id == org_id,
+            DropApplication.decision == ApplicationDecision.APPLIED.value,
+        )
+        .values(decision=ApplicationDecision.DENIED.value, decision_at=now)
+    )
 
 
 async def erase_brand(db: AsyncSession, brand_id: UUID, confirm: str) -> dict[str, object]:

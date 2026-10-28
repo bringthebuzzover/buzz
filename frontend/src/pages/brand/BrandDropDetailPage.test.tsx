@@ -281,7 +281,7 @@ describe("BrandDropDetailPage", () => {
     confirmSpy.mockRestore();
   });
 
-  it("does not restamp Account deleted on an erased applicant card", () => {
+  it("omits an erased org from the applicant list", () => {
     mockUseBrandDropDetail.mockReturnValue({
       data: {
         ...brandDrop(false),
@@ -319,9 +319,9 @@ describe("BrandDropDetailPage", () => {
     });
     renderPage();
 
-    expect(container.textContent).toContain("Deleted organization");
-    expect(container.textContent).toContain("Cornell University");
-    expect(container.textContent).toContain("Shipping details removed");
+    expect(container.textContent).not.toContain("Deleted organization");
+    expect(container.textContent).not.toContain("Cornell University");
+    expect(container.textContent).not.toContain("Shipping details removed");
     expect(container.textContent).not.toContain("Account deleted");
   });
 });

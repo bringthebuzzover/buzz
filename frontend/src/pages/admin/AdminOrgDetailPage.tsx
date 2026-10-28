@@ -353,7 +353,7 @@ export default function AdminOrgDetailPage() {
             <Modal
               onClose={cancelEraseConfirm}
               title="Erase this organization"
-              description="Removes login identity and contact details. Campaign KPIs stay. Type the Instagram handle to confirm."
+              description="Removes login, contact details, and Instagram post content. Campaign metrics stay frozen for the brand. Type the Instagram handle to confirm."
             >
               <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
                 {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
@@ -425,9 +425,9 @@ export default function AdminOrgDetailPage() {
 
           {erased && (
             <ErrorNote>
-              This account has been erased. Identity and contact PII were
-              scrubbed; campaign KPI contribution is retained for brand
-              reporting.
+              This account has been erased. Identity and Instagram post content
+              were removed. Accepted campaign metrics stay frozen in brand and
+              admin totals.
             </ErrorNote>
           )}
 

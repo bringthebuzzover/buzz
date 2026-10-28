@@ -31,6 +31,8 @@ from app.schemas.acks import (
     AdminOrgEraseRequest,
     AdminOrgEraseResponse,
     AdminOrgStatusResponse,
+    AdminRemoveParticipantRequest,
+    AdminRemoveParticipantResponse,
     AdminResendConnectAllResponse,
     AdminSyncAutolinkResponse,
     ClearInstagramTokenResponse,
@@ -132,6 +134,7 @@ from app.services.ig_change_requests import (
     list_requests as list_ig_change_requests,
 )
 from app.services.instagram import InstagramClient, get_instagram_client
+from app.services.remove_participant import remove_participant_from_drop
 from app.services.shipments import add_shipment, delete_shipment
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -218,7 +221,7 @@ async def erase_org_endpoint(
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Hybrid erase: scrub identity/PII; keep campaign KPIs (PRODUCT §3.1.2 / §4.3)."""
+    """Erase an org: scrub identity and freeze its campaign metrics."""
     result = await erase_org_user(db, user_id, body.confirm)
     return api_response(data=AdminOrgEraseResponse.model_validate(result))
 
@@ -629,6 +632,28 @@ async def unhide_drop_endpoint(
 ) -> APIResponse:
     await unhide_drop(db, drop_id)
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
+
+
+@router.post(
+    "/drops/{drop_id}/applications/{application_id}/remove",
+    response_model=DataResponse[AdminRemoveParticipantResponse],
+)
+async def remove_participant_endpoint(
+    drop_id: uuid.UUID,
+    application_id: uuid.UUID,
+    body: AdminRemoveParticipantRequest,
+    admin: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Remove one org from one drop. Deletes that seat, its shipments, and its linked metrics."""
+    result = await remove_participant_from_drop(
+        db,
+        actor_id=admin.id,
+        drop_id=drop_id,
+        application_id=application_id,
+        confirm=body.confirm,
+    )
+    return api_response(data=AdminRemoveParticipantResponse.model_validate(result))
 
 
 @router.post(

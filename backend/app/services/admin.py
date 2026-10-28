@@ -65,6 +65,7 @@ from app.services.email import (
     send_org_ig_switch_connect_email,
     send_org_undenied_email,
 )
+from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
@@ -129,38 +130,53 @@ async def list_orgs(
         )
 
     rows = list(await db.execute(stmt))
-    return [
-        {
-            "id": org.id if org is not None else None,
-            "user_id": user.id,
-            "org_name": org.org_name if org is not None else None,
-            "university": org.university if org is not None else None,
-            "instagram_handle": user.instagram_username,
-            "instagram_handle_confirmed": (
-                org.instagram_handle_confirmed if org is not None else False
-            ),
-            "claimed_instagram_username": (
-                org.claimed_instagram_username if org is not None else None
-            ),
-            "ig_bind_graph_username": org.ig_bind_graph_username if org is not None else None,
-            "ig_bind_mismatched_at": org.ig_bind_mismatched_at if org is not None else None,
-            "ig_bind_mismatch_acked_at": (
-                org.ig_bind_mismatch_acked_at if org is not None else None
-            ),
-            "follower_count": org.follower_count if org is not None else None,
-            "member_count": org.member_count if org is not None else None,
-            "category": org.category if org is not None else None,
-            "status": user.status,
-            "edu_email": user.edu_email,
-            "email_verified_at": user.email_verified_at,
-            "approved_at": org.approved_at if org is not None else None,
-            "last_login_at": user.last_login_at,
-            "instagram_token_expires_at": user.instagram_token_expires_at,
-            "impersonatable": user.status == OrgUserStatus.ACTIVE.value,
-            "created_at": user.created_at,
-        }
-        for user, org in rows
-    ]
+    listed = []
+    for user, org in rows:
+        erased = user.status == OrgUserStatus.ERASED.value
+        listed.append(
+            {
+                "id": org.id if org is not None else None,
+                "user_id": user.id,
+                "org_name": (
+                    (TOMBSTONE_ORG_NAME if erased else org.org_name) if org is not None else None
+                ),
+                "university": "" if erased else (org.university if org is not None else None),
+                "instagram_handle": None if erased else user.instagram_username,
+                "instagram_handle_confirmed": (
+                    False
+                    if erased
+                    else (org.instagram_handle_confirmed if org is not None else False)
+                ),
+                "claimed_instagram_username": (
+                    None
+                    if erased
+                    else (org.claimed_instagram_username if org is not None else None)
+                ),
+                "ig_bind_graph_username": (
+                    None if erased else (org.ig_bind_graph_username if org is not None else None)
+                ),
+                "ig_bind_mismatched_at": (
+                    None if erased else (org.ig_bind_mismatched_at if org is not None else None)
+                ),
+                "ig_bind_mismatch_acked_at": (
+                    None if erased else (org.ig_bind_mismatch_acked_at if org is not None else None)
+                ),
+                "follower_count": (
+                    None if erased else (org.follower_count if org is not None else None)
+                ),
+                "member_count": None if erased else (org.member_count if org is not None else None),
+                "category": None if erased else (org.category if org is not None else None),
+                "status": user.status,
+                "edu_email": None if erased else user.edu_email,
+                "email_verified_at": None if erased else user.email_verified_at,
+                "approved_at": None if erased else (org.approved_at if org is not None else None),
+                "last_login_at": user.last_login_at,
+                "instagram_token_expires_at": (None if erased else user.instagram_token_expires_at),
+                "impersonatable": user.status == OrgUserStatus.ACTIVE.value,
+                "created_at": user.created_at,
+            }
+        )
+    return listed
 
 
 def _refuse_erased_org(user: User) -> None:

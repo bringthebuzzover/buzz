@@ -100,6 +100,20 @@ class AdminDropHideRequest(CamelModel):
     notify_brand: bool = False
 
 
+class AdminRemoveParticipantRequest(CamelModel):
+    """Typed confirm. The word ``remove`` — erased orgs no longer have a handle."""
+
+    confirm: str
+
+
+class AdminRemoveParticipantResponse(CamelModel):
+    drop_id: uuid.UUID
+    application_id: uuid.UUID
+    org_id: uuid.UUID
+    posts_removed: int
+    shipments_removed: int
+
+
 class AdminOrgEraseRequest(CamelModel):
     """Typed confirm payload — Instagram handle only (PRODUCT §3.1.2)."""
 

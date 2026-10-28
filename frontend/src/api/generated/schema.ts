@@ -307,6 +307,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/drops/{drop_id}/applications/{application_id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove Participant Endpoint
+         * @description Remove one org from one drop. Deletes that seat, its shipments, and its linked metrics.
+         */
+        post: operations["remove_participant_endpoint_api_admin_drops__drop_id__applications__application_id__remove_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/drops/{drop_id}/clear-reopen": {
         parameters: {
             query?: never;
@@ -754,7 +774,7 @@ export interface paths {
         put?: never;
         /**
          * Erase Org Endpoint
-         * @description Hybrid erase: scrub identity/PII; keep campaign KPIs (PRODUCT §3.1.2 / §4.3).
+         * @description Erase an org: scrub identity and freeze its campaign metrics.
          */
         post: operations["erase_org_endpoint_api_admin_orgs__user_id__erase_post"];
         delete?: never;
@@ -2256,6 +2276,8 @@ export interface components {
             instagramHandle: string | null;
             /** Linkedpostcount */
             linkedPostCount: number;
+            /** Metricsfrozenat */
+            metricsFrozenAt?: number | null;
             /**
              * Orgid
              * Format: uuid
@@ -3091,6 +3113,36 @@ export interface components {
             oldestAt: number | null;
         };
         /**
+         * AdminRemoveParticipantRequest
+         * @description Typed confirm. The word ``remove`` — erased orgs no longer have a handle.
+         */
+        AdminRemoveParticipantRequest: {
+            /** Confirm */
+            confirm: string;
+        };
+        /** AdminRemoveParticipantResponse */
+        AdminRemoveParticipantResponse: {
+            /**
+             * Applicationid
+             * Format: uuid
+             */
+            applicationId: string;
+            /**
+             * Dropid
+             * Format: uuid
+             */
+            dropId: string;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Postsremoved */
+            postsRemoved: number;
+            /** Shipmentsremoved */
+            shipmentsRemoved: number;
+        };
+        /**
          * AdminResendConnectAllResponse
          * @description Bulk Connect email for ``pending_instagram`` orgs only.
          */
@@ -3408,6 +3460,8 @@ export interface components {
             instagramHandle: string;
             /** Membercount */
             memberCount: number | null;
+            /** Metricsfrozenat */
+            metricsFrozenAt?: number | null;
             /**
              * Orgid
              * Format: uuid
@@ -3569,6 +3623,8 @@ export interface components {
             mediaType: string;
             /** Mediaurl */
             mediaUrl: string | null;
+            /** Metricsfrozenat */
+            metricsFrozenAt?: number | null;
             /** Platform */
             platform: string;
             /** Postedat */
@@ -3970,6 +4026,15 @@ export interface components {
         /** DataResponse[AdminOverviewResponse] */
         DataResponse_AdminOverviewResponse_: {
             data?: components["schemas"]["AdminOverviewResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[AdminRemoveParticipantResponse] */
+        DataResponse_AdminRemoveParticipantResponse_: {
+            data?: components["schemas"]["AdminRemoveParticipantResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -6016,6 +6081,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminAddOrgResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    remove_participant_endpoint_api_admin_drops__drop_id__applications__application_id__remove_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminRemoveParticipantRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminRemoveParticipantResponse_"];
                 };
             };
             /** @description Unprocessable Entity */
