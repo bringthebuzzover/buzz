@@ -19,6 +19,11 @@ describe("imageInitials", () => {
     expect(imageInitials("UCLA")).toBe("UC");
     expect(imageInitials("  ")).toBe("");
   });
+
+  it("keeps non-Latin letters", () => {
+    expect(imageInitials("École Polytechnique")).toBe("ÉP");
+    expect(imageInitials("東京大学")).toBe("東京");
+  });
 });
 
 describe("RemoteImage", () => {
@@ -60,6 +65,23 @@ describe("RemoteImage", () => {
     expect(html).toContain('data-testid="image-fallback"');
     expect(protocolRelative).not.toContain("<img");
     expect(protocolRelative).toContain("AB");
+    const slashBackslash = renderToString(
+      <RemoteImage src={"/\\evil.example/x.png"} label="Acme Brand" />,
+    );
+    expect(slashBackslash).not.toContain("<img");
+    expect(slashBackslash).toContain("AB");
+  });
+
+  it("allows an inlined raster data URL and rejects other data URLs", () => {
+    const png = renderToString(
+      <RemoteImage src="data:image/png;base64,iVBORw0KGgo=" label="Harvard" />,
+    );
+    const svg = renderToString(
+      <RemoteImage src="data:image/svg+xml;base64,PHN2Zy8+" label="Harvard" />,
+    );
+    expect(png).toContain('src="data:image/png;base64,iVBORw0KGgo="');
+    expect(svg).not.toContain("<img");
+    expect(svg).toContain("HA");
   });
 
   it("swaps to initials when the image fails to load", () => {

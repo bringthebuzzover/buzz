@@ -10,10 +10,17 @@ import { useState } from "react";
 import { cn } from "../../theme/cn";
 import { safeHttpUrl } from "../../utils/safeHttpUrl";
 
+/**
+ * Webpack inlines a committed PNG under ~10KB as a data URL. Raster types
+ * only: an SVG data URL can carry script, and safeHttpUrl still rejects data:
+ * for links.
+ */
+const RASTER_DATA_URL = /^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i;
+
 export function imageInitials(label: string): string {
   const words = label
     .trim()
-    .split(/[^A-Za-z0-9]+/)
+    .split(/[^\p{L}\p{N}]+/u)
     .filter((word) => word.length > 0);
   if (words.length === 0) {
     return "";
@@ -30,7 +37,7 @@ export function displayableImageSrc(src: string | null | undefined): string | nu
     return null;
   }
   const value = src.trim();
-  if (value === "" || value.startsWith("//")) {
+  if (value === "" || value.startsWith("//") || value.startsWith("/\\")) {
     return null;
   }
   if (
@@ -39,6 +46,9 @@ export function displayableImageSrc(src: string | null | undefined): string | nu
     value.startsWith("../") ||
     !value.includes(":")
   ) {
+    return value;
+  }
+  if (RASTER_DATA_URL.test(value)) {
     return value;
   }
   return safeHttpUrl(value);

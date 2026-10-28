@@ -17,5 +17,9 @@ describe("COLLEGES", () => {
     expect(html).not.toMatch(/clearbit|icon\.horse/i);
     expect(html).toContain("Stanford");
     expect(html).toContain("Johns Hopkins");
+    expect(html).toContain("w-[320%]");
+    expect(html).toContain("w-[210%]");
+    expect(html).toContain("w-[180%]");
+    expect(html).toContain("w-[160%]");
   });
 });
