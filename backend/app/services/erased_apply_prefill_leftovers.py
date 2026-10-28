@@ -8,19 +8,22 @@ the org, and a live applicant's pending draft stores them too.
 
 An unclaimed draft is eligible when Resend still has an org-erasure message
 for its ``edu_email`` or ``invite_email``, the draft was created at or before
-the earliest such message, and no non-erased user currently holds that
-address. A draft whose ``used_by_user_id`` is an erased org user is eligible
-on that link alone. A draft used by any other account stays.
+the earliest such message, and no non-erased user holds any email column on
+the draft. A draft whose ``used_by_user_id`` is an erased org user is eligible
+on that link alone, with the same live-email exception. A draft used by any
+other account stays.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import httpx
 from sqlalchemy import and_, delete, exists, func, or_, select
@@ -43,6 +46,8 @@ ORG_ERASURE_BODY_MARKER = "Instagram credentials"
 _LIST_PAGE_SIZE = 100
 _MAX_LIST_PAGES = 200
 _RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
+# A scan retries a few times. Clamp Retry-After so one response cannot stall it.
+_RETRY_AFTER_CAP_SECONDS = 30.0
 
 
 class ErasureScanError(Exception):
@@ -114,35 +119,63 @@ def _erased_org_user_ids() -> Select[tuple[uuid.UUID]]:
     )
 
 
-def _live_user_holds(email: str) -> Exists:
+def _normalized_email(column: object) -> ColumnElement[str]:
+    return func.lower(func.trim(column))
+
+
+def _draft_email_columns() -> list[ColumnElement[str]]:
+    """Email columns on the draft. ``email_sent_at`` is a timestamp, not one."""
+
+    columns: list[ColumnElement[str]] = []
+    for column in OrgApplyPrefill.__table__.columns:
+        if column.name == "email" or column.name.endswith("_email"):
+            columns.append(getattr(OrgApplyPrefill, column.name))
+    return columns
+
+
+def _live_user_holds_any_draft_email() -> Exists:
+    """A non-erased user holds any email stored on this draft.
+
+    Compared to ``users.edu_email`` and ``users.pending_edu_email``, ignoring
+    case and surrounding whitespace. A blank column matches nothing.
+    """
+
+    held: list[ColumnElement[bool]] = []
+    for draft_email in _draft_email_columns():
+        normalized = _normalized_email(draft_email)
+        held.append(
+            and_(
+                normalized != "",
+                or_(
+                    _normalized_email(User.edu_email) == normalized,
+                    _normalized_email(User.pending_edu_email) == normalized,
+                ),
+            )
+        )
     return exists(
         select(User.id).where(
             User.status != OrgUserStatus.ERASED.value,
-            or_(
-                func.lower(func.trim(User.edu_email)) == email,
-                func.lower(func.trim(User.pending_edu_email)) == email,
-            ),
+            or_(*held),
         )
     )
 
 
 def _match_filters(notices: Sequence[ErasureNotice]) -> list[ColumnElement[bool]]:
-    filters: list[ColumnElement[bool]] = [
+    identity: list[ColumnElement[bool]] = [
         OrgApplyPrefill.used_by_user_id.in_(_erased_org_user_ids())
     ]
     for email, cutoff in earliest_erasure_by_email(notices).items():
-        filters.append(
+        identity.append(
             and_(
                 OrgApplyPrefill.used_by_user_id.is_(None),
                 OrgApplyPrefill.created_at <= cutoff,
                 or_(
-                    func.lower(func.trim(OrgApplyPrefill.edu_email)) == email,
-                    func.lower(func.trim(OrgApplyPrefill.invite_email)) == email,
+                    _normalized_email(OrgApplyPrefill.edu_email) == email,
+                    _normalized_email(OrgApplyPrefill.invite_email) == email,
                 ),
-                ~_live_user_holds(email),
             )
         )
-    return filters
+    return [and_(or_(*identity), ~_live_user_holds_any_draft_email())]
 
 
 async def leftover_prefill_ids(
@@ -166,9 +199,9 @@ async def unclaimed_prefill_count(db: AsyncSession) -> int:
 async def delete_leftover_prefills(db: AsyncSession, notices: Sequence[ErasureNotice]) -> int:
     """Delete the current match set in one statement. Does not commit.
 
-    The email, cutoff, and live-user checks are inside this ``DELETE``, so a
-    user who signs up after an earlier count and before this statement keeps
-    their draft.
+    The email, cutoff, and live-user checks are inside this ``DELETE``. A
+    signup before the statement, or a live user holding any email column on
+    the draft, keeps the row.
     """
 
     result = await db.execute(
@@ -223,6 +256,37 @@ def _list_permission_error(payload: object) -> ErasureScanError:
     )
 
 
+def _retry_after_seconds(response: httpx.Response, fallback: float) -> float:
+    """Seconds to wait after a 429. Unreadable values use ``fallback``."""
+
+    raw = response.headers.get("Retry-After")
+    if raw is None:
+        return fallback
+    text = raw.strip()
+    if not text:
+        return fallback
+    parsed: float | None
+    try:
+        parsed = float(text)
+    except ValueError:
+        parsed = _http_date_delay(text)
+    if parsed is None or not math.isfinite(parsed) or parsed < 0:
+        return fallback
+    return min(parsed, _RETRY_AFTER_CAP_SECONDS)
+
+
+def _http_date_delay(value: str) -> float | None:
+    try:
+        when = parsedate_to_datetime(value)
+    except (TypeError, ValueError, IndexError, OverflowError):
+        return None
+    if when is None:
+        return None
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return (when.astimezone(timezone.utc) - datetime.now(timezone.utc)).total_seconds()
+
+
 def _email_id(value: object) -> str:
     if not isinstance(value, str):
         raise ErasureScanError("Resend list entry is missing an id. Nothing was deleted.")
@@ -247,7 +311,10 @@ async def _get_json(
             raise ErasureScanError("Resend request failed. Nothing was deleted.") from None
         last_status = resp.status_code
         if resp.status_code in _RETRY_STATUSES and attempt < 3:
-            await asyncio.sleep(delay)
+            wait = delay
+            if resp.status_code == 429:
+                wait = _retry_after_seconds(resp, delay)
+            await asyncio.sleep(wait)
             delay *= 2
             continue
         if resp.status_code == 401:
