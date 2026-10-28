@@ -313,6 +313,14 @@ Already documented in [`META.md`](META.md) §D / [`DEPLOYMENT.md`](DEPLOYMENT.md
 
 Scale: hand-add testers. Fine for a seeded list. Not a public flood.
 
+**Meta App Review (temporary, not seeded onboarding).** Reviewers do not
+receive Instagram credentials and do not wait for admin approval. When
+`META_REVIEWER_ACCESS_ENABLED` is on, they use the reusable link in
+[`gaps/deploy.meta-reviewer-path.md`](gaps/deploy.meta-reviewer-path.md).
+The flag defaults off. `/login` and `/org/apply` stay as written above for
+everyone else. Remove the path with
+[`backend/app/meta_reviewer/REMOVAL.md`](backend/app/meta_reviewer/REMOVAL.md).
+
 ---
 
 ## 8. Public / marketing
