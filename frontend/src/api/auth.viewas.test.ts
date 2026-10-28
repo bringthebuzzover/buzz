@@ -42,6 +42,21 @@ describe("View-as latch", () => {
     clearImpersonationSession();
   });
 
+  it("does not refresh setAt when the same target is latched again", () => {
+    const setAt = Date.now() - 5 * 60 * 1000;
+    sessionStorage.setItem(
+      VIEW_AS_LATCH,
+      JSON.stringify({ userId: "target-1", portalRole: "org", setAt }),
+    );
+    setViewAsLatch("target-1", "org");
+    expect(peekViewAsLatch()?.setAt).toBe(setAt);
+
+    setViewAsLatch("target-2", "brand");
+    const next = peekViewAsLatch();
+    expect(next?.userId).toBe("target-2");
+    expect(next?.setAt).not.toBe(setAt);
+  });
+
   it("set/peek round-trips", () => {
     setViewAsLatch("target-1", "org");
     expect(peekViewAsLatch()).toEqual({
@@ -274,21 +289,39 @@ describe("fetchMe during View-as", () => {
   });
 
   it("ends View-as on TOKEN_EXPIRED", async () => {
-    const hrefAssign = { href: "http://localhost/org/browse" };
+    const order: string[] = [];
+    const hrefAssign = {
+      _href: "http://localhost/org/browse",
+      get href() {
+        return this._href;
+      },
+      set href(value: string) {
+        order.push(`nav:${value}`);
+        this._href = value;
+      },
+    };
     Object.defineProperty(window, "location", {
       configurable: true,
       value: hrefAssign,
     });
     setImpersonationToken("imp-expired");
-    global.fetch = jest.fn(async () =>
-      jsonResponse(401, {
+    global.fetch = jest.fn(async (url: string) => {
+      order.push(String(url));
+      return jsonResponse(401, {
         data: null,
         error: { code: "TOKEN_EXPIRED", message: "expired" },
-      }),
-    );
+      });
+    });
 
     await expect(fetchMe()).resolves.toEqual({ kind: "unauthenticated" });
     expect(isImpersonating()).toBe(false);
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
     expect(hrefAssign.href).toBe("/admin?impersonation=expired");
+    const endAt = order.findIndex((entry) => entry.includes("/api/auth/view-as/end"));
+    const navAt = order.indexOf("nav:/admin?impersonation=expired");
+    expect(endAt).toBeGreaterThanOrEqual(0);
+    expect(navAt).toBeGreaterThan(endAt);
   });
 });

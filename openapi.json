@@ -8151,6 +8151,24 @@
         "title": "HealthStatusResponse",
         "type": "object"
       },
+      "ImpersonateRequest": {
+        "description": "Optional continuation of an existing View-as session.\n\n``started_at`` is the original mint time in epoch milliseconds. When it is\nset, the intent cookie expires at that time plus the intent TTL, and a\ncontinuation past the window is refused. Omit it to start a new session\n(the admin View-as button).",
+        "properties": {
+          "startedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startedat"
+          }
+        },
+        "title": "ImpersonateRequest",
+        "type": "object"
+      },
       "ImpersonateResponse": {
         "description": "Result of ``POST /api/admin/impersonate/{user_id}``.\n\nAccess token only \u2014 no refresh cookie is set, so the admin's own session\nsurvives and \"Exit impersonation\" is a pure client-side drop.",
         "properties": {
@@ -12411,7 +12429,7 @@
     },
     "/api/admin/impersonate/{user_id}": {
       "post": {
-        "description": "Mint a short-lived access token that acts as ``user_id``.\n\nIntentionally does NOT set a refresh cookie: the admin's own refresh session\nmust survive so exiting impersonation does not require a second login.\nIt does set an httpOnly intent cookie so a full page load can remint.",
+        "description": "Mint a short-lived access token that acts as ``user_id``.\n\nIntentionally does NOT set a refresh cookie: the admin's own refresh session\nmust survive so exiting impersonation does not require a second login.\nIt does set an httpOnly intent cookie so a full page load can remint.\n\nA body ``started_at`` is a continuation of a session that already started\n(the same-tab latch). The cookie then expires at that start plus the\nintent TTL, and a start older than the TTL is refused. Omitting it starts\na new 8h window (the admin clicked View as).",
         "operationId": "impersonate_endpoint_api_admin_impersonate__user_id__post",
         "parameters": [
           {
@@ -12441,6 +12459,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ImpersonateRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {

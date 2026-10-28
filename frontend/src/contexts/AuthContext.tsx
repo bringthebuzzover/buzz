@@ -175,8 +175,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userRef.current = null;
     setUser(null);
     setStatus("error");
-    // The intent cookie is httpOnly. A dead session must not keep reminting.
-    void endViewAsIntent();
+    // Do not POST /view-as/end here. A rotation-race loser gets a
+    // non-revoking 401 and must not clear the winner tab's intent. A truly
+    // dead refresh already clears the cookie on the server.
   }, []);
 
   const failSoft = useCallback(() => {
@@ -275,7 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 latch &&
                 pathRole === latch.portalRole
               ) {
-                resumed = await resumeImpersonation(latch.userId);
+                resumed = await resumeImpersonation(latch.userId, latch.setAt);
                 if (!bootstrapStillOwner()) return;
               }
               if (resumed) {

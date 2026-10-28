@@ -213,6 +213,18 @@ class AdminUserItem(CamelModel):
         return int(value.timestamp() * 1000)
 
 
+class ImpersonateRequest(CamelModel):
+    """Optional continuation of an existing View-as session.
+
+    ``started_at`` is the original mint time in epoch milliseconds. When it is
+    set, the intent cookie expires at that time plus the intent TTL, and a
+    continuation past the window is refused. Omit it to start a new session
+    (the admin View-as button).
+    """
+
+    started_at: int | None = None
+
+
 class ViewAsResumeRequest(CamelModel):
     """Portal the page is asking to restore.
 

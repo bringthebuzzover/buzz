@@ -53,11 +53,38 @@ export type ViewAsLatch = {
   setAt: number;
 };
 
+function existingLatchSetAt(
+  userId: string,
+  portalRole: "org" | "brand",
+): number | null {
+  const raw = sessionStorage.getItem(VIEW_AS_LATCH);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<ViewAsLatch>;
+    if (
+      parsed.userId === userId &&
+      parsed.portalRole === portalRole &&
+      typeof parsed.setAt === "number"
+    ) {
+      return parsed.setAt;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function setViewAsLatch(
   userId: string,
   portalRole: "org" | "brand",
 ): void {
-  const payload: ViewAsLatch = { userId, portalRole, setAt: Date.now() };
+  // Reloads call this after every successful resume. Keep the original start
+  // so the 8h latch window cannot slide. A new target stamps a new start.
+  const payload: ViewAsLatch = {
+    userId,
+    portalRole,
+    setAt: existingLatchSetAt(userId, portalRole) ?? Date.now(),
+  };
   sessionStorage.setItem(VIEW_AS_LATCH, JSON.stringify(payload));
 }
 
@@ -227,13 +254,23 @@ export async function resumeViewAs(
  * Re-mint View as for a known target using the current admin bearer. Does not
  * touch the latch (caller clears on failure). On success stashes the target
  * user for {@link takeImpersonatedUser}.
+ *
+ * ``startedAt`` is the original latch mint (epoch ms). The server keeps the
+ * cookie inside that window and refuses a continuation past it.
  */
-export async function resumeImpersonation(userId: string): Promise<boolean> {
+export async function resumeImpersonation(
+  userId: string,
+  startedAt?: number,
+): Promise<boolean> {
   const postImpersonate = (token: string) =>
     fetch(`${API_BASE_URL}/api/admin/impersonate/${userId}`, {
       method: "POST",
       credentials: "include",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(startedAt != null ? { "Content-Type": "application/json" } : {}),
+      },
+      body: startedAt != null ? JSON.stringify({ startedAt }) : undefined,
     });
 
   let token = getAccessToken();
@@ -255,6 +292,9 @@ export async function resumeImpersonation(userId: string): Promise<boolean> {
     return false;
   }
 }
+
+/** How long Exit waits for the intent clear before loading `/admin`. */
+const VIEW_AS_CLEAR_BEFORE_NAV_MS = 2_000;
 
 /** Clear the httpOnly View-as intent. Safe to fire during a navigation. */
 export async function endViewAsIntent(): Promise<void> {
@@ -304,10 +344,16 @@ export function clearImpersonationSession(): void {
  * clear). This hard path remains for non-React callers such as `apiFetch`, which
  * must not import Router or QueryClient.
  */
-export function endImpersonation(reason?: "expired"): void {
+export async function endImpersonation(reason?: "expired"): Promise<void> {
   clearImpersonationSession();
-  // keepalive so the httpOnly intent is cleared even though we navigate away.
-  void endViewAsIntent();
+  // The next document refreshes immediately. If the old intent is still in
+  // the jar, that refresh rebinds it. Wait for the clear, then navigate.
+  await Promise.race([
+    endViewAsIntent(),
+    new Promise<void>((resolve) => {
+      window.setTimeout(resolve, VIEW_AS_CLEAR_BEFORE_NAV_MS);
+    }),
+  ]);
   const suffix = reason === "expired" ? "?impersonation=expired" : "";
   window.location.href = `/admin${suffix}`;
 }

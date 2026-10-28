@@ -655,3 +655,73 @@ class TestViewAsIntentSecurity:
             json={"role": "org"},
         )
         assert resumed.status_code == 200
+
+    async def test_latch_remint_cannot_outlive_the_original_window(
+        self, app_client: AsyncClient, db_session
+    ):
+        _admin_user, target, headers = await self._mint(
+            db_session=db_session, app_client=app_client
+        )
+        before = app_client.cookies[settings.VIEW_AS_COOKIE_NAME]
+        started = datetime.now(timezone.utc) - timedelta(
+            hours=settings.VIEW_AS_INTENT_TTL_HOURS, minutes=5
+        )
+        refused = await app_client.post(
+            f"/api/admin/impersonate/{target.id}",
+            headers=headers,
+            json={"startedAt": int(started.timestamp() * 1000)},
+        )
+        assert refused.status_code == 403
+        assert refused.json()["error"]["code"] == "VIEW_AS_INVALID"
+        assert settings.VIEW_AS_COOKIE_NAME not in _set_cookie_headers(refused)
+        assert app_client.cookies[settings.VIEW_AS_COOKIE_NAME] == before
+
+        recent = datetime.now(timezone.utc) - timedelta(hours=2)
+        continued = await app_client.post(
+            f"/api/admin/impersonate/{target.id}",
+            headers=headers,
+            json={"startedAt": int(recent.timestamp() * 1000)},
+        )
+        assert continued.status_code == 200
+        payload = jwt.decode_token(
+            app_client.cookies[settings.VIEW_AS_COOKIE_NAME],
+            expected_type=jwt.VIEW_AS_TOKEN_TYPE,
+        )
+        deadline = int((recent + timedelta(hours=settings.VIEW_AS_INTENT_TTL_HOURS)).timestamp())
+        assert abs(payload.exp - deadline) < 5
+        assert payload.exp < int((datetime.now(timezone.utc) + timedelta(hours=7)).timestamp())
+
+    async def test_refresh_leaves_another_admins_intent_cookie(
+        self, app_client: AsyncClient, db_session
+    ):
+        await _admin(db_session, email="view-as-owner@buzz.test", password="supersecret1")
+        await _admin(db_session, email="view-as-other@buzz.test", password="supersecret1")
+        target = await persist(db_session, make_user(role=PortalRole.ORG))
+        owner_login = await app_client.post(
+            "/api/auth/admin/login",
+            json={"email": "view-as-owner@buzz.test", "password": "supersecret1"},
+        )
+        assert owner_login.status_code == 200
+        minted = await app_client.post(
+            f"/api/admin/impersonate/{target.id}",
+            headers={"Authorization": f"Bearer {owner_login.json()['data']['access_token']}"},
+        )
+        assert minted.status_code == 200
+        before_raw = app_client.cookies[settings.VIEW_AS_COOKIE_NAME]
+        before = jwt.decode_token(before_raw, expected_type=jwt.VIEW_AS_TOKEN_TYPE)
+        other_login = await app_client.post(
+            "/api/auth/admin/login",
+            json={"email": "view-as-other@buzz.test", "password": "supersecret1"},
+        )
+        assert other_login.status_code == 200
+        refreshed = await app_client.post("/api/auth/refresh")
+        assert refreshed.status_code == 200
+        assert settings.VIEW_AS_COOKIE_NAME not in _set_cookie_headers(refreshed)
+        assert app_client.cookies[settings.VIEW_AS_COOKIE_NAME] == before_raw
+        after = jwt.decode_token(
+            app_client.cookies[settings.VIEW_AS_COOKIE_NAME],
+            expected_type=jwt.VIEW_AS_TOKEN_TYPE,
+        )
+        assert after.imp == before.imp
+        assert after.imp_ver == before.imp_ver
+        assert after.exp == before.exp
