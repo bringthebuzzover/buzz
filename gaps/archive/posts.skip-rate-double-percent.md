@@ -4,6 +4,7 @@ title: Reel skip rate rendered as a percentage of a percentage
 kind: ux_hole
 severity: P2
 status: fixed
+closed_in: 7b33081
 surface: spa
 evidence:
   - path: frontend/src/components/posts/postInsights.ts
