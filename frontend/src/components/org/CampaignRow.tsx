@@ -9,6 +9,7 @@ import type { OrgCampaignStatus } from "../../types/orgCampaign";
 import { ORG_CAMPAIGN_STATUS_LABELS } from "../../types/orgCampaign";
 import { Card } from "../ui/Card";
 import { Chip } from "../ui/Chip";
+import { RemoteImage } from "../ui/RemoteImage";
 import { TEXT, type Tone } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
@@ -44,8 +45,9 @@ export default function CampaignRow({
         className="flex items-center justify-between gap-4 transition hover:shadow-buzzLg"
       >
         <div className="flex min-w-0 items-center gap-4">
-          <img
+          <RemoteImage
             src={image}
+            label={brandName}
             alt=""
             className="h-16 w-16 shrink-0 rounded-buzzControl border border-buzz-lineMid object-cover"
           />

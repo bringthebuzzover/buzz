@@ -14,6 +14,7 @@ import PostInsights from "../posts/PostInsights";
 import { formatInsightCount } from "../posts/postInsights";
 import { Card } from "../ui/Card";
 import { Chip } from "../ui/Chip";
+import { RemoteImage } from "../ui/RemoteImage";
 import { StatePanel } from "../ui/StatePanel";
 import { SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
@@ -141,7 +142,7 @@ export default function ApiDropOrgTable({
             {a.posts.length > 0 ? (
               <ul className="mt-3 space-y-2">
                 {a.posts.map((p) => {
-                  const thumb = safeHttpUrl(p.thumbnailUrl || p.mediaUrl);
+                  const thumb = p.thumbnailUrl || p.mediaUrl;
                   const postHref = safeHttpUrl(p.url);
                   return (
                     <li
@@ -150,8 +151,9 @@ export default function ApiDropOrgTable({
                     >
                       <div className="flex min-w-0 items-start gap-3">
                         {thumb ? (
-                          <img
+                          <RemoteImage
                             src={thumb}
+                            label={a.orgName}
                             alt=""
                             className="mt-0.5 h-12 w-12 shrink-0 rounded-buzzControl object-cover"
                           />
