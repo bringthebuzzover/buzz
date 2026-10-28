@@ -153,17 +153,17 @@ describe("View-as latch", () => {
     expect(isImpersonating()).toBe(true);
   });
 
-  it("keeps the admin bearer when the refresh retry fails", async () => {
+  it("drops the bearer when the refresh retry fails", async () => {
     setAccessToken("admin-token");
     global.fetch = jest.fn(async () =>
       jsonResponse(401, { data: null, error: { code: "UNAUTHORIZED" } }),
     );
     await expect(resumeImpersonation("target-1")).resolves.toBe(false);
-    expect(getAccessToken()).toBe("admin-token");
+    expect(getAccessToken()).toBeNull();
     expect(isImpersonating()).toBe(false);
   });
 
-  it("resumeViewAs installs from the cookie endpoint", async () => {
+  it("resumeViewAs installs from the cookie endpoint for the page role", async () => {
     setAccessToken("admin-token");
     global.fetch = jest.fn(async () =>
       jsonResponse(200, {
@@ -178,12 +178,32 @@ describe("View-as latch", () => {
         },
       }),
     );
-    await expect(resumeViewAs()).resolves.toBe("ok");
+    await expect(resumeViewAs("org")).resolves.toBe("ok");
     expect(getAccessToken()).toBe("imp-from-cookie");
     expect(isImpersonating()).toBe(true);
-    expect(String((global.fetch as jest.Mock).mock.calls[0][0])).toContain(
-      "/api/admin/impersonate/resume",
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(String(url)).toContain("/api/admin/impersonate/resume");
+    expect(JSON.parse(String(init.body))).toEqual({ role: "org" });
+  });
+
+  it("resumeViewAs does not install a target that does not match the page", async () => {
+    setAccessToken("admin-token");
+    global.fetch = jest.fn(async () =>
+      jsonResponse(200, {
+        data: {
+          accessToken: "imp-brand",
+          user: {
+            id: "brand-1",
+            portal_role: "brand",
+            status: "active",
+            impersonated_by: "admin-1",
+          },
+        },
+      }),
     );
+    await expect(resumeViewAs("org")).resolves.toBe("none");
+    expect(getAccessToken()).toBe("admin-token");
+    expect(isImpersonating()).toBe(false);
   });
 
   it("resumeViewAs treats a missing cookie as none and does not refresh", async () => {
@@ -191,7 +211,7 @@ describe("View-as latch", () => {
     global.fetch = jest.fn(async () =>
       jsonResponse(404, { data: null, error: { code: "NOT_FOUND" } }),
     );
-    await expect(resumeViewAs()).resolves.toBe("none");
+    await expect(resumeViewAs("org")).resolves.toBe("none");
     expect(getAccessToken()).toBe("admin-token");
     expect(
       (global.fetch as jest.Mock).mock.calls.every(
@@ -205,7 +225,7 @@ describe("View-as latch", () => {
     global.fetch = jest.fn(async () =>
       jsonResponse(401, { data: null, error: { code: "VIEW_AS_INVALID" } }),
     );
-    await expect(resumeViewAs()).resolves.toBe("denied");
+    await expect(resumeViewAs("brand")).resolves.toBe("denied");
     expect(getAccessToken()).toBe("admin-token");
     expect(
       (global.fetch as jest.Mock).mock.calls.every(

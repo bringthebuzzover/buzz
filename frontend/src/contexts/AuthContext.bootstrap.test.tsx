@@ -570,7 +570,7 @@ describe("AuthProvider bootstrap resolution", () => {
     });
 
     await waitForStatus(container, "authenticated");
-    expect(resumeViewAsMock).toHaveBeenCalled();
+    expect(resumeViewAsMock).toHaveBeenCalledWith("org");
     expect(resumeMock).not.toHaveBeenCalled();
     expect(userText(container)).toBe("org-target");
     expect(peekViewAsLatch()?.portalRole).toBe("org");

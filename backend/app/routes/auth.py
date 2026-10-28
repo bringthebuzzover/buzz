@@ -58,7 +58,7 @@ from app.security import jwt
 from app.security.rate_limit import enforce_account_limit, rate_limited
 from app.security.session import bump_token_version, commit_revocation
 from app.security.signed_request import SignedRequestError, parse_signed_request
-from app.security.view_as import clear_view_as_cookie
+from app.security.view_as import clear_view_as_cookie, rebind_view_as_cookie
 from app.services.admin_auth import login_admin
 from app.services.auth import (
     StaleRefreshToken,
@@ -333,6 +333,9 @@ async def refresh(
         resp = JSONResponse(status_code=401, content=body.model_dump())
         if clear_cookie:
             _clear_refresh_cookie(resp)
+            # The intent is bound to this admin session. A dead refresh
+            # credential must not leave View as remintable.
+            clear_view_as_cookie(resp)
         return resp
 
     cookie = request.cookies.get(settings.REFRESH_COOKIE_NAME)
@@ -379,14 +382,23 @@ async def refresh(
         )
 
     # expected_version is load-bearing: omitting it reopens dual-200 rotation.
+    previous_version = payload.ver or 0
     try:
-        access, new_refresh = await issue_token_pair(db, user, expected_version=payload.ver or 0)
+        access, new_refresh = await issue_token_pair(db, user, expected_version=previous_version)
     except StaleRefreshToken:
         return _unauthorized(
             "This session has been revoked. Please sign in again.",
             clear_cookie=False,
         )
     _set_refresh_cookie(response, new_refresh)
+    if user.portal_role == PortalRole.ADMIN.value:
+        rebind_view_as_cookie(
+            request,
+            response,
+            admin_id=str(user.id),
+            previous_version=previous_version,
+            new_version=user.token_version or 0,
+        )
     # Return user in the same response as the mint so the SPA bootstrap can
     # skip a follow-up /me. That /me was the mint-then-read race window in
     # gaps/auth.ci-session-restore-flake.md — same UserResponse fields as

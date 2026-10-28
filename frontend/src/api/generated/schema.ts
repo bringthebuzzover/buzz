@@ -573,9 +573,14 @@ export interface paths {
          * @description Remint View as from the httpOnly intent cookie.
          *
          *     Requires the caller's own admin access token. The cookie alone is not a
-         *     session. Missing cookie is 404 (nothing to resume). A cookie minted for a
-         *     different admin, or a target that can no longer be impersonated, is
-         *     rejected and the cookie is cleared.
+         *     session. Missing cookie is 404 (nothing to resume). A cookie whose role
+         *     does not match ``body.role`` is also 404 and is left in place, so opening
+         *     an org URL does not mint a brand session or destroy it. A cookie minted
+         *     for a different admin, a stale ``imp_ver``, or a target that can no longer
+         *     be impersonated is rejected and the cookie is cleared.
+         *
+         *     Does not rewrite the cookie. The 8h cap is fixed at the first mint;
+         *     refresh rotation updates ``imp_ver`` without extending ``exp``.
          */
         post: operations["resume_impersonation_endpoint_api_admin_impersonate_resume_post"];
         delete?: never;
@@ -5528,6 +5533,20 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /**
+         * ViewAsResumeRequest
+         * @description Portal the page is asking to restore.
+         *
+         *     Resume mints only when the intent cookie's role matches. A brand intent
+         *     opened on an org URL is not a session for that page.
+         */
+        ViewAsResumeRequest: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "org" | "brand";
+        };
     };
     responses: never;
     parameters: never;
@@ -6683,7 +6702,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ViewAsResumeRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
