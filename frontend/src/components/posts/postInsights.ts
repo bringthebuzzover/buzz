@@ -54,10 +54,15 @@ export function formatWatchMs(ms: number | null | undefined): string {
   return `${wholeMinutes}m ${seconds}s`;
 }
 
-/** `reels_skip_rate` is stored as a ratio (0.37 → 37%). */
+/**
+ * `reels_skip_rate` is a percentage in [0, 100] (62.8 → "62.8%").
+ * Graph already returns percentage points; multiplying by 100 again
+ * rendered values such as 6280%. Out-of-range numbers are clamped.
+ */
 export function formatSkipRate(rate: number | null | undefined): string {
   if (rate == null || !Number.isFinite(rate)) return INSIGHT_MISSING;
-  const pct = Math.round(rate * 1000) / 10;
+  const rounded = Math.round(rate * 10) / 10;
+  const pct = Math.min(100, Math.max(0, rounded));
   const text = Number.isInteger(pct) ? pct.toFixed(0) : pct.toFixed(1);
   return `${text}%`;
 }

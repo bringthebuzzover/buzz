@@ -8,8 +8,9 @@
   ``posted_at >= now() - 30 days``.
 * ``insights_raw`` is **JSONB**, not JSON: indexable for forward-compat
   queries against new insight metrics without an ALTER.
-* ``reels_skip_rate`` is ``Float`` per the spec; switch to ``Numeric(5, 4)``
-  later only if billing-grade decimal math becomes a requirement.
+* ``reels_skip_rate`` is a percentage in ``[0, 100]`` (62.8 means 62.8%),
+  stored as ``Float``. Do not scale it by 100 on read or write.
+  ``Numeric(5, 4)`` cannot hold 100 and is the wrong unit.
 """
 
 from __future__ import annotations
