@@ -33,7 +33,7 @@ function post(overrides: Partial<PostItem> = {}): PostItem {
     follows: null,
     igReelsAvgWatchTime: 1200,
     igReelsVideoViewTotalTime: 125000,
-    reelsSkipRate: 0.18,
+    reelsSkipRate: 18,
     metricsUpdatedAt: 1,
     createdAt: 1,
     linkedApplicationId: APPLICATION_ID,

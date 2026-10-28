@@ -59,6 +59,7 @@ from app.models.organization import Organization
 from app.models.social_post import SocialPost
 from app.models.user import User
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
+from app.services.insight_units import clamp_reels_skip_rate
 from app.services.instagram import InstagramClient, MediaFields, merge_follower_count
 from app.services.instagram_token import clear_unusable_instagram_token
 
@@ -180,12 +181,19 @@ def _apply_basics(post: SocialPost, fields: MediaFields) -> tuple[bool, bool, bo
 
 
 def _apply_insights(post: SocialPost, insights: dict[str, int | float]) -> None:
+    stored = dict(insights)
     for col in _INSIGHT_COLUMNS:
-        if col in insights:
-            setattr(post, col, insights[col])
-    if "reels_skip_rate" in insights:
-        post.reels_skip_rate = float(insights["reels_skip_rate"])
-    post.insights_raw = dict(insights)
+        if col in stored:
+            setattr(post, col, stored[col])
+    if "reels_skip_rate" in stored:
+        # Percentage points, clamped. A second ×100 is what rendered 6280%.
+        clamped = clamp_reels_skip_rate(stored["reels_skip_rate"])
+        post.reels_skip_rate = clamped
+        if clamped is None:
+            stored.pop("reels_skip_rate")
+        else:
+            stored["reels_skip_rate"] = clamped
+    post.insights_raw = stored
 
 
 def _apply_metrics(

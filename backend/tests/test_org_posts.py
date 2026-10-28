@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from httpx import AsyncClient
 
 from app.models.enums import ApplicationDecision, OrgUserStatus, PortalRole, SocialMediaProductType
@@ -65,6 +66,7 @@ async def test_list_posts_returns_stored_insights(app_client: AsyncClient, db_se
     post.profile_visits = 5
     post.profile_activity = 1
     post.follows = 2
+    post.reels_skip_rate = 62.8
     await db_session.flush()
 
     resp = await app_client.get("/api/orgs/me/posts", headers=headers)
@@ -78,6 +80,7 @@ async def test_list_posts_returns_stored_insights(app_client: AsyncClient, db_se
     assert body["profileVisits"] == 5
     assert body["profileActivity"] == 1
     assert body["follows"] == 2
+    assert body["reelsSkipRate"] == pytest.approx(62.8)
 
 
 async def test_list_posts_link_indicator(app_client: AsyncClient, db_session) -> None:

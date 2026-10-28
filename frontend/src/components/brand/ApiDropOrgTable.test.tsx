@@ -92,4 +92,41 @@ describe("ApiDropOrgTable", () => {
     expect(html).not.toContain("undefined");
     expect(html).not.toContain("NaN");
   });
+
+  it("renders a reel skip rate as a percentage and never above 100%", () => {
+    const html = renderToString(
+      <ApiDropOrgTable
+        applicants={[
+          {
+            ...erased,
+            accountErased: false,
+            orgName: "Epsilon Nu Tau",
+            posts: [
+              {
+                ...linkedPost,
+                caption: "Purpose philanthropy",
+                mediaType: "VIDEO",
+                mediaProductType: "REELS",
+                reelsSkipRate: 62.8,
+                igReelsAvgWatchTime: 9600,
+                igReelsVideoViewTotalTime: 11880000,
+              },
+              {
+                ...linkedPost,
+                id: "post-2",
+                caption: "Impossible stored rate",
+                mediaType: "VIDEO",
+                mediaProductType: "REELS",
+                reelsSkipRate: 6280,
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(html).toContain("Skip rate");
+    expect(html).toContain("62.8%");
+    expect(html).toContain("100%");
+    expect(html).not.toContain("6280%");
+  });
 });
