@@ -6362,6 +6362,44 @@
         "title": "DataResponse[MetaReviewerSeedResponse]",
         "type": "object"
       },
+      "DataResponse_MetaReviewerStatusResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MetaReviewerStatusResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[MetaReviewerStatusResponse]",
+        "type": "object"
+      },
       "DataResponse_OkResponse_": {
         "properties": {
           "data": {
@@ -8253,6 +8291,61 @@
           "createdApplication"
         ],
         "title": "MetaReviewerSeedResponse",
+        "type": "object"
+      },
+      "MetaReviewerStatusResponse": {
+        "description": "Setup snapshot. ``user_id`` is the admin org-page key, not a secret.",
+        "properties": {
+          "dropId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dropid"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "orgId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgid"
+          },
+          "seeded": {
+            "title": "Seeded",
+            "type": "boolean"
+          },
+          "userId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Userid"
+          }
+        },
+        "required": [
+          "enabled",
+          "seeded",
+          "orgId",
+          "userId",
+          "dropId"
+        ],
+        "title": "MetaReviewerStatusResponse",
         "type": "object"
       },
       "NotifyRequest": {
@@ -16202,6 +16295,56 @@
           }
         },
         "summary": "Meta Reviewer Start",
+        "tags": [
+          "meta-reviewer"
+        ]
+      }
+    },
+    "/api/meta-reviewer/status": {
+      "get": {
+        "description": "Admin-only setup status. 404 when the flag is off, before auth.\n\nReturns whether the reviewer org exists, its admin-page user id, and the\nconfigured drop id. Never returns the link secret, its hash, or the email.\nNot rate-limited: the admin overview reads it on each visit. Flag-off\nstill 404s before auth, so that probe never reaches the handler body.",
+        "operationId": "meta_reviewer_status_api_meta_reviewer_status_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_MetaReviewerStatusResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Meta Reviewer Status",
         "tags": [
           "meta-reviewer"
         ]

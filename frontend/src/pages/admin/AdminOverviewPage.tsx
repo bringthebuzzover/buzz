@@ -9,6 +9,8 @@
  */
 import { Link } from "react-router-dom";
 import { useAdminOverview } from "../../api/hooks/useAdminHooks";
+// META-REVIEWER-PATH: delete this import and <MetaReviewerAdminCard /> below.
+import MetaReviewerAdminCard from "../../meta-reviewer/MetaReviewerAdminCard";
 import {
   AdminTable,
   Cell,
@@ -88,6 +90,9 @@ export default function AdminOverviewPage() {
         title="Overview"
         subtitle="Everything waiting on a decision, plus anything in a state the product cannot fix on its own."
       />
+
+      {/* META-REVIEWER-PATH: nothing here unless the reviewer path is enabled. */}
+      <MetaReviewerAdminCard />
 
       <QueryState
         isPending={overview.isPending}

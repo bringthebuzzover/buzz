@@ -51,7 +51,7 @@ Delete the whole package:
 
 Delete the frontend module:
 
-- `frontend/src/meta-reviewer/`
+- `frontend/src/meta-reviewer/` including `MetaReviewerPage.tsx`, `MetaReviewerAdminCard.tsx`, and their tests
 
 Delete the marked `META-REVIEWER-PATH` lines in:
 
@@ -65,6 +65,8 @@ Delete the marked `META-REVIEWER-PATH` lines in:
 - `backend/app/services/ig_change_requests.py` — import and the call in `submit_request`
 - `backend/app/routes/orgs.py` — import and the call in `update_my_org`
 - `frontend/src/AppRoot.tsx` — the import and the `/meta-review` route
+- `frontend/src/pages/admin/AdminOverviewPage.tsx` — the import and `<MetaReviewerAdminCard />`
+- `frontend/e2e/admin.spec.ts` — the reviewer-card assertions (hidden when the status route 404s, and the mocked setup click)
 - `frontend/src/contexts/AuthContext.tsx` — `/meta-review` in `onAuthRoute` (skip local dev auto-login)
 
 Delete the tests:
