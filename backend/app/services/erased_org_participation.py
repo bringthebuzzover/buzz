@@ -20,7 +20,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import delete, func, or_, select, update
+from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.application import DropApplication
@@ -241,7 +241,10 @@ async def purge_erased_identity_rows(
     """Delete rows that still name this org's email, handle, or connect secret.
 
     Call before clearing ``user.edu_email`` and ``user.instagram_username`` so
-    unlinked apply drafts that stored those values are included.
+    unlinked apply drafts that stored those values are included. Email and
+    handle matches apply only to drafts nobody has claimed. A draft already
+    used by a different account is left alone, and a null email or handle
+    matches nothing.
     """
 
     emails = [value.strip() for value in (user.edu_email, user.pending_edu_email) if value]
@@ -266,11 +269,20 @@ async def purge_erased_identity_rows(
     await db.execute(delete(OrgConnectToken).where(or_(*connect_filters)))
     await db.execute(delete(OrgIgChangeRequest).where(or_(*change_filters)))
 
+    # Claimed-by-this-user, plus unclaimed drafts whose email or handle is
+    # this account's. ``IN`` does not match NULL, and an empty key list is
+    # not added, so a missing email or handle cannot select every draft.
+    # A draft with ``used_by_user_id`` set to someone else is that account's.
     prefill_filters = [OrgApplyPrefill.used_by_user_id == user.id]
+    identity_match = []
     if emails:
         lowered = [email.casefold() for email in emails]
-        prefill_filters.append(func.lower(OrgApplyPrefill.edu_email).in_(lowered))
-        prefill_filters.append(func.lower(OrgApplyPrefill.invite_email).in_(lowered))
+        identity_match.append(func.lower(OrgApplyPrefill.edu_email).in_(lowered))
+        identity_match.append(func.lower(OrgApplyPrefill.invite_email).in_(lowered))
     if handle_keys:
-        prefill_filters.append(func.lower(OrgApplyPrefill.instagram_handle).in_(handle_keys))
+        identity_match.append(func.lower(OrgApplyPrefill.instagram_handle).in_(handle_keys))
+    if identity_match:
+        prefill_filters.append(
+            and_(OrgApplyPrefill.used_by_user_id.is_(None), or_(*identity_match))
+        )
     await db.execute(delete(OrgApplyPrefill).where(or_(*prefill_filters)))
