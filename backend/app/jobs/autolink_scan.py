@@ -161,6 +161,7 @@ async def scan_autolink(db: AsyncSession, *, drop_id: UUID | None = None) -> dic
                     SocialPost.posted_at >= window_start,
                     SocialPost.posted_at <= now,
                     SocialPost.media_product_type.in_(_SUGGESTABLE),
+                    SocialPost.metrics_frozen_at.is_(None),
                 )
             )
         )

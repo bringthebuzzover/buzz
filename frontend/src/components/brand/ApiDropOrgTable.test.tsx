@@ -1,6 +1,6 @@
 /**
- * Erased orgs are omitted from the participant list. A live org still shows
- * its linked post and insights.
+ * An erased org stays on the participant list as an anonymized frozen row.
+ * A live org still shows its linked post and insights.
  */
 import { renderToString } from "react-dom/server";
 import ApiDropOrgTable from "./ApiDropOrgTable";
@@ -12,7 +12,8 @@ const erased: BrandDropApplicant = {
   dropId: "drop-1",
   orgId: "org-1",
   orgName: "Deleted organization",
-  university: "Cornell University",
+  university: "",
+  metricsFrozenAt: Date.UTC(2026, 9, 28),
   instagramHandle: "",
   category: null,
   followerCount: 100,
@@ -58,13 +59,14 @@ const linkedPost: BrandDropPost = {
 };
 
 describe("ApiDropOrgTable", () => {
-  it("omits an erased org from participating organizations", () => {
+  it("shows an erased org as a frozen anonymized participant", () => {
     const html = renderToString(
       <ApiDropOrgTable applicants={[erased]} />,
     );
-    expect(html).toContain("No participating organizations yet.");
-    expect(html).not.toContain("Deleted organization");
+    expect(html).toContain("Deleted organization");
+    expect(html).toContain("Metrics frozen");
     expect(html).not.toContain("Cornell University");
+    expect(html).not.toContain("Ship to");
     expect(html).not.toContain("Account deleted");
   });
 

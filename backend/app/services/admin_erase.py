@@ -1,23 +1,25 @@
 """Admin hybrid erase for orgs (PRODUCT §3.1.2) and brands (PRODUCT §3.1.3).
 
-Org erase scrubs identity and removes that org from campaign participants
-and metric totals. Brand erase scrubs identity and keeps drops and org
-campaign history under a tombstone brand name.
+Org erase scrubs identity, freezes campaign metrics, and keeps the accepted
+seat. Brand erase scrubs identity and keeps drops and org campaign history
+under a tombstone brand name.
 """
 
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.exceptions import BuzzAPIException
+from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.brand_invite_token import BrandInviteToken
-from app.models.enums import BrandStatus, OrgUserStatus, PortalRole
+from app.models.enums import ApplicationDecision, BrandStatus, OrgUserStatus, PortalRole
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
@@ -31,7 +33,7 @@ from app.services.email import (
     send_brand_erased_email,
     send_org_erased_email,
 )
-from app.services.erased_org_participation import withdraw_org_campaign_participation
+from app.services.erased_org_participation import freeze_org_campaign_metrics
 from app.services.instagram import canonical_instagram_handle
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.org_apply import clear_ig_bind_mismatch
@@ -56,10 +58,10 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
         raise BuzzAPIException(errors.NOT_FOUND, "Organization user not found.", status_code=404)
 
     if user.status == OrgUserStatus.ERASED.value:
-        # Re-erase heals seats left behind by the old keep-KPI rule.
+        # Re-erase heals posts that still have Instagram identifiers.
         org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
         if org is not None:
-            await withdraw_org_campaign_participation(db, org_id=org.id)
+            await freeze_org_campaign_metrics(db, org_id=org.id)
         return {
             "user_id": str(user.id),
             "status": OrgUserStatus.ERASED.value,
@@ -87,9 +89,11 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
     org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
     display_name = org.org_name if org is not None else stored_handle
 
+    now = datetime.now(timezone.utc)
     if org is not None:
+        await _auto_deny_applied(db, org.id, now)
         await expire_and_clear_intents_for_org(db, org.id)
-        await withdraw_org_campaign_participation(db, org_id=org.id)
+        await freeze_org_campaign_metrics(db, org_id=org.id, now=now)
         _scrub_org_profile(org)
 
     await _delete_user_tokens(db, user.id)
@@ -146,8 +150,20 @@ def _scrub_org_profile(org: Organization) -> None:
     org.instagram_handle_confirmed = False
     clear_ig_bind_mismatch(org)
     org.follower_count = None
-    # university stays on the admin erased-org record. Brand campus totals
-    # count accepted seats, which withdraw already removed.
+    org.university = ""
+
+
+async def _auto_deny_applied(db: AsyncSession, org_id: UUID, now: datetime) -> None:
+    """Pending applications are not accepted seats. Deny them so they leave the queue."""
+
+    await db.execute(
+        update(DropApplication)
+        .where(
+            DropApplication.org_id == org_id,
+            DropApplication.decision == ApplicationDecision.APPLIED.value,
+        )
+        .values(decision=ApplicationDecision.DENIED.value, decision_at=now)
+    )
 
 
 async def erase_brand(db: AsyncSession, brand_id: UUID, confirm: str) -> dict[str, object]:

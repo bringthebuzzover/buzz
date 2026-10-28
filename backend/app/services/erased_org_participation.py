@@ -1,98 +1,82 @@
-"""Remove an org's campaign seats, posts, and stored metrics.
+"""Freeze an erased org's campaign metrics and strip Instagram identifiers.
 
-Brand, admin, and dashboard totals are live sums over ``post_campaign_links``,
-``drop_applications``, and ``social_posts`` numeric columns. There is no
-stored aggregate. Deleting those rows is what keeps a deleted org out of
-every reader (drop pages, campaign lists, dashboards, admin counts, insight
-columns). PRODUCT §3.1.2.
+Brand totals are live sums over linked posts. Erase keeps the accepted seat,
+the link, and the last numeric snapshot, and stops Instagram refresh. The
+statements here are what the data migration runs for orgs already erased.
+Erase itself updates the loaded rows in the session (same fields) so a later
+flush cannot write the old permalinks back.
 
-``cleanup_statements`` is the single statement list. Erase runs it for one
-org. The data migration runs the ``all_erased`` list for rows already
-erased under the old keep-KPI rule. Both are safe to run twice.
+Retained on the post: likes, comments, reach, views, saved, shares, and the
+other numeric insight columns. Cleared: media id, permalink, media URLs,
+thumbnail, caption, and raw insight payload. ``follower_count`` and
+``university`` are cleared. Campus totals skip a blank university.
 """
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import select, text
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.application import DropApplication
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
-from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
-from app.models.shipment import DropApplicationShipment
 from app.models.social_post import SocialPost
 from app.models.user import User
 
-# Rows the DELETE statements remove. Expunge them so a later flush cannot
-# write a detached in-memory copy back over the delete.
-_REMOVED_TYPES = (
-    DropApplication,
-    DropApplicationShipment,
-    NotifyMe,
-    PostCampaignLink,
-    PostCampaignSuggestion,
-    SocialPost,
-)
+
+def frozen_external_id(post_id: UUID) -> str:
+    """Non-Graph id. Not an Instagram media id."""
+
+    return f"frozen-{post_id}"
 
 
-def cleanup_statements(mode: str) -> list[str]:
-    """SQL that withdraws campaign participation.
+def freeze_statements() -> list[str]:
+    """Idempotent SQL for every erased org. Does not delete seats or posts."""
 
-    ``one`` — ``:org_id`` only (erase, including before ``users.status`` flips).
-    ``all_erased`` — every org user already ``status = erased`` (heal / migration).
-    """
-
-    if mode == "one":
-        pred = "o.id = :org_id"
-    elif mode == "all_erased":
-        pred = "u.portal_role = 'org' AND u.status = 'erased'"
-    else:
-        raise ValueError(f"unknown cleanup mode: {mode}")
-
+    pred = "u.portal_role = 'org' AND u.status = 'erased'"
     orgs = "SELECT o.id FROM organizations o " "JOIN users u ON u.id = o.user_id " f"WHERE {pred}"
     apps = f"SELECT a.id FROM drop_applications a WHERE a.org_id IN ({orgs})"
     posts = f"SELECT p.id FROM social_posts p WHERE p.org_id IN ({orgs})"
     return [
         (
+            "UPDATE social_posts AS p SET "
+            "metrics_frozen_at = COALESCE(p.metrics_frozen_at, now()), "
+            "external_id = 'frozen-' || p.id::text, "
+            "url = '', "
+            "caption = '', "
+            "media_url = NULL, "
+            "thumbnail_url = NULL, "
+            "insights_raw = NULL "
+            f"WHERE p.org_id IN ({orgs}) AND ("
+            "p.metrics_frozen_at IS NULL "
+            "OR p.external_id IS DISTINCT FROM ('frozen-' || p.id::text) "
+            "OR p.url <> '' "
+            "OR p.caption IS DISTINCT FROM '' "
+            "OR p.media_url IS NOT NULL "
+            "OR p.thumbnail_url IS NOT NULL "
+            "OR p.insights_raw IS NOT NULL)"
+        ),
+        (
+            "UPDATE organizations AS o SET follower_count = NULL, university = '' "
+            "FROM users u "
+            f"WHERE u.id = o.user_id AND {pred} "
+            "AND (o.follower_count IS NOT NULL OR o.university <> '')"
+        ),
+        (
+            "UPDATE drop_applications SET pitch = NULL "
+            f"WHERE org_id IN ({orgs}) AND pitch IS NOT NULL"
+        ),
+        (
             "DELETE FROM post_campaign_suggestions "
             f"WHERE application_id IN ({apps}) OR post_id IN ({posts})"
         ),
-        (
-            "DELETE FROM post_campaign_links "
-            f"WHERE application_id IN ({apps}) OR post_id IN ({posts})"
-        ),
-        f"DELETE FROM drop_application_shipments WHERE application_id IN ({apps})",
-        f"DELETE FROM drop_applications WHERE org_id IN ({orgs})",
-        f"DELETE FROM social_posts WHERE org_id IN ({orgs})",
         f"DELETE FROM notify_me WHERE org_id IN ({orgs})",
-        f"UPDATE organizations SET follower_count = NULL WHERE id IN ({orgs})",
     ]
-
-
-def _expunge_removed(
-    db: AsyncSession,
-    *,
-    org_ids: set[UUID],
-    application_ids: set[UUID],
-    post_ids: set[UUID],
-) -> None:
-    """Drop deleted instances only. Leave every other org's rows attached."""
-
-    for obj in list(db.sync_session.identity_map.values()):
-        remove = False
-        if isinstance(obj, (SocialPost, DropApplication, NotifyMe)):
-            remove = obj.org_id in org_ids
-        elif isinstance(obj, (PostCampaignLink, PostCampaignSuggestion)):
-            remove = obj.application_id in application_ids or obj.post_id in post_ids
-        elif isinstance(obj, DropApplicationShipment):
-            remove = obj.application_id in application_ids
-        if remove and isinstance(obj, _REMOVED_TYPES):
-            db.expunge(obj)
 
 
 async def _target_org_ids(db: AsyncSession, org_id: UUID | None) -> set[UUID]:
@@ -109,43 +93,49 @@ async def _target_org_ids(db: AsyncSession, org_id: UUID | None) -> set[UUID]:
     return set(rows)
 
 
-async def withdraw_org_campaign_participation(
+async def freeze_org_campaign_metrics(
     db: AsyncSession,
     *,
     org_id: UUID | None = None,
+    now: datetime | None = None,
 ) -> None:
-    """Delete seats, links, shipments, posts, and follower_count.
+    """Stamp and strip posts for one org, or every already-erased org.
 
-    Pass ``org_id`` for the org being erased. Omit it to heal every org
-    user that is already erased. Idempotent.
+    Keeps the first ``metrics_frozen_at``. Safe to run twice. Does not delete
+    seats, links, or numeric metrics.
     """
 
     org_ids = await _target_org_ids(db, org_id)
-    application_ids: set[UUID] = set()
-    post_ids: set[UUID] = set()
-    if org_ids:
-        application_ids = set(
-            await db.scalars(select(DropApplication.id).where(DropApplication.org_id.in_(org_ids)))
-        )
-        post_ids = set(
-            await db.scalars(select(SocialPost.id).where(SocialPost.org_id.in_(org_ids)))
-        )
+    if not org_ids:
+        return
+    frozen_at = now or datetime.now(timezone.utc)
+    posts = list(await db.scalars(select(SocialPost).where(SocialPost.org_id.in_(org_ids))))
+    post_ids = [post.id for post in posts]
+    for post in posts:
+        if post.metrics_frozen_at is None:
+            post.metrics_frozen_at = frozen_at
+        post.external_id = frozen_external_id(post.id)
+        post.url = ""
+        post.caption = ""
+        post.media_url = None
+        post.thumbnail_url = None
+        post.insights_raw = None
 
-    mode = "one" if org_id is not None else "all_erased"
-    params = {"org_id": org_id} if org_id is not None else {}
-    for statement in cleanup_statements(mode):
-        await db.execute(text(statement), params)
+    orgs = list(await db.scalars(select(Organization).where(Organization.id.in_(org_ids))))
+    for org in orgs:
+        org.follower_count = None
+        org.university = ""
 
-    if org_ids:
-        for org in await db.scalars(select(Organization).where(Organization.id.in_(org_ids))):
-            # Raw UPDATE does not refresh the identity map. Pin None so a
-            # later flush of this instance cannot restore the old count.
-            org.follower_count = None
-
-    _expunge_removed(
-        db,
-        org_ids=org_ids,
-        application_ids=application_ids,
-        post_ids=post_ids,
+    await db.execute(
+        update(DropApplication).where(DropApplication.org_id.in_(org_ids)).values(pitch=None)
     )
+    sug_filters = [
+        PostCampaignSuggestion.application_id.in_(
+            select(DropApplication.id).where(DropApplication.org_id.in_(org_ids))
+        )
+    ]
+    if post_ids:
+        sug_filters.append(PostCampaignSuggestion.post_id.in_(post_ids))
+    await db.execute(delete(PostCampaignSuggestion).where(or_(*sug_filters)))
+    await db.execute(delete(NotifyMe).where(NotifyMe.org_id.in_(org_ids)))
     await db.flush()

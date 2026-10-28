@@ -7,6 +7,7 @@ imports) so the dependency surface stays obvious and ``ruff`` will flag
 unused models if a table ever drops out.
 """
 
+from app.models.admin_audit_event import AdminAuditEvent
 from app.models.application import DropApplication
 from app.models.base import Base
 from app.models.brand import Brand
@@ -30,6 +31,7 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 
 __all__ = [
+    "AdminAuditEvent",
     "Base",
     "Brand",
     "BrandInviteToken",

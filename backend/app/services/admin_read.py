@@ -1000,18 +1000,36 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
         .group_by(PostCampaignLink.application_id)
         .subquery()
     )
+    frozen_sq = (
+        select(
+            PostCampaignLink.application_id,
+            func.max(SocialPost.metrics_frozen_at).label("frozen_at"),
+        )
+        .join(SocialPost, SocialPost.id == PostCampaignLink.post_id)
+        .join(DropApplication, DropApplication.id == PostCampaignLink.application_id)
+        .where(DropApplication.drop_id == drop.id)
+        .group_by(PostCampaignLink.application_id)
+        .subquery()
+    )
     applicant_rows = (
         await db.execute(
-            select(DropApplication, Organization, User, func.coalesce(links_sq.c.n, 0))
+            select(
+                DropApplication,
+                Organization,
+                User,
+                func.coalesce(links_sq.c.n, 0),
+                frozen_sq.c.frozen_at,
+            )
             .join(Organization, Organization.id == DropApplication.org_id)
             .join(User, User.id == Organization.user_id)
             .outerjoin(links_sq, links_sq.c.application_id == DropApplication.id)
+            .outerjoin(frozen_sq, frozen_sq.c.application_id == DropApplication.id)
             .where(DropApplication.drop_id == drop.id)
             .order_by(DropApplication.applied_at.asc())
         )
     ).all()
     shipment_map = await shipments_by_application_ids(
-        db, [application.id for application, _, _, _ in applicant_rows]
+        db, [application.id for application, _, _, _, _ in applicant_rows]
     )
     applicants = [
         {
@@ -1026,6 +1044,7 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
             "shipping_city": org.shipping_city,
             "shipping_state": org.shipping_state,
             "account_erased": org_user.status == OrgUserStatus.ERASED.value,
+            "metrics_frozen_at": frozen_at,
             "decision": application.decision,
             "allocated_units": application.allocated_units,
             "pitch": application.pitch,
@@ -1034,7 +1053,7 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
             "applied_at": application.applied_at,
             "decision_at": application.decision_at,
         }
-        for application, org, org_user, linked in applicant_rows
+        for application, org, org_user, linked, frozen_at in applicant_rows
     ]
 
     intent_rows = await list_intents_for_drop(db, drop)

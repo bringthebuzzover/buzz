@@ -82,7 +82,7 @@ function ApiApplicantTable({
   );
   const priorAccepted = useMemo(
     () =>
-      applicants.filter((a) => a.decision === "accepted" && !a.accountErased),
+      applicants.filter((a) => a.decision === "accepted"),
     [applicants],
   );
   const seatsTaken = priorAccepted.length;
@@ -128,7 +128,7 @@ function ApiApplicantTable({
     .reduce((s, a) => s + (allocations[a.orgId] ?? 0), 0);
 
   const shipToLine = (app: BrandDropApplicant) =>
-    app.deliveryAddress ? (
+    app.accountErased ? null : app.deliveryAddress ? (
       <p className={cn(TEXT.meta, "mt-0.5")}>
         Ship to: {app.deliveryAddress}
       </p>
@@ -407,9 +407,7 @@ function FinalizedRoster({
   applicants: BrandDropApplicant[];
   capacityTotal: number;
 }) {
-  const accepted = applicants.filter(
-    (a) => a.decision === "accepted" && !a.accountErased,
-  );
+  const accepted = applicants.filter((a) => a.decision === "accepted");
   return (
     <div className={STACK.tight}>
       <div>

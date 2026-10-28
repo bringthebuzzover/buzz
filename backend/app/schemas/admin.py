@@ -560,6 +560,7 @@ class AdminApplicantItem(CamelModel):
     shipping_city: str | None
     shipping_state: str | None
     account_erased: bool = False
+    metrics_frozen_at: datetime | None = None
     decision: str
     allocated_units: int | None
     pitch: str | None
@@ -572,7 +573,7 @@ class AdminApplicantItem(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("decision_at")
+    @field_serializer("decision_at", "metrics_frozen_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
