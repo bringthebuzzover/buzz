@@ -8,7 +8,7 @@ surface: org
 evidence:
   - path: backend/app/services/erased_org_participation.py
     note: Migration deletes org_apply_prefills only by used_by_user_id
-  - path: backend/app/services/admin_erase.py
+  - path: backend/app/services/erased_org_participation.py
     note: A new erase also matches unclaimed drafts by school email, invite email, and claimed handle before those columns are nulled. Drafts already used by another account are kept.
   - path: backend/app/erased_apply_prefills.py
     note: Reviewed one-off count/delete. Status stays ops until the delete has been run in production.
@@ -49,8 +49,11 @@ of these holds:
 2. `used_by_user_id` is null, and `edu_email` or `invite_email` equals the
    recipient of an org-erasure message Resend still lists. The draft's
    `created_at` is at or before the earliest such message for that address.
-   When a non-erased user currently has that address on `edu_email` or
-   `pending_edu_email`, unclaimed drafts for it stay.
+
+Either way, the draft stays when a non-erased user holds any email column on
+it (`edu_email`, `invite_email`, and any other email column) on `edu_email` or
+`pending_edu_email`. Comparison ignores case and surrounding whitespace. A
+blank column matches nothing.
 
 An org-erasure message has the subject `Your Buzz account data has been
 deleted` and a body that contains `Instagram credentials`. That phrase is in
@@ -80,10 +83,10 @@ from the messages Resend still has. `unclaimed` counts every draft with a
 null `used_by_user_id`, including live applicants. Only `id=` lines are the
 delete set.
 
-`count` rolls back. `delete --yes` applies the full match (email, cutoff, and
-no live user holding the address, or a link to an erased org user) inside one
-`DELETE ... WHERE ... RETURNING`. A user who signs up before that statement
-keeps the draft. `delete` without `--yes` writes nothing. The command refuses
+`count` rolls back. `delete --yes` applies the full match (email, cutoff, no
+live user holding any email column on the draft, or a link to an erased org
+user) inside one `DELETE ... WHERE ... RETURNING`. A user who signs up before
+that statement keeps the draft. `delete` without `--yes` writes nothing. The command refuses
 to run when `RESEND_API_KEY` is unset, when the key cannot list sent emails
 (including a 401 `restricted_api_key` from a sending-only key), or when the
 Resend scan errors. A list page with no `data` key is an error. A database

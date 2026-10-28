@@ -17,6 +17,7 @@ from app.models.enums import OrgUserStatus, PortalRole
 from app.models.org_apply_prefill import OrgApplyPrefill
 from app.services.email import _org_erased_body, send_brand_erased_email
 from app.services.erased_apply_prefill_leftovers import (
+    _RETRY_AFTER_CAP_SECONDS,
     ORG_ERASURE_SUBJECT,
     ErasureNotice,
     ErasureScanError,
@@ -207,6 +208,82 @@ async def test_reused_email_on_a_live_account_is_kept(db_session: AsyncSession) 
     assert await db_session.get(OrgApplyPrefill, draft_id) is not None
 
 
+async def test_live_invite_keeps_a_draft_matched_on_edu(db_session: AsyncSession) -> None:
+    """The erased school email matches, and the invite belongs to a live user."""
+
+    holder = "live-holder@example.edu"
+    await _live_user(db_session, edu_email=f"  {holder.upper()} ")
+    draft = _prefill(
+        f"  {holder.upper()}  ",
+        created_at=BEFORE,
+        edu_email=ERASED_EMAIL,
+        shipping_line1="17 Split Lane",
+    )
+    db_session.add(draft)
+    await db_session.flush()
+    draft_id = draft.id
+
+    deleted = await delete_leftover_prefills(
+        db_session, [ErasureNotice(email=ERASED_EMAIL, erased_at=ERASED_AT)]
+    )
+    db_session.expire_all()
+
+    assert deleted == 0
+    assert await db_session.get(OrgApplyPrefill, draft_id) is not None
+
+
+async def test_live_edu_keeps_a_draft_matched_on_invite(db_session: AsyncSession) -> None:
+    """The erased invite matches, and the school email belongs to a live user."""
+
+    holder = "live-holder@example.edu"
+    user = await _live_user(db_session)
+    user.pending_edu_email = f"  {holder.upper()} "
+    await db_session.flush()
+    draft = _prefill(
+        ERASED_EMAIL,
+        created_at=BEFORE,
+        edu_email=holder,
+        shipping_line1="18 Split Lane",
+    )
+    db_session.add(draft)
+    await db_session.flush()
+    draft_id = draft.id
+
+    deleted = await delete_leftover_prefills(
+        db_session, [ErasureNotice(email=ERASED_EMAIL, erased_at=ERASED_AT)]
+    )
+    db_session.expire_all()
+
+    assert deleted == 0
+    assert await db_session.get(OrgApplyPrefill, draft_id) is not None
+
+
+async def test_erased_org_link_is_kept_when_another_address_is_live(
+    db_session: AsyncSession,
+) -> None:
+    erased = await _erased_user(db_session)
+    holder = "live-holder@example.edu"
+    await _live_user(db_session, edu_email=holder)
+    draft = _prefill(
+        holder,
+        created_at=BEFORE,
+        edu_email=ERASED_EMAIL,
+        used_by_user_id=erased.id,
+        shipping_line1="19 Linked Lane",
+    )
+    db_session.add(draft)
+    await db_session.flush()
+    draft_id = draft.id
+
+    deleted = await delete_leftover_prefills(
+        db_session, [ErasureNotice(email=ERASED_EMAIL, erased_at=ERASED_AT)]
+    )
+    db_session.expire_all()
+
+    assert deleted == 0
+    assert await db_session.get(OrgApplyPrefill, draft_id) is not None
+
+
 async def test_draft_between_two_notices_uses_the_earliest(db_session: AsyncSession) -> None:
     first = datetime(2026, 1, 1, tzinfo=timezone.utc)
     second = datetime(2026, 6, 1, tzinfo=timezone.utc)
@@ -369,6 +446,29 @@ async def test_fetch_retries_then_error_hides_the_body(monkeypatch: pytest.Monke
     message = str(caught.value)
     assert "status=401" in message
     assert "hidden-person@example.edu" not in message
+
+
+async def test_retry_after_is_honored_and_capped(monkeypatch: pytest.MonkeyPatch) -> None:
+    sleeps: list[float] = []
+
+    async def _record(delay: float) -> None:
+        sleeps.append(delay)
+
+    monkeypatch.setattr("app.services.erased_apply_prefill_leftovers.asyncio.sleep", _record)
+    calls = {"n": 0}
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(429, json={})
+        if calls["n"] == 2:
+            return httpx.Response(429, headers={"Retry-After": "4"}, json={})
+        if calls["n"] == 3:
+            return httpx.Response(429, headers={"Retry-After": "9999"}, json={})
+        return httpx.Response(200, json={"data": [], "has_more": False})
+
+    assert await _fetch(handler) == []
+    assert sleeps == [0.5, 4.0, _RETRY_AFTER_CAP_SECONDS]
 
 
 def test_delete_without_yes_writes_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
