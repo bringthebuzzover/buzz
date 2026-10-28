@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -22,6 +23,7 @@ from app.models.enums import (
     ApplicationDecision,
     BrandTrackerStage,
     OrgUserStatus,
+    PortalRole,
     SocialMediaProductType,
 )
 from app.models.organization import Organization
@@ -1521,6 +1523,127 @@ async def test_metric_sync_follower_zero_overwrites(db_session) -> None:
     await db_session.refresh(org)
     assert org.follower_count == 0
     assert result["followers_refreshed"] == 1
+
+
+def _count_profile_calls(fake: FakeInstagramClient) -> dict[str, int]:
+    calls = {"n": 0}
+    original = fake.fetch_profile
+
+    async def _wrapped(long_token: str):  # type: ignore[no-untyped-def]
+        calls["n"] += 1
+        return await original(long_token)
+
+    fake.fetch_profile = _wrapped  # type: ignore[method-assign]
+    return calls
+
+
+async def test_metric_sync_refreshes_followers_when_posts_refresh(db_session) -> None:
+    """A normal org that gets a post refresh also gets one follower read."""
+    _, org = await _eligible_sync_org(db_session, suffix="follposts")
+    org.follower_count = 1000
+    post = _raw_post(
+        org.id,
+        caption="old",
+        posted_at=_now() - timedelta(hours=2),
+        ext="follposts1",
+    )
+    db_session.add(post)
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.followers_count = 1500
+    calls = _count_profile_calls(fake)
+    result = await sync_metrics(db_session, fake)
+    await db_session.refresh(org)
+    assert result["posts_refreshed"] >= 1
+    assert org.follower_count == 1500
+    assert result["followers_refreshed"] == 1
+    assert result["followers_skipped"] == 0
+    assert calls["n"] == 1
+
+
+async def test_metric_sync_refreshes_followers_when_candidate_query_misses_role(
+    db_session, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Media sync ignores portal_role; the follower query does not.
+
+    A non-org user that still owns the organization and a usable token can
+    have posts refreshed and then be absent from the follower candidate
+    query. That used to end at followers_refreshed 0 with no warning.
+    """
+    user = await persist(
+        db_session,
+        make_user(role=PortalRole.BRAND, instagram_user_id="ig_brandfoll"),
+    )
+    user.instagram_access_token = encrypt_token("long-lived")
+    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    org = await make_org(db_session, user, org_name="Brand Owned Org")
+    org.follower_count = 80
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    post = _raw_post(
+        org.id,
+        caption="old",
+        posted_at=_now() - timedelta(hours=2),
+        ext="brandfoll1",
+    )
+    db_session.add(post)
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.followers_count = 90
+    calls = _count_profile_calls(fake)
+    with caplog.at_level(logging.WARNING, logger="app.jobs.metric_sync"):
+        result = await sync_metrics(db_session, fake)
+    await db_session.refresh(org)
+    assert result["posts_refreshed"] >= 1
+    assert org.follower_count == 90
+    assert result["followers_refreshed"] == 1
+    assert result["followers_failed"] == 0
+    assert result["followers_skipped"] == 0
+    assert calls["n"] == 1
+    assert "followers candidate missed" in caplog.text
+    assert "portal_role=brand" in caplog.text
+
+
+async def test_metric_sync_logs_expired_token_follower_skip(
+    db_session, caplog: pytest.LogCaptureFixture
+) -> None:
+    user = await persist(db_session, make_user(instagram_user_id="ig_follexp"))
+    user.instagram_access_token = encrypt_token("long-lived")
+    user.instagram_token_expires_at = _now() - timedelta(hours=1)
+    org = await make_org(db_session, user)
+    org.follower_count = 77
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    fake.followers_count = 1
+    calls = _count_profile_calls(fake)
+    with caplog.at_level(logging.WARNING, logger="app.jobs.metric_sync"):
+        result = await sync_metrics(db_session, fake)
+    await db_session.refresh(org)
+    assert org.follower_count == 77
+    assert result["followers_refreshed"] == 0
+    assert result["followers_skipped"] == 1
+    assert result["followers_failed"] == 0
+    assert calls["n"] == 0
+    assert "followers_skipped" in caplog.text
+    assert "reason=expired" in caplog.text
+
+
+async def test_metric_sync_logs_follower_skip_when_org_row_missing(
+    db_session, caplog: pytest.LogCaptureFixture
+) -> None:
+    user = await persist(db_session, make_user(instagram_user_id="ig_follnoorg"))
+    user.instagram_access_token = encrypt_token("long-lived")
+    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    await db_session.flush()
+    fake = FakeInstagramClient()
+    calls = _count_profile_calls(fake)
+    with caplog.at_level(logging.WARNING, logger="app.jobs.metric_sync"):
+        result = await sync_metrics(db_session, fake)
+    assert result["followers_refreshed"] == 0
+    assert result["followers_skipped"] == 1
+    assert calls["n"] == 0
+    assert "reason=no_org" in caplog.text
 
 
 async def test_metric_sync_skips_follower_refresh_for_erased(db_session) -> None:
