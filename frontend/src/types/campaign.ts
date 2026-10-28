@@ -14,10 +14,10 @@ export type FeaturedCollab = {
   image: string;
 };
 
-/** One school row in the scrolling college network; optional local logo overrides remote URLs. */
+/** One school row in the scrolling college network. */
 export type CollegeMarqueeItem = {
   name: string;
   domain: string;
-  /** Local asset; when absent, Clearbit / icon fallback is used in the UI */
-  logoSrc?: string;
+  /** Committed logo asset. The marquee does not fetch a remote logo. */
+  logoSrc: string;
 };

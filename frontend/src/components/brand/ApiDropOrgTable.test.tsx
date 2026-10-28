@@ -91,5 +91,29 @@ describe("ApiDropOrgTable", () => {
     expect(html).not.toContain("Avg watch time");
     expect(html).not.toContain("undefined");
     expect(html).not.toContain("NaN");
+    expect(html).not.toContain("<img");
+  });
+
+  it("renders an Instagram thumbnail without sending the page referrer", () => {
+    const html = renderToString(
+      <ApiDropOrgTable
+        applicants={[
+          {
+            ...erased,
+            accountErased: false,
+            orgName: "Epsilon Nu Tau",
+            posts: [
+              {
+                ...linkedPost,
+                thumbnailUrl: "https://scontent.cdninstagram.com/v/thumb.jpg",
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(html).toContain('src="https://scontent.cdninstagram.com/v/thumb.jpg"');
+    expect(html.toLowerCase()).toContain('referrerpolicy="no-referrer"');
+    expect(html).not.toContain("image-fallback");
   });
 });
