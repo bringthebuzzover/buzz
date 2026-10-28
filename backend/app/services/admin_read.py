@@ -51,6 +51,7 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.drop_apply_intents import list_intents_for_drop
+from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.instagram_token import REFRESH_WINDOW_DAYS
 from app.services.shipments import (
     awaiting_products_no_tracking_clause,
@@ -732,9 +733,7 @@ async def get_org_detail(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
         "user_id": user.id,
         "org_id": org.id if org is not None else None,
         "status": user.status,
-        "org_name": (
-            ("Deleted organization" if erased else org.org_name) if org is not None else None
-        ),
+        "org_name": ((TOMBSTONE_ORG_NAME if erased else org.org_name) if org is not None else None),
         "university": "" if erased else (org.university if org is not None else None),
         "category": None if erased else (org.category if org is not None else None),
         "instagram_handle": None if erased else user.instagram_username,
@@ -1053,7 +1052,7 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
                 "id": application.id,
                 "org_id": org.id,
                 "user_id": org.user_id,
-                "org_name": "Deleted organization" if erased else org.org_name,
+                "org_name": TOMBSTONE_ORG_NAME if erased else org.org_name,
                 "university": "" if erased else org.university,
                 "instagram_handle": None if erased else org_user.instagram_username,
                 "follower_count": None if erased else org.follower_count,
