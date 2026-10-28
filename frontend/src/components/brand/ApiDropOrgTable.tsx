@@ -10,6 +10,8 @@ import type { BrandDropApplicant } from "../../api/hooks/useBrandHooks";
 import { orgCategoryLabel } from "../../types/orgCategory";
 import { safeHttpUrl } from "../../utils/safeHttpUrl";
 import { Select } from "../forms/controls";
+import PostInsights from "../posts/PostInsights";
+import { formatInsightCount } from "../posts/postInsights";
 import { Card } from "../ui/Card";
 import { Chip } from "../ui/Chip";
 import { StatePanel } from "../ui/StatePanel";
@@ -131,41 +133,41 @@ export default function ApiDropOrgTable({
                   return (
                     <li
                       key={p.id}
-                      className={cn(
-                        SURFACE.inset,
-                        "flex items-center justify-between gap-4 px-4 py-2",
-                      )}
+                      className={cn(SURFACE.inset, "px-4 py-2")}
                     >
-                      <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
                         {thumb ? (
                           <img
                             src={thumb}
                             alt=""
-                            className="h-12 w-12 shrink-0 rounded-buzzControl object-cover"
+                            className="mt-0.5 h-12 w-12 shrink-0 rounded-buzzControl object-cover"
                           />
                         ) : null}
-                        {postHref ? (
-                          <a
-                            href={postHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="truncate text-xs font-semibold text-buzz-coral hover:underline"
-                            title={p.caption}
-                          >
-                            {p.caption || p.url}
-                          </a>
-                        ) : (
-                          <span
-                            className="truncate text-xs font-semibold text-buzz-inkMuted"
-                            title={p.caption}
-                          >
-                            {p.caption || "Post"}
-                          </span>
-                        )}
+                        <div className="min-w-0 flex-1">
+                          {postHref ? (
+                            <a
+                              href={postHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block truncate text-xs font-semibold text-buzz-coral hover:underline"
+                              title={p.caption}
+                            >
+                              {p.caption || p.url}
+                            </a>
+                          ) : (
+                            <span
+                              className="block truncate text-xs font-semibold text-buzz-inkMuted"
+                              title={p.caption}
+                            >
+                              {p.caption || "Post"}
+                            </span>
+                          )}
+                          <p className={cn(TEXT.meta, "mt-1")}>
+                            {`${formatInsightCount(p.likes)} likes · ${formatInsightCount(p.comments)} comments`}
+                          </p>
+                          <PostInsights post={p} />
+                        </div>
                       </div>
-                      <span className={cn(TEXT.meta, "shrink-0")}>
-                        {p.likes} likes · {p.comments} comments
-                      </span>
                     </li>
                   );
                 })}

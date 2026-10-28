@@ -14,6 +14,7 @@ from app.models.enums import (
     ApplicationDecision,
     BrandTrackerStage,
     PortalRole,
+    SocialMediaProductType,
 )
 from tests.conftest import (
     make_application,
@@ -209,6 +210,64 @@ class TestGetBrandDropDetail:
         assert "totalEngagement" in data
         assert "totalReach" in data
         assert "totalPosts" in data
+
+    async def test_linked_posts_include_stored_insights(self, app_client: AsyncClient, db_session):
+        """Brand drop posts carry the insight columns the org list already returns."""
+        _, brand, headers = await _brand_ctx(db_session)
+        drop = await make_drop(db_session, brand)
+        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
+        org = await make_org(db_session, org_user)
+        app = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+
+        feed = await make_social_post(
+            db_session, org, caption="feed post", media_product_type=SocialMediaProductType.FEED
+        )
+        feed.reach = 1200
+        feed.views = 3400
+        feed.saved = 15
+        feed.shares = 4
+        feed.total_interactions = 80
+        feed.profile_visits = 9
+        feed.profile_activity = 3
+        feed.follows = 2
+        reel = await make_social_post(
+            db_session,
+            org,
+            caption="reel post",
+            media_product_type=SocialMediaProductType.REELS,
+        )
+        reel.reach = 500
+        reel.views = None
+        reel.saved = 0
+        reel.shares = 1
+        reel.total_interactions = 6
+        reel.ig_reels_avg_watch_time = 1200
+        reel.ig_reels_video_view_total_time = 48000
+        reel.reels_skip_rate = 0.37
+        await db_session.flush()
+        await make_post_link(db_session, feed, app)
+        await make_post_link(db_session, reel, app)
+
+        res = await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=headers)
+        assert res.status_code == 200
+        posts = {p["caption"]: p for p in res.json()["data"]["applications"][0]["posts"]}
+        assert posts["feed post"]["platform"] == "instagram"
+        assert posts["feed post"]["reach"] == 1200
+        assert posts["feed post"]["views"] == 3400
+        assert posts["feed post"]["saved"] == 15
+        assert posts["feed post"]["shares"] == 4
+        assert posts["feed post"]["totalInteractions"] == 80
+        assert posts["feed post"]["profileVisits"] == 9
+        assert posts["feed post"]["profileActivity"] == 3
+        assert posts["feed post"]["follows"] == 2
+        assert posts["feed post"]["igReelsAvgWatchTime"] is None
+        assert posts["reel post"]["views"] is None
+        assert posts["reel post"]["saved"] == 0
+        assert posts["reel post"]["igReelsAvgWatchTime"] == 1200
+        assert posts["reel post"]["igReelsVideoViewTotalTime"] == 48000
+        assert posts["reel post"]["reelsSkipRate"] == 0.37
+        assert posts["reel post"]["profileVisits"] is None
+        assert posts["reel post"]["follows"] is None
 
     async def test_delivery_address_null_unless_applied_or_accepted(
         self, app_client: AsyncClient, db_session

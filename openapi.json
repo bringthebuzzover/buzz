@@ -3977,10 +3977,43 @@
             "title": "Comments",
             "type": "integer"
           },
+          "follows": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follows"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "igReelsAvgWatchTime": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Igreelsavgwatchtime"
+          },
+          "igReelsVideoViewTotalTime": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Igreelsvideoviewtotaltime"
           },
           "likes": {
             "title": "Likes",
@@ -4005,9 +4038,79 @@
             ],
             "title": "Mediaurl"
           },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
           "postedAt": {
             "title": "Postedat",
             "type": "integer"
+          },
+          "profileActivity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profileactivity"
+          },
+          "profileVisits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profilevisits"
+          },
+          "reach": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reach"
+          },
+          "reelsSkipRate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reelsskiprate"
+          },
+          "saved": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saved"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
           },
           "thumbnailUrl": {
             "anyOf": [
@@ -4020,9 +4123,31 @@
             ],
             "title": "Thumbnailurl"
           },
+          "totalInteractions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Totalinteractions"
+          },
           "url": {
             "title": "Url",
             "type": "string"
+          },
+          "views": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Views"
           }
         },
         "required": [
@@ -4035,7 +4160,19 @@
           "mediaProductType",
           "postedAt",
           "likes",
-          "comments"
+          "comments",
+          "platform",
+          "reach",
+          "views",
+          "saved",
+          "shares",
+          "totalInteractions",
+          "profileVisits",
+          "profileActivity",
+          "follows",
+          "igReelsAvgWatchTime",
+          "igReelsVideoViewTotalTime",
+          "reelsSkipRate"
         ],
         "title": "BrandDropPostItem",
         "type": "object"

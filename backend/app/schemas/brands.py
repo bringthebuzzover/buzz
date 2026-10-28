@@ -113,6 +113,20 @@ class BrandDropPostItem(CamelModel):
     posted_at: datetime
     likes: int
     comments: int
+    platform: str
+    # Stored media insights (same columns as ``PostResponse``). Null means
+    # Graph omitted the metric or insights have not synced yet — not zero.
+    reach: int | None
+    views: int | None
+    saved: int | None
+    shares: int | None
+    total_interactions: int | None
+    profile_visits: int | None
+    profile_activity: int | None
+    follows: int | None
+    ig_reels_avg_watch_time: int | None
+    ig_reels_video_view_total_time: int | None
+    reels_skip_rate: float | None
 
     @field_serializer("posted_at")
     def _epoch_required(self, value: datetime) -> int:
