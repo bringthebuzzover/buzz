@@ -136,6 +136,10 @@ async def test_flag_off_is_404_without_side_effects(
         "/api/meta-reviewer/seed",
         headers={"Authorization": "Bearer not-a-token"},
     )
+    status = await app_client.get(
+        "/api/meta-reviewer/status",
+        headers={"Authorization": "Bearer not-a-token"},
+    )
     state = jwt.create_oauth_state_token(bind_user_id=uuid.uuid4(), reviewer=True)
     set_request_cookies(app_client, {settings.OAUTH_STATE_COOKIE_NAME: state})
     callback = await app_client.post(
@@ -146,6 +150,7 @@ async def test_flag_off_is_404_without_side_effects(
     assert start.status_code == 404
     assert start.json()["error"]["code"] == errors.NOT_FOUND
     assert seed.status_code == 404
+    assert status.status_code == 404
     assert callback.status_code == 404
     assert fake_instagram.seen_code is None
     after = await db_session.scalar(select(func.count()).select_from(User))
@@ -302,6 +307,63 @@ async def test_seed_requires_admin_and_drop(
     monkeypatch.setattr(settings, "META_REVIEWER_ACCESS_ENABLED", False)
     hidden = await app_client.post("/api/meta-reviewer/seed", headers=admin)
     assert hidden.status_code == 404
+
+
+async def test_status_is_admin_only_and_hides_the_secret(
+    app_client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "META_REVIEWER_ACCESS_ENABLED", False)
+    hidden = await app_client.get(
+        "/api/meta-reviewer/status",
+        headers={"Authorization": "Bearer not-a-token"},
+    )
+    assert hidden.status_code == 404
+
+    _brand, drop = await _seed_drop(db_session)
+    _enable(monkeypatch, None)
+    admin = await _admin_headers(db_session)
+    unconfigured = await app_client.get("/api/meta-reviewer/status", headers=admin)
+    assert unconfigured.status_code == 200, unconfigured.text
+    assert unconfigured.json()["data"]["enabled"] is True
+    assert unconfigured.json()["data"]["seeded"] is False
+    assert unconfigured.json()["data"]["dropId"] is None
+    assert SECRET not in unconfigured.text
+    assert DEFAULT_REVIEWER_ORG_EMAIL not in unconfigured.text
+
+    anon = await app_client.get("/api/meta-reviewer/status")
+    assert anon.status_code == 401
+    org_user = await persist(db_session, make_user())
+    forbidden = await app_client.get(
+        "/api/meta-reviewer/status",
+        headers={"Authorization": f"Bearer {mint_access_token(org_user)}"},
+    )
+    assert forbidden.status_code == 403
+
+    monkeypatch.setattr(settings, "META_REVIEWER_DROP_ID", str(drop.id))
+    waiting = await app_client.get("/api/meta-reviewer/status", headers=admin)
+    assert waiting.status_code == 200, waiting.text
+    assert waiting.json()["data"] == {
+        "enabled": True,
+        "seeded": False,
+        "orgId": None,
+        "userId": None,
+        "dropId": str(drop.id),
+    }
+
+    seeded = await _seed_via_api(app_client, db_session, drop.id)
+    ready = await app_client.get("/api/meta-reviewer/status", headers=admin)
+    assert ready.status_code == 200, ready.text
+    assert ready.json()["data"] == {
+        "enabled": True,
+        "seeded": True,
+        "orgId": seeded["orgId"],
+        "userId": seeded["userId"],
+        "dropId": str(drop.id),
+    }
+    assert SECRET not in ready.text
+    assert DEFAULT_REVIEWER_ORG_EMAIL not in ready.text
 
 
 async def test_valid_link_binds_syncs_and_stays_in_reviewer_org(

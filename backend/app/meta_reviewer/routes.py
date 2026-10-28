@@ -6,6 +6,7 @@ only in the JSON body, never the query string, and is not logged.
 
 from __future__ import annotations
 
+import uuid
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Header, Request, Response
@@ -16,7 +17,7 @@ from app.deps.auth import _load_user_from_bearer
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
 from app.meta_reviewer.gate import link_secret_matches, require_reviewer_access
-from app.meta_reviewer.seed import load_ready_reviewer, seed_reviewer_org
+from app.meta_reviewer.seed import load_ready_reviewer, reviewer_setup_status, seed_reviewer_org
 from app.models.enums import OrgUserStatus, PortalRole
 from app.response import APIResponse, DataResponse, api_response
 from app.routes.auth import _set_state_cookie
@@ -58,6 +59,34 @@ class MetaReviewerSeedResponse(CamelModel):
     application_id: str
     created_user: bool
     created_application: bool
+
+
+class MetaReviewerStatusResponse(CamelModel):
+    """Setup snapshot. ``user_id`` is the admin org-page key, not a secret."""
+
+    enabled: bool
+    seeded: bool
+    org_id: str | None
+    user_id: str | None
+    drop_id: str | None
+
+
+def _uuid_str(value: uuid.UUID | None) -> str | None:
+    return None if value is None else str(value)
+
+
+async def _require_active_admin(
+    authorization: str | None,
+    db: AsyncSession,
+    method: str,
+) -> None:
+    user = await _load_user_from_bearer(authorization, db, method)
+    if user.portal_role != PortalRole.ADMIN.value or user.status != OrgUserStatus.ACTIVE.value:
+        raise BuzzAPIException(
+            errors.FORBIDDEN,
+            "Admin access required.",
+            status_code=403,
+        )
 
 
 async def _read_token(request: Request) -> str:
@@ -121,6 +150,34 @@ async def meta_reviewer_start(
     )
 
 
+@router.get("/status", response_model=DataResponse[MetaReviewerStatusResponse])
+async def meta_reviewer_status(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    authorization: Annotated[str | None, Header()] = None,
+) -> APIResponse:
+    """Admin-only setup status. 404 when the flag is off, before auth.
+
+    Returns whether the reviewer org exists, its admin-page user id, and the
+    configured drop id. Never returns the link secret, its hash, or the email.
+    Not rate-limited: the admin overview reads it on each visit. Flag-off
+    still 404s before auth, so that probe never reaches the handler body.
+    """
+
+    require_reviewer_access()
+    await _require_active_admin(authorization, db, request.method)
+    status = await reviewer_setup_status(db)
+    return api_response(
+        data=MetaReviewerStatusResponse(
+            enabled=status["enabled"],
+            seeded=status["seeded"],
+            org_id=_uuid_str(status["org_id"]),
+            user_id=_uuid_str(status["user_id"]),
+            drop_id=_uuid_str(status["drop_id"]),
+        )
+    )
+
+
 @router.post("/seed", response_model=DataResponse[MetaReviewerSeedResponse])
 async def meta_reviewer_seed(
     request: Request,
@@ -131,13 +188,7 @@ async def meta_reviewer_seed(
 
     require_reviewer_access()
     await _seed_limit(request)
-    user = await _load_user_from_bearer(authorization, db, request.method)
-    if user.portal_role != PortalRole.ADMIN.value or user.status != OrgUserStatus.ACTIVE.value:
-        raise BuzzAPIException(
-            errors.FORBIDDEN,
-            "Admin access required.",
-            status_code=403,
-        )
+    await _require_active_admin(authorization, db, request.method)
     seeded = await seed_reviewer_org(db)
     return api_response(
         data=MetaReviewerSeedResponse(
