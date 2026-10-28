@@ -34,19 +34,22 @@ def test_clamp_keeps_graph_percentage_and_caps_at_100() -> None:
     assert clamp_reels_skip_rate("nope") is None
 
 
-def test_parse_insight_value_does_not_scale_skip_rate() -> None:
+def test_parse_insight_value_keeps_the_raw_graph_number() -> None:
+    """Clamping happens when the column is written, not when Graph is parsed."""
+
     assert _parse_insight_value("reels_skip_rate", 62.8) == pytest.approx(62.8)
-    assert _parse_insight_value("reels_skip_rate", 6280) == 100
+    assert _parse_insight_value("reels_skip_rate", 6280) == 6280
     assert _parse_insight_value("reach", "10") == 10
 
 
 def _post() -> SocialPost:
     return SocialPost(
+        id=uuid.uuid4(),
         org_id=uuid.uuid4(),
         platform="instagram",
-        external_id="ig_skip",
-        url="https://instagram.com/reel/skip",
-        caption="reel",
+        external_id="ig_media_1789",
+        url="https://instagram.com/reel/example-post",
+        caption="Campus philanthropy caption",
         media_type="VIDEO",
         media_product_type="REELS",
         posted_at=datetime.now(timezone.utc),
@@ -55,18 +58,47 @@ def _post() -> SocialPost:
     )
 
 
-def test_apply_insights_stores_percentage_points() -> None:
+def test_apply_insights_stores_percentage_points(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     post = _post()
-    _apply_insights(post, {"reach": 300, "reels_skip_rate": 62.8})
+    with caplog.at_level("WARNING", logger="app.jobs.metric_sync"):
+        _apply_insights(post, {"reach": 300, "reels_skip_rate": 62.8})
     assert post.reels_skip_rate == pytest.approx(62.8)
     assert post.insights_raw is not None
     assert post.insights_raw["reels_skip_rate"] == pytest.approx(62.8)
     assert post.reach == 300
+    assert caplog.records == []
 
-    _apply_insights(post, {"reels_skip_rate": 6280})
+    caplog.clear()
+    with caplog.at_level("WARNING", logger="app.jobs.metric_sync"):
+        _apply_insights(post, {"reels_skip_rate": 6280})
     assert post.reels_skip_rate == 100
     assert post.insights_raw is not None
-    assert post.insights_raw["reels_skip_rate"] == 100
+    assert post.insights_raw["reels_skip_rate"] == 6280
+    assert len(caplog.records) == 1
+    message = caplog.records[0].getMessage()
+    assert str(post.id) in message
+    assert post.external_id in message
+    assert "6280" in message
+    assert post.caption not in message
+    assert post.url not in message
+    assert str(post.org_id) not in message
+
+
+def test_apply_insights_logs_non_finite_skip_rate_without_storing_it(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    post = _post()
+    with caplog.at_level("WARNING", logger="app.jobs.metric_sync"):
+        _apply_insights(post, {"reach": 10, "reels_skip_rate": float("nan")})
+    assert post.reels_skip_rate is None
+    assert post.insights_raw == {"reach": 10}
+    assert len(caplog.records) == 1
+    message = caplog.records[0].getMessage()
+    assert str(post.id) in message
+    assert post.external_id in message
+    assert "nan" in message
 
 
 def _post_response(skip_rate: float) -> PostResponse:

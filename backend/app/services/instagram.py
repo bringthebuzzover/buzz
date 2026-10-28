@@ -26,7 +26,6 @@ import httpx
 from app import errors
 from app.config import settings
 from app.exceptions import BuzzAPIException
-from app.services.insight_units import clamp_reels_skip_rate
 
 logger = logging.getLogger(__name__)
 
@@ -409,8 +408,8 @@ _REEL_INSIGHT_METRICS = (
     "reach,views,saved,shares,total_interactions,"
     "ig_reels_avg_watch_time,ig_reels_video_view_total_time,reels_skip_rate"
 )
-# Non-integer insight names. ``reels_skip_rate`` is already a percentage
-# in [0, 100] (see ``insight_units``); do not scale it.
+# Non-integer insight names. ``reels_skip_rate`` is a percentage in [0, 100].
+# The raw Graph number is kept; metric sync clamps the column.
 _FRACTIONAL_INSIGHTS = frozenset({"reels_skip_rate"})
 # Bound discovery runtime: 10 pages × default limit 50 = 500 media ids max.
 _MEDIA_LIST_MAX_PAGES = 10
@@ -420,13 +419,17 @@ _MEDIA_LIST_WINDOW_DAYS = 30
 def _parse_insight_value(name: str, raw: object) -> int | float | None:
     """Cast Graph insight values.
 
-    Fractional metrics stay floats. ``reels_skip_rate`` is clamped to a
-    percentage in ``[0, 100]``; ``None`` means the value was not a finite
-    number and the caller should omit it.
+    Fractional metrics stay floats, including values outside 0–100 and
+    non-finite numbers. Metric sync clamps the ``reels_skip_rate`` column
+    and keeps this raw number in ``insights_raw``. ``None`` means the value
+    was not a number and the caller should omit it.
     """
 
     if name in _FRACTIONAL_INSIGHTS:
-        return clamp_reels_skip_rate(raw)
+        try:
+            return float(raw)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return None
     # int(float(...)) so "3.0" and 3 both work without truncating via int("3.0").
     return int(float(raw))  # type: ignore[arg-type]
 
