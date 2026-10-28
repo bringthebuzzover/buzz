@@ -3,7 +3,7 @@ id: jobs.follower-refresh-silent-zero
 title: metric_sync can report followers_refreshed 0 with no follower warning
 kind: ops
 severity: P3
-status: open
+status: fixed
 surface: jobs
 evidence:
   - path: backend/app/jobs/metric_sync.py
@@ -48,3 +48,27 @@ same process. The follower query should include that user when
 empty info line), so the excluding column is not identified here. Not changed
 in the bind-time follower seed: there is no proven write bug on the refresh
 path, and tests already cover omit, fail, zero, and erased.
+
+## Resolution
+
+Media sync loads `organizations.user_id` and refreshes posts whenever
+`_token_for` returns a token. It does not filter `portal_role`. Follower
+refresh only selected users with `portal_role=org`, a non-null token column,
+and a non-erased status, then `continue`d with no log when `_token_for`
+returned None or no organization row existed. Those are the only exits that
+produce `followers_refreshed 0` and `followers_failed 0` with no follower
+warning. A post refresh already proves the token is usable and the org row
+exists, and `_eligible_orgs` uses the same non-erased status predicate, so the
+candidate predicate media sync does not share is `portal_role=org`. Production
+rows were not queried (no database credentials in this run). Railway deploy
+logs for 2026-10-27 19:04 UTC, 2026-10-28 00:57 UTC, and later runs through
+03:04 UTC show thumbnail omissions and no `followers_omitted`,
+`followers_failed`, or `followers_skipped` lines, which matches that silent
+exit.
+
+The job now still walks that candidate query, but logs and counts
+`followers_skipped` for an unusable token or a missing org row. It then
+loads any media-sync org user the query did not return (same `db.get` as
+media sync, erased accounts still skipped) and refreshes that org's follower
+count, warning `followers candidate missed` with `portal_role` and `status`.
+Omit and fetch failure still keep the stored count.
