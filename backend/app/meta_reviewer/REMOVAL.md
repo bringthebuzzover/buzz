@@ -58,8 +58,9 @@ Delete the marked `META-REVIEWER-PATH` lines in:
 - `backend/app/config.py` — `META_REVIEWER_ACCESS_ENABLED`, `META_REVIEWER_LINK_SECRET_HASH`, `META_REVIEWER_DROP_ID`, `META_REVIEWER_ORG_EMAIL`
 - `backend/app/security/jwt.py` — `reviewer` claim and the `reviewer` argument on `create_oauth_state_token`
 - `backend/app/routes/auth.py` — the callback branch that calls `complete_reviewer_instagram_callback`
+- `backend/app/services/onboarding.py` — `reject_reviewer_mutation` in `change_edu_email`, `verify_email` (pending-swap branch), and `rotate_edu_email`
 - `backend/app/main.py` — the import and `include_router` for the reviewer router
-- `backend/app/jobs/autolink_scan.py` — the optional `org_id` argument and its `WHERE` (only if nothing else uses it)
+- `backend/app/jobs/autolink_scan.py` — the optional `org_id` argument, its `WHERE`, and the `org_id is None` guard around `_heal_dangling` (only if nothing else uses `org_id`)
 - `backend/app/services/drops.py` — `reject_reviewer_mutation` import and the three calls
 - `backend/app/services/ig_change_requests.py` — import and the call in `submit_request`
 - `backend/app/routes/orgs.py` — import and the call in `update_my_org`

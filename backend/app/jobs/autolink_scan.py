@@ -214,7 +214,10 @@ async def scan_autolink(
                 continue
             created += 1
 
-    healed = await _heal_dangling(db, now)
+    # META-REVIEWER-PATH: a scoped scan (reviewer connect) must not dismiss
+    # other orgs' suggestions. The cron and admin scans pass no org_id and
+    # still heal.
+    healed = await _heal_dangling(db, now) if org_id is None else 0
 
     await db.flush()
     return {

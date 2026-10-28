@@ -26,6 +26,7 @@ from app.models.enums import (
     PortalRole,
     SocialMediaProductType,
     SocialMediaType,
+    SuggestionMatchReason,
 )
 from app.models.organization import Organization
 from app.models.post_suggestion import PostCampaignSuggestion
@@ -39,6 +40,8 @@ from tests.conftest import (
     make_brand,
     make_drop,
     make_org,
+    make_post_link,
+    make_social_post,
     make_user,
     mint_access_token,
     persist,
@@ -260,6 +263,14 @@ async def test_rate_limit(app_client: AsyncClient, monkeypatch: pytest.MonkeyPat
         )
         assert blocked.status_code == 429
         assert blocked.json()["error"]["code"] == errors.RATE_LIMITED
+        # A spoofed X-Forwarded-For must not open a new bucket. Railway's
+        # edge sets X-Real-IP; that header is the bucket key.
+        spoofed = await app_client.post(
+            "/api/meta-reviewer/start",
+            json={"token": SECRET},
+            headers={**headers, "X-Forwarded-For": "198.51.100.9"},
+        )
+        assert spoofed.status_code == 429
     finally:
         settings.RATE_LIMIT_ENABLED = False
         rate_limit.reset()
@@ -632,3 +643,116 @@ async def test_purge_removes_reviewer_org_and_keeps_the_drop(
     assert kept is not None
     again = await purge_reviewer_org(db_session)
     assert again is False
+
+
+async def test_reviewer_cannot_rotate_email_even_with_flag_off(
+    app_client: AsyncClient,
+    fake_instagram: FakeInstagramClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A reviewer session must not detach the email purge keys on.
+
+    Flag off 404s the routes but does not unlock the seeded account.
+    A normal org can still rotate.
+    """
+
+    _brand, drop = await _seed_drop(db_session)
+    _enable(monkeypatch, drop.id)
+    seeded = await _seed_via_api(app_client, db_session, drop.id)
+    fake_instagram.account_type = "BUSINESS"
+    fake_instagram.user_id = "ig_escape"
+    fake_instagram.username = "escapehandle"
+    start = await app_client.post("/api/meta-reviewer/start", json={"token": SECRET})
+    signed_in = await app_client.post(
+        "/api/auth/instagram/callback",
+        json={"code": "oauth-code", "state": _state_from(start)},
+    )
+    assert signed_in.status_code == 200, signed_in.text
+    auth = {"Authorization": f"Bearer {signed_in.json()['data']['access_token']}"}
+
+    student = make_user()
+    student.edu_email = "student-rotate@university.edu"
+    student.email_verified_at = datetime.now(timezone.utc)
+    student = await persist(db_session, student)
+    await make_org(db_session, student, org_name="Normal Campus Org")
+    student_auth = {"Authorization": f"Bearer {mint_access_token(student)}"}
+
+    blocked = await app_client.post(
+        "/api/auth/verify-email/rotate",
+        headers=auth,
+        json={"eduEmail": "escape@university.edu"},
+    )
+    assert blocked.status_code == 403
+    assert blocked.json()["error"]["code"] == errors.FORBIDDEN
+
+    allowed = await app_client.post(
+        "/api/auth/verify-email/rotate",
+        headers=student_auth,
+        json={"eduEmail": "student-next@university.edu"},
+    )
+    assert allowed.status_code == 200, allowed.text
+
+    monkeypatch.setattr(settings, "META_REVIEWER_ACCESS_ENABLED", False)
+    still_blocked = await app_client.post(
+        "/api/auth/verify-email/rotate",
+        headers=auth,
+        json={"eduEmail": "escape@university.edu"},
+    )
+    assert still_blocked.status_code == 403
+    renamed = await app_client.patch(
+        "/api/orgs/me",
+        headers=auth,
+        json={"orgName": "Not The Reviewer"},
+    )
+    assert renamed.status_code == 403
+    reviewer = await db_session.get(User, uuid.UUID(seeded["userId"]))
+    assert reviewer is not None
+    assert reviewer.edu_email == DEFAULT_REVIEWER_ORG_EMAIL
+    assert reviewer.pending_edu_email is None
+    deleted = await purge_reviewer_org(db_session)
+    assert deleted is True
+    assert await db_session.get(User, reviewer.id) is None
+
+
+async def test_reviewer_connect_does_not_dismiss_other_org_suggestions(
+    app_client: AsyncClient,
+    fake_instagram: FakeInstagramClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    brand, drop = await _seed_drop(db_session)
+    _enable(monkeypatch, drop.id)
+    await _seed_via_api(app_client, db_session, drop.id)
+
+    other = await persist(db_session, make_user(instagram_username="othercampus"))
+    other_org = await make_org(db_session, other, org_name="Other Campus Org")
+    linked_app = await make_application(
+        db_session, drop, other_org, decision=ApplicationDecision.ACCEPTED
+    )
+    second_drop = await make_drop(db_session, brand, title="Second Campus Drop")
+    other_app = await make_application(
+        db_session, second_drop, other_org, decision=ApplicationDecision.ACCEPTED
+    )
+    post = await make_social_post(db_session, other_org, caption="hello @acmebrand")
+    await make_post_link(db_session, post, linked_app)
+    suggestion = PostCampaignSuggestion(
+        post_id=post.id,
+        application_id=other_app.id,
+        match_reason=SuggestionMatchReason.BRAND_HANDLE_CAPTION.value,
+        match_evidence="@acmebrand",
+    )
+    db_session.add(suggestion)
+    await db_session.flush()
+
+    fake_instagram.account_type = "BUSINESS"
+    fake_instagram.user_id = "ig_scoped"
+    fake_instagram.username = "scopedreviewer"
+    start = await app_client.post("/api/meta-reviewer/start", json={"token": SECRET})
+    resp = await app_client.post(
+        "/api/auth/instagram/callback",
+        json={"code": "oauth-code", "state": _state_from(start)},
+    )
+    assert resp.status_code == 200, resp.text
+    await db_session.refresh(suggestion)
+    assert suggestion.dismissed_at is None
