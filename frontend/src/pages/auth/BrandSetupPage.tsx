@@ -50,10 +50,19 @@ export default function BrandSetupPage() {
     );
   }
 
-  if (status === "authenticated" && user) {
-    // Invite form is for a signed-out brand. An admin View-as session (or a
-    // brand that already has a session) must not set a password here.
-    if (user.portalRole === "brand" || user.impersonatedBy) {
+  if (status === "authenticated" && user && (!token || user.impersonatedBy)) {
+    // No invite in hand: send the session where it belongs. View-as must not
+    // submit this form either. A signed-in invitee (or an admin opening a
+    // real invite link) keeps the form — the token stays in state.
+    if (user.impersonatedBy) {
+      return (
+        <Navigate
+          to={user.portalRole === "brand" ? "/brand/dashboard" : pathForUser(user)}
+          replace
+        />
+      );
+    }
+    if (user.portalRole === "brand") {
       return <Navigate to="/brand/dashboard" replace />;
     }
     if (user.portalRole === "admin") {

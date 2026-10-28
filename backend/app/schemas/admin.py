@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     BeforeValidator,
@@ -211,6 +211,16 @@ class AdminUserItem(CamelModel):
     @field_serializer("created_at")
     def _created_at_epoch(self, value: datetime) -> int:
         return int(value.timestamp() * 1000)
+
+
+class ViewAsResumeRequest(CamelModel):
+    """Portal the page is asking to restore.
+
+    Resume mints only when the intent cookie's role matches. A brand intent
+    opened on an org URL is not a session for that page.
+    """
+
+    role: Literal["org", "brand"]
 
 
 class ImpersonateResponse(CamelModel):

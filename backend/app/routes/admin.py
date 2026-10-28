@@ -67,6 +67,7 @@ from app.schemas.admin import (
     AdminUserItem,
     ImpersonateResponse,
     TrackerAdvanceRequest,
+    ViewAsResumeRequest,
 )
 from app.schemas.admin_tables import (
     AdminTableInfo,
@@ -880,17 +881,22 @@ def _view_as_error(status_code: int, code: str, message: str, *, clear: bool) ->
 
 @router.post("/impersonate/resume", response_model=DataResponse[ImpersonateResponse])
 async def resume_impersonation_endpoint(
+    body: ViewAsResumeRequest,
     request: Request,
-    response: Response,
     user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse | JSONResponse:
     """Remint View as from the httpOnly intent cookie.
 
     Requires the caller's own admin access token. The cookie alone is not a
-    session. Missing cookie is 404 (nothing to resume). A cookie minted for a
-    different admin, or a target that can no longer be impersonated, is
-    rejected and the cookie is cleared.
+    session. Missing cookie is 404 (nothing to resume). A cookie whose role
+    does not match ``body.role`` is also 404 and is left in place, so opening
+    an org URL does not mint a brand session or destroy it. A cookie minted
+    for a different admin, a stale ``imp_ver``, or a target that can no longer
+    be impersonated is rejected and the cookie is cleared.
+
+    Does not rewrite the cookie. The 8h cap is fixed at the first mint;
+    refresh rotation updates ``imp_ver`` without extending ``exp``.
     """
 
     raw = request.cookies.get(settings.VIEW_AS_COOKIE_NAME)
@@ -910,11 +916,25 @@ async def resume_impersonation_endpoint(
             "View-as session is no longer valid.",
             clear=True,
         )
+    if payload.role != body.role:
+        return _view_as_error(
+            404,
+            errors.NOT_FOUND,
+            "No view-as session for this page.",
+            clear=False,
+        )
     if payload.imp != str(user.id) or payload.sub is None:
         return _view_as_error(
             403,
             errors.FORBIDDEN,
             "View-as session does not belong to this admin.",
+            clear=True,
+        )
+    if payload.imp_ver is None or payload.imp_ver != (user.token_version or 0):
+        return _view_as_error(
+            401,
+            errors.VIEW_AS_INVALID,
+            "View-as session is no longer valid.",
             clear=True,
         )
     try:
@@ -932,8 +952,6 @@ async def resume_impersonation_endpoint(
         if exc.status_code in (403, 404):
             return _view_as_error(exc.status_code, exc.code, exc.message, clear=True)
         raise
-    intent = jwt.create_view_as_intent_token(user.id, target.id, target.portal_role)
-    set_view_as_cookie(response, intent)
     logger.info(
         "view-as resume admin=%s target=%s role=%s",
         user.id,
@@ -957,7 +975,12 @@ async def impersonate_endpoint(
     It does set an httpOnly intent cookie so a full page load can remint.
     """
     token, target = await mint_impersonation_token(db, user, user_id)
-    intent = jwt.create_view_as_intent_token(user.id, target.id, target.portal_role)
+    intent = jwt.create_view_as_intent_token(
+        user.id,
+        target.id,
+        target.portal_role,
+        impersonator_token_version=user.token_version or 0,
+    )
     set_view_as_cookie(response, intent)
     logger.info(
         "view-as mint admin=%s target=%s role=%s",

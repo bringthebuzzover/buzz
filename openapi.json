@@ -10169,6 +10169,24 @@
         ],
         "title": "VerifyEmailResponse",
         "type": "object"
+      },
+      "ViewAsResumeRequest": {
+        "description": "Portal the page is asking to restore.\n\nResume mints only when the intent cookie's role matches. A brand intent\nopened on an org URL is not a session for that page.",
+        "properties": {
+          "role": {
+            "enum": [
+              "org",
+              "brand"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "ViewAsResumeRequest",
+        "type": "object"
       }
     }
   },
@@ -12331,7 +12349,7 @@
     },
     "/api/admin/impersonate/resume": {
       "post": {
-        "description": "Remint View as from the httpOnly intent cookie.\n\nRequires the caller's own admin access token. The cookie alone is not a\nsession. Missing cookie is 404 (nothing to resume). A cookie minted for a\ndifferent admin, or a target that can no longer be impersonated, is\nrejected and the cookie is cleared.",
+        "description": "Remint View as from the httpOnly intent cookie.\n\nRequires the caller's own admin access token. The cookie alone is not a\nsession. Missing cookie is 404 (nothing to resume). A cookie whose role\ndoes not match ``body.role`` is also 404 and is left in place, so opening\nan org URL does not mint a brand session or destroy it. A cookie minted\nfor a different admin, a stale ``imp_ver``, or a target that can no longer\nbe impersonated is rejected and the cookie is cleared.\n\nDoes not rewrite the cookie. The 8h cap is fixed at the first mint;\nrefresh rotation updates ``imp_ver`` without extending ``exp``.",
         "operationId": "resume_impersonation_endpoint_api_admin_impersonate_resume_post",
         "parameters": [
           {
@@ -12351,6 +12369,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewAsResumeRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {

@@ -175,6 +175,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userRef.current = null;
     setUser(null);
     setStatus("error");
+    // The intent cookie is httpOnly. A dead session must not keep reminting.
+    void endViewAsIntent();
   }, []);
 
   const failSoft = useCallback(() => {
@@ -259,10 +261,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const path = window.location.pathname;
             const pathRole = viewAsPortalRoleFromPath(path);
             if (pathRole) {
-              // Cookie first so a new tab (no sessionStorage) still remints.
-              // Latch is the fallback when the cookie was not stored. A denied
-              // cookie (inactive target, wrong admin) already cleared itself.
-              const cookieResume = await resumeViewAs();
+              // Cookie first so a new tab (no sessionStorage) still remints,
+              // but only for this page's portal. A brand intent on /org or
+              // /campaigns is not a session for that page (404, cookie kept).
+              // Latch is the fallback when the cookie was not stored or does
+              // not match. A denied cookie already cleared itself.
+              const cookieResume = await resumeViewAs(pathRole);
               if (!bootstrapStillOwner()) return;
               let resumed = cookieResume === "ok";
               if (

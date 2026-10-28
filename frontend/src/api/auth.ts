@@ -142,18 +142,6 @@ export function takeImpersonatedUser(): AuthUser | null {
   return u;
 }
 
-/**
- * A failed refresh must not throw away an admin bearer that is still good.
- * Otherwise bootstrap marks the tab authenticated with a null token and the
- * next portal request failHards to `/login`.
- */
-async function refreshKeepingPriorToken(): Promise<boolean> {
-  const prior = getAccessToken();
-  const ok = await refreshAccessToken();
-  if (!ok && prior && !getAccessToken()) setAccessToken(prior);
-  return ok;
-}
-
 async function errorCode(resp: Response): Promise<string | undefined> {
   try {
     const body = (await resp.clone().json()) as { error?: { code?: string } };
@@ -163,7 +151,10 @@ async function errorCode(resp: Response): Promise<string | undefined> {
   }
 }
 
-async function installImpersonationBody(resp: Response): Promise<boolean> {
+async function installImpersonationBody(
+  resp: Response,
+  expectedRole?: "org" | "brand",
+): Promise<boolean> {
   const body = (await resp.json()) as {
     data:
       | {
@@ -174,11 +165,12 @@ async function installImpersonationBody(resp: Response): Promise<boolean> {
       | null;
   };
   const access = body.data?.accessToken ?? body.data?.access_token;
+  const wire = body.data?.user;
   if (!access) return false;
+  // Do not swap the admin bearer for a target that does not match the page.
+  if (expectedRole && wire?.portal_role !== expectedRole) return false;
   setImpersonationToken(access);
-  lastImpersonatedUser = body.data?.user
-    ? authUserFromWire(body.data.user)
-    : null;
+  lastImpersonatedUser = wire ? authUserFromWire(wire) : null;
   return true;
 }
 
@@ -189,12 +181,18 @@ export type ResumeViewAsResult = "ok" | "none" | "denied";
  * Remint View as from the httpOnly intent cookie using the current admin
  * bearer. Does not clear the latch. 404 means there is no cookie.
  */
-export async function resumeViewAs(): Promise<ResumeViewAsResult> {
+export async function resumeViewAs(
+  expectedRole: "org" | "brand",
+): Promise<ResumeViewAsResult> {
   const post = (token: string) =>
     fetch(`${API_BASE_URL}/api/admin/impersonate/resume`, {
       method: "POST",
       credentials: "include",
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ role: expectedRole }),
     });
 
   let token = getAccessToken();
@@ -206,7 +204,7 @@ export async function resumeViewAs(): Promise<ResumeViewAsResult> {
       return "denied";
     }
     if (resp.status === 401) {
-      if (!(await refreshKeepingPriorToken())) return "none";
+      if (!(await refreshAccessToken())) return "none";
       token = getAccessToken();
       if (!token) return "none";
       resp = await post(token);
@@ -218,7 +216,7 @@ export async function resumeViewAs(): Promise<ResumeViewAsResult> {
       return "denied";
     }
     if (!resp.ok) return "none";
-    return (await installImpersonationBody(resp)) ? "ok" : "none";
+    return (await installImpersonationBody(resp, expectedRole)) ? "ok" : "none";
   } catch {
     lastImpersonatedUser = null;
     return "none";
@@ -245,7 +243,7 @@ export async function resumeImpersonation(userId: string): Promise<boolean> {
     // Raw fetch (no apiFetch): 401 after cookie refresh rotated token_version.
     // Refresh once and retry — do not refresh on 403 (inactive target).
     if (resp.status === 401) {
-      if (!(await refreshKeepingPriorToken())) return false;
+      if (!(await refreshAccessToken())) return false;
       token = getAccessToken();
       if (!token) return false;
       resp = await postImpersonate(token);

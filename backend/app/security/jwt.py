@@ -1,6 +1,6 @@
 """Buzz-issued JWT encode/decode (architecture.md §5.3).
 
-Three token *types*, all signed with ``settings.SECRET_KEY`` /
+Four token *types*, all signed with ``settings.SECRET_KEY`` /
 ``settings.JWT_ALGORITHM`` and carrying an explicit ``type`` claim so none
 can be replayed as another:
 
@@ -128,23 +128,35 @@ def create_view_as_intent_token(
     admin_id: uuid.UUID | str,
     target_id: uuid.UUID | str,
     role: str,
+    *,
+    impersonator_token_version: int,
+    expires_at: datetime | None = None,
 ) -> str:
     """Mint the httpOnly View-as intent.
 
-    ``sub`` is the target user and ``imp`` is the admin. ``type`` is
-    ``view_as`` so the value cannot be presented as an access or refresh token.
-    Resume still requires a live admin access token; this cookie only names
-    who to remint.
+    ``sub`` is the target user, ``imp`` is the admin, and ``imp_ver`` is that
+    admin's ``token_version``. ``type`` is ``view_as`` so the value cannot be
+    presented as an access or refresh token. Resume still requires a live
+    admin access token.
+
+    ``expires_at`` keeps the original deadline when a refresh rewrites
+    ``imp_ver``. Omit it on the first mint so the cap is 8h from then.
     """
 
     issued = _now()
+    exp = (
+        expires_at
+        if expires_at is not None
+        else (issued + timedelta(hours=settings.VIEW_AS_INTENT_TTL_HOURS))
+    )
     claims: dict[str, Any] = {
         "sub": str(target_id),
         "type": VIEW_AS_TOKEN_TYPE,
         "imp": str(admin_id),
+        "imp_ver": impersonator_token_version,
         "role": role,
         "iat": issued,
-        "exp": issued + timedelta(hours=settings.VIEW_AS_INTENT_TTL_HOURS),
+        "exp": exp,
         "jti": uuid.uuid4().hex,
     }
     return _encode(claims)
