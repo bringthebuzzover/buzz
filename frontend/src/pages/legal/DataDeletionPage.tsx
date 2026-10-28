@@ -45,15 +45,20 @@ export default function DataDeletionPage() {
           for you).
         </li>
         <li>
-          Identifiable post content tied to your account (permalinks, captions,
-          and media).
+          Identifiable Instagram data tied to your account: handle, user id,
+          access tokens, post permalinks, captions, media URLs, thumbnails, and
+          media ids.
         </li>
       </ul>
       <p>
-        If you are an organization, we also remove you from campaign
-        participant lists. Your posts and metrics (likes, comments, reach, and
-        other insights) are not counted in brand, admin, or aggregate totals
-        after deletion.
+        If you are an organization that already ran a campaign, the brand keeps
+        an anonymized record of that participation (shown as “Deleted
+        organization”) and the last numeric counts from your linked posts
+        (likes, comments, reach, views, saves, shares, and similar totals).
+        Those numbers stay in the brand’s campaign totals. They are frozen on
+        the deletion date and are not refreshed from Instagram. We do not keep
+        the post content, your handle, or your profile (name, campus, contact,
+        or shipping).
       </p>
       <p>
         If you are a brand, drops stay up for organizations that already

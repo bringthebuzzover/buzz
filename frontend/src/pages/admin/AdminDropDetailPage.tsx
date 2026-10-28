@@ -22,6 +22,7 @@ import {
   useHideDrop,
   usePatchAdminDropConfig,
   usePublishDrop,
+  useRemoveParticipant,
   useReopenDrop,
   useSyncAndAutolink,
   useUnhideDrop,
@@ -927,6 +928,86 @@ function FinalizeSelection({
   );
 }
 
+function RemoveParticipantButton({
+  dropId,
+  applicant,
+}: {
+  dropId: string;
+  applicant: AdminApplicant;
+}) {
+  const remove = useRemoveParticipant(dropId);
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const matches = typed.trim().toLowerCase() === "remove";
+
+  async function submit() {
+    setError(null);
+    try {
+      await remove.mutateAsync({ applicationId: applicant.id, confirm: typed.trim() });
+      setOpen(false);
+      setTyped("");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not remove this participant.");
+    }
+  }
+
+  return (
+    <>
+      <ActionButton
+        variant="secondary"
+        testId={`remove-participant-${applicant.id}`}
+        onClick={() => {
+          setError(null);
+          setTyped("");
+          setOpen(true);
+        }}
+      >
+        Remove
+      </ActionButton>
+      {open && (
+        <Modal
+          onClose={() => setOpen(false)}
+          title="Remove participant"
+          description="Deletes this seat, its tracking numbers, and its linked post metrics from this drop. Type remove to confirm."
+        >
+          <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
+            {error && <ErrorNote>{error}</ErrorNote>}
+            <TextField
+              id={`remove-confirm-${applicant.id}`}
+              data-testid={`remove-confirm-${applicant.id}`}
+              label="Type remove"
+              size="compact"
+              value={typed}
+              autoComplete="off"
+              spellCheck={false}
+              onChange={(e) => setTyped(e.target.value)}
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="compact"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <ActionButton
+                variant="danger"
+                testId={`remove-confirm-submit-${applicant.id}`}
+                disabled={!matches || remove.isPending}
+                onClick={() => void submit()}
+              >
+                {remove.isPending ? "Removing…" : "Remove from drop"}
+              </ActionButton>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
+
 function Applicants({
   dropId,
   applicants,
@@ -934,14 +1015,13 @@ function Applicants({
   dropId: string;
   applicants: AdminApplicant[];
 }) {
-  const visible = applicants.filter((applicant) => !applicant.accountErased);
   return (
     <AdminTable
       headers={APPLICANT_HEADERS}
-      isEmpty={visible.length === 0}
+      isEmpty={applicants.length === 0}
       empty="Nobody has applied to this drop."
     >
-      {visible.map((applicant) => (
+      {applicants.map((applicant) => (
         <Row key={applicant.id}>
           <Cell>
             <Link
@@ -950,9 +1030,26 @@ function Applicants({
             >
               {applicant.orgName}
             </Link>
-            <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
-              {applicant.university}
-            </span>
+            {applicant.university ? (
+              <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
+                {applicant.university}
+              </span>
+            ) : null}
+            {applicant.accountErased ? (
+              <span className="mt-1 flex flex-wrap items-center gap-2">
+                <Pill tone="neutral">Metrics frozen</Pill>
+                {applicant.metricsFrozenAt != null ? (
+                  <span className="text-xs font-medium text-buzz-inkMuted">
+                    {formatDate(applicant.metricsFrozenAt)}
+                  </span>
+                ) : null}
+                <RemoveParticipantButton dropId={dropId} applicant={applicant} />
+              </span>
+            ) : (
+              <span className="mt-1 block">
+                <RemoveParticipantButton dropId={dropId} applicant={applicant} />
+              </span>
+            )}
           </Cell>
           <Cell muted>
             {formatCompactCount(applicant.followerCount)}
@@ -1191,8 +1288,7 @@ export default function AdminDropDetailPage() {
   const activeTab: DropTabId =
     tabParam && isDropTabId(tabParam) ? tabParam : defaultTab;
   const acceptedCount =
-    data?.applicants.filter((a) => a.decision === "accepted" && !a.accountErased)
-      .length ?? 0;
+    data?.applicants.filter((a) => a.decision === "accepted").length ?? 0;
   const [addOrgOpen, setAddOrgOpen] = useState(false);
 
   return (

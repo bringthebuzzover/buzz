@@ -303,6 +303,17 @@
             "title": "Linkedpostcount",
             "type": "integer"
           },
+          "metricsFrozenAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metricsfrozenat"
+          },
           "orgId": {
             "format": "uuid",
             "title": "Orgid",
@@ -2812,6 +2823,56 @@
         "title": "AdminQueueItem",
         "type": "object"
       },
+      "AdminRemoveParticipantRequest": {
+        "description": "Typed confirm. The word ``remove`` \u2014 erased orgs no longer have a handle.",
+        "properties": {
+          "confirm": {
+            "title": "Confirm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "title": "AdminRemoveParticipantRequest",
+        "type": "object"
+      },
+      "AdminRemoveParticipantResponse": {
+        "properties": {
+          "applicationId": {
+            "format": "uuid",
+            "title": "Applicationid",
+            "type": "string"
+          },
+          "dropId": {
+            "format": "uuid",
+            "title": "Dropid",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "postsRemoved": {
+            "title": "Postsremoved",
+            "type": "integer"
+          },
+          "shipmentsRemoved": {
+            "title": "Shipmentsremoved",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dropId",
+          "applicationId",
+          "orgId",
+          "postsRemoved",
+          "shipmentsRemoved"
+        ],
+        "title": "AdminRemoveParticipantResponse",
+        "type": "object"
+      },
       "AdminResendConnectAllResponse": {
         "description": "Bulk Connect email for ``pending_instagram`` orgs only.",
         "properties": {
@@ -3603,6 +3664,17 @@
             ],
             "title": "Membercount"
           },
+          "metricsFrozenAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metricsfrozenat"
+          },
           "orgId": {
             "format": "uuid",
             "title": "Orgid",
@@ -4037,6 +4109,17 @@
               }
             ],
             "title": "Mediaurl"
+          },
+          "metricsFrozenAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metricsfrozenat"
           },
           "platform": {
             "title": "Platform",
@@ -5365,6 +5448,44 @@
           }
         },
         "title": "DataResponse[AdminOverviewResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminRemoveParticipantResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminRemoveParticipantResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminRemoveParticipantResponse]",
         "type": "object"
       },
       "DataResponse_AdminResendConnectAllResponse_": {
@@ -11153,6 +11274,86 @@
         ]
       }
     },
+    "/api/admin/drops/{drop_id}/applications/{application_id}/remove": {
+      "post": {
+        "description": "Remove one org from one drop. Deletes that seat, its shipments, and its linked metrics.",
+        "operationId": "remove_participant_endpoint_api_admin_drops__drop_id__applications__application_id__remove_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminRemoveParticipantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminRemoveParticipantResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Remove Participant Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/drops/{drop_id}/clear-reopen": {
       "post": {
         "operationId": "clear_reopen_endpoint_api_admin_drops__drop_id__clear_reopen_post",
@@ -12626,7 +12827,7 @@
     },
     "/api/admin/orgs/{user_id}/erase": {
       "post": {
-        "description": "Erase an org: scrub identity and remove its seats, posts, and metrics.",
+        "description": "Erase an org: scrub identity and freeze its campaign metrics.",
         "operationId": "erase_org_endpoint_api_admin_orgs__user_id__erase_post",
         "parameters": [
           {
