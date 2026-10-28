@@ -53,12 +53,14 @@ export default function DataDeletionPage() {
       <p>
         If you are an organization that already ran a campaign, the brand keeps
         an anonymized record of that participation (shown as “Deleted
-        organization”) and the last numeric counts from your linked posts
-        (likes, comments, reach, views, saves, shares, and similar totals).
-        Those numbers stay in the brand’s campaign totals. They are frozen on
-        the deletion date and are not refreshed from Instagram. We do not keep
-        the post content, your handle, or your profile (name, campus, contact,
-        or shipping).
+        organization”) and the last likes, comments, reach, views, saves, and
+        shares from your linked posts, plus the time and media type of each
+        post. Those numbers stay in the brand’s campaign totals. They are
+        frozen on the deletion date and are not refreshed from Instagram. We
+        do not keep profile visits, follows, watch time, skip rate, the post
+        content, your handle, or your profile (name, campus, contact, or
+        shipping address). Carrier tracking numbers already recorded on a
+        campaign shipment may remain so the brand can see what was sent.
       </p>
       <p>
         If you are a brand, drops stay up for organizations that already

@@ -37,13 +37,17 @@ fix_when: |
 The first cut of this gap deleted the seat so the tombstone left brand totals.
 That dropped campaign attribution. The locked behavior is freeze, not delete.
 
-Erase keeps the accepted application, its shipments, the post link, and the
-numeric columns. It clears the Graph media id (rewritten to `frozen-{post id}`),
-permalink, media URL, thumbnail, caption, and raw insight payload, and stamps
-`metrics_frozen_at`. Metric sync and autolink skip that post. `follower_count`
-and `university` are cleared so campus totals do not keep the label. Pending
-applications are denied. Pitches, post suggestions, and notify-me rows are
-removed.
+Erase keeps the accepted application, its shipments, the post link, and likes,
+comments, reach, views, saved, and shares. It clears the Graph media id
+(rewritten to `frozen-{post id}`), permalink, media URL, thumbnail, caption,
+raw insight payload, profile visits, follows, watch time, skip rate, reposts,
+and total interactions, and stamps `metrics_frozen_at`. Metric sync, autolink,
+and manual link or unlink skip that post. `follower_count` and `university`
+are cleared so campus totals do not keep the label. Pending applications are
+denied. Application and apply-intent pitches are cleared, and open apply
+intents expire. Post suggestions, notify-me rows, connect tokens, Instagram
+change requests, and linked apply drafts are removed. A later Instagram login
+cannot write a token or handle back onto the tombstone.
 
 Migration `e0f1a2b3c4d5` does the same strip for orgs already `status = erased`.
 It does not delete applications, links, shipments, or posts. The earlier

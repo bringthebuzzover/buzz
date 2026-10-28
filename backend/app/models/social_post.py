@@ -78,7 +78,8 @@ class SocialPost(Base):
     metrics_updated_at: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True), nullable=True
     )
-    # Set when the owning org is erased. Sync skips the row; numbers stay.
+    # Set when the owning org is erased. Sync skips the row. Retained counts
+    # are likes, comments, reach, views, saved, and shares (PRODUCT §3.1.2).
     metrics_frozen_at: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True), nullable=True
     )

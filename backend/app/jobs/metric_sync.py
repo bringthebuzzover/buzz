@@ -420,6 +420,8 @@ async def sync_metrics_for_orgs(
                     SocialPost.platform == Platform.INSTAGRAM.value,
                     SocialPost.media_product_type != SocialMediaProductType.STORY.value,
                     SocialPost.metrics_frozen_at.is_(None),
+                    SocialPost.external_id.notlike("frozen-%"),
+                    SocialPost.external_id.notlike("erased-%"),
                 )
             )
         )

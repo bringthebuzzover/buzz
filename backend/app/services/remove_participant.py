@@ -55,14 +55,21 @@ async def remove_participant_from_drop(
             errors.NOT_FOUND, "Participant not found on this drop.", status_code=404
         )
 
-    org = await db.get(Organization, application.org_id)
+    # Snapshot before the bulk deletes. SQLAlchemy expires the loaded row, and
+    # reading it afterward would refresh a row that is already gone.
+    saved_application_id = application.id
+    saved_org_id = application.org_id
+    saved_drop_id = application.drop_id
+    allocated_units = application.allocated_units
+
+    org = await db.get(Organization, saved_org_id)
     user = await db.get(User, org.user_id) if org is not None else None
     account_erased = user is not None and user.status == OrgUserStatus.ERASED.value
 
     post_ids = list(
         await db.scalars(
             select(PostCampaignLink.post_id).where(
-                PostCampaignLink.application_id == application.id
+                PostCampaignLink.application_id == saved_application_id
             )
         )
     )
@@ -70,25 +77,24 @@ async def remove_participant_from_drop(
         await db.scalar(
             select(func.count())
             .select_from(DropApplicationShipment)
-            .where(DropApplicationShipment.application_id == application.id)
+            .where(DropApplicationShipment.application_id == saved_application_id)
         )
         or 0
     )
-    allocated_units = application.allocated_units
 
-    sug = [PostCampaignSuggestion.application_id == application.id]
+    sug = [PostCampaignSuggestion.application_id == saved_application_id]
     if post_ids:
         sug.append(PostCampaignSuggestion.post_id.in_(post_ids))
     await db.execute(delete(PostCampaignSuggestion).where(or_(*sug)))
     await db.execute(
-        delete(PostCampaignLink).where(PostCampaignLink.application_id == application.id)
+        delete(PostCampaignLink).where(PostCampaignLink.application_id == saved_application_id)
     )
     await db.execute(
         delete(DropApplicationShipment).where(
-            DropApplicationShipment.application_id == application.id
+            DropApplicationShipment.application_id == saved_application_id
         )
     )
-    await db.execute(delete(DropApplication).where(DropApplication.id == application.id))
+    await db.execute(delete(DropApplication).where(DropApplication.id == saved_application_id))
     if post_ids:
         await db.execute(delete(SocialPost).where(SocialPost.id.in_(post_ids)))
 
@@ -102,9 +108,9 @@ async def remove_participant_from_drop(
         AdminAuditEvent(
             actor_user_id=actor_id,
             action="participant_removed",
-            drop_id=drop_id,
-            org_id=application.org_id,
-            application_id=application.id,
+            drop_id=saved_drop_id,
+            org_id=saved_org_id,
+            application_id=saved_application_id,
             detail=detail,
         )
     )
@@ -113,16 +119,16 @@ async def remove_participant_from_drop(
         "participant_removed actor_user_id=%s drop_id=%s org_id=%s "
         "application_id=%s posts=%s shipments=%s",
         actor_id,
-        drop_id,
-        application.org_id,
-        application.id,
+        saved_drop_id,
+        saved_org_id,
+        saved_application_id,
         len(post_ids),
         shipment_count,
     )
     return {
-        "drop_id": drop_id,
-        "application_id": application.id,
-        "org_id": application.org_id,
+        "drop_id": saved_drop_id,
+        "application_id": saved_application_id,
+        "org_id": saved_org_id,
         "posts_removed": len(post_ids),
         "shipments_removed": shipment_count,
     }

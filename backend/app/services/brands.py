@@ -40,6 +40,7 @@ from app.services.email import (
     build_idempotency_key,
     send_application_denied_email,
 )
+from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.shipments import shipments_by_application_ids
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,29 @@ def _metrics_frozen_at(posts: Sequence[SocialPost]) -> datetime | None:
     return max(stamps) if stamps else None
 
 
+# Brand wire shape for a frozen post: no permalink, media, or profile insights.
+_FROZEN_POST_WIRE = {
+    "url": "",
+    "caption": "",
+    "media_url": None,
+    "thumbnail_url": None,
+    "total_interactions": None,
+    "profile_visits": None,
+    "profile_activity": None,
+    "follows": None,
+    "ig_reels_avg_watch_time": None,
+    "ig_reels_video_view_total_time": None,
+    "reels_skip_rate": None,
+}
+
+
+def _brand_post_item(post: SocialPost, *, anonymize: bool) -> BrandDropPostItem:
+    item = BrandDropPostItem.model_validate(post, from_attributes=True)
+    if anonymize or post.metrics_frozen_at is not None:
+        return item.model_copy(update=_FROZEN_POST_WIRE)
+    return item
+
+
 async def build_brand_drop_detail(
     db: AsyncSession, brand: Brand, drop: Drop
 ) -> BrandDropDetailResponse:
@@ -119,7 +143,7 @@ async def build_brand_drop_detail(
                 allocated_units=app.allocated_units,
                 applied_at=app.applied_at,
                 decision_at=app.decision_at,
-                org_name=org.org_name,
+                org_name=TOMBSTONE_ORG_NAME if erased else org.org_name,
                 university="" if erased else org.university,
                 instagram_handle="" if erased else (org_user.instagram_username or ""),
                 follower_count=None if erased else org.follower_count,
@@ -144,9 +168,7 @@ async def build_brand_drop_detail(
                 attributed_likes=attr["attributed_likes"],
                 attributed_comments=attr["attributed_comments"],
                 attributed_engagement=attr["attributed_engagement"],
-                posts=[
-                    BrandDropPostItem.model_validate(post, from_attributes=True) for post in posts
-                ],
+                posts=[_brand_post_item(post, anonymize=erased) for post in posts],
             )
         )
 
