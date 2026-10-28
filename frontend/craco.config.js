@@ -21,6 +21,19 @@ module.exports = {
       webpackConfig.resolve.plugins = (
         webpackConfig.resolve.plugins || []
       ).filter((plugin) => plugin.constructor.name !== "ModuleScopePlugin");
+      // CRA inlines PNGs under 10KB into the JS bundle. The college marks are
+      // that small on purpose; keep them as separate files so main.js does not
+      // absorb them.
+      const oneOfRule = (webpackConfig.module.rules || []).find((rule) =>
+        Array.isArray(rule.oneOf),
+      );
+      if (oneOfRule) {
+        oneOfRule.oneOf.unshift({
+          test: /\.png$/,
+          include: path.resolve(__dirname, "src/assets/unis"),
+          type: "asset/resource",
+        });
+      }
       return webpackConfig;
     },
   },
