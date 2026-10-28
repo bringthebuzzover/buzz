@@ -65,6 +65,7 @@ from app.services.email import (
     send_org_ig_switch_connect_email,
     send_org_undenied_email,
 )
+from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
@@ -137,9 +138,7 @@ async def list_orgs(
                 "id": org.id if org is not None else None,
                 "user_id": user.id,
                 "org_name": (
-                    ("Deleted organization" if erased else org.org_name)
-                    if org is not None
-                    else None
+                    (TOMBSTONE_ORG_NAME if erased else org.org_name) if org is not None else None
                 ),
                 "university": "" if erased else (org.university if org is not None else None),
                 "instagram_handle": None if erased else user.instagram_username,
