@@ -28,6 +28,7 @@ import NotifyMeModal from "./modals/NotifyMeModal";
 import { REMINDER_CHOICES, useDropNotify } from "../../api/hooks/useDropHooks";
 import { Card } from "../ui/Card";
 import { Chip } from "../ui/Chip";
+import { RemoteImage } from "../ui/RemoteImage";
 import { Button, ErrorBanner, buttonVariants } from "../forms/controls";
 import { PAD, STACK, TEXT, type Tone } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
@@ -100,9 +101,10 @@ export default function DropFeedCard({
       className="flex h-full flex-col overflow-hidden shadow-buzz transition hover:shadow-buzzLg"
     >
       <div className="relative h-48 overflow-hidden border-b border-buzz-lineMid">
-        <img
+        <RemoteImage
           src={drop.image}
-          alt={drop.title}
+          label={drop.brandName}
+          alt=""
           className="h-full w-full object-cover"
         />
         {feedStatus === "upcoming" ? (

@@ -25,6 +25,7 @@ import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
 import PageShell from "../../components/site/PageShell";
 import { Card } from "../../components/ui/Card";
 import { Chip } from "../../components/ui/Chip";
+import { RemoteImage } from "../../components/ui/RemoteImage";
 import { QueryStatePanel, StatePanel } from "../../components/ui/StatePanel";
 import {
   Button,
@@ -199,9 +200,10 @@ function PublicDropHero({
   return (
     <Card kind="cardWarm" pad="none" className="mb-8 overflow-hidden">
       <div className="relative h-48 overflow-hidden border-b border-buzz-lineMid">
-        <img
+        <RemoteImage
           src={drop.image}
-          alt={drop.title}
+          label={drop.brandName}
+          alt=""
           className="h-full w-full object-cover"
         />
         <div className="absolute left-3 top-3 flex items-center gap-2">
