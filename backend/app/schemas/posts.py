@@ -10,10 +10,26 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import field_serializer
+from pydantic import BeforeValidator, Field, field_serializer
 
 from app.schemas.common import CamelModel, to_epoch_ms
+from app.services.insight_units import clamp_reels_skip_rate
+
+# Graph percentage in [0, 100]. Shared by org posts and brand drop posts
+# (admin View as uses those responses) so every reader sees one unit.
+ReelsSkipRate = Annotated[
+    float | None,
+    BeforeValidator(clamp_reels_skip_rate),
+    Field(
+        description=(
+            "Instagram reels skip rate as a percentage in [0, 100]. "
+            "62.8 means 62.8% of initial views skipped in the first 3 seconds. "
+            "Not a 0–1 ratio."
+        ),
+    ),
+]
 
 
 class PostResponse(CamelModel):
@@ -48,7 +64,7 @@ class PostResponse(CamelModel):
     follows: int | None
     ig_reels_avg_watch_time: int | None
     ig_reels_video_view_total_time: int | None
-    reels_skip_rate: float | None
+    reels_skip_rate: ReelsSkipRate
     metrics_updated_at: datetime | None
     created_at: datetime
     linked_application_id: uuid.UUID | None = None

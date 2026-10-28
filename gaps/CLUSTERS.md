@@ -189,7 +189,7 @@ Priority rationale (2026-08-11 delivery order — code first, then ops parallel)
 4. `org-edu-email-change` — **done** (pending-swap `.edu` rotate)
 5. `admin-drops-ops-ui` — **done** (list multiselect + detail logistics)
 
-Ops (not auto-pick): `meta-app-review` (`in_progress` — App Review resubmission; was `meta-business-verification`; human dashboard). `ops.brand-mailbox` archived 2026-10-26 (`hello@` is an alias on `melissa@`, the only Workspace email, which Google bills).
+Ops (not auto-pick): `meta-app-review` (`in_progress` — App Review submitted 2026-10-28, review in progress; was `meta-business-verification`; human dashboard). `ops.brand-mailbox` archived 2026-10-26 (`hello@` is an alias on `melissa@`, the only Workspace email, which Google bills).
 
 ---
 
@@ -445,7 +445,7 @@ gaps:
   OAuth/deauth are not MCP-readable — human confirm + production login smoke.
   Residual Meta launch: living `deploy.meta-app-review` (was
   `deploy.meta-business-verification`; §E Verified 2026-10-26; §F submitted
-  2026-10-07 and rejected, resubmission in progress; §G public login still
+  2026-10-28, review in progress; §G public login still
   open). Graph 100 on the long-lived exchange is the same gap.
   stop_if:
 - Always pause before mutating Railway/Meta without explicit user OK.
@@ -609,8 +609,8 @@ gaps:
 - `deploy.meta-brand-url-cutover` + `deploy.samesite-lax-railway-preview` —
   **archived** 2026-08-11 (Meta §C Hosts + www IG smoke; cluster `ops-samesite`
   done). Meta §E is Verified; living `deploy.meta-app-review` (was
-  `deploy.meta-business-verification`) is the App Review resubmission
-  (`in_progress`).
+  `deploy.meta-business-verification`) is App Review, submitted 2026-10-28,
+  review in progress (`in_progress`).
 - `deploy.github-repo-owner-shannon` — **archived** 2026-08-10 (all 8 Sources
   `bringthebuzzover/buzz` @ `main`; push `e27a7f6` deployed from org).
 - `deploy.apex-hostinger-forward-blocked` — **archived** 2026-08-10
@@ -631,15 +631,17 @@ gaps:
   Former gap ids (archived pointers): deploy.meta-business-verification,
   auth.ig-long-lived-get-unsupported.
   Human Meta dashboard and screencasts. Do not auto-execute.
-  One workstream: App Review resubmission, then Live mode. That is also the
+  One workstream: App Review, then Live mode. That is also the
   fix for Graph 100 on GET graph.instagram.com/access_token. Non-testers and
   11 pending tester invites are blocked while the app is in Development on
   Standard Access. Do not switch the exchange to POST. If an accepted tester
   still gets Graph 100 after Advanced Access and Live mode, reopen a code gap.
   Business Verification is Verified (2026-10-26). App mode is Development.
-  App Review for instagram_business_basic and
-  instagram_business_manage_insights was submitted 2026-10-07 and rejected
-  (Developer Policy 1.6). Owners, status, and the 2026-10-07 form are in
+  Submitted 2026-10-28, about 1:14 PM ET (17:14 UTC). Review in progress.
+  Meta says most reviews finish within 20 days. The previous submission
+  (2026-10-19, 22:11 PDT) was not approved for both permissions. Do not
+  submit again while this review is open. The flag stays on until Meta
+  finishes. Owners, status, and the submitted fields are in
   gaps/deploy.meta-app-review.md.
   Already on main: Instagram Reach label (PR #7) and Graph v26.0 plus
   granted-permissions storage (PR #8, `12f8850`). Checklist 1c is done: the

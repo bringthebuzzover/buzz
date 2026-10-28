@@ -4171,6 +4171,7 @@
                 "type": "null"
               }
             ],
+            "description": "Instagram reels skip rate as a percentage in [0, 100]. 62.8 means 62.8% of initial views skipped in the first 3 seconds. Not a 0\u20131 ratio.",
             "title": "Reelsskiprate"
           },
           "saved": {
@@ -9613,6 +9614,7 @@
                 "type": "null"
               }
             ],
+            "description": "Instagram reels skip rate as a percentage in [0, 100]. 62.8 means 62.8% of initial views skipped in the first 3 seconds. Not a 0\u20131 ratio.",
             "title": "Reelsskiprate"
           },
           "reposts": {

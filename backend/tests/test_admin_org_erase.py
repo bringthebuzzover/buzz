@@ -193,7 +193,7 @@ class TestAdminOrgErase:
         post.reposts = 1
         post.ig_reels_avg_watch_time = 1500
         post.ig_reels_video_view_total_time = 9000
-        post.reels_skip_rate = 0.25
+        post.reels_skip_rate = 25
         user.instagram_granted_permissions = "instagram_business_basic"
         await _seed_identity_leftovers(db_session, user, org)
         await db_session.flush()
@@ -715,7 +715,7 @@ class TestAdminOrgErase:
         ghost_post.saved = 4
         ghost_post.shares = 6
         ghost_post.reposts = 2
-        ghost_post.reels_skip_rate = 0.4
+        ghost_post.reels_skip_rate = 40
         ghost_post.profile_visits = 8
         ghost_post.url = f"erased://post/{ghost_post.id}"
         ghost_post.external_id = f"erased-{ghost_post.id}"
