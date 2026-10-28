@@ -26,7 +26,7 @@ from sqlalchemy import func, select
 from app import errors
 from app.deps.db import async_session_factory
 from app.exceptions import BuzzAPIException
-from app.models.enums import PortalRole
+from app.models.enums import OrgUserStatus, PortalRole
 from app.models.user import User
 from app.security.session import bump_token_version
 from app.security.token_crypto import TokenDecryptionError, decrypt_token, encrypt_token
@@ -142,7 +142,9 @@ async def refresh_instagram_token(user_id: uuid.UUID) -> bool:
 
     Failures are swallowed (logged): the existing token is still valid for up to
     REFRESH_WINDOW_DAYS more, and the next login retries. Undecryptable
-    ciphertext is cleared so the org is forced to reconnect.
+    ciphertext is cleared so the org is forced to reconnect. An erased account
+    is skipped, including when erase commits while the Graph call is in flight,
+    so a refresh cannot write a token back onto the tombstone.
     """
     ig = get_instagram_client()
     async with async_session_factory() as db:
@@ -155,7 +157,11 @@ async def refresh_instagram_token(user_id: uuid.UUID) -> bool:
             return False
 
         user = await db.get(User, user_id)
-        if user is None or not user.instagram_access_token:
+        if (
+            user is None
+            or user.status == OrgUserStatus.ERASED.value
+            or not user.instagram_access_token
+        ):
             return False
         try:
             current = decrypt_token(user.instagram_access_token)
@@ -174,6 +180,12 @@ async def refresh_instagram_token(user_id: uuid.UUID) -> bool:
                 user_id,
                 exc_info=False,
             )
+            return False
+
+        # Erase may have committed while Graph was in flight. Reload before
+        # writing so this refresh cannot restore a token the wipe just cleared.
+        await db.refresh(user)
+        if user.status == OrgUserStatus.ERASED.value or not user.instagram_access_token:
             return False
 
         now = _now()

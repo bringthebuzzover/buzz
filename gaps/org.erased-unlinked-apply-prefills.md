@@ -9,7 +9,7 @@ evidence:
   - path: backend/app/services/erased_org_participation.py
     note: Migration deletes org_apply_prefills only by used_by_user_id
   - path: backend/app/services/admin_erase.py
-    note: A new erase also matches edu email and claimed handle before those columns are nulled
+    note: A new erase also matches unclaimed drafts by edu email and claimed handle before those columns are nulled. Drafts already used by another account are kept.
 repro: |
   An org erased before this freeze migration already has a null edu_email and a
   null claimed handle. An org_apply_prefills row that stored that email or
@@ -20,15 +20,16 @@ repro: |
 fix_when: |
   Production has no apply-draft row that still stores an email, handle, or
   shipping address for an org erased before the freeze migration, or those
-  rows have been deleted in a reviewed one-off. New erases already delete
-  drafts matched by user id, email, or handle.
+  rows have been deleted in a reviewed one-off. New erases delete drafts
+  claimed by that user, and unclaimed drafts matched by email or handle.
 ---
 
 # Unlinked apply drafts after an earlier erase
 
-New erases delete `org_apply_prefills` by `used_by_user_id`, by the school
-email still on the user, and by the claimed Instagram handle, and they do that
-before those columns are cleared.
+New erases delete `org_apply_prefills` claimed by that user, and unclaimed
+drafts whose school email or Instagram handle still matches, and they do that
+before those columns are cleared. A draft already used by a different account
+is left alone. A null email or handle matches nothing.
 
 Orgs already `status = erased` had those columns cleared by the previous erase
 path. The migration can still delete drafts linked by `used_by_user_id`. It

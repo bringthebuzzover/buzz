@@ -137,6 +137,25 @@ async def _seed_identity_leftovers(db_session, user: User, org: Organization) ->
     )
 
 
+def _draft_prefill(
+    invite_email: str,
+    *,
+    edu_email: str | None,
+    instagram_handle: str | None,
+    used_by_user_id: uuid.UUID | None,
+    now: datetime | None = None,
+) -> OrgApplyPrefill:
+    stamp = now or datetime.now(timezone.utc)
+    return OrgApplyPrefill(
+        token_hash=uuid.uuid4().hex + uuid.uuid4().hex[:32],
+        invite_email=invite_email,
+        edu_email=edu_email,
+        instagram_handle=instagram_handle,
+        expires_at=stamp + timedelta(days=7),
+        used_by_user_id=used_by_user_id,
+    )
+
+
 async def _identity_leftovers(db_session, user_id, org_id) -> tuple[int, int, int]:
     connect = await db_session.scalar(
         select(func.count()).select_from(OrgConnectToken).where(OrgConnectToken.user_id == user_id)
@@ -265,6 +284,62 @@ class TestAdminOrgErase:
         assert accepted.pitch is None
         assert applied.decision == ApplicationDecision.DENIED.value
         assert applied.pitch is None
+
+    async def test_erase_prefill_match_skips_nulls_and_other_users(
+        self, app_client: AsyncClient, db_session, monkeypatch
+    ):
+        """Email and handle deletes are unclaimed drafts only. Null matches nothing."""
+
+        monkeypatch.setattr(
+            "app.services.admin_erase.send_org_erased_email",
+            AsyncMock(return_value=True),
+        )
+        user, _org, *_rest = await _seed_erasable_org(db_session)
+        other = await persist(db_session, make_user(role=PortalRole.ORG))
+        other.instagram_username = "OtherOrg"
+        other.edu_email = "other@school.edu"
+        now = datetime.now(timezone.utc)
+
+        unclaimed = _draft_prefill(
+            user.edu_email or "greeks@school.edu",
+            edu_email=user.edu_email,
+            instagram_handle="campusgreeks",
+            used_by_user_id=None,
+            now=now,
+        )
+        other_owned = _draft_prefill(
+            "other@school.edu",
+            edu_email=user.edu_email,
+            instagram_handle="campusgreeks",
+            used_by_user_id=other.id,
+            now=now,
+        )
+        blank = _draft_prefill(
+            "blank@school.edu",
+            edu_email=None,
+            instagram_handle=None,
+            used_by_user_id=None,
+            now=now,
+        )
+        db_session.add(unclaimed)
+        db_session.add(other_owned)
+        db_session.add(blank)
+        await db_session.flush()
+        headers = await _admin_headers(db_session)
+
+        res = await app_client.post(
+            f"/api/admin/orgs/{user.id}/erase",
+            headers=headers,
+            json={"confirm": "@CampusGreeks"},
+        )
+        assert res.status_code == 200, res.text
+        unclaimed_id = unclaimed.id
+        other_owned_id = other_owned.id
+        blank_id = blank.id
+        db_session.expire_all()
+        assert await db_session.get(OrgApplyPrefill, unclaimed_id) is None
+        assert await db_session.get(OrgApplyPrefill, other_owned_id) is not None
+        assert await db_session.get(OrgApplyPrefill, blank_id) is not None
 
     async def test_erase_commits_the_bump(self, db_session, monkeypatch):
         from app.services.admin_erase import erase_org_user
@@ -616,6 +691,7 @@ class TestAdminOrgErase:
             db_session, make_user(role=PortalRole.ORG, status=OrgUserStatus.ERASED)
         )
         erased_user.instagram_username = None
+        erased_user.edu_email = None
         ghost = await make_org(db_session, erased_user, org_name="Deleted organization")
         ghost.university = "Ghost Campus"
         ghost.follower_count = 1500
@@ -635,6 +711,11 @@ class TestAdminOrgErase:
             db_session, drop, live, decision=ApplicationDecision.ACCEPTED
         )
         ghost_post = await make_social_post(db_session, ghost, likes=400, comments=23, reach=2039)
+        ghost_post.views = 11
+        ghost_post.saved = 4
+        ghost_post.shares = 6
+        ghost_post.reposts = 2
+        ghost_post.reels_skip_rate = 0.4
         ghost_post.profile_visits = 8
         ghost_post.url = f"erased://post/{ghost_post.id}"
         ghost_post.external_id = f"erased-{ghost_post.id}"
@@ -658,6 +739,67 @@ class TestAdminOrgErase:
         erased_user.instagram_granted_permissions = "instagram_business_basic"
         await make_post_link(db_session, ghost_post, ghost_app)
         await make_post_link(db_session, live_post, live_app)
+        now = datetime.now(timezone.utc)
+        db_session.add(
+            DropApplicationShipment(
+                application_id=ghost_app.id,
+                tracking_number="1ZKEEP",
+                carrier="ups",
+            )
+        )
+
+        # Migration matches prefills only by used_by_user_id. A null email or
+        # handle, or the same string on a live org's draft, must not qualify.
+        linked_erased = _draft_prefill(
+            "ghost@school.edu",
+            edu_email="ghost@school.edu",
+            instagram_handle="ghostorg",
+            used_by_user_id=erased_user.id,
+            now=now,
+        )
+        unlinked_same_email = _draft_prefill(
+            "ghost@school.edu",
+            edu_email="ghost@school.edu",
+            instagram_handle="ghostorg",
+            used_by_user_id=None,
+            now=now,
+        )
+        null_identity = _draft_prefill(
+            "blank@school.edu",
+            edu_email=None,
+            instagram_handle=None,
+            used_by_user_id=None,
+            now=now,
+        )
+        live_owned = _draft_prefill(
+            "live@school.edu",
+            edu_email="live@school.edu",
+            instagram_handle="stillhere",
+            used_by_user_id=live_user.id,
+            now=now,
+        )
+        db_session.add(linked_erased)
+        db_session.add(unlinked_same_email)
+        db_session.add(null_identity)
+        db_session.add(live_owned)
+        db_session.add(
+            OrgConnectToken(
+                user_id=erased_user.id,
+                org_id=ghost.id,
+                token_hash=uuid.uuid4().hex + uuid.uuid4().hex[:32],
+                email="ghost@school.edu",
+                expires_at=now + timedelta(days=7),
+            )
+        )
+        db_session.add(
+            OrgConnectToken(
+                user_id=live_user.id,
+                org_id=live.id,
+                token_hash=uuid.uuid4().hex + uuid.uuid4().hex[:32],
+                email="live@school.edu",
+                expires_at=now + timedelta(days=7),
+            )
+        )
         await db_session.flush()
 
         for _ in range(2):
@@ -694,6 +836,13 @@ class TestAdminOrgErase:
         assert ghost.follower_count is None
         assert ghost.university == ""
         assert ghost_post.likes == 400
+        assert ghost_post.comments == 23
+        assert ghost_post.reach == 2039
+        assert ghost_post.views == 11
+        assert ghost_post.saved == 4
+        assert ghost_post.shares == 6
+        assert ghost_post.reposts is None
+        assert ghost_post.reels_skip_rate is None
         assert ghost_post.profile_visits is None
         assert ghost_post.caption == ""
         assert ghost_post.url == ""
@@ -712,6 +861,49 @@ class TestAdminOrgErase:
         assert live.university != ""
         assert "instagram.test" in live_post.url
         assert await db_session.get(Organization, ghost.id) is not None
+        assert (
+            await db_session.scalar(
+                select(func.count())
+                .select_from(PostCampaignLink)
+                .where(PostCampaignLink.post_id == ghost_post.id)
+            )
+            == 1
+        )
+        assert (
+            await db_session.scalar(
+                select(func.count())
+                .select_from(DropApplicationShipment)
+                .where(DropApplicationShipment.application_id == ghost_app.id)
+            )
+            == 1
+        )
+        linked_erased_id = linked_erased.id
+        unlinked_same_email_id = unlinked_same_email.id
+        null_identity_id = null_identity.id
+        live_owned_id = live_owned.id
+        erased_user_id = erased_user.id
+        live_user_id = live_user.id
+        db_session.expire_all()
+        assert await db_session.get(OrgApplyPrefill, linked_erased_id) is None
+        assert await db_session.get(OrgApplyPrefill, unlinked_same_email_id) is not None
+        assert await db_session.get(OrgApplyPrefill, null_identity_id) is not None
+        assert await db_session.get(OrgApplyPrefill, live_owned_id) is not None
+        assert (
+            await db_session.scalar(
+                select(func.count())
+                .select_from(OrgConnectToken)
+                .where(OrgConnectToken.user_id == erased_user_id)
+            )
+            == 0
+        )
+        assert (
+            await db_session.scalar(
+                select(func.count())
+                .select_from(OrgConnectToken)
+                .where(OrgConnectToken.user_id == live_user_id)
+            )
+            == 1
+        )
 
     async def test_metric_sync_skips_erased(self, db_session):
         user, org, *_ = await _seed_erasable_org(db_session)
