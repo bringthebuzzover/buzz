@@ -32,6 +32,7 @@ import { ApiError } from "../../api/client";
 import { instagramProfileUrl } from "../../utils/instagramProfileUrl";
 import {
   ActionButton,
+  AdminBackLink,
   ErrorNote,
   Field,
   FieldGrid,
@@ -227,12 +228,7 @@ export default function AdminOrgDetailPage() {
 
   return (
     <div>
-      <Link
-        to="/admin/orgs"
-        className="mb-4 inline-block text-xs font-bold text-buzz-coral hover:underline"
-      >
-        &larr; All organizations
-      </Link>
+      <AdminBackLink to="/admin/orgs" />
 
       <QueryState
         isPending={org.isPending}
@@ -415,7 +411,7 @@ export default function AdminOrgDetailPage() {
               Pending Instagram identity request.{" "}
               <Link
                 to={`/admin/ig-changes/${data.pendingIgChangeRequestId}`}
-                className="font-bold text-buzz-coral hover:underline"
+                className="text-accent hover:underline"
               >
                 Review
               </Link>
@@ -463,7 +459,7 @@ export default function AdminOrgDetailPage() {
           {!erased && mismatchOpen && (
             <Panel title="Instagram bind mismatch">
               <div className="space-y-3 px-4 py-4">
-                <p className="text-sm font-medium text-buzz-inkMuted">
+                <p className="text-sm font-medium text-muted">
                   This organization connected{" "}
                   {mismatchConnected ?? "a different @"} after applying as{" "}
                   {claimedHandle ?? "another handle"}
@@ -487,12 +483,12 @@ export default function AdminOrgDetailPage() {
             <FieldGrid>
               <Field label="Claimed handle">
                 {claimedBare && claimedProfileUrl ? (
-                  <span className="inline-flex flex-wrap items-center gap-2 font-semibold text-buzz-ink">
+                  <span className="inline-flex flex-wrap items-center gap-2 font-semibold text-primary">
                     <a
                       href={claimedProfileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-buzz-coral hover:underline"
+                      className="hover:text-accent hover:underline"
                     >
                       @{claimedBare}
                     </a>
@@ -510,7 +506,7 @@ export default function AdminOrgDetailPage() {
                     href={igProfileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
+                    className="text-primary hover:text-accent"
                   >
                     {connectedHandle}
                   </a>
@@ -532,7 +528,7 @@ export default function AdminOrgDetailPage() {
               <Field label="Contact">{data.contactName ?? "—"}</Field>
               <Field label="Delivery address">
                 {erased ? (
-                  <span className="text-buzz-inkMuted">
+                  <span className="text-muted">
                     Shipping details removed
                   </span>
                 ) : (

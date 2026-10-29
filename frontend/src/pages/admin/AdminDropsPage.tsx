@@ -8,14 +8,15 @@
  * repeated URL keys (OR within a dimension, AND across).
  */
 import { Link, useSearchParams } from "react-router-dom";
+import { SuccessBanner } from "../../components/forms/controls";
 import { useAdminDrops } from "../../api/hooks/useAdminHooks";
 import {
   AdminTable,
   Cell,
   FilterMultiSelect,
   PageHeading,
-  Panel,
   Pill,
+  StagePill,
   QueryState,
   Row,
   filterChipClass,
@@ -150,47 +151,53 @@ export default function AdminDropsPage() {
         />
       </div>
 
-      <p className="mb-4 text-xs font-medium text-buzz-inkMuted">
-        Intake tickets live under{" "}
-        <Link to="/admin/requests" className="font-bold text-buzz-coral hover:underline">
-          Drop requests
-        </Link>
-        .
-      </p>
+      <div className="mb-6">
+        <SuccessBanner>
+          Intake tickets live under{" "}
+          <Link to="/admin/requests" className="underline">
+            Drop requests
+          </Link>
+          .
+        </SuccessBanner>
+      </div>
 
-      <Panel>
-        <QueryState
-          isPending={drops.isPending}
-          isError={drops.isError}
-          label="drops"
-        />
-        {drops.data && (
-          <AdminTable
-            headers={HEADERS}
-            isEmpty={drops.data.length === 0}
-            empty="No drops match this filter."
-          >
-            {drops.data.map((drop) => {
-              const closed = drop.applyCloseAt <= Date.now();
-              return (
-                <Row key={drop.id}>
-                  <Cell>
-                    <Link
-                      to={`/admin/drops/${drop.id}`}
-                      className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
-                    >
-                      {drop.title}
-                    </Link>
-                  </Cell>
-                  <Cell muted>
-                    <Link
-                      to={`/admin/brands/${drop.brandId}`}
-                      className="hover:text-buzz-coral hover:underline"
-                    >
-                      {drop.brandName}
-                    </Link>
-                  </Cell>
-                  <Cell muted>{STAGE_LABELS[drop.stage] ?? drop.stage}</Cell>
+      <QueryState
+        isPending={drops.isPending}
+        isError={drops.isError}
+        label="drops"
+      />
+      {drops.data && (
+        <AdminTable
+          headers={HEADERS}
+          isEmpty={drops.data.length === 0}
+          empty="No drops match this filter."
+        >
+          {drops.data.map((drop) => {
+            const closed = drop.applyCloseAt <= Date.now();
+            return (
+              <Row
+                key={drop.id}
+                attention={drop.stage === "finalizing_agreements"}
+              >
+                <Cell>
+                  <Link
+                    to={`/admin/drops/${drop.id}`}
+                    className="text-primary hover:text-accent"
+                  >
+                    {drop.title}
+                  </Link>
+                </Cell>
+                <Cell>
+                  <Link
+                    to={`/admin/brands/${drop.brandId}`}
+                    className="text-primary hover:text-accent"
+                  >
+                    {drop.brandName}
+                  </Link>
+                </Cell>
+                <Cell>
+                  <StagePill stage={drop.stage} />
+                </Cell>
                   <Cell muted>{drop.appliedCount}</Cell>
                   <Cell
                     muted={drop.acceptedCount <= drop.capacityTotal}
@@ -205,7 +212,7 @@ export default function AdminDropsPage() {
                   <Cell>
                     <div className="flex flex-wrap gap-1">
                       {drop.hiddenAt != null && <Pill tone="bad">Hidden</Pill>}
-                      {!drop.publishedAt && <Pill tone="warn">Draft</Pill>}
+                      {!drop.publishedAt && <Pill tone="neutral">Draft</Pill>}
                       {drop.manualReopen && <Pill tone="warn">Reopened</Pill>}
                       {drop.acceptedCount > drop.capacityTotal && (
                         <Pill tone="bad">Over capacity</Pill>
@@ -222,8 +229,7 @@ export default function AdminDropsPage() {
               );
             })}
           </AdminTable>
-        )}
-      </Panel>
+      )}
     </div>
   );
 }

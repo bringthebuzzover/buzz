@@ -1,6 +1,5 @@
 # Files that still use text-buzz-paper, bg-buzz-ink, buzz-coral, or buzz-cream.
 # New files are rejected by check-ui-primitives.sh. Remove a line when the file migrates.
-components/admin/AdminPrimitives.tsx
 components/brand/ApiCompareDropsTable.tsx
 components/brand/ApiDropOrgTable.tsx
 components/brand/BrandDropTrackerStepper.tsx
@@ -22,20 +21,8 @@ components/site/SiteHeader.tsx
 components/site/modals/ContactModal.tsx
 components/tours/TourFrame.tsx
 layouts/SiteLayout.tsx
-meta-reviewer/MetaReviewerAdminCard.tsx
 pages/NotFoundPage.tsx
-pages/admin/AdminBrandDetailPage.tsx
-pages/admin/AdminBrandsPage.tsx
-pages/admin/AdminDropDetailPage.tsx
-pages/admin/AdminDropRequestDetailPage.tsx
-pages/admin/AdminDropRequestsPage.tsx
-pages/admin/AdminDropsPage.tsx
-pages/admin/AdminIgChangeRequestDetailPage.tsx
-pages/admin/AdminIgChangeRequestsPage.tsx
 pages/admin/AdminLoginPage.tsx
-pages/admin/AdminOrgDetailPage.tsx
-pages/admin/AdminOrgsPage.tsx
-pages/admin/AdminOverviewPage.tsx
 pages/auth/BrandApplyPage.tsx
 pages/auth/BrandLoginPage.tsx
 pages/auth/BrandSetupPage.tsx

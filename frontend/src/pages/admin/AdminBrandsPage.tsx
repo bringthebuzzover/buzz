@@ -198,33 +198,32 @@ export default function AdminBrandsPage() {
         param="status"
       />
 
-      <Panel>
-        <QueryState
-          isPending={brands.isPending}
-          isError={brands.isError}
-          label="brands"
-        />
-        {brands.data && (
-          <AdminTable
-            headers={HEADERS}
-            isEmpty={brands.data.length === 0}
-            empty="No brands match this filter."
-          >
-            {brands.data.map((row) => (
-              <Row key={row.id}>
-                <Cell>
-                  <Link
-                    to={`/admin/brands/${row.id}`}
-                    className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
-                  >
-                    {row.brandName}
-                  </Link>
-                  {row.instagramHandle && (
-                    <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
-                      @{row.instagramHandle.replace(/^@/, "")}
-                    </span>
-                  )}
-                </Cell>
+      <QueryState
+        isPending={brands.isPending}
+        isError={brands.isError}
+        label="brands"
+      />
+      {brands.data && (
+        <AdminTable
+          headers={HEADERS}
+          isEmpty={brands.data.length === 0}
+          empty="No brands match this filter."
+        >
+          {brands.data.map((row) => (
+            <Row key={row.id} attention={row.status === "pending_review"}>
+              <Cell>
+                <Link
+                  to={`/admin/brands/${row.id}`}
+                  className="block text-primary hover:text-accent"
+                >
+                  {row.brandName}
+                </Link>
+                {row.instagramHandle && (
+                  <span className="mt-0.5 block text-xs text-quiet">
+                    @{row.instagramHandle.replace(/^@/, "")}
+                  </span>
+                )}
+              </Cell>
                 <Cell>
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusPill status={row.status} />
@@ -241,6 +240,7 @@ export default function AdminBrandsPage() {
                     {row.status === "pending_review" && (
                       <>
                         <ActionButton
+                          quiet
                           variant="primary"
                           testId={`approve-brand-${row.id}`}
                           disabled={busy}
@@ -249,6 +249,7 @@ export default function AdminBrandsPage() {
                           Approve
                         </ActionButton>
                         <ActionButton
+                          quiet
                           variant="danger"
                           testId={`deny-brand-${row.id}`}
                           disabled={busy}
@@ -259,6 +260,7 @@ export default function AdminBrandsPage() {
                       </>
                     )}
                     <ActionButton
+                      quiet
                       testId={`view-as-${row.userId}`}
                       disabled={!row.impersonatable || viewAsPending}
                       onClick={() => void viewAs(row.userId)}
@@ -270,8 +272,7 @@ export default function AdminBrandsPage() {
               </Row>
             ))}
           </AdminTable>
-        )}
-      </Panel>
+      )}
     </div>
   );
 }
