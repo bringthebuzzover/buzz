@@ -244,7 +244,7 @@ test("view as a brand survives /brand/setup", async ({ page }) => {
   await brandRow.getByRole("button", { name: /view as/i }).click();
 
   await expect(page).toHaveURL(/\/brand\/dashboard$/);
-  await expect(page.getByText("Brand Portal")).toBeVisible();
+  await expect(page.getByRole("banner").getByText("Brand Portal")).toBeVisible();
   await expect(page.getByTestId("impersonation-banner")).toBeVisible();
 
   await page.evaluate(() => sessionStorage.clear());
