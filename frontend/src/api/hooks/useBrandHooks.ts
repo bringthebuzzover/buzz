@@ -33,6 +33,76 @@ export function useBrandProfile() {
   });
 }
 
+export function useUpdateBrandProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { brandName: string }) => {
+      const { data } = await apiFetch<BrandProfile>("/api/brands/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      return data;
+    },
+    onSuccess: (profile) => {
+      queryClient.setQueryData(["brand-profile"], profile);
+    },
+  });
+}
+
+export type BrandIgChangeRequest = components["schemas"]["BrandIgChangeRequestResponse"];
+export type BrandIgChangeRequestState = components["schemas"]["BrandIgChangeRequestState"];
+
+export function useBrandIgChangeRequestState() {
+  const { status } = useAuth();
+  return useQuery({
+    queryKey: ["brand", "ig-change"],
+    queryFn: async () => {
+      const { data } = await apiFetch<BrandIgChangeRequestState>(
+        "/api/brands/me/ig-change-request",
+      );
+      return data;
+    },
+    enabled: status === "authenticated",
+  });
+}
+
+export function useSubmitBrandIgChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { requestedHandle: string; reason: string }) => {
+      const { data } = await apiFetch<BrandIgChangeRequest>(
+        "/api/brands/me/ig-change-requests",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brand", "ig-change"] });
+    },
+  });
+}
+
+export function useChangeBrandPassword() {
+  return useMutation({
+    mutationFn: async (body: { currentPassword: string; newPassword: string }) => {
+      const { data } = await apiFetch<components["schemas"]["TokenResponse"]>(
+        "/api/auth/brand/change-password",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      return data;
+    },
+  });
+}
+
 export function useBrandDrops() {
   const { status } = useAuth();
   return useQuery({
