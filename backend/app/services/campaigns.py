@@ -222,7 +222,8 @@ async def withdraw_my_campaign(db: AsyncSession, org_user: User, application_id:
 
     application = await resolve_owned_application(db, org_user, application_id)
     await lock_drop(db, application.drop_id)
-    if org_visible_decision(application) == ApplicationDecision.ACCEPTED.value and (
+    was_live = org_visible_decision(application) == ApplicationDecision.ACCEPTED.value
+    if was_live and (
         await db.scalar(
             select(exists().where(DropApplicationShipment.application_id == application.id))
         )
@@ -233,7 +234,7 @@ async def withdraw_my_campaign(db: AsyncSession, org_user: User, application_id:
             status_code=409,
         )
     await end_seat(db, application, decision=ApplicationDecision.WITHDREW.value, reason=None)
-    await notify_withdrew(db, application)
+    await notify_withdrew(db, application, was_live=was_live)
 
 
 async def set_my_campaign_delivered(

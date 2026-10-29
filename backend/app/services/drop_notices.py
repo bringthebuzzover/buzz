@@ -1,7 +1,8 @@
 """Drop lifecycle emails (plan §3.6).
 
 One email per (seat or drop, event): the Resend idempotency key is the row id
-plus the event, so a retried request never mails twice. Orgs hear only about
+plus the event, nothing time-based, so a retried request (even one whose first
+try rolled back after sending) never mails twice. Orgs hear only about
 their own seat. Brands get one email per drop event (close, wrap, cancel),
 never one per seat. A failed send is logged and never blocks the action.
 
@@ -9,10 +10,10 @@ never one per seat. A failed send is logged and never blocks the action.
 |---|---|
 | Decisions sent | each accepted org ("good news"), each denied org |
 | First shipment, and every one after | that org, with tracking |
-| Org withdraws | that org (confirmation) and BUZZ ops |
+| Org withdraws | that org (confirmation); BUZZ ops too if the seat was live |
 | Applications closed, then +2 and +5 days | the brand: "Choose your orgs" (last copies ops) |
 | Wrap-up | leftover applicants "not selected" (D-7), live orgs "thanks", the brand a recap |
-| Cancel | orgs still in the running, and the brand |
+| Cancel | orgs still in the running (as they see it), and the brand |
 """
 
 from __future__ import annotations
@@ -46,11 +47,15 @@ from app.services.email import (
     KIND_SEAT_WITHDREW_OPS,
     _ops_cc,
     build_idempotency_key,
-    idempotency_generation,
     send_application_denied_email,
     send_lifecycle_email,
 )
-from app.services.lifecycle import ORG_LINK_GRACE, drop_running
+from app.services.lifecycle import (
+    ORG_LINK_GRACE,
+    drop_running,
+    seat_hidden_from_org,
+    seat_is_live,
+)
 from app.timeutils import as_utc, utcnow
 
 logger = logging.getLogger(__name__)
@@ -105,12 +110,14 @@ async def notify_decisions(db: AsyncSession, drop: Drop, sent: Sequence[DropAppl
 
     brand = await db.get(Brand, drop.brand_id)
     brand_name = brand.brand_name if brand is not None else ""
+    # A seat row is accepted-and-sent at most once (a sent acceptance never
+    # goes back to a draft), so the row id alone is the key.
     for application, to, org_name in await _orgs(db, sent):
         if application.decision == ApplicationDecision.ACCEPTED.value:
             units = application.allocated_units
             await _send(
                 KIND_SEAT_ACCEPTED,
-                (application.id, idempotency_generation(application.decision_sent_at)),
+                (application.id,),
                 to,
                 subject=f"Good news: you're in for {drop.title}",
                 paragraphs=[
@@ -157,17 +164,18 @@ async def notify_shipped(
         )
 
 
-async def notify_withdrew(db: AsyncSession, application: DropApplication) -> None:
-    """Confirm to the org, and tell BUZZ ops so they can find a substitute."""
+async def notify_withdrew(
+    db: AsyncSession, application: DropApplication, *, was_live: bool
+) -> None:
+    """Confirm to the org; if it held a live seat, tell BUZZ ops to find a substitute."""
 
     drop = await db.get(Drop, application.drop_id)
     if drop is None:
         return
-    generation = idempotency_generation(application.decision_sent_at)
     for _, to, org_name in await _orgs(db, [application]):
         await _send(
             KIND_SEAT_WITHDREW,
-            (application.id, generation),
+            (application.id,),
             to,
             subject=f"You've withdrawn from {drop.title}",
             paragraphs=[
@@ -177,9 +185,11 @@ async def notify_withdrew(db: AsyncSession, application: DropApplication) -> Non
             url=f"{settings.FRONTEND_URL}/org/browse",
             button="Browse drops",
         )
+        if not was_live:
+            continue
         await _send(
             KIND_SEAT_WITHDREW_OPS,
-            (application.id, generation),
+            (application.id,),
             CONTACT_EMAIL,
             subject=f"{org_name} withdrew from {drop.title}",
             paragraphs=[f"{org_name} withdrew from {drop.title}. Late-add a substitute if needed."],
@@ -197,21 +207,16 @@ async def notify_wrapped(
     await notify_decisions(db, drop, not_selected)
     if drop.wrapped_at is None:
         return
-    generation = idempotency_generation(drop.wrapped_at)
     live = list(
         await db.scalars(
-            select(DropApplication).where(
-                DropApplication.drop_id == drop.id,
-                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-                DropApplication.decision_sent_at.is_not(None),
-            )
+            select(DropApplication).where(DropApplication.drop_id == drop.id, seat_is_live())
         )
     )
     links_until = (as_utc(drop.wrapped_at) + ORG_LINK_GRACE).strftime("%b %-d")
     for application, to, org_name in await _orgs(db, live):
         await _send(
             KIND_DROP_WRAPPED_ORG,
-            (application.id, generation),
+            (application.id,),
             to,
             subject=f"{drop.title} is wrapped up: thank you",
             paragraphs=[
@@ -225,7 +230,7 @@ async def notify_wrapped(
     if brand is not None:
         await _send(
             KIND_DROP_WRAPPED,
-            (drop.id, generation),
+            (drop.id,),
             brand.company_email.strip(),
             subject=f"{drop.title} is wrapped up",
             paragraphs=[
@@ -238,15 +243,13 @@ async def notify_wrapped(
 
 
 async def notify_canceled(db: AsyncSession, drop: Drop) -> None:
-    """Every org still in the running (applied or accepted) and the brand, once each."""
+    """Every org still in the running as it sees it (any seat not ended or sent a
+    denial, drafts included) and the brand, once each."""
 
     seats = list(
         await db.scalars(
             select(DropApplication).where(
-                DropApplication.drop_id == drop.id,
-                DropApplication.decision.in_(
-                    (ApplicationDecision.APPLIED.value, ApplicationDecision.ACCEPTED.value)
-                ),
+                DropApplication.drop_id == drop.id, ~seat_hidden_from_org()
             )
         )
     )
@@ -292,11 +295,7 @@ async def send_choose_orgs_reminders(db: AsyncSession) -> dict[str, int]:
     waiting = exists().where(
         DropApplication.drop_id == Drop.id, DropApplication.decision_sent_at.is_(None)
     )
-    live = exists().where(
-        DropApplication.drop_id == Drop.id,
-        DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-        DropApplication.decision_sent_at.is_not(None),
-    )
+    live = exists().where(DropApplication.drop_id == Drop.id, seat_is_live())
     rows = (
         await db.execute(
             select(Drop, Brand)
