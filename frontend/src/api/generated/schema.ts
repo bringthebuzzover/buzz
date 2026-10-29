@@ -2069,74 +2069,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/meta-reviewer/seed": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Meta Reviewer Seed
-         * @description Admin-only idempotent seed. 404 when the flag is off, before auth.
-         */
-        post: operations["meta_reviewer_seed_api_meta_reviewer_seed_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/meta-reviewer/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Meta Reviewer Start
-         * @description Verify the reusable link secret and mint a reviewer OAuth state.
-         *
-         *     The state cookie is the same CSRF binding as Connect. ``next`` is not
-         *     taken from the client (no open redirect).
-         */
-        post: operations["meta_reviewer_start_api_meta_reviewer_start_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/meta-reviewer/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Meta Reviewer Status
-         * @description Admin-only setup status. 404 when the flag is off, before auth.
-         *
-         *     Returns whether the reviewer org exists, its admin-page user id, and the
-         *     configured drop id. Never returns the link secret, its hash, or the email.
-         *     Not rate-limited: the admin overview reads it on each visit. Flag-off
-         *     still 404s before auth, so that probe never reaches the handler body.
-         */
-        get: operations["meta_reviewer_status_api_meta_reviewer_status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/orgs/address-preview": {
         parameters: {
             query?: never;
@@ -4636,24 +4568,6 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /** DataResponse[MetaReviewerSeedResponse] */
-        DataResponse_MetaReviewerSeedResponse_: {
-            data?: components["schemas"]["MetaReviewerSeedResponse"] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** DataResponse[MetaReviewerStatusResponse] */
-        DataResponse_MetaReviewerStatusResponse_: {
-            data?: components["schemas"]["MetaReviewerStatusResponse"] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
         /** DataResponse[OkResponse] */
         DataResponse_OkResponse_: {
             data?: components["schemas"]["OkResponse"] | null;
@@ -5251,37 +5165,6 @@ export interface components {
              * Format: uuid
              */
             postId: string;
-        };
-        /** MetaReviewerSeedResponse */
-        MetaReviewerSeedResponse: {
-            /** Applicationid */
-            applicationId: string;
-            /** Createdapplication */
-            createdApplication: boolean;
-            /** Createduser */
-            createdUser: boolean;
-            /** Dropid */
-            dropId: string;
-            /** Orgid */
-            orgId: string;
-            /** Userid */
-            userId: string;
-        };
-        /**
-         * MetaReviewerStatusResponse
-         * @description Setup snapshot. ``user_id`` is the admin org-page key, not a secret.
-         */
-        MetaReviewerStatusResponse: {
-            /** Dropid */
-            dropId: string | null;
-            /** Enabled */
-            enabled: boolean;
-            /** Orgid */
-            orgId: string | null;
-            /** Seeded */
-            seeded: boolean;
-            /** Userid */
-            userId: string | null;
         };
         /**
          * NotifyRequest
@@ -9660,103 +9543,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_HealthStatusResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    meta_reviewer_seed_api_meta_reviewer_seed_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_MetaReviewerSeedResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    meta_reviewer_start_api_meta_reviewer_start_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    token: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_InstagramBindStartResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    meta_reviewer_status_api_meta_reviewer_status_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_MetaReviewerStatusResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

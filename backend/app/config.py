@@ -261,33 +261,6 @@ class Settings(BaseSettings):
         ),
     )
 
-    # META-REVIEWER-PATH: delete these four fields with app/meta_reviewer/.
-    META_REVIEWER_ACCESS_ENABLED: bool = Field(
-        default=False,
-        description=(
-            "Temporary Meta App Review path. Default off. When false, reviewer "
-            "routes 404 and Instagram login is unchanged."
-        ),
-    )
-    META_REVIEWER_LINK_SECRET_HASH: str = Field(
-        default="",
-        description=(
-            "SHA-256 hex of the reusable reviewer link secret. Never store the "
-            "secret itself. Empty rejects every link. Rotate by replacing this value."
-        ),
-    )
-    META_REVIEWER_DROP_ID: str = Field(
-        default="",
-        description=(
-            "UUID of the drop the reviewer org is accepted on. "
-            "Prod test drop: 647ea986-5af0-44c8-b5ff-03cbddf2d2fd."
-        ),
-    )
-    META_REVIEWER_ORG_EMAIL: str = Field(
-        default="meta-app-reviewer@review.buzz.invalid",
-        description="Email identity of the single reviewer org. Not a person's inbox.",
-    )
-
     # --- Rate limiting (architecture §11.1, Stage 9) ---
     RATE_LIMIT_ENABLED: bool = Field(
         default=True,

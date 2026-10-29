@@ -16,7 +16,6 @@ from app import errors
 from app.deps.auth import CurrentOrg, get_current_user
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
-from app.meta_reviewer.gate import reject_reviewer_mutation
 from app.models.organization import Organization
 from app.models.user import User
 from app.response import APIResponse, DataResponse, api_response
@@ -188,8 +187,6 @@ async def update_my_org(
 ) -> APIResponse:
     """Patch the editable subset of the caller org's profile."""
 
-    # META-REVIEWER-PATH: keep the seeded reviewer org name stable.
-    reject_reviewer_mutation(user)
     org = await _require_org_profile(db, user)
     org = await update_org_profile(db, org, payload, addresses)
     return api_response(data=await enrich_org_profile(db, org, build_org_profile(org, user)))

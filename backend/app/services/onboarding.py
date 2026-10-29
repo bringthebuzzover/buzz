@@ -18,7 +18,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import errors
 from app.config import settings
 from app.exceptions import BuzzAPIException
-from app.meta_reviewer.gate import reject_reviewer_mutation  # META-REVIEWER-PATH
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.organization import Organization
 from app.models.user import User
@@ -351,8 +350,6 @@ async def submit_org_onboarding(
 
 async def change_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict[str, Any]:
     """Correct the .edu address while still awaiting verification."""
-    # META-REVIEWER-PATH: do not let the seeded org replace the email purge keys on.
-    reject_reviewer_mutation(user)
     if user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
@@ -457,8 +454,6 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
         and user.pending_edu_email
         and token_email == user.pending_edu_email
     ):
-        # META-REVIEWER-PATH: finishing a rotate would detach the seeded org from purge.
-        reject_reviewer_mutation(user)
         evt.used_at = now
         user.edu_email = user.pending_edu_email
         user.pending_edu_email = None
@@ -542,8 +537,6 @@ async def rotate_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict
     Keeps the live ``edu_email`` until the new address is verified. Does not
     demote status or gate the portal.
     """
-    # META-REVIEWER-PATH: do not let the seeded org replace the email purge keys on.
-    reject_reviewer_mutation(user)
     if user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,

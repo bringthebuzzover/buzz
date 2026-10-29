@@ -56,8 +56,6 @@ import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDe
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import AdminNotFoundPage from "./pages/admin/AdminNotFoundPage";
-// META-REVIEWER-PATH: delete this import and the /meta-review route below.
-import MetaReviewerPage from "./meta-reviewer/MetaReviewerPage";
 import UiKitPage from "./pages/dev/UiKitPage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
@@ -137,8 +135,6 @@ export default function AppRoot(): ReactElement {
         <Route path="brand/apply" element={<BrandApplyPage />} />
         <Route path="org/apply" element={<OrgApplyPage />} />
         <Route path="d/:dropId" element={<PublicDropPage />} />
-        {/* META-REVIEWER-PATH: fragment secret, 404 from the API when the flag is off. */}
-        <Route path="meta-review" element={<MetaReviewerPage />} />
 
         {/* Onboarding pages. These require an authenticated session
             (architecture §6.4) — RequireAuth standardizes the redirect to
