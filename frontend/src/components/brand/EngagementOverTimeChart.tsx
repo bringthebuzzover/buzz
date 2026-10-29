@@ -5,7 +5,7 @@
  */
 import { useMemo, useState } from "react";
 import type { EngagementTimeSeriesPoint } from "../../types/metrics";
-import { tailwindThemeExtend } from "../../theme/palette";
+import { pulse, tailwindThemeExtend } from "../../theme/palette";
 import { Card, CardHeader } from "../ui/Card";
 import { StatePanel } from "../ui/StatePanel";
 import { TEXT } from "../../theme/tokens";
@@ -189,7 +189,7 @@ export default function EngagementOverTimeChart({
                 width={120}
                 height={48}
                 rx={8}
-                fill={BUZZ_COLORS.dark}
+                fill={pulse.ink}
                 opacity={0.92}
               />
               <text

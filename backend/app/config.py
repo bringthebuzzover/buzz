@@ -252,15 +252,6 @@ class Settings(BaseSettings):
             "from ENVIRONMENT."
         ),
     )
-    STAGING_BASIC_AUTH: str = Field(
-        default="",
-        description=(
-            "HTTP Basic credentials as user:password. Empty disables the gate. "
-            "On the API this only protects interactive docs, and only when "
-            "ENVIRONMENT=staging. The frontend static server reads the same "
-            "variable at runtime."
-        ),
-    )
     BRAND_SELF_REGISTRATION_ENABLED: bool = Field(
         default=True,
         description=(

@@ -1,8 +1,10 @@
 /**
  * Centered status screen: glowing bee, title, support. Used inside the
- * public chrome (verify email, connect-link failed, application denied).
+ * public chrome (verify email, connect-link failed, application denied,
+ * drop unavailable).
  */
 import type { ReactNode } from "react";
+import { LinkButton } from "../forms/controls";
 import { BeeMark } from "../ui/BrandMark";
 import { MOTION } from "../../theme/motion";
 import { TEXT } from "../../theme/tokens";
@@ -41,6 +43,18 @@ export default function StatusHero({
         {notice ? <div className="w-full text-left">{notice}</div> : null}
         {action}
       </div>
+    </div>
+  );
+}
+
+/** Home and Log in buttons for public dead ends (404, drop unavailable). */
+export function HomeLoginActions() {
+  return (
+    <div className="flex items-center gap-3">
+      <LinkButton to="/">Home</LinkButton>
+      <LinkButton to="/login" variant="outline" className="h-10">
+        Log in
+      </LinkButton>
     </div>
   );
 }

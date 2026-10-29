@@ -21,7 +21,6 @@ import {
   TextArea,
   TextField,
 } from "../../components/forms/controls";
-import FieldError from "../../components/forms/FieldError";
 import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
@@ -83,7 +82,7 @@ function WhatHappensNext() {
         {NEXT_STEPS.map((step, index) => (
           <li key={step.title} className="flex gap-3">
             <span
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-buzz-coral text-xs font-bold text-buzz-paper"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-on-accent"
               aria-hidden
             >
               {index + 1}
@@ -193,7 +192,7 @@ function RequestForm({
     <>
       <Link
         to="/brand/dashboard"
-        className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
+        className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-accent"
       >
         <ChevronLeft size={16} className="mr-1" />
         Back to dashboard
@@ -201,7 +200,7 @@ function RequestForm({
 
       <div className="mb-8">
         <h1 className="mb-2 text-3xl font-bold text-buzz-ink">
-          Request a <span className="text-buzz-coral">Drop</span>
+          Request a <span className="text-accent">Drop</span>
         </h1>
         <p className="text-sm font-medium text-buzz-inkMuted">
           Tell us what you want to run. A Buzz representative will contact you
@@ -219,32 +218,24 @@ function RequestForm({
               description="The two things we need to start."
               className="mb-0"
             />
-            <div>
-              <TextArea
-                id="message"
-                name="message"
-                label="Tell us about the campaign"
-                required
-                rows={4}
-                placeholder="Share goals, timing, or anything a rep should know."
-                aria-invalid={Boolean(errorFor("message")) || undefined}
-                aria-describedby={errorFor("message") ? "message-error" : undefined}
-              />
-              <FieldError id="message-error" message={errorFor("message")} />
-            </div>
-            <div>
-              <TextArea
-                id="product"
-                name="product"
-                label="What you're sending"
-                required
-                rows={3}
-                placeholder="e.g. One case of cold brew in branded boxes"
-                aria-invalid={Boolean(errorFor("product")) || undefined}
-                aria-describedby={errorFor("product") ? "product-error" : undefined}
-              />
-              <FieldError id="product-error" message={errorFor("product")} />
-            </div>
+            <TextArea
+              id="message"
+              name="message"
+              label="Tell us about the campaign"
+              required
+              rows={4}
+              placeholder="Share goals, timing, or anything a rep should know."
+              error={errorFor("message")}
+            />
+            <TextArea
+              id="product"
+              name="product"
+              label="What you're sending"
+              required
+              rows={3}
+              placeholder="e.g. One case of cold brew in branded boxes"
+              error={errorFor("product")}
+            />
           </Card>
           <WhatHappensNext />
         </div>
@@ -255,43 +246,33 @@ function RequestForm({
             description="All optional. Leave a field blank if you're not sure."
             className="mb-0"
           />
-          <div>
+          <TextField
+            id="title"
+            name="title"
+            label={
+              <>
+                Title
+                <OptionalMark />
+              </>
+            }
+            maxLength={120}
+            placeholder="e.g. Fall Cold Brew Launch"
+            error={errorFor("title")}
+          />
+          <div className="grid gap-6 sm:grid-cols-2">
             <TextField
-              id="title"
-              name="title"
+              id="location"
+              name="location"
               label={
                 <>
-                  Title
+                  Campuses or area
                   <OptionalMark />
                 </>
               }
-              maxLength={120}
-              placeholder="e.g. Fall Cold Brew Launch"
-              aria-invalid={Boolean(errorFor("title")) || undefined}
-              aria-describedby={errorFor("title") ? "title-error" : undefined}
+              maxLength={255}
+              placeholder="e.g. Sample University, or Anywhere"
+              error={errorFor("location")}
             />
-            <FieldError id="title-error" message={errorFor("title")} />
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div>
-              <TextField
-                id="location"
-                name="location"
-                label={
-                  <>
-                    Campuses or area
-                    <OptionalMark />
-                  </>
-                }
-                maxLength={255}
-                placeholder="e.g. Sample University, or Anywhere"
-                aria-invalid={Boolean(errorFor("location")) || undefined}
-                aria-describedby={
-                  errorFor("location") ? "location-error" : undefined
-                }
-              />
-              <FieldError id="location-error" message={errorFor("location")} />
-            </div>
             <div>
               <TextField
                 id="targetDate"
@@ -305,103 +286,72 @@ function RequestForm({
                 }
                 min={minDate}
                 max={maxDate}
-                aria-invalid={Boolean(errorFor("targetDate")) || undefined}
-                aria-describedby={
-                  errorFor("targetDate")
-                    ? "targetDate-hint targetDate-error"
-                    : "targetDate-hint"
-                }
+                error={errorFor("targetDate")}
+                aria-describedby="targetDate-hint"
               />
               <p id="targetDate-hint" className={cn(TEXT.meta, "mt-1")}>
                 Dates are UTC.
               </p>
-              <FieldError id="targetDate-error" message={errorFor("targetDate")} />
             </div>
           </div>
           <div className="grid gap-6 sm:grid-cols-2">
-            <div>
-              <TextField
-                id="orgCount"
-                name="orgCount"
-                type="number"
-                min={1}
-                max={200}
-                label={
-                  <>
-                    How many organizations
-                    <OptionalMark />
-                  </>
-                }
-                placeholder="e.g. 8"
-                aria-invalid={Boolean(errorFor("orgCount")) || undefined}
-                aria-describedby={errorFor("orgCount") ? "orgCount-error" : undefined}
-              />
-              <FieldError id="orgCount-error" message={errorFor("orgCount")} />
-            </div>
-            <div>
-              <TextField
-                id="unitsPerOrg"
-                name="unitsPerOrg"
-                type="number"
-                min={1}
-                max={10000}
-                label={
-                  <>
-                    Units per organization
-                    <OptionalMark />
-                  </>
-                }
-                placeholder="e.g. 24"
-                aria-invalid={Boolean(errorFor("unitsPerOrg")) || undefined}
-                aria-describedby={
-                  errorFor("unitsPerOrg") ? "unitsPerOrg-error" : undefined
-                }
-              />
-              <FieldError
-                id="unitsPerOrg-error"
-                message={errorFor("unitsPerOrg")}
-              />
-            </div>
-          </div>
-          <div>
             <TextField
-              id="campaignHashtag"
-              name="campaignHashtag"
+              id="orgCount"
+              name="orgCount"
+              type="number"
+              min={1}
+              max={200}
               label={
                 <>
-                  Campaign hashtag
+                  How many organizations
                   <OptionalMark />
                 </>
               }
-              placeholder="e.g. FallColdBrew"
-              aria-invalid={Boolean(errorFor("campaignHashtag")) || undefined}
-              aria-describedby={
-                errorFor("campaignHashtag") ? "campaignHashtag-error" : undefined
-              }
+              placeholder="e.g. 8"
+              error={errorFor("orgCount")}
             />
-            <FieldError
-              id="campaignHashtag-error"
-              message={errorFor("campaignHashtag")}
-            />
-          </div>
-          <div>
-            <TextArea
-              id="notes"
-              name="notes"
+            <TextField
+              id="unitsPerOrg"
+              name="unitsPerOrg"
+              type="number"
+              min={1}
+              max={10000}
               label={
                 <>
-                  Anything else
+                  Units per organization
                   <OptionalMark />
                 </>
               }
-              rows={3}
-              maxLength={4000}
-              placeholder="Links to brand assets, or anything that didn't fit above."
-              aria-invalid={Boolean(errorFor("notes")) || undefined}
-              aria-describedby={errorFor("notes") ? "notes-error" : undefined}
+              placeholder="e.g. 24"
+              error={errorFor("unitsPerOrg")}
             />
-            <FieldError id="notes-error" message={errorFor("notes")} />
           </div>
+          <TextField
+            id="campaignHashtag"
+            name="campaignHashtag"
+            label={
+              <>
+                Campaign hashtag
+                <OptionalMark />
+              </>
+            }
+            placeholder="e.g. FallColdBrew"
+            error={errorFor("campaignHashtag")}
+          />
+          <TextArea
+            id="notes"
+            name="notes"
+            label={
+              <>
+                Anything else
+                <OptionalMark />
+              </>
+            }
+            rows={3}
+            maxLength={4000}
+            placeholder="Links to brand assets, or anything that didn't fit above."
+            error={errorFor("notes")}
+          />
           <div className="flex justify-end">
             <Button
               type="submit"

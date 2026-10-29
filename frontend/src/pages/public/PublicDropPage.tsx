@@ -21,7 +21,7 @@ import OrgApplyForm, {
 } from "../../components/org/OrgApplyForm";
 import DropApplyForm from "../../components/org/DropApplyForm";
 import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
-import { StatusHero } from "../../components/marketing/sections";
+import StatusHero, { HomeLoginActions } from "../../components/site/StatusHero";
 import { Chip } from "../../components/ui/Chip";
 import { RemoteImage } from "../../components/ui/RemoteImage";
 import { QueryStatePanel, StatePanel } from "../../components/ui/StatePanel";
@@ -57,10 +57,9 @@ export default function PublicDropPage() {
   if (dropNotAvailable(drop.error)) {
     return (
       <div className="bg-page">
-        <StatusHero
-          title="Drop unavailable"
-          support="This drop isn't available."
-        />
+        <StatusHero title="Drop unavailable" action={<HomeLoginActions />}>
+          This drop isn&apos;t available.
+        </StatusHero>
       </div>
     );
   }

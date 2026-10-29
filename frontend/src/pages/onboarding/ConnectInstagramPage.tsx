@@ -17,7 +17,7 @@ import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
 import { allowlistedOAuthNext } from "../../utils/oauthNext";
 import AuthPending from "../../components/auth/AuthPending";
-import StatusHero from "../../components/auth/StatusHero";
+import StatusHero from "../../components/site/StatusHero";
 import { Button, ErrorBanner, LinkButton } from "../../components/forms/controls";
 import { focusRingClass } from "../../theme/controls";
 import { MOTION } from "../../theme/motion";

@@ -16,7 +16,6 @@ import {
 } from "../../api/hooks/useBrandHooks";
 import { userFacingApiError } from "../../api/userFacingError";
 import { useAuth } from "../../contexts/AuthContext";
-import FieldError from "../../components/forms/FieldError";
 import {
   Button,
   ErrorBanner,
@@ -159,27 +158,18 @@ export default function BrandSettingsPage() {
             description="Name shown to organizations."
           />
           <form className={STACK.default} onSubmit={saveName}>
-            <div>
-              <TextField
-                id="brand-name"
-                label="Brand name"
-                name="brandName"
-                value={shownName}
-                onChange={(event) => {
-                  setBrandName(event.target.value);
-                  setNameSaved(false);
-                }}
-                data-testid="brand-name"
-                aria-invalid={nameMapped?.fields.brandName ? true : undefined}
-                aria-describedby={
-                  nameMapped?.fields.brandName ? "brand-name-error" : undefined
-                }
-              />
-              <FieldError
-                id="brand-name-error"
-                message={nameMapped?.fields.brandName}
-              />
-            </div>
+            <TextField
+              id="brand-name"
+              label="Brand name"
+              name="brandName"
+              value={shownName}
+              onChange={(event) => {
+                setBrandName(event.target.value);
+                setNameSaved(false);
+              }}
+              data-testid="brand-name"
+              error={nameMapped?.fields.brandName}
+            />
             {nameMapped?.banner ? <ErrorBanner>{nameMapped.banner}</ErrorBanner> : null}
             {nameSaved ? (
               <SuccessBanner>
@@ -211,7 +201,7 @@ export default function BrandSettingsPage() {
                 type="button"
                 onClick={() => setIgOpen(true)}
                 data-testid="brand-ig-change-open"
-                className="mt-3 text-sm font-medium text-buzz-inkMuted underline-offset-2 hover:text-buzz-coral hover:underline"
+                className="mt-3 text-sm font-medium text-buzz-inkMuted underline-offset-2 hover:text-accent hover:underline"
               >
                 Request change
               </button>
@@ -243,60 +233,36 @@ export default function BrandSettingsPage() {
             onSubmit={savePassword}
           >
             <div className={cn("grid grid-cols-1 sm:grid-cols-2", GAP.default)}>
-              <div>
-                <TextField
-                  id="brand-current-password"
-                  label="Current password"
-                  name="currentPassword"
-                  type="password"
-                  autoComplete="current-password"
-                  value={currentPassword}
-                  onChange={(event) => {
-                    setCurrentPassword(event.target.value);
-                    setPasswordSaved(false);
-                  }}
-                  disabled={viewingAs}
-                  data-testid="brand-current-password"
-                  aria-invalid={
-                    passwordMapped?.fields.currentPassword ? true : undefined
-                  }
-                  aria-describedby={
-                    passwordMapped?.fields.currentPassword
-                      ? "brand-current-password-error"
-                      : undefined
-                  }
-                />
-                <FieldError
-                  id="brand-current-password-error"
-                  message={passwordMapped?.fields.currentPassword}
-                />
-              </div>
-              <div>
-                <TextField
-                  id="brand-new-password"
-                  label="New password"
-                  name="newPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(event) => {
-                    setNewPassword(event.target.value);
-                    setPasswordSaved(false);
-                  }}
-                  disabled={viewingAs}
-                  data-testid="brand-new-password"
-                  aria-invalid={passwordMapped?.fields.newPassword ? true : undefined}
-                  aria-describedby={
-                    passwordMapped?.fields.newPassword
-                      ? "brand-new-password-error"
-                      : undefined
-                  }
-                />
-                <FieldError
-                  id="brand-new-password-error"
-                  message={passwordMapped?.fields.newPassword}
-                />
-              </div>
+              <TextField
+                id="brand-current-password"
+                label="Current password"
+                name="currentPassword"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(event) => {
+                  setCurrentPassword(event.target.value);
+                  setPasswordSaved(false);
+                }}
+                disabled={viewingAs}
+                data-testid="brand-current-password"
+                error={passwordMapped?.fields.currentPassword}
+              />
+              <TextField
+                id="brand-new-password"
+                label="New password"
+                name="newPassword"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(event) => {
+                  setNewPassword(event.target.value);
+                  setPasswordSaved(false);
+                }}
+                disabled={viewingAs}
+                data-testid="brand-new-password"
+                error={passwordMapped?.fields.newPassword}
+              />
             </div>
             <p className={TEXT.meta}>Signs you out on your other devices.</p>
             {viewingAs ? (

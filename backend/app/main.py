@@ -8,9 +8,7 @@ liveness route. Interactive docs and the OpenAPI JSON are exposed only when
 
 from __future__ import annotations
 
-import base64
 import logging
-import secrets
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from urllib.parse import urlparse
@@ -81,46 +79,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await engine.dispose()
 
 
-_DOCS_PATHS = {
-    "/docs",
-    "/docs/",
-    "/openapi.json",
-    "/redoc",
-    "/api/docs",
-    "/api/docs/",
-    "/api/openapi.json",
-}
-
-
-def docs_enabled(environment: str, staging_basic_auth: str) -> bool:
-    """Interactive docs stay on in development.
-
-    Staging may expose them only behind ``STAGING_BASIC_AUTH``. Production
-    never mounts them, even if that variable is set.
-    """
-
-    if environment == "development":
-        return True
-    return environment == "staging" and bool(staging_basic_auth.strip())
-
-
-def _basic_credentials_match(authorization: str | None, expected: str) -> bool:
-    if not authorization:
-        return False
-    scheme, _, encoded = authorization.partition(" ")
-    if scheme.lower() != "basic" or not encoded.strip():
-        return False
-    try:
-        decoded = base64.b64decode(encoded.strip(), validate=True).decode("utf-8")
-    except (ValueError, UnicodeDecodeError):
-        return False
-    try:
-        return secrets.compare_digest(decoded, expected)
-    except (TypeError, ValueError):
-        return False
-
-
-_DOCS_ENABLED = docs_enabled(settings.ENVIRONMENT, settings.STAGING_BASIC_AUTH)
+_DOCS_ENABLED = settings.ENVIRONMENT == "development"
 
 app = FastAPI(
     title="Buzz API",
@@ -162,32 +121,6 @@ async def _security_headers(
             "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
         )
     return response
-
-
-@app.middleware("http")
-async def _staging_docs_basic_auth(
-    request: Request, call_next: Callable[[Request], Awaitable[Response]]
-) -> Response:
-    """Gate interactive docs on staging when ``STAGING_BASIC_AUTH`` is set.
-
-    Unset leaves docs off outside development (see ``docs_enabled``). The
-    variable does not protect the rest of the API, and production ignores it.
-    """
-
-    expected = settings.STAGING_BASIC_AUTH.strip()
-    if (
-        settings.ENVIRONMENT == "staging"
-        and expected
-        and request.url.path in _DOCS_PATHS
-        and not _basic_credentials_match(request.headers.get("authorization"), expected)
-    ):
-        return Response(
-            status_code=401,
-            content="Authentication required",
-            media_type="text/plain",
-            headers={"WWW-Authenticate": 'Basic realm="staging"'},
-        )
-    return await call_next(request)
 
 
 @app.exception_handler(BuzzAPIException)
