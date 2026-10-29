@@ -11,6 +11,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import EduEmailRotatePanel from "../../components/org/EduEmailRotatePanel";
 import AuthShell from "../../components/site/AuthShell";
+import { AuthHeading } from "../../components/auth/AuthFrame";
 import { pathForUser } from "../../utils/landing";
 
 const POLL_INTERVAL_MS = 15_000;
@@ -33,15 +34,14 @@ export default function PendingApprovalPage() {
   }
 
   return (
-    <AuthShell align="center" className="text-center">
-      <h1 className="mb-4 text-3xl font-bold text-buzz-ink">
-        Awaiting <span className="text-buzz-coral">Approval</span>
-      </h1>
-      <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
-        We&apos;re reviewing your organization. We&apos;ll email when Instagram
-        is ready to connect. Campus inboxes often put first-time Buzz mail in
-        Junk.
-      </p>
+    <AuthShell align="stack">
+      <div className="mb-8">
+        <AuthHeading kicker="Application received" title="Awaiting approval">
+          We&apos;re reviewing your organization. We&apos;ll email when Instagram
+          is ready to connect. Campus inboxes often put first-time BUZZ mail in
+          Junk.
+        </AuthHeading>
+      </div>
 
       <EduEmailRotatePanel
         liveEmail={user.email}
