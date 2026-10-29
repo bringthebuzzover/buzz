@@ -12,8 +12,7 @@ import { FEATURED_COLLABS } from "../../data/featuredCollabs";
 import { cn } from "../../theme/cn";
 import { footerLinkClass, SOCIAL_LINKS } from "../site/footerLinks";
 import { useReducedMotion } from "./useReducedMotion";
-
-const publicUrl = process.env.PUBLIC_URL ?? "";
+import { publicAsset } from "../../utils/publicAsset";
 
 export function MarketingHero({
   title,
@@ -42,8 +41,8 @@ export function MarketingHero({
           loop
           playsInline
         >
-          <source src={`${publicUrl}/hero.mp4`} type='video/mp4; codecs="hvc1"' />
-          <source src={`${publicUrl}/hero-h264.mp4`} type="video/mp4" />
+          <source src={publicAsset("hero.mp4")} type='video/mp4; codecs="hvc1"' />
+          <source src={publicAsset("hero-h264.mp4")} type="video/mp4" />
         </video>
       ) : (
         <img

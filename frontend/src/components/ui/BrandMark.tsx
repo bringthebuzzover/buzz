@@ -1,7 +1,6 @@
 import { siteIdentity } from "../../data/siteIdentity";
 import { cn } from "../../theme/cn";
-
-const publicUrl = process.env.PUBLIC_URL ?? "";
+import { publicAsset } from "../../utils/publicAsset";
 
 /**
  * The pulse bee. Decorative — pass a real alt only when it is the sole
@@ -16,7 +15,7 @@ export function BeeMark({
 }) {
   return (
     <img
-      src={`${publicUrl}/logos/bee.svg`}
+      src={publicAsset("logos/bee.svg")}
       alt={alt}
       className={cn("h-10 w-10 object-contain", className)}
     />
