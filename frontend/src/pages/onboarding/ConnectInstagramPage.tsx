@@ -60,7 +60,7 @@ export default function ConnectInstagramPage() {
           message:
             err instanceof ApiError
               ? err.message
-              : "This connect link is invalid or expired. Ask Buzz to resend it.",
+              : "This connect link is invalid or expired. Ask BUZZ to resend it.",
         });
       }
     })();
@@ -126,11 +126,11 @@ export default function ConnectInstagramPage() {
         <p className="text-base leading-relaxed text-muted">
           Connect the organization&apos;s Instagram{" "}
           <span className="font-medium text-primary">Business or Creator</span>{" "}
-          account — not a personal member profile. This binds your Buzz account to
+          account — not a personal member profile. This binds your BUZZ account to
           that Instagram identity.
         </p>
         <p className="text-base leading-relaxed text-muted">
-          First accept Buzz&apos;s Instagram Tester invite at{" "}
+          First accept BUZZ&apos;s Instagram Tester invite at{" "}
           <a
             href="https://www.instagram.com/accounts/manage_access/"
             target="_blank"

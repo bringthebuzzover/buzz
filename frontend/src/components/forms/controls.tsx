@@ -1,9 +1,10 @@
-import type {
-  ButtonHTMLAttributes,
-  InputHTMLAttributes,
-  ReactNode,
-  SelectHTMLAttributes,
-  TextareaHTMLAttributes,
+import {
+  useId,
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
 } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Link, type LinkProps } from "react-router-dom";
@@ -44,6 +45,36 @@ function FieldLabel({
   );
 }
 
+function joinDescribedBy(
+  ...parts: Array<string | undefined>
+): string | undefined {
+  const value = parts
+    .flatMap((part) => (part ? part.split(/\s+/) : []))
+    .filter(Boolean);
+  return value.length ? value.join(" ") : undefined;
+}
+
+/**
+ * Stable id for the control, plus hint/error ids. A caller `aria-describedby`
+ * is merged in so an external error (org apply) does not drop the hint.
+ */
+function useDescribedField(
+  id: string | undefined,
+  hint: ReactNode | undefined,
+  error: string | undefined,
+  ariaDescribedBy: string | undefined,
+) {
+  const autoId = useId();
+  const fieldId = id ?? autoId;
+  const hintId = hint ? `${fieldId}-hint` : undefined;
+  const errorId = error ? `${fieldId}-error` : undefined;
+  const describedBy = joinDescribedBy(
+    error ? errorId : hintId,
+    ariaDescribedBy,
+  );
+  return { fieldId, hintId, errorId, describedBy };
+}
+
 export function TextField({
   id,
   label,
@@ -51,6 +82,7 @@ export function TextField({
   error,
   size = "default",
   className,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
   label?: ReactNode;
@@ -59,26 +91,27 @@ export function TextField({
   error?: string;
   size?: ControlSize;
 }) {
-  const hintId = hint && id ? `${id}-hint` : undefined;
-  const errorId = error && id ? `${id}-error` : undefined;
-  const describedBy = [errorId, hint && !error ? hintId : undefined]
-    .filter(Boolean)
-    .join(" ") || undefined;
+  const { fieldId, hintId, errorId, describedBy } = useDescribedField(
+    id,
+    hint,
+    error,
+    ariaDescribedBy,
+  );
   return (
     <div>
       {label && (
-        <FieldLabel htmlFor={id} size={size}>
+        <FieldLabel htmlFor={fieldId} size={size}>
           {label}
         </FieldLabel>
       )}
       <input
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
         className={cn(fieldClass[size], error && fieldErrorClass, className)}
         {...props}
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
       />
-      {error ? <FieldError id={errorId ?? `${id ?? "field"}-error`} message={error} /> : null}
+      {error ? <FieldError id={errorId ?? `${fieldId}-error`} message={error} /> : null}
       {hint && !error ? (
         <p id={hintId} className={fieldHintClass}>
           {hint}
@@ -97,6 +130,7 @@ export function TextArea({
   resizable = false,
   className,
   wrapperClassName,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "size"> & {
   label?: ReactNode;
@@ -110,21 +144,20 @@ export function TextArea({
    */
   resizable?: boolean;
 }) {
+  const { fieldId, hintId, errorId, describedBy } = useDescribedField(
+    id,
+    hint,
+    error,
+    ariaDescribedBy,
+  );
   return (
     <div className={wrapperClassName}>
       {label && (
-        <FieldLabel htmlFor={id} size={size}>
+        <FieldLabel htmlFor={fieldId} size={size}>
           {label}
         </FieldLabel>
       )}
       <textarea
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={
-          [error && id ? `${id}-error` : undefined, hint && !error && id ? `${id}-hint` : undefined]
-            .filter(Boolean)
-            .join(" ") || undefined
-        }
         className={cn(
           textAreaClass[size],
           resizable ? "resize-y" : "resize-none",
@@ -132,10 +165,13 @@ export function TextArea({
           className,
         )}
         {...props}
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
       />
-      {error ? <FieldError id={id ? `${id}-error` : "textarea-error"} message={error} /> : null}
+      {error ? <FieldError id={errorId ?? `${fieldId}-error`} message={error} /> : null}
       {hint && !error ? (
-        <p id={id ? `${id}-hint` : undefined} className={fieldHintClass}>
+        <p id={hintId} className={fieldHintClass}>
           {hint}
         </p>
       ) : null}
@@ -182,6 +218,7 @@ export function Select({
   size = "default",
   className,
   children,
+  "aria-describedby": ariaDescribedBy,
   ...props
 }: Omit<SelectHTMLAttributes<HTMLSelectElement>, "size"> & {
   label?: ReactNode;
@@ -189,22 +226,21 @@ export function Select({
   error?: string;
   size?: ControlSize;
 }) {
+  const { fieldId, hintId, errorId, describedBy } = useDescribedField(
+    id,
+    hint,
+    error,
+    ariaDescribedBy,
+  );
   return (
     <div>
       {label && (
-        <FieldLabel htmlFor={id} size={size}>
+        <FieldLabel htmlFor={fieldId} size={size}>
           {label}
         </FieldLabel>
       )}
       <div className={selectWrapClass}>
         <select
-          id={id}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={
-            [error && id ? `${id}-error` : undefined, hint && !error && id ? `${id}-hint` : undefined]
-              .filter(Boolean)
-              .join(" ") || undefined
-          }
           className={cn(
             fieldClass[size],
             "cursor-pointer appearance-none pr-10",
@@ -212,6 +248,9 @@ export function Select({
             className,
           )}
           {...props}
+          id={fieldId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
         >
           {children}
         </select>
@@ -228,9 +267,9 @@ export function Select({
           />
         </svg>
       </div>
-      {error ? <FieldError id={id ? `${id}-error` : "select-error"} message={error} /> : null}
+      {error ? <FieldError id={errorId ?? `${fieldId}-error`} message={error} /> : null}
       {hint && !error ? (
-        <p id={id ? `${id}-hint` : undefined} className={fieldHintClass}>
+        <p id={hintId} className={fieldHintClass}>
           {hint}
         </p>
       ) : null}
@@ -298,13 +337,27 @@ export function Button({
   size,
   fullWidth,
   className,
+  loading = false,
+  loadingLabel,
+  disabled,
+  children,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & ButtonVariants) {
+}: ButtonHTMLAttributes<HTMLButtonElement> &
+  ButtonVariants & {
+    /** Disables the control and shows `loadingLabel` while a submit is in flight. */
+    loading?: boolean;
+    loadingLabel?: ReactNode;
+  }) {
+  const busy = Boolean(loading);
   return (
     <button
       className={cn(buttonVariants({ variant, size, fullWidth }), className)}
       {...props}
-    />
+      disabled={disabled || busy}
+      aria-busy={busy || undefined}
+    >
+      {busy && loadingLabel != null ? loadingLabel : children}
+    </button>
   );
 }
 

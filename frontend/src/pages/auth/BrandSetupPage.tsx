@@ -133,7 +133,13 @@ export default function BrandSetupPage() {
 
         {error && <ErrorBanner>{error}</ErrorBanner>}
 
-        <Button type="submit" size="field" disabled={setPassword.isPending} fullWidth>
+        <Button
+          type="submit"
+          size="field"
+          loading={setPassword.isPending}
+          loadingLabel="Saving…"
+          fullWidth
+        >
           Activate account
         </Button>
       </form>
