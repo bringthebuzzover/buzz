@@ -954,7 +954,6 @@ async def cancel_drop(db: AsyncSession, drop_id: UUID, *, confirm: str) -> dict[
     return {"drop_id": drop.id, "stage": await drop_stage(db, drop)}
 
 
-_WINDOW_FIELDS = frozenset({"apply_open_at", "apply_close_at"})
 _CREATIVE_FIELDS = frozenset({"title", "description", "image", "location"})
 
 
@@ -1253,11 +1252,11 @@ async def update_drop_config(
     if not updates:
         return
 
-    # Reopening = moving the close date later; only a wrapped drop is past that.
-    if _WINDOW_FIELDS & updates.keys() and drop.wrapped_at is not None:
+    # After wrap-up only the copy can change (the matrix); unwrap to change more.
+    if drop.wrapped_at is not None and updates.keys() - _CREATIVE_FIELDS:
         raise BuzzAPIException(
             errors.DROP_WRAPPED,
-            "The apply window of a wrapped-up drop cannot change. Unwrap it first.",
+            "Only the copy of a wrapped-up drop can change. Unwrap it first.",
             status_code=409,
         )
 
