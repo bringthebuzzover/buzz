@@ -11,7 +11,7 @@
  * and every `kind: redirect` alias in `AppRoot`.
  *
  * Not covered because they need credentials the seed does not mint, tracked in
- * `frontend/docs/ui-defect-map.md` as coverage holes: `/brand/setup` (redirects
+ * the ui-defect map (buzz-ops design/archive) as coverage holes: `/brand/setup` (redirects
  * to `/` without a valid `?token`) and `/onboarding/connect-instagram`'s connect
  * CTA (needs a `pending_instagram` session; only the bad-token state is shot).
  */
