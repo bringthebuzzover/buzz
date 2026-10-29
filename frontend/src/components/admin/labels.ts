@@ -32,6 +32,12 @@ export const QUEUE_META: Record<string, QueueMeta> = {
     to: "/admin/ig-changes?status=pending",
     owner: "us",
   },
+  brands_ig_change_pending: {
+    label: "Brand handle requests",
+    note: "Brand asked to change the caption @ used for autolink",
+    to: "/admin/ig-changes?status=pending&type=brand",
+    owner: "us",
+  },
   orgs_ig_bind_mismatch: {
     label: "Instagram bind mismatch",
     note: "Connected a different @ than the one claimed at apply",
