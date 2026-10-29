@@ -48,9 +48,8 @@ import {
 import { ApiError } from "../../api/errors";
 import { instagramProfileUrl } from "../../utils/instagramProfileUrl";
 import ComposeEmailModal from "../../components/admin/ComposeEmailModal";
-import { Button, SuccessBanner, TextField } from "../../components/forms/controls";
-import { Modal } from "../../components/ui/Modal";
-import { STACK } from "../../theme/tokens";
+import { SuccessBanner } from "../../components/forms/controls";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 
 const DROP_HEADERS = ["Drop", "Stage", "Applied", "Accepted", "Closes"] as const;
 
@@ -70,7 +69,6 @@ export default function AdminBrandDetailPage() {
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeNotice, setComposeNotice] = useState<string | null>(null);
   const [eraseOpen, setEraseOpen] = useState(false);
-  const [eraseTyped, setEraseTyped] = useState("");
   const [eraseError, setEraseError] = useState<string | null>(null);
   const [eraseNotice, setEraseNotice] = useState<string | null>(null);
   const [igDecisionError, setIgDecisionError] = useState<string | null>(null);
@@ -89,8 +87,6 @@ export default function AdminBrandDetailPage() {
     (data.invite.expiresAt === null || data.invite.expiresAt <= Date.now());
   const erased = data?.status === "erased";
   const canErase = Boolean(data?.companyEmail) && !erased;
-  const confirmEmailMatches =
-    eraseTyped.trim().toLowerCase() === (data?.companyEmail ?? "").trim().toLowerCase();
   const canResendInvite = data?.status === "approved" && !data.passwordSet;
   const igHandle = data?.instagramHandle?.replace(/^@/, "") ?? "";
   const igProfileUrl = instagramProfileUrl(igHandle);
@@ -230,7 +226,6 @@ export default function AdminBrandDetailPage() {
                     disabled={busy || erase.isPending}
                     onClick={() => {
                       setEraseError(null);
-                      setEraseTyped("");
                       setEraseOpen(true);
                     }}
                   >
@@ -242,74 +237,51 @@ export default function AdminBrandDetailPage() {
           />
 
           {eraseOpen && canErase && (
-            <Modal
-              onClose={() => {
-                setEraseOpen(false);
-                setEraseTyped("");
-                setEraseError(null);
-              }}
+            <ConfirmDialog
               title="Erase this brand"
               description="Removes login identity and contact details. Campaign history for organizations stays. Type the company email to confirm."
-            >
-              <div className={STACK.tight}>
-                {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
-                <TextField
-                  id="erase-brand-confirm"
-                  data-testid="erase-brand-confirm"
-                  label="Company email"
-                  size="compact"
-                  value={eraseTyped}
-                  autoComplete="off"
-                  onChange={(e) => setEraseTyped(e.target.value)}
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="compact"
-                    data-testid="erase-brand-cancel"
-                    onClick={() => {
-                      setEraseOpen(false);
-                      setEraseTyped("");
-                      setEraseError(null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <ActionButton
-                    variant="danger"
-                    testId="erase-brand-submit"
-                    disabled={!confirmEmailMatches || erase.isPending}
-                    onClick={() => {
-                      void (async () => {
-                        setEraseError(null);
-                        try {
-                          const result = await erase.mutateAsync({
-                            brandId: data.id,
-                            confirm: eraseTyped,
-                          });
-                          setEraseOpen(false);
-                          setEraseTyped("");
-                          setEraseNotice(
-                            result.emailSent
-                              ? `Account erased. Confirmation email sent (…@${result.emailToDomain}).`
-                              : "Account erased. No confirmation email was sent — notify the requester manually if needed.",
-                          );
-                        } catch (err) {
-                          setEraseError(
-                            err instanceof ApiError
-                              ? err.message
-                              : "Erase failed. Reload and try again.",
-                          );
-                        }
-                      })();
-                    }}
-                  >
-                    {erase.isPending ? "Erasing…" : "Erase account"}
-                  </ActionButton>
-                </div>
-              </div>
-            </Modal>
+              expected={data.companyEmail ?? ""}
+              inputLabel="Company email"
+              matches={(typed) =>
+                typed.trim().toLowerCase() ===
+                (data.companyEmail ?? "").trim().toLowerCase()
+              }
+              error={eraseError}
+              destructive
+              confirmLabel="Erase account"
+              pendingLabel="Erasing…"
+              pending={erase.isPending}
+              inputTestId="erase-brand-confirm"
+              cancelTestId="erase-brand-cancel"
+              submitTestId="erase-brand-submit"
+              onClose={() => {
+                setEraseOpen(false);
+                setEraseError(null);
+              }}
+              onConfirm={(typed) => {
+                void (async () => {
+                  setEraseError(null);
+                  try {
+                    const result = await erase.mutateAsync({
+                      brandId: data.id,
+                      confirm: typed,
+                    });
+                    setEraseOpen(false);
+                    setEraseNotice(
+                      result.emailSent
+                        ? `Account erased. Confirmation email sent (…@${result.emailToDomain}).`
+                        : "Account erased. No confirmation email was sent — notify the requester manually if needed.",
+                    );
+                  } catch (err) {
+                    setEraseError(
+                      err instanceof ApiError
+                        ? err.message
+                        : "Erase failed. Reload and try again.",
+                    );
+                  }
+                })();
+              }}
+            />
           )}
 
           {composeOpen && data.companyEmail && (

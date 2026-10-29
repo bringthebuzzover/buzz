@@ -33,9 +33,9 @@ const PENDING = {
   createdAt: 1,
 };
 
-function setInput(el: HTMLInputElement, value: string) {
+function setInput(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
   const setter = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
+    Object.getPrototypeOf(el),
     "value",
   )?.set;
   setter?.call(el, value);

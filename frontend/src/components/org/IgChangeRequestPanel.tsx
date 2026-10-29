@@ -5,12 +5,12 @@ import {
   useSubmitIgChangeRequest,
 } from "../../api/hooks/useOrgHooks";
 import { ApiError } from "../../api/errors";
-import { Button, ErrorBanner, Notice, TextField } from "../forms/controls";
+import { Button, ErrorBanner, Notice, TextArea, TextField } from "../forms/controls";
 import { Card } from "../ui/Card";
-import { Modal } from "../ui/Modal";
+import { Modal, ModalActions } from "../ui/Modal";
 import { fieldLabelClass } from "../../theme/controls";
 import { quietLinkClass } from "../ui/navItem";
-import { STACK, TEXT } from "../../theme/tokens";
+import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 function atHandle(raw: string): string {
@@ -104,45 +104,40 @@ export default function IgChangeRequestPanel({
           title={confirming ? "Confirm Instagram change" : "Request an Instagram change"}
           description={
             confirming
-              ? "If Buzz approves this as an account switch, the Connect Instagram email goes to the school email on file. A rename does not send that email. Cancel and change school email first if a new officer should receive it."
-              : "Buzz reviews whether this is a rename or a different account. A switch closes the portal until you Connect again."
+              ? "If BUZZ approves this as an account switch, the Connect Instagram email goes to the school email on file. A rename does not send that email. Cancel and change school email first if a new officer should receive it."
+              : "BUZZ reviews whether this is a rename or a different account. A switch closes the portal until you Connect again."
           }
-          size="wide"
         >
           {confirming ? (
-            <div className={STACK.default}>
-              <p className={fieldLabelClass}>Connect email inbox</p>
-              <p
-                className="text-sm font-medium text-primary"
-                data-testid="ig-change-connect-email"
-              >
-                {connectEmail}
-              </p>
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="compact"
-                  data-testid="ig-change-confirm-cancel"
-                  onClick={() => setConfirming(false)}
-                  disabled={submit.isPending}
+            <>
+              <div className="flex flex-col gap-1">
+                <p className={fieldLabelClass}>Connect email inbox</p>
+                <p
+                  className="text-sm text-primary"
+                  data-testid="ig-change-connect-email"
                 >
-                  Cancel
-                </Button>
+                  {connectEmail}
+                </p>
+              </div>
+              <ModalActions
+                onCancel={() => setConfirming(false)}
+                cancelDisabled={submit.isPending}
+                cancelTestId="ig-change-confirm-cancel"
+              >
                 <Button
                   type="button"
-                  size="compact"
                   data-testid="ig-change-confirm"
                   onClick={sendRequest}
-                  disabled={submit.isPending}
+                  loading={submit.isPending}
+                  loadingLabel="Sending…"
                 >
-                  {submit.isPending ? "Sending…" : "Confirm"}
+                  Confirm
                 </Button>
-              </div>
-            </div>
+              </ModalActions>
+            </>
           ) : (
             <form
-              className={STACK.default}
+              className="flex flex-col gap-6"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (submit.isPending || !requested.trim() || !reason.trim()) {
@@ -152,30 +147,33 @@ export default function IgChangeRequestPanel({
                 setConfirming(true);
               }}
             >
-              {error ? <ErrorBanner>{error}</ErrorBanner> : null}
-              <TextField
-                id="ig-change-requested"
-                label="Requested handle"
-                size="compact"
-                data-testid="ig-change-requested"
-                value={requested}
-                onChange={(e) => setRequested(e.target.value)}
-              />
-              <TextField
-                id="ig-change-reason"
-                label="Why"
-                size="compact"
-                data-testid="ig-change-reason"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              />
-              <Button
-                type="submit"
-                data-testid="ig-change-submit"
-                disabled={submit.isPending || !requested.trim() || !reason.trim()}
-              >
-                Submit request
-              </Button>
+              <div className="flex flex-col gap-4">
+                {error ? <ErrorBanner>{error}</ErrorBanner> : null}
+                <TextField
+                  id="ig-change-requested"
+                  label="Requested handle"
+                  data-testid="ig-change-requested"
+                  value={requested}
+                  onChange={(e) => setRequested(e.target.value)}
+                />
+                <TextArea
+                  id="ig-change-reason"
+                  label="Why"
+                  rows={4}
+                  data-testid="ig-change-reason"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </div>
+              <ModalActions onCancel={close}>
+                <Button
+                  type="submit"
+                  data-testid="ig-change-submit"
+                  disabled={submit.isPending || !requested.trim() || !reason.trim()}
+                >
+                  Submit request
+                </Button>
+              </ModalActions>
             </form>
           )}
         </Modal>

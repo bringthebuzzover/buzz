@@ -198,4 +198,6 @@ test("the modal traps focus, closes on Escape, and locks the page", async ({ pag
 
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
+  // Focus goes back to the control that opened it.
+  await expect(page.getByRole("button", { name: "Open modal" })).toBeFocused();
 });

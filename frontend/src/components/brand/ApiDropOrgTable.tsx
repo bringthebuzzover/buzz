@@ -124,7 +124,7 @@ export default function ApiDropOrgTable({
               <div className="min-w-0">
                 <dt className="text-xs text-quiet">Ship to</dt>
                 <dd className={cn(TEXT.body, "mt-1 text-primary")}>
-                  {a.deliveryAddress || "Address pending"}
+                  {a.deliveryAddress || <AddressPending />}
                 </dd>
               </div>
             )}
@@ -175,5 +175,17 @@ export default function ApiDropOrgTable({
         </section>
       ))}
     </Card>
+  );
+}
+
+/**
+ * Missing ship-to address. Same copy, in the warn/pending tone (`text-accent`,
+ * yellow on ink is AA) so the brand sees what still blocks shipping.
+ */
+export function AddressPending() {
+  return (
+    <span data-testid="address-pending" className="font-medium text-accent">
+      Address pending
+    </span>
   );
 }
