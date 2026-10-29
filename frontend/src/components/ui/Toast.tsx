@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { focusRingClass } from "../../theme/controls";
 import { TONE, type Tone } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
@@ -31,7 +32,7 @@ export function Toast({
         <button
           type="button"
           onClick={onDismiss}
-          className="text-current"
+          className={cn("rounded-full px-1 text-current", focusRingClass)}
           aria-label="Dismiss"
         >
           ×

@@ -29,7 +29,7 @@ export function PageHeader({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           {kicker ? (
-            <p className="mb-2 text-xs font-medium tracking-wide text-buzz-yellow">
+            <p className="mb-2 text-xs font-medium tracking-[0.04em] text-accent">
               {kicker}
             </p>
           ) : null}

@@ -49,7 +49,6 @@ import ComposeEmailModal from "../../components/admin/ComposeEmailModal";
 import { Button, SuccessBanner, TextField } from "../../components/forms/controls";
 import { Modal } from "../../components/ui/Modal";
 import { STACK } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
 
 const DROP_HEADERS = ["Drop", "Stage", "Applied", "Accepted", "Closes"] as const;
 
@@ -255,7 +254,7 @@ export default function AdminBrandDetailPage() {
               title="Erase this brand"
               description="Removes login identity and contact details. Campaign history for organizations stays. Type the company email to confirm."
             >
-              <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
+              <div className={STACK.tight}>
                 {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
                 <TextField
                   id="erase-brand-confirm"

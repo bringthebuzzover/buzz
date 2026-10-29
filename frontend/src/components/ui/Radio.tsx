@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
+import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
 /**
@@ -15,14 +16,15 @@ export function Radio({
       <input
         type="radio"
         className={cn(
-          "peer h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-full border border-buzz-inkMuted bg-buzz-paper outline-none transition checked:border-buzz-yellow checked:bg-buzz-yellow focus-visible:ring-2 focus-visible:ring-buzz-yellow/40 disabled:cursor-not-allowed disabled:opacity-60",
+          "peer h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-full border border-quiet bg-transparent outline-none transition checked:border-accent checked:bg-accent disabled:cursor-not-allowed disabled:opacity-60",
+          focusRingClass,
           className,
         )}
         {...props}
       />
       <span
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-buzz-onAccent opacity-0 peer-checked:opacity-100"
+        className="pointer-events-none absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-on-accent opacity-0 peer-checked:opacity-100"
       />
     </span>
   );

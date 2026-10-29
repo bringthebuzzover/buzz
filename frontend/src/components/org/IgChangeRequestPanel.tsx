@@ -10,7 +10,6 @@ import { Card } from "../ui/Card";
 import { Modal } from "../ui/Modal";
 import { fieldLabelClass } from "../../theme/controls";
 import { STACK } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
 
 function atHandle(raw: string): string {
   const handle = raw.replace(/^@/, "").trim();
@@ -115,7 +114,7 @@ export default function IgChangeRequestPanel({
           size="wide"
         >
           {confirming ? (
-            <div className={cn("px-6 pb-6 pt-4", STACK.default)}>
+            <div className={STACK.default}>
               <p className={fieldLabelClass}>Connect email inbox</p>
               <p
                 className="text-sm font-semibold text-buzz-ink"
@@ -147,7 +146,7 @@ export default function IgChangeRequestPanel({
             </div>
           ) : (
             <form
-              className={cn("px-6 pb-6 pt-4", STACK.default)}
+              className={STACK.default}
               onSubmit={(e) => {
                 e.preventDefault();
                 if (submit.isPending || !requested.trim() || !reason.trim()) {

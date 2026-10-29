@@ -12,22 +12,25 @@ export function EmptyState({
   title,
   children,
   action,
+  float = false,
   className,
 }: {
   title: ReactNode;
   children?: ReactNode;
   action?: ReactNode;
+  /** Bee float is opt-in. Admin empty states leave it off. */
+  float?: boolean;
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-3 rounded-buzzCard border border-buzz-line bg-buzz-paper04 px-6 py-12 text-center",
+        "flex flex-col items-center gap-3 rounded-buzzBoard border border-line bg-surface-tile px-6 py-12 text-center",
         className,
       )}
       role="status"
     >
-      <BeeMark className={cn("h-12 w-12", MOTION.float)} />
+      <BeeMark className={cn("h-12 w-12", float && MOTION.float)} />
       <p className={TEXT.h3}>{title}</p>
       {children ? (
         <p className={cn(TEXT.body, "max-w-sm text-buzz-inkMuted")}>{children}</p>

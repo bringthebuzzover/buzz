@@ -33,9 +33,9 @@ export function ConfirmDialog({
   const matches = expected ? typed.trim() === expected.trim() : true;
 
   return (
-    <Modal onClose={onClose} title={title} description={description}>
+    <Modal onClose={onClose} title={title} description={description} size="narrow">
       <form
-        className="flex flex-col gap-4 px-6 pb-6 pt-4"
+        className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault();
           if (!matches || pending) return;
@@ -53,7 +53,7 @@ export function ConfirmDialog({
             placeholder={expected}
           />
         ) : null}
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={onClose}>
             {cancelLabel}
           </Button>

@@ -24,7 +24,7 @@ export default function ContactModal({ onClose }: ContactModalProps) {
       title="Contact Us"
       description="Reach out anytime."
     >
-      <div className="px-6 pb-6 pt-2 text-center">
+      <div className="text-center">
         <Logo className="mx-auto mb-6 h-10" />
       </div>
 
@@ -45,7 +45,7 @@ export default function ContactModal({ onClose }: ContactModalProps) {
           href={mailHref}
           className={cn(
             SURFACE.inset,
-            "group flex items-center gap-4 p-3 transition hover:border-buzz-neutralHover",
+            "group flex items-center gap-4 p-3 transition hover:border-quiet",
           )}
         >
           <div className="rounded-full border border-buzz-lineMid bg-buzz-butter p-2.5 text-buzz-coral transition group-hover:scale-105">
@@ -65,7 +65,7 @@ export default function ContactModal({ onClose }: ContactModalProps) {
           rel="noreferrer"
           className={cn(
             SURFACE.inset,
-            "group flex items-center gap-4 p-3 transition hover:border-buzz-neutralHover",
+            "group flex items-center gap-4 p-3 transition hover:border-quiet",
           )}
         >
           <div className="rounded-full border border-buzz-lineMid bg-buzz-butter p-2.5 transition group-hover:scale-105">

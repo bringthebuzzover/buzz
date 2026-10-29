@@ -60,9 +60,9 @@ export default function AggregateTotalsCards({
       )}
     >
       {tiles.map(({ icon: Icon, label, value }) => (
-        <Card key={label} kind="card" pad="default" className="text-center">
-          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-buzz-cream">
-            <Icon size={20} className="text-buzz-coral" />
+        <Card key={label} kind="tile" pad="default" className="text-center">
+          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-surface-pop">
+            <Icon size={20} className="text-accent" />
           </div>
           <div className={TEXT.metric}>{value}</div>
           <div className={cn(TEXT.micro, "mt-1 text-buzz-inkMuted")}>{label}</div>
