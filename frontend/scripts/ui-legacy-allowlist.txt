@@ -1,5 +1,2 @@
 # Files that still use text-buzz-paper, bg-buzz-ink, buzz-coral, or buzz-cream.
 # New files are rejected by check-ui-primitives.sh. Remove a line when the file migrates.
-components/site/modals/ContactModal.tsx
-pages/onboarding/OrgProfilePage.tsx
-pages/onboarding/PendingApprovalPage.tsx
