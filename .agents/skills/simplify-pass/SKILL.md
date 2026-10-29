@@ -16,12 +16,12 @@ Does not authorize large refactors or PRODUCT changes.
 
 1. **Scope** — Only files needed for the task; no unrelated drive-by edits.
 2. **No new duplication** — No second copy of a helper/concern you touched. Prefer one function/module.
-3. **Single SOT** — Do not copy PRODUCT §§ into ARCHITECTURE, rules, README, or comments. Point to PRODUCT/ARCHITECTURE/gaps instead.
+3. **Single SOT** — Do not copy product §§ into architecture notes, rules, README, or comments. Point to buzz-ops `product/PRODUCT.md`, `engineering/architecture.md`, and `engineering/gaps/` instead.
 4. **Naming consistency** — One name per concept across BE/FE/docs for symbols introduced or renamed in this diff.
 5. **Dead code** — No unused exports, imports, flags, or branches introduced by this change.
 6. **OpenAPI** — If routes or response schemas changed: `cd backend && poetry run python scripts/dump_openapi.py` then `cd ../frontend && npm run gen:api`; include both artifacts.
-7. **Docs** — Update PRODUCT/ARCHITECTURE/gaps **only** when allowed (PRODUCT/behavior needs user ask). Fix doc drift you caused in agent OS docs if this change was docs-only.
-8. **Out-of-scope debt** — If you see duplication you must not fix now → create `gaps/<id>.md` (use **file-gap** skill). Do not bury in chat.
+7. **Docs** — Update buzz-ops `product/PRODUCT.md`, `engineering/architecture.md`, and `engineering/gaps/` **only** when allowed (product/behavior needs user ask). Fix doc drift you caused in agent OS docs if this change was docs-only.
+8. **Out-of-scope debt** — If you see duplication you must not fix now → file it with buzz-ops `skills/dev/file-gap` (`engineering/gaps/<id>.md`). Do not bury in chat.
 
 ## Out of scope unless user asks
 

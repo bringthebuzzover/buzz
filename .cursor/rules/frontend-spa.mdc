@@ -12,4 +12,4 @@ alwaysApply: false
 - Guards: `RequireAuth` → `RequireStatus` → `RequireRole` in `AppRoot` / routing components.
 - IG expiry → `INSTAGRAM_TOKEN_EXPIRED` / reconnect latch → `/reconnect-instagram` (public).
 - Styling: Tailwind + `src/theme/palette.ts` + `src/theme/shells.ts` / `controls.ts`. Forms: `src/components/forms/` primitives (`TextField`, `Select`, `Checkbox`, `Button`). Layout: `AuthShell` / `PageShell`. No Firebase (legacy unused).
-- Behavior: [`PRODUCT.md`](PRODUCT.md). As-built: [`ARCHITECTURE.md`](ARCHITECTURE.md). Agent map: [`AGENTS.md`](AGENTS.md).
+- Behavior and as-built docs: buzz-ops (see AGENTS.md).

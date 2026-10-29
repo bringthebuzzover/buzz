@@ -16,8 +16,8 @@ For work that is **not** a gap cluster (`fix-gap-cluster`). Agent map: [`AGENTS.
 
 ### 1. Explore
 
-1. Read relevant [`PRODUCT.md`](../../../PRODUCT.md) §§ and [`ARCHITECTURE.md`](../../../ARCHITECTURE.md).
-2. Check related `gaps/*.md` for the surface.
+1. Read the relevant sections in buzz-ops `product/PRODUCT.md` and `engineering/architecture.md`.
+2. Check related buzz-ops `engineering/gaps/*.md` for the surface.
 3. For non-trivial or forked questions, launch **parallel subagents** (backend vs frontend, PRODUCT vs as-built, option A vs B, correctness vs UX). Parent synthesizes.
 4. **Verify subagent findings** before coding: open cited files, confirm claims, resolve disagreements between agents. Treat unverified summaries as incomplete explore.
 5. Brainstorm options; prefer evidence (code, tests, PRODUCT citations). Say when guessing.
