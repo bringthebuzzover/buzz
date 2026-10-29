@@ -18,13 +18,14 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 import jwt
 from pydantic import BaseModel
 
 from app.config import settings
+from app.timeutils import utcnow
 
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
@@ -68,10 +69,6 @@ class TokenPayload(BaseModel):
     next: str | None = None  # allowlisted post-OAuth SPA path (public drop)
 
 
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
 def _encode(claims: dict[str, Any]) -> str:
     return jwt.encode(claims, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
@@ -99,7 +96,7 @@ def create_access_token(
     revoke outstanding access tokens the same way refresh tokens already are.
     """
 
-    issued = _now()
+    issued = utcnow()
     ttl_minutes = (
         settings.IMPERSONATION_TOKEN_TTL_MINUTES
         if impersonated_by is not None
@@ -141,7 +138,7 @@ def create_view_as_intent_token(
     ``imp_ver``. Omit it on the first mint so the cap is 8h from then.
     """
 
-    issued = _now()
+    issued = utcnow()
     exp = (
         expires_at
         if expires_at is not None
@@ -167,7 +164,7 @@ def create_refresh_token(user_id: uuid.UUID | str, token_version: int = 0) -> st
     revoke) invalidates every outstanding refresh token at once (§11.1).
     """
 
-    issued = _now()
+    issued = utcnow()
     claims: dict[str, Any] = {
         "sub": str(user_id),
         "type": REFRESH_TOKEN_TYPE,
@@ -206,7 +203,7 @@ def create_oauth_state_token(
     already be allowlisted (``/d/<uuid>``); other values are dropped.
     """
 
-    issued = _now()
+    issued = utcnow()
     claims: dict[str, Any] = {
         "sub": "oauth",
         "type": OAUTH_STATE_TOKEN_TYPE,

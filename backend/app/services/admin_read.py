@@ -59,6 +59,7 @@ from app.services.shipments import (
     awaiting_products_no_tracking_clause,
     shipments_by_application_ids,
 )
+from app.timeutils import utcnow
 
 # ``metric_sync`` runs every 8h (03:00 / 11:00 / 19:00 UTC); 20h leaves room for
 # one missed run plus clock skew before we call it stale.
@@ -109,10 +110,6 @@ _SILENT_KEYS = (
     "posts_missing_insights",
     "pending_suggestions",
 )
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 async def _scalar_int(db: AsyncSession, stmt: Select[Any]) -> int:
@@ -363,7 +360,7 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
     from three that arrived this morning.
     """
 
-    now = _now()
+    now = utcnow()
     finalizing = BrandTrackerStage.FINALIZING_AGREEMENTS.value
 
     orgs_pending = await _count_and_oldest(
@@ -547,7 +544,7 @@ async def get_health(db: AsyncSession) -> dict[str, Any]:
     """Inferred pipeline freshness, Instagram token buckets, and standing
     integrity / silent-loss counts."""
 
-    now = _now()
+    now = utcnow()
     counts = await _signal_counts(db, now)
 
     last_runs = {
@@ -739,7 +736,7 @@ async def get_org_detail(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
             )
         )
 
-    now = _now()
+    now = utcnow()
     latest_token = (
         await db.scalars(
             select(EmailVerificationToken)
@@ -949,7 +946,7 @@ async def list_drops(
     elif not include_hidden:
         stmt = stmt.where(Drop.hidden_at.is_(None))
     if attentions:
-        now = _now()
+        now = utcnow()
         stmt = stmt.where(or_(*[and_(*_attention_clause(a, now)) for a in attentions]))
 
     packed = [

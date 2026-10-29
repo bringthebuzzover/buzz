@@ -39,7 +39,7 @@ import asyncio
 import os
 import sys
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -89,6 +89,7 @@ from app.models.enums import (  # noqa: E402
     SocialMediaType,
     SuggestionMatchReason,
 )
+from app.timeutils import utcnow  # noqa: E402
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", ""}
 STAGING_SEED_CONFIRM = "buzz-staging"
@@ -179,10 +180,6 @@ def _uuid(n: int) -> uuid.UUID:
     return uuid.UUID(int=n)
 
 
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
 async def _truncate(session: AsyncSession) -> None:
     """Wipe every domain table in one transaction.
 
@@ -195,7 +192,7 @@ async def _truncate(session: AsyncSession) -> None:
 
 
 def _build_seed_rows() -> dict[str, list[Base]]:
-    now = _now()
+    now = utcnow()
 
     # --- Users -------------------------------------------------------------
     admin = User(
@@ -601,7 +598,7 @@ async def upsert_staging_demo(session: AsyncSession, *, password: str) -> None:
     login secret supplied by the caller (never a committed default).
     """
 
-    now = _now()
+    now = utcnow()
     org_user, _ = await _upsert_row(session, User, _SAMPLE_ORG_USER)
     club_user, _ = await _upsert_row(session, User, _SAMPLE_CLUB_USER)
     brand_user, _ = await _upsert_row(session, User, _SAMPLE_BRAND_USER)

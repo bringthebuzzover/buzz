@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Any, Literal
 
 from sqlalchemy import func, select, update
@@ -22,14 +22,11 @@ from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password
 from app.security.session import bump_token_version, commit_revocation
 from app.services.email import KIND_PASSWORD_RESET, build_idempotency_key, send_password_reset_email
+from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
 
 Portal = Literal["brand", "admin"]
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 async def _find_user_for_reset(db: AsyncSession, portal: Portal, email: str) -> User | None:
@@ -75,7 +72,7 @@ async def request_password_reset(
     if user is None:
         return {"ok": True}
 
-    now = _now()
+    now = utcnow()
     await db.execute(
         update(PasswordResetToken)
         .where(
@@ -123,7 +120,7 @@ async def reset_password(
     password: str,
 ) -> dict[str, Any]:
     """Consume a reset token, set the new password, and bump token_version."""
-    now = _now()
+    now = utcnow()
     token_hash = hash_token(token)
     row = await db.scalar(
         select(PasswordResetToken)

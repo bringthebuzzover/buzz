@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select, update
@@ -34,18 +34,9 @@ from app.services.instagram import (
     require_instagram_handle,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
+from app.timeutils import as_utc, utcnow
 
 logger = logging.getLogger(__name__)
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value
 
 
 _ROTATE_ELIGIBLE_STATUSES = frozenset(
@@ -107,8 +98,8 @@ async def _release_unverified_edu_claim(
         )
 
     org = await db.scalar(select(Organization).where(Organization.user_id == existing.id))
-    claim_at = _as_utc(org.created_at if org is not None else existing.created_at)
-    age = _now() - claim_at
+    claim_at = as_utc(org.created_at if org is not None else existing.created_at)
+    age = utcnow() - claim_at
     if age < timedelta(hours=settings.EDU_EMAIL_UNVERIFIED_CLAIM_TTL_HOURS):
         raise BuzzAPIException(
             errors.EDU_EMAIL_TAKEN,
@@ -124,13 +115,13 @@ async def _release_unverified_edu_claim(
             EmailVerificationToken.user_id == existing.id,
             EmailVerificationToken.used_at.is_(None),
         )
-        .values(expires_at=_now())
+        .values(expires_at=utcnow())
     )
     await db.flush()
 
 
 async def _count_active_verification_tokens(db: AsyncSession, user_id: uuid.UUID) -> int:
-    now = _now()
+    now = utcnow()
     unused = await db.scalars(
         select(EmailVerificationToken).where(
             EmailVerificationToken.user_id == user_id,
@@ -149,7 +140,7 @@ async def _invalidate_verification_tokens(db: AsyncSession, user_id: uuid.UUID) 
             EmailVerificationToken.user_id == user_id,
             EmailVerificationToken.used_at.is_(None),
         )
-        .values(expires_at=_now())
+        .values(expires_at=utcnow())
     )
 
 
@@ -173,7 +164,7 @@ async def _mint_and_send_verification(
         user_id=user.id,
         token_hash=hash_token(raw),
         email=edu_email,
-        expires_at=_now() + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
+        expires_at=utcnow() + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
     )
     db.add(evt)
     await db.flush()
@@ -196,7 +187,7 @@ async def _seed_follower_count_from_graph(
     ig: InstagramClient,
 ) -> None:
     """Best-effort Graph followers write after org create. Never raises."""
-    now = _now()
+    now = utcnow()
     if not user.instagram_access_token:
         logger.warning(
             "onboarding followers_seed_failed org_id=%s user_id=%s reason=missing_token",
@@ -358,7 +349,7 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     Returns ``session_minted: True`` on the onboarding branch so the route can
     issue a JWT + refresh cookie (apply-first has no prior IG session).
     """
-    now = _now()
+    now = utcnow()
 
     # FOR UPDATE locks the token row so two concurrent redemptions (double-click)
     # serialize: the second waits, then sees used_at already set and is rejected.

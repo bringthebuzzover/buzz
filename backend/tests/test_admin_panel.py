@@ -23,6 +23,7 @@ from app.models.enums import (
     SocialMediaProductType,
 )
 from app.security.one_shot_tokens import hash_token
+from app.timeutils import utcnow
 from tests.conftest import (
     make_application,
     make_brand,
@@ -41,10 +42,6 @@ from tests.conftest import (
 async def _admin_headers(db_session) -> dict:
     admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
     return {"Authorization": f"Bearer {mint_access_token(admin)}"}
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 def _signal(payload: dict, group: str, key: str) -> dict:
@@ -196,7 +193,7 @@ class TestBrandDetail:
     async def test_includes_invite_state_and_drops(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session, brand_name="Invited Brand")
         await make_drop(db_session, brand, title="Brand Drop")
-        expires = _now() + timedelta(days=7)
+        expires = utcnow() + timedelta(days=7)
         db_session.add(
             BrandInviteToken(
                 id=uuid.uuid4(),
@@ -263,8 +260,8 @@ class TestDropList:
             db_session,
             brand,
             title="Overdue",
-            apply_open_at=_now() - timedelta(days=10),
-            apply_close_at=_now() - timedelta(days=1),
+            apply_open_at=utcnow() - timedelta(days=10),
+            apply_close_at=utcnow() - timedelta(days=1),
             stage=BrandTrackerStage.REQUEST_RECEIVED,
         )
         await make_drop(db_session, brand, title="Open")
@@ -331,8 +328,8 @@ class TestDropList:
             db_session,
             brand,
             title="Overdue",
-            apply_open_at=_now() - timedelta(days=10),
-            apply_close_at=_now() - timedelta(days=1),
+            apply_open_at=utcnow() - timedelta(days=10),
+            apply_close_at=utcnow() - timedelta(days=1),
             stage=BrandTrackerStage.REQUEST_RECEIVED,
         )
         await make_drop(db_session, brand, title="No TN", stage=BrandTrackerStage.AWAITING_PRODUCTS)
@@ -438,8 +435,8 @@ class TestOverview:
             db_session,
             brand,
             stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
-            apply_open_at=_now() - timedelta(days=10),
-            apply_close_at=_now() - timedelta(days=2),
+            apply_open_at=utcnow() - timedelta(days=10),
+            apply_close_at=utcnow() - timedelta(days=2),
         )
 
         res = await app_client.get("/api/admin/overview", headers=await _admin_headers(db_session))
@@ -450,7 +447,7 @@ class TestOverview:
     async def test_ready_to_advance_queue(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
-        drop.applicant_selection_finalized_at = _now()
+        drop.applicant_selection_finalized_at = utcnow()
         await db_session.flush()
 
         res = await app_client.get("/api/admin/overview", headers=await _admin_headers(db_session))
@@ -472,7 +469,7 @@ class TestOverview:
     async def test_warns_on_stranded_applicants(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand)
-        drop.applicant_selection_finalized_at = _now()
+        drop.applicant_selection_finalized_at = utcnow()
         user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, user)
         await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
@@ -501,8 +498,8 @@ class TestHealth:
         await make_drop(
             db_session,
             brand,
-            apply_open_at=_now() - timedelta(days=10),
-            apply_close_at=_now() - timedelta(days=1),
+            apply_open_at=utcnow() - timedelta(days=10),
+            apply_close_at=utcnow() - timedelta(days=1),
             stage=BrandTrackerStage.REQUEST_RECEIVED,
         )
 
@@ -516,10 +513,10 @@ class TestHealth:
 
         expired = await persist(db_session, make_user(role=PortalRole.ORG))
         expired.instagram_access_token = encrypt_token("tok")
-        expired.instagram_token_expires_at = _now() - timedelta(days=1)
+        expired.instagram_token_expires_at = utcnow() - timedelta(days=1)
         healthy = await persist(db_session, make_user(role=PortalRole.ORG))
         healthy.instagram_access_token = encrypt_token("tok")
-        healthy.instagram_token_expires_at = _now() + timedelta(days=60)
+        healthy.instagram_token_expires_at = utcnow() + timedelta(days=60)
         await persist(db_session, make_user(role=PortalRole.ORG))  # no token at all
         await db_session.flush()
 
@@ -614,8 +611,8 @@ class TestHealth:
         failed = JobRun(
             id=uuid.uuid4(),
             job="drop_autoclose",
-            started_at=_now() - timedelta(minutes=30),
-            finished_at=_now() - timedelta(minutes=25),
+            started_at=utcnow() - timedelta(minutes=30),
+            finished_at=utcnow() - timedelta(minutes=25),
             ok=False,
             summary={"error": "boom"},
         )
@@ -629,8 +626,8 @@ class TestHealth:
         ok_run = JobRun(
             id=uuid.uuid4(),
             job="drop_autoclose",
-            started_at=_now() - timedelta(minutes=10),
-            finished_at=_now() - timedelta(minutes=5),
+            started_at=utcnow() - timedelta(minutes=10),
+            finished_at=utcnow() - timedelta(minutes=5),
             ok=True,
             summary={"closed": 0},
         )
@@ -669,8 +666,8 @@ class TestAdminFinalizeApplicants:
             db_session,
             brand,
             stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
-            apply_open_at=_now() - timedelta(days=30),
-            apply_close_at=_now() - timedelta(days=1),
+            apply_open_at=utcnow() - timedelta(days=30),
+            apply_close_at=utcnow() - timedelta(days=1),
             capacity_total=3,
         )
         user = await persist(db_session, make_user(role=PortalRole.ORG))
@@ -697,8 +694,8 @@ class TestAdminFinalizeApplicants:
             db_session,
             brand,
             stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
-            apply_open_at=_now() - timedelta(days=1),
-            apply_close_at=_now() + timedelta(days=1),
+            apply_open_at=utcnow() - timedelta(days=1),
+            apply_close_at=utcnow() + timedelta(days=1),
         )
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/finalize-applicants",

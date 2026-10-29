@@ -8,7 +8,6 @@ Later autolink scans use the new ``@``.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -24,16 +23,13 @@ from app.models.enums import BrandStatus, OrgUserStatus
 from app.models.user import User
 from app.services.instagram import canonical_instagram_handle
 from app.services.org_apply import normalize_claimed_handle
+from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
 
 _STATUSES = frozenset({"pending", "approved", "denied"})
 _REASON_MIN = 10
 _REASON_MAX = 4000
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 def _serialize(row: BrandIgChangeRequest) -> dict[str, Any]:
@@ -232,7 +228,7 @@ async def _load_pending(
 async def approve_request(db: AsyncSession, request_id: UUID) -> dict[str, Any]:
     req, brand, _user = await _load_pending(db, request_id)
     req.status = "approved"
-    req.decided_at = _now()
+    req.decided_at = utcnow()
     brand.instagram_handle = req.requested_handle
     await db.flush()
     logger.info(
@@ -250,7 +246,7 @@ async def approve_request(db: AsyncSession, request_id: UUID) -> dict[str, Any]:
 async def deny_request(db: AsyncSession, request_id: UUID) -> dict[str, Any]:
     req, brand, _user = await _load_pending(db, request_id)
     req.status = "denied"
-    req.decided_at = _now()
+    req.decided_at = utcnow()
     await db.flush()
     logger.info(
         "brand_ig_change_request_denied request_id=%s brand_id=%s",

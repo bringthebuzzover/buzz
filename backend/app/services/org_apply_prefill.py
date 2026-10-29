@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -26,14 +26,11 @@ from app.services.email import (
     send_org_apply_prefill_update_email,
 )
 from app.services.org_apply_prefill_parse import PREFILL_TTL_DAYS, ParsedPrefill
+from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
 
 _PREFILL_NOT_FOUND = "This apply link is invalid or expired."
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 async def get_live_prefill(db: AsyncSession, raw_token: str) -> OrgApplyPrefill:
@@ -43,7 +40,7 @@ async def get_live_prefill(db: AsyncSession, raw_token: str) -> OrgApplyPrefill:
     row = await db.scalar(
         select(OrgApplyPrefill).where(OrgApplyPrefill.token_hash == hash_token(token))
     )
-    if row is None or row.used_at is not None or row.expires_at <= _now():
+    if row is None or row.used_at is not None or row.expires_at <= utcnow():
         raise BuzzAPIException(errors.NOT_FOUND, _PREFILL_NOT_FOUND, status_code=404)
     return row
 
@@ -93,7 +90,7 @@ async def insert_prefill(
         extras=parsed.extras or None,
         source=source,
         source_row_key=parsed.source_row_key,
-        expires_at=_now() + timedelta(days=PREFILL_TTL_DAYS),
+        expires_at=utcnow() + timedelta(days=PREFILL_TTL_DAYS),
     )
     db.add(row)
     await db.flush()
@@ -158,7 +155,7 @@ async def deliver_saved_prefill_email(
     )
     if not ok:
         return "send_failed"
-    row.email_sent_at = _now()
+    row.email_sent_at = utcnow()
     return "sent"
 
 
@@ -189,7 +186,7 @@ async def deliver_saved_prefill_update_email(
     )
     if not ok:
         return "send_failed"
-    row.email_sent_at = _now()
+    row.email_sent_at = utcnow()
     return "sent"
 
 
@@ -204,8 +201,8 @@ async def mark_prefill_used(
     row = await db.scalar(
         select(OrgApplyPrefill).where(OrgApplyPrefill.token_hash == hash_token(token))
     )
-    if row is None or row.used_at is not None or row.expires_at <= _now():
+    if row is None or row.used_at is not None or row.expires_at <= utcnow():
         return
-    row.used_at = _now()
+    row.used_at = utcnow()
     row.used_by_user_id = user_id
     logger.info("org apply prefill used id=%s user_id=%s", row.id, user_id)
