@@ -62,7 +62,7 @@ test("admin lands on the overview with a card per queue", async ({ page }) => {
     page.getByText("No Instagram identity items."),
   ).toBeVisible();
   await expect(page.getByTestId("queue-brands_pending_review")).toBeVisible();
-  await expect(page.getByTestId("queue-drops_ready_to_advance")).toBeVisible();
+  await expect(page.getByTestId("queue-drops_awaiting_decisions")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: /warnings/i }),
   ).toBeVisible();
