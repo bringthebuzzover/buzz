@@ -179,8 +179,9 @@ function DecisionPill({ decision }: { decision: string }) {
 function DropConfigEditors({ data }: { data: AdminDropDetail }) {
   const patch = usePatchAdminDropConfig(data.id);
   const publish = usePublishDrop(data.id);
-  // Capacity and units stay editable; only a wrapped drop locks the window.
-  const windowLocked = data.stage === "wrapped";
+  // After wrap-up only the copy (title, story, image, location) can change.
+  const copyOnly = data.stage === "wrapped";
+  const logisticsLocked = copyOnly || patch.isPending;
   const unpublished = data.publishedAt == null;
   const [title, setTitle] = useState(data.title);
   const [description, setDescription] = useState(data.description);
@@ -222,7 +223,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
       return;
     }
     if (cap !== data.capacityTotal) body.capacityTotal = cap;
-    if (!windowLocked) {
+    if (!copyOnly) {
       const openMs = new Date(openAt).getTime();
       const closeMs = new Date(closeAt).getTime();
       if (!Number.isFinite(openMs) || !Number.isFinite(closeMs)) {
@@ -331,8 +332,8 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
       <ConfigSection
         title="Logistics"
         description={
-          windowLocked
-            ? "The apply window is locked on a wrapped drop. Unwrap it first to change the dates."
+          copyOnly
+            ? "Wrapped up: only the copy and location can change. Unwrap the drop to change seats, units, dates or the hashtag."
             : "Where it runs, how many seats, and the apply window. To reopen applications, move the close date later."
         }
       >
@@ -354,7 +355,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
             type="number"
             min={1}
             value={capacity}
-            disabled={patch.isPending}
+            disabled={logisticsLocked}
             onChange={(e) => setCapacity(e.target.value)}
           />
           <div>
@@ -365,14 +366,14 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
               type="number"
               min={1}
               value={units}
-              disabled={clearUnits || patch.isPending}
+              disabled={clearUnits || logisticsLocked}
               placeholder="Leave empty, then clear for spot-only"
               onChange={(e) => setUnits(e.target.value)}
             />
             <Checkbox
               wrapperClassName="mt-1"
               checked={clearUnits}
-              disabled={patch.isPending}
+              disabled={logisticsLocked}
               onChange={(e) => setClearUnits(e.target.checked)}
               label={
                 <span className="text-xs text-muted">
@@ -386,7 +387,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
             label="Apply opens"
             size="compact"
             value={openAt}
-            disabled={windowLocked || patch.isPending}
+            disabled={logisticsLocked}
             onChange={(e) => setOpenAt(e.target.value)}
           />
           <DateTimeField
@@ -394,7 +395,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
             label="Apply closes"
             size="compact"
             value={closeAt}
-            disabled={windowLocked || patch.isPending}
+            disabled={logisticsLocked}
             onChange={(e) => setCloseAt(e.target.value)}
           />
         </div>
@@ -409,14 +410,14 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
           label="Campaign hashtag"
           size="compact"
           value={hashtag}
-          disabled={clearHashtag || patch.isPending}
+          disabled={clearHashtag || logisticsLocked}
           placeholder="e.g. springdrop (no # required)"
           onChange={(e) => setHashtag(e.target.value)}
         />
         <Checkbox
           wrapperClassName="mt-1"
           checked={clearHashtag}
-          disabled={patch.isPending}
+          disabled={logisticsLocked}
           onChange={(e) => setClearHashtag(e.target.checked)}
           label={
             <span className="text-xs text-muted">Clear hashtag</span>
@@ -434,7 +435,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
             id="brand-can-edit-creative"
             data-testid="brand-can-edit-creative"
             checked={brandCanEditCreative}
-            disabled={patch.isPending}
+            disabled={logisticsLocked}
             onChange={setBrandCanEditCreative}
             label="Brand can edit details"
             aria-describedby="brand-can-edit-creative-help"

@@ -389,7 +389,9 @@ function ApiDropDetail() {
 
       <BrandDropTrackerStepper currentStage={stage} />
 
-      {detail.brandCanEditCreative ? <BrandCampaignEditor detail={detail} /> : null}
+      {detail.brandCanEditCreative && stage !== "wrapped" && stage !== "canceled" ? (
+        <BrandCampaignEditor detail={detail} />
+      ) : null}
 
       {canDecide ? (
         <ApiApplicantTable
