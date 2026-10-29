@@ -136,7 +136,7 @@ CRA inlines `REACT_APP_API_URL` at **build** time. Frontend Root Directory is `/
 REACT_APP_API_URL=https://api.bringthebuzzover.com
 ```
 
-`frontend` `build:prod` runs `scripts/check-deploy-env.js`, then `craco build`. Plain `npm run build` inside `frontend/` stays for CI (no API URL required).
+`frontend` `build:prod` runs `scripts/check-deploy-env.js`, then `craco build`, then `scripts/write-serve-json.js` (CSP `connect-src` from `REACT_APP_API_URL`). Plain `npm run build` inside `frontend/` stays for CI (no API URL required; the rewrite keeps the committed production origin).
 
 ### Cron schedule (UTC)
 
@@ -257,7 +257,7 @@ The backend sets `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Re
 
 ### SPA security headers (`serve.json`)
 
-Production SPA (`npm run start:prod` → `serve -s build`) reads `build/serve.json` (copied from `frontend/public/serve.json` by CRA). It sets CSP (`default-src 'self'`; `connect-src` includes `https://api.bringthebuzzover.com`; `img-src` allows `https:` for IG thumbs), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and `X-Frame-Options: DENY`. Source `frontend/public/index.html` has no inline scripts; production builds set `INLINE_RUNTIME_CHUNK=false` (see `frontend/.env.production`) so CRA does not embed the webpack runtime inline.
+Production SPA (`npm run start:prod`) serves `build/`. With `STAGING_BASIC_AUTH` unset that is `serve -s build`. When the variable is `user:password`, a small Node server requires HTTP Basic auth except on `/healthz`. `build/serve.json` is the CRA copy of `frontend/public/serve.json`, rewritten after the build so CSP `connect-src` uses the `REACT_APP_API_URL` origin (`https://api.bringthebuzzover.com` when the variable is unset). `REACT_APP_ENV=staging` adds `X-Robots-Tag: noindex, nofollow` and a robots meta tag. Other headers stay: `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and `X-Frame-Options: DENY`. `img-src` allows `https:` for IG thumbs. Source `frontend/public/index.html` has no inline scripts; production builds set `INLINE_RUNTIME_CHUNK=false` (see `frontend/.env.production`) so CRA does not embed the webpack runtime inline.
 
 After deploy, smoke:
 

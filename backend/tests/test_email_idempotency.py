@@ -34,7 +34,8 @@ _APP_B = "44444444-4444-4444-8444-444444444444"
 @pytest.fixture
 def _resend_key(monkeypatch):
     monkeypatch.setattr(settings, "RESEND_API_KEY", "re_test_key")
-    monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "")
 
 
 def _stub(monkeypatch, handler) -> None:

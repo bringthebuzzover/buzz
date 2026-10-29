@@ -1,4 +1,4 @@
-"""Idempotent local dev seed for the Buzz backend.
+"""Idempotent dev seed for the Buzz backend.
 
 Replaces the conceptual role of the demo's ``src/data/seed/seed*.ts`` files
 for local API development. Just enough rows to exercise the Stage 4 vertical
@@ -6,15 +6,16 @@ slice; production data comes from real onboarding flows.
 
 Strategy
 --------
-* **Destructive TRUNCATE** of every domain table (predictable starting state).
-  Enum types are kept; only row data is wiped. ``RESTART IDENTITY CASCADE``
-  resets any future sequences and cascades through FKs in one statement.
-* **Localhost guard** — refuses to run if ``DATABASE_URL`` points at anything
-  other than ``localhost`` / ``127.0.0.1`` (or an empty host, i.e. a UNIX
-  socket). Calling this against a remote/Prod DB would wipe it; that should
-  never be a one-line accident.
-* Stable seed UUIDs (``uuid.UUID(int=N)``) — predictable IDs make the next
-  stages easier to write tests/curl scripts against.
+* **Local (default)** — destructive ``TRUNCATE`` of every domain table, then
+  the fixture set below. Refuses to run unless ``DATABASE_URL`` is
+  ``localhost`` / ``127.0.0.1`` (or an empty host, i.e. a UNIX socket) and
+  ``ENVIRONMENT`` is not ``production``.
+* **Staging demo** — non-destructive upsert of obviously fake rows (Sample
+  Org, Sample Club, Sample Brand, Fall Cold Brew Launch). Runs only when
+  ``ENVIRONMENT=staging`` and ``STAGING_SEED_CONFIRM=buzz-staging``. Never
+  truncates. Refuses ``ENVIRONMENT=production`` and any host listed in
+  ``PROD_DATABASE_HOSTS``. Manual one-off (``railway run``), not preDeploy.
+* Stable seed UUIDs (``uuid.UUID(int=N)``).
 
 Usage
 -----
@@ -23,11 +24,17 @@ Usage
 
     cd backend
     poetry run python scripts/seed_dev.py
+
+    # Staging only. STAGING_DEMO_PASSWORD is the Sample Brand login password.
+    ENVIRONMENT=staging STAGING_SEED_CONFIRM=buzz-staging \\
+        STAGING_DEMO_PASSWORD=... PROD_DATABASE_HOSTS=... \\
+        poetry run python scripts/seed_dev.py
 """
 
 from __future__ import annotations
 
 import asyncio
+import os
 import sys
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -82,20 +89,72 @@ from app.models.enums import (  # noqa: E402
 )
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", ""}
+STAGING_SEED_CONFIRM = "buzz-staging"
+
+# Stable ids, clear of the local fixture range (1..100) and test accounts (9001..).
+_SAMPLE_ORG_USER = uuid.UUID(int=8101)
+_SAMPLE_CLUB_USER = uuid.UUID(int=8102)
+_SAMPLE_BRAND_USER = uuid.UUID(int=8103)
+_SAMPLE_ORG = uuid.UUID(int=8110)
+_SAMPLE_CLUB = uuid.UUID(int=8111)
+_SAMPLE_BRAND = uuid.UUID(int=8120)
+_SAMPLE_DROP = uuid.UUID(int=8130)
+_SAMPLE_APP_ORG = uuid.UUID(int=8140)
+_SAMPLE_APP_CLUB = uuid.UUID(int=8141)
 
 
-def _assert_local(database_url: str) -> None:
-    """Refuse to run against any DB that is not unambiguously local."""
-
+def _db_host(database_url: str) -> str:
     parsed = urlparse(database_url.replace("postgresql+asyncpg://", "postgresql://"))
-    host = (parsed.hostname or "").lower()
-    if host not in LOCAL_HOSTS:
+    return (parsed.hostname or "").lower()
+
+
+def prod_db_hosts_from_env(raw: str | None = None) -> set[str]:
+    """Hostnames the staging demo must never touch.
+
+    ``postgres.railway.internal`` is the same name inside every Railway
+    project, so it is not a production identifier. Set ``PROD_DATABASE_HOSTS``
+    to the production database hostname(s) before running the demo seed.
+    """
+
+    if raw is None:
+        raw = os.environ.get("PROD_DATABASE_HOSTS", "")
+    return {part.strip().lower() for part in raw.split(",") if part.strip()}
+
+
+def resolve_seed_mode(
+    database_url: str,
+    *,
+    environment: str,
+    confirm: str,
+    prod_hosts: set[str],
+) -> str:
+    """Return ``local`` (truncate) or ``staging`` (demo upsert).
+
+    ``SystemExit(2)`` on production, a denylisted host, or a remote database
+    without the staging opt-in.
+    """
+
+    host = _db_host(database_url)
+    if environment == "production":
+        print("refusing to seed: ENVIRONMENT=production.", file=sys.stderr)
+        raise SystemExit(2)
+    if host and host in prod_hosts:
         print(
-            f"refusing to seed: DATABASE_URL host '{host}' is not local. "
-            "Seed is destructive (TRUNCATE) — only run against localhost.",
+            f"refusing to seed: DATABASE_URL host '{host}' is listed in PROD_DATABASE_HOSTS.",
             file=sys.stderr,
         )
         raise SystemExit(2)
+    if environment == "staging" and confirm == STAGING_SEED_CONFIRM:
+        return "staging"
+    if host in LOCAL_HOSTS:
+        return "local"
+    print(
+        f"refusing to seed: DATABASE_URL host '{host}' is not local. "
+        "The staging demo requires ENVIRONMENT=staging and "
+        f"STAGING_SEED_CONFIRM={STAGING_SEED_CONFIRM}. Production is never seeded.",
+        file=sys.stderr,
+    )
+    raise SystemExit(2)
 
 
 def _uuid(n: int) -> uuid.UUID:
@@ -505,11 +564,154 @@ def _build_seed_rows() -> dict[str, list[Base]]:
     }
 
 
+async def _upsert_row(
+    session: AsyncSession, model: type[Base], row_id: uuid.UUID
+) -> tuple[Base, bool]:
+    # no_autoflush: a previous new row may still be missing NOT NULL columns.
+    with session.no_autoflush:
+        row = await session.get(model, row_id)
+    if row is not None:
+        return row, False
+    row = model(id=row_id)
+    session.add(row)
+    return row, True
+
+
+async def upsert_staging_demo(session: AsyncSession, *, password: str) -> None:
+    """Insert or update the fake Sample Org / Sample Brand demo. No deletes.
+
+    A second run keeps the same primary keys and refreshes the apply window
+    so Fall Cold Brew Launch stays open. ``password`` is the Sample Brand
+    login secret supplied by the caller (never a committed default).
+    """
+
+    now = _now()
+    org_user, _ = await _upsert_row(session, User, _SAMPLE_ORG_USER)
+    club_user, _ = await _upsert_row(session, User, _SAMPLE_CLUB_USER)
+    brand_user, _ = await _upsert_row(session, User, _SAMPLE_BRAND_USER)
+    org_user.portal_role = PortalRole.ORG.value
+    org_user.status = OrgUserStatus.ACTIVE.value
+    org_user.edu_email = "sample-org@example.edu"
+    org_user.email_verified_at = now
+    org_user.instagram_username = "sampleorg"
+    org_user.instagram_user_id = None
+    org_user.instagram_access_token = None
+    club_user.portal_role = PortalRole.ORG.value
+    club_user.status = OrgUserStatus.ACTIVE.value
+    club_user.edu_email = "sample-club@example.edu"
+    club_user.email_verified_at = now
+    club_user.instagram_username = "sampleclub"
+    club_user.instagram_user_id = None
+    club_user.instagram_access_token = None
+    brand_user.portal_role = PortalRole.BRAND.value
+    brand_user.status = OrgUserStatus.ACTIVE.value
+    brand_user.password_hash = hash_password(password)
+    brand_user.edu_email = None
+    await session.flush()
+
+    org, _ = await _upsert_row(session, Organization, _SAMPLE_ORG)
+    club, _ = await _upsert_row(session, Organization, _SAMPLE_CLUB)
+    org.user_id = org_user.id
+    org.org_name = "Sample Org"
+    org.university = "Sample University"
+    org.follower_count = 1200
+    org.member_count = 40
+    org.category = OrgCategory.OTHER.value
+    org.city = "Sample City"
+    org.state = "CA"
+    org.contact_name = "Sample Contact"
+    org.delivery_address = "1 Sample Street, Sample City, CA 00000"
+    org.shipping_line1 = "1 Sample Street"
+    org.shipping_city = "Sample City"
+    org.shipping_state = "CA"
+    org.shipping_postal_code = "00000"
+    org.approved_at = now
+    org.claimed_instagram_username = "sampleorg"
+    club.user_id = club_user.id
+    club.org_name = "Sample Club"
+    club.university = "Sample University"
+    club.follower_count = 800
+    club.member_count = 25
+    club.category = OrgCategory.OTHER.value
+    club.city = "Sample City"
+    club.state = "CA"
+    club.contact_name = "Sample Contact"
+    club.approved_at = now
+    club.claimed_instagram_username = "sampleclub"
+    await session.flush()
+
+    brand, _ = await _upsert_row(session, Brand, _SAMPLE_BRAND)
+    brand.user_id = brand_user.id
+    brand.brand_name = "Sample Brand"
+    brand.company_email = "sample-brand@example.com"
+    brand.instagram_handle = "samplebrand"
+    brand.status = BrandStatus.APPROVED.value
+    brand.approved_at = now
+    await session.flush()
+
+    drop, _ = await _upsert_row(session, Drop, _SAMPLE_DROP)
+    drop.brand_id = brand.id
+    drop.title = "Fall Cold Brew Launch"
+    drop.description = (
+        "Sample staging campaign. 200 cans of cold brew for campus events. "
+        "Not a real brand and not a real drop."
+    )
+    drop.image = "https://placehold.co/600x400/png"
+    drop.location = "Sample City"
+    drop.capacity_total = 10
+    drop.apply_open_at = now - timedelta(days=1)
+    drop.apply_close_at = now + timedelta(days=30)
+    drop.manual_reopen = False
+    drop.brand_tracker_stage = BrandTrackerStage.AWAITING_PRODUCTS.value
+    drop.total_product_units = 200
+    drop.campaign_hashtag = "SampleFallBrew"
+    drop.published_at = now - timedelta(days=1)
+    drop.hidden_at = None
+    await session.flush()
+
+    app_org, org_created = await _upsert_row(session, DropApplication, _SAMPLE_APP_ORG)
+    app_club, club_created = await _upsert_row(session, DropApplication, _SAMPLE_APP_CLUB)
+    for application, created, owner in (
+        (app_org, org_created, org),
+        (app_club, club_created, club),
+    ):
+        application.drop_id = drop.id
+        application.org_id = owner.id
+        application.decision = ApplicationDecision.APPLIED.value
+        application.pitch = "Sample application for the Fall Cold Brew Launch. Fake staging data."
+        application.allocated_units = None
+        application.decision_at = None
+        if created:
+            application.applied_at = now
+    await session.flush()
+
+
 async def _seed() -> None:
-    _assert_local(settings.DATABASE_URL)
+    mode = resolve_seed_mode(
+        settings.DATABASE_URL,
+        environment=settings.ENVIRONMENT,
+        confirm=os.environ.get("STAGING_SEED_CONFIRM", ""),
+        prod_hosts=prod_db_hosts_from_env(),
+    )
 
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     async with session_factory() as session:
+        if mode == "staging":
+            password = os.environ.get("STAGING_DEMO_PASSWORD", "").strip()
+            if not password:
+                print(
+                    "refusing to seed: STAGING_DEMO_PASSWORD must be set for the staging demo.",
+                    file=sys.stderr,
+                )
+                raise SystemExit(2)
+            await upsert_staging_demo(session, password=password)
+            await session.commit()
+            print("staging demo seed complete (idempotent upsert)")
+            print("brand login: sample-brand@example.com")
+            print("orgs: Sample Org, Sample Club (no Instagram token; use admin View as)")
+            await engine.dispose()
+            return
+
         await _truncate(session)
 
         rows_by_table = _build_seed_rows()

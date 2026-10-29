@@ -10,7 +10,9 @@ never raised, so a failed email can't roll back the operation that triggered it
 Callers that need honesty (verification, Notify Me) use the returned ``bool``:
 ``True`` only on provider accept (HTTP 2xx, including a Resend idempotency
 replay of that original 2xx) or intentional development console success;
-``False`` on unset API key / HTTP error / idempotency conflict / exception.
+``False`` on unset API key / HTTP error / idempotency conflict / exception /
+allowlist suppression. Staging with an empty ``EMAIL_ALLOWLIST`` suppresses
+every send. Production ignores the allowlist.
 
 Optional Resend ``Idempotency-Key`` values are opt-in per call
 (``build_idempotency_key``). A missing key sends with no header. Policy and
@@ -163,6 +165,45 @@ def _idempotency_kind(key: str | None) -> str:
 
 def _key_hash(key: str) -> str:
     return hashlib.sha256(key.encode()).hexdigest()[:16]
+
+
+def _email_addr_hash(address: str) -> str:
+    return hashlib.sha256(address.strip().lower().encode()).hexdigest()[:16]
+
+
+def _allowlist_entries(raw: str) -> list[str]:
+    return [part.strip().lower() for part in raw.split(",") if part.strip()]
+
+
+def address_allowlisted(address: str, allowlist: str) -> bool:
+    """True when ``address`` is an exact entry or its domain is an ``@domain`` entry."""
+
+    email = address.strip().lower()
+    if "@" not in email:
+        return False
+    domain = email.split("@", 1)[1]
+    for entry in _allowlist_entries(allowlist):
+        if entry.startswith("@"):
+            if domain == entry[1:]:
+                return True
+        elif email == entry:
+            return True
+    return False
+
+
+def _staging_subject(subject: str) -> str:
+    prefix = "[STAGING] "
+    if subject.startswith(prefix):
+        return subject
+    return prefix + subject
+
+
+def _log_allowlist_suppressed(address: str, subject: str) -> None:
+    logger.warning(
+        "email suppressed (not allowlisted): addr_sha256_16=%s subject=%s",
+        _email_addr_hash(address),
+        subject,
+    )
 
 
 def _resend_error_name(resp: httpx.Response) -> str:
@@ -1046,7 +1087,31 @@ async def _dispatch(
     deploy that hasn't wired email yet degrades gracefully instead of
     500-ing the flows that send mail. An unsafe idempotency key is dropped
     and the email is still attempted with no header.
+
+    Off production, ``EMAIL_ALLOWLIST`` drops recipients that are not listed.
+    Staging with an empty allowlist suppresses every send (fail closed) and
+    prefixes the subject with ``[STAGING] ``. Production ignores the list.
     """
+    if settings.ENVIRONMENT == "staging":
+        subject = _staging_subject(subject)
+
+    allowlist = settings.EMAIL_ALLOWLIST.strip()
+    if settings.ENVIRONMENT == "staging" and not allowlist:
+        _log_allowlist_suppressed(to_email, subject)
+        return False
+    if settings.ENVIRONMENT != "production" and allowlist:
+        if not address_allowlisted(to_email, allowlist):
+            _log_allowlist_suppressed(to_email, subject)
+            return False
+        if cc:
+            kept: list[str] = []
+            for addr in cc:
+                if address_allowlisted(addr, allowlist):
+                    kept.append(addr)
+                else:
+                    _log_allowlist_suppressed(addr, subject)
+            cc = kept or None
+
     if not settings.RESEND_API_KEY:
         logger.warning("Email not sent (RESEND_API_KEY unset): to=%s subject=%s", to_email, subject)
         return False

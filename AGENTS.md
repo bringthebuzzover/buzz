@@ -47,7 +47,7 @@ Rules and skills **point** here; they must not copy PRODUCT §§.
 
 ## Branching
 
-Never push, force-push, or delete `main`. Open a pull request from a short-lived feature branch. There is no `dev` or `staging` branch and no staging environment. Protection rules, required CI check names, and `bugbot run` on high-risk PRs: [Branching & main protection](README.md#branching--main-protection).
+Never push, force-push, or delete `main`. Open a pull request from a short-lived feature branch into `staging`. Promotion from `staging` to `main` is a separate pull request (`hotfix/*` is the only other head CI allows into `main`). There is no `dev` branch. Protection rules, required CI check names, and `bugbot run` on high-risk PRs: [Branching & main protection](README.md#branching--main-protection).
 
 ---
 

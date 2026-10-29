@@ -23,7 +23,7 @@ The bottom two are the bug-bash tools. Both need a **local Postgres** and
 
 ## Permanent test accounts (`backend/scripts/upsert_test_accounts.py`)
 
-`seed_dev.py` is destructive and localhost-only. This script is neither — it
+`seed_dev.py` is destructive on localhost. It also has a staging-only demo upsert (`ENVIRONMENT=staging` and `STAGING_SEED_CONFIRM=buzz-staging`); that path never runs in production. `upsert_test_accounts.py` is neither destructive nor opt-in gated — it
 upserts exactly three fixed rows, so it is the one safe way to create test
 accounts on Railway.
 
