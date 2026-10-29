@@ -1,4 +1,4 @@
-"""Allowlisted admin table inspect + patch (ideas/archive/admin-mcp.md).
+"""Allowlisted admin table inspect + patch (tools/buzz-admin-mcp/README.md).
 
 Every ORM table is visible. Secrets never leave the service. Status machines
 and Graph-owned facts are read-only here — named admin actions still own them.
