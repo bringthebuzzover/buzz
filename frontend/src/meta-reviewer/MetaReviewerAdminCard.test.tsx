@@ -120,8 +120,11 @@ describe("MetaReviewerAdminCard", () => {
 
     await renderCard();
 
-    expect(container.textContent).toContain("Not set up.");
-    expect(container.textContent).toContain(DROP_ID);
+    expect(container.textContent).toContain("Not set up");
+    expect(container.textContent).not.toContain(DROP_ID);
+    const dropLink = container.querySelector("[data-testid=meta-reviewer-drop]");
+    expect(dropLink?.getAttribute("href")).toBe(`/admin/drops/${DROP_ID}`);
+    expect(dropLink?.textContent).toContain("Open drop");
     expect(container.textContent).not.toContain(SECRET);
 
     const button = container.querySelector("[data-testid=meta-reviewer-seed]");
@@ -133,7 +136,7 @@ describe("MetaReviewerAdminCard", () => {
     await settle();
 
     expect(container.textContent).toContain("Reviewer organization created.");
-    expect(container.textContent).toContain("Set up.");
+    expect(container.textContent).toContain("Reviewer organization ready");
     const orgLink = container.querySelector("[data-testid=meta-reviewer-org]");
     expect(orgLink?.getAttribute("href")).toBe(`/admin/orgs/${USER_ID}`);
     expect(container.textContent).not.toContain(SECRET);

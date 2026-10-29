@@ -1,3 +1,4 @@
+import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
 /** Marketing nav item: paper type, hairline underline when active. */
@@ -15,8 +16,9 @@ export function marketingNavItemClass(active: boolean) {
 export function adminNavItemClass(active: boolean) {
   return cn(
     "inline-flex w-full items-center gap-3 rounded-buzzField p-3 text-sm font-normal transition",
+    focusRingClass,
     active
-      ? "bg-accent-wash text-accent"
+      ? "bg-accent-wash text-primary"
       : "text-muted hover:bg-buzz-paper08 hover:text-primary",
   );
 }

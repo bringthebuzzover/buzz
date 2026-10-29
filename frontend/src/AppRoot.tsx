@@ -55,6 +55,7 @@ import AdminIgChangeRequestsPage from "./pages/admin/AdminIgChangeRequestsPage";
 import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import AdminNotFoundPage from "./pages/admin/AdminNotFoundPage";
 // META-REVIEWER-PATH: delete this import and the /meta-review route below.
 import MetaReviewerPage from "./meta-reviewer/MetaReviewerPage";
 import UiKitPage from "./pages/dev/UiKitPage";
@@ -115,6 +116,8 @@ export default function AppRoot(): ReactElement {
               portal="brand"
               loginPath="/brand/login"
               title="Forgot password"
+              kicker="Brand"
+              frame="aside"
             />
           }
         />
@@ -125,6 +128,8 @@ export default function AppRoot(): ReactElement {
               portal="brand"
               loginPath="/brand/login"
               title="Reset password"
+              kicker="Brand"
+              frame="aside"
             />
           }
         />
@@ -276,9 +281,8 @@ export default function AppRoot(): ReactElement {
             </PortalGuard>
           }
         />
-        {/* Admin login is public (admins have no Instagram identity, so this is
-            their only session entry point off-dev) and keeps the marketing
-            chrome; the panel itself lives outside this layout. */}
+        {/* Admin login is public. SiteLayout swaps in AuthAdminHeader so the
+            public "Join Us" header does not show. */}
         <Route path="admin/login" element={<AdminLoginPage />} />
         <Route
           path="admin/forgot-password"
@@ -287,6 +291,8 @@ export default function AppRoot(): ReactElement {
               portal="admin"
               loginPath="/admin/login"
               title="Forgot password"
+              kicker="Admin"
+              frame="admin"
             />
           }
         />
@@ -297,6 +303,8 @@ export default function AppRoot(): ReactElement {
               portal="admin"
               loginPath="/admin/login"
               title="Reset password"
+              kicker="Admin"
+              frame="admin"
             />
           }
         />
@@ -328,11 +336,10 @@ export default function AppRoot(): ReactElement {
         <Route path="drops" element={<AdminDropsPage />} />
         <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />
-        {/* Primitive gallery. PortalGuard keeps it admin-only in every build;
-            production used to omit the route, so signed-in admins hit the
-            public 404. */}
+        {/* Primitive gallery. The route stays admin-only in every build.
+            The sidebar link is development and staging only. */}
         <Route path="ui-kit" element={<UiKitPage />} />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<AdminNotFoundPage />} />
       </Route>
     </Routes>
   );

@@ -1,17 +1,18 @@
 /**
  * Admin panel navigation.
  *
- * A sidebar rather than tabs because the panel's job is queue triage: the badge
- * counts are the point, and they need a persistent home that stays legible as
- * sections are added. On small screens it collapses into a drawer, with the
- * badge total moved onto the trigger so "something needs me" survives the
- * collapse.
+ * Pen `Admin / Sidebar`: 248px rail, wordmark plus a yellow "admin" pill,
+ * yellow-wash active item, yellow-wash count badges, and a quiet sign-out.
+ * On small screens it collapses into a drawer; the badge total stays on the
+ * trigger so "something needs me" survives the collapse.
  */
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Activity,
+  AtSign,
   Building2,
+  Component,
   Inbox,
   LayoutDashboard,
   Package,
@@ -21,8 +22,17 @@ import {
 import { useAuth } from "../../contexts/AuthContext";
 import { useAdminOverview } from "../../api/hooks/useAdminHooks";
 import { cn } from "../../theme/cn";
-import { BeeMark } from "../ui/BrandMark";
+import { focusRingClass } from "../../theme/controls";
+import { Logo } from "../ui/BrandMark";
 import { adminNavItemClass } from "../ui/navItem";
+
+/** Sidebar link only. The /admin/ui-kit route stays registered for every build. */
+export function showAdminUiKitNav(
+  nodeEnv: string | undefined = process.env.NODE_ENV,
+  appEnv: string | undefined = process.env.REACT_APP_ENV,
+): boolean {
+  return nodeEnv === "development" || appEnv === "staging";
+}
 
 type NavItem = {
   to: string;
@@ -33,19 +43,7 @@ type NavItem = {
 };
 
 const NAV: readonly NavItem[] = [
-  {
-    to: "/admin",
-    label: "Overview",
-    icon: LayoutDashboard,
-    badgeKeys: [
-      "orgs_pending_approval",
-      "orgs_ig_change_pending",
-      "brands_ig_change_pending",
-      "orgs_ig_bind_mismatch",
-      "brands_pending_review",
-      "drops_ready_to_advance",
-    ],
-  },
+  { to: "/admin", label: "Overview", icon: LayoutDashboard },
   {
     to: "/admin/orgs",
     label: "Organizations",
@@ -58,10 +56,12 @@ const NAV: readonly NavItem[] = [
     icon: Building2,
     badgeKeys: ["brands_pending_review"],
   },
+  { to: "/admin/requests", label: "Requests", icon: Inbox },
   {
-    to: "/admin/requests",
-    label: "Requests",
-    icon: Inbox,
+    to: "/admin/ig-changes",
+    label: "IG changes",
+    icon: AtSign,
+    badgeKeys: ["orgs_ig_change_pending", "brands_ig_change_pending"],
   },
   {
     to: "/admin/drops",
@@ -72,12 +72,14 @@ const NAV: readonly NavItem[] = [
   { to: "/admin/health", label: "Health", icon: Activity },
 ];
 
-function AdminWordmark({ className }: { className?: string }) {
+export function AdminWordmark({ className }: { className?: string }) {
   return (
-    <p className={cn("flex items-center gap-2 text-lg font-medium text-buzz-fg", className)}>
-      <BeeMark className="h-5 w-5" />
-      Buzz <span className="text-buzz-yellow">admin</span>
-    </p>
+    <div className={cn("flex items-center gap-3", className)}>
+      <Logo className="h-6 w-auto" />
+      <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-on-accent">
+        admin
+      </span>
+    </div>
   );
 }
 
@@ -102,7 +104,7 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
   );
 
   return (
-    <nav className="space-y-1">
+    <nav className="flex flex-col gap-0.5">
       {NAV.map((item) => {
         const badge = (item.badgeKeys ?? []).reduce(
           (total, key) => total + (counts.get(key) ?? 0),
@@ -113,15 +115,28 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
           <NavLink
             key={item.to}
             to={item.to}
-            // Only Overview is an exact match; the others must stay highlighted
-            // on their detail routes.
             end={item.to === "/admin"}
             onClick={onNavigate}
             className={({ isActive }) => adminNavItemClass(isActive)}
           >
-            <Icon size={16} aria-hidden />
-            <span className="min-w-0 flex-1 truncate">{item.label}</span>
-            <CountBadge count={badge} className="ml-auto" />
+            {({ isActive }) => (
+              <>
+                <Icon
+                  size={16}
+                  aria-hidden
+                  className={isActive ? "text-primary" : "text-quiet"}
+                />
+                <span
+                  className={cn(
+                    "min-w-0 flex-1 truncate",
+                    isActive && "text-accent",
+                  )}
+                >
+                  {item.label}
+                </span>
+                <CountBadge count={badge} className="ml-auto" />
+              </>
+            )}
           </NavLink>
         );
       })}
@@ -130,20 +145,18 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function SignedInAs() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   return (
-    <div className="border-t border-buzz-lineMid px-3 pt-4">
-      <p className="truncate text-xs font-medium text-buzz-inkFaint">
-        Signed in as admin
-      </p>
-      <p className="truncate text-sm font-bold text-buzz-ink">
-        {user?.instagramUsername ?? "Buzz admin"}
-      </p>
+    <div className="flex flex-col gap-2 border-t border-line px-3 pt-4">
+      <p className="truncate text-xs text-quiet">Signed in as admin</p>
       <button
         type="button"
         data-testid="admin-sign-out"
         onClick={() => void logout()}
-        className="mt-2 text-xs font-medium text-accent hover:underline"
+        className={cn(
+          "self-start text-sm text-primary hover:text-accent",
+          focusRingClass,
+        )}
       >
         Sign out
       </button>
@@ -153,6 +166,7 @@ function SignedInAs() {
 
 export default function AdminSidebar() {
   const [open, setOpen] = useState(false);
+  const showUiKit = showAdminUiKitNav();
   const location = useLocation();
   const overview = useAdminOverview();
   const total = (overview.data?.queues ?? []).reduce(
@@ -162,14 +176,16 @@ export default function AdminSidebar() {
 
   return (
     <>
-      {/* Mobile trigger. */}
-      <div className="flex items-center gap-3 border-b border-buzz-lineMid bg-buzz-paper px-6 py-3 sm:px-8 lg:hidden">
+      <div className="flex items-center gap-3 border-b border-line bg-page px-6 py-3 sm:px-8 lg:hidden">
         <button
           type="button"
           data-testid="admin-nav-toggle"
           aria-expanded={open}
           onClick={() => setOpen((prev) => !prev)}
-          className="rounded-buzzControl border-2 border-buzz-lineMid px-3 py-1.5 text-xs font-semibold text-buzz-ink"
+          className={cn(
+            "inline-flex items-center rounded-full border border-line px-3 py-1.5 text-xs text-primary",
+            focusRingClass,
+          )}
         >
           Menu
           <CountBadge count={total} className="ml-2" />
@@ -178,21 +194,53 @@ export default function AdminSidebar() {
       </div>
 
       {open && (
-        <div className="border-b border-buzz-lineMid bg-buzz-paper px-6 py-3 sm:px-8 lg:hidden">
-          {/* `key` remounts the drawer contents on navigation so the active
-              state can't go stale while it's open. */}
+        <div className="border-b border-line bg-page px-6 py-4 sm:px-8 lg:hidden">
           <NavItems key={location.pathname} onNavigate={() => setOpen(false)} />
+          {showUiKit && (
+            <div className="mt-4 border-t border-line pt-4">
+              <NavLink
+                to="/admin/ui-kit"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) => adminNavItemClass(isActive)}
+              >
+                <Component size={16} aria-hidden className="text-quiet" />
+                <span className="min-w-0 flex-1 truncate">UI kit</span>
+              </NavLink>
+            </div>
+          )}
           <div className="mt-4">
             <SignedInAs />
           </div>
         </div>
       )}
 
-      {/* Desktop rail. */}
-      <aside className="hidden w-[248px] shrink-0 flex-col justify-between border-r border-line bg-page px-4 py-8 lg:flex">
-        <div>
-          <AdminWordmark className="mb-5 px-3" />
+      <aside className="hidden w-[248px] shrink-0 flex-col gap-8 border-r border-line bg-page px-4 py-8 lg:sticky lg:top-0 lg:flex lg:h-screen lg:overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col gap-8">
+          <AdminWordmark className="px-3" />
           <NavItems />
+          {showUiKit && (
+            <div className="flex flex-col gap-2 border-t border-line px-3 pt-4">
+              <p className="text-xs text-quiet">Development only</p>
+              <NavLink
+                to="/admin/ui-kit"
+                className={({ isActive }) => adminNavItemClass(isActive)}
+              >
+                {({ isActive }) => (
+                  <>
+                    <Component
+                      size={16}
+                      aria-hidden
+                      className={isActive ? "text-primary" : "text-quiet"}
+                    />
+                    <span className={cn("min-w-0 flex-1 truncate", isActive && "text-accent")}>
+                      UI kit
+                    </span>
+                  </>
+                )}
+              </NavLink>
+            </div>
+          )}
+          <div className="flex-1" />
         </div>
         <SignedInAs />
       </aside>

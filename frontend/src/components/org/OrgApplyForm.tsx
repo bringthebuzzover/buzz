@@ -3,13 +3,14 @@
  * and the public drop page. Do not nest `OrgApplyPage`.
  */
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   useOrgApply,
   type OrgApplyInput,
 } from "../../api/hooks/useOnboardingHooks";
 import { userFacingApiError } from "../../api/userFacingError";
 import FieldError from "../forms/FieldError";
+import { AuthArrowLink, AuthLinkRow } from "../auth/AuthFrame";
 import {
   Button,
   ErrorBanner,
@@ -187,37 +188,41 @@ export default function OrgApplyForm({
   };
 
   return (
-    <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+    <form onSubmit={(e) => void onSubmit(e)} className="space-y-6">
       {error && <ErrorBanner>{error}</ErrorBanner>}
-      <div>
-        <TextField
-          data-testid="org-apply-org-name"
-          label="Organization name"
-          value={orgName}
-          onChange={(e) => setOrgName(e.target.value)}
-          required
-          aria-invalid={Boolean(fieldErrors.orgName)}
-          aria-describedby={fieldErrors.orgName ? "org-apply-org-name-error" : undefined}
-        />
-        <FieldError id="org-apply-org-name-error" message={fieldErrors.orgName} />
-      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <TextField
+            data-testid="org-apply-org-name"
+            label="Organization name"
+            placeholder="e.g. Sample Club"
+            value={orgName}
+            onChange={(e) => setOrgName(e.target.value)}
+            required
+            aria-invalid={Boolean(fieldErrors.orgName)}
+            aria-describedby={fieldErrors.orgName ? "org-apply-org-name-error" : undefined}
+          />
+          <FieldError id="org-apply-org-name-error" message={fieldErrors.orgName} />
+        </div>
 
-      <div>
-        <TextField
-          data-testid="org-apply-university"
-          label="University"
-          value={university}
-          onChange={(e) => setUniversity(e.target.value)}
-          required
-          aria-invalid={Boolean(fieldErrors.university)}
-          aria-describedby={
-            fieldErrors.university ? "org-apply-university-error" : undefined
-          }
-        />
-        <FieldError
-          id="org-apply-university-error"
-          message={fieldErrors.university}
-        />
+        <div>
+          <TextField
+            data-testid="org-apply-university"
+            label="University"
+            placeholder="e.g. Sample University"
+            value={university}
+            onChange={(e) => setUniversity(e.target.value)}
+            required
+            aria-invalid={Boolean(fieldErrors.university)}
+            aria-describedby={
+              fieldErrors.university ? "org-apply-university-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-apply-university-error"
+            message={fieldErrors.university}
+          />
+        </div>
       </div>
 
       <div>
@@ -227,7 +232,8 @@ export default function OrgApplyForm({
           label="School (.edu) email"
           value={eduEmail}
           onChange={(e) => setEduEmail(e.target.value)}
-          placeholder="you@university.edu"
+          placeholder="e.g. you@university.edu"
+          hint="We'll send a verification link here."
           required
           aria-invalid={Boolean(fieldErrors.eduEmail)}
           aria-describedby={
@@ -238,89 +244,92 @@ export default function OrgApplyForm({
           id="org-apply-edu-email-error"
           message={fieldErrors.eduEmail}
         />
-        <p className="mt-1 text-xs text-buzz-inkMuted">
-          We&apos;ll send a verification link here.
-        </p>
       </div>
 
-      <div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <TextField
+            data-testid="org-apply-instagram"
+            label="Instagram handle"
+            value={instagramHandle}
+            onChange={(e) => setInstagramHandle(e.target.value)}
+            placeholder="e.g. @yourorg"
+            required
+            autoComplete="off"
+            aria-invalid={Boolean(fieldErrors.instagramHandle)}
+            aria-describedby={
+              fieldErrors.instagramHandle
+                ? "org-apply-instagram-error"
+                : undefined
+            }
+          />
+          <FieldError
+            id="org-apply-instagram-error"
+            message={fieldErrors.instagramHandle}
+          />
+        </div>
+
         <TextField
-          data-testid="org-apply-instagram"
-          label="Instagram handle"
-          value={instagramHandle}
-          onChange={(e) => setInstagramHandle(e.target.value)}
-          placeholder="yourorg"
-          required
-          autoComplete="off"
-          aria-invalid={Boolean(fieldErrors.instagramHandle)}
-          aria-describedby={
-            fieldErrors.instagramHandle
-              ? "org-apply-instagram-error"
-              : undefined
+          label={
+            <>
+              TikTok handle{" "}
+              <span className="font-normal text-quiet">(optional)</span>
+            </>
           }
-        />
-        <FieldError
-          id="org-apply-instagram-error"
-          message={fieldErrors.instagramHandle}
-        />
-        <p className="mt-1 text-xs text-buzz-inkMuted">
-          Exact username of the organization Business/Creator account (with or without
-          @). Buzz checks the username shape here; the account is confirmed when you
-          Connect Instagram after approval.
-        </p>
-      </div>
-
-      <TextField
-        label={
-          <>
-            TikTok handle{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
-          </>
-        }
-        value={tiktokHandle}
-        onChange={(e) => setTiktokHandle(e.target.value)}
-        placeholder="yourorg"
-      />
-
-      <div>
-        <TextField
-          data-testid="org-apply-member-count"
-          type="number"
-          min="0"
-          label="Number of members"
-          value={memberCount}
-          onChange={(e) => setMemberCount(e.target.value)}
-          required
-          aria-invalid={Boolean(fieldErrors.memberCount)}
-          aria-describedby={
-            fieldErrors.memberCount ? "org-apply-member-count-error" : undefined
-          }
-        />
-        <FieldError
-          id="org-apply-member-count-error"
-          message={fieldErrors.memberCount}
+          value={tiktokHandle}
+          onChange={(e) => setTiktokHandle(e.target.value)}
+          placeholder="e.g. @yourorg"
         />
       </div>
+      <p className="text-xs text-quiet">
+        Exact username of the organization Business/Creator account (with or
+        without @). BUZZ checks the username shape here; the account is
+        confirmed when you Connect Instagram after approval.
+      </p>
 
-      <Select
-        data-testid="org-apply-category"
-        label="Organization type"
-        value={category}
-        onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
-        required
-      >
-        <option value="">Select a type…</option>
-        {ORG_CATEGORY_OPTIONS.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </Select>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <TextField
+            data-testid="org-apply-member-count"
+            type="number"
+            min="0"
+            label="Number of members"
+            placeholder="e.g. 85"
+            value={memberCount}
+            onChange={(e) => setMemberCount(e.target.value)}
+            required
+            aria-invalid={Boolean(fieldErrors.memberCount)}
+            aria-describedby={
+              fieldErrors.memberCount ? "org-apply-member-count-error" : undefined
+            }
+          />
+          <FieldError
+            id="org-apply-member-count-error"
+            message={fieldErrors.memberCount}
+          />
+        </div>
+
+        <Select
+          data-testid="org-apply-category"
+          label="Organization type"
+          value={category}
+          onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
+          required
+        >
+          <option value="">Select a type</option>
+          {ORG_CATEGORY_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </Select>
+      </div>
 
       <div>
         <TextField
           data-testid="org-apply-contact-name"
           label="Contact name"
+          placeholder="e.g. Sam Sample"
           value={contactName}
           onChange={(e) => setContactName(e.target.value)}
           required
@@ -341,11 +350,12 @@ export default function OrgApplyForm({
         inputClass={fieldClass.default}
         testIdPrefix="org-apply"
         error={fieldErrors.shipping}
+        layout="split"
       />
       {shippingRawHint && (
         <p
           data-testid="org-apply-shipping-raw"
-          className="text-xs font-medium text-buzz-inkMuted"
+          className="text-xs font-medium text-quiet"
         >
           You wrote: {shippingRawHint}
         </p>
@@ -357,7 +367,7 @@ export default function OrgApplyForm({
           label={
             <>
               Pitch{" "}
-              <span className="font-normal text-buzz-inkMuted">(optional)</span>
+              <span className="font-normal text-quiet">(optional)</span>
             </>
           }
           value={pitch}
@@ -370,18 +380,22 @@ export default function OrgApplyForm({
       <Button
         data-testid="org-apply-submit"
         type="submit"
+        size="field"
         disabled={!canSubmit}
         fullWidth
+        className="disabled:border-transparent disabled:bg-buzz-paper08 disabled:text-muted"
       >
-        {apply.isPending ? "Submitting…" : submitLabel}
+        {submitLabel}
       </Button>
+      {!handleNorm ? (
+        <p className="text-center text-xs text-quiet">
+          Fill every required field to submit.
+        </p>
+      ) : null}
 
-      <p className="text-center text-xs text-buzz-inkMuted">
-        Already connected Instagram?{" "}
-        <Link to={loginHref} className="font-semibold text-buzz-coral hover:underline">
-          Organization login
-        </Link>
-      </p>
+      <AuthLinkRow quiet="Already connected Instagram?">
+        <AuthArrowLink to={loginHref}>Organization login</AuthArrowLink>
+      </AuthLinkRow>
     </form>
   );
 }

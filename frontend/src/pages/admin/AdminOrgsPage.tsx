@@ -20,10 +20,10 @@ import {
   ActionButton,
   AdminTable,
   Cell,
+  entityLinkClass,
   ErrorNote,
   FilterChips,
   PageHeading,
-  Panel,
   QueryState,
   Row,
   StatusPill,
@@ -185,33 +185,38 @@ export default function AdminOrgsPage() {
         param="attention"
       />
 
-      <Panel>
-        <QueryState
-          isPending={orgs.isPending}
-          isError={orgs.isError}
-          label="organizations"
-        />
-        {orgs.data && (
-          <AdminTable
-            headers={HEADERS}
-            isEmpty={orgs.data.length === 0}
-            empty="No organizations match this filter."
-          >
-            {orgs.data.map((row) => (
-              <Row key={row.userId}>
-                <Cell>
-                  <Link
-                    to={`/admin/orgs/${row.userId}`}
-                    className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
-                  >
-                    {row.orgName ?? "Profile not submitted"}
-                  </Link>
-                  {row.instagramHandle && (
-                    <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
-                      @{row.instagramHandle.replace(/^@/, "")}
-                    </span>
-                  )}
-                </Cell>
+      <QueryState
+        isPending={orgs.isPending}
+        isError={orgs.isError}
+        label="organizations"
+      />
+      {orgs.data && (
+        <AdminTable
+          headers={HEADERS}
+          isEmpty={orgs.data.length === 0}
+          empty="No organizations match this filter."
+        >
+          {orgs.data.map((row) => (
+            <Row
+              key={row.userId}
+              attention={
+                row.status === "pending_approval" ||
+                Boolean(row.igBindMismatchedAt && !row.igBindMismatchAckedAt)
+              }
+            >
+              <Cell>
+                <Link
+                  to={`/admin/orgs/${row.userId}`}
+                  className={`block ${entityLinkClass}`}
+                >
+                  {row.orgName ?? "Profile not submitted"}
+                </Link>
+                {row.instagramHandle && (
+                  <span className="mt-0.5 block text-xs text-quiet">
+                    @{row.instagramHandle.replace(/^@/, "")}
+                  </span>
+                )}
+              </Cell>
                 <Cell muted>
                   <span className="tabular-nums">
                     {formatCompactCount(row.followerCount)}
@@ -234,6 +239,7 @@ export default function AdminOrgsPage() {
                   <div className="flex flex-wrap justify-end gap-2">
                     {decidable(row) && (
                       <ActionButton
+                        quiet
                         variant="danger"
                         testId={`deny-org-${row.userId}`}
                         disabled={busy}
@@ -243,6 +249,7 @@ export default function AdminOrgsPage() {
                       </ActionButton>
                     )}
                     <ActionButton
+                      quiet
                       testId={`view-as-${row.userId}`}
                       disabled={!row.impersonatable || viewAsPending}
                       onClick={() => void viewAs(row.userId)}
@@ -254,8 +261,7 @@ export default function AdminOrgsPage() {
               </Row>
             ))}
           </AdminTable>
-        )}
-      </Panel>
+      )}
     </div>
   );
 }

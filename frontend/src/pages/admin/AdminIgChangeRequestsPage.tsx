@@ -9,16 +9,16 @@ import {
   useAdminBrandIgChangeRequests,
   useAdminIgChangeRequests,
 } from "../../api/hooks/useAdminHooks";
-import { LinkButton } from "../../components/forms/controls";
 import {
   AdminTable,
   Cell,
   FilterChips,
   PageHeading,
-  Panel,
   Pill,
+  entityLinkClass,
   QueryState,
   Row,
+  rowActionClass,
 } from "../../components/admin/AdminPrimitives";
 import { formatDate } from "../../components/admin/labels";
 
@@ -35,7 +35,7 @@ const TYPE_FILTERS = [
   { value: "brand", label: "Brands" },
 ] as const;
 
-const HEADERS = ["Type", "Account", "Change", "Status", "Created", ""] as const;
+const HEADERS = ["Account", "Type", "Change", "Status", "Created", ""] as const;
 
 type ListedRequest = {
   key: string;
@@ -104,7 +104,7 @@ export default function AdminIgChangeRequestsPage() {
     <div>
       <PageHeading
         title="Instagram identity requests"
-        subtitle="Organizations: a rename stays a login, and an account switch needs a tester add, then Connect. Brands: approval only updates the caption @."
+        subtitle="Organizations: a rename stays a login; an account switch needs a tester add, then Connect. Brands: approval only updates the caption @."
       />
 
       <FilterChips
@@ -120,44 +120,42 @@ export default function AdminIgChangeRequestsPage() {
         param="status"
       />
 
-      <Panel>
-        <QueryState
-          isPending={orgRequests.isPending || brandRequests.isPending}
-          isError={orgRequests.isError || brandRequests.isError}
-          label="Instagram identity requests"
-        />
-        {ready && (
-          <AdminTable
-            headers={HEADERS}
-            isEmpty={rows.length === 0}
-            empty="No Instagram identity requests match this filter."
-          >
-            {rows.map((ticket) => (
-              <Row key={ticket.key}>
-                <Cell>{ticket.type}</Cell>
-                <Cell>
-                  <Link
-                    to={ticket.accountTo}
-                    className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
-                  >
-                    {ticket.name}
-                  </Link>
-                </Cell>
-                <Cell muted>{ticket.change}</Cell>
-                <Cell>
-                  <Pill tone={statusTone(ticket.status)}>{ticket.status}</Pill>
-                </Cell>
-                <Cell muted>{formatDate(ticket.createdAt)}</Cell>
-                <Cell align="right">
-                  <LinkButton to={ticket.openTo} size="compact" variant="outline">
-                    Open
-                  </LinkButton>
-                </Cell>
-              </Row>
-            ))}
-          </AdminTable>
-        )}
-      </Panel>
+      <QueryState
+        isPending={orgRequests.isPending || brandRequests.isPending}
+        isError={orgRequests.isError || brandRequests.isError}
+        label="Instagram identity requests"
+      />
+      {ready && (
+        <AdminTable
+          headers={HEADERS}
+          isEmpty={rows.length === 0}
+          empty="No Instagram identity requests match this filter."
+        >
+          {rows.map((ticket) => (
+            <Row key={ticket.key} attention={ticket.status === "pending"}>
+              <Cell>
+                <Link
+                  to={ticket.accountTo}
+                  className={entityLinkClass}
+                >
+                  {ticket.name}
+                </Link>
+              </Cell>
+              <Cell>{ticket.type}</Cell>
+              <Cell>{ticket.change}</Cell>
+              <Cell>
+                <Pill tone={statusTone(ticket.status)}>{ticket.status}</Pill>
+              </Cell>
+              <Cell>{formatDate(ticket.createdAt)}</Cell>
+              <Cell align="right">
+                <Link to={ticket.openTo} className={rowActionClass}>
+                  Open
+                </Link>
+              </Cell>
+            </Row>
+          ))}
+        </AdminTable>
+      )}
     </div>
   );
 }
