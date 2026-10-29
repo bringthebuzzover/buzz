@@ -4,9 +4,8 @@
  * No PortalGuard: pending orgs must open the brand link. Form mode follows
  * `useAuth()`. Notify Me stays feed-only.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Calendar, MapPin } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   useDropDetail,
@@ -22,8 +21,7 @@ import OrgApplyForm, {
 } from "../../components/org/OrgApplyForm";
 import DropApplyForm from "../../components/org/DropApplyForm";
 import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
-import PageShell from "../../components/site/PageShell";
-import { Card } from "../../components/ui/Card";
+import { StatusHero } from "../../components/marketing/sections";
 import { Chip } from "../../components/ui/Chip";
 import { RemoteImage } from "../../components/ui/RemoteImage";
 import { QueryStatePanel, StatePanel } from "../../components/ui/StatePanel";
@@ -33,7 +31,8 @@ import {
   SuccessBanner,
   TextArea,
 } from "../../components/forms/controls";
-import { PAD, STACK, TEXT } from "../../theme/tokens";
+import { STACK, TEXT } from "../../theme/tokens";
+import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
 function dropNotAvailable(error: unknown): boolean {
@@ -49,31 +48,28 @@ export default function PublicDropPage() {
 
   if (drop.isLoading || status === "authenticating" || status === "idle") {
     return (
-      <PageShell width="form">
+      <div className="bg-page px-4 py-16 text-primary">
         <QueryStatePanel isPending isError={false} label="this drop" />
-      </PageShell>
+      </div>
     );
   }
 
   if (dropNotAvailable(drop.error)) {
     return (
-      <PageShell width="form">
-        <StatePanel tone="danger" title="Drop unavailable">
-          This drop isn&apos;t available.
-        </StatePanel>
-      </PageShell>
+      <div className="bg-page">
+        <StatusHero
+          title="Drop unavailable"
+          support="This drop isn't available."
+        />
+      </div>
     );
   }
 
   if (drop.isError || !drop.data || !dropId) {
     return (
-      <PageShell width="form">
-        <QueryStatePanel
-          isPending={false}
-          isError
-          label="this drop"
-        />
-      </PageShell>
+      <div className="bg-page px-4 py-16 text-primary">
+        <QueryStatePanel isPending={false} isError label="this drop" />
+      </div>
     );
   }
 
@@ -84,10 +80,11 @@ export default function PublicDropPage() {
 
   if (status === "restore_failed") {
     return (
-      <PageShell width="form">
-        <PublicDropHero drop={data} feedStatus={feedStatus} />
-        <SessionRestorePanel embedded />
-      </PageShell>
+      <div className="bg-page text-primary">
+        <PublicDropLayout drop={data} feedStatus={feedStatus}>
+          <SessionRestorePanel embedded />
+        </PublicDropLayout>
+      </div>
     );
   }
 
@@ -101,9 +98,8 @@ export default function PublicDropPage() {
     user.status !== "erased";
 
   return (
-    <PageShell width="form">
-      <PublicDropHero drop={data} feedStatus={feedStatus} />
-
+    <div className="bg-page text-primary">
+      <PublicDropLayout drop={data} feedStatus={feedStatus}>
       {status === "needs_instagram_reconnect" ? (
         <>
           <StatePanel>
@@ -118,7 +114,7 @@ export default function PublicDropPage() {
       ) : null}
 
       {feedStatus !== "open" ? (
-        <p className={cn(TEXT.body, "mb-6 text-center text-buzz-inkMuted")}>
+        <p className={cn(TEXT.body, "mb-6 text-center text-muted")}>
           {feedStatus === "upcoming"
             ? "Applications aren't open yet."
             : "Applications are closed."}
@@ -138,17 +134,17 @@ export default function PublicDropPage() {
       ) : null}
 
       {status === "authenticated" && user?.portalRole !== "org" && feedStatus === "open" ? (
-        <p className={cn(TEXT.body, "mb-6 text-center text-buzz-inkMuted")}>
+        <p className={cn(TEXT.body, "mb-6 text-center text-muted")}>
           Sign in as a student organization to apply.
         </p>
       ) : null}
 
       {anonymous && feedStatus === "open" ? (
         <>
-          <h2 className={cn(TEXT.h2, "mb-2 text-center")}>
-            Request to join Buzz and apply
+          <h2 className={cn(TEXT.h2, "mb-2")}>
+            Request to join BUZZ and apply
           </h2>
-          <p className={cn(TEXT.body, "mb-6 text-center text-buzz-inkMuted")}>
+          <p className={cn(TEXT.body, "mb-6 text-muted")}>
             Same application as joining Buzz. We&apos;ll submit this drop when
             your organization is approved and connected — you&apos;re not applied yet.
           </p>
@@ -166,17 +162,15 @@ export default function PublicDropPage() {
       ) : null}
 
       {anonymous && feedStatus !== "open" ? (
-        <p className="text-center text-sm font-medium text-buzz-inkMuted">
+        <p className="text-sm text-muted">
           Already on Buzz?{" "}
-          <Link
-            to={loginHref}
-            className="font-semibold text-buzz-coral hover:underline"
-          >
+          <Link to={loginHref} className={cn("text-accent", focusRingClass)}>
             Organization login
           </Link>
         </p>
       ) : null}
-    </PageShell>
+      </PublicDropLayout>
+    </div>
   );
 }
 
@@ -197,45 +191,77 @@ function PublicDropHero({
           : `${remaining} of ${drop.capacityTotal} spots remaining`
         : "Closed";
 
+  const tone =
+    feedStatus === "upcoming" ? "Upcoming" : feedStatus === "open" ? "Open" : "Closed";
+
   return (
-    <Card kind="cardWarm" pad="none" className="mb-8 overflow-hidden">
-      <div className="relative h-48 overflow-hidden border-b border-buzz-lineMid">
-        <RemoteImage
-          src={drop.image}
-          label={drop.brandName}
-          alt=""
-          className="h-full w-full object-cover"
-        />
-        <div className="absolute left-3 top-3 flex items-center gap-2">
-          <Chip accent>{drop.brandName}</Chip>
-          <Chip tone={feedStatus === "open" ? "success" : "neutral"}>
-            {feedStatus === "upcoming"
-              ? "Upcoming"
-              : feedStatus === "open"
-                ? "Open"
-                : "Closed"}
-          </Chip>
-        </div>
+    <div className="relative aspect-square overflow-hidden rounded-buzzBoard">
+      <RemoteImage
+        src={drop.image}
+        label={drop.brandName}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-page via-page/25 to-page/30" />
+      <div className="absolute inset-x-0 top-0 flex items-center gap-3 p-8">
+        <Chip accent>{tone}</Chip>
+        <span className="ml-auto text-sm text-primary">{spots}</span>
       </div>
-      <div className={PAD.card}>
-        <h1 className={cn(TEXT.h1, "mb-2 leading-tight text-buzz-coral")}>
+      <div className="absolute inset-x-0 bottom-0 p-8">
+        <p className="text-sm font-medium text-muted">{drop.brandName}</p>
+        <p className="text-[36px] font-medium leading-none text-primary md:text-buzzTitle">
           {drop.title}
-        </h1>
-        <p className={cn(TEXT.body, "mb-4 text-buzz-inkMuted")}>
-          {drop.description}
         </p>
-        <div className={cn(TEXT.meta, "flex flex-wrap items-center gap-4 font-semibold")}>
-          <span className="flex items-center gap-1">
-            <MapPin size={14} className="text-buzz-coral" />
-            {drop.location}
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar size={14} className="text-buzz-coral" />
-            {spots}
-          </span>
-        </div>
       </div>
-    </Card>
+    </div>
+  );
+}
+
+function PublicDropLayout({
+  drop,
+  feedStatus,
+  children,
+}: {
+  drop: DropDetail;
+  feedStatus: "upcoming" | "open" | "closed";
+  children: ReactNode;
+}) {
+  const remaining = Math.max(0, drop.capacityTotal - drop.acceptedCount);
+  const spots =
+    feedStatus === "upcoming"
+      ? "Opens soon"
+      : feedStatus === "open"
+        ? drop.acceptedCount === 0
+          ? `Up to ${drop.capacityTotal} spots`
+          : `${remaining} of ${drop.capacityTotal} spots remaining`
+        : "Closed";
+  const tone =
+    feedStatus === "upcoming" ? "Upcoming" : feedStatus === "open" ? "Open" : "Closed";
+
+  return (
+    <div className="mx-auto grid max-w-[1440px] items-start gap-10 px-4 py-12 md:grid-cols-2 md:gap-14 md:px-12 md:py-16">
+      <PublicDropHero drop={drop} feedStatus={feedStatus} />
+      <div>
+        <p className="text-xs font-medium text-accent">Drop</p>
+        <h1 className="mt-2 text-[28px] font-medium leading-tight md:text-buzzH2">{drop.title}</h1>
+        <p className="mt-4 text-base leading-relaxed text-muted">{drop.description}</p>
+        <dl className="mt-6 divide-y divide-line border-y border-line">
+          <Fact label="Where" value={drop.location} />
+          <Fact label="Spots" value={spots} />
+          <Fact label="Status" value={tone === "Open" ? "Accepting applications" : tone} />
+        </dl>
+        <div className="mt-8">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3 text-sm">
+      <dt className="text-muted">{label}</dt>
+      <dd className="text-right text-primary">{value}</dd>
+    </div>
   );
 }
 
@@ -345,7 +371,7 @@ function PendingOrgActions({
           Still finishing setup?{" "}
           <Link
             to={connectHref}
-            className="font-semibold text-buzz-coral hover:underline"
+            className={cn("font-semibold text-accent hover:underline", focusRingClass)}
           >
             Continue onboarding
           </Link>

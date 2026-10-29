@@ -138,7 +138,6 @@ export default function ConnectInstagramPage() {
       <Button
         type="button"
         variant="outline"
-        size="hero"
         onClick={() => void onConnect()}
         disabled={bindStart.isPending}
       >

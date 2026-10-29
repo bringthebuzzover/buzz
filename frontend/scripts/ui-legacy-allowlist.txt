@@ -6,9 +6,6 @@ components/brand/ApiDropOrgTable.tsx
 components/brand/BrandDropTrackerStepper.tsx
 components/brand/RunningTotalsBar.tsx
 components/drop/CopyPublicDropUrl.tsx
-components/home/FeaturedCollaborations.tsx
-components/home/HomeBringBuzzSection.tsx
-components/home/HomeJoinSection.tsx
 components/org/ApiPostSelector.tsx
 components/org/CampaignRow.tsx
 components/org/DropFeedCard.tsx
@@ -17,13 +14,9 @@ components/org/ShippingAddressFields.tsx
 components/org/modals/NotifyMeModal.tsx
 components/posts/PostInsights.tsx
 components/shipments/ShipmentList.tsx
-components/site/SiteFooter.tsx
-components/site/SiteHeader.tsx
 components/site/modals/ContactModal.tsx
-components/tours/TourFrame.tsx
 layouts/SiteLayout.tsx
 meta-reviewer/MetaReviewerAdminCard.tsx
-pages/NotFoundPage.tsx
 pages/admin/AdminBrandDetailPage.tsx
 pages/admin/AdminBrandsPage.tsx
 pages/admin/AdminDropDetailPage.tsx
@@ -49,8 +42,6 @@ pages/brand/BrandDropDetailPage.tsx
 pages/brand/BrandRequestDropPage.tsx
 pages/brand/BrandSettingsPage.tsx
 pages/legal/LegalLayout.tsx
-pages/marketing/ForBrandsPage.tsx
-pages/marketing/ForOrgsPage.tsx
 pages/onboarding/ConnectInstagramPage.tsx
 pages/onboarding/OrgProfilePage.tsx
 pages/onboarding/PendingApprovalPage.tsx
@@ -59,4 +50,3 @@ pages/org/OrgCampaignDetailPage.tsx
 pages/org/OrgDropFeedPage.tsx
 pages/org/OrgMyCampaignsPage.tsx
 pages/org/OrgPortalProfilePage.tsx
-pages/public/PublicDropPage.tsx

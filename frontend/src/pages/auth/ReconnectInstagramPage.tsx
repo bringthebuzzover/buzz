@@ -31,7 +31,6 @@ export default function ReconnectInstagramPage() {
       <Button
         type="button"
         variant="outline"
-        size="hero"
         data-testid="reconnect-instagram-cta"
         onClick={() => login(next)}
         disabled={status === "authenticating"}

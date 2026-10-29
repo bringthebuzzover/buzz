@@ -1,7 +1,6 @@
 /**
- * Sticky two-row header: utility bar (socials, join us / login / logout),
- * coral nav with centered logo. When a user is authenticated, shows persona-aware
- * nav links from the auth context.
+ * Public nav. Guests get the pen's glass bar (logo, tours, login, join).
+ * Signed-in portal users keep their links. Every control takes the focus ring.
  */
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -12,12 +11,14 @@ import {
   useState,
 } from "react";
 import { ChevronRight, LogOut, Menu } from "lucide-react";
-import { siteIdentity } from "../../data/siteIdentity";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
 import { useSignOut } from "../../api/hooks/useSignOut";
 import { useAuth } from "../../contexts/AuthContext";
 import { goToHomeJoin } from "../../utils/scrollHomeJoin";
-import { appNavItemClass, marketingNavItemClass } from "../ui/navItem";
+import { Logo } from "../ui/BrandMark";
+import { Button } from "../forms/controls";
+import { focusRingClass } from "../../theme/controls";
+import { cn } from "../../theme/cn";
 
 const ORG_NAV_LINKS = [
   { to: "/org/browse", label: "Browse Campaigns" },
@@ -30,7 +31,6 @@ const BRAND_NAV_LINKS = [
   { to: "/brand/settings", label: "Setup" as const },
 ] as const;
 
-/** Guest/brand left clusters are short; org’s four labels need lg. */
 const ORG_DESKTOP_MIN_PX = 1024;
 const COMPACT_DESKTOP_MIN_PX = 650;
 
@@ -40,10 +40,13 @@ export default function SiteHeader() {
   const { openContactModal } = useSiteChrome();
   const { user, status: authStatus } = useAuth();
   const signOut = useSignOut();
-  const { images, social } = siteIdentity;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [paperTone, setPaperTone] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const [mobilePanelTopPx, setMobilePanelTopPx] = useState(0);
+
+  const marketing =
+    pathname === "/" || pathname === "/for-orgs" || pathname === "/for-brands";
 
   const updateMobilePanelTop = useCallback(() => {
     const el = headerRef.current;
@@ -64,6 +67,28 @@ export default function SiteHeader() {
   useEffect(() => {
     setMobileNavOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!marketing) {
+      setPaperTone(false);
+      return;
+    }
+    const read = () => {
+      const header = headerRef.current;
+      if (!header) return;
+      const bottom = header.getBoundingClientRect().bottom;
+      const under = document.elementFromPoint(window.innerWidth / 2, bottom + 12);
+      const surface = under?.closest("[data-nav-surface]")?.getAttribute("data-nav-surface");
+      setPaperTone(surface === "paper");
+    };
+    read();
+    window.addEventListener("scroll", read, { passive: true });
+    window.addEventListener("resize", read);
+    return () => {
+      window.removeEventListener("scroll", read);
+      window.removeEventListener("resize", read);
+    };
+  }, [marketing, pathname]);
 
   const isApiAuth = authStatus === "authenticated" && user;
   const isOrgNav = authStatus === "authenticated" && user?.portalRole === "org";
@@ -87,284 +112,247 @@ export default function SiteHeader() {
     };
   }, [mobileNavOpen]);
 
-  // Determine nav links from the authenticated user's role.
   const navLinks = isApiAuth
     ? user.portalRole === "brand"
       ? BRAND_NAV_LINKS
       : user.portalRole === "org"
         ? ORG_NAV_LINKS
         : []
-    : [];
+    : [
+        { to: "/for-orgs", label: "Organizations" },
+        { to: "/for-brands", label: "Brands" },
+        { to: "/#how-it-works", label: "How it works" },
+      ];
 
   const isNavActive = (to: string): boolean => {
     if (to === "/") return pathname === "/";
+    if (to.startsWith("/#")) return false;
     return pathname === to || pathname.startsWith(`${to}/`);
   };
 
-  const navItemClass = (active: boolean) =>
-    isApiAuth ? appNavItemClass(active) : marketingNavItemClass(active);
+  const join =
+    pathname.startsWith("/for-brands")
+      ? { label: "Apply", onClick: () => navigate("/brand/apply") }
+      : pathname === "/" || pathname === "/for-orgs"
+        ? { label: "Join", onClick: () => goToHomeJoin(pathname, navigate) }
+        : { label: "Join Us!", onClick: () => goToHomeJoin(pathname, navigate) };
 
-  const handleJoinClick = () => {
-    goToHomeJoin(pathname, navigate);
-  };
+  const linkClass = (active: boolean) =>
+    cn(
+      "whitespace-nowrap text-sm",
+      paperTone ? "text-on-accent" : "text-primary",
+      active && "underline decoration-1 underline-offset-8",
+      focusRingClass,
+    );
 
-  const showCenterItem = !!isApiAuth;
+  const desktopHidden = isOrgNav ? "lg:flex" : "min-[650px]:flex";
+  const desktopOnly = isOrgNav ? "max-lg:hidden" : "max-[649px]:hidden";
+  const mobileOnly = isOrgNav ? "lg:hidden" : "min-[650px]:hidden";
 
   return (
     <header
       ref={headerRef}
-      className={`relative w-full ${mobileNavOpen ? "z-buzzBanner" : "z-50"}`}
+      className={cn(
+        marketing ? "pointer-events-none absolute inset-x-0 top-0 z-50" : "relative z-50",
+        mobileNavOpen && "z-buzzBanner",
+      )}
     >
-      {/* Top utility bar */}
-      <div className="relative flex h-10 items-center justify-center border-b border-buzz-line bg-buzz-cream px-6 text-xs font-semibold tracking-wider">
-        <div className="absolute left-6 flex space-x-4">
-          <a
-            href={social.instagram.profileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-buzz-inkMuted hover:opacity-80"
-            aria-label="Instagram"
-          >
-            <img src={images.socialInstagramIcon} alt="" className="buzz-icon-on-ink h-4 w-4" />
-          </a>
-          <a
-            href={social.linkedin.companyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-buzz-inkMuted hover:opacity-80"
-            aria-label="LinkedIn"
-          >
-            <img src={images.socialLinkedinIcon} alt="" className="buzz-icon-on-ink h-4 w-4" />
-          </a>
-        </div>
-
-        {showCenterItem ? (
-          <span className="text-center font-bold text-buzz-coral">
-            {user?.portalRole === "brand" ? "Brand Portal" : "Organization Portal"}
-          </span>
-        ) : (
-          <button
-            type="button"
-            onClick={handleJoinClick}
-            className="cursor-pointer text-center font-bold text-buzz-coral hover:underline"
-          >
-            Join Us!
-          </button>
-        )}
-
-        <div className="absolute right-6 flex items-center gap-4">
-          {isApiAuth ? (
-            <button
-              type="button"
-              onClick={signOut}
-              className="flex items-center gap-1 text-buzz-inkMuted hover:text-buzz-coral"
-              aria-label="Log out"
-            >
-              <LogOut size={16} />
-              <span className="hidden sm:inline text-xs font-bold">Logout</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => navigate("/login")}
-              className="text-buzz-inkMuted hover:text-buzz-coral"
-              aria-label="Log in"
-            >
-              <span className="text-xs font-bold">Login</span>
-            </button>
+      <div className={cn("pointer-events-auto px-3 pt-2 md:px-6", !marketing && "px-3 py-3 md:px-6")}>
+        <nav
+          className={cn(
+            "mx-auto flex h-[66px] max-w-[1152px] items-center justify-between rounded-buzzCard border px-5 backdrop-blur-md",
+            paperTone
+              ? "border-on-accent/10 bg-white/70 text-on-accent"
+              : "border-white/10 bg-page/70 text-primary",
           )}
-        </div>
-      </div>
-
-      {/* Coral nav bar. Logo is in-flow (1fr / auto / 1fr) so it cannot cover
-          the side clusters. Org uses lg; guest/brand keep 650px. */}
-      <nav className="relative border-b border-buzz-line bg-buzz-cream/90 text-buzz-fg backdrop-blur-md">
-        <div
-          className={`relative hidden h-16 grid-cols-[1fr_auto_1fr] items-center px-8 font-medium ${
-            isOrgNav ? "lg:grid" : "min-[650px]:grid"
-          }`}
+          aria-label="Primary"
         >
-          <div
-            className={
-              isOrgNav
-                ? "flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 xl:gap-x-8"
-                : "flex min-w-0 items-center gap-x-8"
-            }
-          >
-            <Link to="/" className={navItemClass(isNavActive("/"))}>
-              Home
-            </Link>
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                to={link.to}
-                className={navItemClass(isNavActive(link.to))}
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              data-testid="site-header-logo"
+              onClick={() => navigate("/")}
+              className={cn("flex h-10 max-w-[9rem] shrink-0 items-center", focusRingClass)}
+            >
+              <Logo surface={paperTone ? "paper" : "ink"} className="h-8" />
+            </button>
+            {isApiAuth && (user.portalRole === "org" || user.portalRole === "brand") ? (
+              <span
+                className={cn(
+                  "truncate text-xs",
+                  paperTone ? "text-on-accent" : "text-muted",
+                )}
               >
-                {link.label}
-              </Link>
-            ))}
+                {user.portalRole === "brand" ? "Brand Portal" : "Organization Portal"}
+              </span>
+            ) : null}
           </div>
 
-          <button
-            type="button"
-            data-testid="site-header-logo"
-            onClick={() => navigate("/")}
-            className="flex h-10 max-w-[9rem] shrink-0 cursor-pointer items-center justify-center px-2"
-          >
-            <img
-              src={images.logo}
-              alt={images.logoAlt}
-              className="h-full w-auto max-w-full object-contain"
-            />
-          </button>
-
-          <div className="flex min-w-0 items-center justify-end gap-x-8">
+          <div className={cn("hidden items-center gap-6", desktopHidden, desktopOnly)}>
+            {isApiAuth ? (
+              <Link to="/" className={linkClass(isNavActive("/"))}>
+                Home
+              </Link>
+            ) : null}
+            {navLinks.map((link) =>
+              link.to.startsWith("/#") ? (
+                <a
+                  key={link.label}
+                  href={marketing ? "#how-it-works" : "/#how-it-works"}
+                  className={linkClass(false)}
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link key={link.label} to={link.to} className={linkClass(isNavActive(link.to))}>
+                  {link.label}
+                </Link>
+              ),
+            )}
             <button
               type="button"
               onClick={openContactModal}
-              className="whitespace-nowrap text-sm text-buzz-fg transition hover:text-buzz-yellow"
+              className={cn("text-sm", paperTone ? "text-on-accent" : "text-primary", focusRingClass)}
             >
               Contact
             </button>
-            {!showCenterItem ? (
+            {isApiAuth ? (
               <button
                 type="button"
-                onClick={handleJoinClick}
-                className="inline-flex h-10 items-center rounded-full bg-buzz-yellow px-4 text-sm font-medium text-buzz-onAccent transition hover:bg-buzz-yellowHover"
+                onClick={signOut}
+                className={cn(
+                  "inline-flex items-center gap-1 text-sm",
+                  paperTone ? "text-on-accent" : "text-primary",
+                  focusRingClass,
+                )}
+                aria-label="Log out"
               >
-                Join Us!
+                <LogOut size={16} />
+                <span className="hidden sm:inline">Logout</span>
               </button>
-            ) : null}
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  className={cn("text-sm", paperTone ? "text-on-accent" : "text-primary", focusRingClass)}
+                  aria-label="Log in"
+                >
+                  Login
+                </button>
+                <Button type="button" className="h-11 px-5" onClick={join.onClick}>
+                  {join.label}
+                </Button>
+              </>
+            )}
           </div>
-        </div>
 
-        {/* Mobile nav */}
-        <div
-          className={`flex items-center justify-between gap-3 px-4 py-3 ${
-            isOrgNav ? "lg:hidden" : "min-[650px]:hidden"
-          }`}
-        >
           <button
             type="button"
-            onClick={() => setMobileNavOpen((o) => !o)}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-buzz-line text-buzz-fg transition hover:bg-buzz-paper08"
+            onClick={() => setMobileNavOpen((open) => !open)}
+            className={cn(
+              "flex h-11 w-11 items-center justify-center rounded-full border border-line",
+              mobileOnly,
+              focusRingClass,
+            )}
             aria-expanded={mobileNavOpen}
             aria-controls="mobile-nav-menu"
             aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
           >
             <Menu size={22} />
           </button>
-          <button
-            type="button"
-            data-testid="site-header-logo"
-            onClick={() => navigate("/")}
-            className="flex h-12 max-h-[3.25rem] max-w-[55vw] shrink cursor-pointer items-center justify-end"
-          >
-            <img
-              src={images.logo}
-              alt={images.logoAlt}
-              className="h-full w-auto max-w-full object-contain object-right"
-            />
-          </button>
-        </div>
+        </nav>
+      </div>
 
-        {/* Mobile panel */}
+      <div
+        className={cn(
+          "pointer-events-none fixed inset-x-0 bottom-0 z-buzzDrawer",
+          mobileOnly,
+          mobileNavOpen && "pointer-events-auto",
+        )}
+        style={{ top: mobilePanelTopPx }}
+        aria-hidden={!mobileNavOpen}
+      >
+        <button
+          type="button"
+          className="absolute inset-0 bg-page/60"
+          aria-label="Close menu"
+          tabIndex={mobileNavOpen ? 0 : -1}
+          onClick={() => setMobileNavOpen(false)}
+        />
         <div
-          className={`fixed inset-x-0 bottom-0 z-buzzDrawer transition-opacity duration-300 ${
-            isOrgNav ? "lg:hidden" : "min-[650px]:hidden"
-          } ${
-            mobileNavOpen
-              ? "pointer-events-auto opacity-100"
-              : "pointer-events-none opacity-0"
-          }`}
-          style={{ top: mobilePanelTopPx }}
-          aria-hidden={!mobileNavOpen}
+          id="mobile-nav-menu"
+          className={cn(
+            "absolute bottom-0 left-0 right-8 top-0 flex flex-col border border-line bg-page text-primary shadow-buzzLg transition-transform duration-300",
+            mobileNavOpen ? "translate-x-0" : "-translate-x-full",
+          )}
         >
-          <button
-            type="button"
-            className="absolute inset-0 z-0 bg-buzz-overlay/45"
-            aria-label="Close menu"
-            tabIndex={mobileNavOpen ? 0 : -1}
-            onClick={() => setMobileNavOpen(false)}
-          />
-          <div
-            id="mobile-nav-menu"
-            className={`absolute bottom-0 left-0 right-8 top-0 z-10 flex flex-col border border-buzz-line bg-buzz-paper shadow-buzzLg transition-transform duration-300 ease-out ${
-              mobileNavOpen ? "translate-x-0" : "-translate-x-full"
-            } rounded-br-buzzModal rounded-tr-buzzModal`}
-          >
-            <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-8 pt-5">
-              <ul className="flex flex-col gap-0 text-sm font-semibold uppercase tracking-wide text-buzz-ink">
-                <li>
-                  <Link
-                    to="/"
-                    className="flex items-center justify-between gap-3 border-b border-buzz-line py-4 pr-1 transition hover:text-buzz-coral"
-                    onClick={() => setMobileNavOpen(false)}
-                  >
-                    Home
-                    <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
-                  </Link>
-                </li>
-                {navLinks.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      to={link.to}
-                      className="flex items-center justify-between gap-3 border-b border-buzz-line py-4 pr-1 transition hover:text-buzz-coral"
-                      onClick={() => setMobileNavOpen(false)}
-                    >
-                      {link.label}
-                      <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
-                    </Link>
-                  </li>
-                ))}
-                <li>
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between gap-3 border-b border-buzz-line py-4 pr-1 text-left transition hover:text-buzz-coral"
-                    onClick={() => {
-                      setMobileNavOpen(false);
-                      openContactModal();
-                    }}
-                  >
-                    Contact
-                    <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
-                  </button>
-                </li>
-                {!showCenterItem ? (
-                  <li>
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between gap-3 py-4 pr-1 text-left transition hover:text-buzz-coral"
-                      onClick={() => {
-                        setMobileNavOpen(false);
-                        handleJoinClick();
-                      }}
-                    >
-                      Join Us!
-                      <ChevronRight size={18} className="shrink-0 text-buzz-inkFaint" aria-hidden />
-                    </button>
-                  </li>
-                ) : null}
-                {isApiAuth ? (
-                  <li>
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-between gap-3 py-4 pr-1 text-left font-bold text-buzz-coral transition hover:text-buzz-coralDark"
-                      onClick={() => {
-                        setMobileNavOpen(false);
-                        signOut();
-                      }}
-                    >
-                      Logout
-                      <LogOut size={18} className="shrink-0" aria-hidden />
-                    </button>
-                  </li>
-                ) : null}
-              </ul>
-            </nav>
-          </div>
+          <nav className="flex flex-1 flex-col overflow-y-auto px-5 py-6">
+            <Link to="/" className={cn("border-b border-line py-4 text-sm", focusRingClass)} onClick={() => setMobileNavOpen(false)}>
+              Home
+            </Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.label}
+                to={link.to.startsWith("/#") ? (marketing ? "/#how-it-works" : "/#how-it-works") : link.to}
+                className={cn("flex items-center justify-between border-b border-line py-4 text-sm", focusRingClass)}
+                onClick={() => setMobileNavOpen(false)}
+              >
+                {link.label}
+                <ChevronRight size={18} className="text-muted" aria-hidden />
+              </Link>
+            ))}
+            {isApiAuth ? null : (
+              <button
+                type="button"
+                className={cn("flex w-full items-center justify-between border-b border-line py-4 text-left text-sm", focusRingClass)}
+                onClick={() => {
+                  setMobileNavOpen(false);
+                  navigate("/login");
+                }}
+              >
+                Login
+                <ChevronRight size={18} className="text-muted" aria-hidden />
+              </button>
+            )}
+            <button
+              type="button"
+              className={cn("flex w-full items-center justify-between border-b border-line py-4 text-left text-sm", focusRingClass)}
+              onClick={() => {
+                setMobileNavOpen(false);
+                openContactModal();
+              }}
+            >
+              Contact
+              <ChevronRight size={18} className="text-muted" aria-hidden />
+            </button>
+            {isApiAuth ? (
+              <button
+                type="button"
+                className={cn("flex w-full items-center justify-between py-4 text-left text-sm text-accent", focusRingClass)}
+                onClick={() => {
+                  setMobileNavOpen(false);
+                  signOut();
+                }}
+              >
+                Logout
+                <LogOut size={18} aria-hidden />
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={cn("py-4 text-left text-sm", focusRingClass)}
+                onClick={() => {
+                  setMobileNavOpen(false);
+                  join.onClick();
+                }}
+              >
+                {join.label}
+              </button>
+            )}
+          </nav>
         </div>
-      </nav>
+      </div>
     </header>
   );
 }
