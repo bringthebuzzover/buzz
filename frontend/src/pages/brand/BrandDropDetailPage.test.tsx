@@ -191,7 +191,7 @@ describe("BrandDropDetailPage", () => {
             followerCount: 100,
             memberCount: 40,
             pitch: "We host weekly mixers.",
-            decision: "applied",
+            decision: "accepted",
             decisionAt: null,
             decisionSentAt: null,
             appliedAt: now,
@@ -221,7 +221,7 @@ describe("BrandDropDetailPage", () => {
     expect(container.textContent).toContain("Ship to: Ithaca, NY");
   });
 
-  it("shows a missing applicant address as Address pending in the warn tone", () => {
+  it("shows a missing accepted address as Address pending in the warn tone", () => {
     mockUseBrandDropDetail.mockReturnValue({
       data: {
         ...brandDrop(false),
@@ -239,7 +239,7 @@ describe("BrandDropDetailPage", () => {
             followerCount: 100,
             memberCount: 40,
             pitch: null,
-            decision: "applied",
+            decision: "accepted",
             decisionAt: null,
             decisionSentAt: null,
             appliedAt: now,
