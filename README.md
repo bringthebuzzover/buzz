@@ -87,7 +87,7 @@ Run inside [`frontend/`](frontend/):
 | `npm start`       | Frontend dev server                                                      |
 | `npm run build`      | Production SPA bundle → `frontend/build/` (CI; no API URL required)           |
 | `npm run build:prod` | Guard `REACT_APP_API_URL`, build, then rewrite `serve.json` CSP from that URL |
-| `npm run start:prod` | Serve `build/` (`serve -s` unless `STAGING_BASIC_AUTH` is set; then Basic auth except `/healthz`) |
+| `npm run start:prod` | Serve `build/` with History API fallback (`serve -s`, binds `$PORT`)          |
 | `npm test`        | Frontend Jest/CRACO smoke tests                                          |
 | `npm run e2e`     | Playwright end-to-end tests                                              |
 | `npm run gen:api` | Regenerate `src/api/generated/schema.ts` from the root `../openapi.json` |
