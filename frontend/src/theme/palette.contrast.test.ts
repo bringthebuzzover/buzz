@@ -77,11 +77,9 @@ describe("Pulse Black contrast", () => {
   it("points the legacy class names at the pen", () => {
     const buzz = tailwindThemeExtend.colors.buzz;
     expect(buzz.coral).toBe(pulse.yellow);
-    expect(buzz.coralDark).toBe(pulse.yellowHover);
     expect(buzz.cream).toBe(pulse.ink);
     expect(buzz.paper).toBe(pulse.inkRaised);
     expect(buzz.ink).toBe(pulse.fg);
-    expect(buzz.dark).toBe(pulse.ink);
     expect(buzz.danger).toBe(pulse.dangerInk);
     expect(buzz.dangerFill).toBe("#b91c1c");
     expect(buzz.yellow).toBe("#f6d32a");

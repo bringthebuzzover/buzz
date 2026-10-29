@@ -82,7 +82,7 @@ function WhatHappensNext() {
         {NEXT_STEPS.map((step, index) => (
           <li key={step.title} className="flex gap-3">
             <span
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-buzz-coral text-xs font-bold text-buzz-paper"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-on-accent"
               aria-hidden
             >
               {index + 1}
@@ -192,7 +192,7 @@ function RequestForm({
     <>
       <Link
         to="/brand/dashboard"
-        className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-buzz-coral"
+        className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-accent"
       >
         <ChevronLeft size={16} className="mr-1" />
         Back to dashboard
@@ -200,7 +200,7 @@ function RequestForm({
 
       <div className="mb-8">
         <h1 className="mb-2 text-3xl font-bold text-buzz-ink">
-          Request a <span className="text-buzz-coral">Drop</span>
+          Request a <span className="text-accent">Drop</span>
         </h1>
         <p className="text-sm font-medium text-buzz-inkMuted">
           Tell us what you want to run. A Buzz representative will contact you
