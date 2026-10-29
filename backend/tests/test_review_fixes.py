@@ -68,7 +68,7 @@ async def test_send_decisions_emails_denied_applicants(
         sent.append({"to": to_email, **kwargs})
         return True
 
-    monkeypatch.setattr("app.services.seats.send_application_denied_email", _capture)
+    monkeypatch.setattr("app.services.drop_notices.send_application_denied_email", _capture)
 
     resp = await app_client.post(f"/api/brands/me/drops/{drop.id}/send-decisions", headers=headers)
     assert resp.status_code == 200, resp.text
@@ -104,7 +104,7 @@ async def test_send_decisions_no_denied_no_email(
         sent.append({"to": to_email})
         return True
 
-    monkeypatch.setattr("app.services.seats.send_application_denied_email", _capture)
+    monkeypatch.setattr("app.services.drop_notices.send_application_denied_email", _capture)
 
     resp = await app_client.post(f"/api/brands/me/drops/{drop.id}/send-decisions", headers=headers)
     assert resp.status_code == 200, resp.text

@@ -15,6 +15,10 @@ changed under that key, or a concurrent in-flight request) is not success, so
 keeps two overlapping runs from double-sending. Rows whose apply window has
 already closed are skipped rather than mailed — a reminder to apply to a
 closed drop is worse than no reminder.
+
+The same run sends the brand's "Choose your orgs" emails
+(``drop_notices.send_choose_orgs_reminders``), so they need no schedule of
+their own.
 """
 
 from __future__ import annotations
@@ -31,6 +35,7 @@ from app.models.enums import BrandStatus
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.user import User
+from app.services.drop_notices import send_choose_orgs_reminders
 from app.services.email import (
     KIND_REMINDER,
     build_idempotency_key,
@@ -90,4 +95,8 @@ async def send_due_reminders(db: AsyncSession) -> dict[str, Any]:
         sent += 1
 
     await db.flush()
-    return {"reminders_sent": sent, "reminders_skipped": skipped}
+    return {
+        "reminders_sent": sent,
+        "reminders_skipped": skipped,
+        **await send_choose_orgs_reminders(db),
+    }

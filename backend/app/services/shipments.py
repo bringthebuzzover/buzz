@@ -16,6 +16,7 @@ from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.enums import ApplicationDecision
 from app.models.shipment import CARRIERS, DropApplicationShipment
+from app.services.drop_notices import notify_shipped
 from app.services.lifecycle import drop_running, reject_if_canceled, seat_is_live
 from app.timeutils import utcnow
 
@@ -128,7 +129,7 @@ async def add_shipment(
     tracking_number: str,
     carrier: str | None,
 ) -> dict[str, Any]:
-    await _live_seat(db, application_id, "Tracking can be added")
+    application = await _live_seat(db, application_id, "Tracking can be added")
 
     cleaned = tracking_number.strip()
     if not cleaned:
@@ -177,7 +178,9 @@ async def add_shipment(
     )
     db.add(row)
     await db.flush()
-    return serialize_shipment(row)
+    shipment = serialize_shipment(row)
+    await notify_shipped(db, application, shipment)
+    return shipment
 
 
 async def delete_shipment(

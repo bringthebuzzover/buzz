@@ -25,6 +25,7 @@ from app.models.organization import Organization
 from app.models.shipment import DropApplicationShipment
 from app.models.user import User
 from app.schemas.campaigns import CampaignDetailResponse, CampaignListItem
+from app.services.drop_notices import notify_withdrew
 from app.services.lifecycle import (
     ORG_HIDDEN_DECISIONS,
     drop_stages,
@@ -232,6 +233,7 @@ async def withdraw_my_campaign(db: AsyncSession, org_user: User, application_id:
             status_code=409,
         )
     await end_seat(db, application, decision=ApplicationDecision.WITHDREW.value, reason=None)
+    await notify_withdrew(db, application)
 
 
 async def set_my_campaign_delivered(
