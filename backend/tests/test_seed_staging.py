@@ -21,95 +21,38 @@ def test_prod_hosts_parse_comma_list() -> None:
     assert prod_db_hosts_from_env("") == set()
 
 
-def test_local_seed_mode_without_staging_flag() -> None:
-    assert (
-        resolve_seed_mode(
-            _LOCAL,
-            environment="development",
-            confirm="",
-            prod_hosts=set(),
-            frontend_url=_SPA,
-        )
-        == "local"
-    )
-
-
-def test_staging_flag_selects_demo_upsert_even_on_localhost() -> None:
-    assert (
-        resolve_seed_mode(
-            _LOCAL,
-            environment="staging",
-            confirm="buzz-staging",
-            prod_hosts=set(),
-            frontend_url=_SPA,
-        )
-        == "staging"
-    )
-
-
-def test_remote_without_flag_is_refused() -> None:
-    with pytest.raises(SystemExit):
-        resolve_seed_mode(
-            _REMOTE,
-            environment="staging",
-            confirm="yes",
-            prod_hosts=set(),
-            frontend_url=_SPA,
-        )
-
-
-def test_production_is_refused_even_with_confirm_flag() -> None:
-    with pytest.raises(SystemExit):
-        resolve_seed_mode(
-            _LOCAL,
-            environment="production",
-            confirm="buzz-staging",
-            prod_hosts=set(),
-            frontend_url=_SPA,
-        )
-
-
-def test_listed_prod_host_is_refused() -> None:
-    with pytest.raises(SystemExit):
-        resolve_seed_mode(
-            _REMOTE,
-            environment="staging",
-            confirm="buzz-staging",
-            prod_hosts={"db.example"},
-            frontend_url=_SPA,
-        )
+_STAGING = {"environment": "staging", "confirm": "buzz-staging"}
 
 
 @pytest.mark.parametrize(
-    "frontend_url",
+    ("db_url", "overrides", "expected"),
     [
-        "https://bringthebuzzover.com",
-        "https://www.bringthebuzzover.com/login",
-        "https://WWW.BringTheBuzzOver.com",
+        (_LOCAL, {"environment": "development", "confirm": ""}, "local"),
+        # The staging flag selects the demo upsert, even on localhost.
+        (_LOCAL, {}, "staging"),
+        (_LOCAL, {"frontend_url": "https://staging.bringthebuzzover.com"}, "staging"),
     ],
 )
-def test_prod_frontend_host_is_refused(frontend_url: str) -> None:
+def test_seed_mode_allowed(db_url: str, overrides: dict, expected: str) -> None:
+    kwargs = {**_STAGING, "prod_hosts": set(), "frontend_url": _SPA, **overrides}
+    assert resolve_seed_mode(db_url, **kwargs) == expected
+
+
+@pytest.mark.parametrize(
+    ("db_url", "overrides"),
+    [
+        (_REMOTE, {"confirm": "yes"}),  # remote DB without the confirm flag
+        (_LOCAL, {"environment": "production"}),  # production, even with the flag
+        (_REMOTE, {"prod_hosts": {"db.example"}}),  # listed prod DB host
+        (_LOCAL, {"frontend_url": "https://bringthebuzzover.com"}),  # prod SPA host
+        (_LOCAL, {"frontend_url": "https://www.bringthebuzzover.com/login"}),
+        (_LOCAL, {"frontend_url": "https://WWW.BringTheBuzzOver.com"}),
+    ],
+)
+def test_seed_mode_refused(db_url: str, overrides: dict) -> None:
+    kwargs = {**_STAGING, "prod_hosts": set(), "frontend_url": _SPA, **overrides}
     with pytest.raises(SystemExit):
-        resolve_seed_mode(
-            _LOCAL,
-            environment="staging",
-            confirm="buzz-staging",
-            prod_hosts=set(),
-            frontend_url=frontend_url,
-        )
-
-
-def test_staging_frontend_host_is_allowed() -> None:
-    assert (
-        resolve_seed_mode(
-            _LOCAL,
-            environment="staging",
-            confirm="buzz-staging",
-            prod_hosts=set(),
-            frontend_url="https://staging.bringthebuzzover.com",
-        )
-        == "staging"
-    )
+        resolve_seed_mode(db_url, **kwargs)
 
 
 async def test_staging_demo_upsert_is_idempotent(db_session) -> None:

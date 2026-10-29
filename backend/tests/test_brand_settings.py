@@ -251,7 +251,13 @@ class TestChangeBrandPassword:
         )
         assert res.status_code == 403
 
-    async def test_view_as_readonly_refused(self, app_client: AsyncClient, db_session):
+    @pytest.mark.parametrize(
+        ("readonly", "code"),
+        [(True, errors.IMPERSONATION_READONLY), (False, errors.FORBIDDEN)],
+    )
+    async def test_view_as_refused(
+        self, app_client: AsyncClient, db_session, readonly: bool, code: str
+    ):
         user, _brand_row = await _brand(db_session)
         admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
         token = jwt.create_access_token(
@@ -261,7 +267,7 @@ class TestChangeBrandPassword:
             token_version=user.token_version or 0,
             impersonated_by=admin.id,
             impersonator_token_version=admin.token_version or 0,
-            readonly=True,
+            readonly=readonly,
         )
         res = await app_client.post(
             "/api/auth/brand/change-password",
@@ -269,29 +275,7 @@ class TestChangeBrandPassword:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert res.status_code == 403
-        assert res.json()["error"]["code"] == errors.IMPERSONATION_READONLY
-        await db_session.refresh(user)
-        assert verify_password("current-pass-1", user.password_hash or "")
-
-    async def test_view_as_writable_still_refused(self, app_client: AsyncClient, db_session):
-        user, _brand_row = await _brand(db_session)
-        admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-        token = jwt.create_access_token(
-            user.id,
-            user.portal_role,
-            user.status,
-            token_version=user.token_version or 0,
-            impersonated_by=admin.id,
-            impersonator_token_version=admin.token_version or 0,
-            readonly=False,
-        )
-        res = await app_client.post(
-            "/api/auth/brand/change-password",
-            json={"currentPassword": "current-pass-1", "newPassword": "next-pass-22"},
-            headers={"Authorization": f"Bearer {token}"},
-        )
-        assert res.status_code == 403
-        assert res.json()["error"]["code"] == errors.FORBIDDEN
+        assert res.json()["error"]["code"] == code
         await db_session.refresh(user)
         assert verify_password("current-pass-1", user.password_hash or "")
         assert (user.token_version or 0) == 0

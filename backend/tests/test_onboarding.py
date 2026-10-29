@@ -9,6 +9,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
@@ -74,33 +75,29 @@ async def test_onboarding_submit_advances_status(app_client: AsyncClient, db_ses
     assert evt is not None
 
 
-async def test_onboarding_rejects_client_instagram_handle(
-    app_client: AsyncClient, db_session
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"instagramHandle": "someoneelse"},  # handle comes from Instagram, not the client
+        {"followerCount": 1200},  # so does the follower count
+        {"eduEmail": "club@gmail.com"},
+        {"bogusField": "x"},
+    ],
+)
+async def test_onboarding_rejects_bad_profile(
+    app_client: AsyncClient, db_session, extra: dict
 ) -> None:
     user = await persist(
         db_session,
-        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_ob_handle"),
+        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_ob_reject"),
     )
     resp = await app_client.post(
         "/api/orgs/onboarding",
-        json={**_VALID_PROFILE, "instagramHandle": "someoneelse"},
+        json={**_VALID_PROFILE, **extra},
         headers={"Authorization": f"Bearer {mint_access_token(user)}"},
     )
     assert resp.status_code == 422
     assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
-
-
-async def test_onboarding_rejects_non_edu_email(app_client: AsyncClient, db_session) -> None:
-    user = await persist(
-        db_session,
-        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_ob_2"),
-    )
-    resp = await app_client.post(
-        "/api/orgs/onboarding",
-        json={**_VALID_PROFILE, "eduEmail": "club@gmail.com"},
-        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
-    )
-    assert resp.status_code == 422
 
 
 async def test_onboarding_rejects_wrong_status(app_client: AsyncClient, db_session) -> None:
@@ -179,35 +176,6 @@ async def test_onboarding_takeover_stale_unverified_edu(
     assert resp.status_code == 200, resp.text
     await db_session.refresh(peer)
     assert peer.edu_email is None
-
-
-async def test_onboarding_rejects_unknown_field(app_client: AsyncClient, db_session) -> None:
-    user = await persist(
-        db_session,
-        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_extra"),
-    )
-    resp = await app_client.post(
-        "/api/orgs/onboarding",
-        json={**_VALID_PROFILE, "bogusField": "x"},
-        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
-    )
-    assert resp.status_code == 422
-
-
-async def test_onboarding_rejects_client_follower_count(
-    app_client: AsyncClient, db_session
-) -> None:
-    user = await persist(
-        db_session,
-        make_user(status=OrgUserStatus.PENDING_ORG_PROFILE, instagram_user_id="ig_followers"),
-    )
-    resp = await app_client.post(
-        "/api/orgs/onboarding",
-        json={**_VALID_PROFILE, "followerCount": 1200},
-        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
-    )
-    assert resp.status_code == 422
-    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
 async def test_onboarding_requires_profile_fields(app_client: AsyncClient, db_session) -> None:
@@ -795,32 +763,28 @@ async def test_brand_login_success(app_client: AsyncClient, db_session) -> None:
     assert settings.REFRESH_COOKIE_NAME in resp.headers.get("set-cookie", "")
 
 
-async def test_brand_login_wrong_password(app_client: AsyncClient, db_session) -> None:
-    await _seed_active_brand_with_password(db_session, email="wp@test.com")
+@pytest.mark.parametrize(
+    ("email", "password", "brand_status"),
+    [
+        ("wp@test.com", "wrongpass1", None),  # wrong password
+        ("ghost@test.com", "whatever12", None),  # unknown email
+        ("wp@test.com", "hunter2pass", BrandStatus.PENDING_REVIEW),  # brand not approved
+    ],
+)
+async def test_brand_login_rejected(
+    app_client: AsyncClient,
+    db_session,
+    email: str,
+    password: str,
+    brand_status: BrandStatus | None,
+) -> None:
+    brand = await _seed_active_brand_with_password(db_session, email="wp@test.com")
+    if brand_status is not None:
+        brand.status = brand_status.value
+        await db_session.flush()
     resp = await app_client.post(
         "/api/auth/brand/login",
-        json={"email": "wp@test.com", "password": "wrongpass1"},
-    )
-    assert resp.status_code == 401
-    assert resp.json()["error"]["code"] == "UNAUTHORIZED"
-
-
-async def test_brand_login_unknown_email(app_client: AsyncClient) -> None:
-    resp = await app_client.post(
-        "/api/auth/brand/login",
-        json={"email": "ghost@test.com", "password": "whatever12"},
-    )
-    assert resp.status_code == 401
-    assert resp.json()["error"]["code"] == "UNAUTHORIZED"
-
-
-async def test_brand_login_unapproved_brand(app_client: AsyncClient, db_session) -> None:
-    brand = await _seed_active_brand_with_password(db_session, email="pending@test.com")
-    brand.status = BrandStatus.PENDING_REVIEW.value
-    await db_session.flush()
-    resp = await app_client.post(
-        "/api/auth/brand/login",
-        json={"email": "pending@test.com", "password": "hunter2pass"},
+        json={"email": email, "password": password},
     )
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"

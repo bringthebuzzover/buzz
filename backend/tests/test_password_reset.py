@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
@@ -106,16 +107,27 @@ async def test_brand_reset_happy_path(app_client: AsyncClient, db_session) -> No
     assert login.status_code == 200
 
 
-async def test_brand_reset_expired_token(app_client: AsyncClient, db_session) -> None:
-    _, user = await _active_brand(db_session, email="expired@brand.test")
-    raw = "expired-token"
+@pytest.mark.parametrize(
+    ("expires_in", "used", "code"),
+    [
+        (timedelta(minutes=-1), False, "PASSWORD_RESET_TOKEN_EXPIRED"),
+        (timedelta(hours=1), True, "PASSWORD_RESET_TOKEN_USED"),
+    ],
+)
+async def test_brand_reset_dead_token(
+    app_client: AsyncClient, db_session, expires_in: timedelta, used: bool, code: str
+) -> None:
+    _, user = await _active_brand(db_session, email="dead@brand.test")
+    raw = "dead-token"
+    now = datetime.now(timezone.utc)
     db_session.add(
         PasswordResetToken(
             id=uuid.uuid4(),
             user_id=user.id,
             token_hash=hash_token(raw),
-            email="expired@brand.test",
-            expires_at=datetime.now(timezone.utc) - timedelta(minutes=1),
+            email="dead@brand.test",
+            expires_at=now + expires_in,
+            used_at=now if used else None,
         )
     )
     await db_session.flush()
@@ -124,29 +136,7 @@ async def test_brand_reset_expired_token(app_client: AsyncClient, db_session) ->
         json={"token": raw, "password": "new-password-9"},
     )
     assert resp.status_code == 400
-    assert resp.json()["error"]["code"] == "PASSWORD_RESET_TOKEN_EXPIRED"
-
-
-async def test_brand_reset_used_token(app_client: AsyncClient, db_session) -> None:
-    _, user = await _active_brand(db_session, email="used@brand.test")
-    raw = "used-token"
-    db_session.add(
-        PasswordResetToken(
-            id=uuid.uuid4(),
-            user_id=user.id,
-            token_hash=hash_token(raw),
-            email="used@brand.test",
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
-            used_at=datetime.now(timezone.utc),
-        )
-    )
-    await db_session.flush()
-    resp = await app_client.post(
-        "/api/auth/brand/reset-password",
-        json={"token": raw, "password": "new-password-9"},
-    )
-    assert resp.status_code == 400
-    assert resp.json()["error"]["code"] == "PASSWORD_RESET_TOKEN_USED"
+    assert resp.json()["error"]["code"] == code
 
 
 async def test_post_reset_old_refresh_fails(app_client: AsyncClient, db_session) -> None:
