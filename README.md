@@ -12,15 +12,15 @@ Product, architecture, deploy, Meta, gaps and ideas docs live in the private `br
 
 | Surface        | Routes (high level)                                                                                     |
 | -------------- | ------------------------------------------------------------------------------------------------------- |
-| Marketing      | `/` (Join Us → `/org/apply` or `/brand/apply`; as-built Join still `/login` until Phase A) |
+| Marketing      | `/` (Join Us → `/org/apply` or `/brand/apply`) |
 | Legal          | `/privacy`, `/terms`, `/data-deletion`                                                                  |
-| Auth           | `/login` (returning org Instagram), `/org/apply` (new org — Phase A), `/auth/instagram/callback`, `/brand/login`, `/brand/forgot-password`, `/brand/reset-password`, `/brand/setup`, `/brand/apply`, `/admin/login`, `/admin/forgot-password`, `/admin/reset-password` |
-| Org onboarding | `/org/apply` (Phase A), `/onboarding/profile` (legacy drain), `/onboarding/verify-email`, `/onboarding/pending-approval`, `/onboarding/connect-instagram` (Phase A), `/onboarding/denied` |
+| Auth           | `/login` (returning org Instagram), `/org/apply` (new org), `/auth/instagram/callback`, `/brand/login`, `/brand/forgot-password`, `/brand/reset-password`, `/brand/setup`, `/brand/apply`, `/admin/login`, `/admin/forgot-password`, `/admin/reset-password` |
+| Org onboarding | `/org/apply`, `/onboarding/profile` (legacy drain), `/onboarding/verify-email`, `/onboarding/pending-approval`, `/onboarding/connect-instagram`, `/onboarding/denied` |
 | Org portal     | `/org/browse`, `/org/campaigns`, `/org/campaigns/:campaignId`                                           |
 | Brand portal   | `/brand/dashboard`, `/brand/drops/:dropId`, `/brand/requests/new`                                       |
 | Admin          | `/admin` (overview, queues, drops, health, Invite brand, View as)                                       |
 
-Portals are gated by real auth (`RequireAuth` → `RequireStatus` → `RequireRole`), not a demo passcode. Public join intent: student orgs via **org apply** (`/org/apply`); brands via `/brand/apply`. As-built until Phase A: orgs still go through Instagram (`/login`).
+Portals are gated by real auth (`RequireAuth` → `RequireStatus` → `RequireRole`), not a demo passcode. Public join intent: student orgs via **org apply** (`/org/apply`); brands via `/brand/apply`. Returning orgs sign in with Instagram at `/login`.
 
 Admins sign in with email + password (`/admin/login`) and can "View as" any active org or brand from `/admin`. Impersonation rides a short-lived access token — the admin's own refresh cookie is untouched — and is read-only unless `IMPERSONATION_READONLY=false`.
 
@@ -168,7 +168,7 @@ Runbook: buzz-ops `engineering/runbooks/deploy.md`.
 
 ## Branching & main protection
 
-Decided 2026-10-26: there is no long-lived `dev` or `staging` branch and no staging environment. Short-lived feature branches open a pull request straight into `main`. Railway autodeploys from `main` only. `ENVIRONMENT=staging` is still a legal API setting (same hardened path as `production`); it is not a second deployed stack.
+Feature PRs target `staging`, which auto-deploys to the staging site; `staging` → `main` happens only via a promotion PR after Lawrence checks staging.
 
 `main` is protected. These GitHub branch-protection settings are already applied, and admins are bound by them (`enforce_admins`):
 

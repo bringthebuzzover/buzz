@@ -18,7 +18,7 @@ For any **behavior-touching** change:
 2. Run **`./scripts/ci-local.sh`** from repo root; must be green before claiming ready to commit (includes Playwright E2E).
 3. **Stop** — do not commit or push unless the user explicitly asks.
 4. Stress Playwright ×N **only if the user asks** (`workflow_dispatch` / `[e2e-stress-N]`).
-5. **Never push to `main`** — it is protected. Feature-branch PR only ([Branching & main protection](README.md#branching--main-protection)).
+5. **Never push to `main`** — it is protected. Feature-branch PR only (into `staging`) ([Branching & main protection](README.md#branching--main-protection)).
 
 Docs/rules/skills-only changes: commit when the user asks; `ci-local` not required unless app code was touched.
 

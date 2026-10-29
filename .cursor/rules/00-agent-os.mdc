@@ -1,5 +1,5 @@
 ---
-description: Buzz agent OS — SOTs, working norms, DoD, PRODUCT lock, commit stop
+description: Buzz agent OS — DoD, hard stops, buzz-ops pointer
 alwaysApply: true
 ---
 
@@ -17,7 +17,7 @@ HTTP contract → [`openapi.json`](../../openapi.json).
 2. `./scripts/ci-local.sh` green (includes Playwright E2E)
 3. **Stop** — no commit/push unless the user explicitly asks
 4. Stress E2E ×N only if asked
-5. **Never push to `main`** — it is protected. Feature-branch PR only ([Branching & main protection](../../README.md#branching--main-protection))
+5. **Never push to `main`** — it is protected. Feature-branch PR only (into `staging`) ([Branching & main protection](../../README.md#branching--main-protection))
 
 ## Hard stops (ask first)
 
