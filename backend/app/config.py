@@ -228,6 +228,39 @@ class Settings(BaseSettings):
         default="",
         description="Resend API key for transactional emails (empty = dev/console).",
     )
+    EMAIL_ALLOWLIST: str = Field(
+        default="",
+        description=(
+            "Comma-separated exact addresses and/or @domain suffixes. "
+            "Consulted only when EMAIL_FAIL_CLOSED is true. Empty then "
+            "suppresses every send. Ignored when EMAIL_FAIL_CLOSED is false."
+        ),
+    )
+    EMAIL_FAIL_CLOSED: bool = Field(
+        default=False,
+        description=(
+            "When true, drop any to/cc address that is not in EMAIL_ALLOWLIST "
+            "(logged, not delivered). An empty allowlist suppresses every send. "
+            "Default false: mail is unchanged for staging and production."
+        ),
+    )
+    EMAIL_SUBJECT_PREFIX: str = Field(
+        default="",
+        description=(
+            "Literal prefix prepended to every subject, for example "
+            "'[STAGING] '. Empty leaves the subject unchanged. Not derived "
+            "from ENVIRONMENT."
+        ),
+    )
+    STAGING_BASIC_AUTH: str = Field(
+        default="",
+        description=(
+            "HTTP Basic credentials as user:password. Empty disables the gate. "
+            "On the API this only protects interactive docs, and only when "
+            "ENVIRONMENT=staging. The frontend static server reads the same "
+            "variable at runtime."
+        ),
+    )
     BRAND_SELF_REGISTRATION_ENABLED: bool = Field(
         default=True,
         description=(
