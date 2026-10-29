@@ -14,16 +14,12 @@ from app.models.user import User
 from app.security.token_crypto import encrypt_token
 from tests.conftest import (
     FakeInstagramClient,
+    admin_headers,
     make_org,
     make_user,
     mint_access_token,
     persist,
 )
-
-
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 async def _pending_connect(db_session, *, claimed: str, username: str | None = None):
@@ -93,7 +89,7 @@ async def test_bind_mismatch_flags_and_stays_active(
     assert org.ig_bind_mismatched_at is not None
     assert org.ig_bind_mismatch_acked_at is None
 
-    admin = await _admin_headers(db_session)
+    admin = await admin_headers(db_session)
     overview = await app_client.get("/api/admin/overview", headers=admin)
     data = overview.json()["data"]
     mismatch_q = next(q for q in data["queues"] if q["key"] == "orgs_ig_bind_mismatch")
@@ -185,7 +181,7 @@ async def test_empty_claimed_does_not_flag(
 
 
 async def test_unknown_attention_rejected(app_client: AsyncClient, db_session) -> None:
-    admin = await _admin_headers(db_session)
+    admin = await admin_headers(db_session)
     res = await app_client.get("/api/admin/orgs?attention=bogus", headers=admin)
     assert res.status_code == 400
 
@@ -226,7 +222,7 @@ async def test_switch_clears_mismatch_then_rebind_can_flag(
         headers=org_headers,
     )
     assert created.status_code == 200, created.text
-    admin = await _admin_headers(db_session)
+    admin = await admin_headers(db_session)
     approved = await app_client.post(
         f"/api/admin/ig-change-requests/{created.json()['data']['id']}/approve",
         json={"kind": "account_switch", "testerInviteConfirmed": True},

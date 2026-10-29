@@ -23,6 +23,7 @@ from app.models.enums import (
 )
 from app.models.organization import Organization
 from tests.conftest import (
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -54,11 +55,6 @@ async def _brand_ctx(db_session):
     await db_session.flush()
     headers = {"Authorization": f"Bearer {mint_access_token(brand_user)}"}
     return brand_user, brand, headers
-
-
-async def _admin_headers(db_session):
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 # --- Gap 2: Notify-Me feed round-trip (§6.3.1) -------------------------------
@@ -136,7 +132,7 @@ async def test_advance_to_awaiting_does_not_require_tracking(
     resp = await app_client.patch(
         f"/api/admin/drops/{drop.id}/tracker",
         json={"stage": "awaiting_products"},
-        headers=await _admin_headers(db_session),
+        headers=await admin_headers(db_session),
     )
     assert resp.status_code == 200, resp.text
     await db_session.refresh(drop)
@@ -156,7 +152,7 @@ async def test_brand_drop_detail_exposes_per_org_shipments(
     await app_client.post(
         f"/api/admin/applications/{application.id}/shipments",
         json={"trackingNumber": "1ZBRANDVIEW"},
-        headers=await _admin_headers(db_session),
+        headers=await admin_headers(db_session),
     )
 
     resp = await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=headers)
@@ -306,7 +302,7 @@ async def test_tracker_blocks_skip_past_selection_unfinalized(
     resp = await app_client.patch(
         f"/api/admin/drops/{drop.id}/tracker",
         json={"stage": "drop_active"},
-        headers=await _admin_headers(db_session),
+        headers=await admin_headers(db_session),
     )
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "DROP_NOT_IN_SELECTION_STAGE"
@@ -321,13 +317,13 @@ async def test_tracker_advance_allowed_after_finalized(app_client: AsyncClient, 
     resp = await app_client.patch(
         f"/api/admin/drops/{drop.id}/tracker",
         json={"stage": "awaiting_products"},
-        headers=await _admin_headers(db_session),
+        headers=await admin_headers(db_session),
     )
     assert resp.status_code == 200, resp.text
     resp = await app_client.patch(
         f"/api/admin/drops/{drop.id}/tracker",
         json={"stage": "drop_active"},
-        headers=await _admin_headers(db_session),
+        headers=await admin_headers(db_session),
     )
     assert resp.status_code == 200, resp.text
 
@@ -342,7 +338,7 @@ async def test_tracker_blocks_jump_past_awaiting_products(
     resp = await app_client.patch(
         f"/api/admin/drops/{drop.id}/tracker",
         json={"stage": "drop_active"},
-        headers=await _admin_headers(db_session),
+        headers=await admin_headers(db_session),
     )
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
@@ -356,7 +352,7 @@ async def test_reopen_finalized_drop_resets_selection(app_client: AsyncClient, d
     await db_session.flush()
 
     resp = await app_client.post(
-        f"/api/admin/drops/{drop.id}/reopen", headers=await _admin_headers(db_session)
+        f"/api/admin/drops/{drop.id}/reopen", headers=await admin_headers(db_session)
     )
     assert resp.status_code == 200, resp.text
     await db_session.refresh(drop)
@@ -374,7 +370,7 @@ async def test_reopen_live_drop_finalized_is_rejected(app_client: AsyncClient, d
     await db_session.flush()
 
     resp = await app_client.post(
-        f"/api/admin/drops/{drop.id}/reopen", headers=await _admin_headers(db_session)
+        f"/api/admin/drops/{drop.id}/reopen", headers=await admin_headers(db_session)
     )
     assert resp.status_code == 409, resp.text
     assert resp.json()["error"]["code"] == "ALREADY_FINALIZED"
@@ -392,7 +388,7 @@ async def test_reopen_live_unfinalized_drop_sets_flag(app_client: AsyncClient, d
     await db_session.flush()
 
     resp = await app_client.post(
-        f"/api/admin/drops/{drop.id}/reopen", headers=await _admin_headers(db_session)
+        f"/api/admin/drops/{drop.id}/reopen", headers=await admin_headers(db_session)
     )
     assert resp.status_code == 200, resp.text
     await db_session.refresh(drop)
@@ -405,7 +401,7 @@ async def test_reopen_unfinalized_drop_only_sets_flag(app_client: AsyncClient, d
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand, stage=BrandTrackerStage.REQUEST_RECEIVED)
     resp = await app_client.post(
-        f"/api/admin/drops/{drop.id}/reopen", headers=await _admin_headers(db_session)
+        f"/api/admin/drops/{drop.id}/reopen", headers=await admin_headers(db_session)
     )
     assert resp.status_code == 200, resp.text
     await db_session.refresh(drop)

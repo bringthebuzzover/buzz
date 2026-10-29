@@ -8,6 +8,7 @@ from httpx import AsyncClient
 
 from app.models.enums import ApplicationDecision, BrandTrackerStage, PortalRole
 from tests.conftest import (
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -19,11 +20,6 @@ from tests.conftest import (
 )
 
 
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
-
-
 class TestHideUnhideDrop:
     async def test_hide_unpublished_rejected(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
@@ -31,7 +27,7 @@ class TestHideUnhideDrop:
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/hide",
             json={"confirm": "Draft"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
         assert drop.hidden_at is None
@@ -42,7 +38,7 @@ class TestHideUnhideDrop:
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/hide",
             json={"confirm": "spring drop"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
         await db_session.refresh(drop)
@@ -59,7 +55,7 @@ class TestHideUnhideDrop:
 
         brand = await make_brand(db_session, company_email="ops@acme.test")
         drop = await make_drop(db_session, brand, title="Spring Drop")
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         hidden = await app_client.post(
             f"/api/admin/drops/{drop.id}/hide",
@@ -101,7 +97,7 @@ class TestHideUnhideDrop:
         buried = await make_drop(db_session, brand, title="Buried")
         buried.hidden_at = datetime.now(timezone.utc)
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         default = await app_client.get("/api/admin/drops", headers=headers)
         titles = [r["title"] for r in default.json()["data"]]
@@ -169,7 +165,7 @@ class TestHideUnhideDrop:
         drop.hidden_at = datetime.now(timezone.utc)
         await db_session.flush()
 
-        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         signal = next(
             item
             for item in res.json()["data"]["integrity"]

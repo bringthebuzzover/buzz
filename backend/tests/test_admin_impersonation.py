@@ -13,7 +13,7 @@ from app.models.enums import OrgUserStatus, PortalRole
 from app.security import jwt
 from app.security.password import hash_password
 from app.security.session import bump_token_version
-from tests.conftest import make_org, make_user, mint_access_token, persist
+from tests.conftest import admin_headers, make_org, make_user, mint_access_token, persist
 
 
 async def _admin(db_session, *, email: str | None = None, password: str | None = None):
@@ -23,11 +23,6 @@ async def _admin(db_session, *, email: str | None = None, password: str | None =
     if password is not None:
         admin.password_hash = hash_password(password)
     return await persist(db_session, admin)
-
-
-async def _admin_headers(db_session) -> dict:
-    admin = await _admin(db_session)
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 class TestAdminLogin:
@@ -101,7 +96,7 @@ class TestImpersonate:
 
         res = await app_client.post(
             f"/api/admin/impersonate/{target.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         data = res.json()["data"]
@@ -125,7 +120,7 @@ class TestImpersonate:
 
         res = await app_client.post(
             f"/api/admin/impersonate/{target.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         assert settings.REFRESH_COOKIE_NAME not in res.cookies
@@ -135,7 +130,7 @@ class TestImpersonate:
 
         res = await app_client.post(
             f"/api/admin/impersonate/{other_admin.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 403
 
@@ -147,14 +142,14 @@ class TestImpersonate:
 
         res = await app_client.post(
             f"/api/admin/impersonate/{pending.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 403
 
     async def test_unknown_target_404s(self, app_client: AsyncClient, db_session):
         res = await app_client.post(
             f"/api/admin/impersonate/{uuid.uuid4()}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 404
 
@@ -181,7 +176,7 @@ class TestImpersonationReadonly:
         await make_org(db_session, target)
         res = await app_client.post(
             f"/api/admin/impersonate/{target.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         return res.json()["data"]["accessToken"]
@@ -302,7 +297,7 @@ class TestViewAsIntentCookie:
         target = await persist(db_session, make_user(role=PortalRole.ORG))
         res = await app_client.post(
             f"/api/admin/impersonate/{target.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         set_cookie = res.headers.get("set-cookie", "")
@@ -338,7 +333,7 @@ class TestViewAsIntentCookie:
     async def test_resume_without_cookie_is_404(self, app_client: AsyncClient, db_session):
         res = await app_client.post(
             "/api/admin/impersonate/resume",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
             json={"role": "org"},
         )
         assert res.status_code == 404
@@ -368,7 +363,7 @@ class TestViewAsIntentCookie:
         target = await persist(db_session, make_user(role=PortalRole.ORG))
         minted = await app_client.post(
             f"/api/admin/impersonate/{target.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert minted.status_code == 200
         intent = app_client.cookies.get(settings.VIEW_AS_COOKIE_NAME)
@@ -380,7 +375,7 @@ class TestViewAsIntentCookie:
         target = await persist(db_session, make_user(role=PortalRole.ORG))
         minted = await app_client.post(
             f"/api/admin/impersonate/{target.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert minted.status_code == 200
         ended = await app_client.post("/api/auth/view-as/end")
@@ -388,7 +383,7 @@ class TestViewAsIntentCookie:
         assert "Max-Age=0" in ended.headers.get("set-cookie", "")
         resume = await app_client.post(
             "/api/admin/impersonate/resume",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
             json={"role": "org"},
         )
         assert resume.status_code == 404

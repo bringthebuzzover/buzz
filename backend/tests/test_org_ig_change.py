@@ -17,6 +17,7 @@ from app.models.user import User
 from app.security.token_crypto import encrypt_token
 from tests.conftest import (
     FakeInstagramClient,
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -27,11 +28,6 @@ from tests.conftest import (
     mint_access_token,
     persist,
 )
-
-
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 async def _active_org(db_session, *, handle: str = "campusgreeks", graph_id: str = "ig_a"):
@@ -135,7 +131,7 @@ class TestOrgIgChangeRequest:
             headers=org_headers,
         )
         request_id = created.json()["data"]["id"]
-        admin = await _admin_headers(db_session)
+        admin = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/ig-change-requests/{request_id}/approve",
             json={"kind": "rename"},
@@ -176,7 +172,7 @@ class TestOrgIgChangeRequest:
             headers=org_headers,
         )
         request_id = created.json()["data"]["id"]
-        admin = await _admin_headers(db_session)
+        admin = await admin_headers(db_session)
 
         refused = await app_client.post(
             f"/api/admin/ig-change-requests/{request_id}/approve",
@@ -251,7 +247,7 @@ class TestOrgIgChangeRequest:
             json=_body(),
             headers=org_headers,
         )
-        admin = await _admin_headers(db_session)
+        admin = await admin_headers(db_session)
         await app_client.post(
             f"/api/admin/ig-change-requests/{created.json()['data']['id']}/approve",
             json={"kind": "account_switch", "testerInviteConfirmed": True},
@@ -316,7 +312,7 @@ class TestOrgIgChangeRequest:
             json=_body(),
             headers={"Authorization": f"Bearer {mint_access_token(user)}"},
         )
-        admin = await _admin_headers(db_session)
+        admin = await admin_headers(db_session)
         denied = await app_client.post(
             f"/api/admin/ig-change-requests/{created.json()['data']['id']}/deny",
             headers=admin,

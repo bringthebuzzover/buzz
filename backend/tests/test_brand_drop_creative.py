@@ -8,6 +8,7 @@ from sqlalchemy import select
 from app.models.drop import Drop
 from app.models.enums import PortalRole
 from tests.conftest import (
+    admin_headers,
     make_brand,
     make_drop,
     make_user,
@@ -29,11 +30,6 @@ async def _brand_ctx(db_session):
     return brand_user, brand, headers
 
 
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
-
-
 def _brand_patch_url(drop_id) -> str:
     return f"/api/brands/me/drops/{drop_id}"
 
@@ -42,7 +38,7 @@ async def _set_brand_can_edit(app_client: AsyncClient, db_session, drop_id, valu
     return await app_client.patch(
         f"/api/admin/drops/{drop_id}",
         json={"brandCanEditCreative": value},
-        headers=await _admin_headers(db_session),
+        headers=await admin_headers(db_session),
     )
 
 
@@ -77,7 +73,7 @@ class TestAdminBrandCanEditCreativeFlag:
     async def test_null_422_then_true_then_false(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         null = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
@@ -212,7 +208,7 @@ class TestBrandPatchCreative:
         )
         assert brand_ok.status_code == 200, brand_ok.text
 
-        admin = await _admin_headers(db_session)
+        admin = await admin_headers(db_session)
         admin_ok = await app_client.patch(
             f"/api/admin/drops/{drop.id}",
             json={"title": "Admin After Brand", "image": HTTPS_IMAGE_2},
