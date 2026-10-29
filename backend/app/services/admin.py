@@ -69,7 +69,7 @@ from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
-from app.services.lifecycle import drop_stage, seat_is_live
+from app.services.lifecycle import apply_window_closed, drop_stage, seat_is_live
 from app.services.org_apply import ig_bind_mismatch_open
 from app.services.org_connect import create_org_connect_token
 
@@ -886,6 +886,16 @@ async def wrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     if drop.published_at is None:
         raise BuzzAPIException(
             errors.VALIDATION_ERROR, "Only published drops can be wrapped up.", status_code=409
+        )
+    if drop.wrapped_at is None and (
+        drop.hidden_at is not None or not apply_window_closed(drop, datetime.now(timezone.utc))
+    ):
+        # Wrap-up follows Selecting or Live; close applications first.
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Close applications (move the close date) before wrapping up; unhide a hidden drop"
+            " first.",
+            status_code=409,
         )
     if drop.wrapped_at is None:
         drop.wrapped_at = datetime.now(timezone.utc)
