@@ -5,7 +5,9 @@
  */
 import { Navigate, useParams } from "react-router-dom";
 import BrandDropTrackerStepper from "../../components/brand/BrandDropTrackerStepper";
-import ApiDropOrgTable from "../../components/brand/ApiDropOrgTable";
+import ApiDropOrgTable, {
+  AddressPending,
+} from "../../components/brand/ApiDropOrgTable";
 import DropKPISummary from "../../components/brand/DropKPISummary";
 import DropStageBadge from "../../components/brand/DropStageBadge";
 import {
@@ -148,7 +150,8 @@ function ApiApplicantTable({
   const shipToLine = (app: BrandDropApplicant) =>
     app.accountErased ? null : (
       <p className={cn("mt-1 text-xs", subtle(app))}>
-        Ship to: {app.deliveryAddress || "Address pending"}
+        Ship to:{" "}
+        {app.deliveryAddress || <AddressPending />}
       </p>
     );
 
