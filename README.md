@@ -86,8 +86,8 @@ Run inside [`frontend/`](frontend/):
 | ----------------- | ------------------------------------------------------------------------ |
 | `npm start`       | Frontend dev server                                                      |
 | `npm run build`      | Production SPA bundle → `frontend/build/` (CI; no API URL required)           |
-| `npm run build:prod` | Guard `REACT_APP_API_URL` then build (Railway / real deploys)                 |
-| `npm run start:prod` | Serve `build/` with History API fallback (`serve -s`, binds `$PORT`)          |
+| `npm run build:prod` | Guard `REACT_APP_API_URL`, build, then rewrite `serve.json` CSP from that URL |
+| `npm run start:prod` | Serve `build/` (`serve -s` unless `STAGING_BASIC_AUTH` is set; then Basic auth except `/healthz`) |
 | `npm test`        | Frontend Jest/CRACO smoke tests                                          |
 | `npm run e2e`     | Playwright end-to-end tests                                              |
 | `npm run gen:api` | Regenerate `src/api/generated/schema.ts` from the root `../openapi.json` |
@@ -106,7 +106,7 @@ Production SPA/API are on **Railway** with brand hosts `www` / `api.bringthebuzz
 
 ## Branching & main protection
 
-Decided 2026-10-26: there is no long-lived `dev` or `staging` branch and no staging environment. Short-lived feature branches open a pull request straight into `main`. Railway autodeploys from `main` only ([`DEPLOYMENT.md`](DEPLOYMENT.md)). `ENVIRONMENT=staging` is still a legal API setting (same hardened path as `production`); it is not a second deployed stack.
+Feature branches open a pull request into `staging`. Staging autodeploys from that branch (frontend `https://staging.bringthebuzzover.com`, API `https://api-staging.bringthebuzzover.com`). After it is checked, a promotion pull request merges `staging` into protected `main`, which autodeploys production. A `hotfix/*` branch may open a pull request straight into `main`. There is no `dev` branch. See [`DEPLOYMENT.md`](DEPLOYMENT.md) for production hosts and env.
 
 `main` is protected. These GitHub branch-protection settings are already applied, and admins are bound by them (`enforce_admins`):
 

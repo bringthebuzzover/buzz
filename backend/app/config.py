@@ -228,6 +228,24 @@ class Settings(BaseSettings):
         default="",
         description="Resend API key for transactional emails (empty = dev/console).",
     )
+    EMAIL_ALLOWLIST: str = Field(
+        default="",
+        description=(
+            "Comma-separated exact addresses and/or @domain suffixes. "
+            "Ignored when ENVIRONMENT=production. Off-production, a non-empty "
+            "list skips anyone else (logged, not delivered). When "
+            "ENVIRONMENT=staging and this is empty, every send is suppressed."
+        ),
+    )
+    STAGING_BASIC_AUTH: str = Field(
+        default="",
+        description=(
+            "HTTP Basic credentials as user:password. Empty disables the gate. "
+            "On the API this only protects interactive docs, and only when "
+            "ENVIRONMENT=staging. The frontend static server reads the same "
+            "variable at runtime."
+        ),
+    )
     BRAND_SELF_REGISTRATION_ENABLED: bool = Field(
         default=True,
         description=(

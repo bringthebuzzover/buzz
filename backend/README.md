@@ -63,7 +63,7 @@ op.execute("ALTER TYPE portal_role ADD VALUE IF NOT EXISTS 'new_role'")
 
 ## Dev seed data
 
-`scripts/seed_dev.py` resets the local database to a known fixture set so the Stage 4 vertical slice has data to query. It is **destructive** — every domain table is `TRUNCATE`d before inserts. A localhost guard aborts the script if `DATABASE_URL` points anywhere other than `localhost`/`127.0.0.1`.
+`scripts/seed_dev.py` resets the local database to a known fixture set so the Stage 4 vertical slice has data to query. That path is **destructive** — every domain table is `TRUNCATE`d before inserts — and aborts unless `DATABASE_URL` is `localhost`/`127.0.0.1` and `ENVIRONMENT` is not `production`. A separate staging demo upsert (Sample Org, Sample Club, Sample Brand, Fall Cold Brew Launch) runs only when `ENVIRONMENT=staging` and `STAGING_SEED_CONFIRM=buzz-staging`. It does not truncate, and it refuses production plus any host in `PROD_DATABASE_HOSTS`. Set `STAGING_DEMO_PASSWORD` for the Sample Brand login. It is a manual one-off, not a pre-deploy hook.
 
 ```bash
 cd backend
