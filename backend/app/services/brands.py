@@ -187,18 +187,11 @@ async def build_brand_drop_detail(
                 follower_count=None if erased else org.follower_count,
                 member_count=None if erased else org.member_count,
                 category=None if erased else org.category,
+                # D-3: the brand sees an address only for an accepted seat.
                 delivery_address=(
-                    None
-                    if erased
-                    else (
-                        org.delivery_address
-                        if app.decision
-                        in (
-                            ApplicationDecision.APPLIED.value,
-                            ApplicationDecision.ACCEPTED.value,
-                        )
-                        else None
-                    )
+                    org.delivery_address
+                    if not erased and app.decision == ApplicationDecision.ACCEPTED.value
+                    else None
                 ),
                 account_erased=erased,
                 metrics_frozen_at=_metrics_frozen_at(posts),
