@@ -115,7 +115,8 @@ export default function AdminLoginPage() {
           type="submit"
           size="field"
           data-testid="admin-login-submit"
-          disabled={adminLogin.isPending}
+          loading={adminLogin.isPending}
+          loadingLabel="Signing in…"
           fullWidth
         >
           Sign in

@@ -99,7 +99,13 @@ export default function ResetPasswordPage({
           autoComplete="new-password"
         />
         {error && <ErrorBanner>{error}</ErrorBanner>}
-        <Button type="submit" size="field" disabled={reset.isPending} fullWidth>
+        <Button
+          type="submit"
+          size="field"
+          loading={reset.isPending}
+          loadingLabel="Saving…"
+          fullWidth
+        >
           Reset password
         </Button>
         <AuthBackLink to={loginPath}>Back to login</AuthBackLink>
