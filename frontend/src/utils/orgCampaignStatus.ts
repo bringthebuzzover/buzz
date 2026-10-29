@@ -1,7 +1,7 @@
 /**
  * Derive org-facing My Campaigns status from the org-visible decision + the drop stage.
  *
- * Denied is filtered out of the visible surface (buzz-ops product/PRODUCT.md §6.4). Labels/order
+ * Ended seats are filtered out of the visible surface (buzz-ops product/PRODUCT.md §6.4). Labels/order
  * live in `types/orgCampaign` and are re-exported here for a single import path.
  */
 
@@ -18,7 +18,8 @@ export function deriveOrgCampaignStatus(input: {
   decision: string;
   stage: DropStage;
 }): OrgCampaignStatus | null {
-  if (input.decision === "denied") return null;
+  if (input.decision !== "applied" && input.decision !== "accepted") return null;
+  if (input.stage === "canceled") return "canceled";
   if (input.decision === "applied") return "applied";
   if (input.decision === "accepted") {
     if (input.stage === "live") return "active";

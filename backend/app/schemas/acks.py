@@ -97,13 +97,13 @@ class AdminDropHideRequest(CamelModel):
     notify_brand: bool = False
 
 
-class AdminRemoveParticipantRequest(CamelModel):
-    """Typed confirm. The word ``remove`` — erased orgs no longer have a handle."""
+class AdminDeleteSeatRequest(CamelModel):
+    """Typed confirm. The word ``delete`` — erased orgs no longer have a handle."""
 
     confirm: str
 
 
-class AdminRemoveParticipantResponse(CamelModel):
+class AdminDeleteSeatResponse(CamelModel):
     drop_id: uuid.UUID
     application_id: uuid.UUID
     org_id: uuid.UUID
@@ -166,10 +166,22 @@ class AdminBrandInviteResponse(CamelModel):
 
 
 class DropStageResponse(CamelModel):
-    """A drop's computed stage after a lifecycle action (wrap / unwrap)."""
+    """A drop's computed stage after a lifecycle action (wrap / unwrap / cancel)."""
 
     drop_id: uuid.UUID
     stage: DropStage
+
+
+class AdminCancelDropRequest(CamelModel):
+    """Typed confirm: the drop title (cancel is final, D-11)."""
+
+    confirm: str
+
+
+class DeliveredRequest(CamelModel):
+    """Set or clear the seat's delivered fact."""
+
+    delivered: bool
 
 
 class AdminComposeEmailRequest(CamelModel):

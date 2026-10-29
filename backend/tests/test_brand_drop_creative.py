@@ -7,6 +7,7 @@ from sqlalchemy import select
 
 from app.models.drop import Drop
 from app.models.enums import PortalRole
+from app.timeutils import utcnow
 from tests.conftest import (
     admin_headers,
     make_brand,
@@ -234,3 +235,15 @@ class TestBrandPatchCreative:
         assert CREATIVE_FORBIDDEN in res.json()["error"]["message"]
         await db_session.refresh(drop)
         assert drop.title == "Stay"
+
+
+async def test_brand_cannot_edit_after_wrap(app_client: AsyncClient, db_session):
+    """After wrap-up only BUZZ edits the copy (the matrix)."""
+
+    _, brand, headers = await _brand_ctx(db_session)
+    drop = await make_drop(db_session, brand, wrapped_at=utcnow())
+    drop.brand_can_edit_creative = True
+    await db_session.flush()
+    res = await app_client.patch(_brand_patch_url(drop.id), json={"title": "Late"}, headers=headers)
+    assert res.status_code == 409
+    assert res.json()["error"]["code"] == "DROP_WRAPPED"

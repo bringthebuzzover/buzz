@@ -2,7 +2,8 @@
 
 The stage is computed (``app.services.lifecycle``); these tests walk one drop
 through every stage via the real routes, then pin the edge rules: unsent
-decisions stay private, orgs link until the grace ends, BUZZ always can.
+decisions stay private, orgs link until the grace ends, BUZZ always can,
+seats end (withdraw / remove), delivery is per seat, and cancel freezes a drop.
 """
 
 from __future__ import annotations
@@ -15,7 +16,9 @@ from sqlalchemy import select
 from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.enums import ApplicationDecision, DropStage, PortalRole
+from app.models.shipment import DropApplicationShipment
 from app.security import jwt
+from app.services.admin_read import _signal_counts
 from app.services.lifecycle import (
     METRIC_SYNC_AFTER_WRAP,
     ORG_LINK_GRACE,
@@ -189,6 +192,10 @@ async def test_stage_helper_each_stage(db_session) -> None:
         db_session, unsent, org, decision=ApplicationDecision.ACCEPTED, sent=False
     )
     cases.append((DropStage.SELECTING, unsent))
+    canceled = await make_drop(db_session, brand, **closed)
+    canceled.canceled_at = now
+    await make_application(db_session, canceled, org, decision=ApplicationDecision.ACCEPTED)
+    cases.append((DropStage.CANCELED, canceled))
     for expected, drop in cases:
         assert await drop_stage(db_session, drop) == expected, drop.title
 
@@ -237,6 +244,222 @@ async def test_org_link_closes_after_grace_but_buzz_can_link(
     )
     res = await app_client.post(url, json=body, headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200, res.text
+
+
+async def test_org_withdraws_until_shipped(app_client: AsyncClient, db_session) -> None:
+    admin = await admin_headers(db_session)
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand)
+    user, org = await _org(db_session, "Leaver")
+    h = _bearer(user)
+
+    # An applicant withdraws, disappears from its list, and may apply again.
+    seat = await make_application(db_session, drop, org)
+    res = await app_client.post(f"/api/campaigns/{seat.id}/withdraw", headers=h)
+    assert res.status_code == 200, res.text
+    await db_session.refresh(seat)
+    assert seat.decision == ApplicationDecision.WITHDREW.value
+    assert seat.decision_sent_at is not None
+    assert (await app_client.get("/api/campaigns", headers=h)).json()["data"] == []
+    res = await app_client.post(f"/api/drops/{drop.id}/apply", headers=h, json={})
+    assert res.status_code == 200, res.text
+    again = await db_session.get(DropApplication, res.json()["data"]["id"])
+    assert again is not None
+
+    # Accepted and unshipped: still free to leave; units are released.
+    again.decision = ApplicationDecision.ACCEPTED.value
+    again.allocated_units = 3
+    again.decision_sent_at = utcnow()
+    await db_session.flush()
+    res = await app_client.post(f"/api/campaigns/{again.id}/withdraw", headers=h)
+    assert res.status_code == 200, res.text
+    await db_session.refresh(again)
+    assert again.allocated_units is None
+
+    # Once a package ships, only BUZZ can end the seat.
+    shipped = await make_application(
+        db_session, await make_drop(db_session, brand), org, decision=ApplicationDecision.ACCEPTED
+    )
+    res = await app_client.post(
+        f"/api/admin/applications/{shipped.id}/shipments",
+        json={"trackingNumber": "1Z999"},
+        headers=admin,
+    )
+    assert res.status_code == 200, res.text
+    res = await app_client.post(f"/api/campaigns/{shipped.id}/withdraw", headers=h)
+    assert res.status_code == 409
+
+
+async def test_buzz_removes_with_reason_and_blocks_reapply(
+    app_client: AsyncClient, db_session
+) -> None:
+    admin = await admin_headers(db_session)
+    brand_user = await persist(db_session, make_user(role=PortalRole.BRAND))
+    brand = await make_brand(db_session, company_email="remove-brand@example.test")
+    brand.user_id = brand_user.id
+    drop = await make_drop(db_session, brand)
+    user, org = await _org(db_session, "Gone")
+    seat = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    url = f"/api/admin/drops/{drop.id}/applications/{seat.id}/decision"
+
+    res = await app_client.put(url, json={"decision": "removed"}, headers=admin)
+    assert res.status_code == 400
+    res = await app_client.put(
+        f"/api/brands/me/drops/{drop.id}/applications/{seat.id}/decision",
+        json={"decision": "removed"},
+        headers=_bearer(brand_user),
+    )
+    assert res.status_code == 422  # brands choose only accepted / denied
+    res = await app_client.put(
+        url, json={"decision": "removed", "reason": "No posts after two reminders"}, headers=admin
+    )
+    assert res.status_code == 200, res.text
+    await db_session.refresh(seat)
+    assert seat.decision == ApplicationDecision.REMOVED.value
+    assert seat.end_reason == "No posts after two reminders"
+
+    # An ended seat is final: no re-decision, no second end (late-add instead).
+    for body in ({"decision": "accepted"}, {"decision": "withdrew"}):
+        res = await app_client.put(url, json=body, headers=admin)
+        assert res.status_code == 400, res.text
+        assert res.json()["error"]["code"] == "DECISION_ALREADY_SENT"
+    await db_session.refresh(seat)
+    assert seat.decision == ApplicationDecision.REMOVED.value
+
+    h = _bearer(user)
+    assert (await app_client.get(f"/api/campaigns/{seat.id}", headers=h)).status_code == 404
+    res = await app_client.post(f"/api/drops/{drop.id}/apply", headers=h, json={})
+    assert res.status_code == 400  # already applied: a removed seat stays taken
+
+    # BUZZ can bring the seat back with a late add.
+    res = await app_client.post(
+        f"/api/admin/drops/{drop.id}/add-org", json={"orgId": str(org.id)}, headers=admin
+    )
+    assert res.status_code == 200, res.text
+    await db_session.refresh(seat)
+    assert seat.decision == ApplicationDecision.ACCEPTED.value
+    assert seat.end_reason is None
+
+
+async def test_delivered_per_seat(app_client: AsyncClient, db_session) -> None:
+    admin = await admin_headers(db_session)
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand)
+    user, org = await _org(db_session, "Mailroom")
+    h = _bearer(user)
+    draft = await make_application(
+        db_session, drop, org, decision=ApplicationDecision.ACCEPTED, sent=False
+    )
+    res = await app_client.put(
+        f"/api/admin/applications/{draft.id}/delivered", json={"delivered": True}, headers=admin
+    )
+    assert res.status_code == 400  # not live until the acceptance is sent
+
+    seat = await make_application(
+        db_session, await make_drop(db_session, brand), org, decision=ApplicationDecision.ACCEPTED
+    )
+    res = await app_client.put(
+        f"/api/campaigns/{seat.id}/delivered", json={"delivered": True}, headers=h
+    )
+    assert res.status_code == 200, res.text
+    assert (await app_client.get(f"/api/campaigns/{seat.id}", headers=h)).json()["data"][
+        "deliveredAt"
+    ] is not None
+    res = await app_client.put(
+        f"/api/admin/applications/{seat.id}/delivered", json={"delivered": False}, headers=admin
+    )
+    assert res.status_code == 200, res.text
+    await db_session.refresh(seat)
+    assert seat.delivered_at is None
+
+
+async def test_cancel_needs_title_and_freezes_drop(app_client: AsyncClient, db_session) -> None:
+    admin = await admin_headers(db_session)
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, title="Spring Socks")
+    user, org = await _org(db_session, "Canceled")
+    seat = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    url = f"/api/admin/drops/{drop.id}/cancel"
+
+    res = await app_client.post(url, json={"confirm": "spring"}, headers=admin)
+    assert res.status_code == 400
+    res = await app_client.post(url, json={"confirm": "Spring Socks"}, headers=admin)
+    assert res.status_code == 200, res.text
+    assert res.json()["data"]["stage"] == "canceled"
+    assert await drop_stage(db_session, drop) == DropStage.CANCELED
+    res = await app_client.post(url, json={"confirm": "Spring Socks"}, headers=admin)
+    assert res.status_code == 409
+
+    # Frozen: no wrap, tracking, links, applies, or decisions.
+    blocked = [
+        await app_client.post(f"/api/admin/drops/{drop.id}/wrap", headers=admin),
+        await app_client.post(
+            f"/api/admin/applications/{seat.id}/shipments",
+            json={"trackingNumber": "1Z1"},
+            headers=admin,
+        ),
+        await app_client.put(
+            f"/api/admin/drops/{drop.id}/applications/{seat.id}/decision",
+            json={"decision": "denied"},
+            headers=admin,
+        ),
+    ]
+    assert [r.status_code for r in blocked] == [409, 409, 409]
+    post = await make_social_post(db_session, org)
+    res = await app_client.post(
+        f"/api/campaigns/{seat.id}/link-post",
+        json={"postId": str(post.id)},
+        headers=_bearer(user),
+    )
+    assert res.status_code == 409
+    _, other = await _org(db_session, "Late")
+    res = await app_client.post(
+        f"/api/admin/drops/{drop.id}/add-org", json={"orgId": str(other.id)}, headers=admin
+    )
+    assert res.status_code == 409
+
+    # BUZZ can still end a seat (to record why it never happened).
+    res = await app_client.put(
+        f"/api/admin/drops/{drop.id}/applications/{seat.id}/decision",
+        json={"decision": "removed", "reason": "Drop canceled"},
+        headers=admin,
+    )
+    assert res.status_code == 200, res.text
+
+
+async def test_cancel_only_running_drops(app_client: AsyncClient, db_session) -> None:
+    admin = await admin_headers(db_session)
+    brand = await make_brand(db_session)
+    for drop in (
+        await make_drop(db_session, brand, title="Draft", published_at=None),
+        await make_drop(db_session, brand, title="Done", wrapped_at=utcnow()),
+    ):
+        res = await app_client.post(
+            f"/api/admin/drops/{drop.id}/cancel", json={"confirm": drop.title}, headers=admin
+        )
+        assert res.status_code in (400, 409), drop.title
+
+
+async def test_shipped_no_delivery_signal(db_session) -> None:
+    brand = await make_brand(db_session)
+    _, org = await _org(db_session, "Lost Box")
+    seat = await make_application(
+        db_session, await make_drop(db_session, brand), org, decision=ApplicationDecision.ACCEPTED
+    )
+    before = (await _signal_counts(db_session, utcnow()))["shipped_no_delivery"]
+    db_session.add(
+        DropApplicationShipment(
+            application_id=seat.id,
+            tracking_number="1Z-old",
+            carrier="ups",
+            created_at=utcnow() - timedelta(days=15),
+        )
+    )
+    await db_session.flush()
+    assert (await _signal_counts(db_session, utcnow()))["shipped_no_delivery"] == before + 1
+    seat.delivered_at = utcnow()
+    await db_session.flush()
+    assert (await _signal_counts(db_session, utcnow()))["shipped_no_delivery"] == before
 
 
 async def _closed_drop_with_live_seat(db_session):

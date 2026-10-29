@@ -207,6 +207,7 @@ class BrandDropDetailApplicant(CamelModel):
     decision_at: datetime | None
     # Null until "Send decisions" (a drafted decision the org can't see yet).
     decision_sent_at: datetime | None
+    delivered_at: datetime | None = None
     # Joined org profile
     org_name: str
     university: str
@@ -229,7 +230,7 @@ class BrandDropDetailApplicant(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("decision_at", "decision_sent_at", "metrics_frozen_at")
+    @field_serializer("decision_at", "decision_sent_at", "delivered_at", "metrics_frozen_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
@@ -308,6 +309,15 @@ class SeatDecisionRequest(CamelModel):
 
     decision: Literal["applied", "accepted", "denied"]
     allocated_units: int | None = Field(default=None, ge=0)
+
+
+class AdminSeatDecisionRequest(CamelModel):
+    """BUZZ sets any seat status. ``withdrew`` / ``removed`` end it at once;
+    ``removed`` needs a ``reason``."""
+
+    decision: Literal["applied", "accepted", "denied", "withdrew", "removed"]
+    allocated_units: int | None = Field(default=None, ge=0)
+    reason: str | None = Field(default=None, max_length=500)
 
 
 class BrandAggregateResponse(CamelModel):

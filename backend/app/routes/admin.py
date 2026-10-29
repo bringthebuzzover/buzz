@@ -31,17 +31,19 @@ from app.schemas.acks import (
     AdminBrandEraseResponse,
     AdminBrandInviteResponse,
     AdminBrandStatusResponse,
+    AdminCancelDropRequest,
     AdminComposeEmailRequest,
     AdminComposeEmailResponse,
+    AdminDeleteSeatRequest,
+    AdminDeleteSeatResponse,
     AdminDropHideRequest,
     AdminOrgEraseRequest,
     AdminOrgEraseResponse,
     AdminOrgStatusResponse,
-    AdminRemoveParticipantRequest,
-    AdminRemoveParticipantResponse,
     AdminResendConnectAllResponse,
     AdminSyncAutolinkResponse,
     ClearInstagramTokenResponse,
+    DeliveredRequest,
     DropStageResponse,
     OkResponse,
     SendDecisionsResponse,
@@ -76,7 +78,7 @@ from app.schemas.admin_tables import (
     AdminTableRowResponse,
 )
 from app.schemas.auth import UserResponse
-from app.schemas.brands import SeatDecisionRequest
+from app.schemas.brands import AdminSeatDecisionRequest
 from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
 from app.security import jwt
 from app.security.view_as import clear_view_as_cookie, set_view_as_cookie
@@ -86,6 +88,7 @@ from app.services.admin import (
     add_org_to_drop,
     approve_brand,
     approve_org,
+    cancel_drop,
     cleanup_request_received_stubs,
     clear_org_instagram_token,
     compose_brand_email,
@@ -134,6 +137,7 @@ from app.services.brand_ig_change_requests import (
 from app.services.brand_ig_change_requests import (
     list_requests as list_brand_ig_change_requests,
 )
+from app.services.delete_seat import delete_seat
 from app.services.drop_requests import get_admin_drop_request, list_admin_drop_requests
 from app.services.ig_change_requests import (
     approve_request as approve_ig_change_request,
@@ -148,9 +152,8 @@ from app.services.ig_change_requests import (
     list_requests as list_ig_change_requests,
 )
 from app.services.instagram import InstagramClient, get_instagram_client
-from app.services.remove_participant import remove_participant_from_drop
 from app.services.seats import lock_drop, send_decisions, set_seat_decision
-from app.services.shipments import add_shipment, delete_shipment
+from app.services.shipments import add_shipment, delete_shipment, set_delivered
 
 logger = logging.getLogger(__name__)
 
@@ -665,25 +668,25 @@ async def unhide_drop_endpoint(
 
 
 @router.post(
-    "/drops/{drop_id}/applications/{application_id}/remove",
-    response_model=DataResponse[AdminRemoveParticipantResponse],
+    "/drops/{drop_id}/applications/{application_id}/delete",
+    response_model=DataResponse[AdminDeleteSeatResponse],
 )
-async def remove_participant_endpoint(
+async def delete_seat_endpoint(
     drop_id: uuid.UUID,
     application_id: uuid.UUID,
-    body: AdminRemoveParticipantRequest,
+    body: AdminDeleteSeatRequest,
     admin: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Remove one org from one drop. Deletes that seat, its shipments, and its linked metrics."""
-    result = await remove_participant_from_drop(
+    """Hard-delete one seat (test data, mistakes): the seat, its shipments, its linked metrics."""
+    result = await delete_seat(
         db,
         actor_id=admin.id,
         drop_id=drop_id,
         application_id=application_id,
         confirm=body.confirm,
     )
-    return api_response(data=AdminRemoveParticipantResponse.model_validate(result))
+    return api_response(data=AdminDeleteSeatResponse.model_validate(result))
 
 
 @router.post(
@@ -741,11 +744,12 @@ async def patch_drop_config_endpoint(
 async def put_seat_decision_endpoint(
     drop_id: uuid.UUID,
     application_id: uuid.UUID,
-    payload: SeatDecisionRequest,
+    payload: AdminSeatDecisionRequest,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Draft one seat's decision (any stage, may overbook; goes out on the next send)."""
+    """Set one seat's status. accepted/denied are drafts until the next send (may
+    overbook); withdrew/removed end the seat at once, keeping its history."""
     drop = await lock_drop(db, drop_id)
     await set_seat_decision(
         db,
@@ -754,6 +758,7 @@ async def put_seat_decision_endpoint(
         decision=payload.decision,
         allocated_units=payload.allocated_units,
         actor="admin",
+        reason=payload.reason,
     )
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
@@ -782,6 +787,18 @@ async def wrap_drop_endpoint(
     return api_response(data=DropStageResponse.model_validate(await wrap_drop(db, drop_id)))
 
 
+@router.post("/drops/{drop_id}/cancel", response_model=DataResponse[DropStageResponse])
+async def cancel_drop_endpoint(
+    drop_id: uuid.UUID,
+    payload: AdminCancelDropRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Cancel a published drop (typed title; final)."""
+    result = await cancel_drop(db, drop_id, confirm=payload.confirm)
+    return api_response(data=DropStageResponse.model_validate(result))
+
+
 @router.post("/drops/{drop_id}/unwrap", response_model=DataResponse[DropStageResponse])
 async def unwrap_drop_endpoint(
     drop_id: uuid.UUID,
@@ -803,6 +820,21 @@ async def add_application_shipment(
 ) -> APIResponse:
     result = await add_shipment(db, application_id, payload.tracking_number, payload.carrier)
     return api_response(data=ShipmentItem.model_validate(result))
+
+
+@router.put(
+    "/applications/{application_id}/delivered",
+    response_model=DataResponse[OkResponse],
+)
+async def set_application_delivered(
+    application_id: uuid.UUID,
+    payload: DeliveredRequest,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Mark the seat delivered (or not). A fact, never a gate."""
+    await set_delivered(db, application_id, payload.delivered)
+    return api_response(data=OkResponse())
 
 
 @router.delete(

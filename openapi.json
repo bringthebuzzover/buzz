@@ -231,6 +231,15 @@
             "title": "Accounterased",
             "type": "boolean"
           },
+          "addedBy": {
+            "default": "apply",
+            "enum": [
+              "apply",
+              "late_add"
+            ],
+            "title": "Addedby",
+            "type": "string"
+          },
           "allocatedUnits": {
             "anyOf": [
               {
@@ -272,6 +281,17 @@
             ],
             "title": "Decisionsentat"
           },
+          "deliveredAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveredat"
+          },
           "deliveryAddress": {
             "anyOf": [
               {
@@ -282,6 +302,17 @@
               }
             ],
             "title": "Deliveryaddress"
+          },
+          "endReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endreason"
           },
           "followerCount": {
             "anyOf": [
@@ -935,6 +966,20 @@
         "title": "AdminBrandStatusResponse",
         "type": "object"
       },
+      "AdminCancelDropRequest": {
+        "description": "Typed confirm: the drop title (cancel is final, D-11).",
+        "properties": {
+          "confirm": {
+            "title": "Confirm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "title": "AdminCancelDropRequest",
+        "type": "object"
+      },
       "AdminCleanupStubsResponse": {
         "properties": {
           "convertedCount": {
@@ -1046,6 +1091,56 @@
           "companyEmail"
         ],
         "title": "AdminCreateBrandRequest",
+        "type": "object"
+      },
+      "AdminDeleteSeatRequest": {
+        "description": "Typed confirm. The word ``delete`` \u2014 erased orgs no longer have a handle.",
+        "properties": {
+          "confirm": {
+            "title": "Confirm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "title": "AdminDeleteSeatRequest",
+        "type": "object"
+      },
+      "AdminDeleteSeatResponse": {
+        "properties": {
+          "applicationId": {
+            "format": "uuid",
+            "title": "Applicationid",
+            "type": "string"
+          },
+          "dropId": {
+            "format": "uuid",
+            "title": "Dropid",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "postsRemoved": {
+            "title": "Postsremoved",
+            "type": "integer"
+          },
+          "shipmentsRemoved": {
+            "title": "Shipmentsremoved",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dropId",
+          "applicationId",
+          "orgId",
+          "postsRemoved",
+          "shipmentsRemoved"
+        ],
+        "title": "AdminDeleteSeatResponse",
         "type": "object"
       },
       "AdminDropConfigPatch": {
@@ -1317,6 +1412,17 @@
               }
             ],
             "title": "Campaignhashtag"
+          },
+          "canceledAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canceledat"
           },
           "capacityTotal": {
             "title": "Capacitytotal",
@@ -2892,56 +2998,6 @@
         "title": "AdminQueueItem",
         "type": "object"
       },
-      "AdminRemoveParticipantRequest": {
-        "description": "Typed confirm. The word ``remove`` \u2014 erased orgs no longer have a handle.",
-        "properties": {
-          "confirm": {
-            "title": "Confirm",
-            "type": "string"
-          }
-        },
-        "required": [
-          "confirm"
-        ],
-        "title": "AdminRemoveParticipantRequest",
-        "type": "object"
-      },
-      "AdminRemoveParticipantResponse": {
-        "properties": {
-          "applicationId": {
-            "format": "uuid",
-            "title": "Applicationid",
-            "type": "string"
-          },
-          "dropId": {
-            "format": "uuid",
-            "title": "Dropid",
-            "type": "string"
-          },
-          "orgId": {
-            "format": "uuid",
-            "title": "Orgid",
-            "type": "string"
-          },
-          "postsRemoved": {
-            "title": "Postsremoved",
-            "type": "integer"
-          },
-          "shipmentsRemoved": {
-            "title": "Shipmentsremoved",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "dropId",
-          "applicationId",
-          "orgId",
-          "postsRemoved",
-          "shipmentsRemoved"
-        ],
-        "title": "AdminRemoveParticipantResponse",
-        "type": "object"
-      },
       "AdminResendConnectAllResponse": {
         "description": "Bulk Connect email for ``pending_instagram`` orgs only.",
         "properties": {
@@ -2969,6 +3025,51 @@
           "skipped"
         ],
         "title": "AdminResendConnectAllResponse",
+        "type": "object"
+      },
+      "AdminSeatDecisionRequest": {
+        "description": "BUZZ sets any seat status. ``withdrew`` / ``removed`` end it at once;\n``removed`` needs a ``reason``.",
+        "properties": {
+          "allocatedUnits": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocatedunits"
+          },
+          "decision": {
+            "enum": [
+              "applied",
+              "accepted",
+              "denied",
+              "withdrew",
+              "removed"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "AdminSeatDecisionRequest",
         "type": "object"
       },
       "AdminSignal": {
@@ -3645,6 +3746,17 @@
               }
             ],
             "title": "Decisionsentat"
+          },
+          "deliveredAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveredat"
           },
           "deliveryAddress": {
             "anyOf": [
@@ -4824,6 +4936,17 @@
             ],
             "title": "Decisionat"
           },
+          "deliveredAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveredat"
+          },
           "description": {
             "anyOf": [
               {
@@ -4905,6 +5028,7 @@
           "allocatedUnits",
           "appliedAt",
           "decisionAt",
+          "deliveredAt",
           "title",
           "description",
           "brandName",
@@ -4955,6 +5079,17 @@
               }
             ],
             "title": "Decisionat"
+          },
+          "deliveredAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliveredat"
           },
           "dropId": {
             "format": "uuid",
@@ -5009,6 +5144,7 @@
           "allocatedUnits",
           "appliedAt",
           "decisionAt",
+          "deliveredAt",
           "title",
           "brandName",
           "stage",
@@ -5441,6 +5577,44 @@
         "title": "DataResponse[AdminComposeEmailResponse]",
         "type": "object"
       },
+      "DataResponse_AdminDeleteSeatResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminDeleteSeatResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminDeleteSeatResponse]",
+        "type": "object"
+      },
       "DataResponse_AdminDropDetail_": {
         "properties": {
           "data": {
@@ -5743,44 +5917,6 @@
           }
         },
         "title": "DataResponse[AdminOverviewResponse]",
-        "type": "object"
-      },
-      "DataResponse_AdminRemoveParticipantResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AdminRemoveParticipantResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[AdminRemoveParticipantResponse]",
         "type": "object"
       },
       "DataResponse_AdminResendConnectAllResponse_": {
@@ -7815,6 +7951,20 @@
         "title": "DataResponse[list[SuggestionResponse]]",
         "type": "object"
       },
+      "DeliveredRequest": {
+        "description": "Set or clear the seat's delivered fact.",
+        "properties": {
+          "delivered": {
+            "title": "Delivered",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "delivered"
+        ],
+        "title": "DeliveredRequest",
+        "type": "object"
+      },
       "DevLoginRequest": {
         "description": "Body for the dev-only ``POST /api/auth/dev-login`` (both optional).\n\nWith neither field set, the endpoint logs in the first seeded active org\nuser \u2014 convenient for the Stage 4 frontend slice in local dev.",
         "properties": {
@@ -8099,20 +8249,21 @@
         "type": "object"
       },
       "DropStage": {
-        "description": "Computed drop stage (``app.services.lifecycle``; never stored).\n\n``draft`` \u2192 ``upcoming`` \u2192 ``applying`` \u2192 ``selecting`` \u2192 ``live`` \u2192\n``wrapped``. Only draft (unpublished) and wrapped (``wrapped_at``) come\nfrom a BUZZ click; the rest follow from the apply dates and the seats.\nHidden is a separate flag (``drops.hidden_at``), not a stage.",
+        "description": "Computed drop stage (``app.services.lifecycle``; never stored).\n\n``draft`` \u2192 ``upcoming`` \u2192 ``applying`` \u2192 ``selecting`` \u2192 ``live`` \u2192\n``wrapped``, or ``canceled`` from any published stage before wrap-up.\nOnly draft (unpublished), wrapped (``wrapped_at``) and canceled\n(``canceled_at``) come from a BUZZ click; the rest follow from the apply\ndates and the seats.\nHidden is a separate flag (``drops.hidden_at``), not a stage.",
         "enum": [
           "draft",
           "upcoming",
           "applying",
           "selecting",
           "live",
-          "wrapped"
+          "wrapped",
+          "canceled"
         ],
         "title": "DropStage",
         "type": "string"
       },
       "DropStageResponse": {
-        "description": "A drop's computed stage after a lifecycle action (wrap / unwrap).",
+        "description": "A drop's computed stage after a lifecycle action (wrap / unwrap / cancel).",
         "properties": {
           "dropId": {
             "format": "uuid",
@@ -10191,6 +10342,76 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/admin/applications/{application_id}/delivered": {
+      "put": {
+        "description": "Mark the seat delivered (or not). A fact, never a gate.",
+        "operationId": "set_application_delivered_api_admin_applications__application_id__delivered_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveredRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Set Application Delivered",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/applications/{application_id}/shipments": {
       "post": {
         "operationId": "add_application_shipment_api_admin_applications__application_id__shipments_post",
@@ -11592,7 +11813,7 @@
     },
     "/api/admin/drops/{drop_id}/applications/{application_id}/decision": {
       "put": {
-        "description": "Draft one seat's decision (any stage, may overbook; goes out on the next send).",
+        "description": "Set one seat's status. accepted/denied are drafts until the next send (may\noverbook); withdrew/removed end the seat at once, keeping its history.",
         "operationId": "put_seat_decision_endpoint_api_admin_drops__drop_id__applications__application_id__decision_put",
         "parameters": [
           {
@@ -11636,7 +11857,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SeatDecisionRequest"
+                "$ref": "#/components/schemas/AdminSeatDecisionRequest"
               }
             }
           },
@@ -11670,10 +11891,10 @@
         ]
       }
     },
-    "/api/admin/drops/{drop_id}/applications/{application_id}/remove": {
+    "/api/admin/drops/{drop_id}/applications/{application_id}/delete": {
       "post": {
-        "description": "Remove one org from one drop. Deletes that seat, its shipments, and its linked metrics.",
-        "operationId": "remove_participant_endpoint_api_admin_drops__drop_id__applications__application_id__remove_post",
+        "description": "Hard-delete one seat (test data, mistakes): the seat, its shipments, its linked metrics.",
+        "operationId": "delete_seat_endpoint_api_admin_drops__drop_id__applications__application_id__delete_post",
         "parameters": [
           {
             "in": "path",
@@ -11716,7 +11937,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AdminRemoveParticipantRequest"
+                "$ref": "#/components/schemas/AdminDeleteSeatRequest"
               }
             }
           },
@@ -11727,7 +11948,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataResponse_AdminRemoveParticipantResponse_"
+                  "$ref": "#/components/schemas/DataResponse_AdminDeleteSeatResponse_"
                 }
               }
             },
@@ -11744,7 +11965,77 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Remove Participant Endpoint",
+        "summary": "Delete Seat Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/drops/{drop_id}/cancel": {
+      "post": {
+        "description": "Cancel a published drop (typed title; final).",
+        "operationId": "cancel_drop_endpoint_api_admin_drops__drop_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCancelDropRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_DropStageResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Cancel Drop Endpoint",
         "tags": [
           "admin"
         ]
@@ -15562,7 +15853,7 @@
     },
     "/api/campaigns": {
       "get": {
-        "description": "The caller org's campaigns (non-denied applications + joined drop).",
+        "description": "The caller org's campaigns (seats that have not ended + joined drop).",
         "operationId": "list_campaigns_api_campaigns_get",
         "parameters": [
           {
@@ -15725,6 +16016,76 @@
           }
         },
         "summary": "Campaign Aggregate",
+        "tags": [
+          "campaigns"
+        ]
+      }
+    },
+    "/api/campaigns/{application_id}/delivered": {
+      "put": {
+        "description": "Org says \"I got it\": it has the product (a fact, never a gate).",
+        "operationId": "set_campaign_delivered_api_campaigns__application_id__delivered_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveredRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Set Campaign Delivered",
         "tags": [
           "campaigns"
         ]
@@ -16063,6 +16424,66 @@
           }
         },
         "summary": "Dismiss Campaign Suggestion",
+        "tags": [
+          "campaigns"
+        ]
+      }
+    },
+    "/api/campaigns/{application_id}/withdraw": {
+      "post": {
+        "description": "Withdraw: while applied, or accepted before shipping (409 after).",
+        "operationId": "withdraw_campaign_api_campaigns__application_id__withdraw_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Withdraw Campaign",
         "tags": [
           "campaigns"
         ]

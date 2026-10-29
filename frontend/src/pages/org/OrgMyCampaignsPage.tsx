@@ -30,7 +30,7 @@ const FILTERS: {
   { id: "all", label: "All", statuses: ORG_CAMPAIGN_STATUS_ORDER },
   { id: "accepted", label: "Accepted", statuses: ["accepted", "active"] },
   { id: "applied", label: "Applied", statuses: ["applied"] },
-  { id: "finished", label: "Finished", statuses: ["finished"] },
+  { id: "finished", label: "Finished", statuses: ["finished", "canceled"] },
 ];
 
 function CampaignsHeader() {

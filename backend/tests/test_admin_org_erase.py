@@ -936,7 +936,7 @@ class TestAdminOrgErase:
         assert ig.media_fetches == 0
         assert post.likes == likes_before
 
-    async def test_admin_remove_participant_drops_that_seat_only(
+    async def test_admin_delete_seat_drops_that_seat_only(
         self, app_client: AsyncClient, db_session, monkeypatch
     ):
         monkeypatch.setattr(
@@ -977,18 +977,18 @@ class TestAdminOrgErase:
         )
         assert erased.status_code == 200, erased.text
 
-        url = f"/api/admin/drops/{drop.id}/applications/{ghost_app.id}/remove"
+        url = f"/api/admin/drops/{drop.id}/applications/{ghost_app.id}/delete"
         brand_owner = await db_session.get(User, brand.user_id)
         assert brand_owner is not None
         brand_headers = {"Authorization": f"Bearer {mint_access_token(brand_owner)}"}
-        forbidden = await app_client.post(url, headers=brand_headers, json={"confirm": "remove"})
+        forbidden = await app_client.post(url, headers=brand_headers, json={"confirm": "delete"})
         assert forbidden.status_code == 403
 
         other = await make_drop(db_session, brand, title="Other drop")
         idor = await app_client.post(
-            f"/api/admin/drops/{other.id}/applications/{ghost_app.id}/remove",
+            f"/api/admin/drops/{other.id}/applications/{ghost_app.id}/delete",
             headers=headers,
-            json={"confirm": "remove"},
+            json={"confirm": "delete"},
         )
         assert idor.status_code == 404
         assert (
@@ -1003,7 +1003,7 @@ class TestAdminOrgErase:
         refused = await app_client.post(url, headers=headers, json={"confirm": "nope"})
         assert refused.status_code == 400
 
-        removed = await app_client.post(url, headers=headers, json={"confirm": "remove"})
+        removed = await app_client.post(url, headers=headers, json={"confirm": "delete"})
         assert removed.status_code == 200, removed.text
         body = removed.json()["data"]
         assert body["postsRemoved"] == 1
@@ -1057,7 +1057,7 @@ class TestAdminOrgErase:
             select(AdminAuditEvent).where(AdminAuditEvent.application_id == ghost_app.id)
         )
         assert audit is not None
-        assert audit.action == "participant_removed"
+        assert audit.action == "seat_deleted"
         assert audit.drop_id == drop.id
         assert audit.org_id == ghost.id
         assert audit.detail is not None
@@ -1071,7 +1071,7 @@ class TestAdminOrgErase:
         assert "1Z999" not in str(audit.detail)
         assert "GhostOrg" not in str(audit.detail)
 
-        again = await app_client.post(url, headers=headers, json={"confirm": "remove"})
+        again = await app_client.post(url, headers=headers, json={"confirm": "delete"})
         assert again.status_code == 404
 
     async def test_frozen_post_cannot_be_relinked(self, db_session):

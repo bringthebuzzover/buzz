@@ -8,7 +8,11 @@ import type { components } from "../api/generated/schema";
 
 export type DropStage = components["schemas"]["DropStage"];
 
-/** Lifecycle order. Draft is BUZZ-only; brands and orgs see the rest. */
+/**
+ * Lifecycle order. Draft is BUZZ-only; brands and orgs see the rest. Canceled
+ * is off the path: a final stage BUZZ can reach from any published stage
+ * before wrap.
+ */
 export const DROP_STAGE_ORDER: readonly DropStage[] = [
   "draft",
   "upcoming",
@@ -28,6 +32,7 @@ export const DROP_STAGE_LABEL: Record<DropStage, string> = {
   selecting: "Selecting",
   live: "Live",
   wrapped: "Wrapped",
+  canceled: "Canceled",
 };
 
 /** Label for a stage, tolerating legacy names on old tracker events. */

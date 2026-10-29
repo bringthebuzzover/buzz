@@ -17,7 +17,7 @@ export default function BrandDropTrackerStepper({
 }: {
   currentStage: DropStage;
 }) {
-  // Draft is not in the published order (-1), so nothing is lit.
+  // Draft and canceled are not in the published order (-1), so nothing is lit.
   const currentIdx = PUBLISHED_STAGES.indexOf(currentStage);
   const live = currentStage === "live" || currentStage === "wrapped";
 
@@ -47,6 +47,9 @@ export default function BrandDropTrackerStepper({
           );
         })}
       </ol>
+      {currentStage === "canceled" ? (
+        <Notice>BUZZ canceled this drop. Nothing more happens on it.</Notice>
+      ) : null}
       {live ? (
         <Notice tone="accent">
           Tracking numbers are listed on each accepted organization below.
