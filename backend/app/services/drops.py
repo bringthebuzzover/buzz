@@ -26,12 +26,13 @@ from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage
+from app.models.enums import ApplicationDecision, BrandStatus
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.drops import ApplicationResponse, DropDetailResponse, DropFeedItem
-from app.timeutils import as_utc
+from app.services.lifecycle import drop_stage, drop_stage_expr, seat_is_denied_and_sent
+from app.timeutils import as_utc, utcnow
 
 
 def is_drop_hidden(drop: Drop) -> bool:
@@ -43,13 +44,13 @@ def is_drop_hidden(drop: Drop) -> bool:
 def _browsable_drop_filters() -> tuple[ColumnElement[bool], ...]:
     """Predicate for drops an org may see in the feed (requires the Brand join).
 
-    Published only: unpublished drafts and legacy
-    ``request_received`` stubs never appear on the org feed.
+    Published, not hidden, not wrapped up: drafts never appear, and a wrapped
+    drop lives on in My Campaigns only.
     """
 
     return (
         Brand.status == BrandStatus.APPROVED.value,
-        Drop.brand_tracker_stage != BrandTrackerStage.DROP_FINISHED.value,
+        Drop.wrapped_at.is_(None),
         Drop.published_at.isnot(None),
         Drop.hidden_at.is_(None),
     )
@@ -65,9 +66,7 @@ async def _require_browsable_drop(db: AsyncSession, drop: Drop) -> Brand:
     brand = await db.get(Brand, drop.brand_id)
     if brand is None or brand.status != BrandStatus.APPROVED.value:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
-    if drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value:
-        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
-    if drop.published_at is None or is_drop_hidden(drop):
+    if drop.published_at is None or drop.wrapped_at is not None or is_drop_hidden(drop):
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
     return brand
 
@@ -110,7 +109,7 @@ async def list_org_drop_feed(
     rows = list(
         (
             await db.execute(
-                select(Drop, Brand)
+                select(Drop, Brand, drop_stage_expr(utcnow()))
                 .join(Brand, Brand.id == Drop.brand_id)
                 .where(*_browsable_drop_filters())
                 .order_by(Drop.created_at.desc(), Drop.id.desc())
@@ -120,7 +119,7 @@ async def list_org_drop_feed(
         ).all()
     )
 
-    page_ids = [drop.id for drop, _brand in rows]
+    page_ids = [drop.id for drop, _brand, _stage in rows]
     accepted_counts = await _accepted_counts(db, page_ids)
     applied_ids = await _applied_drop_ids(db, org_id, page_ids)
     notify_state = await _notify_state(db, org_id, page_ids)
@@ -136,14 +135,13 @@ async def list_org_drop_feed(
             capacity_total=drop.capacity_total,
             apply_open_at=drop.apply_open_at,
             apply_close_at=drop.apply_close_at,
-            manual_reopen=drop.manual_reopen,
-            applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
+            stage=stage,
             accepted_count=accepted_counts.get(drop.id, 0),
             already_applied=drop.id in applied_ids,
             notify_requested=drop.id in notify_state,
             reminder_minutes=notify_state.get(drop.id),
         )
-        for drop, brand in rows
+        for drop, brand, stage in rows
     ]
     return items, total
 
@@ -169,14 +167,14 @@ async def _applied_drop_ids(
     org_id: uuid.UUID | None,
     drop_ids: list[uuid.UUID],
 ) -> set[uuid.UUID]:
-    """Drop ids the calling org has a non-denied application on (the page's set)."""
+    """Drop ids the calling org holds a seat on (anything but a sent denial)."""
 
     if org_id is None or not drop_ids:
         return set()
     rows = await db.scalars(
         select(DropApplication.drop_id).where(
             DropApplication.org_id == org_id,
-            DropApplication.decision != ApplicationDecision.DENIED.value,
+            ~seat_is_denied_and_sent(),
             DropApplication.drop_id.in_(drop_ids),
         )
     )
@@ -250,19 +248,14 @@ def drop_apply_eligibility(
 ) -> None:
     """Raise if an org may not apply right now (architecture §7.1 / §11.3).
 
-    Single Python SOT for open / full / finalized / close⊕reopen. Callers still
-    enforce browsability and already-applied separately. Finalize's "window must
-    be closed" rule is the inverse and stays in the finalize path.
+    Single Python SOT for "inside the dates, spots left". Callers still enforce
+    browsability (published, not hidden, not wrapped) and already-applied.
+    Reopening is just moving ``apply_close_at`` later.
     """
 
     if now < as_utc(drop.apply_open_at):
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not open for applications yet.")
-    if drop.applicant_selection_finalized_at is not None:
-        raise BuzzAPIException(
-            errors.DROP_NOT_OPEN,
-            "Applicant selection for this drop is already finalized.",
-        )
-    if now > as_utc(drop.apply_close_at) and not drop.manual_reopen:
+    if now > as_utc(drop.apply_close_at):
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is closed for applications.")
     if accepted_count >= drop.capacity_total:
         raise BuzzAPIException(errors.CAPACITY_EXCEEDED, "This drop has no remaining spots.")
@@ -291,8 +284,7 @@ async def build_drop_detail(
         capacity_total=drop.capacity_total,
         apply_open_at=drop.apply_open_at,
         apply_close_at=drop.apply_close_at,
-        manual_reopen=drop.manual_reopen,
-        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
+        stage=await drop_stage(db, drop),
         total_product_units=drop.total_product_units,
         created_at=drop.created_at,
         accepted_count=accepted,
@@ -310,9 +302,9 @@ async def apply_to_drop(
 ) -> DropApplication:
     """Create an ``applied`` application, enforcing the §7.1/§11.3 rules.
 
-    Order: lock drop row (``FOR UPDATE``, serializes vs finalize) → drop
-    exists → drop is browsable (approved brand, not finished) → not already
-    applied (a prior ``denied`` does NOT block) → apply window open /
+    Order: lock drop row (``FOR UPDATE``, serializes vs decisions) → drop
+    exists → drop is browsable (approved brand, not wrapped) → not already
+    applied (a prior *sent* denial does NOT block) → apply window open /
     capacity remains (``drop_apply_eligibility``, mirrors feed UX).
     """
 
@@ -328,7 +320,7 @@ async def apply_to_drop(
         select(DropApplication.id).where(
             DropApplication.org_id == org.id,
             DropApplication.drop_id == drop.id,
-            DropApplication.decision != ApplicationDecision.DENIED.value,
+            ~seat_is_denied_and_sent(),
         )
     )
     if existing is not None:

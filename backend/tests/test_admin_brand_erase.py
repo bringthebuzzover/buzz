@@ -10,7 +10,7 @@ from sqlalchemy import select
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage, PortalRole
+from app.models.enums import ApplicationDecision, BrandStatus, PortalRole
 from app.models.shipment import DropApplicationShipment
 from app.models.user import User
 from tests.conftest import (
@@ -28,7 +28,7 @@ from tests.conftest import (
 async def _live_brand(db_session):
     brand = await make_brand(db_session, company_email="acme@brand.test")
     brand.instagram_handle = "acme"
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db_session, brand)
     org_user = await persist(db_session, make_user(role=PortalRole.ORG))
     org = await make_org(db_session, org_user, org_name="Campus Club")
     app = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)

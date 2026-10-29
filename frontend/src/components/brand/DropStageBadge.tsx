@@ -1,20 +1,15 @@
 /**
- * Brand-facing drop stage badge. Pen: a new request is the yellow wash, a drop
- * in progress is a yellow outline, a finished drop is quiet paper.
+ * Drop stage badge. Pen: a drop still taking applicants is the yellow wash,
+ * one in progress is a yellow outline, a wrapped drop is quiet paper.
  */
-import {
-  BRAND_DROP_TRACKER_COPY,
-  type BrandDropTrackerStage,
-} from "../../types/brandPortal";
+import { dropStageLabel, type DropStage } from "../../utils/dropStage";
 import { Badge, Chip } from "../ui/Chip";
 
-export default function DropStageBadge({ stage }: { stage: string }) {
-  const label =
-    BRAND_DROP_TRACKER_COPY[stage as BrandDropTrackerStage]?.label ??
-    stage.replace(/_/g, " ");
-  if (stage === "request_received") return <Badge>{label}</Badge>;
+export default function DropStageBadge({ stage }: { stage: DropStage }) {
+  const label = dropStageLabel(stage);
+  if (stage === "applying") return <Badge>{label}</Badge>;
   return (
-    <Chip dot tone={stage === "drop_finished" ? "neutral" : "pending"}>
+    <Chip dot tone={stage === "wrapped" || stage === "draft" ? "neutral" : "pending"}>
       {label}
     </Chip>
   );

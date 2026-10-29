@@ -1,5 +1,5 @@
 /**
- * BrandDropDetailPage — Campaign creative editor only when brandCanEditCreative.
+ * BrandDropDetailPage — creative editor gating and per-seat decisions.
  */
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -10,14 +10,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
   true;
 
 const mockUseBrandDropDetail = jest.fn();
-const mockFinalizeMutate = jest.fn();
+const mockDecide = jest.fn();
+const mockSend = jest.fn();
 
 jest.mock("../../api/hooks/useBrandHooks", () => ({
   useBrandDropDetail: (...args: unknown[]) => mockUseBrandDropDetail(...args),
-  useFinalizeApplicants: () => ({
-    mutate: mockFinalizeMutate,
-    isPending: false,
-  }),
+  useSetSeatDecision: () => ({ mutate: mockDecide, isPending: false, error: null }),
+  useSendDecisions: () => ({ mutateAsync: mockSend, isPending: false, error: null }),
   usePatchBrandDropCreative: () => ({
     mutateAsync: jest.fn(),
     isPending: false,
@@ -40,10 +39,8 @@ function brandDrop(brandCanEditCreative: boolean) {
     capacityTotal: 8,
     applyOpenAt: now - 86400000,
     applyCloseAt: now + 7 * 86400000,
-    manualReopen: false,
-    brandTrackerStage: "request_received",
+    stage: "applying",
     totalProductUnits: null,
-    applicantSelectionFinalizedAt: null,
     createdAt: now,
     campaignHashtag: null,
     applications: [],
@@ -64,7 +61,8 @@ describe("BrandDropDetailPage", () => {
 
   beforeEach(() => {
     mockUseBrandDropDetail.mockReset();
-    mockFinalizeMutate.mockReset();
+    mockDecide.mockReset();
+    mockSend.mockReset().mockResolvedValue(undefined);
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -122,9 +120,9 @@ describe("BrandDropDetailPage", () => {
     ).toBeTruthy();
   });
 
-  it("shows drop KPIs while awaiting products", () => {
+  it("shows drop KPIs once the drop is live", () => {
     mockUseBrandDropDetail.mockReturnValue({
-      data: { ...brandDrop(false), brandTrackerStage: "awaiting_products" },
+      data: { ...brandDrop(false), stage: "live" },
       isLoading: false,
       error: null,
     });
@@ -160,7 +158,7 @@ describe("BrandDropDetailPage", () => {
     ).toBeTruthy();
   });
 
-  it("renders one Accept control as a stacked card below md", () => {
+  it("renders one decision control as a stacked card below md", () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       configurable: true,
@@ -179,7 +177,7 @@ describe("BrandDropDetailPage", () => {
     mockUseBrandDropDetail.mockReturnValue({
       data: {
         ...brandDrop(false),
-        brandTrackerStage: "finalizing_agreements",
+        stage: "selecting",
         applyCloseAt: now - 1000,
         applications: [
           {
@@ -195,6 +193,7 @@ describe("BrandDropDetailPage", () => {
             pitch: "We host weekly mixers.",
             decision: "applied",
             decisionAt: null,
+            decisionSentAt: null,
             appliedAt: now,
             allocatedUnits: null,
             deliveryAddress: "Ithaca, NY",
@@ -213,10 +212,10 @@ describe("BrandDropDetailPage", () => {
     });
     renderPage();
 
-    const accept = container.querySelectorAll(
-      '[role="switch"][aria-label="Accept Campus Greeks"]',
+    const decision = container.querySelectorAll(
+      'select[aria-label="Decision for Campus Greeks"]',
     );
-    expect(accept).toHaveLength(1);
+    expect(decision).toHaveLength(1);
     expect(container.querySelector("table")).toBeNull();
     expect(container.textContent).toContain("We host weekly mixers.");
     expect(container.textContent).toContain("Ship to: Ithaca, NY");
@@ -226,7 +225,7 @@ describe("BrandDropDetailPage", () => {
     mockUseBrandDropDetail.mockReturnValue({
       data: {
         ...brandDrop(false),
-        brandTrackerStage: "finalizing_agreements",
+        stage: "selecting",
         applyCloseAt: now - 1000,
         applications: [
           {
@@ -242,6 +241,7 @@ describe("BrandDropDetailPage", () => {
             pitch: null,
             decision: "applied",
             decisionAt: null,
+            decisionSentAt: null,
             appliedAt: now,
             allocatedUnits: null,
             deliveryAddress: null,
@@ -266,73 +266,86 @@ describe("BrandDropDetailPage", () => {
     expect(pending?.className).toContain("text-accent");
   });
 
-  it("accepts via the toggle and finalizes through the in-app confirm", () => {
+  it("drafts a decision per seat, then sends through the in-app confirm", async () => {
     const confirmSpy = jest.spyOn(window, "confirm");
-    mockUseBrandDropDetail.mockReturnValue({
+    const seat = {
+      id: "app-1",
+      dropId: "drop-1",
+      orgId: "org-1",
+      orgName: "Campus Greeks",
+      university: "Cornell",
+      instagramHandle: "campusgreeks",
+      category: "fraternity",
+      followerCount: 100,
+      memberCount: 40,
+      pitch: null,
+      decision: "applied",
+      decisionAt: null,
+      decisionSentAt: null,
+      appliedAt: now,
+      allocatedUnits: null,
+      deliveryAddress: "Ithaca, NY",
+      accountErased: false,
+      shipments: [],
+      attributedComments: 0,
+      attributedEngagement: 0,
+      attributedLikes: 0,
+      attributedPostCount: 0,
+      posts: [],
+    };
+    const detail = (decision: string) => ({
       data: {
         ...brandDrop(false),
-        brandTrackerStage: "finalizing_agreements",
+        stage: "selecting",
         applyCloseAt: now - 1000,
-        applications: [
-          {
-            id: "app-1",
-            dropId: "drop-1",
-            orgId: "org-1",
-            orgName: "Campus Greeks",
-            university: "Cornell",
-            instagramHandle: "campusgreeks",
-            category: "fraternity",
-            followerCount: 100,
-            memberCount: 40,
-            pitch: null,
-            decision: "applied",
-            decisionAt: null,
-            appliedAt: now,
-            allocatedUnits: null,
-            deliveryAddress: "Ithaca, NY",
-            accountErased: false,
-            shipments: [],
-            attributedComments: 0,
-            attributedEngagement: 0,
-            attributedLikes: 0,
-            attributedPostCount: 0,
-            posts: [],
-          },
-        ],
+        applications: [{ ...seat, decision }],
       },
       isLoading: false,
       error: null,
     });
+    mockUseBrandDropDetail.mockReturnValue(detail("applied"));
     renderPage();
 
-    const toggle = container.querySelector(
-      '[role="switch"][aria-label="Accept Campus Greeks"]',
-    ) as HTMLButtonElement;
-    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    const select = container.querySelector(
+      'select[aria-label="Decision for Campus Greeks"]',
+    ) as HTMLSelectElement;
+    expect(
+      (container.querySelector('[data-testid="send-decisions"]') as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
     act(() => {
-      toggle.click();
+      select.value = "accepted";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    expect(toggle.getAttribute("aria-checked")).toBe("true");
-    expect(container.textContent).toContain("Accept 1 · Deny 0");
+    expect(mockDecide).toHaveBeenCalledWith({
+      applicationId: "app-1",
+      decision: "accepted",
+      allocatedUnits: null,
+    });
 
+    // The draft comes back from the server; Send is now live.
+    mockUseBrandDropDetail.mockReturnValue(detail("accepted"));
+    renderPage();
+    expect(container.textContent).toContain("Ready to send: accept 1 · deny 0");
     const start = container.querySelector(
-      '[data-testid="finalize-selection"]',
+      '[data-testid="send-decisions"]',
     ) as HTMLButtonElement;
     act(() => {
       start.click();
     });
     expect(confirmSpy).not.toHaveBeenCalled();
-    expect(mockFinalizeMutate).not.toHaveBeenCalled();
-    expect(container.textContent).toContain("cannot be undone");
+    expect(mockSend).not.toHaveBeenCalled();
+    // The confirm dialog portals to <body>.
+    expect(document.body.textContent).toContain("sent decisions can't be changed");
 
-    const confirmBtn = container.querySelector(
-      '[data-testid="finalize-confirm"]',
+    const confirmBtn = document.querySelector(
+      '[data-testid="send-decisions-confirm"]',
     ) as HTMLButtonElement;
-    act(() => {
+    await act(async () => {
       confirmBtn.click();
     });
-    expect(mockFinalizeMutate).toHaveBeenCalledTimes(1);
-    expect(mockFinalizeMutate.mock.calls[0][0]).toEqual([{ orgId: "org-1", units: 0 }]);
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain("Decisions sent.");
     confirmSpy.mockRestore();
   });
 
@@ -340,7 +353,7 @@ describe("BrandDropDetailPage", () => {
     mockUseBrandDropDetail.mockReturnValue({
       data: {
         ...brandDrop(false),
-        brandTrackerStage: "finalizing_agreements",
+        stage: "selecting",
         applyCloseAt: now - 1000,
         applications: [
           {
@@ -356,6 +369,7 @@ describe("BrandDropDetailPage", () => {
             pitch: null,
             decision: "applied",
             decisionAt: null,
+            decisionSentAt: null,
             appliedAt: now,
             allocatedUnits: null,
             deliveryAddress: null,

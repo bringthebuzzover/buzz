@@ -41,7 +41,6 @@ from app.models import (
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
     OrgUserStatus,
     Platform,
     PortalRole,
@@ -94,8 +93,6 @@ async def _seed_org_brand_drop_post(
         capacity_total=5,
         apply_open_at=utcnow() - timedelta(days=1),
         apply_close_at=utcnow() + timedelta(days=1),
-        manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.REQUEST_RECEIVED.value,
     )
     session.add(drop)
     await session.flush()

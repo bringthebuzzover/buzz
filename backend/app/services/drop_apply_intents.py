@@ -28,6 +28,7 @@ from app.services.drops import (
     apply_to_drop,
     drop_apply_eligibility,
 )
+from app.services.lifecycle import drop_stage
 from app.timeutils import as_utc
 
 logger = logging.getLogger(__name__)
@@ -225,8 +226,7 @@ async def build_public_drop_detail(
         capacity_total=drop.capacity_total,
         apply_open_at=drop.apply_open_at,
         apply_close_at=drop.apply_close_at,
-        manual_reopen=drop.manual_reopen,
-        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
+        stage=await drop_stage(db, drop),
         total_product_units=None,
         created_at=drop.created_at,
         accepted_count=accepted,

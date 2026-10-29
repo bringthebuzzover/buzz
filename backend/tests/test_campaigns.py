@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import uuid
+from datetime import timedelta
 
 from httpx import AsyncClient
 
 from app.models.enums import (
     ApplicationDecision,
-    BrandTrackerStage,
     OrgUserStatus,
     PortalRole,
 )
+from app.timeutils import utcnow
 from tests.conftest import (
     make_application,
     make_brand,
@@ -47,31 +48,64 @@ async def test_list_excludes_denied(app_client: AsyncClient, db_session) -> None
     # joined drop fields present + camelCase
     assert item["title"] == "Applied Drop"
     assert item["brandName"] == brand.brand_name
-    assert "image" in item and "brandTrackerStage" in item
+    assert "image" in item
+    assert item["stage"] == "applying"
+    assert item["linksOpen"] is True
 
 
 async def test_list_sort_order(app_client: AsyncClient, db_session) -> None:
     _, org, headers = await _org_ctx(db_session)
     brand = await make_brand(db_session)
-    # active(0) -> accepted(1) -> applied(2) -> finished(3)
-    stage = BrandTrackerStage
-    d_active = await make_drop(db_session, brand, title="A", stage=stage.DROP_ACTIVE)
-    d_accepted = await make_drop(db_session, brand, title="B", stage=stage.AWAITING_PRODUCTS)
-    d_applied = await make_drop(db_session, brand, title="C", stage=stage.REQUEST_RECEIVED)
-    d_finished = await make_drop(db_session, brand, title="D", stage=stage.DROP_FINISHED)
-    await make_application(db_session, d_active, org, decision=ApplicationDecision.ACCEPTED)
+    # live(0) -> accepted(1) -> applied(2) -> wrapped(3)
+    closed = {"apply_close_at": utcnow() - timedelta(days=1)}
+    d_live = await make_drop(db_session, brand, title="A", **closed)
+    d_accepted = await make_drop(db_session, brand, title="B")
+    d_applied = await make_drop(db_session, brand, title="C")
+    d_wrapped = await make_drop(db_session, brand, title="D", wrapped_at=utcnow(), **closed)
+    await make_application(db_session, d_live, org, decision=ApplicationDecision.ACCEPTED)
     await make_application(db_session, d_accepted, org, decision=ApplicationDecision.ACCEPTED)
     await make_application(db_session, d_applied, org, decision=ApplicationDecision.APPLIED)
-    await make_application(db_session, d_finished, org, decision=ApplicationDecision.ACCEPTED)
+    await make_application(db_session, d_wrapped, org, decision=ApplicationDecision.ACCEPTED)
 
     resp = await app_client.get("/api/campaigns", headers=headers)
-    order = [item["dropId"] for item in resp.json()["data"]]
-    assert order == [
-        str(d_active.id),
+    items = resp.json()["data"]
+    assert [item["dropId"] for item in items] == [
+        str(d_live.id),
         str(d_accepted.id),
         str(d_applied.id),
-        str(d_finished.id),
+        str(d_wrapped.id),
     ]
+    assert [item["stage"] for item in items] == ["live", "applying", "applying", "wrapped"]
+
+
+async def test_unsent_decisions_read_as_applied(app_client: AsyncClient, db_session) -> None:
+    """A drafted accept/deny stays private until the brand sends decisions."""
+    _, org, headers = await _org_ctx(db_session)
+    brand = await make_brand(db_session)
+    accepted_drop = await make_drop(db_session, brand, title="Drafted accept")
+    denied_drop = await make_drop(db_session, brand, title="Drafted deny")
+    accepted = await make_application(
+        db_session, accepted_drop, org, decision=ApplicationDecision.ACCEPTED, sent=False
+    )
+    accepted.allocated_units = 5
+    await make_application(
+        db_session, denied_drop, org, decision=ApplicationDecision.DENIED, sent=False
+    )
+    await db_session.flush()
+
+    items = (await app_client.get("/api/campaigns", headers=headers)).json()["data"]
+    assert sorted(i["title"] for i in items) == ["Drafted accept", "Drafted deny"]
+    assert {i["decision"] for i in items} == {"applied"}
+    assert all(i["allocatedUnits"] is None and i["decisionAt"] is None for i in items)
+    detail = await app_client.get(f"/api/campaigns/{accepted.id}", headers=headers)
+    assert detail.json()["data"]["decision"] == "applied"
+    # Linking requires a *sent* acceptance.
+    link = await app_client.post(
+        f"/api/campaigns/{accepted.id}/link-post",
+        json={"postId": str(uuid.uuid4())},
+        headers=headers,
+    )
+    assert link.status_code == 404
 
 
 async def test_detail_happy_path(app_client: AsyncClient, db_session) -> None:

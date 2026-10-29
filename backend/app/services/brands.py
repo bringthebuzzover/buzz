@@ -9,12 +9,11 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
-from sqlalchemy import update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -22,11 +21,10 @@ from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage, OrgUserStatus
+from app.models.enums import ApplicationDecision, BrandStatus, DropStage, OrgUserStatus
 from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.social_post import SocialPost
-from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.schemas.brands import (
     BrandDropCreativePatch,
@@ -36,12 +34,8 @@ from app.schemas.brands import (
     BrandDropPostItem,
 )
 from app.services.drop_image import validate_https_image
-from app.services.email import (
-    KIND_APPLICATION_DENIED,
-    build_idempotency_key,
-    send_application_denied_email,
-)
 from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
+from app.services.lifecycle import drop_stage
 from app.services.shipments import shipments_by_application_ids
 
 logger = logging.getLogger(__name__)
@@ -112,7 +106,9 @@ def _brand_post_item(post: SocialPost, *, anonymize: bool) -> BrandDropPostItem:
     return item
 
 
-def _brand_drop_fields(drop: Drop, brand: Brand, agg: dict[str, int]) -> dict[str, Any]:
+def _brand_drop_fields(
+    drop: Drop, brand: Brand, agg: dict[str, int], stage: DropStage
+) -> dict[str, Any]:
     """Fields shared by the brand drop list item and the brand drop detail."""
 
     return {
@@ -126,22 +122,21 @@ def _brand_drop_fields(drop: Drop, brand: Brand, agg: dict[str, int]) -> dict[st
         "capacity_total": drop.capacity_total,
         "apply_open_at": drop.apply_open_at,
         "apply_close_at": drop.apply_close_at,
-        "manual_reopen": drop.manual_reopen,
-        "brand_tracker_stage": drop.brand_tracker_stage,
+        "stage": stage,
         "total_product_units": drop.total_product_units,
         "campaign_hashtag": drop.campaign_hashtag,
-        "applicant_selection_finalized_at": drop.applicant_selection_finalized_at,
         "created_at": drop.created_at,
         **agg,
     }
 
 
 async def build_brand_drop_list_item(
-    db: AsyncSession, brand: Brand, drop: Drop
+    db: AsyncSession, brand: Brand, drop: Drop, stage: DropStage
 ) -> BrandDropListItem:
     """One row of ``GET /api/brands/me/drops``."""
 
-    return BrandDropListItem(**_brand_drop_fields(drop, brand, await _drop_aggregate(db, drop.id)))
+    agg = await _drop_aggregate(db, drop.id)
+    return BrandDropListItem(**_brand_drop_fields(drop, brand, agg, stage))
 
 
 async def build_brand_drop_detail(
@@ -176,6 +171,7 @@ async def build_brand_drop_detail(
                 allocated_units=app.allocated_units,
                 applied_at=app.applied_at,
                 decision_at=app.decision_at,
+                decision_sent_at=app.decision_sent_at,
                 org_name=TOMBSTONE_ORG_NAME if erased else org.org_name,
                 university="" if erased else org.university,
                 instagram_handle="" if erased else (org_user.instagram_username or ""),
@@ -206,7 +202,7 @@ async def build_brand_drop_detail(
         )
 
     return BrandDropDetailResponse(
-        **_brand_drop_fields(drop, brand, agg),
+        **_brand_drop_fields(drop, brand, agg, await drop_stage(db, drop)),
         brand_can_edit_creative=drop.brand_can_edit_creative,
         published_at=drop.published_at,
         applications=applicants,
@@ -488,221 +484,3 @@ async def compute_engagement_series(
         )
 
     return series
-
-
-# --- Finalize applicants (§8.3) ------------------------------------------------
-
-
-async def finalize_applicants(
-    db: AsyncSession,
-    brand: Brand,
-    drop_id: UUID,
-    allocations: Sequence[dict[str, Any]],
-) -> dict[str, int]:
-    """Validate 7 rules then atomically accept/deny applicants.
-
-    ``allocations`` items are ``{"org_id": UUID, "units": int}`` dicts.
-    Returns a summary dict suitable for the route response.
-    """
-
-    # Lock the drop row to serialize concurrent finalize attempts (avoid
-    # TOCTOU between rule checks and the accept/deny writes).
-    drop = await db.scalar(
-        select(Drop)
-        .where(
-            Drop.id == drop_id,
-            Drop.brand_id == brand.id,
-            Drop.hidden_at.is_(None),
-        )
-        .with_for_update()
-    )
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-
-    # Validate no duplicate org_ids
-    org_ids_in_alloc = [item["org_id"] for item in allocations]
-    seen: set[UUID] = set()
-    for oid in org_ids_in_alloc:
-        if oid in seen:
-            raise BuzzAPIException(
-                errors.VALIDATION_ERROR,
-                f"Duplicate org_id in allocations: {oid}",
-                status_code=400,
-            )
-        seen.add(oid)
-
-    # Rule 3: apply window must be closed (checked before stage so brands can
-    # self-advance out of request_received when autoclose missed).
-    now = datetime.now(timezone.utc)
-    if drop.apply_close_at.tzinfo is None:
-        apply_close = drop.apply_close_at.replace(tzinfo=timezone.utc)
-    else:
-        apply_close = drop.apply_close_at
-    if now <= apply_close:
-        raise BuzzAPIException(
-            errors.APPLY_WINDOW_OPEN,
-            "Applications are still open for this drop.",
-        )
-
-    # Rule 4: not already finalized
-    if drop.applicant_selection_finalized_at is not None:
-        raise BuzzAPIException(
-            errors.ALREADY_FINALIZED,
-            "Applicant selection has already been finalized.",
-        )
-
-    # Escape hatch: if autoclose (or admin) never moved the drop into selection,
-    # allow the brand to enter finalizing_agreements on finalize itself.
-    if (
-        drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
-        and not drop.manual_reopen
-    ):
-        drop.brand_tracker_stage = BrandTrackerStage.FINALIZING_AGREEMENTS.value
-        db.add(
-            DropTrackerEvent(
-                drop_id=drop.id,
-                stage=BrandTrackerStage.FINALIZING_AGREEMENTS.value,
-                note="auto-advanced on brand finalize (apply window closed)",
-            )
-        )
-        await db.flush()
-
-    # Rule 2: stage must be finalizing_agreements
-    if drop.brand_tracker_stage != BrandTrackerStage.FINALIZING_AGREEMENTS.value:
-        raise BuzzAPIException(
-            errors.DROP_NOT_IN_SELECTION_STAGE,
-            "Drop is not in the applicant selection stage.",
-        )
-
-    # Prior accepted seats/units from earlier finalize rounds (e.g. after reopen)
-    # consume capacity — this round may only fill what remains.
-    prior_row = (
-        await db.execute(
-            select(
-                func.count(),
-                func.coalesce(func.sum(DropApplication.allocated_units), 0),
-            ).where(
-                DropApplication.drop_id == drop.id,
-                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-            )
-        )
-    ).one()
-    prior_accepted_count = int(prior_row[0] or 0)
-    prior_allocated_units = int(prior_row[1] or 0)
-    # Admin late-add may overbook; do not let a negative remainder 400 an
-    # empty finalize that only denies leftover applied rows.
-    remaining_capacity = max(0, drop.capacity_total - prior_accepted_count)
-
-    # Rule 5: selected count ≤ remaining capacity
-    selected_count = len(allocations)
-    if selected_count > remaining_capacity:
-        raise BuzzAPIException(
-            errors.CAPACITY_EXCEEDED,
-            f"Selected {selected_count} "
-            f"{'organization' if selected_count == 1 else 'organizations'} "
-            f"{'exceeds' if selected_count == 1 else 'exceed'} remaining capacity of "
-            f"{remaining_capacity} ({prior_accepted_count} already accepted).",
-        )
-
-    # Rule 6: unit budget (only when total_product_units is set)
-    if drop.total_product_units is not None:
-        sum_units = sum(item["units"] for item in allocations)
-        remaining_units = max(0, drop.total_product_units - prior_allocated_units)
-        if sum_units > remaining_units:
-            raise BuzzAPIException(
-                errors.UNIT_BUDGET_EXCEEDED,
-                f"Allocated {sum_units} units exceeds remaining budget of "
-                f"{remaining_units} ({prior_allocated_units} already allocated).",
-                details={"remaining": remaining_units - sum_units},
-            )
-
-    # Rule 7: every allocated org must have an applied application
-    applied_rows = list(
-        await db.execute(
-            select(DropApplication.org_id, DropApplication.id).where(
-                DropApplication.drop_id == drop.id,
-                DropApplication.decision == ApplicationDecision.APPLIED.value,
-            )
-        )
-    )
-    applied_org_ids = {row[0] for row in applied_rows}
-    app_id_by_org = {row[0]: row[1] for row in applied_rows}
-
-    selected_org_ids = set(org_ids_in_alloc)
-    missing = selected_org_ids - applied_org_ids
-    if missing:
-        first_missing = next(iter(missing))
-        raise BuzzAPIException(
-            errors.ORG_NOT_APPLIED,
-            f"Organization {first_missing} has not applied to this drop.",
-            details={"org_id": str(first_missing)},
-        )
-
-    # Atomic txn: accept selected, deny the rest
-    allocation_by_org = {item["org_id"]: item["units"] for item in allocations}
-    denied_count = 0
-    denied_org_ids: set[UUID] = set()
-    for org_id, app_id in app_id_by_org.items():
-        if org_id in selected_org_ids:
-            units = allocation_by_org[org_id] if drop.total_product_units is not None else None
-            await db.execute(
-                sa_update(DropApplication)
-                .where(DropApplication.id == app_id)
-                .values(
-                    decision=ApplicationDecision.ACCEPTED.value,
-                    allocated_units=units,
-                    decision_at=now,
-                )
-            )
-        else:
-            await db.execute(
-                sa_update(DropApplication)
-                .where(DropApplication.id == app_id)
-                .values(
-                    decision=ApplicationDecision.DENIED.value,
-                    decision_at=now,
-                )
-            )
-            denied_count += 1
-            denied_org_ids.add(org_id)
-
-    drop.applicant_selection_finalized_at = now
-    # Finalize closes the apply window for good — a leftover manual_reopen would
-    # otherwise keep accepting applications under a finalized selection.
-    drop.manual_reopen = False
-    await db.flush()
-
-    # PRODUCT §7.1: denied applicants get an email (their only channel — no row in
-    # My Campaigns). Sent inline (matching the admin deny pattern); finalize has
-    # already flushed — a false send is structured-logged only (no rollback).
-    if denied_org_ids:
-        contacts = await db.execute(
-            select(User.edu_email, Organization.org_name, Organization.id)
-            .join(User, User.id == Organization.user_id)
-            .where(Organization.id.in_(denied_org_ids))
-        )
-        for edu_email, org_name, org_id in contacts.all():
-            if not edu_email:
-                continue
-            ok = await send_application_denied_email(
-                edu_email,
-                org_name=org_name,
-                drop_title=drop.title,
-                brand_name=brand.brand_name,
-                idempotency_key=build_idempotency_key(
-                    KIND_APPLICATION_DENIED, app_id_by_org[org_id]
-                ),
-            )
-            if not ok:
-                logger.warning(
-                    "application-denied email failed: recipient=%s drop_id=%s org_id=%s",
-                    edu_email,
-                    drop.id,
-                    org_id,
-                )
-
-    return {
-        "finalized_count": len(applied_org_ids),
-        "accepted_count": selected_count,
-        "denied_count": denied_count,
-    }

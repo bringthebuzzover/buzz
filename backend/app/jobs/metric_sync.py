@@ -33,10 +33,9 @@ Per-post / per-org failures don't block the batch (rate limits, deleted posts,
 expired tokens). Posts older than 30 days are frozen (skipped). Idempotent via
 ``UNIQUE(org_id, platform, external_id)``.
 
-Media eligibility (``_LIVE_STAGES``) is intentional for discovery/refresh: orgs
-need an accepted application on ``awaiting_products`` / ``drop_active`` /
-``drop_finished``. Follower refresh is broader (any tokened org). The finalize →
-awaiting_products gap remains a media-sync blackout only.
+Media eligibility is intentional for discovery/refresh: orgs need a live seat
+(accepted and sent) on a drop that is not hidden and not wrapped up more than
+``METRIC_SYNC_AFTER_WRAP`` ago. Follower refresh is broader (any tokened org).
 """
 
 from __future__ import annotations
@@ -53,8 +52,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.enums import (
-    ApplicationDecision,
-    BrandTrackerStage,
     OrgUserStatus,
     Platform,
     PortalRole,
@@ -67,17 +64,13 @@ from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.insight_units import clamp_reels_skip_rate
 from app.services.instagram import InstagramClient, MediaFields, merge_follower_count
 from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.lifecycle import metrics_sync_open, seat_is_live
 
 logger = logging.getLogger(__name__)
 
 # Exported for admin health (must stay aligned with the sync lookback).
 METRIC_WINDOW_DAYS = 30
 _WINDOW = timedelta(days=METRIC_WINDOW_DAYS)
-_LIVE_STAGES = (
-    BrandTrackerStage.AWAITING_PRODUCTS.value,
-    BrandTrackerStage.DROP_ACTIVE.value,
-    BrandTrackerStage.DROP_FINISHED.value,
-)
 # insight name -> SocialPost column
 _INSIGHT_COLUMNS = (
     "reach",
@@ -225,7 +218,7 @@ def _apply_insights(post: SocialPost, insights: dict[str, int | float]) -> None:
 
 
 async def _eligible_orgs(db: AsyncSession, now: datetime) -> list[Organization]:
-    """Orgs with at least one accepted application on a live-stage drop.
+    """Orgs with a live seat on a drop that still syncs (``metrics_sync_open``).
 
     Erased accounts are excluded. Their posts stay linked with last-known
     numbers and ``metrics_frozen_at`` set, and this job must not call
@@ -237,9 +230,8 @@ async def _eligible_orgs(db: AsyncSession, now: datetime) -> list[Organization]:
         .join(Organization, Organization.id == DropApplication.org_id)
         .join(User, User.id == Organization.user_id)
         .where(
-            DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-            Drop.brand_tracker_stage.in_(_LIVE_STAGES),
-            Drop.hidden_at.is_(None),
+            seat_is_live(),
+            metrics_sync_open(),
             User.status != OrgUserStatus.ERASED.value,
         )
         .distinct()

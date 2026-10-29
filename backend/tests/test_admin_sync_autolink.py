@@ -7,11 +7,12 @@ from datetime import datetime, timedelta, timezone
 from httpx import AsyncClient
 from sqlalchemy import select
 
-from app.models.enums import ApplicationDecision, BrandTrackerStage, PortalRole
+from app.models.enums import ApplicationDecision, PortalRole
 from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
 from app.security.token_crypto import encrypt_token
 from app.services.instagram import MediaFields, MediaRef
+from app.timeutils import utcnow
 from tests.conftest import (
     FakeInstagramClient,
     admin_headers,
@@ -35,7 +36,7 @@ async def _active_seat(db_session, *, handle: str = "nike"):
     org.follower_count = 5
     brand = await make_brand(db_session)
     brand.instagram_handle = handle
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db_session, brand)
     await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
     await db_session.flush()
     return org_user, org, drop
@@ -121,7 +122,7 @@ class TestAdminSyncAutolink:
         org_b = await make_org(db_session, other_user, org_name="Other Club")
         brand_b = await make_brand(db_session)
         brand_b.instagram_handle = "adidas"
-        drop_b = await make_drop(db_session, brand_b, stage=BrandTrackerStage.DROP_ACTIVE)
+        drop_b = await make_drop(db_session, brand_b)
         await make_application(db_session, drop_b, org_b, decision=ApplicationDecision.ACCEPTED)
         await make_social_post(db_session, org_b, caption="go @adidas")
         fake_instagram.media = []
@@ -136,16 +137,16 @@ class TestAdminSyncAutolink:
         assert count is None
         assert org_a.id != org_b.id
 
-    async def test_allows_published_awaiting_products(
+    async def test_allows_recently_wrapped_drop(
         self,
         app_client: AsyncClient,
         db_session,
     ):
         org_user, org, drop = await _active_seat(db_session)
         org_user.instagram_access_token = None
-        drop.brand_tracker_stage = BrandTrackerStage.AWAITING_PRODUCTS.value
+        drop.wrapped_at = utcnow()  # BUZZ can still sync a wrapped drop (retro)
         await db_session.flush()
-        await make_social_post(db_session, org, caption="early @nike post")
+        await make_social_post(db_session, org, caption="late @nike post")
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/sync-and-autolink",
             headers=await admin_headers(db_session),
@@ -156,18 +157,15 @@ class TestAdminSyncAutolink:
 
     async def test_refuse_non_eligible(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        finished = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
-        draft = await make_drop(
-            db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE, published_at=None
-        )
-        hidden = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+        draft = await make_drop(db_session, brand, published_at=None)
+        hidden = await make_drop(db_session, brand)
         hidden.hidden_at = datetime.now(timezone.utc)
         await db_session.flush()
         headers = await admin_headers(db_session)
-        for drop in (finished, draft, hidden):
+        for drop in (draft, hidden):
             res = await app_client.post(
                 f"/api/admin/drops/{drop.id}/sync-and-autolink",
                 headers=headers,
             )
-            assert res.status_code == 409, drop.brand_tracker_stage
+            assert res.status_code == 409, drop.title
             assert res.json()["error"]["code"] == "DROP_NOT_ELIGIBLE"

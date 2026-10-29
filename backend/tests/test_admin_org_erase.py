@@ -19,7 +19,6 @@ from app.models.application import DropApplication
 from app.models.drop_apply_intent import DropApplyIntent
 from app.models.enums import (
     ApplicationDecision,
-    BrandTrackerStage,
     DropApplyIntentStatus,
     OrgCategory,
     OrgUserStatus,
@@ -79,7 +78,7 @@ async def _seed_erasable_org(db_session, *, with_email: bool = True):
     org.category = OrgCategory.FRATERNITY.value
     await db_session.flush()
     brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db_session, brand)
     accepted = await make_application(
         db_session,
         drop,
@@ -526,7 +525,6 @@ class TestAdminOrgErase:
         drop = await make_drop(
             db_session,
             brand,
-            stage=BrandTrackerStage.DROP_ACTIVE,
             total_product_units=20,
         )
         ghost_app = await make_application(
@@ -699,7 +697,7 @@ class TestAdminOrgErase:
         live.follower_count = 40
 
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+        drop = await make_drop(db_session, brand)
         ghost_app = await make_application(
             db_session, drop, ghost, decision=ApplicationDecision.ACCEPTED
         )
@@ -952,7 +950,7 @@ class TestAdminOrgErase:
         live_user.instagram_username = "LiveOrg"
         live = await make_org(db_session, live_user, org_name="Live Club")
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+        drop = await make_drop(db_session, brand)
         ghost_app = await make_application(
             db_session, drop, ghost, decision=ApplicationDecision.ACCEPTED
         )

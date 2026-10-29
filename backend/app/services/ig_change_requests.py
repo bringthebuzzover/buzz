@@ -18,7 +18,7 @@ from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, BrandTrackerStage, OrgUserStatus, PortalRole
+from app.models.enums import OrgUserStatus, PortalRole
 from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
@@ -35,6 +35,7 @@ from app.services.email import (
     send_org_ig_switch_connect_email,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.lifecycle import seat_is_live
 from app.services.org_apply import (
     assert_handle_available,
     clear_ig_bind_mismatch,
@@ -240,7 +241,7 @@ async def _risk_context(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     accepted = await db.scalar(
         select(func.count(DropApplication.id)).where(
             DropApplication.org_id == org_id,
-            DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+            seat_is_live(),
         )
     )
     linked = await db.scalar(
@@ -253,10 +254,10 @@ async def _risk_context(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
         .join(DropApplication, DropApplication.drop_id == Drop.id)
         .where(
             DropApplication.org_id == org_id,
-            DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+            seat_is_live(),
             Drop.hidden_at.is_(None),
             Drop.published_at.is_not(None),
-            Drop.brand_tracker_stage != BrandTrackerStage.DROP_FINISHED.value,
+            Drop.wrapped_at.is_(None),
         )
     )
     finished = await db.scalar(
@@ -264,8 +265,8 @@ async def _risk_context(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
         .join(DropApplication, DropApplication.drop_id == Drop.id)
         .where(
             DropApplication.org_id == org_id,
-            DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-            Drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value,
+            seat_is_live(),
+            Drop.wrapped_at.is_not(None),
         )
     )
     return {

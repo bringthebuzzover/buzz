@@ -217,23 +217,50 @@ export function usePatchBrandDropCreative(dropId: string) {
   });
 }
 
-export function useFinalizeApplicants(dropId: string) {
+function useBrandDropMutation<TInput>(
+  dropId: string,
+  request: (input: TInput) => Promise<unknown>,
+) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (allocations: { orgId: string; units: number }[]) => {
-      const { data } = await apiFetch(
-        `/api/brands/me/drops/${dropId}/finalize-applicants`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ allocations }),
-        },
-      );
-      return data;
-    },
+    mutationFn: request,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["brand-drop-detail", dropId] });
       queryClient.invalidateQueries({ queryKey: ["brand-drops"] });
     },
+  });
+}
+
+/** Draft one applicant's decision; the org sees nothing until Send decisions. */
+export function useSetSeatDecision(dropId: string) {
+  return useBrandDropMutation(
+    dropId,
+    (input: {
+      applicationId: string;
+      decision: "applied" | "accepted" | "denied";
+      allocatedUnits?: number | null;
+    }) =>
+      apiFetch(
+        `/api/brands/me/drops/${dropId}/applications/${input.applicationId}/decision`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            decision: input.decision,
+            allocatedUnits: input.allocatedUnits ?? null,
+          }),
+        },
+      ),
+  );
+}
+
+/** Send every drafted decision (repeatable). */
+export function useSendDecisions(dropId: string) {
+  return useBrandDropMutation(dropId, async (_: void) => {
+    const { data } = await apiFetch<{ acceptedCount: number; deniedCount: number }>(
+      `/api/brands/me/drops/${dropId}/send-decisions`,
+      { method: "POST" },
+    );
+    return data;
   });
 }

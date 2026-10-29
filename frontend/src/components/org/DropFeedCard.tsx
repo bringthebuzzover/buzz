@@ -1,7 +1,7 @@
 /**
  * Org-side drop feed card. Renders status-aware copy and a primary CTA per
  * `DropFeedStatus` (Upcoming / Open / Closed). Per buzz-ops product/PRODUCT.md §6.3 and §7.2 there
- * is no waitlist; capacity-Closed (after finalize, or reopen leftovers) shows
+ * is no waitlist; capacity-Closed (every spot accepted) shows
  * Closed on the feed for new applies — not mid-window fill during first Open.
  *
  * - Upcoming: countdown to `applyOpenAt` + Notify Me toggle.
@@ -125,7 +125,6 @@ export default function DropFeedCard({
     </Button>
   ) : feedStatus === "open" && full ? (
     // Dead under getDropFeedStatus (full ⇒ closed). Kept as a guard.
-    // buzz-ops product/PRODUCT.md §7.2: capacity-Closed after finalize / reopen leftovers.
     <Button type="button" variant="secondary" className={ctaClass} disabled>
       {alreadyApplied ? "Applied" : "Spots filled"}
     </Button>

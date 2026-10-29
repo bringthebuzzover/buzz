@@ -37,8 +37,7 @@ function openDrop() {
     acceptedCount: 0,
     applyOpenAt: now - 86_400_000,
     applyCloseAt: now + 7 * 86_400_000,
-    manualReopen: false,
-    applicantSelectionFinalizedAt: null,
+    stage: "applying",
   };
 }
 

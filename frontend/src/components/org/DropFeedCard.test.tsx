@@ -1,7 +1,7 @@
 /**
  * Open-window spots copy (buzz-ops product/PRODUCT.md §6.3 Fork A):
  * - acceptedCount === 0 → "Up to N spots"
- * - acceptedCount > 0 (reopen leftovers) → "M of N spots remaining"
+ * - acceptedCount > 0 (seats already accepted) → "M of N spots remaining"
  *
  * Uses renderToString like smoke.test.tsx (no RTL dep in this package).
  */
@@ -20,7 +20,7 @@ const openDrop: DropCardData = {
   capacityTotal: 10,
   applyOpenAt: Date.now() - 1_000,
   applyCloseAt: Date.now() + 100_000,
-  manualReopen: false,
+  stage: "applying",
 };
 
 function renderOpen(acceptedCount: number): string {
@@ -42,7 +42,7 @@ describe("DropFeedCard accepted campaign", () => {
     ...openDrop,
     applyOpenAt: Date.now() - 100_000,
     applyCloseAt: Date.now() - 1_000,
-    applicantSelectionFinalizedAt: Date.now() - 1_000,
+    stage: "live",
   };
 
   it("links an accepted seat to My Campaigns instead of a dead Closed action", () => {

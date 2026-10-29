@@ -1,9 +1,10 @@
 """My-Campaigns orchestration (buzz-ops engineering/architecture.md §7.2/§7.3).
 
 A "campaign" is an org's ``drop_applications`` row joined with its parent drop.
-Denied applications are invisible to the org (filtered from the list, 404 on
-detail). The list is sorted server-side per §7.2: active → accepted → applied →
-finished, most-recently-applied first within each group.
+The org only sees *sent* decisions (``lifecycle.org_visible_decision``): a
+drafted accept/deny still reads ``applied``, and a sent denial is invisible
+(filtered from the list, 404 on detail). The list is sorted server-side per
+§7.2: live → accepted → applied → wrapped, most-recently-applied first.
 """
 
 from __future__ import annotations
@@ -18,35 +19,45 @@ from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, BrandTrackerStage
+from app.models.enums import ApplicationDecision, DropStage
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.campaigns import CampaignDetailResponse, CampaignListItem
+from app.services.lifecycle import (
+    drop_stages,
+    org_link_open,
+    org_visible_decision,
+    seat_is_denied_and_sent,
+)
 from app.services.shipments import shipments_by_application_ids
-
-# §7.2 group ordering. The stage constants use the *current* backend enum; the
-# D1 migration (Stage 5C) swaps these two values to the §8.5 vocabulary
-# (``drop_active`` / ``drop_finished``) without changing the bucket logic.
-_STAGE_ACTIVE = BrandTrackerStage.DROP_ACTIVE.value
-_STAGE_FINISHED = BrandTrackerStage.DROP_FINISHED.value
+from app.timeutils import utcnow
 
 
-def _campaign_sort_bucket(decision: str, stage: str) -> int:
-    """Lower sorts first: active(0) → accepted(1) → applied(2) → finished(3)."""
+def _campaign_sort_bucket(decision: str, stage: DropStage) -> int:
+    """Lower sorts first: live(0) → accepted(1) → applied(2) → wrapped(3)."""
 
     if decision == ApplicationDecision.ACCEPTED.value:
-        if stage == _STAGE_ACTIVE:
+        if stage == DropStage.LIVE:
             return 0
-        if stage == _STAGE_FINISHED:
+        if stage == DropStage.WRAPPED:
             return 3
         return 1
-    # Only non-denied decisions reach here; ``applied`` (and any future
-    # non-denied state) sort into the "applied" group.
     return 2
 
 
+def _org_seat_fields(application: DropApplication) -> dict[str, object]:
+    """Seat fields as the org may see them (drafted decisions stay hidden)."""
+
+    sent = application.decision_sent_at is not None
+    return {
+        "decision": org_visible_decision(application),
+        "allocated_units": application.allocated_units if sent else None,
+        "decision_at": application.decision_sent_at if sent else None,
+    }
+
+
 async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignListItem]:
-    """All non-denied applications for the caller org, joined + sorted (§7.2)."""
+    """All of the caller org's seats except sent denials, joined + sorted (§7.2)."""
 
     org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
     if org_id is None:
@@ -60,7 +71,7 @@ async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignLi
                 .join(Brand, Brand.id == Drop.brand_id)
                 .where(
                     DropApplication.org_id == org_id,
-                    DropApplication.decision != ApplicationDecision.DENIED.value,
+                    ~seat_is_denied_and_sent(),
                     Drop.hidden_at.is_(None),
                 )
             )
@@ -71,9 +82,11 @@ async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignLi
     # clock, so rows created in one transaction collide and same-bucket order
     # would otherwise be whatever the DB happened to return (mirrors the feed's
     # ``Drop.id`` tiebreaker).
+    now = utcnow()
+    stages = await drop_stages(db, list({drop.id for _, drop, _ in rows}), now=now)
     rows.sort(
         key=lambda pair: (
-            _campaign_sort_bucket(pair[0].decision, pair[1].brand_tracker_stage),
+            _campaign_sort_bucket(org_visible_decision(pair[0]), stages[pair[1].id]),
             -pair[0].applied_at.timestamp(),
             str(pair[0].id),
         )
@@ -86,16 +99,15 @@ async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignLi
         CampaignListItem(
             id=application.id,
             drop_id=application.drop_id,
-            decision=application.decision,
             pitch=application.pitch,
             shipments=shipment_map.get(application.id, []),
-            allocated_units=application.allocated_units,
             applied_at=application.applied_at,
-            decision_at=application.decision_at,
             title=drop.title,
             brand_name=brand.brand_name,
-            brand_tracker_stage=drop.brand_tracker_stage,
+            stage=stages[drop.id],
+            links_open=org_link_open(drop, now),
             image=drop.image,
+            **_org_seat_fields(application),
         )
         for application, drop, brand in rows
     ]
@@ -110,21 +122,21 @@ async def resolve_owned_application(
 ) -> DropApplication:
     """Load an application the caller org owns, or raise 404.
 
-    Unknown / other-org / denied all collapse to the same 404 (no existence
-    leak). Shared by every ``/api/campaigns/{id}/*`` sub-resource so they
-    enforce ownership uniformly (no IDOR).
+    Unknown / other-org / sent-denied all collapse to the same 404 (no
+    existence leak). Shared by every ``/api/campaigns/{id}/*`` sub-resource so
+    they enforce ownership uniformly (no IDOR).
 
-    ``require_accepted`` additionally collapses non-accepted (e.g. still
-    ``applied``) applications to 404 — used by the post-linking paths, since an
-    org only links posts once accepted into the campaign. Keeping this off for
-    reads lets an applied org still view their pending campaign.
+    ``require_accepted`` additionally collapses seats the org does not *see* as
+    accepted (still applied, or accepted but unsent) to 404 — used by the
+    post-linking paths. Keeping this off for reads lets an applied org still
+    view their pending campaign.
     """
 
     org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
     application = await db.get(DropApplication, application_id)
-    blocked = application is not None and (
-        application.decision == ApplicationDecision.DENIED.value
-        or (require_accepted and application.decision != ApplicationDecision.ACCEPTED.value)
+    visible = org_visible_decision(application) if application is not None else None
+    blocked = visible == ApplicationDecision.DENIED.value or (
+        require_accepted and visible != ApplicationDecision.ACCEPTED.value
     )
     drop = await db.get(Drop, application.drop_id) if application is not None else None
     if (
@@ -165,7 +177,7 @@ async def get_my_campaign(
     if (
         org_id is None
         or application.org_id != org_id
-        or application.decision == ApplicationDecision.DENIED.value
+        or org_visible_decision(application) == ApplicationDecision.DENIED.value
         or drop.hidden_at is not None
     ):
         raise BuzzAPIException(errors.NOT_FOUND, "Campaign not found.", status_code=404)
@@ -174,17 +186,16 @@ async def get_my_campaign(
         id=application.id,
         drop_id=application.drop_id,
         org_id=application.org_id,
-        decision=application.decision,
         pitch=application.pitch,
         shipments=(await shipments_by_application_ids(db, [application.id]))[application.id],
-        allocated_units=application.allocated_units,
         applied_at=application.applied_at,
-        decision_at=application.decision_at,
         title=drop.title,
         description=drop.description,
         brand_name=brand.brand_name,
         image=drop.image,
-        brand_tracker_stage=drop.brand_tracker_stage,
+        stage=(await drop_stages(db, [drop.id]))[drop.id],
+        links_open=org_link_open(drop, utcnow()),
+        **_org_seat_fields(application),
         apply_open_at=drop.apply_open_at,
         apply_close_at=drop.apply_close_at,
         capacity_total=drop.capacity_total,

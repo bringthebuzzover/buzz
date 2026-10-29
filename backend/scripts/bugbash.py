@@ -50,7 +50,6 @@ from app.models.drop import Drop  # noqa: E402
 from app.models.enums import (  # noqa: E402
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
     OrgUserStatus,
     PortalRole,
 )
@@ -206,9 +205,9 @@ async def db_make_active_org(suffix: str) -> tuple[uuid.UUID, uuid.UUID]:
         return user.id, org.id
 
 
-async def db_make_finalize_ready_drop() -> dict[str, Any]:
-    """Create an approved brand + a drop in finalizing_agreements (window closed)
-    with 3 applied orgs. Returns ids needed to drive the finalize flow."""
+async def db_make_selecting_drop() -> dict[str, Any]:
+    """Create an approved brand + a published drop in Selecting (window closed)
+    with 3 applied orgs. Returns ids needed to drive per-seat decisions."""
     suffix = _uid()
     async with async_session_factory() as db:
         brand_user = User(
@@ -234,19 +233,19 @@ async def db_make_finalize_ready_drop() -> dict[str, Any]:
             id=uuid.uuid4(),
             brand_id=brand.id,
             title=f"Bash Drop {suffix}",
-            description="finalize-ready",
+            description="selecting",
             image="https://example.test/i.png",
             location="Bash City",
             capacity_total=5,
             apply_open_at=now - timedelta(days=3),
             apply_close_at=now - timedelta(days=1),  # window CLOSED
-            manual_reopen=False,
-            brand_tracker_stage=BrandTrackerStage.FINALIZING_AGREEMENTS.value,
             total_product_units=100,
+            published_at=now - timedelta(days=3),
         )
         db.add(drop)
         await db.flush()
         org_ids = []
+        app_ids = []
         for i in range(3):
             ou = User(
                 id=uuid.uuid4(),
@@ -266,20 +265,21 @@ async def db_make_finalize_ready_drop() -> dict[str, Any]:
             )
             db.add(org)
             await db.flush()
-            db.add(
-                DropApplication(
-                    id=uuid.uuid4(),
-                    drop_id=drop.id,
-                    org_id=org.id,
-                    decision=ApplicationDecision.APPLIED.value,
-                )
+            application = DropApplication(
+                id=uuid.uuid4(),
+                drop_id=drop.id,
+                org_id=org.id,
+                decision=ApplicationDecision.APPLIED.value,
             )
+            db.add(application)
             org_ids.append(str(org.id))
+            app_ids.append(str(application.id))
         await db.commit()
         return {
             "brand_email": email,
             "drop_id": str(drop.id),
             "org_ids": org_ids,
+            "app_ids": app_ids,
         }
 
 
@@ -331,15 +331,6 @@ async def db_admin_id() -> uuid.UUID | None:
 async def db_org_id_for_user(user_id: uuid.UUID) -> uuid.UUID | None:
     async with async_session_factory() as db:
         return await db.scalar(select(Organization.id).where(Organization.user_id == user_id))
-
-
-async def db_mark_finalized(drop_id: str) -> None:
-    """Mark a drop's applicant selection finalized (so the tracker can advance)."""
-    async with async_session_factory() as db:
-        drop = await db.get(Drop, uuid.UUID(drop_id))
-        if drop is not None:
-            drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
-            await db.commit()
 
 
 # --------------------------------------------------------------------------- #
@@ -490,9 +481,9 @@ async def scenario_onboarding(api: Api) -> None:
         api.report.check(_ok(r, 200), "admin approve org 200", str(r.status_code))
 
 
-async def scenario_brand_finalize(api: Api) -> None:
-    print("\n[brand finalize + denial]")
-    fx = await db_make_finalize_ready_drop()
+async def scenario_brand_decisions(api: Api) -> None:
+    print("\n[brand seat decisions + send]")
+    fx = await db_make_selecting_drop()
     tok = await api.brand_login(fx["brand_email"], BRAND_PW)
     if not api.report.check(bool(tok), "brand login"):
         return
@@ -503,35 +494,41 @@ async def scenario_brand_finalize(api: Api) -> None:
     detail_ok = _ok(r, 200)
     api.report.check(detail_ok, "brand drop detail 200", str(r.status_code))
     if detail_ok:
-        apps = r.json()["data"]["applications"]
-        api.report.check(len(apps) == 3, "detail shows 3 applicants", str(len(apps)))
-    # accept 2, deny 1 (the 3rd org not listed)
-    accept = fx["org_ids"][:2]
-    r = await api.req(
-        "POST",
-        f"/api/brands/me/drops/{did}/finalize-applicants",
-        token=tok,
-        json={"allocations": [{"orgId": o, "units": 10} for o in accept]},
-    )
-    fin_ok = _ok(r, 200)
-    api.report.check(fin_ok, "finalize 200", f"{r.status_code} {r.text[:120]}")
-    if fin_ok:
+        data = r.json()["data"]
+        api.report.check(len(data["applications"]) == 3, "detail shows 3 applicants")
+        api.report.check(data["stage"] == "selecting", "stage selecting", data["stage"])
+    # accept 2, deny 1
+    for app_id, decision in zip(fx["app_ids"], ("accepted", "accepted", "denied")):
+        body: dict[str, Any] = {"decision": decision}
+        if decision == "accepted":
+            body["allocatedUnits"] = 10
+        r = await api.req(
+            "PUT",
+            f"/api/brands/me/drops/{did}/applications/{app_id}/decision",
+            token=tok,
+            json=body,
+        )
+        api.report.check(_ok(r, 200), f"decide {decision} 200", f"{r.status_code} {r.text[:120]}")
+    r = await api.req("POST", f"/api/brands/me/drops/{did}/send-decisions", token=tok)
+    sent_ok = _ok(r, 200)
+    api.report.check(sent_ok, "send decisions 200", f"{r.status_code} {r.text[:120]}")
+    if sent_ok:
         data = r.json()["data"]
         api.report.check(
             data.get("acceptedCount") == 2 and data.get("deniedCount") == 1,
-            "finalize accepted=2 denied=1 (denial email triggered)",
+            "sent accepted=2 denied=1 (denial email triggered)",
             str(data),
         )
-        # re-finalize blocked
+        # a sent decision is locked for the brand
         r2 = await api.req(
-            "POST",
-            f"/api/brands/me/drops/{did}/finalize-applicants",
+            "PUT",
+            f"/api/brands/me/drops/{did}/applications/{fx['app_ids'][2]}/decision",
             token=tok,
-            json={"allocations": []},
+            json={"decision": "accepted"},
         )
         api.report.check(
-            _err_code(r2) == "ALREADY_FINALIZED",
-            "re-finalize -> ALREADY_FINALIZED",
+            _err_code(r2) == "DECISION_ALREADY_SENT",
+            "change after send -> DECISION_ALREADY_SENT",
             f"{r2.status_code} {_err_code(r2)}",
         )
     r = await api.req("GET", "/api/brands/me/aggregate", token=tok)
@@ -540,48 +537,20 @@ async def scenario_brand_finalize(api: Api) -> None:
     api.report.check(_ok(r, 200), "engagement series 200", str(r.status_code))
 
 
-async def scenario_admin_tracker(api: Api) -> None:
-    print("\n[admin tracker + reopen]")
-    fx = await db_make_finalize_ready_drop()  # a fresh drop in finalizing_agreements
+async def scenario_admin_wrap(api: Api) -> None:
+    print("\n[admin wrap + unwrap]")
+    fx = await db_make_selecting_drop()
     admin_id = await db_admin_id()
     admin_tok = await api.dev_login(user_id=str(admin_id)) if admin_id else None
     if not api.report.check(bool(admin_tok), "dev-login admin"):
         return
     did = fx["drop_id"]
-    # L10: advancing past finalizing_agreements while unfinalized is rejected.
-    r = await api.req(
-        "PATCH",
-        f"/api/admin/drops/{did}/tracker",
-        token=admin_tok,
-        json={"stage": "awaiting_products"},
-    )
-    api.report.check(
-        _err_code(r) == "DROP_NOT_IN_SELECTION_STAGE",
-        "tracker skip past selection blocked (unfinalized)",
-        f"{r.status_code} {_err_code(r)}",
-    )
-    # Finalize, then the advance is allowed.
-    await db_mark_finalized(did)
-    r = await api.req(
-        "PATCH",
-        f"/api/admin/drops/{did}/tracker",
-        token=admin_tok,
-        json={"stage": "awaiting_products"},
-    )
-    api.report.check(
-        _ok(r, 200), "tracker -> awaiting_products 200 (finalized)", str(r.status_code)
-    )
-    # backward move rejected
-    r = await api.req(
-        "PATCH",
-        f"/api/admin/drops/{did}/tracker",
-        token=admin_tok,
-        json={"stage": "request_received"},
-    )
-    api.report.check(_ok(r, 400), "tracker backward -> 400", str(r.status_code))
-    # reopen
-    r = await api.req("POST", f"/api/admin/drops/{did}/reopen", token=admin_tok)
-    api.report.check(_ok(r, 200), "reopen 200", str(r.status_code))
+    r = await api.req("POST", f"/api/admin/drops/{did}/wrap", token=admin_tok)
+    wrapped = _ok(r, 200) and r.json()["data"]["stage"] == "wrapped"
+    api.report.check(wrapped, "wrap -> wrapped", f"{r.status_code} {r.text[:120]}")
+    r = await api.req("POST", f"/api/admin/drops/{did}/unwrap", token=admin_tok)
+    unwrapped = _ok(r, 200) and r.json()["data"]["stage"] == "selecting"
+    api.report.check(unwrapped, "unwrap -> selecting", f"{r.status_code} {r.text[:120]}")
 
 
 async def scenario_rate_limit(api: Api) -> None:
@@ -608,8 +577,8 @@ async def run_journey(api: Api) -> None:
     await scenario_authz(api)
     await scenario_org_happy(api)
     await scenario_onboarding(api)
-    await scenario_brand_finalize(api)
-    await scenario_admin_tracker(api)
+    await scenario_brand_decisions(api)
+    await scenario_admin_wrap(api)
     await scenario_rate_limit(api)
 
 
@@ -621,8 +590,11 @@ def _rand_body(kind: str) -> Any:
         return random.choice([{}, {"pitch": "x" * random.randint(0, 5000)}, {"pitch": None}])
     if kind == "notify":
         return {"reminderMinutes": random.choice([5, 15, 60, 0, -1, 999, "x"])}
-    if kind == "finalize":
-        return {"allocations": [{"orgId": str(uuid.uuid4()), "units": random.randint(-5, 999)}]}
+    if kind == "decision":
+        return {
+            "decision": random.choice(["accepted", "denied", "applied", "bogus", None]),
+            "allocatedUnits": random.randint(-5, 999),
+        }
     if kind == "onboarding":
         return {
             "orgName": random.choice(["", "x" * 300, "Ok"]),
@@ -631,8 +603,6 @@ def _rand_body(kind: str) -> Any:
             "instagramHandle": "h",
             "category": random.choice(["sports", "bogus", None]),
         }
-    if kind == "tracker":
-        return {"stage": random.choice(["awaiting_products", "bogus", "", "drop_active"])}
     if kind == "brand_apply":
         return {
             "brandName": random.choice(["", "x" * 500]),
@@ -656,8 +626,9 @@ async def run_fuzz(api: Api, n: int, tokens: dict[str, str | None]) -> None:
         ("GET", "/api/orgs/me", None, "org"),
         ("POST", "/api/orgs/onboarding", "onboarding", "org"),
         ("GET", "/api/brands/me/drops/{id}", None, "brand"),
-        ("POST", "/api/brands/me/drops/{id}/finalize-applicants", "finalize", "brand"),
-        ("PATCH", "/api/admin/drops/{id}/tracker", "tracker", "admin"),
+        ("PUT", "/api/brands/me/drops/{id}/applications/{id}/decision", "decision", "brand"),
+        ("POST", "/api/brands/me/drops/{id}/send-decisions", None, "brand"),
+        ("POST", "/api/admin/drops/{id}/wrap", None, "admin"),
         ("POST", "/api/admin/orgs/{id}/approve", None, "admin"),
         ("POST", "/api/admin/orgs/{id}/deny", None, "admin"),
         ("POST", "/api/brands/apply", "brand_apply", None),

@@ -2,10 +2,8 @@
 
 Responses are **camelCase** with **epoch-ms** datetimes (see ``schemas.common``)
 so they match the frontend ``Drop`` TypeScript type field-for-field. Only the
-fields the org surface actually renders are exposed; brand/fulfillment fields
-(e.g. ``brandTrackerStage``, whose backend and frontend enum vocabularies
-differ) are intentionally omitted on the org feed/detail until the Stage 5
-brand surface + Stage 6 frontend reconcile them.
+fields the org surface actually renders are exposed; ``stage`` is the computed
+lifecycle stage (``app.services.lifecycle``).
 """
 
 from __future__ import annotations
@@ -17,6 +15,7 @@ from datetime import date, datetime, timedelta, timezone
 from pydantic import ConfigDict, Field, field_serializer, field_validator
 from pydantic.alias_generators import to_camel
 
+from app.models.enums import DropStage
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 from app.schemas.shipments import ShipmentItem
 
@@ -40,8 +39,7 @@ class DropFeedItem(CamelModel):
     capacity_total: int
     apply_open_at: datetime
     apply_close_at: datetime
-    manual_reopen: bool
-    applicant_selection_finalized_at: datetime | None
+    stage: DropStage
     accepted_count: int
     already_applied: bool
     # Notify-Me state for the caller org (§6.3.1): whether a reminder is set and
@@ -55,18 +53,13 @@ class DropFeedItem(CamelModel):
         # Required datetimes must stay non-null in OpenAPI/TS (not int | null).
         return to_epoch_ms_required(value)
 
-    @field_serializer("applicant_selection_finalized_at")
-    def _epoch_optional(self, value: datetime | None) -> int | None:
-        return to_epoch_ms(value)
-
 
 class DropDetailResponse(CamelModel):
     """A single drop for the org-facing detail view (architecture §7.1).
 
     Superset of the feed item: adds ``brand_id``, ``total_product_units`` and
     ``created_at``, plus the same notify-me fields as the feed so the detail
-    surface can show subscribed state without a second lookup. Still omits
-    ``brand_tracker_stage`` (org status is derived on the campaigns surface).
+    surface can show subscribed state without a second lookup.
     """
 
     id: uuid.UUID
@@ -79,8 +72,7 @@ class DropDetailResponse(CamelModel):
     capacity_total: int
     apply_open_at: datetime
     apply_close_at: datetime
-    manual_reopen: bool
-    applicant_selection_finalized_at: datetime | None
+    stage: DropStage
     total_product_units: int | None
     created_at: datetime
     accepted_count: int
@@ -93,10 +85,6 @@ class DropDetailResponse(CamelModel):
     @field_serializer("apply_open_at", "apply_close_at", "created_at")
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
-
-    @field_serializer("applicant_selection_finalized_at")
-    def _epoch_optional(self, value: datetime | None) -> int | None:
-        return to_epoch_ms(value)
 
 
 class ApplicationResponse(CamelModel):

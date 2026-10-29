@@ -11,6 +11,7 @@ import uuid
 
 from pydantic import Field
 
+from app.models.enums import DropStage
 from app.schemas.common import CamelModel
 
 
@@ -77,8 +78,9 @@ class BrandApplyResponse(CamelModel):
     status: str
 
 
-class FinalizeApplicantsResponse(CamelModel):
-    finalized_count: int
+class SendDecisionsResponse(CamelModel):
+    """How many drafted decisions just went out."""
+
     accepted_count: int
     denied_count: int
 
@@ -163,14 +165,11 @@ class AdminBrandInviteResponse(CamelModel):
     email_sent: bool | None = None
 
 
-class TrackerAdvanceResponse(CamelModel):
-    drop_id: uuid.UUID
-    stage: str
+class DropStageResponse(CamelModel):
+    """A drop's computed stage after a lifecycle action (wrap / unwrap)."""
 
-
-class DropReopenResponse(CamelModel):
     drop_id: uuid.UUID
-    manual_reopen: bool
+    stage: DropStage
 
 
 class AdminComposeEmailRequest(CamelModel):
