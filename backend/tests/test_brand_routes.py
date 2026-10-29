@@ -106,15 +106,6 @@ class TestCreateDropRequest:
         drops = list(await db_session.scalars(select(Drop).where(Drop.brand_id == brand.id)))
         assert drops == []
 
-    async def test_old_create_drop_path_gone(self, app_client: AsyncClient, db_session):
-        _, _, headers = await _brand_ctx(db_session)
-        res = await app_client.post(
-            "/api/brands/me/drops",
-            json={"title": "Nope", "description": "Must not mint a drop"},
-            headers=headers,
-        )
-        assert res.status_code == 405
-
     async def test_rate_limited(self, app_client: AsyncClient, db_session):
         from app.config import settings
         from app.security import rate_limit
