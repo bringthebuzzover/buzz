@@ -61,18 +61,40 @@ async def test_full_lifecycle(app_client: AsyncClient, db_session) -> None:
     brand = await make_brand(db_session, company_email="lifecycle-brand@example.test")
     brand.user_id = brand_user.id
     now = utcnow()
-    drop = await make_drop(
-        db_session,
-        brand,
-        published_at=None,
-        apply_open_at=now - timedelta(days=1),
-        apply_close_at=now + timedelta(days=7),
-    )
     picked_user, picked = await _org(db_session, "Picked")
     passed_user, passed = await _org(db_session, "Passed")
     _, retro = await _org(db_session, "Retro")
     brand_h = _bearer(brand_user)
+
+    # Brand requests a campaign; BUZZ turns the ticket into a draft drop.
+    res = await app_client.post(
+        "/api/brands/me/drop-requests",
+        json={"message": "Sample our new snack", "product": "Snack box", "orgCount": 1},
+        headers=brand_h,
+    )
+    assert res.status_code == 200, res.text
+    ticket_id = res.json()["data"]["id"]
+    res = await app_client.post(
+        f"/api/admin/brands/{brand.id}/drops",
+        json={
+            "title": "Snack drop",
+            "description": "Try it, post it.",
+            "image": "https://example.test/snack.png",
+            "location": "Campus",
+            "capacityTotal": 1,
+            "applyOpenAt": _ms(now - timedelta(days=1)),
+            "applyCloseAt": _ms(now + timedelta(days=7)),
+            "dropRequestId": ticket_id,
+        },
+        headers=admin,
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["data"]["stage"] == "draft"
+    drop = await db_session.get(Drop, res.json()["data"]["id"])
+    assert drop is not None
     assert await drop_stage(db_session, drop) == DropStage.DRAFT
+    res = await app_client.get(f"/api/admin/drop-requests/{ticket_id}", headers=admin)
+    assert res.json()["data"]["convertedDropId"] == str(drop.id)
 
     # Draft → Applying (publish inside the window).
     res = await app_client.post(f"/api/admin/drops/{drop.id}/publish", headers=admin)
@@ -508,3 +530,77 @@ async def test_overview_counts_drops_by_stage(app_client: AsyncClient, db_sessio
     assert list(after) == [stage.value for stage in DropStage]
     assert after["draft"] == before["draft"] + 1
     assert after["applying"] == before["applying"] + 1
+
+
+async def _closed_drop_with_live_seat(db_session):
+    brand = await make_brand(db_session)
+    now = utcnow()
+    drop = await make_drop(
+        db_session,
+        brand,
+        apply_open_at=now - timedelta(days=3),
+        apply_close_at=now - timedelta(days=1),
+        total_product_units=10,
+    )
+    _, org = await _org(db_session, "Live")
+    seat = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    seat.allocated_units = 2
+    await db_session.flush()
+    return drop, seat
+
+
+async def test_units_change_keeps_a_sent_seat_live(app_client: AsyncClient, db_session) -> None:
+    drop, seat = await _closed_drop_with_live_seat(db_session)
+    sent_at = seat.decision_sent_at
+    res = await app_client.put(
+        f"/api/admin/drops/{drop.id}/applications/{seat.id}/decision",
+        json={"decision": "accepted", "allocatedUnits": 4},
+        headers=await admin_headers(db_session),
+    )
+    assert res.status_code == 200, res.text
+    await db_session.refresh(seat)
+    assert seat.allocated_units == 4
+    assert seat.decision_sent_at == sent_at
+    assert await drop_stage(db_session, drop) == DropStage.LIVE
+
+
+async def test_sent_decision_only_moves_forward_to_accepted(
+    app_client: AsyncClient, db_session
+) -> None:
+    drop, live = await _closed_drop_with_live_seat(db_session)
+    _, org = await _org(db_session, "Told no")
+    denied = await make_application(db_session, drop, org, decision=ApplicationDecision.DENIED)
+    admin = await admin_headers(db_session)
+
+    def url(seat) -> str:
+        return f"/api/admin/drops/{drop.id}/applications/{seat.id}/decision"
+
+    # A live seat can't be re-decided (removal is the way out); nor can a
+    # sent denial go back to undecided.
+    for seat, decision in ((live, "denied"), (live, "applied"), (denied, "applied")):
+        res = await app_client.put(url(seat), json={"decision": decision}, headers=admin)
+        assert res.json()["error"]["code"] == "DECISION_ALREADY_SENT", (seat.id, decision)
+
+    # BUZZ reverses the denial; it waits for the next send.
+    res = await app_client.put(
+        url(denied), json={"decision": "accepted", "allocatedUnits": 1}, headers=admin
+    )
+    assert res.status_code == 200, res.text
+    await db_session.refresh(denied)
+    assert denied.decision == ApplicationDecision.ACCEPTED.value
+    assert denied.decision_sent_at is None
+
+
+async def test_no_decisions_or_sends_on_a_hidden_drop(app_client: AsyncClient, db_session) -> None:
+    drop, seat = await _closed_drop_with_live_seat(db_session)
+    drop.hidden_at = utcnow()
+    await db_session.flush()
+    admin = await admin_headers(db_session)
+    res = await app_client.put(
+        f"/api/admin/drops/{drop.id}/applications/{seat.id}/decision",
+        json={"decision": "accepted", "allocatedUnits": 3},
+        headers=admin,
+    )
+    assert res.json()["error"]["code"] == "DROP_NOT_OPEN"
+    res = await app_client.post(f"/api/admin/drops/{drop.id}/send-decisions", headers=admin)
+    assert res.json()["error"]["code"] == "DROP_NOT_OPEN"

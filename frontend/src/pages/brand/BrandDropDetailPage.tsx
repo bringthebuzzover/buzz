@@ -390,7 +390,9 @@ function ApiDropDetail() {
 
       <BrandDropTrackerStepper currentStage={stage} applyCloseAt={detail.applyCloseAt} />
 
-      {detail.brandCanEditCreative ? <BrandCampaignEditor detail={detail} /> : null}
+      {detail.brandCanEditCreative && stage !== "wrapped" && stage !== "canceled" ? (
+        <BrandCampaignEditor detail={detail} />
+      ) : null}
 
       {canDecide ? (
         <ApiApplicantTable

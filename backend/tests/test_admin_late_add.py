@@ -92,6 +92,37 @@ class TestAdminLateAdd:
         assert res.status_code == 409
         assert res.json()["error"]["code"] == "ALREADY_ACCEPTED"
 
+    async def test_reuses_unsent_denial(self, app_client: AsyncClient, db_session, monkeypatch):
+        """An unsent denial is a draft: late-add turns it into the acceptance,
+        so the next send neither emails a denial nor leaves a phantom row."""
+        from app.services import seats
+
+        denials = AsyncMock(return_value=True)
+        monkeypatch.setattr(seats, "send_application_denied_email", denials)
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        _, org = await _org(db_session)
+        draft = await make_application(
+            db_session, drop, org, decision=ApplicationDecision.DENIED, sent=False
+        )
+        headers = await admin_headers(db_session)
+        res = await app_client.post(
+            f"/api/admin/drops/{drop.id}/add-org", json={"orgId": str(org.id)}, headers=headers
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["data"]["applicationId"] == str(draft.id)
+        rows = list(
+            await db_session.scalars(
+                select(DropApplication).where(DropApplication.drop_id == drop.id)
+            )
+        )
+        assert [(r.decision, r.decision_sent_at is not None) for r in rows] == [
+            (ApplicationDecision.ACCEPTED.value, True)
+        ]
+        res = await app_client.post(f"/api/admin/drops/{drop.id}/send-decisions", headers=headers)
+        assert res.json()["data"] == {"acceptedCount": 0, "deniedCount": 0}
+        denials.assert_not_awaited()
+
     async def test_refuse_erased_org(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand)

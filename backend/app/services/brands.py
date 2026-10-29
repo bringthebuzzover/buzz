@@ -228,6 +228,8 @@ async def update_brand_drop_creative(
         return
 
     reject_if_canceled(drop)
+    if drop.wrapped_at is not None:
+        raise BuzzAPIException(errors.DROP_WRAPPED, "This drop is wrapped up.", status_code=409)
     if not drop.brand_can_edit_creative:
         raise BuzzAPIException(
             errors.FORBIDDEN,

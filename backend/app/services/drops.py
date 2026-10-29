@@ -3,7 +3,8 @@
 Pure service functions (no FastAPI types) the route layer calls. The org feed
 returns a page of drops enriched with two server-computed fields:
 
-* ``accepted_count`` — number of ``accepted`` applications on the drop.
+* ``accepted_count`` — number of live seats (accepted and sent) on the drop;
+  draft acceptances don't fill spots until they go out.
 * ``already_applied`` — whether the *calling* org has a non-denied application.
 
 Both are computed with set/grouped queries keyed by the page's drop ids, so the
@@ -36,6 +37,7 @@ from app.services.lifecycle import (
     drop_stage,
     drop_stage_expr,
     seat_frees_reapply,
+    seat_is_live,
 )
 from app.timeutils import as_utc, utcnow
 
@@ -152,16 +154,13 @@ async def list_org_drop_feed(
 
 
 async def _accepted_counts(db: AsyncSession, drop_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
-    """Map drop_id -> count of ``accepted`` applications for the page's drops."""
+    """Map drop_id -> live (accepted and sent) seats for the page's drops."""
 
     if not drop_ids:
         return {}
     rows = await db.execute(
         select(DropApplication.drop_id, func.count())
-        .where(
-            DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-            DropApplication.drop_id.in_(drop_ids),
-        )
+        .where(seat_is_live(), DropApplication.drop_id.in_(drop_ids))
         .group_by(DropApplication.drop_id)
     )
     return {drop_id: count for drop_id, count in rows.all()}
