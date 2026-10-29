@@ -277,9 +277,14 @@ class TestWrapDrop:
         hidden.hidden_at = now
         await db_session.flush()
         headers = await admin_headers(db_session)
-        for drop in (applying, upcoming, hidden):
+        for drop, code in (
+            (applying, "APPLY_WINDOW_OPEN"),
+            (upcoming, "APPLY_WINDOW_OPEN"),
+            (hidden, "DROP_HIDDEN"),
+        ):
             res = await app_client.post(f"/api/admin/drops/{drop.id}/wrap", headers=headers)
             assert res.status_code == 409, res.text
+            assert res.json()["error"]["code"] == code
             await db_session.refresh(drop)
             assert drop.wrapped_at is None
 
@@ -290,6 +295,22 @@ class TestWrapDrop:
             f"/api/admin/drops/{drop.id}/wrap", headers=await admin_headers(db_session)
         )
         assert res.status_code == 409
+        assert res.json()["error"]["code"] == "DROP_UNPUBLISHED"
+
+    async def test_cancel_wrapped_refused(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, title="Done Drop")
+        drop.wrapped_at = datetime.now(timezone.utc)
+        await db_session.flush()
+        res = await app_client.post(
+            f"/api/admin/drops/{drop.id}/cancel",
+            json={"confirm": "Done Drop"},
+            headers=await admin_headers(db_session),
+        )
+        assert res.status_code == 409, res.text
+        assert res.json()["error"]["code"] == "DROP_WRAPPED"
+        await db_session.refresh(drop)
+        assert drop.canceled_at is None
 
     async def test_wrap_unknown_drop(self, app_client: AsyncClient, db_session):
         res = await app_client.post(

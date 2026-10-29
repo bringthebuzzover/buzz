@@ -37,7 +37,7 @@ from app.services.drop_image import validate_https_image
 from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.lifecycle import (
     drop_stage,
-    reject_if_canceled,
+    require_drop,
     seat_in_report,
     seat_is_live,
     seat_progress,
@@ -220,9 +220,7 @@ async def update_brand_drop_creative(
     if not updates:
         return
 
-    reject_if_canceled(drop)
-    if drop.wrapped_at is not None:
-        raise BuzzAPIException(errors.DROP_WRAPPED, "This drop is wrapped up.", status_code=409)
+    require_drop(drop, unwrapped=True)
     if not drop.brand_can_edit_creative:
         raise BuzzAPIException(
             errors.FORBIDDEN,

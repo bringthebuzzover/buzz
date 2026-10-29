@@ -162,10 +162,10 @@ class TestAdminSyncAutolink:
         hidden.hidden_at = datetime.now(timezone.utc)
         await db_session.flush()
         headers = await admin_headers(db_session)
-        for drop in (draft, hidden):
+        for drop, code in ((draft, "DROP_UNPUBLISHED"), (hidden, "DROP_HIDDEN")):
             res = await app_client.post(
                 f"/api/admin/drops/{drop.id}/sync-and-autolink",
                 headers=headers,
             )
             assert res.status_code == 409, drop.title
-            assert res.json()["error"]["code"] == "DROP_NOT_ELIGIBLE"
+            assert res.json()["error"]["code"] == code
