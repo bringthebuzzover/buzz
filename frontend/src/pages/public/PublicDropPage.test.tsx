@@ -1,12 +1,7 @@
 /**
  * PublicDropPage — restore_failed still shows the drop (acquisition URL).
  */
-import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import { renderWithProviders } from "../../testUtils";
 
 const mockUseAuth = jest.fn();
 const mockUseDropDetail = jest.fn();
@@ -43,21 +38,10 @@ function openDrop() {
 
 describe("PublicDropPage", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockUseAuth.mockReset();
     mockUseDropDetail.mockReset();
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   it("still shows the drop when session restore failed", () => {
@@ -75,15 +59,10 @@ describe("PublicDropPage", () => {
       data: openDrop(),
     });
 
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={[`/d/${DROP_ID}`]}>
-          <Routes>
-            <Route path="/d/:dropId" element={<PublicDropPage />} />
-          </Routes>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<PublicDropPage />, {
+      route: `/d/${DROP_ID}`,
+      path: "/d/:dropId",
+    }).container;
 
     expect(container.textContent).toContain("Spring Drop");
     expect(container.querySelector('[data-testid="session-restore-panel"]')).toBeTruthy();
@@ -106,15 +85,10 @@ describe("PublicDropPage", () => {
       data: { ...openDrop(), brandName: "Sample Brand", image: null },
     });
 
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={[`/d/${DROP_ID}`]}>
-          <Routes>
-            <Route path="/d/:dropId" element={<PublicDropPage />} />
-          </Routes>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<PublicDropPage />, {
+      route: `/d/${DROP_ID}`,
+      path: "/d/:dropId",
+    }).container;
 
     expect(container.textContent).not.toContain("SB");
     expect(container.querySelector("[data-testid=image-fallback]")).toBeNull();

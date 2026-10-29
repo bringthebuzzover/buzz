@@ -3,10 +3,7 @@
  * Uses react-dom (no @testing-library/react in this package).
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import { renderWithProviders } from "../../testUtils";
 
 const mockState = jest.fn();
 const mockSubmit = jest.fn();
@@ -44,7 +41,6 @@ function setInput(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
 
 describe("IgChangeRequestPanel", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockState.mockReset();
@@ -54,27 +50,15 @@ describe("IgChangeRequestPanel", () => {
       isPending: false,
     });
     mockSubmit.mockResolvedValue(PENDING);
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   function render(handle = "bringthebuzzover") {
-    act(() => {
-      root.render(
-        <IgChangeRequestPanel
-          currentHandle={handle}
-          connectEmail="maya@cornell.edu"
-        />,
-      );
-    });
+    container = renderWithProviders(
+      <IgChangeRequestPanel
+        currentHandle={handle}
+        connectEmail="maya@cornell.edu"
+      />,
+    ).container;
   }
 
   it("shows the handle and a request control, not the form", () => {

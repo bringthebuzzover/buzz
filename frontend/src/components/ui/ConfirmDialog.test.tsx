@@ -4,10 +4,8 @@
  */
 import { useState } from "react";
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { renderWithProviders } from "../../testUtils";
 import { ConfirmDialog } from "./ConfirmDialog";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 function Harness({ onConfirm }: { onConfirm: (typed: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -40,22 +38,8 @@ function setInput(el: HTMLInputElement, value: string) {
 const q = <T extends Element>(selector: string) => document.querySelector(selector) as T | null;
 
 describe("ConfirmDialog", () => {
-  let container: HTMLDivElement;
-  let root: Root;
-
-  beforeEach(() => {
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => root.unmount());
-    container.remove();
-  });
-
   function open(onConfirm = jest.fn()) {
-    act(() => root.render(<Harness onConfirm={onConfirm} />));
+    renderWithProviders(<Harness onConfirm={onConfirm} />);
     const trigger = q<HTMLButtonElement>('[data-testid="open"]')!;
     trigger.focus();
     act(() => trigger.click());

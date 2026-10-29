@@ -3,11 +3,7 @@
  * Uses react-dom (no @testing-library/react in this package).
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import { renderWithProviders } from "../../testUtils";
 
 const mockRotate = jest.fn();
 const mockResend = jest.fn();
@@ -32,7 +28,6 @@ import EduEmailRotatePanel from "./EduEmailRotatePanel";
 
 describe("EduEmailRotatePanel", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockRotate.mockReset();
@@ -45,16 +40,6 @@ describe("EduEmailRotatePanel", () => {
     });
     mockResend.mockResolvedValue({ emailSentTo: "new@test.edu" });
     mockCancel.mockResolvedValue({ ok: true, status: "active" });
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   function render(props: {
@@ -62,20 +47,13 @@ describe("EduEmailRotatePanel", () => {
     pendingEmail?: string | null;
     onChanged?: () => Promise<unknown> | void;
   }) {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <QueryClientProvider client={queryClient}>
-          <EduEmailRotatePanel
-            liveEmail={props.liveEmail ?? "live@test.edu"}
-            pendingEmail={props.pendingEmail}
-            onChanged={props.onChanged ?? (() => undefined)}
-          />
-        </QueryClientProvider>,
-      );
-    });
+    container = renderWithProviders(
+      <EduEmailRotatePanel
+        liveEmail={props.liveEmail ?? "live@test.edu"}
+        pendingEmail={props.pendingEmail}
+        onChanged={props.onChanged ?? (() => undefined)}
+      />,
+    ).container;
   }
 
   it("shows live email and Change school email when no pending", () => {
@@ -148,29 +126,22 @@ describe("EduEmailRotatePanel", () => {
       pendingEduEmail: "new@test.edu",
       status: "active",
     });
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
     const outerSubmit = jest.fn();
-    act(() => {
-      root.render(
-        <QueryClientProvider client={queryClient}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              outerSubmit();
-            }}
-          >
-            <EduEmailRotatePanel
-              liveEmail="live@test.edu"
-              pendingEmail={undefined}
-              onChanged={() => undefined}
-            />
-            <button type="submit">Save profile</button>
-          </form>
-        </QueryClientProvider>,
-      );
-    });
+    container = renderWithProviders(
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          outerSubmit();
+        }}
+      >
+        <EduEmailRotatePanel
+          liveEmail="live@test.edu"
+          pendingEmail={undefined}
+          onChanged={() => undefined}
+        />
+        <button type="submit">Save profile</button>
+      </form>,
+    ).container;
 
     const change = Array.from(container.querySelectorAll("button")).find((b) =>
       /change school email/i.test(b.textContent ?? ""),

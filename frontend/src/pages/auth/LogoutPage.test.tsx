@@ -1,11 +1,7 @@
 /**
  * /logout waits for bootstrap, then uses the same sign-out path as the header.
  */
-import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import { renderWithProviders } from "../../testUtils";
 
 const mockLogout = jest.fn(async () => {});
 const mockEndImpersonation = jest.fn(async () => {});
@@ -31,9 +27,6 @@ jest.mock("../../api/hooks/useEndImpersonation", () => ({
 import LogoutPage from "./LogoutPage";
 
 describe("LogoutPage", () => {
-  let container: HTMLDivElement;
-  let root: Root;
-
   beforeEach(() => {
     mockLogout.mockReset();
     mockLogout.mockResolvedValue(undefined);
@@ -41,36 +34,20 @@ describe("LogoutPage", () => {
     mockEndImpersonation.mockResolvedValue(undefined);
     mockAuthValue.status = "authenticating";
     mockAuthValue.user = null;
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   it("does not sign out while bootstrap is still running", () => {
-    act(() => {
-      root.render(<LogoutPage />);
-    });
+    const { container } = renderWithProviders(<LogoutPage />);
     expect(mockLogout).not.toHaveBeenCalled();
     expect(mockEndImpersonation).not.toHaveBeenCalled();
     expect(container.textContent).toMatch(/Signing out/);
   });
 
   it("calls logout once bootstrap finishes as a signed-in user", () => {
-    act(() => {
-      root.render(<LogoutPage />);
-    });
+    const view = renderWithProviders(<LogoutPage />);
     mockAuthValue.status = "authenticated";
     mockAuthValue.user = {};
-    act(() => {
-      root.render(<LogoutPage />);
-    });
+    view.rerender(<LogoutPage />);
     expect(mockLogout).toHaveBeenCalledTimes(1);
     expect(mockEndImpersonation).not.toHaveBeenCalled();
   });
@@ -78,9 +55,7 @@ describe("LogoutPage", () => {
   it("exits View-as instead of posting logout", () => {
     mockAuthValue.status = "authenticated";
     mockAuthValue.user = { impersonatedBy: "admin-1" };
-    act(() => {
-      root.render(<LogoutPage />);
-    });
+    renderWithProviders(<LogoutPage />);
     expect(mockEndImpersonation).toHaveBeenCalledTimes(1);
     expect(mockLogout).not.toHaveBeenCalled();
   });
@@ -88,9 +63,7 @@ describe("LogoutPage", () => {
   it("still posts logout for a guest bootstrap (clears any leftover cookie)", () => {
     mockAuthValue.status = "error";
     mockAuthValue.user = null;
-    act(() => {
-      root.render(<LogoutPage />);
-    });
+    renderWithProviders(<LogoutPage />);
     expect(mockLogout).toHaveBeenCalledTimes(1);
     expect(mockEndImpersonation).not.toHaveBeenCalled();
   });

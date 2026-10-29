@@ -2,12 +2,7 @@
  * Admin brand detail — Instagram handle links to the public profile.
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import { renderWithProviders } from "../../testUtils";
 
 const idleMutation = () => ({
   mutate: jest.fn(),
@@ -76,20 +71,9 @@ function brandDetail() {
 
 describe("AdminBrandDetailPage", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockUseAdminBrand.mockReset();
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   it("links Instagram to the public profile", () => {
@@ -98,23 +82,10 @@ describe("AdminBrandDetailPage", () => {
       isPending: false,
       isError: false,
     });
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/admin/brands/brand-1"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/admin/brands/:brandId"
-                element={<AdminBrandDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<AdminBrandDetailPage />, {
+      route: "/admin/brands/brand-1",
+      path: "/admin/brands/:brandId",
+    }).container;
 
     const link = Array.from(container.querySelectorAll("a")).find(
       (el) => el.textContent === "@acme_brand",
@@ -140,23 +111,10 @@ describe("AdminBrandDetailPage", () => {
       isPending: false,
       isError: false,
     });
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/admin/brands/brand-1"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/admin/brands/:brandId"
-                element={<AdminBrandDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<AdminBrandDetailPage />, {
+      route: "/admin/brands/brand-1",
+      path: "/admin/brands/:brandId",
+    }).container;
     const trigger = container.querySelector(
       '[data-testid="erase-brand"]',
     ) as HTMLButtonElement;
@@ -198,23 +156,10 @@ describe("AdminBrandDetailPage", () => {
       isPending: false,
       isError: false,
     });
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/admin/brands/brand-1"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/admin/brands/:brandId"
-                element={<AdminBrandDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<AdminBrandDetailPage />, {
+      route: "/admin/brands/brand-1",
+      path: "/admin/brands/:brandId",
+    }).container;
     expect(
       container.querySelector('[data-testid="approve-brand-ig"]'),
     ).toBeTruthy();
