@@ -1,7 +1,7 @@
 """Brand Instagram handle change requests
 
 Revision ID: f0a1b2c3d4e5
-Revises: e0f1a2b3c4d5
+Revises: f2a3b4c5d6e7
 Create Date: 2026-10-29 00:30:00.000000
 
 Tickets for PRODUCT §3.1.5. Approve writes ``brands.instagram_handle``.
@@ -14,7 +14,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "f0a1b2c3d4e5"
-down_revision: Union[str, Sequence[str], None] = "e0f1a2b3c4d5"
+down_revision: Union[str, Sequence[str], None] = "f2a3b4c5d6e7"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
