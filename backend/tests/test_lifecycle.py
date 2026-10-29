@@ -318,6 +318,14 @@ async def test_buzz_removes_with_reason_and_blocks_reapply(
     assert seat.decision == ApplicationDecision.REMOVED.value
     assert seat.end_reason == "No posts after two reminders"
 
+    # An ended seat is final: no re-decision, no second end (late-add instead).
+    for body in ({"decision": "accepted"}, {"decision": "withdrew"}):
+        res = await app_client.put(url, json=body, headers=admin)
+        assert res.status_code == 400, res.text
+        assert res.json()["error"]["code"] == "DECISION_ALREADY_SENT"
+    await db_session.refresh(seat)
+    assert seat.decision == ApplicationDecision.REMOVED.value
+
     h = _bearer(user)
     assert (await app_client.get(f"/api/campaigns/{seat.id}", headers=h)).status_code == 404
     res = await app_client.post(f"/api/drops/{drop.id}/apply", headers=h, json={})
