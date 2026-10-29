@@ -242,12 +242,12 @@ export function useDismissSuggestion(applicationId: string) {
   });
 }
 
-/** Leave a drop: free before anything ships; after that only BUZZ can end the seat. */
-export function useWithdrawCampaign(applicationId: string) {
+/** A change to the caller's own seat: refresh My Campaigns and that campaign. */
+function useSeatMutation<T>(applicationId: string, send: (input: T) => Promise<unknown>) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (_: void) => {
-      await apiFetch(`/api/campaigns/${applicationId}/withdraw`, { method: "POST" });
+    mutationFn: async (input: T) => {
+      await send(input);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["campaigns"] });
@@ -256,20 +256,18 @@ export function useWithdrawCampaign(applicationId: string) {
   });
 }
 
+/** Leave a drop: free before anything ships; after that only BUZZ can end the seat. */
+export const useWithdrawCampaign = (applicationId: string) =>
+  useSeatMutation<void>(applicationId, () =>
+    apiFetch(`/api/campaigns/${applicationId}/withdraw`, { method: "POST" }),
+  );
+
 /** "I got it" (or undo): the org confirms its package arrived. */
-export function useSetCampaignDelivered(applicationId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (delivered: boolean) => {
-      await apiFetch(`/api/campaigns/${applicationId}/delivered`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ delivered }),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
-      queryClient.invalidateQueries({ queryKey: ["campaign-detail", applicationId] });
-    },
-  });
-}
+export const useSetCampaignDelivered = (applicationId: string) =>
+  useSeatMutation<boolean>(applicationId, (delivered) =>
+    apiFetch(`/api/campaigns/${applicationId}/delivered`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ delivered }),
+    }),
+  );
