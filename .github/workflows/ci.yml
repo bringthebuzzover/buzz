@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, mvp]
+    branches: [main, staging, mvp]
   pull_request:
-    branches: [main]
+    branches: [main, staging]
   workflow_dispatch:
     inputs:
       e2e_repeat:
@@ -241,3 +241,84 @@ jobs:
             frontend/test-results
           retention-days: 7
           if-no-files-found: ignore
+
+  # PRs into main must come from staging (or an emergency hotfix/* branch).
+  # PRs into staging skip this job.
+  promotion-gate:
+    name: Promotion gate
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Head must be staging or hotfix/*
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          case "$HEAD_REF" in
+            staging|hotfix/*)
+              echo "promotion allowed from ${HEAD_REF}"
+              ;;
+            *)
+              echo "PRs into main must come from staging or hotfix/* (got: ${HEAD_REF})"
+              exit 1
+              ;;
+          esac
+
+  # Public staging URLs. Retries cover the Railway deploy lag after a push.
+  # `/` is 200 with no gate, or 401 once STAGING_BASIC_AUTH is set; either
+  # response must carry X-Robots-Tag: noindex. /healthz stays 200.
+  staging-smoke:
+    name: Staging smoke
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/staging')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Curl staging API and frontend
+        run: |
+          python3 - <<'PY'
+          import time
+          import urllib.error
+          import urllib.request
+
+          API = "https://api-staging.bringthebuzzover.com/api/health"
+          WEB = "https://staging.bringthebuzzover.com/"
+          HEALTHZ = "https://staging.bringthebuzzover.com/healthz"
+
+          def fetch(url):
+              req = urllib.request.Request(url, method="GET")
+              try:
+                  with urllib.request.urlopen(req, timeout=20) as resp:
+                      return resp.status, {k.lower(): v for k, v in resp.headers.items()}
+              except urllib.error.HTTPError as exc:
+                  return exc.code, {k.lower(): v for k, v in exc.headers.items()}
+
+          def robots_ok(headers):
+              value = headers.get("x-robots-tag", "")
+              return "noindex" in value.lower()
+
+          last = "no attempt"
+          for attempt in range(1, 25):
+              try:
+                  api_status, _api_headers = fetch(API)
+                  web_status, web_headers = fetch(WEB)
+                  health_status, health_headers = fetch(HEALTHZ)
+                  web_ok = web_status in (200, 401) and robots_ok(web_headers)
+                  health_ok = health_status == 200 and (
+                      web_status == 200 or robots_ok(health_headers) or robots_ok(web_headers)
+                  )
+                  if api_status == 200 and web_ok and health_status == 200 and health_ok:
+                      print(
+                          f"staging smoke ok on attempt {attempt}: "
+                          f"api={api_status} web={web_status} healthz={health_status}"
+                      )
+                      raise SystemExit(0)
+                  last = (
+                      f"api={api_status} web={web_status} "
+                      f"robots={web_headers.get('x-robots-tag', '')!r} "
+                      f"healthz={health_status}"
+                  )
+              except Exception as exc:  # noqa: BLE001 — retry until the deploy is up
+                  last = repr(exc)
+              print(f"attempt {attempt} not ready: {last}")
+              time.sleep(20)
+          print(f"staging smoke failed: {last}")
+          raise SystemExit(1)
+          PY
