@@ -28,6 +28,7 @@ import {
   ORG_CATEGORY_OPTIONS,
   type OrgCategory,
 } from "../../types/orgCategory";
+import { cn } from "../../theme/cn";
 import {
   isFieldError,
   parseEduEmail,
@@ -66,6 +67,8 @@ export default function OrgApplyForm({
   prefill,
   submitLabel,
   loginHref = "/login",
+  paired = false,
+  className,
   onSuccess,
 }: {
   dropId?: string;
@@ -73,6 +76,9 @@ export default function OrgApplyForm({
   prefill?: OrgApplyPrefillValues | null;
   submitLabel: string;
   loginHref?: string;
+  /** Public drop card pairs the pen's three rows at every width. */
+  paired?: boolean;
+  className?: string;
   onSuccess: (result: { emailSent?: boolean }, eduEmail: string) => void;
 }) {
   const apply = useOrgApply();
@@ -187,10 +193,14 @@ export default function OrgApplyForm({
     }
   };
 
+  const pairClass = paired
+    ? "grid grid-cols-2 gap-4 [&>*]:min-w-0"
+    : "grid grid-cols-1 gap-4 sm:grid-cols-2";
+
   return (
-    <form onSubmit={(e) => void onSubmit(e)} className="space-y-6">
+    <form onSubmit={(e) => void onSubmit(e)} className={cn("space-y-6", className)}>
       {error && <ErrorBanner>{error}</ErrorBanner>}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className={pairClass}>
         <div>
           <TextField
             data-testid="org-apply-org-name"
@@ -246,7 +256,7 @@ export default function OrgApplyForm({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className={pairClass}>
         <div>
           <TextField
             data-testid="org-apply-instagram"
@@ -287,7 +297,7 @@ export default function OrgApplyForm({
         confirmed when you Connect Instagram after approval.
       </p>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className={pairClass}>
         <div>
           <TextField
             data-testid="org-apply-member-count"

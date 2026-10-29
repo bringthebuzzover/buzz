@@ -1,8 +1,7 @@
 /**
- * College logo strip. On the paper network band the marks stay grayscale
- * (the pen's 48px / 78% / 56px gap / 100s drift). A white filter turned
- * Stanford, Yale, UPenn, UCLA, UMich, and UNC into blank silhouettes.
- * Reduced motion wraps the row into a centered grid and does not duplicate it.
+ * College logo strip. Full-colour marks at the pen's 48px height, 56px gap,
+ * and 100s drift, on the paper band. Reduced motion wraps the row into a
+ * centered grid and does not duplicate it.
  */
 import { useReducedMotion } from "../marketing/useReducedMotion";
 import type { CollegeMarqueeItem } from "../../types/campaign";
@@ -57,7 +56,7 @@ export default function Marquee({
               label={item.name}
               alt={item.name}
               className={cn(
-                "h-12 w-auto max-h-12 object-contain opacity-80 grayscale",
+                "h-12 w-auto max-h-12 object-contain",
                 item.logoClassName,
               )}
             />

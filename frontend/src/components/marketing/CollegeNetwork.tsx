@@ -1,5 +1,5 @@
 /**
- * Paper college-network band: dotted US map, bee route, grayscale logo strip.
+ * Paper college-network band: dotted US map, bee route, full-colour logo strip.
  * Pins use the pen's 880×550 positions. The bee follows
  * Stanford → Rice → Duke → UPenn → Cornell → UChicago.
  */
