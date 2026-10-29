@@ -16,15 +16,10 @@ import { useSignOut } from "../../api/hooks/useSignOut";
 import { useAuth } from "../../contexts/AuthContext";
 import { goToHomeJoin } from "../../utils/scrollHomeJoin";
 import { Logo } from "../ui/BrandMark";
+import { ORG_PORTAL_LINKS } from "../org/OrgPortalHeader";
 import { Button } from "../forms/controls";
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
-
-const ORG_NAV_LINKS = [
-  { to: "/org/browse", label: "Browse Campaigns" },
-  { to: "/org/campaigns", label: "My Campaigns" },
-  { to: "/org/profile", label: "Profile" },
-] as const;
 
 const BRAND_NAV_LINKS = [
   { to: "/brand/dashboard", label: "Dashboard" as const },
@@ -116,7 +111,7 @@ export default function SiteHeader() {
     ? user.portalRole === "brand"
       ? BRAND_NAV_LINKS
       : user.portalRole === "org"
-        ? ORG_NAV_LINKS
+        ? ORG_PORTAL_LINKS
         : []
     : [
         { to: "/for-orgs", label: "Organizations" },

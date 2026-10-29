@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { TEXT } from "../../theme/tokens";
+import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
 /**
@@ -60,7 +61,8 @@ export function BackLink({
     <Link
       to={to}
       className={cn(
-        "inline-flex items-center gap-2 text-sm text-buzz-inkMuted transition hover:text-buzz-fg",
+        "inline-flex items-center gap-2 self-start text-sm text-buzz-inkMuted transition hover:text-buzz-fg",
+        focusRingClass,
         className,
       )}
     >

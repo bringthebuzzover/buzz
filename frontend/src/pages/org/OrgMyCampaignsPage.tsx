@@ -1,9 +1,10 @@
 /**
  * `/org/campaigns` — My Campaigns (PRODUCT.md §6.4).
  *
- * Renders from the real backend (GET /api/campaigns).
+ * Renders from the real backend (GET /api/campaigns). The status chips filter
+ * the loaded rows on the client; Accepted covers accepted and active seats.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import CampaignRow from "../../components/org/CampaignRow";
 import { useCampaigns } from "../../api/hooks/useOrgHooks";
 import type { CampaignItem } from "../../api/hooks/useOrgHooks";
@@ -14,24 +15,38 @@ import {
 } from "../../utils/orgCampaignStatus";
 import PageShell from "../../components/site/PageShell";
 import { QueryStatePanel } from "../../components/ui/StatePanel";
-import { STACK, TEXT } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { filterChipClass } from "../../components/ui/navItem";
+import { LinkButton } from "../../components/forms/controls";
+
+type FilterId = "all" | "accepted" | "applied" | "finished";
+
+const FILTERS: {
+  id: FilterId;
+  label: string;
+  statuses: readonly OrgCampaignStatus[];
+}[] = [
+  { id: "all", label: "All", statuses: ORG_CAMPAIGN_STATUS_ORDER },
+  { id: "accepted", label: "Accepted", statuses: ["accepted", "active"] },
+  { id: "applied", label: "Applied", statuses: ["applied"] },
+  { id: "finished", label: "Finished", statuses: ["finished"] },
+];
 
 function CampaignsHeader() {
   return (
-    <header className="mb-8 text-center">
-      <h1 className={TEXT.h1}>
-        My <span className="text-buzz-coral">Campaigns</span>
-      </h1>
-      <p className={cn(TEXT.body, "mt-2 text-buzz-inkMuted")}>
-        Track every drop you have applied to or been part of.
-      </p>
-    </header>
+    <PageHeader
+      className="mb-10"
+      kicker="Organization Portal"
+      title="My campaigns"
+      description="Track every drop you have applied to or been part of."
+    />
   );
 }
 
 function ApiCampaigns() {
   const { data: items, isLoading, error } = useCampaigns();
+  const [filter, setFilter] = useState<FilterId>("all");
 
   const rows = useMemo(() => {
     const campaigns = items ?? [];
@@ -50,26 +65,57 @@ function ApiCampaigns() {
     return mapped;
   }, [items]);
 
-  if (isLoading || error || rows.length === 0) {
+  if (isLoading || error) {
     return (
-      <PageShell width="portal">
+      <PageShell width="wide">
         <CampaignsHeader />
         <QueryStatePanel
           isPending={isLoading}
           isError={Boolean(error)}
-          isEmpty={!isLoading && !error && rows.length === 0}
           label="campaigns"
-          empty="You have no campaigns yet. Browse Campaigns to apply to one."
         />
       </PageShell>
     );
   }
 
+  if (rows.length === 0) {
+    return (
+      <PageShell width="wide">
+        <CampaignsHeader />
+        <EmptyState
+          title="You have no campaigns yet."
+          action={<LinkButton to="/org/browse">Browse campaigns</LinkButton>}
+        >
+          Apply to a drop and it shows up here.
+        </EmptyState>
+      </PageShell>
+    );
+  }
+
+  const statuses = FILTERS.find((f) => f.id === filter)?.statuses ?? [];
+  const visibleRows = rows.filter((row) => statuses.includes(row.status));
+
   return (
-    <PageShell width="portal">
+    <PageShell width="wide">
       <CampaignsHeader />
-      <div className={STACK.default}>
-        {rows.map(({ item, status }) => (
+      <div className="mb-10 flex flex-wrap gap-2">
+        {FILTERS.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            aria-pressed={filter === f.id}
+            onClick={() => setFilter(f.id)}
+            className={filterChipClass(filter === f.id)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      {visibleRows.length === 0 ? (
+        <EmptyState title="No campaigns match this filter." />
+      ) : null}
+      <div className="flex flex-col gap-3">
+        {visibleRows.map(({ item, status }) => (
           <CampaignRow
             key={item.id}
             applicationId={item.id}
