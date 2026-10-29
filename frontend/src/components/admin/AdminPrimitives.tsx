@@ -139,11 +139,7 @@ export function Pill({
   );
 }
 
-/** Row and detail links. Pen type is paper, hover yellow. */
-export const entityLinkClass = cn(
-  "text-primary hover:text-accent",
-  focusRingClass,
-);
+export { entityLinkClass } from "../ui/navItem";
 
 /** Quiet text actions in a table row (View as, Open, Remove). */
 export const rowActionClass = cn(

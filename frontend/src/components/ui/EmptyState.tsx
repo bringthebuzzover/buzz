@@ -15,7 +15,7 @@ export function EmptyState({
   float = false,
   className,
 }: {
-  title: ReactNode;
+  title?: ReactNode;
   children?: ReactNode;
   action?: ReactNode;
   /** Bee float is opt-in. Admin empty states leave it off. */
@@ -31,7 +31,7 @@ export function EmptyState({
       role="status"
     >
       <BeeMark className={cn("h-12 w-12", float && MOTION.float)} />
-      <p className={TEXT.h3}>{title}</p>
+      {title ? <p className={TEXT.h3}>{title}</p> : null}
       {children ? (
         <p className={cn(TEXT.body, "max-w-sm text-buzz-inkMuted")}>{children}</p>
       ) : null}

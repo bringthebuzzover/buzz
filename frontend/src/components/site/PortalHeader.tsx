@@ -1,10 +1,11 @@
 /**
- * Org portal top bar. Pen `App / TopBar`: logo, portal label, nav pills,
- * then Contact, the initials avatar, and Log out. Below `lg` the nav folds
- * into a menu under the bar.
+ * Org and brand portal top bar. Pen `App / TopBar`: logo, portal label, nav
+ * pills, then Contact, the initials avatar, and Log out. Below `lg` the nav
+ * folds into a menu under the bar.
  *
- * Also drawn on `/onboarding/denied`, where the visitor may have no session:
- * nav, avatar, and Log out need a signed-in org, otherwise the bar offers Log in.
+ * The org bar is also drawn on `/onboarding/denied`, where the visitor may have
+ * no session: nav, avatar, and Log out need a signed-in user of that portal,
+ * otherwise the bar offers Log in.
  */
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -18,16 +19,27 @@ import { imageInitials } from "../ui/RemoteImage";
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
-/** Org portal links. The marketing header shows the same ones to signed-in orgs. */
+/** Portal links. The marketing header shows the same ones to signed-in users. */
 export const ORG_PORTAL_LINKS = [
   { to: "/org/browse", label: "Browse campaigns" },
   { to: "/org/campaigns", label: "My campaigns" },
   { to: "/org/profile", label: "Profile" },
 ] as const;
 
-const NAV_LINKS = [{ to: "/", label: "Home" }, ...ORG_PORTAL_LINKS];
+export const BRAND_PORTAL_LINKS = [
+  { to: "/brand/dashboard", label: "Dashboard" },
+  { to: "/brand/requests/new", label: "New request" },
+  { to: "/brand/settings", label: "Setup" },
+] as const;
 
-export default function OrgPortalHeader() {
+const PORTALS = {
+  org: { label: "Organization Portal", links: ORG_PORTAL_LINKS, login: "/login" },
+  brand: { label: "Brand Portal", links: BRAND_PORTAL_LINKS, login: "/brand/login" },
+} as const;
+
+export type Portal = keyof typeof PORTALS;
+
+export default function PortalHeader({ portal }: { portal: Portal }) {
   const { pathname } = useLocation();
   const { user, status } = useAuth();
   const { openContactModal } = useSiteChrome();
@@ -38,13 +50,14 @@ export default function OrgPortalHeader() {
     setMenuOpen(false);
   }, [pathname]);
 
-  const signedIn = status === "authenticated" && user?.portalRole === "org";
+  const config = PORTALS[portal];
+  const signedIn = status === "authenticated" && user?.portalRole === portal;
   const initials = imageInitials(user?.instagramUsername?.replace(/^@/, "") ?? "");
 
   const isActive = (to: string) =>
     to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
 
-  const navLinks = signedIn ? NAV_LINKS : [];
+  const navLinks = signedIn ? [{ to: "/", label: "Home" }, ...config.links] : [];
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-page/80 backdrop-blur-lg">
@@ -56,7 +69,7 @@ export default function OrgPortalHeader() {
         >
           <Logo className="h-6 w-[79px]" />
         </Link>
-        <span className="truncate text-xs text-quiet">Organization Portal</span>
+        <span className="truncate text-xs text-quiet">{config.label}</span>
 
         {navLinks.length > 0 ? (
           <>
@@ -97,7 +110,7 @@ export default function OrgPortalHeader() {
               </button>
             </>
           ) : (
-            <Link to="/login" className={quietLinkClass}>
+            <Link to={config.login} className={quietLinkClass}>
               Log in
             </Link>
           )}
@@ -153,7 +166,7 @@ export default function OrgPortalHeader() {
               Log out
             </button>
           ) : (
-            <Link to="/login" className={appNavItemClass(false)}>
+            <Link to={config.login} className={appNavItemClass(false)}>
               Log in
             </Link>
           )}

@@ -70,6 +70,9 @@ describe("Pulse Black contrast", () => {
     expect(contrast(faintOnInk, pulse.ink)).toBeGreaterThanOrEqual(AA);
     expect(contrast(pulse.yellow, washOnInk)).toBeGreaterThanOrEqual(AA);
     expect(contrast(pulse.yellow, washOnCard)).toBeGreaterThanOrEqual(AA);
+    // A selected row on the wash uses muted, not quiet, for its secondary text.
+    const mutedOnWash = composite(pulse.paper60, washOnCard);
+    expect(contrast(mutedOnWash, washOnCard)).toBeGreaterThanOrEqual(AA);
     // paper-30 is the loader's idle dots, not a text color.
     expect(contrast(idleOnInk, pulse.ink)).toBeLessThan(AA);
   });

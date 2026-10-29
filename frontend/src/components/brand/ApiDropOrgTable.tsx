@@ -10,13 +10,13 @@ import type { BrandDropApplicant } from "../../api/hooks/useBrandHooks";
 import { orgCategoryLabel } from "../../types/orgCategory";
 import { safeHttpUrl } from "../../utils/safeHttpUrl";
 import { Select } from "../forms/controls";
-import PostInsights from "../posts/PostInsights";
+import PostCard from "../posts/PostCard";
 import { formatInsightCount } from "../posts/postInsights";
-import { Card } from "../ui/Card";
+import { Card, CardHeader } from "../ui/Card";
 import { Chip } from "../ui/Chip";
-import { RemoteImage } from "../ui/RemoteImage";
+import { entityLinkClass } from "../ui/navItem";
 import { StatePanel } from "../ui/StatePanel";
-import { SURFACE, TEXT } from "../../theme/tokens";
+import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import ShipmentList from "../shipments/ShipmentList";
 import type { Shipment } from "../../utils/shipments";
@@ -54,20 +54,19 @@ export default function ApiDropOrgTable({
   }, [accepted]);
 
   const rows =
-    category === "all"
-      ? accepted
-      : accepted.filter((a) => a.category === category);
+    category === "all" ? accepted : accepted.filter((a) => a.category === category);
 
   if (accepted.length === 0) {
     return <StatePanel>No participating organizations yet.</StatePanel>;
   }
 
   return (
-    <Card kind="card" pad="none" className="overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-buzz-line bg-buzz-cream px-6 py-4">
-        <h3 className={TEXT.h3}>{title}</h3>
-        <div className="flex items-center gap-3">
-          {categories.length > 0 ? (
+    <Card kind="panel" pad="card">
+      <CardHeader
+        title={title}
+        description={`${rows.length} ${rows.length === 1 ? "organization" : "organizations"}`}
+        actions={
+          categories.length > 0 ? (
             <Select
               aria-label="Filter by organization type"
               size="compact"
@@ -81,118 +80,100 @@ export default function ApiDropOrgTable({
                 </option>
               ))}
             </Select>
-          ) : null}
-          <span className={TEXT.meta}>
-            {rows.length} {rows.length === 1 ? "organization" : "organizations"}
-          </span>
-        </div>
-      </div>
+          ) : null
+        }
+        className="mb-0"
+      />
 
-      <div className="divide-y divide-buzz-line">
-        {rows.map((a) => (
-          <div key={a.id} className="px-6 py-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className={cn(TEXT.body, "font-semibold text-buzz-ink")}>
-                  {a.orgName}
+      {rows.map((a) => (
+        <section
+          key={a.id}
+          className="mt-6 flex flex-col gap-5 border-t border-line pt-6"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+            <div className="min-w-0">
+              <h4 className={TEXT.h3}>{a.orgName}</h4>
+              {a.accountErased ? (
+                <p
+                  className={cn(
+                    TEXT.body,
+                    "mt-1 flex flex-wrap items-center gap-2 text-quiet",
+                  )}
+                >
+                  <Chip>Metrics frozen</Chip>
+                  {a.metricsFrozenAt != null
+                    ? `Frozen ${formatFrozenDate(a.metricsFrozenAt)}`
+                    : null}
                 </p>
-                {a.accountErased ? (
-                  <p className={cn(TEXT.meta, "mt-1 flex flex-wrap items-center gap-2")}>
-                    <Chip>Metrics frozen</Chip>
-                    {a.metricsFrozenAt != null
-                      ? `Frozen ${formatFrozenDate(a.metricsFrozenAt)}`
-                      : null}
-                  </p>
-                ) : (
-                  <p className={cn(TEXT.meta, "flex flex-wrap items-center gap-2")}>
-                    {a.university}
-                    {a.category ? (
-                      <Chip>{orgCategoryLabel(a.category)}</Chip>
-                    ) : null}
-                  </p>
-                )}
-                {a.accountErased ? null : a.deliveryAddress ? (
-                  <p className={cn(TEXT.meta, "mt-1")}>
-                    Ship to: {a.deliveryAddress}
-                  </p>
-                ) : (
-                  <p className={cn(TEXT.meta, "mt-1 text-buzz-warn")}>
-                    Ship to: Not set — nowhere to ship product
-                  </p>
-                )}
-                <div className="mt-3">
-                  <p className={cn(TEXT.micro, "mb-1 text-buzz-inkMuted")}>
-                    Shipments
-                  </p>
-                  <ShipmentList
-                    shipments={(a.shipments ?? []) as Shipment[]}
-                    empty="None yet"
-                    testId={`brand-org-shipments-${a.id}`}
-                  />
-                </div>
-              </div>
-              <div className={cn(TEXT.meta, "text-right font-semibold")}>
-                <span className="text-buzz-ink">{a.attributedPostCount}</span> posts ·{" "}
-                <span className="text-buzz-ink">{a.attributedLikes}</span> likes ·{" "}
-                <span className="text-buzz-ink">{a.attributedComments}</span> comments ·{" "}
-                <span className="text-buzz-coral">{a.attributedEngagement}</span> engagement
-              </div>
+              ) : (
+                <p className={cn(TEXT.body, "mt-1 text-quiet")}>
+                  {[a.university, a.category ? orgCategoryLabel(a.category) : null]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
             </div>
-
-            {a.posts.length > 0 ? (
-              <ul className="mt-3 space-y-2">
-                {a.posts.map((p) => {
-                  const thumb = p.thumbnailUrl || p.mediaUrl;
-                  const postHref = safeHttpUrl(p.url);
-                  return (
-                    <li
-                      key={p.id}
-                      className={cn(SURFACE.inset, "px-4 py-2")}
-                    >
-                      <div className="flex min-w-0 items-start gap-3">
-                        {thumb ? (
-                          <RemoteImage
-                            src={thumb}
-                            label={a.orgName}
-                            alt=""
-                            className="mt-0.5 h-12 w-12 shrink-0 rounded-buzzControl object-cover"
-                          />
-                        ) : null}
-                        <div className="min-w-0 flex-1">
-                          {postHref ? (
-                            <a
-                              href={postHref}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block truncate text-xs font-semibold text-buzz-coral hover:underline"
-                              title={p.caption}
-                            >
-                              {p.caption || p.url}
-                            </a>
-                          ) : (
-                            <span
-                              className="block truncate text-xs font-semibold text-buzz-inkMuted"
-                              title={p.caption}
-                            >
-                              {p.caption || "Post"}
-                            </span>
-                          )}
-                          <p className={cn(TEXT.meta, "mt-1")}>
-                            {`${formatInsightCount(p.likes)} likes · ${formatInsightCount(p.comments)} comments`}
-                          </p>
-                          <PostInsights post={p} />
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className={cn(TEXT.meta, "mt-2")}>No linked posts yet.</p>
-            )}
+            <p className={cn(TEXT.body, "tabular-nums text-muted")}>
+              {a.attributedPostCount} posts · {a.attributedLikes} likes ·{" "}
+              {a.attributedComments} comments · {a.attributedEngagement} engagement
+            </p>
           </div>
-        ))}
-      </div>
+
+          <dl className="flex flex-wrap gap-x-10 gap-y-4">
+            {a.accountErased ? null : (
+              <div className="min-w-0">
+                <dt className="text-xs text-quiet">Ship to</dt>
+                <dd className={cn(TEXT.body, "mt-1 text-primary")}>
+                  {a.deliveryAddress || "Address pending"}
+                </dd>
+              </div>
+            )}
+            <div className="min-w-0">
+              <dt className="mb-1 text-xs text-quiet">Shipments</dt>
+              <dd>
+                <ShipmentList
+                  shipments={(a.shipments ?? []) as Shipment[]}
+                  empty="None yet"
+                  testId={`brand-org-shipments-${a.id}`}
+                />
+              </dd>
+            </div>
+          </dl>
+
+          {a.posts.length > 0 ? (
+            <ul className="flex flex-col gap-3">
+              {a.posts.map((p) => {
+                const postHref = safeHttpUrl(p.url);
+                return (
+                  <PostCard
+                    key={p.id}
+                    post={p}
+                    thumb={p.thumbnailUrl || p.mediaUrl}
+                    caption={
+                      postHref ? (
+                        <a
+                          href={postHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={entityLinkClass}
+                          title={p.caption}
+                        >
+                          {p.caption || p.url}
+                        </a>
+                      ) : (
+                        <span title={p.caption}>{p.caption || "Post"}</span>
+                      )
+                    }
+                    meta={`${formatInsightCount(p.likes)} likes · ${formatInsightCount(p.comments)} comments`}
+                  />
+                );
+              })}
+            </ul>
+          ) : (
+            <p className={cn(TEXT.body, "text-quiet")}>No linked posts yet.</p>
+          )}
+        </section>
+      ))}
     </Card>
   );
 }

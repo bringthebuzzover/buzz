@@ -1,14 +1,14 @@
 /**
  * Inline SVG line chart for engagement over time. No external chart library.
- * Renders axes, a polyline, area fill, and a hover tooltip per point. Flat
- * series fall back to a friendly empty state.
+ * Pen panel: date range as the support line, paper-09 grid, a yellow line over
+ * a yellow-faded area, and a hover tooltip per point. An empty series falls
+ * back to a state panel.
  */
 import { useMemo, useState } from "react";
 import type { EngagementTimeSeriesPoint } from "../../types/metrics";
-import { pulse, tailwindThemeExtend } from "../../theme/palette";
+import { pulse } from "../../theme/palette";
 import { Card, CardHeader } from "../ui/Card";
 import { StatePanel } from "../ui/StatePanel";
-import { TEXT } from "../../theme/tokens";
 
 type EngagementOverTimeChartProps = {
   points: readonly EngagementTimeSeriesPoint[];
@@ -16,24 +16,7 @@ type EngagementOverTimeChartProps = {
 
 const WIDTH = 720;
 const HEIGHT = 240;
-const PADDING = { top: 16, right: 24, bottom: 36, left: 56 };
-const BUZZ_COLORS = tailwindThemeExtend.colors.buzz;
-
-function hexToRgba(hex: string, alpha: number): string {
-  const clean = hex.replace("#", "");
-  const value =
-    clean.length === 3
-      ? clean
-          .split("")
-          .map((c) => c + c)
-          .join("")
-      : clean;
-  const num = Number.parseInt(value, 16);
-  const r = (num >> 16) & 255;
-  const g = (num >> 8) & 255;
-  const b = num & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
+const PADDING = { top: 16, right: 16, bottom: 16, left: 56 };
 
 function formatDate(ms: number): string {
   return new Date(ms).toLocaleDateString(undefined, {
@@ -70,11 +53,9 @@ export default function EngagementOverTimeChart({
     const innerHeight = HEIGHT - PADDING.top - PADDING.bottom;
 
     const xs = points.map(
-      (p) => PADDING.left + ((p.timestamp - minTs) / tsRange) * innerWidth
+      (p) => PADDING.left + ((p.timestamp - minTs) / tsRange) * innerWidth,
     );
-    const ys = points.map(
-      (p) => PADDING.top + (1 - p.engagement / yMax) * innerHeight
-    );
+    const ys = points.map((p) => PADDING.top + (1 - p.engagement / yMax) * innerHeight);
     const linePath = points
       .map((_, i) => `${i === 0 ? "M" : "L"} ${xs[i]} ${ys[i]}`)
       .join(" ");
@@ -85,8 +66,7 @@ export default function EngagementOverTimeChart({
   if (!chart || points.length === 0) {
     return (
       <StatePanel>
-        No engagement data yet — once posts are linked, you'll see the trend
-        here.
+        No engagement data yet — once posts are linked, you'll see the trend here.
       </StatePanel>
     );
   }
@@ -94,18 +74,15 @@ export default function EngagementOverTimeChart({
   const yTicks = [0, chart.yMax / 2, chart.yMax];
 
   return (
-    <Card kind="card" pad="card">
+    <Card kind="panel" pad="card">
       <CardHeader
         title="Engagement over time"
-        actions={
-          <span className={TEXT.meta}>
-            {formatDate(chart.minTs)} → {formatDate(chart.maxTs)}
-          </span>
-        }
+        description={`${formatDate(chart.minTs)} → ${formatDate(chart.maxTs)}`}
+        className="mb-5"
       />
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        className="h-64 w-full"
+        className="h-60 w-full"
         role="img"
         aria-label="Engagement over time line chart"
         onMouseLeave={() => setHoverIdx(null)}
@@ -121,15 +98,14 @@ export default function EngagementOverTimeChart({
                 x2={WIDTH - PADDING.right}
                 y1={y}
                 y2={y}
-                stroke={BUZZ_COLORS.lineMid}
-                strokeDasharray="4 4"
+                stroke={tick === 0 ? pulse.paper52 : pulse.paper09}
               />
               <text
                 x={PADDING.left - 8}
                 y={y}
                 textAnchor="end"
                 dominantBaseline="middle"
-                className="fill-buzz-inkMuted text-buzzMicro font-semibold"
+                className="fill-quiet text-xs"
               >
                 {Math.round(tick).toLocaleString()}
               </text>
@@ -137,12 +113,12 @@ export default function EngagementOverTimeChart({
           );
         })}
 
-        <path d={chart.areaPath} fill={hexToRgba(BUZZ_COLORS.coral, 0.18)} />
+        <path d={chart.areaPath} fill={pulse.yellowFaded} />
         <path
           d={chart.linePath}
           fill="none"
-          stroke={BUZZ_COLORS.coral}
-          strokeWidth={2.5}
+          stroke={pulse.yellow}
+          strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -153,8 +129,8 @@ export default function EngagementOverTimeChart({
               cx={chart.xs[i]}
               cy={chart.ys[i]}
               r={hoverIdx === i ? 5 : 3}
-              fill={BUZZ_COLORS.coral}
-              stroke="white"
+              fill={pulse.yellow}
+              stroke={pulse.inkRaised}
               strokeWidth={2}
             />
             <rect
@@ -175,35 +151,26 @@ export default function EngagementOverTimeChart({
               x2={chart.xs[hoverIdx]}
               y1={PADDING.top}
               y2={HEIGHT - PADDING.bottom}
-              stroke={BUZZ_COLORS.coral}
-              strokeOpacity={0.4}
+              stroke={pulse.paper30}
               strokeDasharray="3 3"
             />
             <g
               transform={`translate(${Math.min(
                 Math.max(chart.xs[hoverIdx] - 60, PADDING.left),
-                WIDTH - PADDING.right - 120
+                WIDTH - PADDING.right - 120,
               )}, ${Math.max(chart.ys[hoverIdx] - 56, PADDING.top)})`}
             >
               <rect
                 width={120}
                 height={48}
                 rx={8}
-                fill={pulse.ink}
-                opacity={0.92}
+                fill={pulse.inkPop}
+                stroke={pulse.paper09}
               />
-              <text
-                x={12}
-                y={20}
-                className="fill-white text-buzzMicro font-semibold"
-              >
+              <text x={12} y={20} className="fill-quiet text-xs">
                 {formatDate(points[hoverIdx].timestamp)}
               </text>
-              <text
-                x={12}
-                y={36}
-                className="fill-white text-xs font-semibold tabular-nums"
-              >
+              <text x={12} y={36} className="fill-primary text-xs tabular-nums">
                 {points[hoverIdx].engagement.toLocaleString()} engagement
               </text>
             </g>

@@ -11,7 +11,7 @@ import { ApiError } from "../../api/errors";
 import { BRAND_DROP_TRACKER_FULL_ORDER } from "../../types/brandPortal";
 import { deriveOrgCampaignStatus } from "../../utils/orgCampaignStatus";
 import PageShell from "../../components/site/PageShell";
-import { Card, CardHeader } from "../../components/ui/Card";
+import { Card, CardHeader, StatCard } from "../../components/ui/Card";
 import { BackLink, PageHeader } from "../../components/ui/PageHeader";
 import { Loader } from "../../components/ui/EmptyState";
 import { StatePanel } from "../../components/ui/StatePanel";
@@ -40,12 +40,11 @@ function CampaignMetrics({
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {stats.map((stat) => (
-        <Card key={stat.label} kind="stat" pad="default" className="flex flex-col gap-3">
-          <p className={cn(TEXT.body, "text-quiet")}>{stat.label}</p>
-          <p className={cn(TEXT.h2, "leading-none tabular-nums")}>
-            {stat.value.toLocaleString()}
-          </p>
-        </Card>
+        <StatCard
+          key={stat.label}
+          label={stat.label}
+          value={stat.value.toLocaleString()}
+        />
       ))}
     </div>
   );

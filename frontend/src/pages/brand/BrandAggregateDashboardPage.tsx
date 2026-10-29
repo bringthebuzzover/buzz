@@ -5,12 +5,10 @@
  * /api/brands/me/drops, /api/brands/me/drop-requests,
  * /api/brands/me/engagement-series).
  */
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import AggregateTotalsCards from "../../components/brand/AggregateTotalsCards";
 import ApiCompareDropsTable from "../../components/brand/ApiCompareDropsTable";
 import EngagementOverTimeChart from "../../components/brand/EngagementOverTimeChart";
-import RunningTotalsBar from "../../components/brand/RunningTotalsBar";
 import {
   useBrandAggregate,
   useBrandDropRequests,
@@ -20,47 +18,39 @@ import {
 } from "../../api/hooks/useBrandHooks";
 import type { BrandAggregate, EngagementPoint } from "../../api/hooks/useBrandHooks";
 import PageShell from "../../components/site/PageShell";
-import { Button, SuccessBanner } from "../../components/forms/controls";
+import { LinkButton, SuccessBanner } from "../../components/forms/controls";
 import { Card, CardHeader } from "../../components/ui/Card";
-import { Chip } from "../../components/ui/Chip";
+import { Badge, Chip } from "../../components/ui/Chip";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { PageHeader } from "../../components/ui/PageHeader";
 import { QueryStatePanel, StatePanel } from "../../components/ui/StatePanel";
-import { STACK, TEXT, type Tone } from "../../theme/tokens";
+import { Table, TBody, THead, Td, Th, Tr } from "../../components/ui/Table";
+import { quietLinkClass } from "../../components/ui/navItem";
+import { useMdUp } from "../../hooks/useMdUp";
+import { SURFACE, STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
-function DashboardHeader({
-  onPlanCampaign,
-}: {
-  onPlanCampaign: () => void;
-}) {
+function DashboardHeader() {
   return (
-    <header className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-      <div>
-        <h1 className={TEXT.h1}>
-          Brand <span className="text-buzz-coral">Dashboard</span>
-        </h1>
-        <p className={cn(TEXT.body, "mt-1 text-buzz-inkMuted")}>
-          Aggregate performance across every drop you've run with Buzz.
-        </p>
-      </div>
-      <Button
-        type="button"
-        onClick={onPlanCampaign}
-        data-testid="plan-campaign"
-      >
-        <Sparkles size={16} /> Plan your Campaign
-      </Button>
-    </header>
+    <PageHeader
+      kicker="Brand Portal"
+      title="Dashboard"
+      description="Totals across every drop you've run with BUZZ."
+      actions={
+        <LinkButton to="/brand/requests/new" data-testid="plan-campaign">
+          New request
+        </LinkButton>
+      }
+      className="mb-0"
+    />
   );
 }
 
-function statusTone(status: string): Tone {
-  if (status === "converted") return "success";
-  if (status === "closed") return "neutral";
-  return "warn";
-}
-
-function StatusPill({ status }: { status: string }) {
-  return <Chip tone={statusTone(status)}>{status.replace(/_/g, " ")}</Chip>;
+/** Request status badge. Received is the open wash; a built drop is done. */
+function RequestStatus({ status }: { status: string }) {
+  if (status === "received") return <Badge>Received</Badge>;
+  if (status === "converted") return <Chip dot>Drop built</Chip>;
+  return <Chip>{status === "closed" ? "Closed" : status.replace(/_/g, " ")}</Chip>;
 }
 
 /** Title when the brand gave one; otherwise the first line of the message. */
@@ -74,54 +64,81 @@ export function requestListLabel(ticket: {
   return (first ?? ticket.message).trim();
 }
 
+function sentDate(epochMs: number): string {
+  return new Date(epochMs).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function ViewDropLink({ ticket }: { ticket: BrandDropRequest }) {
+  return ticket.convertedDropId ? (
+    <Link to={`/brand/drops/${ticket.convertedDropId}`} className={quietLinkClass}>
+      View drop
+    </Link>
+  ) : null;
+}
+
 function RequestsPanel({ tickets }: { tickets: BrandDropRequest[] }) {
+  const mdUp = useMdUp();
   return (
-    <Card kind="card" pad="none" className="scroll-mt-8 overflow-hidden" id="tickets">
-      <div className="border-b border-buzz-line bg-buzz-cream px-6 py-4">
-        <CardHeader
-          title="Requests"
-          description="Intake tickets — a representative will contact you."
-          className="mb-0"
-        />
-      </div>
+    <Card kind="panel" pad="card" className="scroll-mt-24" id="tickets">
+      <CardHeader
+        title="Requests"
+        description="Campaigns you asked for. A BUZZ representative contacts you about each one."
+        className="mb-5"
+      />
       {tickets.length === 0 ? (
-        <p className={cn(TEXT.body, "px-6 py-8 text-buzz-inkMuted")}>
-          No requests yet. Use Plan your Campaign to start a conversation.
-        </p>
+        <EmptyState>
+          No requests yet. Use New request to tell us about your campaign.
+        </EmptyState>
+      ) : mdUp ? (
+        <Table>
+          <THead>
+            <tr>
+              <Th>Request</Th>
+              <Th className="w-40">Status</Th>
+              <Th className="w-40">Sent</Th>
+              <Th className="w-28">
+                <span className="sr-only">Drop</span>
+              </Th>
+            </tr>
+          </THead>
+          <TBody>
+            {tickets.map((ticket) => (
+              <Tr key={ticket.id} className="h-16" data-testid="drop-request-row">
+                <Td className="max-w-0">
+                  <span className="line-clamp-2">{requestListLabel(ticket)}</span>
+                </Td>
+                <Td>
+                  <RequestStatus status={ticket.status} />
+                </Td>
+                <Td>{sentDate(ticket.createdAt)}</Td>
+                <Td>
+                  <ViewDropLink ticket={ticket} />
+                </Td>
+              </Tr>
+            ))}
+          </TBody>
+        </Table>
       ) : (
-        <ul className="divide-y divide-buzz-lineMid">
+        <ul className="flex flex-col gap-3">
           {tickets.map((ticket) => (
             <li
               key={ticket.id}
-              className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-start sm:justify-between"
+              className={cn(SURFACE.inset, "flex flex-col gap-2 p-4")}
               data-testid="drop-request-row"
             >
-              <div className="min-w-0 flex-1">
-                <p className={cn(TEXT.body, "line-clamp-2 font-semibold text-buzz-ink")}>
-                  {requestListLabel(ticket)}
-                </p>
-                <p className={cn(TEXT.meta, "mt-1")}>
-                  {ticket.convertedDropId ? (
-                    <Link
-                      to={`/brand/drops/${ticket.convertedDropId}`}
-                      className="font-bold text-buzz-coral hover:underline"
-                    >
-                      View drop
-                    </Link>
-                  ) : (
-                    "A representative will contact you."
-                  )}
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
-                <StatusPill status={ticket.status} />
-                <span className={TEXT.meta}>
-                  {new Date(ticket.createdAt).toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+              <p className={cn(TEXT.body, "line-clamp-2 text-primary")}>
+                {requestListLabel(ticket)}
+              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <RequestStatus status={ticket.status} />
+                <span className={cn(TEXT.body, "text-quiet")}>
+                  {sentDate(ticket.createdAt)}
                 </span>
+                <ViewDropLink ticket={ticket} />
               </div>
             </li>
           ))}
@@ -154,23 +171,26 @@ function mapEngagementSeries(points: EngagementPoint[]) {
 }
 
 function ApiDashboard() {
-  const navigate = useNavigate();
   const location = useLocation();
   const ticketSubmitted = Boolean(
     (location.state as { ticketSubmitted?: boolean } | null)?.ticketSubmitted,
   );
-  const planCampaign = () => navigate("/brand/requests/new");
-  const { data: aggregate, isLoading: aggLoading, isError: aggError } =
-    useBrandAggregate();
-  const { data: drops, isLoading: dropsLoading, isError: dropsError } =
-    useBrandDrops();
+  const {
+    data: aggregate,
+    isLoading: aggLoading,
+    isError: aggError,
+  } = useBrandAggregate();
+  const { data: drops, isLoading: dropsLoading, isError: dropsError } = useBrandDrops();
   const {
     data: requests,
     isLoading: requestsLoading,
     isError: requestsError,
   } = useBrandDropRequests();
-  const { data: series, isLoading: seriesLoading, isError: seriesError } =
-    useEngagementSeries();
+  const {
+    data: series,
+    isLoading: seriesLoading,
+    isError: seriesError,
+  } = useEngagementSeries();
 
   // Engagement series is chart-only — don't fail the whole dashboard if it errors.
   const isLoading = aggLoading || dropsLoading || requestsLoading;
@@ -178,13 +198,9 @@ function ApiDashboard() {
 
   if (isLoading || isError) {
     return (
-      <PageShell width="wide">
-        <DashboardHeader onPlanCampaign={planCampaign} />
-        <QueryStatePanel
-          isPending={isLoading}
-          isError={isError}
-          label="dashboard"
-        />
+      <PageShell width="wide" className={STACK.section}>
+        <DashboardHeader />
+        <QueryStatePanel isPending={isLoading} isError={isError} label="dashboard" />
       </PageShell>
     );
   }
@@ -201,42 +217,36 @@ function ApiDashboard() {
     totalOrgs: 0,
     totalCampuses: 0,
   };
-  const pts = series ?? [];
 
   return (
-    <PageShell width="wide">
-      <DashboardHeader onPlanCampaign={planCampaign} />
+    <PageShell width="wide" className={STACK.section}>
+      <DashboardHeader />
       {ticketSubmitted ? (
-        <div className="mb-6" data-testid="ticket-submitted-toast">
+        <div data-testid="ticket-submitted-toast">
           <SuccessBanner>
-            Request submitted. A representative will contact you.
+            Request sent. A BUZZ representative will contact you.
           </SuccessBanner>
         </div>
       ) : null}
-      <div className={STACK.section}>
-        <RequestsPanel tickets={tickets} />
-        {items.length === 0 ? (
-          <StatePanel>
-            No drops yet. After a representative builds your campaign and
-            publishes it, performance will show up here.
-          </StatePanel>
-        ) : (
-          <>
-            <RunningTotalsBar metrics={mapAggregate(agg)} />
-            <AggregateTotalsCards metrics={mapAggregate(agg)} />
-            {seriesError ? (
-              <StatePanel>
-                Engagement over time is temporarily unavailable.
-              </StatePanel>
-            ) : seriesLoading ? (
-              <StatePanel>Loading engagement chart…</StatePanel>
-            ) : (
-              <EngagementOverTimeChart points={mapEngagementSeries(pts)} />
-            )}
-            <ApiCompareDropsTable drops={items} />
-          </>
-        )}
-      </div>
+      {items.length === 0 ? (
+        <EmptyState title="No drops yet">
+          After a BUZZ representative builds your campaign and publishes it, performance
+          shows up here.
+        </EmptyState>
+      ) : (
+        <>
+          <AggregateTotalsCards metrics={mapAggregate(agg)} />
+          {seriesError ? (
+            <StatePanel>Engagement over time is temporarily unavailable.</StatePanel>
+          ) : seriesLoading ? (
+            <StatePanel>Loading engagement chart…</StatePanel>
+          ) : (
+            <EngagementOverTimeChart points={mapEngagementSeries(series ?? [])} />
+          )}
+          <ApiCompareDropsTable drops={items} />
+        </>
+      )}
+      <RequestsPanel tickets={tickets} />
     </PageShell>
   );
 }
