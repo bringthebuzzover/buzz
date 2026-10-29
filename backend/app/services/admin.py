@@ -894,7 +894,7 @@ async def wrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     Not a lock: BUZZ can still late-add and link, orgs keep linking for
     ``ORG_LINK_GRACE``, and metrics keep syncing for a while. Everyone still
     waiting on a decision becomes "not selected" (D-7), and everyone hears
-    about it once (``notify_wrapped``).
+    about it once (``notify_wrapped``). Drafted acceptances must be sent first.
     """
 
     drop = await lock_drop(db, drop_id)
@@ -914,6 +914,21 @@ async def wrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
             status_code=409,
         )
     if drop.wrapped_at is None:
+        drafted = await db.scalar(
+            select(func.count()).where(
+                DropApplication.drop_id == drop.id,
+                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+                DropApplication.decision_sent_at.is_(None),
+            )
+        )
+        if drafted:
+            # Never turn a chosen org into "not selected" behind anyone's back.
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                f"{drafted} acceptance(s) are drafted but not sent. Send decisions (or change"
+                " them) before wrapping up.",
+                status_code=409,
+            )
         now = datetime.now(timezone.utc)
         drop.wrapped_at = now
         not_selected = list(

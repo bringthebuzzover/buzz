@@ -579,7 +579,7 @@ function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
           description={
             wrapped
               ? "The drop goes back to the stage its dates and seats give it. Organizations can link posts again."
-              : "Ends the campaign. Organizations still waiting on a decision are emailed \"not selected\", orgs taking part get a thank-you, and the brand gets a recap. Organizations can still link posts for 30 days."
+              : "Ends the campaign. Organizations still waiting on a decision are emailed \"not selected\", orgs taking part get a thank-you, and the brand gets a recap. Send drafted acceptances first. Organizations can still link posts for 30 days."
           }
           error={error}
           confirmLabel={wrapped ? "Unwrap" : "Wrap up"}
