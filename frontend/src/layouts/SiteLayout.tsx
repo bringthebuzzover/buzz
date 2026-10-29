@@ -10,7 +10,7 @@ import ImpersonationBanner from "../components/site/ImpersonationBanner";
 export default function SiteLayout() {
   return (
     <SiteChromeProvider>
-      <div className="flex min-h-screen flex-col bg-buzz-cream selection:bg-buzz-butter selection:text-buzz-coral">
+      <div className="flex min-h-screen flex-col bg-buzz-cream">
         <ImpersonationBanner />
         <SiteHeader />
         {/* Flex column all the way to the outlet so `AUTH_SHELL.center` can

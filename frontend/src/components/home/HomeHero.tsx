@@ -25,10 +25,10 @@ export default function HomeHero() {
       </video>
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-8 text-center md:text-left">
-        <h1 className={cn(TEXT.display, "mb-2 max-w-3xl leading-tight text-buzz-paper md:text-6xl")}>
+        <h1 className={cn(TEXT.display, "mb-2 max-w-3xl leading-tight text-buzz-fg md:text-6xl")}>
           Campus marketing, powered by student communities.
         </h1>
-        <h2 className="mb-8 max-w-2xl text-xl font-medium text-buzz-paper/90 md:text-2xl">
+        <h2 className="mb-8 max-w-2xl text-xl font-medium text-buzz-fg/90 md:text-2xl">
           BUZZ connects brands with student organizations to execute large-scale
           campus activations nationwide.
         </h2>
@@ -37,7 +37,7 @@ export default function HomeHero() {
             Join Us!
           </Button>
         </div>
-        <div className="mt-8 inline-block px-4 py-1 text-sm font-medium text-buzz-paper/80">
+        <div className="mt-8 inline-block px-4 py-1 text-sm font-medium text-buzz-fg/80">
           {siteIdentity.content.heroSpotlightLine}
         </div>
       </div>

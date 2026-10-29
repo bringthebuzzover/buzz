@@ -59,15 +59,15 @@ function HeroCountdownOverlay({ targetMs }: { targetMs: number }) {
   if (done) {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-buzz-overlay/35">
-        <p className={cn(TEXT.h2, "text-buzz-paper drop-shadow")}>Opening now</p>
+        <p className={cn(TEXT.h2, "text-buzz-fg drop-shadow-buzz")}>Opening now</p>
       </div>
     );
   }
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-buzz-overlay/35 px-4">
       <div className="text-center">
-        <p className={cn(TEXT.micro, "mb-2 text-buzz-paper/90")}>Opens In</p>
-        <div className={cn(TEXT.metric, "text-buzz-paper drop-shadow")}>
+        <p className={cn(TEXT.micro, "mb-2 text-buzz-fg/90")}>Opens In</p>
+        <div className={cn(TEXT.metric, "text-buzz-fg drop-shadow-buzz")}>
           {days}d {pad2(hours)}:{pad2(minutes)}:{pad2(seconds)}
         </div>
       </div>

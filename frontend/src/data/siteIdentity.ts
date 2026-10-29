@@ -16,9 +16,11 @@ import { publicLogo } from "../utils/publicLogo";
 /** Read-only config object consumed by header, footer, modals, and hero. */
 export const siteIdentity = {
   images: {
-    /** Full-color mark for dark / coral bars (white wordmark). */
-    logo: publicLogo("buzz-logo.svg"),
-    /** Coral wordmark for light backgrounds (footer, etc.). */
+    /** Paper wordmark + yellow bee, for ink surfaces. */
+    logo: publicLogo("buzz-logo-on-ink.svg"),
+    /** Black wordmark + yellow bee, for a light band. */
+    logoOnPaper: publicLogo("buzz-logo.svg"),
+    /** Legacy coral wordmark. Chrome uses `logo`. */
     logoCoral: publicLogo("buzz-logo-coral.svg"),
     logoAlt: "BUZZ",
     socialInstagramIcon: instaIcon,

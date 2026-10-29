@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
+import { MOTION } from "../../theme/motion";
 import { SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
@@ -36,17 +37,23 @@ export function Modal({
   return (
     <Dialog.Root open onOpenChange={(next) => !next && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-buzzModal bg-buzz-overlay/60 backdrop-blur-sm" />
+        <Dialog.Overlay
+          className={cn(
+            "fixed inset-0 z-buzzModal bg-buzz-scrim",
+            MOTION.scrim,
+          )}
+        />
         <Dialog.Content
           className={cn(
             "fixed left-1/2 top-1/2 z-buzzModal w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden focus:outline-none",
+            MOTION.modal,
             size === "wide" ? "max-w-lg" : "max-w-sm",
             SURFACE.modal,
             className,
           )}
         >
           <Dialog.Title
-            className={hideTitle ? "sr-only" : cn(TEXT.h2, "px-6 pr-14 pt-6")}
+            className={hideTitle ? "sr-only" : cn(TEXT.h3, "px-6 pr-14 pt-6")}
           >
             {title}
           </Dialog.Title>
@@ -58,7 +65,7 @@ export function Modal({
             </Dialog.Description>
           )}
           <Dialog.Close
-            className="absolute right-6 top-6 z-10 rounded-full p-1 text-buzz-inkMuted transition hover:bg-buzz-neutral hover:text-buzz-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-coral/40"
+            className="absolute right-6 top-6 z-10 rounded-full p-1 text-buzz-inkMuted transition hover:bg-buzz-neutral hover:text-buzz-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-yellow/40"
             aria-label="Close"
           >
             <X size={20} />
