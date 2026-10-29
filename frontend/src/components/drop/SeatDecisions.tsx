@@ -41,6 +41,7 @@ export function SeatDecisionSelect({
       data-testid={`decision-${id}`}
       aria-label={`Decision for ${orgName}`}
       size="compact"
+      className="min-w-32"
       value={value}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value as SeatDecision)}
