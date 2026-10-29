@@ -5,11 +5,12 @@ import {
   useSubmitIgChangeRequest,
 } from "../../api/hooks/useOrgHooks";
 import { ApiError } from "../../api/errors";
-import { Button, ErrorBanner, TextField } from "../forms/controls";
+import { Button, ErrorBanner, Notice, TextField } from "../forms/controls";
 import { Card } from "../ui/Card";
 import { Modal } from "../ui/Modal";
-import { fieldLabelClass } from "../../theme/controls";
-import { STACK } from "../../theme/tokens";
+import { fieldLabelClass, focusRingClass } from "../../theme/controls";
+import { STACK, TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 
 function atHandle(raw: string): string {
   const handle = raw.replace(/^@/, "").trim();
@@ -55,41 +56,42 @@ export default function IgChangeRequestPanel({
       })
       .catch((err) => {
         setConfirming(false);
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : "Could not submit the request.",
-        );
+        setError(err instanceof ApiError ? err.message : "Could not submit the request.");
       });
   };
 
   return (
     <>
-      <Card kind="inset" pad="tight">
-        <p className={fieldLabelClass}>Instagram identity</p>
+      <Card kind="panel" pad="card" className="flex flex-col gap-5">
+        <h2 className={TEXT.h3}>Instagram identity</h2>
         {pending ? (
-          <div data-testid="ig-change-pending">
-            <p className="mt-2 text-sm font-semibold text-buzz-ink">
-              {atHandle(pending.currentHandle)} →{" "}
-              {atHandle(pending.requestedHandle)}
-            </p>
-            <p className="mt-1 text-sm font-medium text-buzz-inkMuted">
-              You submitted a request to change{" "}
-              {atHandle(pending.currentHandle)} to{" "}
+          <div className="flex flex-col gap-5" data-testid="ig-change-pending">
+            <div>
+              <p className="text-xs text-quiet">Handle</p>
+              <p className="mt-1 text-sm text-primary">
+                {atHandle(pending.currentHandle)} → {atHandle(pending.requestedHandle)}
+              </p>
+            </div>
+            <Notice tone="accent">
+              You submitted a request to change {atHandle(pending.currentHandle)} to{" "}
               {atHandle(pending.requestedHandle)}. Under review.
-            </p>
+            </Notice>
           </div>
         ) : (
           <>
-            <p className="mt-2 text-sm font-semibold text-buzz-ink">
-              {atHandle(currentHandle)}
-            </p>
+            <div>
+              <p className="text-xs text-quiet">Handle</p>
+              <p className="mt-1 text-sm text-primary">{atHandle(currentHandle)}</p>
+            </div>
             {canRequest ? (
               <button
                 type="button"
                 data-testid="ig-change-open"
                 onClick={() => setOpen(true)}
-                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-buzz-inkMuted underline-offset-2 hover:underline"
+                className={cn(
+                  "inline-flex items-center gap-2 self-start text-sm text-muted transition hover:text-primary",
+                  focusRingClass,
+                )}
               >
                 <Pencil size={14} aria-hidden />
                 Request a change
@@ -101,11 +103,7 @@ export default function IgChangeRequestPanel({
       {open ? (
         <Modal
           onClose={close}
-          title={
-            confirming
-              ? "Confirm Instagram change"
-              : "Request an Instagram change"
-          }
+          title={confirming ? "Confirm Instagram change" : "Request an Instagram change"}
           description={
             confirming
               ? "If Buzz approves this as an account switch, the Connect Instagram email goes to the school email on file. A rename does not send that email. Cancel and change school email first if a new officer should receive it."
@@ -117,7 +115,7 @@ export default function IgChangeRequestPanel({
             <div className={STACK.default}>
               <p className={fieldLabelClass}>Connect email inbox</p>
               <p
-                className="text-sm font-semibold text-buzz-ink"
+                className="text-sm font-medium text-primary"
                 data-testid="ig-change-connect-email"
               >
                 {connectEmail}
@@ -176,9 +174,7 @@ export default function IgChangeRequestPanel({
               <Button
                 type="submit"
                 data-testid="ig-change-submit"
-                disabled={
-                  submit.isPending || !requested.trim() || !reason.trim()
-                }
+                disabled={submit.isPending || !requested.trim() || !reason.trim()}
               >
                 Submit request
               </Button>
