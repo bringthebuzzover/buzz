@@ -47,6 +47,7 @@ from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
+from app.models.shipment import DropApplicationShipment
 from app.models.social_post import SocialPost
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
@@ -56,7 +57,7 @@ from app.services.brand_ig_change_requests import pending_ig_change_for_brand
 from app.services.drop_apply_intents import list_intents_for_drop
 from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.instagram_token import REFRESH_WINDOW_DAYS
-from app.services.lifecycle import drop_stage, drop_stage_expr
+from app.services.lifecycle import drop_running, drop_stage, drop_stage_expr, seat_is_live
 from app.services.shipments import (
     shipments_by_application_ids,
     unshipped_live_seat_clause,
@@ -66,6 +67,8 @@ from app.timeutils import utcnow
 # ``metric_sync`` runs every 8h (03:00 / 11:00 / 19:00 UTC); 20h leaves room for
 # one missed run plus clock skew before we call it stale.
 _METRIC_SYNC_STALE_HOURS = 20
+# A package still not marked delivered this long after its first tracking number.
+_SHIPPED_NO_DELIVERY_DAYS = 14
 
 _ATTENTION_FILTERS = frozenset({"awaiting_decisions", "no_tracking"})
 
@@ -97,6 +100,7 @@ _INTEGRITY_KEYS = (
 )
 
 _SILENT_KEYS = (
+    "shipped_no_delivery",
     "notify_me_never_sent",
     "posts_never_refreshed",
     "posts_missing_insights",
@@ -267,6 +271,21 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
                 SocialPost.reach.is_(None),
                 SocialPost.views.is_(None),
                 SocialPost.total_interactions.is_(None),
+            ),
+        ),
+        "shipped_no_delivery": await _scalar_int(
+            db,
+            select(func.count(DropApplication.id))
+            .join(Drop, Drop.id == DropApplication.drop_id)
+            .where(
+                seat_is_live(),
+                DropApplication.delivered_at.is_(None),
+                drop_running(),
+                Drop.hidden_at.is_(None),
+                select(func.min(DropApplicationShipment.created_at))
+                .where(DropApplicationShipment.application_id == DropApplication.id)
+                .scalar_subquery()
+                < now - timedelta(days=_SHIPPED_NO_DELIVERY_DAYS),
             ),
         ),
         "pending_suggestions": await _scalar_int(
@@ -969,8 +988,7 @@ def _attention_clause(attention: str, now: datetime) -> tuple[Any, ...]:
             )
         )
         return (
-            Drop.published_at.is_not(None),
-            Drop.wrapped_at.is_(None),
+            drop_running(),
             Drop.apply_close_at < now,
             undecided_or_unsent,
         )
@@ -1052,6 +1070,9 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
                 "applied_at": application.applied_at,
                 "decision_at": application.decision_at,
                 "decision_sent_at": application.decision_sent_at,
+                "added_by": application.added_by,
+                "delivered_at": application.delivered_at,
+                "end_reason": application.end_reason,
             }
         )
 
@@ -1136,6 +1157,7 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
         "apply_open_at": drop.apply_open_at,
         "apply_close_at": drop.apply_close_at,
         "wrapped_at": drop.wrapped_at,
+        "canceled_at": drop.canceled_at,
         "published_at": drop.published_at,
         "hidden_at": drop.hidden_at,
         "drop_request_id": drop.drop_request_id,

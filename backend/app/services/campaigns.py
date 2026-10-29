@@ -2,16 +2,17 @@
 
 A "campaign" is an org's ``drop_applications`` row joined with its parent drop.
 The org only sees *sent* decisions (``lifecycle.org_visible_decision``): a
-drafted accept/deny still reads ``applied``, and a sent denial is invisible
-(filtered from the list, 404 on detail). The list is sorted server-side per
-§7.2: live → accepted → applied → wrapped, most-recently-applied first.
+drafted accept/deny still reads ``applied``, and an ended seat (sent denial,
+withdrawal, removal) is invisible (filtered from the list, 404 on detail).
+The list is sorted server-side per §7.2: live → accepted → applied →
+wrapped/canceled, most-recently-applied first.
 """
 
 from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -21,26 +22,29 @@ from app.models.brand import Brand
 from app.models.drop import Drop
 from app.models.enums import ApplicationDecision, DropStage
 from app.models.organization import Organization
+from app.models.shipment import DropApplicationShipment
 from app.models.user import User
 from app.schemas.campaigns import CampaignDetailResponse, CampaignListItem
 from app.services.lifecycle import (
+    ORG_HIDDEN_DECISIONS,
     drop_stages,
     org_link_open,
     org_visible_decision,
-    seat_is_denied_and_sent,
+    seat_hidden_from_org,
 )
-from app.services.shipments import shipments_by_application_ids
+from app.services.seats import end_seat, lock_drop
+from app.services.shipments import set_delivered, shipments_by_application_ids
 from app.timeutils import utcnow
 
 
 def _campaign_sort_bucket(decision: str, stage: DropStage) -> int:
-    """Lower sorts first: live(0) → accepted(1) → applied(2) → wrapped(3)."""
+    """Lower sorts first: live(0) → accepted(1) → applied(2) → over(3)."""
 
+    if stage in (DropStage.WRAPPED, DropStage.CANCELED):
+        return 3
     if decision == ApplicationDecision.ACCEPTED.value:
         if stage == DropStage.LIVE:
             return 0
-        if stage == DropStage.WRAPPED:
-            return 3
         return 1
     return 2
 
@@ -53,11 +57,12 @@ def _org_seat_fields(application: DropApplication) -> dict[str, object]:
         "decision": org_visible_decision(application),
         "allocated_units": application.allocated_units if sent else None,
         "decision_at": application.decision_sent_at if sent else None,
+        "delivered_at": application.delivered_at,
     }
 
 
 async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignListItem]:
-    """All of the caller org's seats except sent denials, joined + sorted (§7.2)."""
+    """All of the caller org's seats except ended ones, joined + sorted (§7.2)."""
 
     org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
     if org_id is None:
@@ -71,7 +76,7 @@ async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignLi
                 .join(Brand, Brand.id == Drop.brand_id)
                 .where(
                     DropApplication.org_id == org_id,
-                    ~seat_is_denied_and_sent(),
+                    ~seat_hidden_from_org(),
                     Drop.hidden_at.is_(None),
                 )
             )
@@ -122,9 +127,10 @@ async def resolve_owned_application(
 ) -> DropApplication:
     """Load an application the caller org owns, or raise 404.
 
-    Unknown / other-org / sent-denied all collapse to the same 404 (no
-    existence leak). Shared by every ``/api/campaigns/{id}/*`` sub-resource so
-    they enforce ownership uniformly (no IDOR).
+    Unknown / other-org / ended (sent denial, withdrew, removed) all
+    collapse to the same 404 (no existence leak). Shared by every
+    ``/api/campaigns/{id}/*`` sub-resource so they enforce ownership
+    uniformly (no IDOR).
 
     ``require_accepted`` additionally collapses seats the org does not *see* as
     accepted (still applied, or accepted but unsent) to 404 — used by the
@@ -135,7 +141,7 @@ async def resolve_owned_application(
     org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
     application = await db.get(DropApplication, application_id)
     visible = org_visible_decision(application) if application is not None else None
-    blocked = visible == ApplicationDecision.DENIED.value or (
+    blocked = visible in ORG_HIDDEN_DECISIONS or (
         require_accepted and visible != ApplicationDecision.ACCEPTED.value
     )
     drop = await db.get(Drop, application.drop_id) if application is not None else None
@@ -177,7 +183,7 @@ async def get_my_campaign(
     if (
         org_id is None
         or application.org_id != org_id
-        or org_visible_decision(application) == ApplicationDecision.DENIED.value
+        or org_visible_decision(application) in ORG_HIDDEN_DECISIONS
         or drop.hidden_at is not None
     ):
         raise BuzzAPIException(errors.NOT_FOUND, "Campaign not found.", status_code=404)
@@ -201,3 +207,35 @@ async def get_my_campaign(
         capacity_total=drop.capacity_total,
         total_product_units=drop.total_product_units,
     )
+
+
+async def withdraw_my_campaign(db: AsyncSession, org_user: User, application_id: uuid.UUID) -> None:
+    """The org pulls out: any time while applied, or accepted before it ships.
+
+    After shipping the product may need to come back, so BUZZ handles it.
+    """
+
+    application = await resolve_owned_application(db, org_user, application_id)
+    await lock_drop(db, application.drop_id)
+    if org_visible_decision(application) == ApplicationDecision.ACCEPTED.value and (
+        await db.scalar(
+            select(exists().where(DropApplicationShipment.application_id == application.id))
+        )
+    ):
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Your product has already shipped. Contact BUZZ to withdraw.",
+            status_code=409,
+        )
+    await end_seat(db, application, decision=ApplicationDecision.WITHDREW.value, reason=None)
+
+
+async def set_my_campaign_delivered(
+    db: AsyncSession, org_user: User, application_id: uuid.UUID, delivered: bool
+) -> None:
+    """The org confirms it has the product ("I got it")."""
+
+    application = await resolve_owned_application(
+        db, org_user, application_id, require_accepted=True
+    )
+    await set_delivered(db, application.id, delivered)

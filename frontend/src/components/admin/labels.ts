@@ -92,6 +92,10 @@ export const SIGNAL_META: Record<string, SignalMeta> = {
     note: "An expired Instagram token rejects every request, including the one that would resend their verification email. Organization self-serve reconnect is /reconnect-instagram (Instagram OAuth); Clear IG token is optional ops assist.",
     to: "/admin/orgs?status=pending_email_verification",
   },
+  shipped_no_delivery: {
+    label: "Shipped seats not marked delivered after 14 days",
+    note: "Tracking went out two weeks ago and nobody confirmed delivery. The package may be lost or stuck at a mailroom; check with the organization or re-ship.",
+  },
   stranded_applicants: {
     label: "Undecided applicants on a wrapped drop",
     note: "The drop wrapped without deciding them. Decide them from the drop page (BUZZ can still decide after wrap).",

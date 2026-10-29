@@ -3,10 +3,19 @@
  *
  * Renders from the real backend (GET /api/campaigns/:id + derived status).
  */
-import { Navigate, useParams } from "react-router-dom";
+import { useState } from "react";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import ApiPostSelector from "../../components/org/ApiPostSelector";
 import { CampaignStatusBadge } from "../../components/org/CampaignRow";
-import { useCampaignDetail, useCampaignAggregate } from "../../api/hooks/useOrgHooks";
+import {
+  useCampaignAggregate,
+  useCampaignDetail,
+  type CampaignDetail,
+  useSetCampaignDelivered,
+  useWithdrawCampaign,
+} from "../../api/hooks/useOrgHooks";
+import { Button, ErrorBanner } from "../../components/forms/controls";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { ApiError } from "../../api/errors";
 import { deriveOrgCampaignStatus } from "../../utils/orgCampaignStatus";
 import PageShell from "../../components/site/PageShell";
@@ -44,6 +53,82 @@ function CampaignMetrics({
           value={stat.value.toLocaleString()}
         />
       ))}
+    </div>
+  );
+}
+
+/** Leave the drop. The API refuses once a package has shipped (BUZZ handles that). */
+function WithdrawButton({ applicationId }: { applicationId: string }) {
+  const withdraw = useWithdrawCampaign(applicationId);
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function confirm() {
+    setError(null);
+    try {
+      await withdraw.mutateAsync(undefined);
+      navigate("/org/campaigns", { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not withdraw.");
+    }
+  }
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="compact"
+        data-testid="campaign-withdraw"
+        onClick={() => setOpen(true)}
+      >
+        Withdraw
+      </Button>
+      {open ? (
+        <ConfirmDialog
+          title="Withdraw from this drop"
+          description="Your seat goes back to the brand and the drop leaves My Campaigns. You can apply again while applications are open."
+          confirmLabel="Withdraw"
+          pendingLabel="Withdrawing…"
+          destructive
+          pending={withdraw.isPending}
+          error={error}
+          submitTestId="campaign-withdraw-confirm"
+          onConfirm={() => void confirm()}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/** "I got it": the org confirms the product arrived; undo if tapped by mistake. */
+function DeliveredControl({ detail }: { detail: CampaignDetail }) {
+  const setDelivered = useSetCampaignDelivered(detail.id);
+  const delivered = detail.deliveredAt != null;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-3">
+        {delivered ? (
+          <span className={cn(TEXT.body, "text-muted")} data-testid="campaign-delivered">
+            Received {new Date(detail.deliveredAt as number).toLocaleDateString()}
+          </span>
+        ) : null}
+        <Button
+          type="button"
+          variant={delivered ? "ghost" : "primary"}
+          size="compact"
+          data-testid="campaign-delivered-toggle"
+          loading={setDelivered.isPending}
+          onClick={() => setDelivered.mutate(!delivered)}
+        >
+          {delivered ? "Undo" : "I got it"}
+        </Button>
+      </div>
+      {setDelivered.error ? (
+        <ErrorBanner>{setDelivered.error.message}</ErrorBanner>
+      ) : null}
     </div>
   );
 }
@@ -94,6 +179,9 @@ function ApiCampaignDetail() {
   };
   const shipments = detail.shipments ?? [];
   const onTheWay = shipments.length > 0;
+  const seated = status === "accepted" || status === "active";
+  // Before anything ships the org may leave on its own; after, BUZZ ends the seat.
+  const canWithdraw = status === "applied" || (seated && !onTheWay);
 
   return (
     <PageShell width="wide" className="flex flex-col gap-10">
@@ -107,8 +195,23 @@ function ApiCampaignDetail() {
         }
         title={detail.title}
         description={detail.description ?? ""}
-        actions={<CampaignStatusBadge status={status} />}
+        actions={
+          <div className="flex items-center gap-3">
+            {canWithdraw ? <WithdrawButton applicationId={detail.id} /> : null}
+            <CampaignStatusBadge status={status} />
+          </div>
+        }
       />
+
+      {status === "canceled" ? (
+        <Card kind="panel" pad="card">
+          <CardHeader
+            className="mb-0"
+            title="This drop was canceled"
+            description="BUZZ canceled this drop. Nothing more is needed from you; any posts you linked stay as they are."
+          />
+        </Card>
+      ) : null}
 
       {status === "applied" ? (
         <Card kind="panel" pad="card">
@@ -141,6 +244,9 @@ function ApiCampaignDetail() {
               <>
                 <p className="mb-3 text-xs text-quiet">Tracking</p>
                 <ShipmentList shipments={shipments} testId="org-campaign-shipments" />
+                <div className="mt-5">
+                  <DeliveredControl detail={detail} />
+                </div>
               </>
             ) : null}
           </Card>
@@ -155,6 +261,11 @@ function ApiCampaignDetail() {
             <Card kind="panel" pad="card">
               <CardHeader className="mb-5" title="Shipments" />
               <ShipmentList shipments={shipments} testId="org-campaign-shipments" />
+              {status === "active" ? (
+                <div className="mt-5">
+                  <DeliveredControl detail={detail} />
+                </div>
+              ) : null}
             </Card>
           ) : null}
           <CampaignMetrics agg={agg} />

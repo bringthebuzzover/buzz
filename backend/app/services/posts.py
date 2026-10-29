@@ -33,7 +33,7 @@ from app.schemas.posts import (
 )
 from app.services.campaigns import resolve_owned_application
 from app.services.erased_org_participation import post_metrics_are_frozen
-from app.services.lifecycle import org_link_open
+from app.services.lifecycle import org_link_open, reject_if_canceled
 from app.timeutils import utcnow
 
 
@@ -125,10 +125,13 @@ async def _dismiss_for_error(
 
 
 async def _require_links_open(db: AsyncSession, org_user: User, drop_id: uuid.UUID) -> None:
-    """Orgs link/unlink until ``ORG_LINK_GRACE`` after wrap-up; BUZZ (View as) always."""
+    """Orgs link/unlink until ``ORG_LINK_GRACE`` after wrap-up; BUZZ (View as)
+    always, unless the drop is canceled."""
+    drop = await db.get(Drop, drop_id)
+    if drop is not None:
+        reject_if_canceled(drop)
     if impersonated_by(org_user) is not None:
         return
-    drop = await db.get(Drop, drop_id)
     if drop is not None and not org_link_open(drop, utcnow()):
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,

@@ -812,10 +812,11 @@ export function usePublishDrop(dropId: string) {
   );
 }
 
-export function useRemoveParticipant(dropId: string) {
+/** Hard-delete a seat (test data, mistakes). Ending a real seat is a decision. */
+export function useDeleteSeat(dropId: string) {
   return useAdminMutation((input: { applicationId: string; confirm: string }) =>
     apiFetch(
-      `/api/admin/drops/${dropId}/applications/${input.applicationId}/remove`,
+      `/api/admin/drops/${dropId}/applications/${input.applicationId}/delete`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -854,15 +855,20 @@ export function usePatchAdminDropConfig(dropId: string) {
   );
 }
 
-export type SeatDecision = "applied" | "accepted" | "denied";
+export type AdminSeatDecision =
+  components["schemas"]["AdminSeatDecisionRequest"]["decision"];
 
-/** Draft one seat (BUZZ may decide at any stage and overbook). */
+/**
+ * Draft one seat (BUZZ may decide at any stage and overbook), or end it:
+ * `withdrew` / `removed` take effect at once; `removed` needs a reason.
+ */
 export function useSetAdminSeatDecision(dropId: string) {
   return useAdminMutation(
     (input: {
       applicationId: string;
-      decision: SeatDecision;
+      decision: AdminSeatDecision;
       allocatedUnits?: number | null;
+      reason?: string;
     }) =>
       apiFetch(
         `/api/admin/drops/${dropId}/applications/${input.applicationId}/decision`,
@@ -872,6 +878,7 @@ export function useSetAdminSeatDecision(dropId: string) {
           body: JSON.stringify({
             decision: input.decision,
             allocatedUnits: input.allocatedUnits ?? null,
+            reason: input.reason ?? null,
           }),
         },
       ),
@@ -889,6 +896,28 @@ export function useSetDropWrapped(dropId: string) {
   return useAdminMutation((wrapped: boolean) =>
     apiFetch(`/api/admin/drops/${dropId}/${wrapped ? "wrap" : "unwrap"}`, {
       method: "POST",
+    }),
+  );
+}
+
+/** Cancel a running drop. Final; the API re-checks the typed title. */
+export function useCancelDrop(dropId: string) {
+  return useAdminMutation((confirm: string) =>
+    apiFetch(`/api/admin/drops/${dropId}/cancel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirm }),
+    }),
+  );
+}
+
+/** Mark a seat's package delivered (or undo). Per seat, never a gate. */
+export function useSetApplicantDelivered(applicationId: string) {
+  return useAdminMutation((delivered: boolean) =>
+    apiFetch(`/api/admin/applications/${applicationId}/delivered`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ delivered }),
     }),
   );
 }
