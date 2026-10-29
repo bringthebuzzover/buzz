@@ -13,22 +13,19 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
 import { useSignOut } from "../../api/hooks/useSignOut";
 import { Logo } from "../ui/BrandMark";
-import { appNavItemClass } from "../ui/navItem";
+import { appNavItemClass, quietLinkClass } from "../ui/navItem";
 import { imageInitials } from "../ui/RemoteImage";
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
-const NAV_LINKS = [
-  { to: "/", label: "Home" },
+/** Org portal links. The marketing header shows the same ones to signed-in orgs. */
+export const ORG_PORTAL_LINKS = [
   { to: "/org/browse", label: "Browse campaigns" },
   { to: "/org/campaigns", label: "My campaigns" },
   { to: "/org/profile", label: "Profile" },
 ] as const;
 
-const quietLinkClass = cn(
-  "whitespace-nowrap text-sm text-muted transition hover:text-primary",
-  focusRingClass,
-);
+const NAV_LINKS = [{ to: "/", label: "Home" }, ...ORG_PORTAL_LINKS];
 
 export default function OrgPortalHeader() {
   const { pathname } = useLocation();

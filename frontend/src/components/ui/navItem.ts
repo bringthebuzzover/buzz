@@ -1,6 +1,12 @@
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
+/** Quiet text action (Contact, Log out, "Change school email"): muted type, paper on hover. */
+export const quietLinkClass = cn(
+  "inline-flex items-center gap-2 whitespace-nowrap text-sm text-muted transition hover:text-primary disabled:opacity-50",
+  focusRingClass,
+);
+
 /** Marketing nav item: paper type, hairline underline when active. */
 export function marketingNavItemClass(active: boolean) {
   return cn(

@@ -29,7 +29,7 @@ import { Chip } from "../ui/Chip";
 import { Loader, EmptyState } from "../ui/EmptyState";
 import { RemoteImage } from "../ui/RemoteImage";
 import { PAD, SURFACE, TEXT } from "../../theme/tokens";
-import { focusRingClass } from "../../theme/controls";
+import { quietLinkClass } from "../ui/navItem";
 import { cn } from "../../theme/cn";
 
 type Props = {
@@ -139,10 +139,7 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
               disabled={busy}
               onClick={() => refreshPosts.mutate()}
               title="Reload the posts Buzz already synced — does not fetch from Instagram"
-              className={cn(
-                "text-sm text-muted transition hover:text-primary disabled:opacity-50",
-                focusRingClass,
-              )}
+              className={quietLinkClass}
             >
               {refreshPosts.isPending ? "Reloading…" : "Show latest synced posts →"}
             </button>

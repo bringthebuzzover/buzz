@@ -10,7 +10,7 @@ import { userFacingApiError } from "../../api/userFacingError";
 import FieldError from "../forms/FieldError";
 import { Button, ErrorBanner, SuccessBanner, TextField } from "../forms/controls";
 import { Card } from "../ui/Card";
-import { focusRingClass } from "../../theme/controls";
+import { quietLinkClass } from "../ui/navItem";
 import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import {
@@ -140,10 +140,7 @@ export default function EduEmailRotatePanel({
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className={cn(
-            "inline-flex items-center gap-2 self-start text-sm text-muted transition hover:text-primary",
-            focusRingClass,
-          )}
+          className={cn(quietLinkClass, "self-start")}
         >
           <Pencil size={14} aria-hidden />
           Change school email
