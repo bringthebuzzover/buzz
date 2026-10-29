@@ -21,6 +21,8 @@ from app.config import settings
 from app.deps.auth import CurrentAdmin
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
+from app.models.brand import Brand
+from app.models.drop_request import DropRequest
 from app.models.enums import BrandStatus, OrgUserStatus
 from app.response import APIResponse, DataResponse, api_error_response, api_response
 from app.schemas.acks import (
@@ -511,6 +513,27 @@ async def compose_brand_email_endpoint(
 # ── Drop requests (intake tickets) ───────────────────────────────────────────
 
 
+def _admin_drop_request_item(ticket: DropRequest, brand: Brand) -> AdminDropRequestItem:
+    return AdminDropRequestItem(
+        id=ticket.id,
+        brand_id=ticket.brand_id,
+        brand_name=brand.brand_name,
+        message=ticket.message,
+        product=ticket.product,
+        title=ticket.title,
+        location=ticket.location,
+        target_date=ticket.target_date,
+        org_count=ticket.org_count,
+        units_per_org=ticket.units_per_org,
+        campaign_hashtag=ticket.campaign_hashtag,
+        notes=ticket.notes,
+        status=ticket.status,
+        converted_drop_id=ticket.converted_drop_id,
+        created_at=ticket.created_at,
+        updated_at=ticket.updated_at,
+    )
+
+
 @router.get(
     "/drop-requests",
     response_model=DataResponse[list[AdminDropRequestItem]],
@@ -522,22 +545,7 @@ async def list_drop_requests_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     rows = await list_admin_drop_requests(db, status=status, brand_id=brand_id)
-    return api_response(
-        data=[
-            AdminDropRequestItem(
-                id=ticket.id,
-                brand_id=ticket.brand_id,
-                brand_name=brand.brand_name,
-                message=ticket.message,
-                notes=ticket.notes,
-                status=ticket.status,
-                converted_drop_id=ticket.converted_drop_id,
-                created_at=ticket.created_at,
-                updated_at=ticket.updated_at,
-            )
-            for ticket, brand in rows
-        ]
-    )
+    return api_response(data=[_admin_drop_request_item(ticket, brand) for ticket, brand in rows])
 
 
 @router.get(
@@ -550,19 +558,7 @@ async def get_drop_request_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     ticket, brand = await get_admin_drop_request(db, request_id)
-    return api_response(
-        data=AdminDropRequestItem(
-            id=ticket.id,
-            brand_id=ticket.brand_id,
-            brand_name=brand.brand_name,
-            message=ticket.message,
-            notes=ticket.notes,
-            status=ticket.status,
-            converted_drop_id=ticket.converted_drop_id,
-            created_at=ticket.created_at,
-            updated_at=ticket.updated_at,
-        )
-    )
+    return api_response(data=_admin_drop_request_item(ticket, brand))
 
 
 # ── Drops ───────────────────────────────────────────────────────────────────

@@ -126,7 +126,7 @@ Brand-facing endpoints. All `CurrentBrand` (JWT + `brand` role + `active`); resp
 
 ```
 GET    /api/brands/me                           brand profile
-POST   /api/brands/me/drop-requests             ticket only {message, notes?} — not a Drop
+POST   /api/brands/me/drop-requests             ticket {message, product, title?, location?, targetDate?, orgCount?, unitsPerOrg?, campaignHashtag?, notes?} — not a Drop
 GET    /api/brands/me/drop-requests             list tickets
 GET    /api/brands/me/drops                     list brand's drops with per-drop aggregate (posts, likes, comments, engagement, reach)
 GET    /api/brands/me/drops/{drop_id}           drop detail with applicants + org-attributed totals

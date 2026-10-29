@@ -17,7 +17,7 @@ from app.exceptions import BuzzAPIException
 from app.models.brand import Brand
 from app.models.drop import Drop
 from app.models.drop_request import DropRequest
-from app.schemas.drops import BrandDropRequestResponse
+from app.schemas.drops import BrandDropRequestCreate, BrandDropRequestResponse
 
 
 def build_drop_request_response(
@@ -27,6 +27,13 @@ def build_drop_request_response(
         id=ticket.id,
         brand_id=ticket.brand_id,
         message=ticket.message,
+        product=ticket.product,
+        title=ticket.title,
+        location=ticket.location,
+        target_date=ticket.target_date,
+        org_count=ticket.org_count,
+        units_per_org=ticket.units_per_org,
+        campaign_hashtag=ticket.campaign_hashtag,
         notes=ticket.notes,
         status=ticket.status,
         converted_drop_id=converted_drop_id,
@@ -55,25 +62,25 @@ async def brand_drop_request_response(
 async def create_brand_drop_request(
     db: AsyncSession,
     brand: Brand,
-    *,
-    message: str,
-    notes: str | None = None,
+    payload: BrandDropRequestCreate,
 ) -> DropRequest:
-    """Insert a received ticket for *brand*."""
+    """Insert a received ticket for *brand*.
 
-    msg = message.strip()
-    if not msg:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "message is required.",
-            status_code=400,
-        )
-    note = notes.strip() if notes and notes.strip() else None
+    ``payload`` is already validated (required message/product, bounds, hashtag).
+    """
+
     ticket = DropRequest(
         id=uuid.uuid4(),
         brand_id=brand.id,
-        message=msg,
-        notes=note,
+        message=payload.message,
+        product=payload.product,
+        title=payload.title,
+        location=payload.location,
+        target_date=payload.target_date,
+        org_count=payload.org_count,
+        units_per_org=payload.units_per_org,
+        campaign_hashtag=payload.campaign_hashtag,
+        notes=payload.notes,
         status="received",
     )
     db.add(ticket)

@@ -2639,6 +2639,11 @@ export interface components {
              * Format: date-time
              */
             applyOpenAt: string;
+            /**
+             * Brandcaneditcreative
+             * @default false
+             */
+            brandCanEditCreative: boolean;
             /** Campaignhashtag */
             campaignHashtag?: string | null;
             /** Capacitytotal */
@@ -2823,6 +2828,8 @@ export interface components {
             brandId: string;
             /** Brandname */
             brandName: string;
+            /** Campaignhashtag */
+            campaignHashtag: string | null;
             /** Converteddropid */
             convertedDropId: string | null;
             /** Createdat */
@@ -2832,12 +2839,24 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Location */
+            location: string | null;
             /** Message */
             message: string;
             /** Notes */
             notes: string | null;
+            /** Orgcount */
+            orgCount: number | null;
+            /** Product */
+            product: string | null;
             /** Status */
             status: string;
+            /** Targetdate */
+            targetDate: string | null;
+            /** Title */
+            title: string | null;
+            /** Unitsperorg */
+            unitsPerOrg: number | null;
             /** Updatedat */
             updatedAt: number;
         };
@@ -3739,17 +3758,37 @@ export interface components {
         };
         /**
          * BrandDropRequestCreate
-         * @description Body for ``POST /api/brands/me/drop-requests`` (LAUNCH.md Phase B).
+         * @description Body for ``POST /api/brands/me/drop-requests`` (PRODUCT §5.2).
+         *
+         *     ``message`` and ``product`` are required. Every other field may be omitted.
+         *     Unknown keys are rejected. Length and range checks run after strip.
          */
         BrandDropRequestCreate: {
+            /** Campaignhashtag */
+            campaignHashtag?: string | null;
+            /** Location */
+            location?: string | null;
             /** Message */
             message: string;
             /** Notes */
             notes?: string | null;
+            /** Orgcount */
+            orgCount?: number | null;
+            /** Product */
+            product: string;
+            /** Targetdate */
+            targetDate?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Unitsperorg */
+            unitsPerOrg?: number | null;
         };
         /**
          * BrandDropRequestResponse
          * @description A brand intake ticket (not a live drop).
+         *
+         *     Structured fields are nullable: tickets filed before they existed only
+         *     have ``message`` and ``notes``.
          */
         BrandDropRequestResponse: {
             /**
@@ -3757,6 +3796,8 @@ export interface components {
              * Format: uuid
              */
             brandId: string;
+            /** Campaignhashtag */
+            campaignHashtag: string | null;
             /** Converteddropid */
             convertedDropId: string | null;
             /** Createdat */
@@ -3766,12 +3807,24 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Location */
+            location: string | null;
             /** Message */
             message: string;
             /** Notes */
             notes: string | null;
+            /** Orgcount */
+            orgCount: number | null;
+            /** Product */
+            product: string | null;
             /** Status */
             status: string;
+            /** Targetdate */
+            targetDate: string | null;
+            /** Title */
+            title: string | null;
+            /** Unitsperorg */
+            unitsPerOrg: number | null;
             /** Updatedat */
             updatedAt: number;
         };

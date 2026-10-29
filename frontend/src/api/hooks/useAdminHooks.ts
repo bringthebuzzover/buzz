@@ -722,6 +722,7 @@ export type AdminDropCreateInput = {
   totalProductUnits?: number | null;
   campaignHashtag?: string | null;
   dropRequestId?: string;
+  brandCanEditCreative?: boolean;
 };
 
 export function useCreateAdminDrop() {
