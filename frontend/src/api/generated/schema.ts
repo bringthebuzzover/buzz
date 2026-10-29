@@ -38,6 +38,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/brand-ig-change-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Brand Ig Change Requests Endpoint */
+        get: operations["list_brand_ig_change_requests_endpoint_api_admin_brand_ig_change_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/brand-ig-change-requests/{request_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Brand Ig Change Request Endpoint */
+        post: operations["approve_brand_ig_change_request_endpoint_api_admin_brand_ig_change_requests__request_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/brand-ig-change-requests/{request_id}/deny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deny Brand Ig Change Request Endpoint */
+        post: operations["deny_brand_ig_change_request_endpoint_api_admin_brand_ig_change_requests__request_id__deny_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/brands": {
         parameters: {
             query?: never;
@@ -1020,6 +1071,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/brand/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Brand Change Password
+         * @description Change the signed-in brand's password and keep this session.
+         *
+         *     Per-IP limit is the route dependency. Per-account limit, the current
+         *     password check, and the View-as refusal live in ``change_brand_password``.
+         *     ``issue_token_pair`` bumps ``token_version`` (other sessions die) and
+         *     commits before the notice email.
+         */
+        post: operations["brand_change_password_api_auth_brand_change_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/brand/forgot-password": {
         parameters: {
             query?: never;
@@ -1535,7 +1611,11 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Patch Brand Profile
+         * @description Update the brand's display name. Handle and email are not accepted.
+         */
+        patch: operations["patch_brand_profile_api_brands_me_patch"];
         trace?: never;
     };
     "/api/brands/me/aggregate": {
@@ -1656,6 +1736,40 @@ export interface paths {
         get: operations["get_engagement_series_api_brands_me_engagement_series_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/brands/me/ig-change-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get My Brand Ig Change Request */
+        get: operations["get_my_brand_ig_change_request_api_brands_me_ig_change_request_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/brands/me/ig-change-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create My Brand Ig Change Request */
+        post: operations["create_my_brand_ig_change_request_api_brands_me_ig_change_requests_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2448,6 +2562,7 @@ export interface components {
             lastLoginAt: number | null;
             /** Passwordset */
             passwordSet: boolean;
+            pendingIgChange?: components["schemas"]["AdminBrandPendingIgChange"] | null;
             /** Status */
             status: string;
             /**
@@ -2479,6 +2594,40 @@ export interface components {
             emailToDomain?: string | null;
             /** Status */
             status: string;
+        };
+        /** AdminBrandIgChangeRequestItem */
+        AdminBrandIgChangeRequestItem: {
+            /**
+             * Brandid
+             * Format: uuid
+             */
+            brandId: string;
+            /** Brandname */
+            brandName: string;
+            /** Companyemail */
+            companyEmail: string;
+            /** Createdat */
+            createdAt: number;
+            /** Currenthandle */
+            currentHandle: string;
+            /** Decidedat */
+            decidedAt?: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string;
+            /** Requestedhandle */
+            requestedHandle: string;
+            /** Status */
+            status: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
         };
         /**
          * AdminBrandInviteResponse
@@ -2516,6 +2665,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Igchangepending
+             * @default false
+             */
+            igChangePending: boolean;
             /** Impersonatable */
             impersonatable: boolean;
             /** Instagramhandle */
@@ -2535,6 +2689,25 @@ export interface components {
             userId: string;
             /** Userstatus */
             userStatus: string;
+        };
+        /**
+         * AdminBrandPendingIgChange
+         * @description Open brand handle-change ticket on ``AdminBrandDetail``.
+         */
+        AdminBrandPendingIgChange: {
+            /** Createdat */
+            createdAt: number;
+            /** Currenthandle */
+            currentHandle: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string;
+            /** Requestedhandle */
+            requestedHandle: string;
         };
         /** AdminBrandStatusResponse */
         AdminBrandStatusResponse: {
@@ -2639,6 +2812,11 @@ export interface components {
              * Format: date-time
              */
             applyOpenAt: string;
+            /**
+             * Brandcaneditcreative
+             * @default false
+             */
+            brandCanEditCreative: boolean;
             /** Campaignhashtag */
             campaignHashtag?: string | null;
             /** Capacitytotal */
@@ -2823,6 +3001,8 @@ export interface components {
             brandId: string;
             /** Brandname */
             brandName: string;
+            /** Campaignhashtag */
+            campaignHashtag: string | null;
             /** Converteddropid */
             convertedDropId: string | null;
             /** Createdat */
@@ -2832,12 +3012,24 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Location */
+            location: string | null;
             /** Message */
             message: string;
             /** Notes */
             notes: string | null;
+            /** Orgcount */
+            orgCount: number | null;
+            /** Product */
+            product: string | null;
             /** Status */
             status: string;
+            /** Targetdate */
+            targetDate: string | null;
+            /** Title */
+            title: string | null;
+            /** Unitsperorg */
+            unitsPerOrg: number | null;
             /** Updatedat */
             updatedAt: number;
         };
@@ -3487,6 +3679,16 @@ export interface components {
             status: string;
         };
         /**
+         * BrandChangePasswordRequest
+         * @description Signed-in brand password change. Wrong current password is not a 401.
+         */
+        BrandChangePasswordRequest: {
+            /** Currentpassword */
+            currentPassword: string;
+            /** Newpassword */
+            newPassword: string;
+        };
+        /**
          * BrandDropCreativePatch
          * @description Brand-owned title/description/image patch (omit = leave alone).
          */
@@ -3739,17 +3941,37 @@ export interface components {
         };
         /**
          * BrandDropRequestCreate
-         * @description Body for ``POST /api/brands/me/drop-requests`` (LAUNCH.md Phase B).
+         * @description Body for ``POST /api/brands/me/drop-requests`` (PRODUCT §5.2).
+         *
+         *     ``message`` and ``product`` are required. Every other field may be omitted.
+         *     Unknown keys are rejected. Length and range checks run after strip.
          */
         BrandDropRequestCreate: {
+            /** Campaignhashtag */
+            campaignHashtag?: string | null;
+            /** Location */
+            location?: string | null;
             /** Message */
             message: string;
             /** Notes */
             notes?: string | null;
+            /** Orgcount */
+            orgCount?: number | null;
+            /** Product */
+            product: string;
+            /** Targetdate */
+            targetDate?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Unitsperorg */
+            unitsPerOrg?: number | null;
         };
         /**
          * BrandDropRequestResponse
          * @description A brand intake ticket (not a live drop).
+         *
+         *     Structured fields are nullable: tickets filed before they existed only
+         *     have ``message`` and ``notes``.
          */
         BrandDropRequestResponse: {
             /**
@@ -3757,6 +3979,8 @@ export interface components {
              * Format: uuid
              */
             brandId: string;
+            /** Campaignhashtag */
+            campaignHashtag: string | null;
             /** Converteddropid */
             convertedDropId: string | null;
             /** Createdat */
@@ -3766,14 +3990,64 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Location */
+            location: string | null;
             /** Message */
             message: string;
             /** Notes */
             notes: string | null;
+            /** Orgcount */
+            orgCount: number | null;
+            /** Product */
+            product: string | null;
             /** Status */
             status: string;
+            /** Targetdate */
+            targetDate: string | null;
+            /** Title */
+            title: string | null;
+            /** Unitsperorg */
+            unitsPerOrg: number | null;
             /** Updatedat */
             updatedAt: number;
+        };
+        /**
+         * BrandIgChangeRequestCreate
+         * @description Body for ``POST /api/brands/me/ig-change-requests``.
+         */
+        BrandIgChangeRequestCreate: {
+            /** Reason */
+            reason: string;
+            /** Requestedhandle */
+            requestedHandle: string;
+        };
+        /** BrandIgChangeRequestResponse */
+        BrandIgChangeRequestResponse: {
+            /** Createdat */
+            createdAt: number;
+            /** Currenthandle */
+            currentHandle: string;
+            /** Decidedat */
+            decidedAt?: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string;
+            /** Requestedhandle */
+            requestedHandle: string;
+            /** Status */
+            status: string;
+        };
+        /**
+         * BrandIgChangeRequestState
+         * @description ``GET /api/brands/me/ig-change-request``.
+         */
+        BrandIgChangeRequestState: {
+            latest?: components["schemas"]["BrandIgChangeRequestResponse"] | null;
+            pending?: components["schemas"]["BrandIgChangeRequestResponse"] | null;
         };
         /**
          * BrandLoginRequest
@@ -3784,6 +4058,15 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+        };
+        /**
+         * BrandProfilePatch
+         * @description ``PATCH /api/brands/me``. Omitted fields stay. ``instagramHandle`` and
+         *     ``email`` are rejected (``extra=forbid``); handle changes are a request.
+         */
+        BrandProfilePatch: {
+            /** Brandname */
+            brandName?: string | null;
         };
         /**
          * BrandProfileResponse
@@ -4011,6 +4294,15 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[AdminBrandIgChangeRequestItem] */
+        DataResponse_AdminBrandIgChangeRequestItem_: {
+            data?: components["schemas"]["AdminBrandIgChangeRequestItem"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[AdminBrandInviteResponse] */
         DataResponse_AdminBrandInviteResponse_: {
             data?: components["schemas"]["AdminBrandInviteResponse"] | null;
@@ -4203,6 +4495,24 @@ export interface components {
         /** DataResponse[BrandDropRequestResponse] */
         DataResponse_BrandDropRequestResponse_: {
             data?: components["schemas"]["BrandDropRequestResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[BrandIgChangeRequestResponse] */
+        DataResponse_BrandIgChangeRequestResponse_: {
+            data?: components["schemas"]["BrandIgChangeRequestResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[BrandIgChangeRequestState] */
+        DataResponse_BrandIgChangeRequestState_: {
+            data?: components["schemas"]["BrandIgChangeRequestState"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -4482,6 +4792,16 @@ export interface components {
         /** DataResponse[VerifyEmailResponse] */
         DataResponse_VerifyEmailResponse_: {
             data?: components["schemas"]["VerifyEmailResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[AdminBrandIgChangeRequestItem]] */
+        DataResponse_list_AdminBrandIgChangeRequestItem__: {
+            /** Data */
+            data?: components["schemas"]["AdminBrandIgChangeRequestItem"][] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -5638,6 +5958,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_OkResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    list_brand_ig_change_requests_endpoint_api_admin_brand_ig_change_requests_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_list_AdminBrandIgChangeRequestItem__"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    approve_brand_ig_change_request_endpoint_api_admin_brand_ig_change_requests__request_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminBrandIgChangeRequestItem_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    deny_brand_ig_change_request_endpoint_api_admin_brand_ig_change_requests__request_id__deny_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminBrandIgChangeRequestItem_"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -7526,6 +7945,41 @@ export interface operations {
             };
         };
     };
+    brand_change_password_api_auth_brand_change_password_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_TokenResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     brand_forgot_password_api_auth_brand_forgot_password_post: {
         parameters: {
             query?: never;
@@ -8275,6 +8729,41 @@ export interface operations {
             };
         };
     };
+    patch_brand_profile_api_brands_me_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandProfilePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_BrandProfileResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     get_brand_aggregate_api_brands_me_aggregate_get: {
         parameters: {
             query?: never;
@@ -8564,6 +9053,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_list_EngagementSeriesPoint__"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    get_my_brand_ig_change_request_api_brands_me_ig_change_request_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_BrandIgChangeRequestState_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    create_my_brand_ig_change_request_api_brands_me_ig_change_requests_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandIgChangeRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_BrandIgChangeRequestResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

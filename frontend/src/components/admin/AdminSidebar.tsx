@@ -30,6 +30,7 @@ const NAV: readonly NavItem[] = [
     badgeKeys: [
       "orgs_pending_approval",
       "orgs_ig_change_pending",
+      "brands_ig_change_pending",
       "orgs_ig_bind_mismatch",
       "brands_pending_review",
       "drops_ready_to_advance",

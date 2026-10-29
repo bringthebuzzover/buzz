@@ -8,7 +8,7 @@ remapping.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -141,6 +141,7 @@ class AdminDropCreateRequest(CamelModel):
     total_product_units: int | None = Field(default=None, ge=1)
     campaign_hashtag: str | None = None
     drop_request_id: uuid.UUID | None = None
+    brand_can_edit_creative: bool = False
 
     @field_validator("apply_open_at", "apply_close_at")
     @classmethod
@@ -162,6 +163,13 @@ class AdminDropRequestItem(CamelModel):
     brand_id: uuid.UUID
     brand_name: str
     message: str
+    product: str | None
+    title: str | None
+    location: str | None
+    target_date: date | None
+    org_count: int | None
+    units_per_org: int | None
+    campaign_hashtag: str | None
     notes: str | None
     status: str
     converted_drop_id: uuid.UUID | None
@@ -385,6 +393,7 @@ class AdminBrandItem(CamelModel):
     approved_at: datetime | None
     last_login_at: datetime | None
     impersonatable: bool
+    ig_change_pending: bool = False
     created_at: datetime
 
     @field_serializer("approved_at", "last_login_at", "created_at")
@@ -541,6 +550,42 @@ class AdminDropItem(CamelModel):
         return to_epoch_ms(value)
 
 
+class AdminBrandPendingIgChange(CamelModel):
+    """Open brand handle-change ticket on ``AdminBrandDetail``."""
+
+    id: uuid.UUID
+    current_handle: str
+    requested_handle: str
+    reason: str
+    created_at: datetime
+
+    @field_serializer("created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+
+class AdminBrandIgChangeRequestItem(CamelModel):
+    id: uuid.UUID
+    brand_id: uuid.UUID
+    user_id: uuid.UUID
+    brand_name: str
+    company_email: str
+    current_handle: str
+    requested_handle: str
+    reason: str
+    status: str
+    decided_at: datetime | None = None
+    created_at: datetime
+
+    @field_serializer("created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("decided_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
+        return to_epoch_ms(value)
+
+
 class AdminBrandDetail(CamelModel):
     id: uuid.UUID
     user_id: uuid.UUID
@@ -555,6 +600,7 @@ class AdminBrandDetail(CamelModel):
     created_at: datetime
     last_login_at: datetime | None
     impersonatable: bool
+    pending_ig_change: AdminBrandPendingIgChange | None = None
     invite: AdminInviteState
     drops: list[AdminDropItem]
 

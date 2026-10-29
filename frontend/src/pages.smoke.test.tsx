@@ -30,6 +30,7 @@ import OrgPortalProfilePage from "./pages/org/OrgPortalProfilePage";
 import BrandAggregateDashboardPage from "./pages/brand/BrandAggregateDashboardPage";
 import BrandDropDetailPage from "./pages/brand/BrandDropDetailPage";
 import BrandRequestDropPage from "./pages/brand/BrandRequestDropPage";
+import BrandSettingsPage from "./pages/brand/BrandSettingsPage";
 import LoginPage from "./pages/auth/LoginPage";
 import InstagramCallbackPage from "./pages/auth/InstagramCallbackPage";
 import ReconnectInstagramPage from "./pages/auth/ReconnectInstagramPage";
@@ -67,6 +68,7 @@ const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["BrandAggregateDashboardPage", BrandAggregateDashboardPage],
   ["BrandDropDetailPage", BrandDropDetailPage],
   ["BrandRequestDropPage", BrandRequestDropPage],
+  ["BrandSettingsPage", BrandSettingsPage],
   ["LoginPage", LoginPage],
   ["ReconnectInstagramPage", ReconnectInstagramPage],
   ["InstagramCallbackPage", InstagramCallbackPage],

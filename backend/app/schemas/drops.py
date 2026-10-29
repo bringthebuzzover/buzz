@@ -10,10 +10,12 @@ brand surface + Stage 6 frontend reconcile them.
 
 from __future__ import annotations
 
+import re
 import uuid
-from datetime import datetime
+from datetime import date, datetime, timedelta, timezone
 
-from pydantic import field_serializer, field_validator
+from pydantic import ConfigDict, Field, field_serializer, field_validator
+from pydantic.alias_generators import to_camel
 
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 from app.schemas.shipments import ShipmentItem
@@ -142,20 +144,99 @@ class NotifyRequest(CamelModel):
 
 # --- Brand-facing schemas (Stage 5C / Phase B) ---------------------------------
 
+_HASHTAG_RE = re.compile(r"^[A-Za-z0-9_]{1,100}$")
+_TARGET_DATE_HORIZON_DAYS = 365
+
+
+def _blank_to_none(value: object) -> object:
+    if isinstance(value, str):
+        stripped = value.strip()
+        return stripped or None
+    return value
+
 
 class BrandDropRequestCreate(CamelModel):
-    """Body for ``POST /api/brands/me/drop-requests`` (LAUNCH.md Phase B)."""
+    """Body for ``POST /api/brands/me/drop-requests`` (PRODUCT §5.2).
 
-    message: str
-    notes: str | None = None
+    ``message`` and ``product`` are required. Every other field may be omitted.
+    Unknown keys are rejected. Length and range checks run after strip.
+    """
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    message: str = Field(min_length=1, max_length=4000)
+    product: str = Field(min_length=1, max_length=1000)
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    location: str | None = Field(default=None, max_length=255)
+    target_date: date | None = None
+    org_count: int | None = Field(default=None, ge=1, le=200)
+    units_per_org: int | None = Field(default=None, ge=1, le=10_000)
+    campaign_hashtag: str | None = None
+    notes: str | None = Field(default=None, max_length=4000)
+
+    @field_validator("message", "product", mode="before")
+    @classmethod
+    def _strip_required(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator("title", "location", "notes", mode="before")
+    @classmethod
+    def _strip_optional(cls, value: object) -> object:
+        return _blank_to_none(value)
+
+    @field_validator("target_date", mode="before")
+    @classmethod
+    def _blank_date(cls, value: object) -> object:
+        if value == "":
+            return None
+        return value
+
+    @field_validator("target_date")
+    @classmethod
+    def _target_window(cls, value: date | None) -> date | None:
+        if value is None:
+            return None
+        today = datetime.now(timezone.utc).date()
+        latest = today + timedelta(days=_TARGET_DATE_HORIZON_DAYS)
+        if value < today or value > latest:
+            raise ValueError("targetDate must be between today and 365 days from today (UTC)")
+        return value
+
+    @field_validator("campaign_hashtag", mode="before")
+    @classmethod
+    def _normalize_hashtag(cls, value: object) -> object:
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            return value
+        raw = value.strip()
+        if not raw:
+            return None
+        normalized = raw.lstrip("#").strip()
+        if _HASHTAG_RE.fullmatch(normalized) is None:
+            raise ValueError("campaignHashtag must be 1-100 letters, numbers, or underscores")
+        return normalized
 
 
 class BrandDropRequestResponse(CamelModel):
-    """A brand intake ticket (not a live drop)."""
+    """A brand intake ticket (not a live drop).
+
+    Structured fields are nullable: tickets filed before they existed only
+    have ``message`` and ``notes``.
+    """
 
     id: uuid.UUID
     brand_id: uuid.UUID
     message: str
+    product: str | None
+    title: str | None
+    location: str | None
+    target_date: date | None
+    org_count: int | None
+    units_per_org: int | None
+    campaign_hashtag: str | None
     notes: str | None
     status: str
     converted_drop_id: uuid.UUID | None

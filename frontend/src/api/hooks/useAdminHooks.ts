@@ -223,6 +223,56 @@ export function useDenyIgChangeRequest() {
   });
 }
 
+export type AdminBrandIgChangeRequest =
+  components["schemas"]["AdminBrandIgChangeRequestItem"];
+
+export function useAdminBrandIgChangeRequests(
+  status?: string,
+): AdminQuery<AdminBrandIgChangeRequest[]> {
+  return useQuery({
+    queryKey: ["admin", "brand-ig-changes", status ?? "all"],
+    queryFn: async () => {
+      const query = status ? `?status=${encodeURIComponent(status)}` : "";
+      const { data } = await apiFetch<AdminBrandIgChangeRequest[]>(
+        `/api/admin/brand-ig-change-requests${query}`,
+      );
+      return data;
+    },
+  });
+}
+
+export function useApproveBrandIgChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { data } = await apiFetch<AdminBrandIgChangeRequest>(
+        `/api/admin/brand-ig-change-requests/${requestId}/approve`,
+        { method: "POST" },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      void invalidateAdmin(queryClient);
+    },
+  });
+}
+
+export function useDenyBrandIgChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { data } = await apiFetch<AdminBrandIgChangeRequest>(
+        `/api/admin/brand-ig-change-requests/${requestId}/deny`,
+        { method: "POST" },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      void invalidateAdmin(queryClient);
+    },
+  });
+}
+
 // ── Brands ──────────────────────────────────────────────────────────────────
 
 /** `brands.status` disagrees with `userStatus` by design. */
@@ -722,6 +772,7 @@ export type AdminDropCreateInput = {
   totalProductUnits?: number | null;
   campaignHashtag?: string | null;
   dropRequestId?: string;
+  brandCanEditCreative?: boolean;
 };
 
 export function useCreateAdminDrop() {

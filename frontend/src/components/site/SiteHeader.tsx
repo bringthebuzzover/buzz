@@ -27,6 +27,7 @@ const ORG_NAV_LINKS = [
 
 const BRAND_NAV_LINKS = [
   { to: "/brand/dashboard", label: "Dashboard" as const },
+  { to: "/brand/settings", label: "Setup" as const },
 ] as const;
 
 /** Guest/brand left clusters are short; org’s four labels need lg. */

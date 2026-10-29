@@ -9,7 +9,7 @@ import { cn } from "../../theme/cn";
 
 const STEPS = [
   "Apply (or accept an invite) with company name and email; Buzz reviews, then you set a password from the setup email.",
-  "Plan your Campaign: send a ticket (message and optional notes). That text is not the campaign title — a representative will contact you.",
+  "Plan your Campaign: send a ticket. Message and what you're sending are required; title, location, timing, scale, hashtag, and notes are optional. The ticket is not a live drop — a representative will contact you.",
   "Sales call and logistics happen out of band. Buzz writes the drop creative and window.",
   "An admin saves an unpublished draft, then Publish. Only then do campus organizations see the campaign.",
   "You monitor applicants, KPIs, and a read-only tracker that starts at Awaiting Products.",
@@ -55,11 +55,17 @@ export default function ForBrandsPage() {
           Plan your Campaign
         </p>
         <label className="mb-1 block text-xs font-semibold text-buzz-ink">
-          Message
+          Tell us about the campaign
         </label>
         <div className={cn(SURFACE.inset, "mb-3 min-h-[4.5rem] px-3 py-2 text-sm font-medium text-buzz-inkMuted")}>
-          We&apos;d like a spring activation around trail running on a few
+          We&apos;d like a spring activation around cold brew on a few
           campuses — happy to jump on a call.
+        </div>
+        <label className="mb-1 block text-xs font-semibold text-buzz-ink">
+          What you&apos;re sending
+        </label>
+        <div className={cn(SURFACE.inset, "mb-3 px-3 py-2 text-sm font-medium text-buzz-inkMuted")}>
+          A case of cold brew per organization.
         </div>
         <label className="mb-1 block text-xs font-semibold text-buzz-ink">
           Notes{" "}
