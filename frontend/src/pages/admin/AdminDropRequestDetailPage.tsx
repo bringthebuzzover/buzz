@@ -34,6 +34,7 @@ import {
 } from "../../components/admin/labels";
 import {
   DateTimeField,
+  Select,
   SuccessBanner,
   TextArea,
   TextField,
@@ -71,6 +72,7 @@ type DraftFormState = {
   openAt: string;
   closeAt: string;
   hashtag: string;
+  brandCanEditCreative: boolean;
 };
 
 function emptyForm(): DraftFormState {
@@ -85,6 +87,7 @@ function emptyForm(): DraftFormState {
     openAt: win.openAt,
     closeAt: win.closeAt,
     hashtag: "",
+    brandCanEditCreative: false,
   };
 }
 
@@ -100,7 +103,74 @@ function formFromDrop(drop: AdminDropDetail): DraftFormState {
     openAt: toDatetimeLocalValue(drop.applyOpenAt),
     closeAt: toDatetimeLocalValue(drop.applyCloseAt),
     hashtag: drop.campaignHashtag ?? "",
+    brandCanEditCreative: Boolean(drop.brandCanEditCreative),
   };
+}
+
+/** Campaign brief, with the product line appended when the brand sent one. */
+function requestDescription(ticket: {
+  message: string;
+  product?: string | null;
+}): string {
+  const message = ticket.message.trim();
+  const product = ticket.product?.trim();
+  if (message && product) {
+    return `${message}\n\nWhat you're sending: ${product}`;
+  }
+  return message || product || "";
+}
+
+/**
+ * Copy known request fields into the draft. Missing optionals are left alone
+ * so a blank ticket does not wipe capacity or a hashtag the admin already typed.
+ * Total units are set only when both organization count and units per org exist.
+ */
+function applyRequestPrefill(
+  form: DraftFormState,
+  ticket: {
+    title?: string | null;
+    message: string;
+    product?: string | null;
+    location?: string | null;
+    campaignHashtag?: string | null;
+    orgCount?: number | null;
+    unitsPerOrg?: number | null;
+  },
+): DraftFormState {
+  const next = { ...form };
+  const title = ticket.title?.trim();
+  if (title) next.title = title;
+  const description = requestDescription(ticket);
+  if (description) next.description = description;
+  const location = ticket.location?.trim();
+  if (location) next.location = location;
+  const hashtag = ticket.campaignHashtag?.trim();
+  if (hashtag) next.hashtag = hashtag;
+  if (ticket.orgCount != null) next.capacity = String(ticket.orgCount);
+  if (ticket.orgCount != null && ticket.unitsPerOrg != null) {
+    next.units = String(ticket.orgCount * ticket.unitsPerOrg);
+  }
+  return next;
+}
+
+function display(value: string | number | null | undefined): string {
+  if (value == null) return "—";
+  const text = String(value).trim();
+  return text || "—";
+}
+
+function formatTargetDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return iso;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function requiredReady(form: DraftFormState): boolean {
@@ -116,9 +186,20 @@ function requiredReady(form: DraftFormState): boolean {
   );
 }
 
-function TicketPanel({ ticket }: { ticket: AdminDropRequest }) {
+function TicketPanel({
+  ticket,
+  onPrefill,
+  prefillDisabled,
+}: {
+  ticket: AdminDropRequest;
+  onPrefill?: () => void;
+  prefillDisabled?: boolean;
+}) {
   return (
-    <Panel title="Ticket" description="Reference only — do not paste as title/description.">
+    <Panel
+      title="Ticket"
+      description="Request fields are read-only. Prefill copies them into the draft; nothing is saved until you save."
+    >
       <FieldGrid columns={2}>
         <Field label="Brand">
           <Link
@@ -146,9 +227,43 @@ function TicketPanel({ ticket }: { ticket: AdminDropRequest }) {
       </FieldGrid>
       <div className="space-y-3 border-t border-buzz-lineMid px-4 py-4">
         <div>
-          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Message</p>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Title</p>
+          <p className="text-sm font-medium text-buzz-ink">{display(ticket.title)}</p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Tell us about the campaign</p>
           <p className="whitespace-pre-wrap text-sm font-medium text-buzz-ink">
             {ticket.message}
+          </p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>What you're sending</p>
+          <p className="whitespace-pre-wrap text-sm font-medium text-buzz-ink">
+            {display(ticket.product)}
+          </p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Campuses or area</p>
+          <p className="text-sm font-medium text-buzz-ink">{display(ticket.location)}</p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>When do you want this live?</p>
+          <p className="text-sm font-medium text-buzz-ink">
+            {formatTargetDate(ticket.targetDate)}
+          </p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Organizations</p>
+          <p className="text-sm font-medium text-buzz-ink">{display(ticket.orgCount)}</p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Units per organization</p>
+          <p className="text-sm font-medium text-buzz-ink">{display(ticket.unitsPerOrg)}</p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Campaign hashtag</p>
+          <p className="text-sm font-medium text-buzz-ink">
+            {display(ticket.campaignHashtag)}
           </p>
         </div>
         <div>
@@ -157,6 +272,15 @@ function TicketPanel({ ticket }: { ticket: AdminDropRequest }) {
             {ticket.notes?.trim() ? ticket.notes : "—"}
           </p>
         </div>
+        {onPrefill ? (
+          <ActionButton
+            testId="prefill-from-request"
+            disabled={prefillDisabled}
+            onClick={onPrefill}
+          >
+            Prefill from request
+          </ActionButton>
+        ) : null}
         {ticket.convertedDropId && (
           <p className="text-xs font-medium text-buzz-inkMuted">
             Linked drop:{" "}
@@ -256,7 +380,7 @@ function DraftEditor({
     if (form.units.trim() !== "") {
       const u = Number(form.units);
       if (!Number.isInteger(u) || u < 1) {
-        throw new Error("Unit budget must be an integer ≥ 1, or leave empty.");
+        throw new Error("Total units must be an integer ≥ 1, or leave empty.");
       }
       units = u;
     } else {
@@ -272,6 +396,7 @@ function DraftEditor({
       applyCloseAt: closeMs,
       totalProductUnits: units,
       campaignHashtag: form.hashtag.trim() || null,
+      brandCanEditCreative: form.brandCanEditCreative,
     };
   };
 
@@ -330,14 +455,21 @@ function DraftEditor({
     }
   };
 
-  if (published && drop) {
-    return <PublishedDropSummary drop={drop} />;
-  }
+  const prefill = () => {
+    setForm((prev) => applyRequestPrefill(prev, ticket));
+    setError(null);
+    setNotice(
+      "Filled from the request. Nothing is saved until you save the draft.",
+    );
+  };
 
-  return (
+  const editor =
+    published && drop ? (
+      <PublishedDropSummary drop={drop} />
+    ) : (
     <Panel
       title="Draft drop"
-      description="Admin writes creative and logistics. Ticket text is reference only."
+      description="Admin writes creative and logistics. Use Prefill from request to copy the ticket, then edit before saving."
     >
       <div className="space-y-3 px-4 py-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -410,14 +542,14 @@ function DraftEditor({
           />
           <TextField
             id="draft-units"
-            label="Unit budget"
+            label="Total units"
             size="compact"
             type="number"
             min={1}
             data-testid="draft-units"
             value={form.units}
             disabled={busy}
-            placeholder="Optional"
+            placeholder="Optional — organizations × units per org"
             onChange={(e) => setField("units", e.target.value)}
           />
           <DateTimeField
@@ -449,6 +581,24 @@ function DraftEditor({
               placeholder="optional"
               onChange={(e) => setField("hashtag", e.target.value)}
             />
+          </div>
+          <div className="sm:col-span-2">
+            <Select
+              id="draft-brand-can-edit"
+              data-testid="draft-brand-can-edit"
+              label="Who can edit"
+              size="compact"
+              value={form.brandCanEditCreative ? "brand" : "admin"}
+              disabled={busy}
+              onChange={(e) =>
+                setField("brandCanEditCreative", e.target.value === "brand")
+              }
+            >
+              <option value="admin">Admin only</option>
+              <option value="brand">
+                Brand can edit title, description, and image
+              </option>
+            </Select>
           </div>
         </div>
 
@@ -485,6 +635,17 @@ function DraftEditor({
         {error && <ErrorNote>{error}</ErrorNote>}
       </div>
     </Panel>
+    );
+
+  return (
+    <div className="grid items-start gap-6 lg:grid-cols-2">
+      <TicketPanel
+        ticket={ticket}
+        onPrefill={published ? undefined : prefill}
+        prefillDisabled={busy}
+      />
+      {editor}
+    </div>
   );
 }
 
@@ -527,13 +688,7 @@ export default function AdminDropRequestDetailPage() {
             <ErrorNote>Could not load the linked drop.</ErrorNote>
           )}
 
-          <div className="grid items-start gap-6 lg:grid-cols-2">
-            <TicketPanel ticket={ticket.data} />
-            <DraftEditor
-              ticket={ticket.data}
-              linkedDrop={linked.data}
-            />
-          </div>
+          <DraftEditor ticket={ticket.data} linkedDrop={linked.data} />
         </>
       )}
     </div>
