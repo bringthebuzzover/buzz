@@ -1,4 +1,4 @@
-"""Instagram metric sync (architecture.md §10.1).
+"""Instagram metric sync (buzz-ops engineering/architecture.md §10.1).
 
 Every 8 hours (03:00 / 11:00 / 19:00 UTC). For each org with a live campaign
 and a valid long-lived token:
@@ -26,7 +26,8 @@ and a valid long-lived token:
    ``followers_skipped``.
 
 Stories are unsupported (v1): discovery skips ``media_product_type == STORY``;
-there is no ``/stories`` poller. See ``gaps/posts.stories-unsupported`` / META.md.
+there is no ``/stories`` poller. See buzz-ops
+``engineering/gaps/archive/posts.stories-unsupported.md``.
 
 Per-post / per-org failures don't block the batch (rate limits, deleted posts,
 expired tokens). Posts older than 30 days are frozen (skipped). Idempotent via

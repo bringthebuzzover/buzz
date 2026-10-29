@@ -1,4 +1,4 @@
-"""Org Connect Instagram one-shot tokens (LAUNCH.md Phase A).
+"""Org Connect Instagram one-shot tokens.
 
 Mirrors brand invite mint/redeem: invalidate prior unused tokens, hash at rest,
 TTL from ``ORG_CONNECT_TOKEN_TTL_DAYS``.

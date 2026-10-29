@@ -379,7 +379,7 @@ let refreshInFlightStartedWith: string | null = null;
  * response carries the same ``UserResponse`` payload as ``/me`` (built in the
  * same transaction), so bootstrap can consume this and skip a follow-up
  * ``/me`` — that follow-up was the mint-then-read race in
- * ``gaps/auth.ci-session-restore-flake.md``. Callers must ``take`` the value
+ * buzz-ops ``engineering/gaps/archive/auth.ci-session-restore-flake.md``. Callers must ``take`` the value
  * (single-use) so a stale user from an earlier refresh never resurfaces.
  */
 let lastRefreshedUser: AuthUser | null = null;

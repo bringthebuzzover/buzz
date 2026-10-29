@@ -1,4 +1,4 @@
-"""Drop feed orchestration (architecture.md §5.1 ``GET /api/drops``, §7.1).
+"""Drop feed orchestration (buzz-ops engineering/architecture.md §5.1 ``GET /api/drops``, §7.1).
 
 Pure service functions (no FastAPI types) the route layer calls. The org feed
 returns a page of drops enriched with two server-computed fields:
@@ -48,7 +48,7 @@ def is_drop_hidden(drop: Drop) -> bool:
 def _browsable_drop_filters() -> tuple[ColumnElement[bool], ...]:
     """Predicate for drops an org may see in the feed (requires the Brand join).
 
-    Published only (LAUNCH.md Phase B): unpublished drafts and legacy
+    Published only: unpublished drafts and legacy
     ``request_received`` stubs never appear on the org feed.
     """
 

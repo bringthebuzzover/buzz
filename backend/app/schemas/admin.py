@@ -1,4 +1,4 @@
-"""Admin endpoint schemas (architecture.md §5.1, §8.5).
+"""Admin endpoint schemas (buzz-ops engineering/architecture.md §5.1, §8.5).
 
 Read schemas here mirror :mod:`app.services.admin_read`. Datetimes serialize to
 epoch-ms like the rest of the API so the React hooks consume them without
@@ -98,7 +98,7 @@ class AdminDropConfigPatch(CamelModel):
 
 
 class AdminDropCreateRequest(CamelModel):
-    """Admin-minted unpublished draft drop (LAUNCH.md Phase B)."""
+    """Admin-minted unpublished draft drop."""
 
     title: str
     description: str

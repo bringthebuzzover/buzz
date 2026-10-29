@@ -1,5 +1,5 @@
 /**
- * Open-window spots copy (PRODUCT.md §6.3 Fork A):
+ * Open-window spots copy (buzz-ops product/PRODUCT.md §6.3 Fork A):
  * - acceptedCount === 0 → "Up to N spots"
  * - acceptedCount > 0 (reopen leftovers) → "M of N spots remaining"
  *

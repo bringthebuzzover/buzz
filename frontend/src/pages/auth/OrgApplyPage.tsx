@@ -1,5 +1,5 @@
 /**
- * /org/apply — public org apply-first signup (LAUNCH.md Phase A / PRODUCT §6.1).
+ * /org/apply — public org apply-first signup (buzz-ops engineering/plans/archive/2026-seeded-launch.md Phase A / PRODUCT §6.1).
  *
  * Collects the full org profile plus a claimed Instagram handle (§6.1.1).
  * The handle is typed and stored unconfirmed until Connect. On success the

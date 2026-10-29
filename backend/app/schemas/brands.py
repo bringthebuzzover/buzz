@@ -1,4 +1,4 @@
-"""Pydantic models for the brand surface (architecture.md §8.1–§8.4).
+"""Pydantic models for the brand surface (buzz-ops engineering/architecture.md §8.1–§8.4).
 
 Responses are **camelCase** with **epoch-ms** datetimes (see ``schemas.common``)
 so they match the frontend TypeScript types field-for-field.

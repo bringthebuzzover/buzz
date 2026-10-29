@@ -212,7 +212,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         status=OrgUserStatus.ACTIVE.value,
         instagram_user_id="ig_seed_org_active",
         instagram_username="berkeleyrowing",
-        # Long-lived IG token is encrypted at rest (architecture.md §10.5), so
+        # Long-lived IG token is encrypted at rest (buzz-ops engineering/architecture.md §10.5), so
         # seed data mirrors the real OAuth write path and Stage 8 decrypt works.
         instagram_access_token=encrypt_token("seed-long-lived-token-active"),
         instagram_token_issued_at=now,
@@ -235,7 +235,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         email_verified_at=now,
     )
     # Just completed Instagram OAuth but has not submitted a profile yet
-    # (architecture.md §3.4 Phase 1 end state). No ``organizations`` row.
+    # (buzz-ops engineering/architecture.md §3.4 Phase 1 end state). No ``organizations`` row.
     org_user_onboarding = User(
         id=_uuid(6),
         portal_role=PortalRole.ORG.value,

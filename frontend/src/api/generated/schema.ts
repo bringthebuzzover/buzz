@@ -513,7 +513,7 @@ export interface paths {
         /**
          * Get Health Endpoint
          * @description Inferred pipeline freshness, Instagram token buckets, and standing
-         *     integrity / silent-loss counts. See ``gaps/`` for why the pipeline
+         *     integrity / silent-loss counts. See buzz-ops ``engineering/gaps/`` for why the pipeline
          *     block is inferred rather than measured.
          */
         get: operations["get_health_endpoint_api_admin_health_get"];
@@ -1573,7 +1573,7 @@ export interface paths {
         put?: never;
         /**
          * Create Drop Request
-         * @description Plan your Campaign — create an intake ticket (LAUNCH.md Phase B).
+         * @description Plan your Campaign — create an intake ticket.
          */
         post: operations["create_drop_request_api_brands_me_drop_requests_post"];
         delete?: never;
@@ -2640,7 +2640,7 @@ export interface components {
         };
         /**
          * AdminDropCreateRequest
-         * @description Admin-minted unpublished draft drop (LAUNCH.md Phase B).
+         * @description Admin-minted unpublished draft drop.
          */
         AdminDropCreateRequest: {
             /**
@@ -5042,7 +5042,7 @@ export interface components {
          * OrgCategory
          * @description Classification of a student org (``organizations.category``).
          *
-         *     Drives brand-side applicant filtering (PRODUCT.md §5.3.1). Nullable on the
+         *     Drives brand-side applicant filtering (buzz-ops product/PRODUCT.md §5.3.1). Nullable on the
          *     column — orgs onboarded before this field, or that decline to classify,
          *     have no category.
          * @enum {string}
@@ -5361,7 +5361,7 @@ export interface components {
          *     bearer we just minted. Serializing both from the same transaction lets the
          *     SPA bootstrap without a follow-up ``/me`` — closing the
          *     ``token_version`` mint-then-read race
-         *     (see ``gaps/auth.ci-session-restore-flake.md``).
+         *     (see buzz-ops ``engineering/gaps/archive/auth.ci-session-restore-flake.md``).
          */
         RefreshResponse: {
             /** Access Token */

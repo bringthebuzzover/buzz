@@ -1,4 +1,6 @@
-"""Pydantic request/response models for the auth surface (architecture.md §5.5).
+"""Pydantic request/response models for the auth surface.
+
+See buzz-ops engineering/architecture.md §5.5.
 
 Response models are nested inside the standard ``{ data, meta, error }``
 envelope by the route layer (``api_response(data=...)``). The refresh token is
@@ -68,7 +70,7 @@ class RefreshResponse(BaseModel):
     bearer we just minted. Serializing both from the same transaction lets the
     SPA bootstrap without a follow-up ``/me`` — closing the
     ``token_version`` mint-then-read race
-    (see ``gaps/auth.ci-session-restore-flake.md``).
+    (see buzz-ops ``engineering/gaps/archive/auth.ci-session-restore-flake.md``).
     """
 
     access_token: str

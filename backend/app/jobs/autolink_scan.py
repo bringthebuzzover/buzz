@@ -1,4 +1,4 @@
-"""Post auto-link suggestion scan (architecture.md §10.4).
+"""Post auto-link suggestion scan (buzz-ops engineering/architecture.md §10.4).
 
 For every accepted application whose drop is ``awaiting_products`` or
 ``drop_active`` and whose brand has an Instagram handle, scan the org's recent

@@ -1,4 +1,4 @@
-"""Tests for admin routes (architecture.md §8.5)."""
+"""Tests for admin routes (buzz-ops engineering/architecture.md §8.5)."""
 
 from __future__ import annotations
 

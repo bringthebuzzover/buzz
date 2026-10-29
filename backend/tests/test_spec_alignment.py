@@ -1,6 +1,6 @@
-"""Stage 10 — PRODUCT.md alignment gaps (backend slices).
+"""Stage 10 — buzz-ops product/PRODUCT.md alignment gaps (backend slices).
 
-Covers the server-side of four gaps closed against PRODUCT.md:
+Covers the server-side of four gaps closed against buzz-ops product/PRODUCT.md:
 * §6.3.1 — Notify-Me state round-trips on the org feed.
 * §5.2   — tracking number stored on the drop at awaiting_products.
 * §5.3.1 — individual posts grouped by org in the brand per-drop view.

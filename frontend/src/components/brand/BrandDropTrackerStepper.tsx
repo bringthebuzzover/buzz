@@ -1,6 +1,6 @@
 /**
  * Read-only campaign progress stepper for a drop. Highlights the current stage
- * (PRODUCT.md §5.2). Per-org tracking lists live on the org cards below.
+ * (buzz-ops product/PRODUCT.md §5.2). Per-org tracking lists live on the org cards below.
  */
 import {
   BRAND_DROP_TRACKER_COPY,

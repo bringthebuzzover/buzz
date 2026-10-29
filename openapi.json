@@ -1160,7 +1160,7 @@
         "type": "object"
       },
       "AdminDropCreateRequest": {
-        "description": "Admin-minted unpublished draft drop (LAUNCH.md Phase B).",
+        "description": "Admin-minted unpublished draft drop.",
         "properties": {
           "applyCloseAt": {
             "format": "date-time",
@@ -8795,7 +8795,7 @@
         "type": "object"
       },
       "OrgCategory": {
-        "description": "Classification of a student org (``organizations.category``).\n\nDrives brand-side applicant filtering (PRODUCT.md \u00a75.3.1). Nullable on the\ncolumn \u2014 orgs onboarded before this field, or that decline to classify,\nhave no category.",
+        "description": "Classification of a student org (``organizations.category``).\n\nDrives brand-side applicant filtering (buzz-ops product/PRODUCT.md \u00a75.3.1). Nullable on the\ncolumn \u2014 orgs onboarded before this field, or that decline to classify,\nhave no category.",
         "enum": [
           "sorority",
           "fraternity",
@@ -9864,7 +9864,7 @@
         "type": "object"
       },
       "RefreshResponse": {
-        "description": "Result of a successful ``POST /api/auth/refresh``.\n\n``user`` mirrors the payload that ``GET /api/auth/me`` would return for the\nbearer we just minted. Serializing both from the same transaction lets the\nSPA bootstrap without a follow-up ``/me`` \u2014 closing the\n``token_version`` mint-then-read race\n(see ``gaps/auth.ci-session-restore-flake.md``).",
+        "description": "Result of a successful ``POST /api/auth/refresh``.\n\n``user`` mirrors the payload that ``GET /api/auth/me`` would return for the\nbearer we just minted. Serializing both from the same transaction lets the\nSPA bootstrap without a follow-up ``/me`` \u2014 closing the\n``token_version`` mint-then-read race\n(see buzz-ops ``engineering/gaps/archive/auth.ci-session-restore-flake.md``).",
         "properties": {
           "access_token": {
             "title": "Access Token",
@@ -12299,7 +12299,7 @@
     },
     "/api/admin/health": {
       "get": {
-        "description": "Inferred pipeline freshness, Instagram token buckets, and standing\nintegrity / silent-loss counts. See ``gaps/`` for why the pipeline\nblock is inferred rather than measured.",
+        "description": "Inferred pipeline freshness, Instagram token buckets, and standing\nintegrity / silent-loss counts. See buzz-ops ``engineering/gaps/`` for why the pipeline\nblock is inferred rather than measured.",
         "operationId": "get_health_endpoint_api_admin_health_get",
         "parameters": [
           {
@@ -15128,7 +15128,7 @@
         ]
       },
       "post": {
-        "description": "Plan your Campaign \u2014 create an intake ticket (LAUNCH.md Phase B).",
+        "description": "Plan your Campaign \u2014 create an intake ticket.",
         "operationId": "create_drop_request_api_brands_me_drop_requests_post",
         "parameters": [
           {

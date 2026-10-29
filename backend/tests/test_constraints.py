@@ -7,7 +7,7 @@ future model edit that silently drops one of these constraints fails
 loudly in CI.
 
 The most important assertion is ``test_one_post_one_campaign``: the
-PRODUCT.md §4.2 invariant "one post can belong to at most one campaign"
+buzz-ops product/PRODUCT.md §4.2 invariant "one post can belong to at most one campaign"
 is encoded as ``UNIQUE(post_id)`` on ``post_campaign_links`` and is the
 hard rule the entire attribution model depends on.
 
@@ -125,7 +125,7 @@ async def _seed_org_brand_drop_post(
 
 @pytest.mark.asyncio
 async def test_one_post_one_campaign(db_session: AsyncSession) -> None:
-    """PRODUCT.md §4.2: a single post can belong to at most one campaign.
+    """buzz-ops product/PRODUCT.md §4.2: a single post can belong to at most one campaign.
 
     Enforced by ``UNIQUE(post_id)`` on ``post_campaign_links``. This is the
     most important constraint in the schema and the reason every reattribution

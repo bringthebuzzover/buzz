@@ -1,4 +1,4 @@
-"""Instagram long-lived token refresh (architecture.md §10.5).
+"""Instagram long-lived token refresh (buzz-ops engineering/architecture.md §10.5).
 
 Long-lived tokens last 60 days and can only be refreshed while still valid. Two
 triggers keep them fresh:

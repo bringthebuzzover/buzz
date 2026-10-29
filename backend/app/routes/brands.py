@@ -1,4 +1,4 @@
-"""Brand routes — ``/api/brands`` (architecture.md §5.1, §8.1–§8.4).
+"""Brand routes — ``/api/brands`` (buzz-ops engineering/architecture.md §5.1, §8.1–§8.4).
 
 Stage 5C adds the brand portal backend: profile, drop creation, drops list
 with per-drop aggregate, drop detail with applicants + attributed totals,
@@ -168,7 +168,7 @@ async def create_drop_request(
     user: CurrentBrand,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Plan your Campaign — create an intake ticket (LAUNCH.md Phase B)."""
+    """Plan your Campaign — create an intake ticket."""
     brand = await _require_brand(db, user)
     ticket = await create_brand_drop_request(db, brand, payload)
     return api_response(data=await brand_drop_request_response(db, ticket))

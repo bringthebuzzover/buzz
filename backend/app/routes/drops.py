@@ -1,4 +1,4 @@
-"""Drops routes — ``/api/drops`` (architecture.md §5.1, §7.1).
+"""Drops routes — ``/api/drops`` (buzz-ops engineering/architecture.md §5.1, §7.1).
 
 Stage 4 shipped the org browse feed (read). Stage 5A adds the org write/journey
 paths: drop detail, apply, and notify-me set/delete.

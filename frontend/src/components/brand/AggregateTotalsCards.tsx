@@ -1,6 +1,6 @@
 /**
  * Five-tile totals row for the Brand Aggregate Dashboard. Engagement, reach,
- * posts submitted, orgs involved, and campuses reached (PRODUCT.md §5.3.2).
+ * posts submitted, orgs involved, and campuses reached (buzz-ops product/PRODUCT.md §5.3.2).
  */
 import {
   Building2,

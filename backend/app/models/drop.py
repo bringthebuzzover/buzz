@@ -5,7 +5,7 @@ Brand display name lives on ``brands.brand_name`` (join via ``brand_id``).
 ``drop_application_shipments`` instead (PRODUCT §3.1.1).
 
 ``total_product_units`` is nullable to distinguish two campaign modes
-(architecture §3.2 + PRODUCT.md §4.1):
+(architecture §3.2 + buzz-ops product/PRODUCT.md §4.1):
 
 * ``NULL`` — **spot-only** selection. Brand just accepts/denies orgs.
 * ``>= 1`` — **unit-allocated**. Brand must split units across accepted

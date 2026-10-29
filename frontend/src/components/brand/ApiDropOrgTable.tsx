@@ -2,7 +2,7 @@
  * API-path per-drop breakdown for the brand drop detail page.
  *
  * Shows each participating org with its attributed totals AND the individual
- * linked posts grouped beneath it (PRODUCT.md §5.3.1 "all social posts ...
+ * linked posts grouped beneath it (buzz-ops product/PRODUCT.md §5.3.1 "all social posts ...
  * grouped by org"). A category filter (§5.3.1) narrows the org list client-side.
  */
 import { useMemo, useState } from "react";
