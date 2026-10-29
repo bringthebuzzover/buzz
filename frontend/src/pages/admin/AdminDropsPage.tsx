@@ -20,8 +20,8 @@ import {
   QueryState,
   Row,
   entityLinkClass,
-  filterChipClass,
 } from "../../components/admin/AdminPrimitives";
+import { filterChipClass } from "../../components/ui/navItem";
 import {
   STAGE_LABELS,
   STAGE_ORDER,

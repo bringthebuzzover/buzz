@@ -23,12 +23,24 @@ export function adminNavItemClass(active: boolean) {
   );
 }
 
-/** App header nav item: pill. Active is the yellow wash. */
+/** App top bar nav item. Pen `Nav / Item`: pill, paper-08 fill when active. */
 export function appNavItemClass(active: boolean) {
   return cn(
-    "inline-flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition",
+    "inline-flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-normal transition",
+    focusRingClass,
     active
-      ? "bg-buzz-yellowFaded text-buzz-yellow"
-      : "text-buzz-inkMuted hover:bg-buzz-paper08 hover:text-buzz-fg",
+      ? "bg-buzz-paper08 text-primary"
+      : "text-muted hover:bg-buzz-paper04 hover:text-primary",
+  );
+}
+
+/** Filter chips. Pen `Chip`: selected is the paper pill, the rest are hairline. */
+export function filterChipClass(selected: boolean) {
+  return cn(
+    "inline-flex items-center whitespace-nowrap rounded-full border px-3 py-2 text-sm font-normal transition",
+    focusRingClass,
+    selected
+      ? "border-transparent bg-primary text-on-accent"
+      : "border-line bg-transparent text-muted hover:border-primary hover:text-primary",
   );
 }
