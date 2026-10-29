@@ -91,4 +91,34 @@ describe("PublicDropPage", () => {
     expect(container.querySelector('[data-testid="auth-shell"]')).toBeNull();
     expect(container.textContent).not.toMatch(/Request to join Buzz and apply/);
   });
+
+  it("uses the grey media well when the drop has no photo", () => {
+    mockUseAuth.mockReturnValue({
+      status: "restore_failed",
+      user: null,
+      login: jest.fn(),
+      retryRestore: jest.fn(),
+      abandonRestore: jest.fn(),
+    });
+    mockUseDropDetail.mockReturnValue({
+      isLoading: false,
+      isError: false,
+      error: null,
+      data: { ...openDrop(), brandName: "Sample Brand", image: null },
+    });
+
+    act(() => {
+      root.render(
+        <MemoryRouter initialEntries={[`/d/${DROP_ID}`]}>
+          <Routes>
+            <Route path="/d/:dropId" element={<PublicDropPage />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).not.toContain("SB");
+    expect(container.querySelector("[data-testid=image-fallback]")).toBeNull();
+    expect(container.querySelector(".bg-buzz-greyMedia")).not.toBeNull();
+  });
 });

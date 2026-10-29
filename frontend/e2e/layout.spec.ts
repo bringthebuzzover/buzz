@@ -158,6 +158,24 @@ test("the checkbox is drawn by us, not the OS", async ({ page }) => {
   expect(size?.height).toBeGreaterThanOrEqual(18);
 });
 
+test("closed mobile nav does not dim the page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoAnonymous(page, "/");
+
+  const drawer = page.locator("#mobile-nav-menu").locator("..");
+  const panel = page.locator("#mobile-nav-menu");
+  await expect(drawer).toHaveCSS("opacity", "0");
+  const closedOffscreen = await panel.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    return box.right <= 1;
+  });
+  expect(closedOffscreen).toBe(true);
+
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await expect(drawer).toHaveCSS("opacity", "1");
+  await expect(panel.getByRole("link", { name: "Home" })).toBeVisible();
+});
+
 test("the modal traps focus, closes on Escape, and locks the page", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await gotoUiKit(page);
