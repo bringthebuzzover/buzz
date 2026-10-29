@@ -11,7 +11,7 @@
 import brandEmails from "@brandEmails";
 import instaIcon from "../assets/insta-icon.png";
 import linkedinIcon from "../assets/linkedin-icon.png";
-import { publicLogo } from "../utils/publicLogo";
+import { publicLogo } from "../utils/publicAsset";
 
 /** Read-only config object consumed by header, footer, modals, and hero. */
 export const siteIdentity = {
