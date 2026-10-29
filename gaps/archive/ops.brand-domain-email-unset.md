@@ -8,7 +8,7 @@ surface: deploy
 closed_in: split-2026-08-11
 evidence:
   - path: backend/brand_emails.json
-    note: emailFrom noreply@bringthebuzzover.com; contactEmail still mc3237@cornell.edu (personal)
+    note: emailFrom noreply@bringthebuzzover.com; contactEmail still ae101@example.edu (personal)
   - path: backend/app/services/email.py
     note: Resend POST only when ENVIRONMENT != development; From from brand_emails.json
   - path: DEPLOYMENT.md
@@ -48,7 +48,7 @@ Historical body retained below for context.
 
 **Remove the personal email.** Public contact and any other Buzz-facing addresses
 must be **company-domain** (`*@bringthebuzzover.com`) only — not
-`mc3237@cornell.edu` or other personal/edu inboxes. Transactional From stays
+`ae101@example.edu` or other personal/edu inboxes. Transactional From stays
 `noreply@bringthebuzzover.com` via Resend. Do not archive while the SPA still
 shows a personal contact address.
 
@@ -69,7 +69,7 @@ Railway hosts the app only — **irrelevant for inbound mailboxes**.
 | Authoritative DNS  | Cloudflare zone `9103e4c774707bf5b2f17fbb9d9144cf` | Lawrence — Free; NS `felipe` / `melody`                      |
 | App hosts          | Railway (`www` / `api`)                            | Lawrence                                                     |
 | Transactional send | Resend (`RESEND_API_KEY` on api + crons)           | Buzz ops — **sending domain not verified**                   |
-| Human inbox        | **None** on brand domain                           | Contact = `mc3237@cornell.edu`                               |
+| Human inbox        | **None** on brand domain                           | Contact = `ae101@example.edu`                               |
 
 Hostinger DNS zone empty (cleared after CF NS flip). Hostinger mail orders = 0;
 no websites. Do **not** recreate www/api/apex or put MX on Hostinger DNS.
@@ -79,7 +79,7 @@ no websites. Do **not** recreate www/api/apex or put MX on Hostinger DNS.
 | Address / path                        | Role                            | Reality                                                                 |
 | ------------------------------------- | ------------------------------- | ----------------------------------------------------------------------- |
 | `Buzz <noreply@bringthebuzzover.com>` | Resend `from` (`emailFrom`)     | Unverified domain; no Resend DNS in CF → off-dev sends fail in practice |
-| `mc3237@cornell.edu`                  | Public contact (`contactEmail`) | **To remove** — interim personal Cornell                                |
+| `ae101@example.edu`                  | Public contact (`contactEmail`) | **To remove** — interim personal Cornell                                |
 | `*@bringthebuzzover.com` inbound      | Support / hello / contact       | **No apex MX** → undeliverable                                          |
 
 Code: From loaded from [`backend/brand_emails.json`](../../backend/brand_emails.json)
@@ -191,7 +191,7 @@ dig @1.1.1.1 TXT resend._domainkey.bringthebuzzover.com +short
 dig @1.1.1.1 TXT send.bringthebuzzover.com +short
 # Cloudflare MCP execute: list zone DNS
 # Hostinger MCP: mail_listOrdersV1
-# Repo: rg -n 'mc3237@cornell\.edu|contactEmail' backend/brand_emails.json frontend/
+# Repo: rg -n 'ae101@example\.edu|contactEmail' backend/brand_emails.json frontend/
 ```
 
 ## Sources

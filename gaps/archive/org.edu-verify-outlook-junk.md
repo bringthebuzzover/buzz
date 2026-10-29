@@ -21,7 +21,7 @@ evidence:
     note: Resend DKIM/SPF on send. done 2026-08-11; DMARC called out as later
 repro: |
   2026-08-14 20:55Z Resend id b9e0dc2a-f823-4144-8a25-b5b38753ae5b
-  (subject "Verify your Buzz organization email", to mc3237@cornell.edu)
+  (subject "Verify your Buzz organization email", to ae101@example.edu)
   status delivered. Cornell Outlook junked it: "This message was identified
   as junk", "You don't often get email from noreply@bringthebuzzover.com",
   SafeLinks wrap. Body started "Click the link below to verify your email

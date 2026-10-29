@@ -131,7 +131,7 @@ async def test_update_prefill_send_ccs_contact_and_ops(monkeypatch, _resend_key)
             "org@campus.edu",
             "preview",
             org_name="Kappa Alpha Theta",
-            contact_name="Mia",
+            contact_name="Emery",
         )
         is True
     )
@@ -158,13 +158,13 @@ def test_org_apply_prefill_update_email_fields() -> None:
     subject, text, html = email.build_org_apply_prefill_update_email(
         "preview",
         org_name="Kappa Alpha Theta",
-        contact_name="Mia Philippi",
+        contact_name="Emery Fakename",
     )
     assert "Kappa Alpha Theta" in subject
     assert "Kappa Alpha Theta" in text
     assert "UPDATE" in subject
     assert "UPDATE" in text
-    assert "Mia" in text
+    assert "Emery" in text
     assert "prefill=preview" in text
     assert "prefill=preview" in html
     assert "/login" in text
@@ -188,9 +188,9 @@ def test_org_apply_prefill_update_email_fields() -> None:
 
 def test_applied_on_from_source_row_key() -> None:
     assert (
-        email.applied_on_from_source_row_key("8/30/2026 16:30:08|mp2282@cornell.edu") == "August 30"
+        email.applied_on_from_source_row_key("8/30/2026 16:30:08|ep105@example.edu") == "August 30"
     )
-    assert email.applied_on_from_source_row_key("8/18/2026 1:19:20|mc3237@cornell.edu") == (
+    assert email.applied_on_from_source_row_key("8/18/2026 1:19:20|ae101@example.edu") == (
         "August 18"
     )
     assert email.applied_on_from_source_row_key("not-a-date|x@y.edu") is None

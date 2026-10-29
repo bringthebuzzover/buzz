@@ -30,9 +30,9 @@ weeks. A one-shot send does not require that.
 
 All mail already goes through `backend/app/services/email.py` `_dispatch`
 (Resend). From is always `Buzz <hello@bringthebuzzover.com>`. Reply-To is
-always `CONTACT_EMAIL` (`mc3237@cornell.edu` until mailbox cutover). CC is
+always `CONTACT_EMAIL` (`ae101@example.edu` until mailbox cutover). CC is
 already supported; `_ops_cc()` = contact + `OPS_CC_EMAIL`
-(`lg626@cornell.edu`), used today only on UPDATE prefill mail.
+(`ops.cc@example.edu`), used today only on UPDATE prefill mail.
 
 Admin profiles already exist:
 
