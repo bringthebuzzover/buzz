@@ -170,17 +170,17 @@ describe("OrgApplyPage typed Instagram handle", () => {
     mockPrefill.data = {
       orgName: "Epsilon Nu Tau",
       university: "Cornell University",
-      eduEmail: "mc3237@cornell.edu",
-      instagramHandle: "entcornell",
+      eduEmail: "ae101@example.edu",
+      instagramHandle: "test_org_1",
       memberCount: 60,
       category: "sorority",
-      contactName: "Melissa Chowdhury",
-      shippingLine1: "121 Lake St",
+      contactName: "Avery Example",
+      shippingLine1: "101 Example St",
       shippingLine2: null,
       shippingCity: "Ithaca",
       shippingState: "NY",
       shippingPostalCode: "14850",
-      shippingRaw: "121 Lake St, Ithaca, NY 14850",
+      shippingRaw: "101 Example St, Ithaca, NY 14850",
     };
     renderPage();
     const org = container.querySelector(
@@ -190,7 +190,7 @@ describe("OrgApplyPage typed Instagram handle", () => {
     expect(
       (container.querySelector('[data-testid="org-apply-contact-name"]') as HTMLInputElement)
         .value,
-    ).toBe("Melissa Chowdhury");
+    ).toBe("Avery Example");
     expect(container.textContent).toMatch(/You wrote:/);
     const submit = container.querySelector(
       'button[type="submit"]',

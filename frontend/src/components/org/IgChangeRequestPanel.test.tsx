@@ -56,7 +56,7 @@ describe("IgChangeRequestPanel", () => {
     container = renderWithProviders(
       <IgChangeRequestPanel
         currentHandle={handle}
-        connectEmail="maya@cornell.edu"
+        connectEmail="maya@example.edu"
       />,
     ).container;
   }
@@ -124,7 +124,7 @@ describe("IgChangeRequestPanel", () => {
     expect(
       document.querySelector('[data-testid="ig-change-connect-email"]')
         ?.textContent,
-    ).toBe("maya@cornell.edu");
+    ).toBe("maya@example.edu");
     await act(async () => {
       (
         document.querySelector(
