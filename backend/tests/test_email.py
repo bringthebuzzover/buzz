@@ -134,7 +134,7 @@ async def test_update_prefill_send_ccs_contact_and_ops(monkeypatch, _resend_key)
             "org@campus.edu",
             "preview",
             org_name="Kappa Alpha Theta",
-            contact_name="Mia",
+            contact_name="Emery",
         )
         is True
     )
@@ -161,13 +161,13 @@ def test_org_apply_prefill_update_email_fields() -> None:
     subject, text, html = email.build_org_apply_prefill_update_email(
         "preview",
         org_name="Kappa Alpha Theta",
-        contact_name="Mia Philippi",
+        contact_name="Emery Fakename",
     )
     assert "Kappa Alpha Theta" in subject
     assert "Kappa Alpha Theta" in text
     assert "UPDATE" in subject
     assert "UPDATE" in text
-    assert "Mia" in text
+    assert "Emery" in text
     assert "prefill=preview" in text
     assert "prefill=preview" in html
     assert "/login" in text

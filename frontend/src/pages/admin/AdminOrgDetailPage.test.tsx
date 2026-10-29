@@ -57,17 +57,17 @@ function orgDetail() {
     status: "active",
     orgName: "Lawrence's Test",
     university: "Cornell University",
-    instagramHandle: "lawrence_granda",
+    instagramHandle: "test_org_admin",
     instagramHandleConfirmed: false,
-    claimedInstagramUsername: "lawrence_granda",
+    claimedInstagramUsername: "test_org_admin",
     igBindGraphUsername: null,
     igBindMismatchedAt: null,
     igBindMismatchAckedAt: null,
-    instagramUsername: "lawrence_granda",
+    instagramUsername: "test_org_admin",
     instagramTokenExpiresAt: Date.now() + 86400000,
     instagramTokenRefreshedAt: Date.now(),
     impersonatable: true,
-    eduEmail: "lg629@cornell.edu",
+    eduEmail: "admin.tester@example.edu",
     emailVerifiedAt: Date.now(),
     approvedAt: Date.now(),
     createdAt: Date.now(),
@@ -111,8 +111,8 @@ describe("AdminOrgDetailPage erase confirm", () => {
     mockSendEmailMutateAsync.mockReset();
     mockSendEmailMutateAsync.mockResolvedValue({
       ok: true,
-      to: "lg629@cornell.edu",
-      cc: ["mc3237@cornell.edu"],
+      to: "admin.tester@example.edu",
+      cc: ["ae101@example.edu"],
     });
     mockEraseMutateAsync.mockResolvedValue({
       emailSent: true,
@@ -138,11 +138,11 @@ describe("AdminOrgDetailPage erase confirm", () => {
     expect(document.body.textContent).toContain("Claimed handle");
     expect(document.body.textContent).toContain("Connected Instagram");
     const link = Array.from(container.querySelectorAll("a")).find(
-      (el) => el.textContent === "@lawrence_granda",
+      (el) => el.textContent === "@test_org_admin",
     );
     expect(link).toBeTruthy();
     expect(link?.getAttribute("href")).toBe(
-      "https://www.instagram.com/lawrence_granda/",
+      "https://www.instagram.com/test_org_admin/",
     );
     expect(link?.getAttribute("target")).toBe("_blank");
     expect(link?.getAttribute("rel")).toContain("noopener");
@@ -154,7 +154,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
         ...orgDetail(),
         instagramHandle: "otherclub",
         instagramUsername: "otherclub",
-        claimedInstagramUsername: "lawrence_granda",
+        claimedInstagramUsername: "test_org_admin",
         igBindGraphUsername: "otherclub",
         igBindMismatchedAt: Date.now(),
         igBindMismatchAckedAt: null,
@@ -166,7 +166,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
 
     expect(document.body.textContent).toContain("IG bind mismatch");
     expect(document.body.textContent).toContain(
-      "This organization connected @otherclub after applying as @lawrence_granda.",
+      "This organization connected @otherclub after applying as @test_org_admin.",
     );
     expect(document.body.textContent).not.toContain("Live handle is now");
     const ack = container.querySelector(
@@ -187,7 +187,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
         ...orgDetail(),
         instagramHandle: "renamedclub",
         instagramUsername: "renamedclub",
-        claimedInstagramUsername: "lawrence_granda",
+        claimedInstagramUsername: "test_org_admin",
         igBindGraphUsername: "otherclub",
         igBindMismatchedAt: Date.now(),
         igBindMismatchAckedAt: null,
@@ -198,7 +198,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
     renderPage();
 
     expect(document.body.textContent).toContain(
-      "This organization connected @otherclub after applying as @lawrence_granda. Live handle is now @renamedclub.",
+      "This organization connected @otherclub after applying as @test_org_admin. Live handle is now @renamedclub.",
     );
   });
 
@@ -208,7 +208,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
         ...orgDetail(),
         instagramHandle: "otherclub",
         instagramUsername: "otherclub",
-        claimedInstagramUsername: "lawrence_granda",
+        claimedInstagramUsername: "test_org_admin",
         igBindGraphUsername: "otherclub",
         igBindMismatchedAt: Date.now(),
         igBindMismatchAckedAt: null,
@@ -275,7 +275,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
       '[data-testid="erase-org-confirm"]',
     ) as HTMLInputElement;
     act(() => {
-      setInputValue(input, "@lawrence_granda");
+      setInputValue(input, "@test_org_admin");
     });
     expect(submit.disabled).toBe(false);
 
@@ -284,7 +284,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
     });
     expect(mockEraseMutateAsync).toHaveBeenCalledWith({
       userId: "11111111-1111-1111-1111-111111111111",
-      confirm: "@lawrence_granda",
+      confirm: "@test_org_admin",
     });
     promptSpy.mockRestore();
   });
@@ -307,9 +307,9 @@ describe("AdminOrgDetailPage erase confirm", () => {
       '[data-testid="erase-org-confirm"]',
     ) as HTMLInputElement;
     act(() => {
-      setInputValue(input, "@lawrence_granda");
+      setInputValue(input, "@test_org_admin");
     });
-    expect(input.value).toBe("@lawrence_granda");
+    expect(input.value).toBe("@test_org_admin");
 
     const cancel = document.querySelector(
       '[data-testid="erase-org-cancel"]',
@@ -343,7 +343,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
     const to = document.querySelector(
       '[data-testid="compose-email-to"]',
     ) as HTMLInputElement;
-    expect(to.value).toBe("lg629@cornell.edu");
+    expect(to.value).toBe("admin.tester@example.edu");
     expect(to.readOnly).toBe(true);
     const cc = document.querySelector(
       '[data-testid="compose-email-cc"]',

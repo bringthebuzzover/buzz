@@ -28,30 +28,30 @@ def test_parse_ent_cornell() -> None:
     p = parse_form_row(
         [
             "8/18/2026 1:19:20",
-            "mc3237@cornell.edu",
-            "Melissa Chowdhury",
-            "9176225842",
+            "ae101@example.edu",
+            "Avery Example",
+            "2125550101",
             "Marketing Chair",
             "Cornell University, Epsilon Nu Tau",
-            "121 Lake St, Ithaca, NY 14850",
+            "101 Example St, Ithaca, NY 14850",
             "60",
             "Yes",
             "",
-            "https://www.instagram.com/entcornell/",
+            "https://www.instagram.com/test_org_1/",
             "1k",
         ]
     )
-    assert p.invite_email == "mc3237@cornell.edu"
-    assert p.edu_email == "mc3237@cornell.edu"
+    assert p.invite_email == "ae101@example.edu"
+    assert p.edu_email == "ae101@example.edu"
     assert p.org_name == "Epsilon Nu Tau"
     assert p.university == "Cornell University"
     assert p.member_count == 60
-    assert p.instagram_handle == "entcornell"
-    assert p.shipping_line1 == "121 Lake St"
+    assert p.instagram_handle == "test_org_1"
+    assert p.shipping_line1 == "101 Example St"
     assert p.shipping_city == "Ithaca"
     assert p.shipping_state == "NY"
     assert p.shipping_postal_code == "14850"
-    assert p.extras["phone"] == "9176225842"
+    assert p.extras["phone"] == "2125550101"
     assert "1k" not in str(p.extras)
     assert "edu_email_not_edu" not in p.warnings
 
@@ -60,40 +60,40 @@ def test_parse_cwru_ohio() -> None:
     p = parse_form_row(
         [
             "t",
-            "sxk2197@case.edu",
-            "Stephanie Kim",
-            "8157646462",
+            "bs102@example.edu",
+            "Blake Sample",
+            "2165550102",
             "VP of Marketing",
             "Case Western Reserve University, Alpha Gamma Delta",
-            "11909 Carlton Road, Cleveland, Ohio 44106",
+            "10902 Sample Road, Cleveland, Ohio 44106",
             "100",
             "Yes",
             "",
-            "https://www.instagram.com/alphagamcwru/",
+            "https://www.instagram.com/test_org_2/",
             "2.2k",
         ]
     )
     assert p.org_name == "Alpha Gamma Delta"
     assert p.shipping_state == "OH"
     assert p.shipping_city == "Cleveland"
-    assert p.shipping_line1 == "11909 Carlton Road"
-    assert p.instagram_handle == "alphagamcwru"
+    assert p.shipping_line1 == "10902 Sample Road"
+    assert p.instagram_handle == "test_org_2"
 
 
 def test_parse_alabama_unsplit_and_not_edu() -> None:
     p = parse_form_row(
         [
             "t",
-            "prvp@uagammaphi.com",
-            "Tiana Carenza",
-            "9145843887",
+            "prvp@example.com",
+            "Casey Placeholder",
+            "2055550103",
             "Public Relations Vice President",
             "University of Alabama Gamma Phi Beta",
-            "780 Paul W Bryant Dr, Tuscaloosa AL, 35487",
+            "780 Test W Example Dr, Tuscaloosa AL, 35487",
             "450",
             "Yes",
             "",
-            "http://www.instagram.com/uagammaphi",
+            "http://www.instagram.com/test_org_3",
             "34.3k",
         ]
     )
@@ -102,25 +102,25 @@ def test_parse_alabama_unsplit_and_not_edu() -> None:
     assert "unsplit_org_university" in p.warnings
     assert p.edu_email is None
     assert "edu_email_not_edu" in p.warnings
-    assert p.instagram_handle == "uagammaphi"
+    assert p.instagram_handle == "test_org_3"
     assert p.shipping_city == "Tuscaloosa"
     assert p.shipping_state == "AL"
     assert p.shipping_postal_code == "35487"
-    assert p.shipping_line1 == "780 Paul W Bryant Dr"
+    assert p.shipping_line1 == "780 Test W Example Dr"
 
     fixed = parse_form_row(
         [
             "t",
-            "prvp@uagammaphi.com",
-            "Tiana",
+            "prvp@example.com",
+            "Casey",
             "1",
             "role",
             "University of Alabama, Gamma Phi Beta",
-            "780 Paul W Bryant Dr, Tuscaloosa AL, 35487",
+            "780 Test W Example Dr, Tuscaloosa AL, 35487",
             "450",
             "Yes",
             "",
-            "http://www.instagram.com/uagammaphi",
+            "http://www.instagram.com/test_org_3",
             "34.3k",
         ]
     )
@@ -132,23 +132,23 @@ def test_parse_miami_gmail_box() -> None:
     p = parse_form_row(
         [
             "t",
-            "miamiztapr@gmail.com",
-            "Olivia Iljaz",
-            "3479610361",
+            "testorg4pr@example.com",
+            "Drew Testcase",
+            "3055550104",
             "PR Chair",
             "University of Miami, Zeta Tau Alpha",
-            "1211 Walsh Ave, Coral Gables, FL, 33146\nBox #193886",
+            "1204 Example Ave, Coral Gables, FL, 33146\nBox #100104",
             "300",
             "Yes",
             "",
-            "https://www.instagram.com/UmiamiZTA/",
+            "https://www.instagram.com/Test_Org_4/",
             "14k",
         ]
     )
     assert p.edu_email is None
-    assert p.instagram_handle == "umiamizta"
-    assert p.shipping_line1 == "1211 Walsh Ave"
-    assert p.shipping_line2 == "Box #193886"
+    assert p.instagram_handle == "test_org_4"
+    assert p.shipping_line1 == "1204 Example Ave"
+    assert p.shipping_line2 == "Box #100104"
     assert p.shipping_city == "Coral Gables"
     assert p.shipping_state == "FL"
     assert p.shipping_postal_code == "33146"
@@ -158,22 +158,22 @@ def test_parse_theta_comma_light() -> None:
     p = parse_form_row(
         [
             "t",
-            "mp2282@cornell.edu",
-            "Mia Philippi",
-            "9713297650",
+            "ep105@example.edu",
+            "Emery Fakename",
+            "6075550105",
             "President",
             "Cornell University, Kappa Alpha Theta",
-            "519 Stewart Ave. Ithaca NY 14850",
+            "105 Example Ave. Ithaca NY 14850",
             "140",
             "Yes",
             "",
-            "https://www.instagram.com/thetacornell",
+            "https://www.instagram.com/test_org_5",
             "3.2k",
         ]
     )
     assert p.org_name == "Kappa Alpha Theta"
-    assert p.instagram_handle == "thetacornell"
-    assert p.shipping_line1 == "519 Stewart Ave."
+    assert p.instagram_handle == "test_org_5"
+    assert p.shipping_line1 == "105 Example Ave."
     assert p.shipping_city == "Ithaca"
     assert p.shipping_state == "NY"
     assert p.shipping_postal_code == "14850"
