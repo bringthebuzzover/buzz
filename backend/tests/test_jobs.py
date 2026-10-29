@@ -290,7 +290,7 @@ async def test_notify_reminder_sent_when_due(db_session, monkeypatch) -> None:
     user, _, drop, notify = await _notify_ctx(db_session, reminder_minutes=15)
 
     result = await send_due_reminders(db_session)
-    assert result == {"reminders_sent": 1, "reminders_skipped": 0}
+    assert result == {"reminders_sent": 1, "reminders_skipped": 0, "choose_orgs_sent": 0}
     assert sent == [(user.edu_email, drop.title)]
     assert notify.sent_at is not None
 
@@ -303,7 +303,7 @@ async def test_notify_reminder_not_stamped_when_send_fails(db_session, monkeypat
     _, _, _, notify = await _notify_ctx(db_session, reminder_minutes=15)
 
     result = await send_due_reminders(db_session)
-    assert result == {"reminders_sent": 0, "reminders_skipped": 0}
+    assert result == {"reminders_sent": 0, "reminders_skipped": 0, "choose_orgs_sent": 0}
     assert notify.sent_at is None
 
     # Still eligible on the next run once the provider recovers.
@@ -382,7 +382,7 @@ async def test_notify_reminder_skips_org_without_edu_email(db_session, monkeypat
     await db_session.flush()
 
     result = await send_due_reminders(db_session)
-    assert result == {"reminders_sent": 0, "reminders_skipped": 1}
+    assert result == {"reminders_sent": 0, "reminders_skipped": 1, "choose_orgs_sent": 0}
     assert notify.sent_at is None
 
 

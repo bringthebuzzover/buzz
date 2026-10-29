@@ -500,7 +500,7 @@ function CancelDropButton({ drop }: { drop: AdminDropDetail }) {
       {open && (
         <ConfirmDialog
           title="Cancel this drop"
-          description="Final: there is no undo. Decisions, tracking, delivery, post links and metric syncs stop. Seats and posts stay on record, and you can still end a seat with a reason."
+          description="Final: there is no undo. Decisions, tracking, delivery, post links and metric syncs stop. Seats and posts stay on record, and you can still end a seat with a reason. Organizations still in the running and the brand are emailed."
           expected={drop.title}
           inputLabel="Type the drop title"
           error={error}
@@ -579,7 +579,7 @@ function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
           description={
             wrapped
               ? "The drop goes back to the stage its dates and seats give it. Organizations can link posts again."
-              : "Ends the campaign. Brands can no longer decide seats; organizations can still link posts for 30 days."
+              : "Ends the campaign. Organizations still waiting on a decision are emailed \"not selected\", orgs taking part get a thank-you, and the brand gets a recap. Send drafted acceptances first. Organizations can still link posts for 30 days."
           }
           error={error}
           confirmLabel={wrapped ? "Unwrap" : "Wrap up"}

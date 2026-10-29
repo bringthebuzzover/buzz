@@ -42,6 +42,7 @@ from app.services.drop_apply_intents import (
     promote_drop_apply_intents,
 )
 from app.services.drop_image import validate_https_image
+from app.services.drop_notices import notify_canceled, notify_wrapped
 from app.services.drop_requests import touch_updated_at
 from app.services.email import (
     KIND_BRAND_INVITE,
@@ -891,7 +892,9 @@ async def wrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     """Wrap a published drop up: off the feed, reporting period over.
 
     Not a lock: BUZZ can still late-add and link, orgs keep linking for
-    ``ORG_LINK_GRACE``, and metrics keep syncing for a while.
+    ``ORG_LINK_GRACE``, and metrics keep syncing for a while. Everyone still
+    waiting on a decision becomes "not selected" (D-7), and everyone hears
+    about it once (``notify_wrapped``). Drafted acceptances must be sent first.
     """
 
     drop = await lock_drop(db, drop_id)
@@ -911,8 +914,39 @@ async def wrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
             status_code=409,
         )
     if drop.wrapped_at is None:
-        drop.wrapped_at = datetime.now(timezone.utc)
-        db.add(DropTrackerEvent(drop_id=drop.id, stage="wrapped", note="wrapped up"))
+        drafted = await db.scalar(
+            select(func.count()).where(
+                DropApplication.drop_id == drop.id,
+                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+                DropApplication.decision_sent_at.is_(None),
+            )
+        )
+        if drafted:
+            # Never turn a chosen org into "not selected" behind anyone's back.
+            raise BuzzAPIException(
+                errors.VALIDATION_ERROR,
+                f"{drafted} acceptance(s) are drafted but not sent. Send decisions (or change"
+                " them) before wrapping up.",
+                status_code=409,
+            )
+        now = datetime.now(timezone.utc)
+        drop.wrapped_at = now
+        not_selected = list(
+            await db.scalars(
+                select(DropApplication).where(
+                    DropApplication.drop_id == drop.id, DropApplication.decision_sent_at.is_(None)
+                )
+            )
+        )
+        for application in not_selected:
+            application.decision = ApplicationDecision.DENIED.value
+            application.allocated_units = None
+            application.decision_at = now
+            application.decision_sent_at = now
+        note = f"wrapped up; {len(not_selected)} not selected" if not_selected else "wrapped up"
+        db.add(DropTrackerEvent(drop_id=drop.id, stage="wrapped", note=note))
+        await db.flush()
+        await notify_wrapped(db, drop, not_selected)
     stage = await drop_stage(db, drop)
     return {"drop_id": drop.id, "stage": stage}
 
@@ -935,6 +969,7 @@ async def cancel_drop(db: AsyncSession, drop_id: UUID, *, confirm: str) -> dict[
 
     Off the feed and frozen: no new seats, decisions, shipments or links, and
     metric sync stops. Seats, shipments and posts stay for the brand report.
+    Orgs still in the running and the brand are emailed once.
     """
 
     drop = await lock_drop(db, drop_id)
@@ -951,6 +986,8 @@ async def cancel_drop(db: AsyncSession, drop_id: UUID, *, confirm: str) -> dict[
         )
     drop.canceled_at = datetime.now(timezone.utc)
     db.add(DropTrackerEvent(drop_id=drop.id, stage=DropStage.CANCELED.value, note="canceled"))
+    await db.flush()
+    await notify_canceled(db, drop)
     return {"drop_id": drop.id, "stage": await drop_stage(db, drop)}
 
 

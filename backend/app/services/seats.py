@@ -2,7 +2,7 @@
 
 Replaces the one-shot drop-wide finalize. Each seat carries its own decision
 (``applied`` = undecided, ``accepted``, ``denied``); nothing reaches the org
-until ``send_decisions`` stamps ``decision_sent_at`` (and emails denials).
+until ``send_decisions`` stamps ``decision_sent_at`` and emails each org.
 Sending is repeatable, so a brand can accept the first orgs now and the rest
 later; undecided seats simply wait.
 
@@ -22,7 +22,6 @@ A canceled drop takes no decisions; BUZZ can still end a seat on it.
 
 from __future__ import annotations
 
-import logging
 from typing import Literal
 
 from sqlalchemy import func, select
@@ -32,17 +31,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
-from app.models.brand import Brand
 from app.models.drop import Drop
 from app.models.enums import ApplicationDecision
-from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
-from app.models.user import User
-from app.services.email import (
-    KIND_APPLICATION_DENIED,
-    build_idempotency_key,
-    send_application_denied_email,
-)
+from app.services.drop_notices import notify_decisions
 from app.services.lifecycle import (
     ENDED_DECISIONS,
     apply_window_closed,
@@ -50,8 +42,6 @@ from app.services.lifecycle import (
     reject_if_canceled,
 )
 from app.timeutils import utcnow
-
-logger = logging.getLogger(__name__)
 
 Actor = Literal["brand", "admin"]
 
@@ -227,8 +217,8 @@ async def end_seat(
 async def send_decisions(db: AsyncSession, drop: Drop, *, actor: Actor) -> dict[str, int]:
     """Send every decided, unsent seat. *drop* must already be locked.
 
-    Denied orgs get the denial email (their only channel). Accepted orgs see
-    the campaign in My Campaigns from now on.
+    Each org gets its email: good news for an acceptance, "not selected" for a
+    denial. Accepted orgs see the campaign in My Campaigns from now on.
     """
 
     reject_if_canceled(drop)
@@ -260,29 +250,5 @@ async def send_decisions(db: AsyncSession, drop: Drop, *, actor: Actor) -> dict[
         )
     await db.flush()
 
-    if denied:
-        await _email_denials(db, drop, denied)
+    await notify_decisions(db, drop, pending)
     return {"accepted_count": accepted, "denied_count": len(denied)}
-
-
-async def _email_denials(db: AsyncSession, drop: Drop, denied: list[DropApplication]) -> None:
-    brand = await db.get(Brand, drop.brand_id)
-    brand_name = brand.brand_name if brand is not None else ""
-    app_by_org = {a.org_id: a for a in denied}
-    contacts = await db.execute(
-        select(User.edu_email, Organization.org_name, Organization.id)
-        .join(User, User.id == Organization.user_id)
-        .where(Organization.id.in_(list(app_by_org)))
-    )
-    for edu_email, org_name, org_id in contacts.all():
-        if not edu_email:
-            continue
-        ok = await send_application_denied_email(
-            edu_email,
-            org_name=org_name,
-            drop_title=drop.title,
-            brand_name=brand_name,
-            idempotency_key=build_idempotency_key(KIND_APPLICATION_DENIED, app_by_org[org_id].id),
-        )
-        if not ok:
-            logger.warning("application-denied email failed: drop_id=%s org_id=%s", drop.id, org_id)
