@@ -29,7 +29,7 @@ import { siteIdentity } from "../../data/siteIdentity";
 import PageShell from "../../components/site/PageShell";
 import { Card, CardHeader } from "../../components/ui/Card";
 import { Chip } from "../../components/ui/Chip";
-import { Modal } from "../../components/ui/Modal";
+import { Modal, ModalActions } from "../../components/ui/Modal";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { quietLinkClass } from "../../components/ui/navItem";
 import { GAP, STACK, TEXT } from "../../theme/tokens";
@@ -54,7 +54,9 @@ function ReadOnlyRow({
     <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
       <div className="min-w-0">
         <p className="text-xs text-quiet">{label}</p>
-        <p className={cn(TEXT.body, "mt-1 break-words text-primary")}>{value}</p>
+        <p className={cn(TEXT.body, "mt-1 break-words text-primary")}>
+          {value}
+        </p>
       </div>
       {action}
     </div>
@@ -112,7 +114,11 @@ export default function BrandSettingsPage() {
 
   const submitHandleChange = (event: FormEvent) => {
     event.preventDefault();
-    if (submitIg.isPending || !requestedHandle.trim() || reason.trim().length < 10) {
+    if (
+      submitIg.isPending ||
+      !requestedHandle.trim() ||
+      reason.trim().length < 10
+    ) {
       return;
     }
     setIgError(null);
@@ -128,7 +134,9 @@ export default function BrandSettingsPage() {
           mapped.fields.requestedHandle ??
             mapped.fields.reason ??
             mapped.banner ??
-            (err instanceof ApiError ? err.message : "Could not submit the request."),
+            (err instanceof ApiError
+              ? err.message
+              : "Could not submit the request."),
         );
       });
   };
@@ -229,7 +237,9 @@ export default function BrandSettingsPage() {
                 {atHandle(pending.currentHandle)} until an admin approves it.
               </Notice>
             ) : null}
-            {nameMapped?.banner ? <ErrorBanner>{nameMapped.banner}</ErrorBanner> : null}
+            {nameMapped?.banner ? (
+              <ErrorBanner>{nameMapped.banner}</ErrorBanner>
+            ) : null}
             {nameSaved ? (
               <SuccessBanner>
                 <span data-testid="brand-name-saved">Brand name saved.</span>
@@ -252,7 +262,9 @@ export default function BrandSettingsPage() {
           <ReadOnlyRow
             label="Company email"
             value={
-              <span data-testid="brand-email">{profile.data?.companyEmail ?? "—"}</span>
+              <span data-testid="brand-email">
+                {profile.data?.companyEmail ?? "—"}
+              </span>
             }
             action={
               <a
@@ -270,7 +282,9 @@ export default function BrandSettingsPage() {
             className={cn("border-t border-line pt-5", STACK.default)}
             onSubmit={savePassword}
           >
-            <h4 className={cn(TEXT.body, "font-medium text-primary")}>Change password</h4>
+            <h4 className={cn(TEXT.body, "font-medium text-primary")}>
+              Change password
+            </h4>
             <div className={cn("grid grid-cols-1 sm:grid-cols-2", GAP.default)}>
               <TextField
                 id="brand-current-password"
@@ -316,7 +330,9 @@ export default function BrandSettingsPage() {
             ) : null}
             {passwordSaved ? (
               <SuccessBanner>
-                <span data-testid="brand-password-saved">Password updated.</span>
+                <span data-testid="brand-password-saved">
+                  Password updated.
+                </span>
               </SuccessBanner>
             ) : null}
             <div className="flex justify-end">
@@ -344,39 +360,37 @@ export default function BrandSettingsPage() {
           description={`BUZZ approves handle changes before they take effect. ${atHandle(
             profile.data?.instagramHandle,
           )} stays in use until then.`}
-          size="wide"
         >
-          <form className={STACK.default} onSubmit={submitHandleChange}>
-            {igError ? <ErrorBanner>{igError}</ErrorBanner> : null}
-            <ReadOnlyRow
-              label="Current handle"
-              value={atHandle(profile.data?.instagramHandle)}
-            />
-            <TextField
-              id="brand-ig-requested"
-              label="New handle"
-              name="requestedHandle"
-              value={requestedHandle}
-              onChange={(event) => setRequestedHandle(event.target.value)}
-              autoComplete="off"
-              placeholder="e.g. @yourbrand_new"
-              data-testid="brand-ig-requested"
-            />
-            <TextArea
-              id="brand-ig-reason"
-              label="Why"
-              name="reason"
-              rows={3}
-              placeholder="e.g. We moved our US account to a new handle"
-              hint="At least 10 characters."
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              data-testid="brand-ig-reason"
-            />
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={closeIg}>
-                Cancel
-              </Button>
+          <form className="flex flex-col gap-6" onSubmit={submitHandleChange}>
+            <div className="flex flex-col gap-4">
+              {igError ? <ErrorBanner>{igError}</ErrorBanner> : null}
+              <ReadOnlyRow
+                label="Current handle"
+                value={atHandle(profile.data?.instagramHandle)}
+              />
+              <TextField
+                id="brand-ig-requested"
+                label="New handle"
+                name="requestedHandle"
+                value={requestedHandle}
+                onChange={(event) => setRequestedHandle(event.target.value)}
+                autoComplete="off"
+                placeholder="e.g. @yourbrand_new"
+                data-testid="brand-ig-requested"
+              />
+              <TextArea
+                id="brand-ig-reason"
+                label="Why"
+                name="reason"
+                rows={3}
+                placeholder="e.g. We moved our US account to a new handle"
+                hint="At least 10 characters."
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                data-testid="brand-ig-reason"
+              />
+            </div>
+            <ModalActions onCancel={closeIg}>
               <Button
                 type="submit"
                 disabled={
@@ -388,7 +402,7 @@ export default function BrandSettingsPage() {
               >
                 {submitIg.isPending ? "Submitting…" : "Submit request"}
               </Button>
-            </div>
+            </ModalActions>
           </form>
         </Modal>
       ) : null}
