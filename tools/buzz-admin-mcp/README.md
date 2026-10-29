@@ -6,7 +6,7 @@ them ([`AGENTS.md`](../../AGENTS.md)).
 
 ## Table / column policy
 
-## Locked (2026-09-13)
+### Locked (2026-09-13)
 
 | Fork | Lock |
 | ---- | ---- |
