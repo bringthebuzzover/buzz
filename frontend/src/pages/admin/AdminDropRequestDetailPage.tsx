@@ -19,7 +19,9 @@ import {
 import { ApiError } from "../../api/client";
 import {
   ActionButton,
+  AdminBackLink,
   ErrorNote,
+  entityLinkClass,
   Field,
   FieldGrid,
   PageHeading,
@@ -34,12 +36,13 @@ import {
 } from "../../components/admin/labels";
 import {
   DateTimeField,
-  Select,
+  Notice,
   SuccessBanner,
   TextArea,
   TextField,
 } from "../../components/forms/controls";
-import { STACK, TEXT, TONE } from "../../theme/tokens";
+import { Toggle } from "../../components/ui/Toggle";
+import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 function isValidHeroImage(url: string): boolean {
@@ -147,7 +150,7 @@ function EditorSection({
   children: ReactNode;
 }) {
   return (
-    <section className={cn(STACK.tight, "border-t border-buzz-lineMid px-4 py-4")}>
+    <section className={cn(STACK.tight, "border-t border-line px-4 py-4")}>
       <div>
         <h3 className={TEXT.h3}>{title}</h3>
         {description ? (
@@ -202,7 +205,7 @@ function TicketPanel({ ticket }: { ticket: AdminDropRequest }) {
         <Field label="Brand">
           <Link
             to={`/admin/brands/${ticket.brandId}`}
-            className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
+            className={entityLinkClass}
           >
             {ticket.brandName}
           </Link>
@@ -223,59 +226,59 @@ function TicketPanel({ ticket }: { ticket: AdminDropRequest }) {
         <Field label="Created">{formatDateTime(ticket.createdAt)}</Field>
         <Field label="Updated">{formatDateTime(ticket.updatedAt)}</Field>
       </FieldGrid>
-      <div className="space-y-3 border-t border-buzz-lineMid px-4 py-4">
+      <div className="space-y-3 border-t border-line px-4 py-4">
         <div>
-          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Title</p>
-          <p className="text-sm font-medium text-buzz-ink">{display(ticket.title)}</p>
+          <p className={cn(TEXT.micro, "text-muted")}>Title</p>
+          <p className="text-sm font-medium text-primary">{display(ticket.title)}</p>
         </div>
         <div>
-          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Tell us about the campaign</p>
-          <p className="whitespace-pre-wrap text-sm font-medium text-buzz-ink">
+          <p className={cn(TEXT.micro, "text-muted")}>Tell us about the campaign</p>
+          <p className="whitespace-pre-wrap text-sm font-medium text-primary">
             {ticket.message}
           </p>
         </div>
         <div>
-          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>What you're sending</p>
-          <p className="whitespace-pre-wrap text-sm font-medium text-buzz-ink">
+          <p className={cn(TEXT.micro, "text-muted")}>What you're sending</p>
+          <p className="whitespace-pre-wrap text-sm font-medium text-primary">
             {display(ticket.product)}
           </p>
         </div>
         <div>
-          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Campuses or area</p>
-          <p className="text-sm font-medium text-buzz-ink">{display(ticket.location)}</p>
+          <p className={cn(TEXT.micro, "text-muted")}>Campuses or area</p>
+          <p className="text-sm font-medium text-primary">{display(ticket.location)}</p>
         </div>
         <div>
-          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>When do you want this live?</p>
-          <p className="text-sm font-medium text-buzz-ink">
+          <p className={cn(TEXT.micro, "text-muted")}>When do you want this live?</p>
+          <p className="text-sm font-medium text-primary">
             {formatTargetDate(ticket.targetDate)}
           </p>
         </div>
         <div>
-          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Organizations</p>
-          <p className="text-sm font-medium text-buzz-ink">{display(ticket.orgCount)}</p>
+          <p className={cn(TEXT.micro, "text-muted")}>Organizations</p>
+          <p className="text-sm font-medium text-primary">{display(ticket.orgCount)}</p>
         </div>
         <div>
-          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Units per organization</p>
-          <p className="text-sm font-medium text-buzz-ink">{display(ticket.unitsPerOrg)}</p>
+          <p className={cn(TEXT.micro, "text-muted")}>Units per organization</p>
+          <p className="text-sm font-medium text-primary">{display(ticket.unitsPerOrg)}</p>
         </div>
         <div>
-          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Campaign hashtag</p>
-          <p className="text-sm font-medium text-buzz-ink">
+          <p className={cn(TEXT.micro, "text-muted")}>Campaign hashtag</p>
+          <p className="text-sm font-medium text-primary">
             {display(ticket.campaignHashtag)}
           </p>
         </div>
         <div>
-          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Notes</p>
-          <p className="whitespace-pre-wrap text-sm font-medium text-buzz-inkMuted">
+          <p className={cn(TEXT.micro, "text-muted")}>Notes</p>
+          <p className="whitespace-pre-wrap text-sm font-medium text-muted">
             {ticket.notes?.trim() ? ticket.notes : "—"}
           </p>
         </div>
         {ticket.convertedDropId && (
-          <p className="text-xs font-medium text-buzz-inkMuted">
+          <p className="text-xs font-medium text-muted">
             Linked drop:{" "}
             <Link
               to={`/admin/drops/${ticket.convertedDropId}`}
-              className="font-bold text-buzz-coral hover:underline"
+              className="text-accent hover:underline"
             >
               open drop detail
             </Link>
@@ -299,13 +302,13 @@ function PublishedDropSummary({ drop }: { drop: AdminDropDetail }) {
           {drop.publishedAt != null ? formatDate(drop.publishedAt) : "—"}
         </Field>
       </FieldGrid>
-      <div className="space-y-3 border-t border-buzz-lineMid px-4 py-4">
-        <p className="whitespace-pre-wrap text-sm font-medium text-buzz-ink">
+      <div className="space-y-3 border-t border-line px-4 py-4">
+        <p className="whitespace-pre-wrap text-sm font-medium text-primary">
           {drop.description}
         </p>
         <Link
           to={`/admin/drops/${drop.id}?tab=config`}
-          className="inline-block text-sm font-bold text-buzz-coral hover:underline"
+          className="inline-block text-sm text-accent hover:underline"
         >
           Open drop config
         </Link>
@@ -530,7 +533,7 @@ function DraftEditor({
             <img
               src={form.image.trim()}
               alt=""
-              className="max-h-40 rounded-buzzBoard border border-buzz-lineMid object-cover"
+              className="max-h-40 rounded-buzzBoard border border-line object-cover"
             />
           ) : null}
         </EditorSection>
@@ -609,22 +612,22 @@ function DraftEditor({
             placeholder="optional"
             onChange={(e) => setField("hashtag", e.target.value)}
           />
-          <Select
-            id="draft-brand-can-edit"
-            data-testid="draft-brand-can-edit"
-            label="Who can edit"
-            size="compact"
-            value={form.brandCanEditCreative ? "brand" : "admin"}
-            disabled={busy}
-            onChange={(e) =>
-              setField("brandCanEditCreative", e.target.value === "brand")
-            }
-          >
-            <option value="admin">Admin only</option>
-            <option value="brand">
-              Brand can edit title, description, and image
-            </option>
-          </Select>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-primary">Brand can edit details</p>
+              <p className="mt-1 text-xs text-quiet">
+                Lets the brand change title, description and image. Dates, capacity
+                and publishing stay with BUZZ.
+              </p>
+            </div>
+            <Toggle
+              data-testid="draft-brand-can-edit"
+              checked={form.brandCanEditCreative}
+              disabled={busy}
+              onChange={(next) => setField("brandCanEditCreative", next)}
+              label="Brand can edit details"
+            />
+          </div>
         </EditorSection>
 
         <EditorSection
@@ -633,7 +636,7 @@ function DraftEditor({
         >
           <Pill tone="warn">Draft</Pill>
           {!ready && (
-            <p className="text-xs font-medium text-buzz-inkMuted">
+            <p className="text-xs font-medium text-muted">
               Fill title, description, https image, location, capacity, and
               apply window to enable Save and Publish.
             </p>
@@ -645,8 +648,8 @@ function DraftEditor({
   return (
     <div>
       <PageHeading
-        title={`Request · ${ticket.brandName}`}
-        subtitle="Write the drop on the left. The brand request stays on the right."
+        title={`Request · ${ticket.title?.trim() || ticket.brandName}`}
+        subtitle={`${ticket.brandName} · request received ${formatDate(ticket.createdAt)}. The first Save creates the drop, later saves update it.`}
         actions={headerActions}
       />
 
@@ -656,19 +659,11 @@ function DraftEditor({
       {linkedError && <ErrorNote>Could not load the linked drop.</ErrorNote>}
 
       {!published && (
-        <div
-          className={cn(
-            "mb-6 flex flex-wrap items-center justify-between gap-3 rounded-buzzBoard border px-4 py-3",
-            TONE.warn,
-          )}
-        >
-          <div>
-            <p className="text-sm font-semibold">Start with Prefill</p>
-            <p className="mt-0.5 text-xs font-medium">
-              Copies title, location, capacity, total units, and hashtag.
-              Nothing is saved until you save the draft.
-            </p>
-          </div>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <Notice>
+            Start with Prefill from request: it copies title, location, capacity,
+            total units, and the hashtag. Nothing is saved until you save the draft.
+          </Notice>
           <ActionButton
             testId="prefill-from-request"
             disabled={busy}
@@ -698,12 +693,7 @@ export default function AdminDropRequestDetailPage() {
 
   return (
     <div>
-      <Link
-        to="/admin/requests"
-        className="mb-4 inline-block text-xs font-bold text-buzz-coral hover:underline"
-      >
-        &larr; All requests
-      </Link>
+      <AdminBackLink to="/admin/requests" />
 
       <QueryState
         isPending={ticket.isPending}
