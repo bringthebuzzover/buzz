@@ -15,7 +15,7 @@ from datetime import datetime
 
 from pydantic import field_serializer
 
-from app.models.enums import DropStage
+from app.models.enums import DropStage, SeatProgress
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 from app.schemas.shipments import ShipmentItem
 
@@ -32,6 +32,7 @@ class CampaignListItem(CamelModel):
     applied_at: datetime
     decision_at: datetime | None
     delivered_at: datetime | None
+    progress: SeatProgress | None
     title: str
     brand_name: str
     stage: DropStage
@@ -60,6 +61,7 @@ class CampaignDetailResponse(CamelModel):
     applied_at: datetime
     decision_at: datetime | None
     delivered_at: datetime | None
+    progress: SeatProgress | None
     title: str
     description: str | None
     brand_name: str

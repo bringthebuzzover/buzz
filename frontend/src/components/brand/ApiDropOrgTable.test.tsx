@@ -60,6 +60,35 @@ const linkedPost: BrandDropPost = {
 };
 
 describe("ApiDropOrgTable", () => {
+  it("shows each live seat's progress and keeps ended seats that took part", () => {
+    const live = { ...erased, accountErased: false };
+    const html = renderToString(
+      <ApiDropOrgTable
+        applicants={[
+          { ...live, id: "a", orgName: "Shipped Club", progress: "shipped" },
+          { ...live, id: "b", orgName: "Posting Club", progress: "posted" },
+          {
+            ...live,
+            id: "c",
+            orgName: "Left Club",
+            decision: "withdrew",
+            shipments: [{ id: "s", trackingNumber: "1Z", carrier: "ups", trackUrl: null }],
+          },
+          { ...live, id: "d", orgName: "Gone Early", decision: "withdrew" },
+          { ...live, id: "e", orgName: "Pulled Club", decision: "removed", attributedPostCount: 1 },
+          { ...live, id: "f", orgName: "Drafted Club", decisionSentAt: null },
+        ]}
+      />,
+    );
+    expect(html).toContain("Shipped</span>");
+    expect(html).toContain("Posted</span>");
+    expect(html).toContain("Left Club");
+    expect(html).toContain("Withdrew");
+    expect(html).toContain("Removed by BUZZ");
+    expect(html).not.toContain("Gone Early"); // withdrew before taking part
+    expect(html).not.toContain("Drafted Club"); // acceptance not sent yet
+  });
+
   it("shows an erased org as a frozen anonymized participant", () => {
     const html = renderToString(
       <ApiDropOrgTable applicants={[erased]} />,

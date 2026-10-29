@@ -35,7 +35,26 @@ export const DROP_STAGE_LABEL: Record<DropStage, string> = {
   canceled: "Canceled",
 };
 
+/** What a brand sees on its own unpublished drop (a preview, not a campaign). */
+export const DRAFT_NOT_PUBLISHED = "Draft — not published";
+
 /** Label for a stage, tolerating legacy names on old tracker events. */
 export function dropStageLabel(stage: string): string {
   return DROP_STAGE_LABEL[stage as DropStage] ?? stage.replace(/_/g, " ");
 }
+
+/**
+ * Per-seat progress, computed by the API (`lifecycle.seat_progress`): the
+ * furthest fact a live seat reached. Never a gate.
+ */
+export type SeatProgress = components["schemas"]["SeatProgress"];
+
+export const SEAT_PROGRESS_LABEL: Record<SeatProgress, string> = {
+  accepted: "Accepted",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  posted: "Posted",
+};
+
+/** A seat ends by withdrawal or removal (final at once; mirrors the backend). */
+export const ENDED_DECISIONS: ReadonlySet<string> = new Set(["withdrew", "removed"]);

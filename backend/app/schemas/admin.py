@@ -20,7 +20,7 @@ from pydantic import (
 )
 from pydantic.alias_generators import to_camel
 
-from app.models.enums import DropStage
+from app.models.enums import DropStage, SeatProgress
 from app.schemas.auth import UserResponse
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 from app.schemas.shipments import ShipmentItem
@@ -241,9 +241,17 @@ class AdminAttentionItem(CamelModel):
         return to_epoch_ms(value)
 
 
+class AdminStageCount(CamelModel):
+    """Visible drops in one computed stage (Overview tiles)."""
+
+    stage: DropStage
+    count: int
+
+
 class AdminOverviewResponse(CamelModel):
     generated_at: datetime
     queues: list[AdminQueueItem]
+    stages: list[AdminStageCount] = []
     warnings: list[AdminWarningItem]
     items: list[AdminAttentionItem] = []
 
@@ -587,6 +595,7 @@ class AdminApplicantItem(CamelModel):
     added_by: Literal["apply", "late_add"] = "apply"
     delivered_at: datetime | None = None
     end_reason: str | None = None
+    progress: SeatProgress | None = None
 
     @field_serializer("applied_at")
     def _epoch_required(self, value: datetime) -> int:

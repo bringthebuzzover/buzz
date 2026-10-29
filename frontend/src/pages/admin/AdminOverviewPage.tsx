@@ -28,6 +28,7 @@ import {
   humanizeKey,
 } from "../../components/admin/labels";
 import { TEXT } from "../../theme/tokens";
+import { dropStageLabel, type DropStage } from "../../utils/dropStage";
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
@@ -81,6 +82,31 @@ function QueueCard({
   );
 }
 
+/** Drops per computed stage (hidden excluded); each tile opens the filtered list. */
+function StageTiles({ stages }: { stages: { stage: DropStage; count: number }[] }) {
+  return (
+    <div className="mb-8" data-testid="stage-tiles">
+      <p className={cn(TEXT.micro, "mb-3 text-quiet")}>Drops by stage</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+        {stages.map(({ stage, count }) => (
+          <Link
+            key={stage}
+            to={`/admin/drops?stage=${stage}`}
+            data-testid={`stage-tile-${stage}`}
+            className={cn(
+              "flex flex-col gap-1 rounded-buzzBoard border border-line bg-surface-tile p-4 transition hover:border-accent",
+              focusRingClass,
+            )}
+          >
+            <span className={cn(TEXT.h3, "tabular-nums text-primary")}>{count}</span>
+            <span className="text-xs text-muted">{dropStageLabel(stage)}</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminOverviewPage() {
   const overview = useAdminOverview();
 
@@ -109,6 +135,8 @@ export default function AdminOverviewPage() {
               />
             ))}
           </div>
+
+          <StageTiles stages={overview.data.stages} />
 
           <Panel
             title="Needs a look"

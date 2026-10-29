@@ -14,8 +14,10 @@ import {
   useBrandDropRequests,
   useBrandDrops,
   useEngagementSeries,
+  type BrandDropItem,
   type BrandDropRequest,
 } from "../../api/hooks/useBrandHooks";
+import DropStageBadge from "../../components/brand/DropStageBadge";
 import type { BrandAggregate, EngagementPoint } from "../../api/hooks/useBrandHooks";
 import PageShell from "../../components/site/PageShell";
 import { LinkButton, SuccessBanner } from "../../components/forms/controls";
@@ -148,6 +150,32 @@ function RequestsPanel({ tickets }: { tickets: BrandDropRequest[] }) {
   );
 }
 
+/** Drops BUZZ is still building. Orgs can't see them yet. */
+function DraftsPanel({ drafts }: { drafts: BrandDropItem[] }) {
+  return (
+    <Card kind="panel" pad="card" data-testid="brand-drafts">
+      <CardHeader
+        title="Drafts"
+        description="BUZZ is building these. Orgs can't see them until they're published."
+        className="mb-5"
+      />
+      <ul className="flex flex-col gap-3">
+        {drafts.map((d) => (
+          <li
+            key={d.id}
+            className={cn(SURFACE.inset, "flex flex-wrap items-center gap-3 p-4")}
+          >
+            <Link to={`/brand/drops/${d.id}`} className={quietLinkClass}>
+              {d.title}
+            </Link>
+            <DropStageBadge stage={d.stage} />
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 /** Map backend aggregate shape to what components expect. */
 function mapAggregate(a: BrandAggregate) {
   return {
@@ -205,7 +233,10 @@ function ApiDashboard() {
     );
   }
 
-  const items = drops ?? [];
+  // Drafts are previews: listed on their own, never in totals or Compare.
+  const all: BrandDropItem[] = drops ?? [];
+  const items = all.filter((d) => d.stage !== "draft");
+  const drafts = all.filter((d) => d.stage === "draft");
   const tickets = requests ?? [];
   const agg = aggregate ?? {
     totalDrops: 0,
@@ -246,6 +277,7 @@ function ApiDashboard() {
           <ApiCompareDropsTable drops={items} />
         </>
       )}
+      {drafts.length > 0 ? <DraftsPanel drafts={drafts} /> : null}
       <RequestsPanel tickets={tickets} />
     </PageShell>
   );

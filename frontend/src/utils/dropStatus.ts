@@ -15,6 +15,7 @@ import type {
   DropClosedReason,
   DropFeedStatus,
 } from "../types/drop";
+import { dropStageLabel, type DropStage } from "./dropStage";
 
 /** Whether the drop has filled all its capacity. */
 export function isDropFull(drop: DropCardData, acceptedCount: number): boolean {
@@ -61,7 +62,22 @@ export function getDropClosedReason(
 
 /** Display copy bundle for a closed reason. */
 export const CLOSED_REASON_COPY: Record<DropClosedReason, string> = {
-  apply_window_ended: "Closed — apply window ended",
-  spots_filled: "Closed — all spots filled",
-  manual: "Closed",
+  apply_window_ended: "Applications closed",
+  spots_filled: "All spots filled",
+  manual: "Applications closed",
 };
+
+/**
+ * Chip for a drop no longer taking applications. "Closed" is never a stage
+ * (D-16): it reads "Applications closed" until seats go live, then the stage.
+ */
+export function closedChipLabel(stage: DropStage): string {
+  if (stage === "live") return "In progress";
+  if (stage === "wrapped" || stage === "canceled") return dropStageLabel(stage);
+  return "Applications closed";
+}
+
+/** "Nov 10": the day a brand-facing lifecycle date falls on. */
+export function shortDate(epochMs: number): string {
+  return new Date(epochMs).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}

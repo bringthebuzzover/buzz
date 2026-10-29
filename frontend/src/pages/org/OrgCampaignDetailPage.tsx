@@ -17,7 +17,8 @@ import {
 import { Button, ErrorBanner } from "../../components/forms/controls";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { ApiError } from "../../api/errors";
-import { deriveOrgCampaignStatus } from "../../utils/orgCampaignStatus";
+import { SEATED_STATUSES, deriveOrgCampaignStatus } from "../../utils/orgCampaignStatus";
+import type { SeatProgress } from "../../utils/dropStage";
 import PageShell from "../../components/site/PageShell";
 import { Card, CardHeader, StatCard } from "../../components/ui/Card";
 import { BackLink, PageHeader } from "../../components/ui/PageHeader";
@@ -135,6 +136,24 @@ function DeliveredControl({ detail }: { detail: CampaignDetail }) {
 
 const backLink = <BackLink to="/org/campaigns">Back to My Campaigns</BackLink>;
 
+/** What the org reads at each step of its own seat (plan §3.3). */
+const SEAT_COPY: Record<SeatProgress, { title: string; description: string }> = {
+  accepted: { title: "Accepted", description: "Accepted — awaiting shipping." },
+  shipped: {
+    title: "On the way",
+    description:
+      "You are accepted! Your shipment is on the way. Once it arrives, mark it received and link a post or reel below.",
+  },
+  delivered: {
+    title: "Delivered",
+    description: "Your product arrived. Link a post or reel below.",
+  },
+  posted: {
+    title: "Posted",
+    description: "Your posts are linked. Metrics update below; link more any time.",
+  },
+};
+
 function ApiCampaignDetail() {
   const { campaignId } = useParams<{ campaignId: string }>();
   const { data: detail, isLoading, error } = useCampaignDetail(campaignId);
@@ -179,9 +198,11 @@ function ApiCampaignDetail() {
   };
   const shipments = detail.shipments ?? [];
   const onTheWay = shipments.length > 0;
-  const seated = status === "accepted" || status === "active";
+  const seated = SEATED_STATUSES.includes(status);
   // Before anything ships the org may leave on its own; after, BUZZ ends the seat.
-  const canWithdraw = status === "applied" || (seated && !onTheWay);
+  const canWithdraw =
+    status === "applied" || status === "under_review" || (seated && !onTheWay);
+  const seatCopy = seated ? SEAT_COPY[status as SeatProgress] : null;
 
   return (
     <PageShell width="wide" className="flex flex-col gap-10">
@@ -213,7 +234,7 @@ function ApiCampaignDetail() {
         </Card>
       ) : null}
 
-      {status === "applied" ? (
+      {status === "applied" || status === "under_review" ? (
         <Card kind="panel" pad="card">
           <CardHeader
             className="mb-5"
@@ -228,48 +249,30 @@ function ApiCampaignDetail() {
         </Card>
       ) : null}
 
-      {status === "accepted" ? (
+      {seatCopy || status === "wrapped" ? (
         <>
-          <Card kind="panel" pad="card">
-            <CardHeader
-              className={shipments.length > 0 ? "mb-5" : "mb-0"}
-              title={onTheWay ? "Awaiting product" : "Accepted"}
-              description={
-                onTheWay
-                  ? "You are accepted! Your shipment is on the way. Once it arrives, link a post or reel below."
-                  : "Accepted — awaiting shipping."
-              }
-            />
-            {shipments.length > 0 ? (
-              <>
-                <p className="mb-3 text-xs text-quiet">Tracking</p>
-                <ShipmentList shipments={shipments} testId="org-campaign-shipments" />
-                <div className="mt-5">
-                  <DeliveredControl detail={detail} />
-                </div>
-              </>
-            ) : null}
-          </Card>
-          <CampaignMetrics agg={agg} />
-          <ApiPostSelector applicationId={detail.id} readOnly={!detail.linksOpen} />
-        </>
-      ) : null}
-
-      {status === "active" || status === "finished" ? (
-        <>
-          {shipments.length > 0 ? (
+          {seatCopy || onTheWay ? (
             <Card kind="panel" pad="card">
-              <CardHeader className="mb-5" title="Shipments" />
-              <ShipmentList shipments={shipments} testId="org-campaign-shipments" />
-              {status === "active" ? (
-                <div className="mt-5">
-                  <DeliveredControl detail={detail} />
-                </div>
+              <CardHeader
+                className={onTheWay ? "mb-5" : "mb-0"}
+                title={seatCopy?.title ?? "Shipments"}
+                description={seatCopy?.description}
+              />
+              {onTheWay ? (
+                <>
+                  <p className="mb-3 text-xs text-quiet">Tracking</p>
+                  <ShipmentList shipments={shipments} testId="org-campaign-shipments" />
+                  {seated ? (
+                    <div className="mt-5">
+                      <DeliveredControl detail={detail} />
+                    </div>
+                  ) : null}
+                </>
               ) : null}
             </Card>
           ) : null}
           <CampaignMetrics agg={agg} />
-          {status === "finished" ? (
+          {status === "wrapped" ? (
             <Card kind="panel" pad="card">
               <CardHeader
                 className="mb-0"

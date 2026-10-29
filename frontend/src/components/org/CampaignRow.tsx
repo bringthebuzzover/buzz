@@ -23,12 +23,18 @@ type CampaignRowProps = {
   shipments?: { trackingNumber: string }[];
 };
 
-/** Pen badges: Applied is the yellow wash, Accepted paper with a dot, Finished and Canceled quiet. */
+/**
+ * Pen badges: waiting on a decision is the yellow wash, a seat on its way is
+ * the yellow outline, Posted is the paper fill, Wrapped and Canceled quiet.
+ */
 const STATUS_TONE: Record<OrgCampaignStatus, Tone> = {
-  active: "success",
-  accepted: "neutral",
   applied: "warn",
-  finished: "neutral",
+  under_review: "warn",
+  accepted: "neutral",
+  shipped: "pending",
+  delivered: "pending",
+  posted: "success",
+  wrapped: "neutral",
   canceled: "neutral",
 };
 
@@ -36,7 +42,7 @@ export function CampaignStatusBadge({ status }: { status: OrgCampaignStatus }) {
   return (
     <Chip
       tone={STATUS_TONE[status]}
-      dot={status !== "finished" && status !== "canceled"}
+      dot={status !== "wrapped" && status !== "canceled"}
       className={status === "accepted" ? "text-primary" : undefined}
     >
       {ORG_CAMPAIGN_STATUS_LABELS[status]}
