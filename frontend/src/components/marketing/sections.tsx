@@ -10,6 +10,7 @@ import { focusRingClass } from "../../theme/controls";
 import { siteIdentity } from "../../data/siteIdentity";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
 import { cn } from "../../theme/cn";
+import { footerLinkClass, SOCIAL_LINKS } from "../site/footerLinks";
 import { useReducedMotion } from "./useReducedMotion";
 
 const publicUrl = process.env.PUBLIC_URL ?? "";
@@ -408,10 +409,8 @@ export function GoalChips() {
   );
 }
 
-const footerLink = cn("text-sm text-muted hover:text-primary", focusRingClass);
-
 export function MarketingFooter() {
-  const { contact, social } = siteIdentity;
+  const { contact } = siteIdentity;
   return (
     <footer
       id="home-join"
@@ -465,18 +464,15 @@ export function MarketingFooter() {
         <div>
           <h3 className="mb-3 text-sm font-medium">Social</h3>
           <ul className="space-y-2">
+            {SOCIAL_LINKS.map(({ label, href }) => (
+              <li key={label}>
+                <a href={href} className={footerLinkClass}>
+                  {label}
+                </a>
+              </li>
+            ))}
             <li>
-              <a href={social.instagram.profileUrl} className={footerLink}>
-                Instagram
-              </a>
-            </li>
-            <li>
-              <a href={social.linkedin.companyUrl} className={footerLink}>
-                LinkedIn
-              </a>
-            </li>
-            <li>
-              <a href={`mailto:${contact.email}`} className={footerLink}>
+              <a href={`mailto:${contact.email}`} className={footerLinkClass}>
                 Email
               </a>
             </li>
@@ -513,7 +509,7 @@ function FooterCol({
       <ul className="space-y-2">
         {links.map(([to, label]) => (
           <li key={to}>
-            <Link to={to} className={footerLink}>
+            <Link to={to} className={footerLinkClass}>
               {label}
             </Link>
           </li>
