@@ -6,6 +6,7 @@ import { useAdminDropRequests } from "../../api/hooks/useAdminHooks";
 import {
   AdminTable,
   Cell,
+  entityLinkClass,
   FilterChips,
   PageHeading,
   Pill,
@@ -70,7 +71,7 @@ export default function AdminDropRequestsPage() {
                 <Cell>
                   <Link
                     to={`/admin/brands/${ticket.brandId}`}
-                    className="text-primary hover:text-accent"
+                    className={entityLinkClass}
                   >
                     {ticket.brandName}
                   </Link>

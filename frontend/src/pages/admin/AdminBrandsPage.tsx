@@ -23,6 +23,7 @@ import {
   ActionButton,
   AdminTable,
   Cell,
+  entityLinkClass,
   ErrorNote,
   FilterChips,
   PageHeading,
@@ -214,7 +215,7 @@ export default function AdminBrandsPage() {
               <Cell>
                 <Link
                   to={`/admin/brands/${row.id}`}
-                  className="block text-primary hover:text-accent"
+                  className={`block ${entityLinkClass}`}
                 >
                   {row.brandName}
                 </Link>

@@ -336,9 +336,8 @@ export default function AppRoot(): ReactElement {
         <Route path="drops" element={<AdminDropsPage />} />
         <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />
-        {/* Primitive gallery. PortalGuard keeps it admin-only in every build;
-            production used to omit the route, so signed-in admins hit the
-            public 404. */}
+        {/* Primitive gallery. The route stays admin-only in every build.
+            The sidebar link is development and staging only. */}
         <Route path="ui-kit" element={<UiKitPage />} />
         <Route path="*" element={<AdminNotFoundPage />} />
       </Route>

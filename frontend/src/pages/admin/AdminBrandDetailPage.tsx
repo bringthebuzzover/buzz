@@ -28,6 +28,7 @@ import {
   AdminBackLink,
   AdminTable,
   Cell,
+  entityLinkClass,
   ErrorNote,
   Field,
   FieldGrid,
@@ -446,7 +447,7 @@ export default function AdminBrandDetailPage() {
                     href={igProfileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:text-accent"
+                    className={entityLinkClass}
                   >
                     @{igHandle}
                   </a>
@@ -474,7 +475,7 @@ export default function AdminBrandDetailPage() {
                   <Cell>
                     <Link
                       to={`/admin/drops/${drop.id}`}
-                      className="text-primary hover:text-accent"
+                      className={entityLinkClass}
                     >
                       {drop.title}
                     </Link>

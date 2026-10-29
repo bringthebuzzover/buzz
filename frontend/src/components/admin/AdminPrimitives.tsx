@@ -150,7 +150,10 @@ export function Pill({
 }
 
 /** Row and detail links. Pen type is paper, hover yellow. */
-export const entityLinkClass = "text-primary hover:text-accent";
+export const entityLinkClass = cn(
+  "text-primary hover:text-accent",
+  focusRingClass,
+);
 
 /** Quiet text actions in a table row (View as, Open, Remove). */
 export const rowActionClass = cn(

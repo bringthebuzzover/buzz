@@ -21,6 +21,7 @@ import {
   ActionButton,
   AdminBackLink,
   ErrorNote,
+  entityLinkClass,
   Field,
   FieldGrid,
   PageHeading,
@@ -35,6 +36,7 @@ import {
 } from "../../components/admin/labels";
 import {
   DateTimeField,
+  Notice,
   SuccessBanner,
   TextArea,
   TextField,
@@ -203,7 +205,7 @@ function TicketPanel({ ticket }: { ticket: AdminDropRequest }) {
         <Field label="Brand">
           <Link
             to={`/admin/brands/${ticket.brandId}`}
-            className="text-primary hover:text-accent"
+            className={entityLinkClass}
           >
             {ticket.brandName}
           </Link>
@@ -658,10 +660,10 @@ function DraftEditor({
 
       {!published && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <SuccessBanner>
+          <Notice>
             Start with Prefill from request: it copies title, location, capacity,
             total units, and the hashtag. Nothing is saved until you save the draft.
-          </SuccessBanner>
+          </Notice>
           <ActionButton
             testId="prefill-from-request"
             disabled={busy}

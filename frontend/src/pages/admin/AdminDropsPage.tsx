@@ -8,7 +8,7 @@
  * repeated URL keys (OR within a dimension, AND across).
  */
 import { Link, useSearchParams } from "react-router-dom";
-import { SuccessBanner } from "../../components/forms/controls";
+import { Notice } from "../../components/forms/controls";
 import { useAdminDrops } from "../../api/hooks/useAdminHooks";
 import {
   AdminTable,
@@ -19,6 +19,7 @@ import {
   StagePill,
   QueryState,
   Row,
+  entityLinkClass,
   filterChipClass,
 } from "../../components/admin/AdminPrimitives";
 import {
@@ -152,13 +153,13 @@ export default function AdminDropsPage() {
       </div>
 
       <div className="mb-6">
-        <SuccessBanner>
+        <Notice>
           Intake tickets live under{" "}
           <Link to="/admin/requests" className="underline">
             Drop requests
           </Link>
           .
-        </SuccessBanner>
+        </Notice>
       </div>
 
       <QueryState
@@ -182,7 +183,7 @@ export default function AdminDropsPage() {
                 <Cell>
                   <Link
                     to={`/admin/drops/${drop.id}`}
-                    className="text-primary hover:text-accent"
+                    className={entityLinkClass}
                   >
                     {drop.title}
                   </Link>
@@ -190,7 +191,7 @@ export default function AdminDropsPage() {
                 <Cell>
                   <Link
                     to={`/admin/brands/${drop.brandId}`}
-                    className="text-primary hover:text-accent"
+                    className={entityLinkClass}
                   >
                     {drop.brandName}
                   </Link>
