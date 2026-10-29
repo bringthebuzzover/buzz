@@ -141,9 +141,13 @@ function ApiApplicantTable({
     );
   };
 
+  // Quiet paper falls just under AA on the yellow wash, so a selected row uses muted.
+  const subtle = (app: BrandDropApplicant) =>
+    accepted[app.orgId] ? "text-muted" : "text-quiet";
+
   const shipToLine = (app: BrandDropApplicant) =>
     app.accountErased ? null : (
-      <p className="mt-1 text-xs text-quiet">
+      <p className={cn("mt-1 text-xs", subtle(app))}>
         Ship to: {app.deliveryAddress || "Address pending"}
       </p>
     );
@@ -197,12 +201,14 @@ function ApiApplicantTable({
               {toggleAccept(app)}
               <div className="min-w-0 flex-1">
                 <p className={cn(TEXT.body, "font-medium text-primary")}>{app.orgName}</p>
-                <p className={cn(TEXT.body, "text-quiet")}>
+                <p className={cn(TEXT.body, subtle(app))}>
                   {app.university}
                   {app.category ? ` · ${orgCategoryLabel(app.category)}` : ""}
                   {` · ${app.followerCount ?? "-"} followers`}
                 </p>
-                <p className={cn(TEXT.body, "mt-1 text-quiet")}>{app.instagramHandle}</p>
+                <p className={cn(TEXT.body, "mt-1", subtle(app))}>
+                  {app.instagramHandle}
+                </p>
                 <p className={cn(TEXT.body, "mt-2 text-primary")}>{app.pitch ?? "—"}</p>
                 {shipToLine(app)}
                 {showUnits
