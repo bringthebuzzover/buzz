@@ -70,7 +70,12 @@ from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
-from app.services.lifecycle import drop_stage, reject_if_canceled, seat_is_live
+from app.services.lifecycle import (
+    apply_window_closed,
+    drop_stage,
+    reject_if_canceled,
+    seat_is_live,
+)
 from app.services.org_apply import ig_bind_mismatch_open
 from app.services.org_connect import create_org_connect_token
 from app.services.seats import lock_drop
@@ -687,7 +692,8 @@ async def add_org_to_drop(
     """Write an accepted, already-sent seat without reopening apply or bumping capacity.
 
     Any stage once published, wrapped included (a retro add); never hidden or
-    canceled. A removed seat comes back; a withdrawal or denial gets a new row.
+    canceled. A removed seat or an unsent denial comes back; a withdrawal or a sent
+    denial gets a new row.
     """
 
     drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
@@ -723,12 +729,18 @@ async def add_org_to_drop(
         )
     )
     never_applied = len(existing_rows) == 0
+    # The seat to reuse is any row except a withdrawal or a denial the org was
+    # already told about; an unsent denial is still a draft, so it becomes the acceptance
+    # (else the next "Send decisions" would email "not selected").
     active = next(
         (
             row
             for row in existing_rows
-            if row.decision
-            not in (ApplicationDecision.DENIED.value, ApplicationDecision.WITHDREW.value)
+            if row.decision != ApplicationDecision.WITHDREW.value
+            and not (
+                row.decision == ApplicationDecision.DENIED.value
+                and row.decision_sent_at is not None
+            )
         ),
         None,
     )
@@ -887,6 +899,16 @@ async def wrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     if drop.published_at is None:
         raise BuzzAPIException(
             errors.VALIDATION_ERROR, "Only published drops can be wrapped up.", status_code=409
+        )
+    if drop.wrapped_at is None and (
+        drop.hidden_at is not None or not apply_window_closed(drop, datetime.now(timezone.utc))
+    ):
+        # Wrap-up follows Selecting or Live; close applications first.
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Close applications (move the close date) before wrapping up; unhide a hidden drop"
+            " first.",
+            status_code=409,
         )
     if drop.wrapped_at is None:
         drop.wrapped_at = datetime.now(timezone.utc)

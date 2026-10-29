@@ -522,13 +522,18 @@ function CancelDropButton({ drop }: { drop: AdminDropDetail }) {
 function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
   const setWrapped = useSetDropWrapped(drop.id);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const wrapped = drop.stage === "wrapped";
   const canceled = drop.stage === "canceled";
+  // Wrap-up follows Selecting or Live (the matrix); unwrap undoes it.
+  const canWrap =
+    drop.hiddenAt == null && (drop.stage === "selecting" || drop.stage === "live");
 
   async function toggle() {
     setError(null);
     try {
       await setWrapped.mutateAsync(!wrapped);
+      setConfirming(false);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not update the drop.");
     }
@@ -548,21 +553,43 @@ function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
         ) : (
           <StageRail current={drop.stage} />
         )}
-        {error && <ErrorNote>{error}</ErrorNote>}
+        {error && !confirming && <ErrorNote>{error}</ErrorNote>}
         {drop.publishedAt != null && !canceled && (
           <div className="flex flex-wrap gap-2">
-            <ActionButton
-              variant={wrapped ? "secondary" : "primary"}
-              testId={wrapped ? "drop-unwrap" : "drop-wrap"}
-              disabled={setWrapped.isPending}
-              onClick={() => void toggle()}
-            >
-              {wrapped ? "Unwrap drop" : "Wrap up drop"}
-            </ActionButton>
+            {(wrapped || canWrap) && (
+              <ActionButton
+                variant={wrapped ? "secondary" : "primary"}
+                testId={wrapped ? "drop-unwrap" : "drop-wrap"}
+                disabled={setWrapped.isPending}
+                onClick={() => {
+                  setError(null);
+                  setConfirming(true);
+                }}
+              >
+                {wrapped ? "Unwrap drop" : "Wrap up drop"}
+              </ActionButton>
+            )}
             {!wrapped && <CancelDropButton drop={drop} />}
           </div>
         )}
       </div>
+      {confirming && (
+        <ConfirmDialog
+          title={wrapped ? "Unwrap drop" : "Wrap up drop"}
+          description={
+            wrapped
+              ? "The drop goes back to the stage its dates and seats give it. Organizations can link posts again."
+              : "Ends the campaign. Brands can no longer decide seats; organizations can still link posts for 30 days."
+          }
+          error={error}
+          confirmLabel={wrapped ? "Unwrap" : "Wrap up"}
+          pendingLabel={wrapped ? "Unwrapping…" : "Wrapping up…"}
+          pending={setWrapped.isPending}
+          submitTestId={wrapped ? "drop-unwrap-confirm" : "drop-wrap-confirm"}
+          onConfirm={() => void toggle()}
+          onClose={() => setConfirming(false)}
+        />
+      )}
     </Panel>
   );
 }
@@ -943,6 +970,7 @@ function Applicants({
                     id={applicant.id}
                     orgName={applicant.orgName}
                     value={applicant.decision}
+                    sent={applicant.decisionSentAt != null}
                     disabled={decide.isPending}
                     onChange={(next) => void setDecision(applicant, next)}
                   />
