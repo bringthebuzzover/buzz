@@ -1,15 +1,13 @@
 """Post auto-link suggestion scan (buzz-ops engineering/architecture.md §10.4).
 
-For every accepted application whose drop is ``awaiting_products`` or
-``drop_active`` and whose brand has an Instagram handle, scan the org's recent
-posts for a mention of the brand handle (or the campaign hashtag) and write a
-``post_campaign_suggestions`` row the org can one-tap confirm (§7.4.1). Never
-auto-confirms — the org must accept.
+For every live seat (accepted and sent) whose brand has an Instagram handle,
+scan the org's recent posts for a mention of the brand handle (or the campaign
+hashtag) and write a ``post_campaign_suggestions`` row the org can one-tap
+confirm (§7.4.1). Never auto-confirms — the org must accept.
 
-Mint matches the org linker: it is on during Awaiting Products (an org may
-post before the campaign-wide stage moves) and while Active. ``drop_finished``
-is excluded: the org UI is read-only there, so new pending suggestions would
-sit forever. This tuple is independent of ``metric_sync._LIVE_STAGES``.
+The scan follows the org linker: it runs until the org's link grace after wrap
+ends (``lifecycle.autolink_open``), so no suggestion outlives the org's ability
+to confirm it.
 
 Idempotent via ``UNIQUE(post_id, application_id)`` (a re-insert is skipped), so
 this is safe to run on a cron. (An on-demand re-scan endpoint — e.g. when an org
