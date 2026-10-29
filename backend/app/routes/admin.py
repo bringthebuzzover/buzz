@@ -21,6 +21,8 @@ from app.config import settings
 from app.deps.auth import CurrentAdmin
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
+from app.models.brand import Brand
+from app.models.drop_request import DropRequest
 from app.models.enums import BrandStatus, OrgUserStatus
 from app.response import APIResponse, DataResponse, api_error_response, api_response
 from app.schemas.acks import (
@@ -48,6 +50,7 @@ from app.schemas.acks import (
 )
 from app.schemas.admin import (
     AdminBrandDetail,
+    AdminBrandIgChangeRequestItem,
     AdminBrandItem,
     AdminCleanupStubsResponse,
     AdminCreateBrandRequest,
@@ -129,6 +132,15 @@ from app.services.admin_tables import (
     list_table_catalog,
     patch_table_row,
     query_table,
+)
+from app.services.brand_ig_change_requests import (
+    approve_request as approve_brand_ig_change_request,
+)
+from app.services.brand_ig_change_requests import (
+    deny_request as deny_brand_ig_change_request,
+)
+from app.services.brand_ig_change_requests import (
+    list_requests as list_brand_ig_change_requests,
 )
 from app.services.drop_requests import get_admin_drop_request, list_admin_drop_requests
 from app.services.ig_change_requests import (
@@ -387,6 +399,45 @@ async def deny_ig_change_request_endpoint(
     )
 
 
+@router.get(
+    "/brand-ig-change-requests",
+    response_model=DataResponse[list[AdminBrandIgChangeRequestItem]],
+)
+async def list_brand_ig_change_requests_endpoint(
+    _user: CurrentAdmin,
+    status: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    rows = await list_brand_ig_change_requests(db, status=status)
+    return api_response(data=[AdminBrandIgChangeRequestItem.model_validate(row) for row in rows])
+
+
+@router.post(
+    "/brand-ig-change-requests/{request_id}/approve",
+    response_model=DataResponse[AdminBrandIgChangeRequestItem],
+)
+async def approve_brand_ig_change_request_endpoint(
+    request_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await approve_brand_ig_change_request(db, request_id)
+    return api_response(data=AdminBrandIgChangeRequestItem.model_validate(result))
+
+
+@router.post(
+    "/brand-ig-change-requests/{request_id}/deny",
+    response_model=DataResponse[AdminBrandIgChangeRequestItem],
+)
+async def deny_brand_ig_change_request_endpoint(
+    request_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await deny_brand_ig_change_request(db, request_id)
+    return api_response(data=AdminBrandIgChangeRequestItem.model_validate(result))
+
+
 # ── Brands ──────────────────────────────────────────────────────────────────
 
 
@@ -511,6 +562,27 @@ async def compose_brand_email_endpoint(
 # ── Drop requests (intake tickets) ───────────────────────────────────────────
 
 
+def _admin_drop_request_item(ticket: DropRequest, brand: Brand) -> AdminDropRequestItem:
+    return AdminDropRequestItem(
+        id=ticket.id,
+        brand_id=ticket.brand_id,
+        brand_name=brand.brand_name,
+        message=ticket.message,
+        product=ticket.product,
+        title=ticket.title,
+        location=ticket.location,
+        target_date=ticket.target_date,
+        org_count=ticket.org_count,
+        units_per_org=ticket.units_per_org,
+        campaign_hashtag=ticket.campaign_hashtag,
+        notes=ticket.notes,
+        status=ticket.status,
+        converted_drop_id=ticket.converted_drop_id,
+        created_at=ticket.created_at,
+        updated_at=ticket.updated_at,
+    )
+
+
 @router.get(
     "/drop-requests",
     response_model=DataResponse[list[AdminDropRequestItem]],
@@ -522,22 +594,7 @@ async def list_drop_requests_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     rows = await list_admin_drop_requests(db, status=status, brand_id=brand_id)
-    return api_response(
-        data=[
-            AdminDropRequestItem(
-                id=ticket.id,
-                brand_id=ticket.brand_id,
-                brand_name=brand.brand_name,
-                message=ticket.message,
-                notes=ticket.notes,
-                status=ticket.status,
-                converted_drop_id=ticket.converted_drop_id,
-                created_at=ticket.created_at,
-                updated_at=ticket.updated_at,
-            )
-            for ticket, brand in rows
-        ]
-    )
+    return api_response(data=[_admin_drop_request_item(ticket, brand) for ticket, brand in rows])
 
 
 @router.get(
@@ -550,19 +607,7 @@ async def get_drop_request_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     ticket, brand = await get_admin_drop_request(db, request_id)
-    return api_response(
-        data=AdminDropRequestItem(
-            id=ticket.id,
-            brand_id=ticket.brand_id,
-            brand_name=brand.brand_name,
-            message=ticket.message,
-            notes=ticket.notes,
-            status=ticket.status,
-            converted_drop_id=ticket.converted_drop_id,
-            created_at=ticket.created_at,
-            updated_at=ticket.updated_at,
-        )
-    )
+    return api_response(data=_admin_drop_request_item(ticket, brand))
 
 
 # ── Drops ───────────────────────────────────────────────────────────────────

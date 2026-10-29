@@ -10,7 +10,11 @@ never raised, so a failed email can't roll back the operation that triggered it
 Callers that need honesty (verification, Notify Me) use the returned ``bool``:
 ``True`` only on provider accept (HTTP 2xx, including a Resend idempotency
 replay of that original 2xx) or intentional development console success;
-``False`` on unset API key / HTTP error / idempotency conflict / exception.
+``False`` on unset API key / HTTP error / idempotency conflict / exception /
+allowlist suppression. Suppression runs only when ``EMAIL_FAIL_CLOSED`` is
+true and the address is not in ``EMAIL_ALLOWLIST``. ``EMAIL_SUBJECT_PREFIX``
+is prepended when set. Neither depends on ``ENVIRONMENT``. With those unset,
+staging and production send the same payload as before.
 
 Optional Resend ``Idempotency-Key`` values are opt-in per call
 (``build_idempotency_key``). A missing key sends with no header. Policy and
@@ -53,6 +57,7 @@ KIND_APPLICATION_DENIED = "application-denied"
 KIND_REMINDER = "reminder"
 KIND_DROP_PUBLISHED = "drop-published"
 KIND_PASSWORD_RESET = "password-reset"
+KIND_PASSWORD_CHANGED = "password-changed"
 KIND_LATE_ADD_ORG = "late-add-org"
 KIND_LATE_ADD_BRAND = "late-add-brand"
 
@@ -163,6 +168,48 @@ def _idempotency_kind(key: str | None) -> str:
 
 def _key_hash(key: str) -> str:
     return hashlib.sha256(key.encode()).hexdigest()[:16]
+
+
+def _email_addr_hash(address: str) -> str:
+    return hashlib.sha256(address.strip().lower().encode()).hexdigest()[:16]
+
+
+def _allowlist_entries(raw: str) -> list[str]:
+    return [part.strip().lower() for part in raw.split(",") if part.strip()]
+
+
+def address_allowlisted(address: str, allowlist: str) -> bool:
+    """True when ``address`` is an exact entry or its domain is an ``@domain`` entry."""
+
+    email = address.strip().lower()
+    if "@" not in email:
+        return False
+    domain = email.split("@", 1)[1]
+    for entry in _allowlist_entries(allowlist):
+        if entry.startswith("@"):
+            if domain == entry[1:]:
+                return True
+        elif email == entry:
+            return True
+    return False
+
+
+def _apply_subject_prefix(subject: str, prefix: str) -> str:
+    """Prepend ``prefix`` once. Blank prefix leaves the subject unchanged."""
+
+    if not prefix.strip():
+        return subject
+    if subject.startswith(prefix):
+        return subject
+    return prefix + subject
+
+
+def _log_allowlist_suppressed(address: str, subject: str) -> None:
+    logger.warning(
+        "email suppressed (not allowlisted): addr_sha256_16=%s subject=%s",
+        _email_addr_hash(address),
+        subject,
+    )
 
 
 def _resend_error_name(resp: httpx.Response) -> str:
@@ -880,6 +927,39 @@ async def send_password_reset_email(
     return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
 
 
+async def send_brand_password_changed_email(
+    to_email: str,
+    *,
+    idempotency_key: str | None = None,
+) -> bool:
+    """Notice that a signed-in brand changed their password.
+
+    Best-effort, same as other transactional mail: a provider failure does
+    not undo the password change. Copy uses ``CONTACT_EMAIL`` from
+    ``brand_emails.json`` (the address SOT). Bodies for other mail live in
+    this module, not that JSON file.
+    """
+    subject = "Your Buzz password was changed"
+    body = (
+        "The password for your Buzz brand account was just changed.\n\n"
+        "If you made this change, no further action is needed. "
+        "Other signed-in sessions were signed out.\n\n"
+        "If you did not change your password, reset it from the brand login page "
+        f"or contact {CONTACT_EMAIL}."
+    )
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Brand password changed:                        ║\n"
+            f"║  To: {to_email:<52s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+
+
 def _ops_cc(*, exclude: str) -> list[str]:
     """CONTACT_EMAIL + OPS_CC_EMAIL, skipping blanks, dupes, and the To address."""
     skip = {exclude.strip().lower()}
@@ -1046,7 +1126,28 @@ async def _dispatch(
     deploy that hasn't wired email yet degrades gracefully instead of
     500-ing the flows that send mail. An unsafe idempotency key is dropped
     and the email is still attempted with no header.
+
+    ``EMAIL_FAIL_CLOSED`` drops any to/cc address that is not in
+    ``EMAIL_ALLOWLIST`` (an empty list then suppresses every send).
+    ``EMAIL_SUBJECT_PREFIX``, when non-blank, is prepended to the subject.
+    Neither check reads ``ENVIRONMENT``. With both unset, the payload matches
+    the historical staging and production send.
     """
+    subject = _apply_subject_prefix(subject, settings.EMAIL_SUBJECT_PREFIX)
+    if settings.EMAIL_FAIL_CLOSED:
+        allowlist = settings.EMAIL_ALLOWLIST
+        if not address_allowlisted(to_email, allowlist):
+            _log_allowlist_suppressed(to_email, subject)
+            return False
+        if cc:
+            kept: list[str] = []
+            for addr in cc:
+                if address_allowlisted(addr, allowlist):
+                    kept.append(addr)
+                else:
+                    _log_allowlist_suppressed(addr, subject)
+            cc = kept or None
+
     if not settings.RESEND_API_KEY:
         logger.warning("Email not sent (RESEND_API_KEY unset): to=%s subject=%s", to_email, subject)
         return False

@@ -457,7 +457,7 @@ test("admin saves a draft from a ticket and publishes it", async ({ page }) => {
   await expect(page.getByLabel(/^title$/i).first()).toHaveValue("E2E Config Title");
 
   await page.getByTestId("hide-drop").click();
-  await page.getByTestId("hide-drop-confirm").fill("hide");
+  await page.getByTestId("hide-drop-confirm").fill("E2E Config Title");
   const hideResp = page.waitForResponse(
     (r) =>
       r.url().includes(`/api/admin/drops/${dropId}/hide`) &&

@@ -313,7 +313,7 @@ describe("AdminDropDetailPage", () => {
     ).toBeTruthy();
   });
 
-  it("opens a hide dialog that asks the admin to type hide", () => {
+  it("opens a hide dialog that asks the admin to type the drop title", () => {
     mockUseAdminDrop.mockReturnValue({
       data: adminDrop({ publishedAt: now }),
       isPending: false,
@@ -327,14 +327,31 @@ describe("AdminDropDetailPage", () => {
     act(() => {
       trigger.click();
     });
-    expect(
-      document.querySelector('[data-testid="hide-drop-confirm"]'),
-    ).toBeTruthy();
-    expect(document.body.textContent).toContain('Type "hide" to confirm');
+    const input = document.querySelector(
+      '[data-testid="hide-drop-confirm"]',
+    ) as HTMLInputElement;
+    expect(input).toBeTruthy();
+    expect(document.body.textContent).toContain("Type the drop title to confirm");
     const submit = document.querySelector(
       '[data-testid="hide-drop-submit"]',
     ) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
+
+    const setValue = (value: string) => {
+      Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )?.set?.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    act(() => {
+      setValue("hide");
+    });
+    expect(submit.disabled).toBe(true);
+    act(() => {
+      setValue("  Spring Drop  ");
+    });
+    expect(submit.disabled).toBe(false);
   });
 
   it("clears the brand-email checkbox when the hide dialog is dismissed", () => {

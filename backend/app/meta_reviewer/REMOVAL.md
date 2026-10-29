@@ -82,9 +82,11 @@ cd ../frontend && npm run gen:api
 ```
 
 Remove the env example and checklist lines in `backend/.env.example` and
-`DEPLOYMENT.md`. Point `LAUNCH.md` and `gaps/deploy.meta-app-review.md` back
-at seeded tester onboarding only. Move `gaps/deploy.meta-reviewer-path.md` to
-`gaps/archive/` with `status: fixed`.
+buzz-ops `engineering/runbooks/deploy.md`. Point buzz-ops
+`engineering/plans/archive/2026-seeded-launch.md` and
+`engineering/gaps/deploy.meta-app-review.md` back at seeded tester onboarding
+only. Move `engineering/gaps/deploy.meta-reviewer-path.md` to
+`engineering/gaps/archive/` with `status: fixed`.
 
 ## 4. Unset env
 

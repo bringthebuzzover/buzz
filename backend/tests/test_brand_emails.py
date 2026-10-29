@@ -29,6 +29,10 @@ async def test_dispatch_from_uses_json_not_env(monkeypatch) -> None:
     """Leftover EMAIL_FROM env must not change Resend ``from``."""
     monkeypatch.setenv("EMAIL_FROM", "Env Override <env@example.com>")
     monkeypatch.setattr(email.settings, "RESEND_API_KEY", "re_test_key")
+    monkeypatch.setattr(email.settings, "ENVIRONMENT", "production")
+    monkeypatch.setattr(email.settings, "EMAIL_ALLOWLIST", "")
+    monkeypatch.setattr(email.settings, "EMAIL_FAIL_CLOSED", False)
+    monkeypatch.setattr(email.settings, "EMAIL_SUBJECT_PREFIX", "")
     seen: dict = {}
 
     def handler(request: httpx.Request) -> httpx.Response:

@@ -8,7 +8,7 @@ description: >-
 
 # UI fit-finish
 
-Agent map: [`AGENTS.md`](../../../AGENTS.md). Gap: [`gaps/spa.form-shells-and-controls.md`](../../../gaps/spa.form-shells-and-controls.md) (or archive). This is **`ship-change`**, not `run next cluster`.
+Agent map: [`AGENTS.md`](../../../AGENTS.md). Gap: buzz-ops `engineering/gaps/archive/spa.form-shells-and-controls.md` (closed). This is **`ship-change`**, not `run next cluster`.
 
 ## Locked decisions (do not re-ask)
 

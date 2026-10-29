@@ -1094,7 +1094,7 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
     return null;
   }
 
-  const confirmMatches = confirmText.trim().toLowerCase() === "hide";
+  const confirmMatches = confirmText.trim() === drop.title.trim();
 
   function closeDialog() {
     setOpen(false);
@@ -1146,7 +1146,7 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
           description={
             hidden
               ? "Organization and brand portals will see this drop again at the same URLs."
-              : "Removes this published drop from every organization and brand portal. Type hide to confirm. No email unless you opt in."
+              : "Removes this published drop from every organization and brand portal. Type the drop title to confirm. No email unless you opt in."
           }
         >
           <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
@@ -1175,7 +1175,7 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
                 <TextField
                   id="hide-drop-confirm"
                   data-testid="hide-drop-confirm"
-                  label='Type "hide" to confirm'
+                  label="Type the drop title to confirm"
                   size="compact"
                   value={confirmText}
                   autoComplete="off"
