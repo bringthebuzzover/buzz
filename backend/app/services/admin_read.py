@@ -57,7 +57,13 @@ from app.services.brand_ig_change_requests import pending_ig_change_for_brand
 from app.services.drop_apply_intents import list_intents_for_drop
 from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.instagram_token import REFRESH_WINDOW_DAYS
-from app.services.lifecycle import drop_running, drop_stage, drop_stage_expr, seat_is_live
+from app.services.lifecycle import (
+    drop_running,
+    drop_stage,
+    drop_stage_expr,
+    seat_is_live,
+    seat_progress,
+)
 from app.services.shipments import (
     shipments_by_application_ids,
     unshipped_live_seat_clause,
@@ -485,9 +491,16 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
         )
     items.sort(key=lambda row: row["created_at"] or now)
 
+    stage = drop_stage_expr(now)
+    stage_rows = await db.execute(
+        select(stage, func.count(Drop.id)).where(Drop.hidden_at.is_(None)).group_by(stage)
+    )
+    by_stage: dict[str, int] = {name: int(n) for name, n in stage_rows.all()}
+
     counts = await _signal_counts(db, now)
     return {
         "generated_at": now,
+        "stages": [{"stage": s, "count": by_stage.get(s.value, 0)} for s in DropStage],
         "queues": [
             {"key": "orgs_pending_approval", **orgs_pending},
             {"key": "orgs_ig_change_pending", **ig_changes_pending},
@@ -1045,6 +1058,7 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     shipment_map = await shipments_by_application_ids(
         db, [application.id for application, _, _, _, _ in applicant_rows]
     )
+    progress = await seat_progress(db, [row[0] for row in applicant_rows])
     applicants = []
     for application, org, org_user, linked, frozen_at in applicant_rows:
         erased = org_user.status == OrgUserStatus.ERASED.value
@@ -1073,6 +1087,7 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
                 "added_by": application.added_by,
                 "delivered_at": application.delivered_at,
                 "end_reason": application.end_reason,
+                "progress": progress[application.id],
             }
         )
 

@@ -13,7 +13,7 @@ from typing import Literal
 from pydantic import ConfigDict, Field, field_serializer, field_validator
 from pydantic.alias_generators import to_camel
 
-from app.models.enums import DropStage
+from app.models.enums import DropStage, SeatProgress
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 from app.schemas.posts import ReelsSkipRate
 from app.schemas.shipments import ShipmentItem
@@ -208,6 +208,7 @@ class BrandDropDetailApplicant(CamelModel):
     # Null until "Send decisions" (a drafted decision the org can't see yet).
     decision_sent_at: datetime | None
     delivered_at: datetime | None = None
+    progress: SeatProgress | None = None
     # Joined org profile
     org_name: str
     university: str

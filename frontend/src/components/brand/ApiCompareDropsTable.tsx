@@ -2,6 +2,7 @@
  * "Compare drops" panel on the brand dashboard (buzz-ops product/PRODUCT.md
  * §5.3.2). Renders from the per-drop totals already returned by
  * `GET /api/brands/me/drops`, highest engagement first, so no extra fetch.
+ * Callers pass published drops only: a draft is a preview, not a result.
  * Below `md` each drop is a stacked tile instead of a table row.
  */
 import { Link } from "react-router-dom";

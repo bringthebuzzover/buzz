@@ -369,7 +369,7 @@ class TestGetBrandDropDetail:
         org = await make_org(db_session, org_user)
         org.delivery_address = "2301 Bancroft Way, Berkeley, CA 94720"
         await db_session.flush()
-        await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
+        await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
 
         res = await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=headers)
         assert res.status_code == 200
@@ -445,10 +445,10 @@ class TestGetBrandDropDetail:
         assert posts["reel post"]["profileVisits"] is None
         assert posts["reel post"]["follows"] is None
 
-    async def test_delivery_address_null_unless_applied_or_accepted(
+    async def test_delivery_address_only_for_accepted_seats(
         self, app_client: AsyncClient, db_session
     ):
-        """Brand drop detail exposes ship-to only for applied/accepted rows."""
+        """Brand drop detail exposes ship-to only for accepted seats (D-3)."""
         _, brand, headers = await _brand_ctx(db_session)
         drop = await make_drop(db_session, brand)
         address = "2301 Bancroft Way, Berkeley, CA 94720"
@@ -466,7 +466,7 @@ class TestGetBrandDropDetail:
         res = await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=headers)
         assert res.status_code == 200
         by_decision = {a["decision"]: a for a in res.json()["data"]["applications"]}
-        assert by_decision["applied"]["deliveryAddress"] == address
+        assert by_decision["applied"]["deliveryAddress"] is None
         assert by_decision["accepted"]["deliveryAddress"] == address
         assert by_decision["denied"]["deliveryAddress"] is None
 

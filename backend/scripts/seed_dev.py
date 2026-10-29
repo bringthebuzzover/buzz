@@ -67,6 +67,7 @@ from app.models import (  # noqa: E402
     Drop,
     DropApplication,
     DropApplicationShipment,
+    DropApplyIntent,
     DropRequest,
     DropTrackerEvent,
     NotifyMe,
@@ -79,6 +80,7 @@ from app.models import (  # noqa: E402
 from app.models.enums import (  # noqa: E402
     ApplicationDecision,
     BrandStatus,
+    DropApplyIntentStatus,
     DropStage,
     OrgCategory,
     OrgUserStatus,
@@ -396,14 +398,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         decision_at=now - timedelta(days=89),
         decision_sent_at=now - timedelta(days=89),
     )
-    app_applied = DropApplication(
-        id=_uuid(42),
-        drop_id=drop_brief.id,
-        org_id=org_active.id,
-        decision=ApplicationDecision.APPLIED.value,
-        pitch="Repeat partner — strong cold-brew demo audience.",
-        applied_at=now - timedelta(days=2),
-    )
     app_applied_review = DropApplication(
         id=_uuid(43),
         drop_id=drop_review.id,
@@ -411,21 +405,13 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         decision=ApplicationDecision.APPLIED.value,
         applied_at=now - timedelta(days=1),
     )
-    app_denied = DropApplication(
-        id=_uuid(44),
-        drop_id=drop_brief.id,
-        org_id=org_pending.id,
-        decision=ApplicationDecision.DENIED.value,
-        applied_at=now - timedelta(days=2),
-        decision_at=now - timedelta(hours=12),
-        decision_sent_at=now - timedelta(hours=12),
-    )
-    app_pending_org = DropApplication(
+    # A pending org can't apply yet; its interest is an intent, promoted to an
+    # application once the org is active (PRODUCT §7.1).
+    intent_pending_org = DropApplyIntent(
         id=_uuid(45),
         drop_id=drop_review.id,
         org_id=org_pending.id,
-        decision=ApplicationDecision.APPLIED.value,
-        applied_at=now - timedelta(hours=6),
+        status=DropApplyIntentStatus.OPEN.value,
     )
 
     # --- Social posts (org_active) -----------------------------------------
@@ -542,11 +528,9 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         "drop_applications": [
             app_accepted,
             app_accepted_finished,
-            app_applied,
             app_applied_review,
-            app_denied,
-            app_pending_org,
         ],
+        "drop_apply_intents": [intent_pending_org],
         "drop_application_shipments": [
             DropApplicationShipment(
                 id=_uuid(46),

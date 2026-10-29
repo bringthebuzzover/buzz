@@ -2445,6 +2445,7 @@ export interface components {
             orgName: string;
             /** Pitch */
             pitch: string | null;
+            progress?: components["schemas"]["SeatProgress"] | null;
             /** Shipments */
             shipments: components["schemas"]["ShipmentItem"][];
             /** Shippingcity */
@@ -3314,6 +3315,11 @@ export interface components {
             items: components["schemas"]["AdminAttentionItem"][];
             /** Queues */
             queues: components["schemas"]["AdminQueueItem"][];
+            /**
+             * Stages
+             * @default []
+             */
+            stages: components["schemas"]["AdminStageCount"][];
             /** Warnings */
             warnings: components["schemas"]["AdminWarningItem"][];
         };
@@ -3374,6 +3380,15 @@ export interface components {
             key: string;
             /** Ok */
             ok: boolean;
+        };
+        /**
+         * AdminStageCount
+         * @description Visible drops in one computed stage (Overview tiles).
+         */
+        AdminStageCount: {
+            /** Count */
+            count: number;
+            stage: components["schemas"]["DropStage"];
         };
         /** AdminSyncAutolinkResponse */
         AdminSyncAutolinkResponse: {
@@ -3666,6 +3681,7 @@ export interface components {
             pitch: string | null;
             /** Posts */
             posts: components["schemas"]["BrandDropPostItem"][];
+            progress?: components["schemas"]["SeatProgress"] | null;
             /** Shipments */
             shipments: components["schemas"]["ShipmentItem"][];
             /** University */
@@ -4065,6 +4081,7 @@ export interface components {
             orgId: string;
             /** Pitch */
             pitch: string | null;
+            progress: components["schemas"]["SeatProgress"] | null;
             /** Shipments */
             shipments: components["schemas"]["ShipmentItem"][];
             stage: components["schemas"]["DropStage"];
@@ -4106,6 +4123,7 @@ export interface components {
             linksOpen: boolean;
             /** Pitch */
             pitch: string | null;
+            progress: components["schemas"]["SeatProgress"] | null;
             /** Shipments */
             shipments: components["schemas"]["ShipmentItem"][];
             stage: components["schemas"]["DropStage"];
@@ -5537,6 +5555,15 @@ export interface components {
              */
             decision: "applied" | "accepted" | "denied";
         };
+        /**
+         * SeatProgress
+         * @description Where a live seat has got to: the furthest fact reached, never a gate.
+         *
+         *     Computed (``app.services.lifecycle.seat_progress``), never stored. Only
+         *     accepted seats whose decision went out have progress.
+         * @enum {string}
+         */
+        SeatProgress: "accepted" | "shipped" | "delivered" | "posted";
         /**
          * SendDecisionsResponse
          * @description How many drafted decisions just went out.

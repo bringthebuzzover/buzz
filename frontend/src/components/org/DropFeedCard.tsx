@@ -20,8 +20,10 @@ import { Link } from "react-router-dom";
 import { MapPin } from "lucide-react";
 import type { DropCardData, DropFeedStatus } from "../../types/drop";
 import { useCountdown } from "../../utils/useCountdown";
+import type { DropStage } from "../../utils/dropStage";
 import {
   CLOSED_REASON_COPY,
+  closedChipLabel,
   getDropClosedReason,
   isDropFull,
   spotsRemaining,
@@ -102,9 +104,7 @@ export default function DropFeedCard({
         ? acceptedCount === 0
           ? `Up to ${drop.capacityTotal} spots`
           : `${remaining} of ${drop.capacityTotal} spots remaining`
-        : closedReason
-          ? CLOSED_REASON_COPY[closedReason]
-          : "Closed";
+        : CLOSED_REASON_COPY[closedReason ?? "manual"];
 
   const action = campaignTo ? (
     <span
@@ -157,7 +157,7 @@ export default function DropFeedCard({
           <HeroCountdownOverlay targetMs={drop.applyOpenAt} />
         ) : null}
         <div className="relative flex items-center gap-2">
-          <FeedStatusChip status={feedStatus} full={full} />
+          <FeedStatusChip status={feedStatus} full={full} stage={drop.stage} />
           <span className="ml-auto text-right text-xs text-primary">{spots}</span>
         </div>
         <div className="relative mt-auto">
@@ -194,7 +194,15 @@ export default function DropFeedCard({
 }
 
 /** Pen badge on media: dark fill, yellow dot and label while the drop is live. */
-function FeedStatusChip({ status, full }: { status: DropFeedStatus; full: boolean }) {
+function FeedStatusChip({
+  status,
+  full,
+  stage,
+}: {
+  status: DropFeedStatus;
+  full: boolean;
+  stage: DropStage;
+}) {
   const label =
     status === "upcoming"
       ? "Upcoming"
@@ -202,7 +210,7 @@ function FeedStatusChip({ status, full }: { status: DropFeedStatus; full: boolea
         ? full
           ? "Full"
           : "Open"
-        : "Closed";
+        : closedChipLabel(stage);
   const live = status !== "closed" && !full;
   return (
     <Chip onMedia dot className={live ? "text-accent" : "text-muted"}>

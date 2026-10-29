@@ -31,6 +31,7 @@ from app.services.lifecycle import (
     org_link_open,
     org_visible_decision,
     seat_hidden_from_org,
+    seat_progress,
 )
 from app.services.seats import end_seat, lock_drop
 from app.services.shipments import set_delivered, shipments_by_application_ids
@@ -100,6 +101,7 @@ async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignLi
     shipment_map = await shipments_by_application_ids(
         db, [application.id for application, _, _ in rows]
     )
+    progress = await seat_progress(db, [application for application, _, _ in rows])
     return [
         CampaignListItem(
             id=application.id,
@@ -112,6 +114,7 @@ async def list_my_campaigns(db: AsyncSession, org_user: User) -> list[CampaignLi
             stage=stages[drop.id],
             links_open=org_link_open(drop, now),
             image=drop.image,
+            progress=progress[application.id],
             **_org_seat_fields(application),
         )
         for application, drop, brand in rows
@@ -201,6 +204,7 @@ async def get_my_campaign(
         image=drop.image,
         stage=(await drop_stages(db, [drop.id]))[drop.id],
         links_open=org_link_open(drop, utcnow()),
+        progress=(await seat_progress(db, [application]))[application.id],
         **_org_seat_fields(application),
         apply_open_at=drop.apply_open_at,
         apply_close_at=drop.apply_close_at,
