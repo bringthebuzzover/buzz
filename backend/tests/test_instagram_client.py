@@ -13,7 +13,12 @@ import pytest
 
 from app.config import Settings, settings
 from app.exceptions import BuzzAPIException
-from app.services.instagram import HttpInstagramClient, instagram_graph_url, storable_follower_count
+from app.services.instagram import (
+    HttpInstagramClient,
+    instagram_graph_url,
+    merge_follower_count,
+    storable_follower_count,
+)
 
 
 def test_build_authorize_url_stays_in_browser() -> None:
@@ -66,25 +71,45 @@ async def test_exchange_code_parses_legacy_flat_payload() -> None:
     assert out.permissions is None
 
 
-async def test_exchange_code_http_error_logs_meta_not_secrets(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            400,
-            json={
+@pytest.mark.parametrize(
+    ("method", "arg", "body", "meta_message"),
+    [
+        (
+            "exchange_code",
+            "c",
+            {
                 "error_type": "OAuthException",
                 "code": 400,
                 "error_message": "Matching code was not found or was already used",
             },
-        )
+            "Matching code was not found",
+        ),
+        (
+            "exchange_for_long_lived",
+            "IGQVJ-secret-short",
+            {
+                "error": {
+                    "message": "Unsupported request - method type: get",
+                    "type": "IGApiException",
+                    "code": 100,
+                }
+            },
+            "Unsupported request - method type: get",
+        ),
+    ],
+)
+async def test_token_exchange_http_error_logs_meta_not_secrets(
+    caplog: pytest.LogCaptureFixture, method: str, arg: str, body: dict, meta_message: str
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(400, json=body)
 
     with caplog.at_level("WARNING", logger="app.services.instagram"):
         with pytest.raises(BuzzAPIException) as exc:
-            await _client(handler).exchange_code("c")
+            await getattr(_client(handler), method)(arg)
     assert exc.value.status_code == 401
     assert "client_secret" not in exc.value.message
-    assert "Matching code was not found" in caplog.text
+    assert meta_message in caplog.text
     assert "IGQVJ" not in caplog.text
 
 
@@ -249,30 +274,6 @@ async def test_exchange_for_long_lived_parses_data_array() -> None:
     assert out.expires_in == 60
 
 
-async def test_exchange_for_long_lived_http_error_logs_meta_not_secrets(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            400,
-            json={
-                "error": {
-                    "message": "Unsupported request - method type: get",
-                    "type": "IGApiException",
-                    "code": 100,
-                }
-            },
-        )
-
-    with caplog.at_level("WARNING", logger="app.services.instagram"):
-        with pytest.raises(BuzzAPIException) as exc:
-            await _client(handler).exchange_for_long_lived("IGQVJ-secret-short")
-    assert exc.value.status_code == 401
-    assert "client_secret" not in exc.value.message
-    assert "Unsupported request - method type: get" in caplog.text
-    assert "IGQVJ-secret-short" not in caplog.text
-
-
 async def test_fetch_profile_parses_data_array_user_id() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert "user_id" in request.url.params["fields"]
@@ -312,50 +313,32 @@ async def test_fetch_profile_prefers_id_over_user_id() -> None:
     assert profile.id == "app-scoped"
 
 
-async def test_fetch_profile_includes_followers_count() -> None:
+@pytest.mark.parametrize(
+    ("graph", "expected"),
+    [({"followers_count": 4242}, 4242), ({}, None), ({"followers_count": None}, None)],
+)
+async def test_fetch_profile_followers_count(graph: dict, expected: int | None) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert "followers_count" in request.url.params["fields"]
         return httpx.Response(
             200,
-            json={
-                "id": "ig1",
-                "username": "campus",
-                "account_type": "BUSINESS",
-                "followers_count": 4242,
-            },
+            json={"id": "ig1", "username": "campus", "account_type": "BUSINESS", **graph},
         )
 
     profile = await _client(handler).fetch_profile("tok")
-    assert profile.followers_count == 4242
-
-
-async def test_fetch_profile_omitted_followers_is_none() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={"id": "ig1", "username": "campus", "account_type": "Media_Creator"},
-        )
-
-    profile = await _client(handler).fetch_profile("tok")
-    assert profile.followers_count is None
+    assert profile.followers_count == expected
     assert profile.followers_count_invalid is False
 
 
-async def test_fetch_profile_null_followers_is_none() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={
-                "id": "ig1",
-                "username": "campus",
-                "account_type": "BUSINESS",
-                "followers_count": None,
-            },
-        )
-
-    profile = await _client(handler).fetch_profile("tok")
-    assert profile.followers_count is None
-    assert profile.followers_count_invalid is False
+@pytest.mark.parametrize(
+    ("current", "incoming", "expected"),
+    [(77, None, 77), (None, None, None), (50, 0, 0), (10, 8800, 8800), (None, 5, 5)],
+)
+def test_merge_follower_count(
+    current: int | None, incoming: int | None, expected: int | None
+) -> None:
+    """The one merge rule: an omitted count keeps the stored one; a real 0 overwrites."""
+    assert merge_follower_count(current, incoming) == expected
 
 
 @pytest.mark.parametrize(
@@ -481,86 +464,38 @@ async def test_fetch_media_parses_fields() -> None:
     assert f.media_url_omitted is True
 
 
-async def test_fetch_media_omitted_engagement_is_none_not_zero() -> None:
+@pytest.mark.parametrize(
+    ("graph", "expected"),
+    [
+        # An omitted field parses to None ("unknown"), never to 0 / "".
+        ({"caption": "no counts"}, {"like_count": None, "comments_count": None}),
+        ({"like_count": 1, "comments_count": 0}, {"caption": None}),
+        # A present 0 / "" is a real value.
+        (
+            {"like_count": 0, "comments_count": 0, "caption": "zeros"},
+            {"like_count": 0, "comments_count": 0},
+        ),
+        ({"like_count": 1, "comments_count": 0, "caption": ""}, {"caption": ""}),
+    ],
+)
+async def test_fetch_media_omitted_vs_present_fields(graph: dict, expected: dict) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
             json={
                 "id": "m1",
-                "caption": "no counts",
                 "media_type": "IMAGE",
                 "media_product_type": "FEED",
                 "permalink": "https://instagram.com/p/m1",
                 "timestamp": "2030-01-01T00:00:00+0000",
+                **graph,
             },
         )
 
     f = await _client(handler).fetch_media("tok", "m1")
-    assert f.like_count is None
-    assert f.comments_count is None
-    assert f.caption == "no counts"
+    assert {key: getattr(f, key) for key in expected} == expected
     assert f.media_url_omitted is True
     assert f.thumbnail_url_omitted is True
-
-
-async def test_fetch_media_present_zero_engagement() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={
-                "id": "m1",
-                "like_count": 0,
-                "comments_count": 0,
-                "caption": "zeros",
-                "media_type": "IMAGE",
-                "media_product_type": "FEED",
-                "permalink": "https://instagram.com/p/m1",
-                "timestamp": "2030-01-01T00:00:00+0000",
-            },
-        )
-
-    f = await _client(handler).fetch_media("tok", "m1")
-    assert f.like_count == 0
-    assert f.comments_count == 0
-
-
-async def test_fetch_media_omitted_caption_is_none() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={
-                "id": "m1",
-                "like_count": 1,
-                "comments_count": 0,
-                "media_type": "IMAGE",
-                "media_product_type": "FEED",
-                "permalink": "https://instagram.com/p/m1",
-                "timestamp": "2030-01-01T00:00:00+0000",
-            },
-        )
-
-    f = await _client(handler).fetch_media("tok", "m1")
-    assert f.caption is None
-
-
-async def test_fetch_media_present_empty_caption() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200,
-            json={
-                "id": "m1",
-                "caption": "",
-                "like_count": 1,
-                "comments_count": 0,
-                "media_type": "IMAGE",
-                "media_product_type": "FEED",
-                "permalink": "https://instagram.com/p/m1",
-                "timestamp": "2030-01-01T00:00:00+0000",
-            },
-        )
-
-    f = await _client(handler).fetch_media("tok", "m1")
-    assert f.caption == ""
 
 
 async def test_fetch_media_url_omit_vs_present_null() -> None:

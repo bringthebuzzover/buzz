@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from httpx import AsyncClient
 
 from app.models.enums import ApplicationDecision, PortalRole
@@ -94,32 +95,22 @@ class TestAdminTablesQuery:
 
 
 class TestAdminTablesPatch:
-    async def test_rejects_secret_column(self, app_client: AsyncClient, db_session) -> None:
-        user = await persist(db_session, make_user(role=PortalRole.ORG))
-        res = await app_client.patch(
-            f"/api/admin/tables/users/{user.id}",
-            json={"fields": {"passwordHash": "x"}},
-            headers=await admin_headers(db_session),
-        )
-        assert res.status_code == 400
-
-    async def test_rejects_status_machine(self, app_client: AsyncClient, db_session) -> None:
-        user = await persist(db_session, make_user(role=PortalRole.ORG))
-        res = await app_client.patch(
-            f"/api/admin/tables/users/{user.id}",
-            json={"fields": {"status": "active"}},
-            headers=await admin_headers(db_session),
-        )
-        assert res.status_code == 400
-
-    async def test_rejects_org_bind_mismatch_columns(
-        self, app_client: AsyncClient, db_session
+    @pytest.mark.parametrize(
+        ("table", "field", "value"),
+        [
+            ("users", "passwordHash", "x"),  # secret column
+            ("users", "status", "active"),  # owned by the status machine
+            ("organizations", "claimedInstagramUsername", "spoofed"),  # bind-mismatch column
+        ],
+    )
+    async def test_rejects_protected_column(
+        self, app_client: AsyncClient, db_session, table: str, field: str, value: str
     ) -> None:
         user = await persist(db_session, make_user(role=PortalRole.ORG))
-        org = await make_org(db_session, user)
+        row_id = user.id if table == "users" else (await make_org(db_session, user)).id
         res = await app_client.patch(
-            f"/api/admin/tables/organizations/{org.id}",
-            json={"fields": {"claimedInstagramUsername": "spoofed"}},
+            f"/api/admin/tables/{table}/{row_id}",
+            json={"fields": {field: value}},
             headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
