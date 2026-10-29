@@ -123,7 +123,7 @@ TABLES: dict[str, TableSpec] = {
         Drop,
         hidden=frozenset(),
         patchable=_DROP_PATCH_KEYS,
-        filterable=frozenset({"id", "brand_id", "brand_tracker_stage", "drop_request_id", "title"}),
+        filterable=frozenset({"id", "brand_id", "drop_request_id", "title"}),
         kind="drop_config",
     ),
     "drop_requests": TableSpec(

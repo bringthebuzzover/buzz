@@ -44,7 +44,7 @@ export default function ApiCompareDropsTable({ drops }: { drops: BrandDropItem[]
                   </Link>
                 </Td>
                 <Td>
-                  <DropStageBadge stage={d.brandTrackerStage} />
+                  <DropStageBadge stage={d.stage} />
                 </Td>
                 <Td className="text-right tabular-nums">{d.totalPosts}</Td>
                 <Td className="text-right tabular-nums">{d.totalEngagement}</Td>
@@ -60,7 +60,7 @@ export default function ApiCompareDropsTable({ drops }: { drops: BrandDropItem[]
               <Link to={`/brand/drops/${d.id}`} className={entityLinkClass}>
                 {d.title}
               </Link>
-              <DropStageBadge stage={d.brandTrackerStage} />
+              <DropStageBadge stage={d.stage} />
               <p className={cn(TEXT.body, "text-muted")}>
                 {d.totalPosts} posts · {d.totalEngagement} engagement · {d.totalReach}{" "}
                 reach

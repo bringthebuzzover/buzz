@@ -12,12 +12,13 @@ from httpx import AsyncClient
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
     OrgUserStatus,
     PortalRole,
 )
 from app.services.drops import apply_to_drop
+from app.timeutils import utcnow
 from tests.conftest import (
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -87,7 +88,7 @@ async def test_apply_rejected_for_non_approved_brand(app_client: AsyncClient, db
 async def test_apply_rejected_for_finished_drop(app_client: AsyncClient, db_session) -> None:
     _, _, headers = await _org_ctx(db_session)
     brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
+    drop = await make_drop(db_session, brand, wrapped_at=utcnow())
 
     resp = await app_client.post(f"/api/drops/{drop.id}/apply", headers=headers, json={})
     assert resp.status_code == 400
@@ -118,25 +119,31 @@ async def test_apply_closed_window_not_open(app_client: AsyncClient, db_session)
         brand,
         apply_open_at=now - timedelta(days=8),
         apply_close_at=now - timedelta(days=1),
-        manual_reopen=False,
     )
     resp = await app_client.post(f"/api/drops/{drop.id}/apply", headers=headers, json={})
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"
 
 
-async def test_apply_manual_reopen_past_close_allowed(app_client: AsyncClient, db_session) -> None:
+async def test_reopen_is_editing_the_close_date(app_client: AsyncClient, db_session) -> None:
+    """No reopen flag: BUZZ moves the close date and the drop is Applying again."""
     _, _, headers = await _org_ctx(db_session)
     brand = await make_brand(db_session)
     now = datetime.now(timezone.utc)
-    # Window closed, but manual_reopen overrides the auto-close.
     drop = await make_drop(
         db_session,
         brand,
         apply_open_at=now - timedelta(days=8),
         apply_close_at=now - timedelta(days=1),
-        manual_reopen=True,
     )
+    new_close_ms = int((now + timedelta(days=3)).timestamp() * 1000)
+    patched = await app_client.patch(
+        f"/api/admin/drops/{drop.id}",
+        json={"applyCloseAt": new_close_ms},
+        headers=await admin_headers(db_session),
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["data"]["stage"] == "applying"
     resp = await app_client.post(f"/api/drops/{drop.id}/apply", headers=headers, json={})
     assert resp.status_code == 200
     assert resp.json()["data"]["decision"] == ApplicationDecision.APPLIED.value
@@ -157,8 +164,7 @@ def _first_call_lineno(func: ast.AsyncFunctionDef, name: str) -> int | None:
 def test_apply_to_drop_locks_drop_before_eligibility() -> None:
     """Apply serializes on ``drops.id`` before accepted_count / eligibility.
 
-    Sequential post-finalize rejection is ``test_apply_finalized_rejected_while_window_open``.
-    This contract blocks the unlocked-row TOCTOU vs concurrent last-seat finalize.
+    This contract blocks the unlocked-row TOCTOU vs a concurrent last-seat accept.
     """
 
     tree = ast.parse(inspect.getsource(apply_to_drop))
@@ -173,24 +179,14 @@ def test_apply_to_drop_locks_drop_before_eligibility() -> None:
     assert lock_at < accepted_at < eligibility_at
 
 
-async def test_apply_finalized_rejected_while_window_open(
+async def test_apply_wrapped_rejected_while_window_open(
     app_client: AsyncClient, db_session
 ) -> None:
-    """Finalized selection blocks apply even if the window is otherwise open."""
+    """A wrapped-up drop takes no applications even if its dates are open."""
 
     _, _, headers = await _org_ctx(db_session)
     brand = await make_brand(db_session)
-    now = datetime.now(timezone.utc)
-    drop = await make_drop(
-        db_session,
-        brand,
-        apply_open_at=now - timedelta(days=1),
-        apply_close_at=now + timedelta(days=7),
-        manual_reopen=False,
-    )
-    drop.applicant_selection_finalized_at = now
-    await db_session.flush()
-
+    drop = await make_drop(db_session, brand, wrapped_at=datetime.now(timezone.utc))
     resp = await app_client.post(f"/api/drops/{drop.id}/apply", headers=headers, json={})
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"

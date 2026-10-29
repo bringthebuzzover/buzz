@@ -9,10 +9,10 @@ from httpx import AsyncClient
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
     OrgUserStatus,
     PortalRole,
 )
+from app.timeutils import utcnow
 from tests.conftest import (
     make_application,
     make_brand,
@@ -127,7 +127,7 @@ async def test_feed_hides_finished_drops(app_client: AsyncClient, db_session) ->
     await make_org(db_session, user)
     brand = await make_brand(db_session)
     await make_drop(db_session, brand, title="Live")
-    await make_drop(db_session, brand, title="Finished", stage=BrandTrackerStage.DROP_FINISHED)
+    await make_drop(db_session, brand, title="Finished", wrapped_at=utcnow())
 
     resp = await app_client.get(
         "/api/drops", headers={"Authorization": f"Bearer {mint_access_token(user)}"}

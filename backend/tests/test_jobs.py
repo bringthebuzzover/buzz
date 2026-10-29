@@ -21,7 +21,6 @@ from app.jobs.token_refresh import refresh_due_tokens
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import (
     ApplicationDecision,
-    BrandTrackerStage,
     OrgUserStatus,
     PortalRole,
     SocialMediaProductType,
@@ -39,6 +38,7 @@ from app.services.instagram_token import (
     refresh_instagram_token,
     time_until_expiry,
 )
+from app.services.lifecycle import ORG_LINK_GRACE
 from app.timeutils import utcnow
 from tests.conftest import (
     FakeInstagramClient,
@@ -84,58 +84,14 @@ class _FailingRefreshClient(FakeInstagramClient):
 # --- 10.2 Drop auto-close ----------------------------------------------------
 
 
-async def test_autoclose_freezes_unpublished_request_received(db_session) -> None:
+async def test_autoclose_is_a_noop(db_session) -> None:
+    """Stages are computed from dates now; the job only reports (removed in PR5)."""
     brand = await make_brand(db_session)
-    drop = await make_drop(
-        db_session,
-        brand,
-        apply_close_at=utcnow() - timedelta(hours=1),
-        published_at=None,
-    )  # unpublished stub, window passed
-    result = await auto_close_drops(db_session)
-
-    assert result["advanced"] == 0
-    assert result["frozen_stubs"] == 1
-    await db_session.refresh(drop)
-    assert drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
-
-
-async def test_autoclose_skips_manual_reopen_and_open_window(db_session) -> None:
-    brand = await make_brand(db_session)
-    reopened = await make_drop(
-        db_session, brand, apply_close_at=utcnow() - timedelta(hours=1), manual_reopen=True
-    )
-    still_open = await make_drop(db_session, brand, apply_close_at=utcnow() + timedelta(days=3))
-    already = await make_drop(
-        db_session,
-        brand,
-        apply_close_at=utcnow() - timedelta(hours=1),
-        stage=BrandTrackerStage.AWAITING_PRODUCTS,
-    )
-
+    closed = await make_drop(db_session, brand, apply_close_at=utcnow() - timedelta(hours=1))
     result = await auto_close_drops(db_session)
     assert result["advanced"] == 0
-    for d in (reopened, still_open, already):
-        await db_session.refresh(d)
-    assert reopened.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
-    assert still_open.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
-    assert already.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value
-
-
-async def test_autoclose_skips_unpublished(db_session) -> None:
-    brand = await make_brand(db_session)
-    unpublished = await make_drop(
-        db_session,
-        brand,
-        apply_close_at=utcnow() - timedelta(hours=1),
-        stage=BrandTrackerStage.AWAITING_PRODUCTS,
-        published_at=None,
-    )
-    result = await auto_close_drops(db_session)
-    assert result["advanced"] == 0
-    await db_session.refresh(unpublished)
-    assert unpublished.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value
-    assert unpublished.published_at is None
+    await db_session.refresh(closed)
+    assert closed.wrapped_at is None
 
 
 # --- 10.3 Token cleanup ------------------------------------------------------
@@ -210,7 +166,7 @@ async def _accepted_live_ctx(db_session, *, handle="nike", hashtag=None):
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
     brand.instagram_handle = handle
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db_session, brand)
     drop.campaign_hashtag = hashtag
     await db_session.flush()
     app = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
@@ -444,7 +400,7 @@ async def test_notify_reminder_ignores_disabled_rows(db_session, monkeypatch) ->
 async def test_notify_reminder_skips_finished_drop(db_session, monkeypatch) -> None:
     monkeypatch.setattr(notify_reminders, "send_drop_opening_reminder_email", _never_called)
     _, _, drop, notify = await _notify_ctx(db_session)
-    drop.brand_tracker_stage = BrandTrackerStage.DROP_FINISHED.value
+    drop.wrapped_at = utcnow()
     await db_session.flush()
 
     result = await send_due_reminders(db_session)
@@ -604,7 +560,7 @@ async def test_metric_sync_discovers_and_refreshes(db_session) -> None:
     org_user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db_session, brand)
     await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
     await db_session.flush()
 
@@ -644,7 +600,7 @@ async def test_metric_sync_stores_long_instagram_media_urls(db_session) -> None:
     org_user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+    drop = await make_drop(db_session, brand)
     await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
     await db_session.flush()
 
@@ -683,7 +639,7 @@ async def test_metric_sync_skips_orgs_without_live_campaign(db_session) -> None:
     org_user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.REQUEST_RECEIVED)
+    drop = await make_drop(db_session, brand)
     await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
     await db_session.flush()
 
@@ -759,7 +715,7 @@ async def _eligible_sync_org(db, *, suffix, days=50):
     user.instagram_token_expires_at = utcnow() + timedelta(days=days)
     org = await make_org(db, user)
     brand = await make_brand(db)
-    drop = await make_drop(db, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db, brand)
     await make_application(db, drop, org, decision=ApplicationDecision.ACCEPTED)
     await db.flush()
     return user, org
@@ -789,7 +745,7 @@ async def test_autolink_ignores_non_accepted_application(db_session) -> None:
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
     brand.instagram_handle = "nike"
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db_session, brand)
     await db_session.flush()
     await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
     await make_social_post(db_session, org, caption="love @nike")
@@ -798,14 +754,15 @@ async def test_autolink_ignores_non_accepted_application(db_session) -> None:
     assert result["suggestions_created"] == 0
 
 
-async def test_autolink_ignores_non_live_stage(db_session) -> None:
+async def test_autolink_ignores_unsent_acceptance(db_session) -> None:
+    """A drafted (unsent) accept is not a live seat yet."""
     org_user = await persist(db_session, make_user(instagram_user_id="ig_notlive"))
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
     brand.instagram_handle = "nike"
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
+    drop = await make_drop(db_session, brand)
     await db_session.flush()
-    await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED, sent=False)
     await make_social_post(db_session, org, caption="love @nike")
     result = await scan_autolink(db_session)
     assert result["applications_scanned"] == 0
@@ -843,14 +800,16 @@ async def test_autolink_matches_exact_underscore_handle(db_session) -> None:
     assert result["suggestions_created"] == 1
 
 
-async def test_autolink_ignores_drop_finished(db_session) -> None:
-    """Finished drops must not mint new suggestions (org UI is read-only there)."""
+async def test_autolink_ignores_drop_wrapped_past_grace(db_session) -> None:
+    """Past the org link grace the org can't act on suggestions, so none are minted."""
 
     org_user = await persist(db_session, make_user(instagram_user_id="ig_finished"))
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
     brand.instagram_handle = "nike"
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
+    drop = await make_drop(
+        db_session, brand, wrapped_at=utcnow() - ORG_LINK_GRACE - timedelta(days=1)
+    )
     await db_session.flush()
     await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
     await make_social_post(db_session, org, caption="love @nike after the drop")
@@ -864,7 +823,7 @@ async def test_autolink_ignores_hidden_drop(db_session) -> None:
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
     brand.instagram_handle = "nike"
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db_session, brand)
     drop.hidden_at = datetime.now(timezone.utc)
     await db_session.flush()
     await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
@@ -881,7 +840,7 @@ async def test_autolink_mints_during_awaiting_products(db_session) -> None:
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
     brand.instagram_handle = "nike"
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+    drop = await make_drop(db_session, brand)
     await db_session.flush()
     await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
     await make_social_post(db_session, org, caption="love @nike while shipping")
@@ -897,7 +856,7 @@ async def test_autolink_does_not_remint_after_advance_to_drop_active(db_session)
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
     brand.instagram_handle = "nike"
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+    drop = await make_drop(db_session, brand)
     await db_session.flush()
     await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
     await make_social_post(db_session, org, caption="teaser @nike before active")
@@ -905,7 +864,7 @@ async def test_autolink_does_not_remint_after_advance_to_drop_active(db_session)
     shipping = await scan_autolink(db_session)
     assert shipping["suggestions_created"] == 1
 
-    drop.brand_tracker_stage = BrandTrackerStage.DROP_ACTIVE.value
+    drop.wrapped_at = utcnow()  # recently wrapped: still scanned, no duplicates
     await db_session.flush()
     active = await scan_autolink(db_session)
     assert active["applications_scanned"] == 1
@@ -1578,7 +1537,7 @@ async def test_metric_sync_refreshes_followers_when_candidate_query_misses_role(
     org = await make_org(db_session, user, org_name="Brand Owned Org")
     org.follower_count = 80
     brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db_session, brand)
     await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
     post = _raw_post(
         org.id,

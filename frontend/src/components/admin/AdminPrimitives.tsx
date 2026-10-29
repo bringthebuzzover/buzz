@@ -61,7 +61,6 @@ function badgeKindForStatus(status: string): BadgeKind {
     status === "pending_approval" ||
     status === "pending_review" ||
     status === "received" ||
-    status === "request_received" ||
     status === "applied"
   ) {
     return "live";
@@ -70,14 +69,13 @@ function badgeKindForStatus(status: string): BadgeKind {
     status === "pending_org_profile" ||
     status === "draft" ||
     status === "hidden" ||
-    status === "drop_finished"
+    status === "wrapped"
   ) {
     return "quiet";
   }
   if (
     status.startsWith("pending") ||
-    status.startsWith("awaiting") ||
-    status.startsWith("finalizing")
+    status.startsWith("awaiting")
   ) {
     return "attention";
   }
@@ -160,15 +158,11 @@ export function IgBindMismatchChip() {
   return <AdminBadge kind="live">IG bind mismatch</AdminBadge>;
 }
 
-/** Tracker stage. Live wash for a new request, yellow line while it is moving, quiet when finished. */
+/** Drop stage. Live wash while applying, yellow line while it is moving, quiet when draft or wrapped. */
 export function StagePill({ stage }: { stage: string }) {
   let kind: BadgeKind = "quiet";
-  if (stage === "request_received") kind = "live";
-  else if (
-    stage === "finalizing_agreements" ||
-    stage === "awaiting_products" ||
-    stage === "drop_active"
-  ) {
+  if (stage === "applying") kind = "live";
+  else if (stage === "upcoming" || stage === "selecting" || stage === "live") {
     kind = "attention";
   }
   return (

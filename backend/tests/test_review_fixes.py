@@ -12,7 +12,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.config import settings
-from app.models.enums import ApplicationDecision, BrandTrackerStage, PortalRole
+from app.models.enums import ApplicationDecision, PortalRole
 from app.security import rate_limit
 from tests.conftest import (
     make_application,
@@ -37,7 +37,7 @@ async def _brand_ctx(db_session):
 # --- B1: application-denial emails (§7.1) ------------------------------------
 
 
-async def test_finalize_emails_denied_applicants(
+async def test_send_decisions_emails_denied_applicants(
     app_client: AsyncClient, db_session, monkeypatch
 ) -> None:
     _, brand, headers = await _brand_ctx(db_session)
@@ -45,7 +45,6 @@ async def test_finalize_emails_denied_applicants(
     drop = await make_drop(
         db_session,
         brand,
-        stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
         apply_close_at=past,
         capacity_total=5,
     )
@@ -54,22 +53,24 @@ async def test_finalize_emails_denied_applicants(
     denied_user = await persist(db_session, make_user(instagram_user_id="ig_den"))
     denied_org = await make_org(db_session, denied_user, org_name="Denied Org")
     denied_user.edu_email = "denied@campus.edu"
-    await make_application(db_session, drop, accepted_org, decision=ApplicationDecision.APPLIED)
-    await make_application(db_session, drop, denied_org, decision=ApplicationDecision.APPLIED)
+    accepted = await make_application(
+        db_session, drop, accepted_org, decision=ApplicationDecision.ACCEPTED, sent=False
+    )
+    await make_application(
+        db_session, drop, denied_org, decision=ApplicationDecision.DENIED, sent=False
+    )
     await db_session.flush()
+    assert accepted.decision_sent_at is None
 
     sent: list[dict] = []
 
     async def _capture(to_email, **kwargs):
         sent.append({"to": to_email, **kwargs})
+        return True
 
-    monkeypatch.setattr("app.services.brands.send_application_denied_email", _capture)
+    monkeypatch.setattr("app.services.seats.send_application_denied_email", _capture)
 
-    resp = await app_client.post(
-        f"/api/brands/me/drops/{drop.id}/finalize-applicants",
-        json={"allocations": [{"orgId": str(accepted_org.id), "units": 0}]},
-        headers=headers,
-    )
+    resp = await app_client.post(f"/api/brands/me/drops/{drop.id}/send-decisions", headers=headers)
     assert resp.status_code == 200, resp.text
     assert resp.json()["data"]["deniedCount"] == 1
 
@@ -81,7 +82,7 @@ async def test_finalize_emails_denied_applicants(
     assert sent[0]["brand_name"] == brand.brand_name
 
 
-async def test_finalize_no_denied_no_email(
+async def test_send_decisions_no_denied_no_email(
     app_client: AsyncClient, db_session, monkeypatch
 ) -> None:
     """All applicants accepted → no denial emails."""
@@ -90,26 +91,22 @@ async def test_finalize_no_denied_no_email(
     drop = await make_drop(
         db_session,
         brand,
-        stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
         apply_close_at=past,
     )
     user = await persist(db_session, make_user(instagram_user_id="ig_only"))
     org = await make_org(db_session, user)
-    await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
+    await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED, sent=False)
     await db_session.flush()
 
     sent: list[dict] = []
 
     async def _capture(to_email, **kwargs):
         sent.append({"to": to_email})
+        return True
 
-    monkeypatch.setattr("app.services.brands.send_application_denied_email", _capture)
+    monkeypatch.setattr("app.services.seats.send_application_denied_email", _capture)
 
-    resp = await app_client.post(
-        f"/api/brands/me/drops/{drop.id}/finalize-applicants",
-        json={"allocations": [{"orgId": str(org.id), "units": 0}]},
-        headers=headers,
-    )
+    resp = await app_client.post(f"/api/brands/me/drops/{drop.id}/send-decisions", headers=headers)
     assert resp.status_code == 200, resp.text
     assert sent == []
 
