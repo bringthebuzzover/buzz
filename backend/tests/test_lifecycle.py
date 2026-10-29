@@ -340,6 +340,7 @@ async def test_buzz_removes_with_reason_and_blocks_reapply(
     await db_session.refresh(seat)
     assert seat.decision == ApplicationDecision.ACCEPTED.value
     assert seat.end_reason is None
+    assert seat.decision_sent_at is not None  # late-add is sent, not a draft
 
 
 async def test_delivered_per_seat(app_client: AsyncClient, db_session) -> None:
@@ -609,6 +610,6 @@ async def test_no_decisions_or_sends_on_a_hidden_drop(app_client: AsyncClient, d
         json={"decision": "accepted", "allocatedUnits": 3},
         headers=admin,
     )
-    assert res.json()["error"]["code"] == "DROP_NOT_OPEN"
+    assert res.json()["error"]["code"] == "DROP_HIDDEN"
     res = await app_client.post(f"/api/admin/drops/{drop.id}/send-decisions", headers=admin)
-    assert res.json()["error"]["code"] == "DROP_NOT_OPEN"
+    assert res.json()["error"]["code"] == "DROP_HIDDEN"

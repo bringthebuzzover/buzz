@@ -621,7 +621,7 @@ class TestSeatDecisions:
         now = datetime.now(timezone.utc)
         drop, apps, headers = await self._setup(db_session, apply_close_at=now + timedelta(days=1))
         res = await self._decide(app_client, drop, apps[0], headers, "accepted")
-        assert res.status_code == 400
+        assert res.status_code == 409
         assert res.json()["error"]["code"] == "APPLY_WINDOW_OPEN"
         res = await self._send(app_client, drop, headers)
         assert res.json()["error"]["code"] == "APPLY_WINDOW_OPEN"
@@ -629,7 +629,7 @@ class TestSeatDecisions:
     async def test_wrapped_drop_refuses(self, app_client: AsyncClient, db_session):
         drop, apps, headers = await self._setup(db_session, wrapped_at=datetime.now(timezone.utc))
         res = await self._decide(app_client, drop, apps[0], headers, "accepted")
-        assert res.status_code == 400
+        assert res.status_code == 409
         assert res.json()["error"]["code"] == "DROP_WRAPPED"
 
     async def test_capacity_exceeded(self, app_client: AsyncClient, db_session):

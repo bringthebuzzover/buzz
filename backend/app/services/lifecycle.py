@@ -185,11 +185,39 @@ def drop_running() -> ColumnElement[bool]:
     )
 
 
-def reject_if_canceled(drop: Drop) -> None:
-    """A canceled drop is frozen: no new seats, decisions, shipments or links."""
+_DROP_REFUSAL_MESSAGES = {
+    errors.DROP_CANCELED: "This drop was canceled.",
+    errors.DROP_UNPUBLISHED: "This drop is not published.",
+    errors.DROP_HIDDEN: "This drop is hidden.",
+    errors.DROP_WRAPPED: "This drop is wrapped up.",
+    errors.APPLY_WINDOW_OPEN: "Applications are still open for this drop.",
+}
 
-    if drop.canceled_at is not None:
-        raise BuzzAPIException(errors.DROP_CANCELED, "This drop was canceled.", status_code=409)
+
+def require_drop(
+    drop: Drop,
+    *,
+    published: bool = False,
+    visible: bool = False,
+    unwrapped: bool = False,
+    applications_closed: bool = False,
+) -> None:
+    """The one guard for acting on a drop; each refused state has its own code (409).
+
+    A canceled drop is always refused (frozen: no seats, decisions, shipments
+    or links). The flags add the other states the caller needs the drop in.
+    """
+
+    refusals = (
+        (drop.canceled_at is not None, errors.DROP_CANCELED),
+        (published and drop.published_at is None, errors.DROP_UNPUBLISHED),
+        (visible and drop.hidden_at is not None, errors.DROP_HIDDEN),
+        (unwrapped and drop.wrapped_at is not None, errors.DROP_WRAPPED),
+        (applications_closed and not apply_window_closed(drop, utcnow()), errors.APPLY_WINDOW_OPEN),
+    )
+    for refused, code in refusals:
+        if refused:
+            raise BuzzAPIException(code, _DROP_REFUSAL_MESSAGES[code], status_code=409)
 
 
 def apply_window_closed(drop: Drop, now: datetime) -> bool:

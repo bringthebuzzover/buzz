@@ -71,15 +71,11 @@ from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
-from app.services.lifecycle import (
-    apply_window_closed,
-    drop_stage,
-    reject_if_canceled,
-    seat_is_live,
-)
+from app.services.lifecycle import ENDED_DECISIONS, drop_stage, require_drop, seat_is_live
 from app.services.org_apply import ig_bind_mismatch_open
 from app.services.org_connect import create_org_connect_token
-from app.services.seats import lock_drop
+from app.services.seats import lock_drop, set_seat_decision
+from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -697,16 +693,8 @@ async def add_org_to_drop(
     denial gets a new row.
     """
 
-    drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-    reject_if_canceled(drop)
-    if drop.published_at is None or drop.hidden_at is not None:
-        raise BuzzAPIException(
-            errors.DROP_NOT_ELIGIBLE,
-            "This drop cannot accept a late-add (must be published and visible).",
-            status_code=409,
-        )
+    drop = await lock_drop(db, drop_id)
+    require_drop(drop, published=True, visible=True)
 
     brand = await db.get(Brand, drop.brand_id)
     if brand is None:
@@ -756,34 +744,36 @@ async def add_org_to_drop(
             status_code=409,
         )
 
-    now = datetime.now(timezone.utc)
     units: int | None
     if drop.total_product_units is None:
         units = None
     else:
         units = 0 if allocated_units is None else allocated_units
 
-    if active is not None:
-        application = active
-        application.decision = ApplicationDecision.ACCEPTED.value
-        application.decision_at = now
-        application.decision_sent_at = now
-        application.allocated_units = units
-        application.end_reason = None
-    else:
-        application = DropApplication(
+    if active is None:
+        active = DropApplication(
             id=uuid4(),
             drop_id=drop.id,
             org_id=org.id,
-            decision=ApplicationDecision.ACCEPTED.value,
-            allocated_units=units,
-            applied_at=now,
-            decision_at=now,
-            decision_sent_at=now,
+            decision=ApplicationDecision.APPLIED.value,
+            applied_at=utcnow(),
             added_by="late_add",
         )
-        db.add(application)
-
+        db.add(active)
+        await db.flush()
+    elif active.decision in ENDED_DECISIONS:
+        # A removed seat comes back (a withdrawal got a new row above).
+        active.decision = ApplicationDecision.APPLIED.value
+    application = await set_seat_decision(
+        db,
+        drop,
+        active.id,
+        decision=ApplicationDecision.ACCEPTED.value,
+        allocated_units=units,
+        actor="admin",
+    )
+    # Sent at once: a late-add skips "Send decisions" (its emails are opt-in below).
+    application.decision_at = application.decision_sent_at = utcnow()
     await db.flush()
 
     portal_ready = org_user.status == OrgUserStatus.ACTIVE.value
@@ -840,13 +830,7 @@ async def sync_and_autolink_drop(
     drop = await db.get(Drop, drop_id)
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-    reject_if_canceled(drop)
-    if drop.published_at is None or drop.hidden_at is not None:
-        raise BuzzAPIException(
-            errors.DROP_NOT_ELIGIBLE,
-            "Sync and autolink only run on a published, visible drop.",
-            status_code=409,
-        )
+    require_drop(drop, published=True, visible=True)
     brand = await db.get(Brand, drop.brand_id)
     if brand is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
@@ -898,21 +882,10 @@ async def wrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     """
 
     drop = await lock_drop(db, drop_id)
-    reject_if_canceled(drop)
-    if drop.published_at is None:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR, "Only published drops can be wrapped up.", status_code=409
-        )
-    if drop.wrapped_at is None and (
-        drop.hidden_at is not None or not apply_window_closed(drop, datetime.now(timezone.utc))
-    ):
-        # Wrap-up follows Selecting or Live; close applications first.
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Close applications (move the close date) before wrapping up; unhide a hidden drop"
-            " first.",
-            status_code=409,
-        )
+    # Wrap-up follows Selecting or Live: close applications and unhide first.
+    # Wrapping a wrapped drop again is a no-op.
+    first_wrap = drop.wrapped_at is None
+    require_drop(drop, published=True, visible=first_wrap, applications_closed=first_wrap)
     if drop.wrapped_at is None:
         drafted = await db.scalar(
             select(func.count()).where(
@@ -955,7 +928,7 @@ async def unwrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     """Undo a wrap-up; the stage goes back to whatever the dates and seats say."""
 
     drop = await lock_drop(db, drop_id)
-    reject_if_canceled(drop)
+    require_drop(drop)
     was_wrapped = drop.wrapped_at is not None
     drop.wrapped_at = None
     stage = await drop_stage(db, drop)
@@ -977,13 +950,7 @@ async def cancel_drop(db: AsyncSession, drop_id: UUID, *, confirm: str) -> dict[
         raise BuzzAPIException(
             errors.VALIDATION_ERROR, "Type the drop title to confirm.", status_code=400
         )
-    reject_if_canceled(drop)
-    if drop.published_at is None or drop.wrapped_at is not None:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Only a published drop that is not wrapped up can be canceled.",
-            status_code=409,
-        )
+    require_drop(drop, published=True, unwrapped=True)
     drop.canceled_at = datetime.now(timezone.utc)
     db.add(DropTrackerEvent(drop_id=drop.id, stage=DropStage.CANCELED.value, note="canceled"))
     await db.flush()
@@ -1283,7 +1250,7 @@ async def update_drop_config(
     drop = await db.get(Drop, drop_id)
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-    reject_if_canceled(drop)
+    require_drop(drop)
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:

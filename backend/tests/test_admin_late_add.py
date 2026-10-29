@@ -143,14 +143,14 @@ class TestAdminLateAdd:
         await db_session.flush()
         _, org = await _org(db_session)
         headers = await admin_headers(db_session)
-        for drop in (draft, hidden):
+        for drop, code in ((draft, "DROP_UNPUBLISHED"), (hidden, "DROP_HIDDEN")):
             res = await app_client.post(
                 f"/api/admin/drops/{drop.id}/add-org",
                 json={"orgId": str(org.id)},
                 headers=headers,
             )
             assert res.status_code == 409, drop.title
-            assert res.json()["error"]["code"] == "DROP_NOT_ELIGIBLE"
+            assert res.json()["error"]["code"] == code
 
     async def test_retro_add_to_wrapped_drop(self, app_client: AsyncClient, db_session):
         """BUZZ can seat an org on a wrapped drop (retro); it is live and sent at once."""
