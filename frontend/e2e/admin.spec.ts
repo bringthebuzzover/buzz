@@ -173,7 +173,7 @@ test("the UI kit is admin-only and omitted from the public tree", async ({
 
   await page.goto("/dev/ui-kit");
   await page
-    .getByText(/restoring your session/i)
+    .getByTestId("auth-pending")
     .waitFor({ state: "hidden", timeout: 8_000 })
     .catch(() => undefined);
   await expect(page.getByRole("heading", { name: "UI kit" })).toHaveCount(0);
@@ -249,7 +249,7 @@ test("org detail opens from the list", async ({ page }) => {
   // SPA nav keeps the in-memory access token; cold goto is covered by reload.
   await sidebar(page).getByRole("link", { name: /organizations/i }).click();
   await expect(page).toHaveURL(/\/admin\/orgs$/);
-  await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
+  await expect(page.getByTestId("admin-login-submit")).toHaveCount(0);
   const orgRow = page.getByRole("row", { name: new RegExp(TEST_ORG) });
   await expect(orgRow).toBeVisible();
   await orgRow.getByRole("link", { name: TEST_ORG }).click();
@@ -262,7 +262,7 @@ test("admin views as an org from a row and can exit", async ({ page }) => {
   await loginAsAdmin(page);
   await sidebar(page).getByRole("link", { name: /organizations/i }).click();
   await expect(page).toHaveURL(/\/admin\/orgs$/);
-  await expect(page.getByRole("heading", { name: /admin login/i })).toHaveCount(0);
+  await expect(page.getByTestId("admin-login-submit")).toHaveCount(0);
 
   const orgRow = page.getByRole("row", { name: new RegExp(TEST_ORG) });
   await orgRow.getByRole("button", { name: /view as/i }).click();

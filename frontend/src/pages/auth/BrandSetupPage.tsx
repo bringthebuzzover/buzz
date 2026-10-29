@@ -10,7 +10,8 @@ import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useBrandSetPassword } from "../../api/hooks/useOnboardingHooks";
 import { useAuth } from "../../contexts/AuthContext";
 import { ApiError } from "../../api/client";
-import AuthShell from "../../components/site/AuthShell";
+import { AuthHeading, AuthSplit } from "../../components/auth/AuthFrame";
+import AuthPending from "../../components/auth/AuthPending";
 import {
   Button,
   ErrorBanner,
@@ -41,13 +42,7 @@ export default function BrandSetupPage() {
   // Wait for bootstrap. Redirecting on the first paint races View-as resume
   // and used to dump an admin on the public home.
   if (status === "idle" || status === "authenticating") {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm font-medium text-buzz-inkMuted">
-          Restoring your session…
-        </p>
-      </div>
-    );
+    return <AuthPending />;
   }
 
   if (status === "authenticated" && user && (!token || user.impersonatedBy)) {
@@ -109,22 +104,21 @@ export default function BrandSetupPage() {
   };
 
   return (
-    <AuthShell align="center">
-      <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
-        Set Up Your <span className="text-buzz-coral">Brand Account</span>
-      </h1>
-      <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
+    <AuthSplit>
+      <AuthHeading kicker="Brand" title="Set Up Your Brand Account">
         Choose a password to finish activating your account.
-      </p>
+      </AuthHeading>
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-6">
         <TextField
           type="password"
           label="Password"
           value={password}
           onChange={(e) => setPasswordValue(e.target.value)}
-          placeholder="At least 8 characters"
+          placeholder="Choose a password"
+          hint="At least 8 characters"
           required
+          autoComplete="new-password"
         />
 
         <TextField
@@ -132,19 +126,17 @@ export default function BrandSetupPage() {
           label="Confirm password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
+          placeholder="Repeat the password"
           required
+          autoComplete="new-password"
         />
 
         {error && <ErrorBanner>{error}</ErrorBanner>}
 
-        <Button
-          type="submit"
-          disabled={setPassword.isPending}
-          fullWidth
-        >
-          {setPassword.isPending ? "Saving…" : "Activate account"}
+        <Button type="submit" size="field" disabled={setPassword.isPending} fullWidth>
+          Activate account
         </Button>
       </form>
-    </AuthShell>
+    </AuthSplit>
   );
 }

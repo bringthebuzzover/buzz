@@ -2,10 +2,14 @@
  * Shared forgot-password form for brand and admin portals.
  */
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { ApiError } from "../../api/client";
 import { useForgotPassword } from "../../api/hooks/usePasswordResetHooks";
-import AuthShell from "../../components/site/AuthShell";
+import {
+  AuthBackLink,
+  AuthCenter,
+  AuthHeading,
+  AuthSplit,
+} from "../../components/auth/AuthFrame";
 import {
   Button,
   ErrorBanner,
@@ -17,9 +21,18 @@ type Props = {
   portal: "brand" | "admin";
   loginPath: string;
   title: string;
+  kicker: string;
+  /** Brand keeps the photo aside. Admin uses the minimal header shell. */
+  frame: "aside" | "admin";
 };
 
-export default function ForgotPasswordPage({ portal, loginPath, title }: Props) {
+export default function ForgotPasswordPage({
+  portal,
+  loginPath,
+  title,
+  kicker,
+  frame,
+}: Props) {
   const forgot = useForgotPassword(portal);
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -40,53 +53,43 @@ export default function ForgotPasswordPage({ portal, loginPath, title }: Props) 
     }
   };
 
-  return (
-    <AuthShell align="center">
-      <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
-        {title.split(" ")[0]}{" "}
-        <span className="text-buzz-coral">{title.split(" ").slice(1).join(" ") || "Password"}</span>
-      </h1>
-      <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
+  const body = (
+    <>
+      <AuthHeading kicker={kicker} title={title}>
         Enter your account email and we&apos;ll send a reset link if it matches
         an account.
-      </p>
+      </AuthHeading>
 
       {done ? (
-        <div className="space-y-4 text-center">
+        <div className="space-y-6">
           <SuccessBanner>
             If an account exists for that email, a reset link is on its way.
           </SuccessBanner>
-          <Link
-            to={loginPath}
-            className="inline-block text-sm font-semibold text-buzz-coral hover:underline"
-          >
-            Back to login
-          </Link>
+          <AuthBackLink to={loginPath}>Back to login</AuthBackLink>
         </div>
       ) : (
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-6">
           <TextField
             type="email"
             label="Email"
+            placeholder="e.g. you@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="username"
           />
           {error && <ErrorBanner>{error}</ErrorBanner>}
-          <Button
-            type="submit"
-            disabled={forgot.isPending}
-            fullWidth
-          >
-            {forgot.isPending ? "Sending…" : "Send reset link"}
+          <Button type="submit" size="field" disabled={forgot.isPending} fullWidth>
+            Send reset link
           </Button>
-          <p className="text-center text-sm text-buzz-inkMuted">
-            <Link to={loginPath} className="font-semibold text-buzz-coral hover:underline">
-              Back to login
-            </Link>
-          </p>
+          <AuthBackLink to={loginPath}>Back to login</AuthBackLink>
         </form>
       )}
-    </AuthShell>
+    </>
   );
+
+  if (frame === "admin") {
+    return <AuthCenter>{body}</AuthCenter>;
+  }
+  return <AuthSplit>{body}</AuthSplit>;
 }
