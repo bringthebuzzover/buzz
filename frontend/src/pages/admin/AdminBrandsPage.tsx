@@ -226,7 +226,10 @@ export default function AdminBrandsPage() {
                   )}
                 </Cell>
                 <Cell>
-                  <StatusPill status={row.status} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusPill status={row.status} />
+                    {row.igChangePending ? <Pill tone="warn">IG change</Pill> : null}
+                  </div>
                 </Cell>
                 <Cell>
                   <AccessPill row={row} />

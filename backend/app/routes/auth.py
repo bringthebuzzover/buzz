@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.config import settings
-from app.deps.auth import get_current_user
+from app.deps.auth import CurrentBrand, get_current_user
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
@@ -42,6 +42,7 @@ from app.schemas.auth import (
 )
 from app.schemas.onboarding import (
     AdminLoginRequest,
+    BrandChangePasswordRequest,
     BrandLoginRequest,
     BrandSetPasswordRequest,
     CancelPendingEduEmailRequest,
@@ -67,7 +68,13 @@ from app.services.auth import (
     issue_token_pair,
     revoke_instagram_authorization,
 )
-from app.services.brand_auth import login_brand, set_brand_password
+from app.services.brand_auth import change_brand_password, login_brand, set_brand_password
+from app.services.brands import _require_brand
+from app.services.email import (
+    KIND_PASSWORD_CHANGED,
+    build_idempotency_key,
+    send_brand_password_changed_email,
+)
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.onboarding import (
     cancel_pending_edu_email,
@@ -763,6 +770,54 @@ async def brand_reset_password(
         db, portal="brand", token=payload.token, password=payload.password
     )
     return api_response(data=OkResponse.model_validate(result))
+
+
+@router.post(
+    "/brand/change-password",
+    response_model=DataResponse[TokenResponse],
+    dependencies=[Depends(rate_limited("brand_change_pw", limit=5, window=60))],
+)
+async def brand_change_password(
+    payload: BrandChangePasswordRequest,
+    response: Response,
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Change the signed-in brand's password and keep this session.
+
+    Per-IP limit is the route dependency. Per-account limit, the current
+    password check, and the View-as refusal live in ``change_brand_password``.
+    ``issue_token_pair`` bumps ``token_version`` (other sessions die) and
+    commits before the notice email.
+    """
+    brand = await _require_brand(db, user)
+    await change_brand_password(
+        db,
+        user,
+        current_password=payload.current_password,
+        new_password=payload.new_password,
+    )
+    access, refresh = await issue_token_pair(db, user)
+    _set_refresh_cookie(response, refresh)
+    email_sent = await send_brand_password_changed_email(
+        brand.company_email,
+        idempotency_key=build_idempotency_key(
+            KIND_PASSWORD_CHANGED, user.id, user.token_version or 0
+        ),
+    )
+    logger.info(
+        "brand_password_changed user_id=%s email_sent=%s",
+        user.id,
+        email_sent,
+    )
+    user_resp = UserResponse(
+        id=user.id,
+        portal_role=user.portal_role,
+        status=user.status,
+        instagram_username=user.instagram_username,
+        email=brand.company_email,
+    )
+    return api_response(data=TokenResponse(access_token=access, user=user_resp))
 
 
 # ── Admin auth ──────────────────────────────────────────────────────────────

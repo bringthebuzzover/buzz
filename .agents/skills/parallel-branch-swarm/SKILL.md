@@ -7,7 +7,7 @@ description: >-
   merge, verify acceptance, one integrated ci-local, merge PRs on ask
   (never push `main`). Use when the
   user says swarm parallel, parallel branches, parallel slices, run N in
-  parallel, or wants the multi-branch handoff used for independent gaps/clusters.
+  parallel, or wants the multi-branch handoff used for independent gap clusters.
 ---
 
 # Parallel branch swarm
@@ -15,7 +15,7 @@ description: >-
 Orchestrator + **N** branch workers for **disjoint** slices. Agent map:
 [`AGENTS.md`](../../../AGENTS.md).
 
-**Not** a substitute for [`fix-gap-cluster`](../fix-gap-cluster/SKILL.md)
+**Not** a substitute for buzz-ops `skills/dev/fix-gap-cluster`
 when work is one tightly coupled cluster. Prefer that skill for serial
 single-cluster runs.
 
@@ -24,7 +24,7 @@ single-cluster runs.
 User intent matches:
 
 - `swarm parallel` / `parallel branches` / `parallel slices`
-- Run **multiple** independent gaps/clusters/features at once on separate branches
+- Run **multiple** independent gap clusters or features at once on separate branches
 - Explicit “like the edu / filters / logistics handoff”
 
 ## When not to use
@@ -38,9 +38,9 @@ User intent matches:
 
 | What | Where |
 |------|--------|
-| Gap details / `fix_when` | `gaps/<id>.md` |
-| Cluster approach / `stop_if` | `gaps/CLUSTERS.md` |
-| Behavior | [`PRODUCT.md`](../../../PRODUCT.md) |
+| Gap details / `fix_when` | buzz-ops `engineering/gaps/<id>.md` |
+| Cluster approach / `stop_if` | buzz-ops `engineering/gaps/QUEUE.md` |
+| Behavior | buzz-ops `product/PRODUCT.md` |
 | DoD | [`AGENTS.md`](../../../AGENTS.md) — simplify-pass + `./scripts/ci-local.sh` |
 | Shell habit | [`.cursor/rules/shell-one-by-one.mdc`](../../../.cursor/rules/shell-one-by-one.mdc) |
 
@@ -56,7 +56,7 @@ Follow **in order**. Do not launch workers before phases 0–3.
 
 1. List candidate slices (gap ids / brief task specs).
 2. Resolve PRODUCT / UX / `stop_if` asks with the user.
-3. Write locks into living SOT (`gaps/<id>.md`, cluster `approach` / cleared
+3. Write locks into living SOT (buzz-ops `engineering/gaps/<id>.md`, cluster `approach` / cleared
    `stop_if`) so workers do not re-ask.
 4. Stop if any slice still has an open fork.
 
@@ -69,7 +69,7 @@ orchestration plan). For **each** slice, determine:
 |-------|----------------|
 | **Owns** | Primary files, routes, schemas, PRODUCT §§ |
 | **Must not touch** | Explicit out-of-scope paths (sibling slices) |
-| **Shared touchpoints** | e.g. `gaps/CLUSTERS.md`, `openapi.json`, `AdminPrimitives` — mark “conflicts OK at merge” or assign a single owner |
+| **Shared touchpoints** | e.g. buzz-ops `engineering/gaps/QUEUE.md`, `openapi.json`, `AdminPrimitives` — mark “conflicts OK at merge” or assign a single owner |
 | **Coupling risk** | Same model/migration/OpenAPI path? → merge slices or serialize |
 | **Worker limits** | Cloud vs worktree; no local MCP in cloud; isolated DB name if local Postgres races |
 | **Acceptance SOT** | Gap `fix_when` / Locked v1 / cluster approach path |
@@ -113,7 +113,7 @@ files explicitly allowed as merge-time conflicts).
 12. Fetch branches. Land them in the matrix merge-order hint by merging each
     pull request on GitHub (default: fewer shared-file touches first, or
     documented preference). Do not push a local merge of `main`.
-13. Resolve conflicts (`CLUSTERS.md`, OpenAPI/schema, shared primitives).
+13. Resolve conflicts (buzz-ops `engineering/gaps/QUEUE.md`, OpenAPI/schema, shared primitives).
 14. Reconcile cluster/queue status so archived gaps and `status: done` match reality.
 
 ### Phase 6 — Verify
@@ -139,7 +139,7 @@ files explicitly allowed as merge-time conflicts).
 18. Never push `main`. Merge the pull request(s) on GitHub only when required
     checks are green, conversations are resolved, **and** the user asks
     (or already authorized merge if green).
-19. Report: SHAs, PRs, residuals, whether any new `gaps/<id>.md` were filed.
+19. Report: SHAs, PRs, residuals, whether any new buzz-ops `engineering/gaps/<id>.md` were filed.
 
 ---
 
@@ -153,7 +153,7 @@ Mandatory; no skipping:
 4. Implement **only** locked approach / owns list.
 5. [`simplify-pass`](../simplify-pass/SKILL.md) then full `./scripts/ci-local.sh`
    (isolated DB name recommended when sharing Postgres).
-6. Archive **only** its gap (`status: fixed`); may touch `CLUSTERS.md` (conflicts OK).
+6. Archive **only** its gap (`status: fixed`); may touch buzz-ops `engineering/gaps/QUEUE.md` (conflicts OK).
 7. Commit + push **feature branch**; open a pull request into `main`.
 8. **Never** merge/push `main`.
 9. Final report: branch, PR URL, commit SHA(s), ci-local result, residual risk.
@@ -177,4 +177,4 @@ Mandatory; no skipping:
 - No PRODUCT drift without prior ask + SOT write.
 - Nobody pushes `main` (workers or orchestrator). Orchestrator never skips integrated `ci-local`.
 - Never act on unverified subagent findings.
-- File new gaps for out-of-scope holes ([`file-gap`](../file-gap/SKILL.md)); do not bury in chat.
+- File new gaps for out-of-scope holes (buzz-ops `skills/dev/file-gap`); do not bury in chat.

@@ -27,6 +27,10 @@ from app.schemas.brands import (
     BrandDropCreativePatch,
     BrandDropDetailResponse,
     BrandDropListItem,
+    BrandIgChangeRequestCreate,
+    BrandIgChangeRequestResponse,
+    BrandIgChangeRequestState,
+    BrandProfilePatch,
     BrandProfileResponse,
     EngagementSeriesPoint,
     FinalizeApplicantsRequest,
@@ -34,6 +38,12 @@ from app.schemas.brands import (
 from app.schemas.drops import BrandDropRequestCreate, BrandDropRequestResponse
 from app.security.rate_limit import rate_limited
 from app.services.brand_auth import apply_brand
+from app.services.brand_ig_change_requests import (
+    get_request_state as get_brand_ig_change_state,
+)
+from app.services.brand_ig_change_requests import (
+    submit_request as submit_brand_ig_change,
+)
 from app.services.brands import (
     _drop_aggregate,
     _require_brand,
@@ -95,6 +105,58 @@ async def get_brand_profile(
 ) -> APIResponse:
     brand = await _require_brand(db, user)
     return api_response(data=BrandProfileResponse.model_validate(brand, from_attributes=True))
+
+
+@router.patch(
+    "/me",
+    response_model=DataResponse[BrandProfileResponse],
+    dependencies=[Depends(rate_limited("brand_profile_patch", limit=10, window=60))],
+)
+async def patch_brand_profile(
+    payload: BrandProfilePatch,
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Update the brand's display name. Handle and email are not accepted."""
+    brand = await _require_brand(db, user)
+    if payload.brand_name is not None:
+        brand.brand_name = payload.brand_name
+    await db.flush()
+    return api_response(data=BrandProfileResponse.model_validate(brand, from_attributes=True))
+
+
+@router.get(
+    "/me/ig-change-request",
+    response_model=DataResponse[BrandIgChangeRequestState],
+)
+async def get_my_brand_ig_change_request(
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    brand = await _require_brand(db, user)
+    state = await get_brand_ig_change_state(db, brand)
+    return api_response(data=BrandIgChangeRequestState.model_validate(state))
+
+
+@router.post(
+    "/me/ig-change-requests",
+    response_model=DataResponse[BrandIgChangeRequestResponse],
+    dependencies=[Depends(rate_limited("brand_ig_change", limit=10, window=60))],
+)
+async def create_my_brand_ig_change_request(
+    payload: BrandIgChangeRequestCreate,
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    brand = await _require_brand(db, user)
+    row = await submit_brand_ig_change(
+        db,
+        brand,
+        user,
+        requested_handle=payload.requested_handle,
+        reason=payload.reason,
+    )
+    return api_response(data=BrandIgChangeRequestResponse.model_validate(row))
 
 
 @router.post(

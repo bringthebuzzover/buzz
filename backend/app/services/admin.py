@@ -35,6 +35,7 @@ from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.schemas.admin import AdminDropConfigPatch, AdminDropCreateRequest
 from app.security.session import bump_token_version, commit_revocation
+from app.services.brand_ig_change_requests import brands_with_pending_ig_change
 from app.services.brands import finalize_applicants
 from app.services.drop_apply_intents import (
     expire_open_intents_for_org,
@@ -412,6 +413,7 @@ async def list_brands(db: AsyncSession, *, status: str | None = None) -> list[di
         stmt = stmt.where(Brand.status != BrandStatus.ERASED.value)
 
     rows = list(await db.execute(stmt))
+    pending_ig = await brands_with_pending_ig_change(db)
     return [
         {
             "id": brand.id,
@@ -426,6 +428,7 @@ async def list_brands(db: AsyncSession, *, status: str | None = None) -> list[di
             "approved_at": brand.approved_at,
             "last_login_at": user.last_login_at,
             "impersonatable": user.status == OrgUserStatus.ACTIVE.value,
+            "ig_change_pending": brand.id in pending_ig,
             "created_at": brand.created_at,
         }
         for brand, user in rows

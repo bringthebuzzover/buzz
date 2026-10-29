@@ -73,6 +73,17 @@ async def _drop_db(admin_url: str, db_name: str) -> None:
         await conn.close()
 
 
+def test_alembic_has_a_single_head() -> None:
+    """Two revisions must not both claim the same parent."""
+
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    cfg = Config(str(_BACKEND_ROOT / "alembic.ini"))
+    heads = ScriptDirectory.from_config(cfg).get_heads()
+    assert len(heads) == 1, heads
+
+
 def _run_alembic(args: list[str], parity_url: str) -> subprocess.CompletedProcess[str]:
     """Invoke ``poetry run alembic ...`` against the parity database."""
 

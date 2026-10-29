@@ -18,6 +18,7 @@ from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.brand import Brand
+from app.models.brand_ig_change_request import BrandIgChangeRequest
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import ApplicationDecision, BrandStatus, OrgUserStatus, PortalRole
 from app.models.organization import Organization
@@ -223,6 +224,7 @@ async def erase_brand(db: AsyncSession, brand_id: UUID, confirm: str) -> dict[st
         raise BuzzAPIException(errors.NOT_FOUND, "Brand user not found.", status_code=404)
 
     await db.execute(delete(BrandInviteToken).where(BrandInviteToken.brand_id == brand.id))
+    await db.execute(delete(BrandIgChangeRequest).where(BrandIgChangeRequest.brand_id == brand.id))
     await _delete_user_tokens(db, user.id)
 
     brand.brand_name = _TOMBSTONE_BRAND_NAME

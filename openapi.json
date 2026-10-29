@@ -558,6 +558,16 @@
             "title": "Passwordset",
             "type": "boolean"
           },
+          "pendingIgChange": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminBrandPendingIgChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "status": {
             "title": "Status",
             "type": "string"
@@ -641,6 +651,78 @@
         "title": "AdminBrandEraseResponse",
         "type": "object"
       },
+      "AdminBrandIgChangeRequestItem": {
+        "properties": {
+          "brandId": {
+            "format": "uuid",
+            "title": "Brandid",
+            "type": "string"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "companyEmail": {
+            "title": "Companyemail",
+            "type": "string"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "currentHandle": {
+            "title": "Currenthandle",
+            "type": "string"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "title": "Userid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "brandId",
+          "userId",
+          "brandName",
+          "companyEmail",
+          "currentHandle",
+          "requestedHandle",
+          "reason",
+          "status",
+          "createdAt"
+        ],
+        "title": "AdminBrandIgChangeRequestItem",
+        "type": "object"
+      },
       "AdminBrandInviteResponse": {
         "description": "Approve / create-with-approve / resend-invite (may include email_sent).",
         "properties": {
@@ -709,6 +791,11 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "igChangePending": {
+            "default": false,
+            "title": "Igchangepending",
+            "type": "boolean"
           },
           "impersonatable": {
             "title": "Impersonatable",
@@ -781,6 +868,41 @@
           "createdAt"
         ],
         "title": "AdminBrandItem",
+        "type": "object"
+      },
+      "AdminBrandPendingIgChange": {
+        "description": "Open brand handle-change ticket on ``AdminBrandDetail``.",
+        "properties": {
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "currentHandle": {
+            "title": "Currenthandle",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "currentHandle",
+          "requestedHandle",
+          "reason",
+          "createdAt"
+        ],
+        "title": "AdminBrandPendingIgChange",
         "type": "object"
       },
       "AdminBrandStatusResponse": {
@@ -3601,6 +3723,26 @@
         "title": "BrandApplyResponse",
         "type": "object"
       },
+      "BrandChangePasswordRequest": {
+        "additionalProperties": false,
+        "description": "Signed-in brand password change. Wrong current password is not a 401.",
+        "properties": {
+          "currentPassword": {
+            "title": "Currentpassword",
+            "type": "string"
+          },
+          "newPassword": {
+            "title": "Newpassword",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "title": "BrandChangePasswordRequest",
+        "type": "object"
+      },
       "BrandDropCreativePatch": {
         "additionalProperties": false,
         "description": "Brand-owned title/description/image patch (omit = leave alone).",
@@ -4612,6 +4754,103 @@
         "title": "BrandDropRequestResponse",
         "type": "object"
       },
+      "BrandIgChangeRequestCreate": {
+        "additionalProperties": false,
+        "description": "Body for ``POST /api/brands/me/ig-change-requests``.",
+        "properties": {
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestedHandle",
+          "reason"
+        ],
+        "title": "BrandIgChangeRequestCreate",
+        "type": "object"
+      },
+      "BrandIgChangeRequestResponse": {
+        "properties": {
+          "createdAt": {
+            "title": "Createdat",
+            "type": "integer"
+          },
+          "currentHandle": {
+            "title": "Currenthandle",
+            "type": "string"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedat"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestedHandle": {
+            "title": "Requestedhandle",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "currentHandle",
+          "requestedHandle",
+          "reason",
+          "status",
+          "createdAt"
+        ],
+        "title": "BrandIgChangeRequestResponse",
+        "type": "object"
+      },
+      "BrandIgChangeRequestState": {
+        "description": "``GET /api/brands/me/ig-change-request``.",
+        "properties": {
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandIgChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pending": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandIgChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "BrandIgChangeRequestState",
+        "type": "object"
+      },
       "BrandLoginRequest": {
         "description": "Brand email + password login.",
         "properties": {
@@ -4629,6 +4868,25 @@
           "password"
         ],
         "title": "BrandLoginRequest",
+        "type": "object"
+      },
+      "BrandProfilePatch": {
+        "additionalProperties": false,
+        "description": "``PATCH /api/brands/me``. Omitted fields stay. ``instagramHandle`` and\n``email`` are rejected (``extra=forbid``); handle changes are a request.",
+        "properties": {
+          "brandName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brandname"
+          }
+        },
+        "title": "BrandProfilePatch",
         "type": "object"
       },
       "BrandProfileResponse": {
@@ -5253,6 +5511,44 @@
           }
         },
         "title": "DataResponse[AdminBrandEraseResponse]",
+        "type": "object"
+      },
+      "DataResponse_AdminBrandIgChangeRequestItem_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminBrandIgChangeRequestItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminBrandIgChangeRequestItem]",
         "type": "object"
       },
       "DataResponse_AdminBrandInviteResponse_": {
@@ -6089,6 +6385,82 @@
           }
         },
         "title": "DataResponse[BrandDropRequestResponse]",
+        "type": "object"
+      },
+      "DataResponse_BrandIgChangeRequestResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandIgChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[BrandIgChangeRequestResponse]",
+        "type": "object"
+      },
+      "DataResponse_BrandIgChangeRequestState_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BrandIgChangeRequestState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[BrandIgChangeRequestState]",
         "type": "object"
       },
       "DataResponse_BrandProfileResponse_": {
@@ -7267,6 +7639,48 @@
           }
         },
         "title": "DataResponse[VerifyEmailResponse]",
+        "type": "object"
+      },
+      "DataResponse_list_AdminBrandIgChangeRequestItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminBrandIgChangeRequestItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[AdminBrandIgChangeRequestItem]]",
         "type": "object"
       },
       "DataResponse_list_AdminBrandItem__": {
@@ -10609,6 +11023,189 @@
           }
         },
         "summary": "Delete Application Shipment",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/brand-ig-change-requests": {
+      "get": {
+        "operationId": "list_brand_ig_change_requests_endpoint_api_admin_brand_ig_change_requests_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_list_AdminBrandIgChangeRequestItem__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Brand Ig Change Requests Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/brand-ig-change-requests/{request_id}/approve": {
+      "post": {
+        "operationId": "approve_brand_ig_change_request_endpoint_api_admin_brand_ig_change_requests__request_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminBrandIgChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Approve Brand Ig Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/brand-ig-change-requests/{request_id}/deny": {
+      "post": {
+        "operationId": "deny_brand_ig_change_request_endpoint_api_admin_brand_ig_change_requests__request_id__deny_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminBrandIgChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Deny Brand Ig Change Request Endpoint",
         "tags": [
           "admin"
         ]
@@ -14047,6 +14644,66 @@
         ]
       }
     },
+    "/api/auth/brand/change-password": {
+      "post": {
+        "description": "Change the signed-in brand's password and keep this session.\n\nPer-IP limit is the route dependency. Per-account limit, the current\npassword check, and the View-as refusal live in ``change_brand_password``.\n``issue_token_pair`` bumps ``token_version`` (other sessions die) and\ncommits before the notice email.",
+        "operationId": "brand_change_password_api_auth_brand_change_password_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_TokenResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Brand Change Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/auth/brand/forgot-password": {
       "post": {
         "description": "Enumerate-safe brand password-reset request.",
@@ -15097,6 +15754,64 @@
         "tags": [
           "brands"
         ]
+      },
+      "patch": {
+        "description": "Update the brand's display name. Handle and email are not accepted.",
+        "operationId": "patch_brand_profile_api_brands_me_patch",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandProfilePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_BrandProfileResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Patch Brand Profile",
+        "tags": [
+          "brands"
+        ]
       }
     },
     "/api/brands/me/aggregate": {
@@ -15626,6 +16341,114 @@
           }
         },
         "summary": "Get Engagement Series",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
+    "/api/brands/me/ig-change-request": {
+      "get": {
+        "operationId": "get_my_brand_ig_change_request_api_brands_me_ig_change_request_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_BrandIgChangeRequestState_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get My Brand Ig Change Request",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
+    "/api/brands/me/ig-change-requests": {
+      "post": {
+        "operationId": "create_my_brand_ig_change_request_api_brands_me_ig_change_requests_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandIgChangeRequestCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_BrandIgChangeRequestResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Create My Brand Ig Change Request",
         "tags": [
           "brands"
         ]
