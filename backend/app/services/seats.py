@@ -10,8 +10,9 @@ Who may do what:
 
 * **brand** — after applications close, before wrap-up, on unsent seats only,
   within capacity and the unit budget;
-* **BUZZ** — any time, any seat, may overbook. Changing a sent seat makes it
-  unsent again, so the change goes out with the next send.
+* **BUZZ** — any time, any seat, may overbook. Changing a sent decision makes
+  it unsent again, so the change goes out with the next send; changing only
+  the units of a sent acceptance keeps it sent (the seat stays live).
 """
 
 from __future__ import annotations
@@ -125,8 +126,12 @@ async def set_seat_decision(
     else:
         units = None
 
-    changed = decision != application.decision or units != application.allocated_units
-    if not changed:
+    if decision == application.decision:
+        # Same decision: at most a units change. A sent acceptance stays sent
+        # (the seat stays live), so re-allocating units never un-sends it.
+        if units != application.allocated_units:
+            application.allocated_units = units
+            await db.flush()
         return application
     application.decision = decision
     application.allocated_units = units
