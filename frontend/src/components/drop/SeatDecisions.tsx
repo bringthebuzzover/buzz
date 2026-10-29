@@ -1,8 +1,8 @@
 /**
  * Per-seat decisions, shared by the brand and BUZZ drop pages.
  *
- * A decision is a private draft until "Send decisions": then the org is
- * emailed and the seat locks for the brand. Undecided applicants keep waiting
+ * A decision is a private draft until "Send decisions": then the org sees it
+ * (denials are emailed) and the seat locks for the brand. Undecided applicants keep waiting
  * and can be decided in a later round.
  */
 import { useState } from "react";
@@ -76,7 +76,7 @@ export function SendDecisionsBar({
   onSend: () => Promise<unknown>;
   /** Extra line under the counts (e.g. capacity). */
   note?: string;
-  /** Brands can't change a sent decision; BUZZ can. */
+  /** Brands can't change a sent decision; BUZZ can (forward to Accept only). */
   locks?: boolean;
 }) {
   const counts = draftedCounts(seats);
@@ -116,12 +116,12 @@ export function SendDecisionsBar({
           Send decisions
         </Button>
       </div>
-      {sent ? <SuccessBanner>Decisions sent. Organizations were emailed.</SuccessBanner> : null}
+      {sent ? <SuccessBanner>Decisions sent.</SuccessBanner> : null}
       {error || sendError ? <ErrorBanner>{error ?? sendError}</ErrorBanner> : null}
       {open ? (
         <ConfirmDialog
           title="Send decisions"
-          description={`Accept ${counts.accepted} · deny ${counts.denied}. Each organization is emailed${locks ? ", and sent decisions can't be changed" : ""}. Undecided applicants keep waiting.`}
+          description={`Accept ${counts.accepted} · deny ${counts.denied}. Denied organizations are emailed; accepted ones see the campaign in My Campaigns${locks ? ", and sent decisions can't be changed" : ""}. Undecided applicants keep waiting.`}
           confirmLabel="Send decisions"
           pendingLabel="Sending…"
           pending={pending}
