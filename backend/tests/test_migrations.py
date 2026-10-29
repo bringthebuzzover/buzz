@@ -28,6 +28,7 @@ import os
 import secrets
 import shutil
 import subprocess
+import uuid
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -72,6 +73,17 @@ async def _drop_db(admin_url: str, db_name: str) -> None:
         await conn.close()
 
 
+def test_alembic_has_a_single_head() -> None:
+    """Two revisions must not both claim the same parent."""
+
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+
+    cfg = Config(str(_BACKEND_ROOT / "alembic.ini"))
+    heads = ScriptDirectory.from_config(cfg).get_heads()
+    assert len(heads) == 1, heads
+
+
 def _run_alembic(args: list[str], parity_url: str) -> subprocess.CompletedProcess[str]:
     """Invoke ``poetry run alembic ...`` against the parity database."""
 
@@ -114,8 +126,85 @@ async def test_alembic_matches_models() -> None:
             f"alembic check exit {check.returncode}:\n"
             f"STDOUT:\n{check.stdout}\nSTDERR:\n{check.stderr}"
         )
+        await _assert_drop_request_columns_nullable(parity_url)
     finally:
         await _drop_db(admin_url, parity_db)
+
+
+_STRUCTURED_DROP_REQUEST_COLUMNS = (
+    "product",
+    "title",
+    "location",
+    "target_date",
+    "org_count",
+    "units_per_org",
+    "campaign_hashtag",
+)
+
+
+async def _assert_drop_request_columns_nullable(parity_url: str) -> None:
+    """New intake columns are nullable, and a message/notes row still inserts."""
+
+    admin_url = parity_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    conn = await asyncpg.connect(admin_url)
+    try:
+        rows = await conn.fetch(
+            """
+            SELECT column_name, is_nullable
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'drop_requests'
+              AND column_name = ANY($1::text[])
+            """,
+            list(_STRUCTURED_DROP_REQUEST_COLUMNS),
+        )
+        found = {row["column_name"]: row["is_nullable"] for row in rows}
+        assert set(found) == set(_STRUCTURED_DROP_REQUEST_COLUMNS)
+        assert all(nullable == "YES" for nullable in found.values())
+
+        user_id = uuid.uuid4()
+        brand_id = uuid.uuid4()
+        ticket_id = uuid.uuid4()
+        await conn.execute(
+            """
+            INSERT INTO users (id, portal_role, status)
+            VALUES ($1, 'brand'::portal_role, 'active'::org_user_status)
+            """,
+            user_id,
+        )
+        await conn.execute(
+            """
+            INSERT INTO brands (id, user_id, brand_name, company_email, status)
+            VALUES ($1, $2, 'Legacy Brand', $3, 'approved'::brand_status)
+            """,
+            brand_id,
+            user_id,
+            f"legacy-{user_id.hex[:12]}@test.com",
+        )
+        await conn.execute(
+            """
+            INSERT INTO drop_requests (id, brand_id, message, notes)
+            VALUES ($1, $2, 'old ticket', 'old notes')
+            """,
+            ticket_id,
+            brand_id,
+        )
+        stored = await conn.fetchrow(
+            """
+            SELECT message, notes, product, title, location, target_date,
+                   org_count, units_per_org, campaign_hashtag
+            FROM drop_requests
+            WHERE id = $1
+            """,
+            ticket_id,
+        )
+        assert stored is not None
+        assert stored["message"] == "old ticket"
+        assert stored["notes"] == "old notes"
+        for column in _STRUCTURED_DROP_REQUEST_COLUMNS:
+            assert stored[column] is None
+    finally:
+        await conn.close()
 
 
 @pytest.mark.asyncio

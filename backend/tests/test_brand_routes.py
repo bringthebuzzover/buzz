@@ -21,6 +21,7 @@ from tests.conftest import (
     make_application,
     make_brand,
     make_drop,
+    make_drop_request,
     make_org,
     make_post_link,
     make_social_post,
@@ -71,18 +72,31 @@ class TestGetBrandProfile:
         assert res.status_code == 403
 
 
+def _ticket_body(**overrides: object) -> dict:
+    body: dict = {"message": "Want a spring campus drop", "product": "Cold brew cans"}
+    body.update(overrides)
+    return body
+
+
 class TestCreateDropRequest:
     async def test_creates_intake_ticket_not_drop(self, app_client: AsyncClient, db_session):
         _, brand, headers = await _brand_ctx(db_session)
         res = await app_client.post(
             "/api/brands/me/drop-requests",
-            json={"message": "Want a spring campus drop", "notes": "Southeast preferred"},
+            json=_ticket_body(notes="Southeast preferred"),
             headers=headers,
         )
         assert res.status_code == 200
         data = res.json()["data"]
         assert data["message"] == "Want a spring campus drop"
+        assert data["product"] == "Cold brew cans"
         assert data["notes"] == "Southeast preferred"
+        assert data["title"] is None
+        assert data["location"] is None
+        assert data["targetDate"] is None
+        assert data["orgCount"] is None
+        assert data["unitsPerOrg"] is None
+        assert data["campaignHashtag"] is None
         assert data["status"] == "received"
         assert data["convertedDropId"] is None
 
@@ -115,7 +129,7 @@ class TestCreateDropRequest:
             for i in range(11):
                 res = await app_client.post(
                     "/api/brands/me/drop-requests",
-                    json={"message": f"Ticket {i}"},
+                    json=_ticket_body(message=f"Ticket {i}"),
                     headers=headers,
                 )
                 statuses.append(res.status_code)
@@ -129,7 +143,7 @@ class TestCreateDropRequest:
         _, _, headers = await _brand_ctx(db_session)
         created = await app_client.post(
             "/api/brands/me/drop-requests",
-            json={"message": "Listed ticket"},
+            json=_ticket_body(message="Listed ticket"),
             headers=headers,
         )
         ticket_id = created.json()["data"]["id"]
@@ -139,16 +153,183 @@ class TestCreateDropRequest:
         one = await app_client.get(f"/api/brands/me/drop-requests/{ticket_id}", headers=headers)
         assert one.status_code == 200
         assert one.json()["data"]["message"] == "Listed ticket"
+        assert one.json()["data"]["product"] == "Cold brew cans"
 
     async def test_org_user_forbidden(self, app_client: AsyncClient, db_session):
         user = await persist(db_session, make_user(role=PortalRole.ORG))
         headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
         res = await app_client.post(
             "/api/brands/me/drop-requests",
-            json={"message": "Nope"},
+            json=_ticket_body(message="Nope"),
             headers=headers,
         )
         assert res.status_code == 403
+
+    async def test_echoes_structured_fields(self, app_client: AsyncClient, db_session):
+        _, _, headers = await _brand_ctx(db_session)
+        today = datetime.now(timezone.utc).date()
+        target = today + timedelta(days=30)
+        res = await app_client.post(
+            "/api/brands/me/drop-requests",
+            json=_ticket_body(
+                title="  Fall Cold Brew  ",
+                location="  Bay Area  ",
+                targetDate=target.isoformat(),
+                orgCount=8,
+                unitsPerOrg=24,
+                campaignHashtag="  #Fall_Brew  ",
+                notes="  Assets link  ",
+                message="  Launch cold brew this fall.  ",
+                product="  One case per org  ",
+            ),
+            headers=headers,
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert data["message"] == "Launch cold brew this fall."
+        assert data["product"] == "One case per org"
+        assert data["title"] == "Fall Cold Brew"
+        assert data["location"] == "Bay Area"
+        assert data["targetDate"] == target.isoformat()
+        assert data["orgCount"] == 8
+        assert data["unitsPerOrg"] == 24
+        assert data["campaignHashtag"] == "Fall_Brew"
+        assert data["notes"] == "Assets link"
+
+        ticket_id = data["id"]
+        listed = await app_client.get("/api/brands/me/drop-requests", headers=headers)
+        assert listed.status_code == 200
+        listed_row = listed.json()["data"][0]
+        assert listed_row["title"] == "Fall Cold Brew"
+        assert listed_row["campaignHashtag"] == "Fall_Brew"
+        one = await app_client.get(f"/api/brands/me/drop-requests/{ticket_id}", headers=headers)
+        assert one.status_code == 200
+        assert one.json()["data"]["orgCount"] == 8
+        assert one.json()["data"]["unitsPerOrg"] == 24
+
+    async def test_legacy_ticket_structured_fields_are_null(
+        self, app_client: AsyncClient, db_session
+    ):
+        _, brand, headers = await _brand_ctx(db_session)
+        ticket = await make_drop_request(db_session, brand, message="Old ticket", notes="n")
+        res = await app_client.get(f"/api/brands/me/drop-requests/{ticket.id}", headers=headers)
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert data["message"] == "Old ticket"
+        assert data["notes"] == "n"
+        assert data["product"] is None
+        assert data["title"] is None
+        assert data["location"] is None
+        assert data["targetDate"] is None
+        assert data["orgCount"] is None
+        assert data["unitsPerOrg"] is None
+        assert data["campaignHashtag"] is None
+
+    @pytest.mark.parametrize(
+        "overrides",
+        [
+            {"message": "   "},
+            {"product": ""},
+            {"message": "x" * 4001},
+            {"product": "y" * 1001},
+            {"title": "t" * 121},
+            {"location": "L" * 256},
+            {"notes": "n" * 4001},
+            {"orgCount": 0},
+            {"orgCount": 201},
+            {"unitsPerOrg": 0},
+            {"unitsPerOrg": 10001},
+            {"campaignHashtag": "bad tag"},
+            {"campaignHashtag": "bad-tag"},
+            {"campaignHashtag": "a" * 101},
+            {"campaignHashtag": "#"},
+            {"notAField": "nope"},
+        ],
+    )
+    async def test_rejects_invalid_create(
+        self, app_client: AsyncClient, db_session, overrides: dict
+    ):
+        _, _, headers = await _brand_ctx(db_session)
+        res = await app_client.post(
+            "/api/brands/me/drop-requests",
+            json=_ticket_body(**overrides),
+            headers=headers,
+        )
+        assert res.status_code == 422, res.text
+        assert res.json()["error"]["code"] == "VALIDATION_ERROR"
+
+    async def test_rejects_missing_product(self, app_client: AsyncClient, db_session):
+        _, _, headers = await _brand_ctx(db_session)
+        res = await app_client.post(
+            "/api/brands/me/drop-requests",
+            json={"message": "Need product"},
+            headers=headers,
+        )
+        assert res.status_code == 422
+        assert res.json()["error"]["code"] == "VALIDATION_ERROR"
+
+    async def test_target_date_window(self, app_client: AsyncClient, db_session):
+        _, _, headers = await _brand_ctx(db_session)
+        today = datetime.now(timezone.utc).date()
+        for offset, ok in (
+            (0, True),
+            (365, True),
+            (-1, False),
+            (366, False),
+        ):
+            target = today + timedelta(days=offset)
+            res = await app_client.post(
+                "/api/brands/me/drop-requests",
+                json=_ticket_body(
+                    message=f"Date {offset}",
+                    targetDate=target.isoformat(),
+                ),
+                headers=headers,
+            )
+            if ok:
+                assert res.status_code == 200, res.text
+                assert res.json()["data"]["targetDate"] == target.isoformat()
+            else:
+                assert res.status_code == 422, res.text
+
+    async def test_boundary_lengths_and_counts_accepted(self, app_client: AsyncClient, db_session):
+        _, _, headers = await _brand_ctx(db_session)
+        today = datetime.now(timezone.utc).date().isoformat()
+        res = await app_client.post(
+            "/api/brands/me/drop-requests",
+            json=_ticket_body(
+                message="m" * 4000,
+                product="p" * 1000,
+                title="t" * 120,
+                location="L" * 255,
+                notes="n" * 4000,
+                orgCount=200,
+                unitsPerOrg=10000,
+                campaignHashtag="#AbC_12",
+                targetDate=today,
+            ),
+            headers=headers,
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert len(data["message"]) == 4000
+        assert len(data["product"]) == 1000
+        assert len(data["title"]) == 120
+        assert len(data["location"]) == 255
+        assert len(data["notes"]) == 4000
+        assert data["orgCount"] == 200
+        assert data["unitsPerOrg"] == 10000
+        assert data["campaignHashtag"] == "AbC_12"
+        assert data["targetDate"] == today
+
+        minimums = await app_client.post(
+            "/api/brands/me/drop-requests",
+            json=_ticket_body(message="mins", orgCount=1, unitsPerOrg=1),
+            headers=headers,
+        )
+        assert minimums.status_code == 200, minimums.text
+        assert minimums.json()["data"]["orgCount"] == 1
+        assert minimums.json()["data"]["unitsPerOrg"] == 1
 
 
 class TestListBrandDrops:

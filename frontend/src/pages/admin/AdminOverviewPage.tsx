@@ -115,7 +115,7 @@ export default function AdminOverviewPage() {
 
           <Panel
             title="Needs a look"
-            description="Instagram identity tickets and Connect handle mismatches. Approve or deny a ticket; Ack a mismatch on the organization."
+            description="Instagram identity tickets, brand handle requests, and Connect handle mismatches. Approve or deny a ticket; Ack a mismatch on the organization."
           >
             <div data-testid="needs-a-look">
               <AdminTable
@@ -132,7 +132,9 @@ export default function AdminOverviewPage() {
                       <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
                         {item.kind === "ig_change_pending"
                           ? "Identity request"
-                          : "Bind mismatch"}
+                          : item.kind === "brand_ig_change_pending"
+                            ? "Brand handle"
+                            : "Bind mismatch"}
                       </span>
                     </Cell>
                     <Cell muted>{item.subtitle}</Cell>
