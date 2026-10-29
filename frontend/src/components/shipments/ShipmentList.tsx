@@ -1,5 +1,10 @@
+/**
+ * Tracking numbers as the pen's KV row: carrier label over the number.
+ * Wraps to a column in narrow cells (the brand drop table).
+ */
 import { carrierLabel, type Shipment } from "../../utils/shipments";
 import { TEXT } from "../../theme/tokens";
+import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
 type Props = {
@@ -15,25 +20,26 @@ export default function ShipmentList({
 }: Props) {
   if (shipments.length === 0) {
     return (
-      <p className={cn(TEXT.meta, "text-buzz-inkMuted")} data-testid={testId}>
+      <p className={cn(TEXT.body, "text-quiet")} data-testid={testId}>
         {empty}
       </p>
     );
   }
   return (
-    <ul className="space-y-1" data-testid={testId}>
+    <ul className="flex flex-wrap gap-x-8 gap-y-3" data-testid={testId}>
       {shipments.map((s) => (
-        <li key={s.id} className={cn(TEXT.body, "font-semibold")}>
-          <span className={cn(TEXT.micro, "mr-2 text-buzz-inkMuted")}>
-            {carrierLabel(s.carrier)}
-          </span>
+        <li key={s.id} className={cn(TEXT.body, "flex flex-col gap-1 text-primary")}>
+          <span className="text-xs text-quiet">{carrierLabel(s.carrier)}</span>
           {s.trackUrl ? (
             <a
               href={s.trackUrl}
               target="_blank"
               rel="noopener noreferrer"
               data-testid={`track-link-${s.id}`}
-              className="text-buzz-coral hover:underline"
+              className={cn(
+                "underline decoration-buzz-paper30 underline-offset-4 transition hover:decoration-primary",
+                focusRingClass,
+              )}
             >
               #{s.trackingNumber}
             </a>

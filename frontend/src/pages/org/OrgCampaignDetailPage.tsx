@@ -3,25 +3,24 @@
  *
  * Renders from the real backend (GET /api/campaigns/:id + derived status).
  */
-import { Link, Navigate, useParams } from "react-router-dom";
-import { ChevronLeft, ClipboardList, Truck } from "lucide-react";
+import { Navigate, useParams } from "react-router-dom";
 import ApiPostSelector from "../../components/org/ApiPostSelector";
+import { CampaignStatusBadge } from "../../components/org/CampaignRow";
 import { useCampaignDetail, useCampaignAggregate } from "../../api/hooks/useOrgHooks";
 import { ApiError } from "../../api/errors";
 import { BRAND_DROP_TRACKER_FULL_ORDER } from "../../types/brandPortal";
-import {
-  deriveOrgCampaignStatus,
-  ORG_CAMPAIGN_STATUS_LABELS,
-} from "../../utils/orgCampaignStatus";
+import { deriveOrgCampaignStatus } from "../../utils/orgCampaignStatus";
 import PageShell from "../../components/site/PageShell";
-import { Card } from "../../components/ui/Card";
-import { Chip } from "../../components/ui/Chip";
+import { Card, CardHeader } from "../../components/ui/Card";
+import { BackLink, PageHeader } from "../../components/ui/PageHeader";
+import { Loader } from "../../components/ui/EmptyState";
 import { StatePanel } from "../../components/ui/StatePanel";
-import { GAP, STACK, SURFACE, TEXT } from "../../theme/tokens";
+import { SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import ShipmentList from "../../components/shipments/ShipmentList";
 import type { Shipment } from "../../utils/shipments";
 
+/** Pen `Stat` row: Posts, Likes, Comments, Instagram Reach. */
 function CampaignMetrics({
   agg,
 }: {
@@ -32,29 +31,27 @@ function CampaignMetrics({
     estimatedReach: number;
   };
 }) {
+  const stats = [
+    { label: "Posts", value: agg.postCount },
+    { label: "Likes", value: agg.likes },
+    { label: "Comments", value: agg.comments },
+    { label: "Instagram Reach", value: agg.estimatedReach },
+  ];
   return (
-    <Card kind="card" pad="roomy">
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="text-center">
-          <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.postCount}</p>
-          <p className={TEXT.meta}>Posts</p>
-        </div>
-        <div className="text-center">
-          <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.likes}</p>
-          <p className={TEXT.meta}>Likes</p>
-        </div>
-        <div className="text-center">
-          <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.comments}</p>
-          <p className={TEXT.meta}>Comments</p>
-        </div>
-        <div className="text-center">
-          <p className={cn(TEXT.metric, "text-buzz-coral")}>{agg.estimatedReach}</p>
-          <p className={TEXT.meta}>Instagram Reach</p>
-        </div>
-      </div>
-    </Card>
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      {stats.map((stat) => (
+        <Card key={stat.label} kind="stat" pad="default" className="flex flex-col gap-3">
+          <p className={cn(TEXT.body, "text-quiet")}>{stat.label}</p>
+          <p className={cn(TEXT.h2, "leading-none tabular-nums")}>
+            {stat.value.toLocaleString()}
+          </p>
+        </Card>
+      ))}
+    </div>
   );
 }
+
+const backLink = <BackLink to="/org/campaigns">Back to My Campaigns</BackLink>;
 
 function shipmentOnTheWay(detail: {
   shipments?: Shipment[];
@@ -75,8 +72,8 @@ function ApiCampaignDetail() {
 
   if (isLoading) {
     return (
-      <PageShell width="portal">
-        <StatePanel>Loading...</StatePanel>
+      <PageShell width="wide">
+        <Loader className="py-16" />
       </PageShell>
     );
   }
@@ -87,14 +84,8 @@ function ApiCampaignDetail() {
 
   if (error || !detail) {
     return (
-      <PageShell width="portal">
-        <Link
-          to="/org/campaigns"
-          className="mb-6 flex items-center text-sm font-semibold text-buzz-inkMuted transition hover:text-buzz-coral"
-        >
-          <ChevronLeft size={16} className="mr-1" />
-          Back to My Campaigns
-        </Link>
+      <PageShell width="wide">
+        <div className="mb-6">{backLink}</div>
         <StatePanel tone="danger">
           {error instanceof Error
             ? error.message
@@ -118,82 +109,61 @@ function ApiCampaignDetail() {
   };
   const onTheWay = shipmentOnTheWay(detail);
 
-  return (
-    <PageShell width="portal">
-      <Link
-        to="/org/campaigns"
-        className="mb-6 flex items-center text-sm font-semibold text-buzz-inkMuted transition hover:text-buzz-coral"
-      >
-        <ChevronLeft size={16} className="mr-1" />
-        Back to My Campaigns
-      </Link>
+  const shipments = detail.shipments ?? [];
 
-      <header className="mb-8">
-        <div className={cn("mb-3 flex items-center", GAP.tight)}>
-          <Chip accent>{detail.brandName}</Chip>
-          <Chip>{ORG_CAMPAIGN_STATUS_LABELS[status]}</Chip>
-        </div>
-        <h1 className={TEXT.h1}>{detail.title}</h1>
-        <p className={cn(TEXT.body, "mt-2 text-buzz-inkMuted")}>
-          {detail.description ?? ""}
-        </p>
-      </header>
+  return (
+    <PageShell width="wide" className="flex flex-col gap-10">
+      <PageHeader
+        className="mb-0"
+        back={backLink}
+        kicker={
+          <span className="uppercase tracking-[0.05em] text-quiet">
+            {detail.brandName}
+          </span>
+        }
+        title={detail.title}
+        description={detail.description ?? ""}
+        actions={<CampaignStatusBadge status={status} />}
+      />
 
       {status === "applied" ? (
-        <Card kind="card" pad="roomy">
-          <div className="flex items-start gap-4">
-            <ClipboardList size={28} className="mt-1 text-buzz-coral" />
-            <div>
-              <h2 className={cn(TEXT.h2, "mb-1")}>
-                {detail.brandName} is reviewing your application
-              </h2>
-              <p className={cn(TEXT.body, "text-buzz-inkMuted")}>
-                Submitted on{" "}
-                {new Date(detail.appliedAt).toLocaleDateString()}. We will
-                let you know once a decision has been made.
-              </p>
-              {detail.pitch ? (
-                <blockquote className="mt-4 border-l-4 border-buzz-coral bg-buzz-cream p-4 text-sm font-medium italic text-buzz-inkMuted">
-                  {detail.pitch}
-                </blockquote>
-              ) : null}
-            </div>
-          </div>
+        <Card kind="panel" pad="card">
+          <CardHeader
+            className="mb-5"
+            title={`${detail.brandName} is reviewing your application`}
+            description={`Submitted on ${new Date(detail.appliedAt).toLocaleDateString()}. We will let you know once a decision has been made.`}
+          />
+          {detail.pitch ? (
+            <blockquote className={cn(SURFACE.inset, TEXT.body, "p-4 text-muted")}>
+              {detail.pitch}
+            </blockquote>
+          ) : null}
         </Card>
       ) : null}
 
       {status === "accepted" ? (
-        <div className={STACK.group}>
-          <Card kind="card" pad="roomy">
-            <div className="flex items-start gap-4">
-              <Truck size={28} className="mt-1 text-buzz-coral" />
-              <div>
-                <h2 className={cn(TEXT.h2, "mb-1")}>
-                  {onTheWay ? "Awaiting product" : "Accepted"}
-                </h2>
-                <p className={cn(TEXT.body, "text-buzz-inkMuted")}>
+        <>
+          <Card kind="panel" pad="card">
+            <CardHeader
+              className={shipments.length > 0 ? "mb-5" : "mb-0"}
+              title={onTheWay ? "Awaiting product" : "Accepted"}
+              description={
+                <>
                   {onTheWay
                     ? "You are accepted! Your shipment is on the way."
                     : "Accepted — awaiting shipping."}
-                </p>
-                {detail.brandTrackerStage === "awaiting_products" ? (
-                  <p className={cn(TEXT.body, "mt-3 text-buzz-inkMuted")}>
-                    If the product already arrived, link a post or reel below.
-                  </p>
-                ) : null}
-                {(detail.shipments ?? []).length > 0 ? (
-                  <div className={cn(SURFACE.inset, "mt-4 px-4 py-3")}>
-                    <p className={cn(TEXT.micro, "mb-2 text-buzz-inkMuted")}>
-                      Tracking
-                    </p>
-                    <ShipmentList
-                      shipments={detail.shipments ?? []}
-                      testId="org-campaign-shipments"
-                    />
-                  </div>
-                ) : null}
-              </div>
-            </div>
+                  {detail.brandTrackerStage === "awaiting_products"
+                    ? " If the product already arrived, link a post or reel below."
+                    : null}
+                </>
+              }
+            />
+            {shipments.length > 0 ? (
+              <>
+                <p className="mb-3 text-xs text-quiet">Tracking</p>
+                <ShipmentList shipments={shipments} testId="org-campaign-shipments" />
+              </>
+            ) : null}
           </Card>
           {detail.brandTrackerStage === "awaiting_products" ? (
             <>
@@ -201,35 +171,29 @@ function ApiCampaignDetail() {
               <ApiPostSelector applicationId={detail.id} />
             </>
           ) : null}
-        </div>
+        </>
       ) : null}
 
       {status === "active" || status === "finished" ? (
-        <div className={STACK.group}>
-          {(detail.shipments ?? []).length > 0 ? (
-            <Card kind="card" pad="roomy">
-              <h2 className={cn(TEXT.h2, "mb-2")}>Shipments</h2>
-              <ShipmentList
-                shipments={detail.shipments ?? []}
-                testId="org-campaign-shipments"
-              />
+        <>
+          {shipments.length > 0 ? (
+            <Card kind="panel" pad="card">
+              <CardHeader className="mb-5" title="Shipments" />
+              <ShipmentList shipments={shipments} testId="org-campaign-shipments" />
             </Card>
           ) : null}
           <CampaignMetrics agg={agg} />
           {status === "finished" ? (
-            <Card kind="card" pad="roomy">
-              <h2 className={cn(TEXT.h2, "mb-2")}>Final results</h2>
-              <p className={cn(TEXT.body, "text-buzz-inkMuted")}>
-                This campaign has ended. Your linked posts are read-only — final
-                metrics are shown above.
-              </p>
+            <Card kind="panel" pad="card">
+              <CardHeader
+                className="mb-0"
+                title="Final results"
+                description="This campaign has ended. Your linked posts are read-only — final metrics are shown above."
+              />
             </Card>
           ) : null}
-          <ApiPostSelector
-            applicationId={detail.id}
-            readOnly={status === "finished"}
-          />
-        </div>
+          <ApiPostSelector applicationId={detail.id} readOnly={status === "finished"} />
+        </>
       ) : null}
     </PageShell>
   );
