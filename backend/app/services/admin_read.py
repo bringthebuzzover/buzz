@@ -50,6 +50,7 @@ from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
+from app.services.brand_ig_change_requests import pending_ig_change_for_brand
 from app.services.drop_apply_intents import list_intents_for_drop
 from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.instagram_token import REFRESH_WINDOW_DAYS
@@ -807,6 +808,7 @@ async def get_brand_detail(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     ).first()
 
     drops = await list_drops(db, brand_id=brand.id, include_hidden=True)
+    pending_ig_change = await pending_ig_change_for_brand(db, brand.id)
 
     return {
         "id": brand.id,
@@ -822,6 +824,7 @@ async def get_brand_detail(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
         "created_at": brand.created_at,
         "last_login_at": user.last_login_at,
         "impersonatable": user.status == OrgUserStatus.ACTIVE.value,
+        "pending_ig_change": pending_ig_change,
         "invite": {
             "issued_at": latest_invite.created_at if latest_invite else None,
             "expires_at": latest_invite.expires_at if latest_invite else None,

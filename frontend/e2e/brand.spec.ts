@@ -100,6 +100,51 @@ test("brand plan campaign creates a ticket receipt, not a drop", async ({
   await expect(page.getByText("E2E plan campaign ticket")).toBeVisible();
 });
 
+test("brand settings shows name, locked email, and the handle request", async ({
+  page,
+}) => {
+  await page.goto("/brand/login");
+  await page.getByTestId("brand-email").fill("partnerships@acme.coffee");
+  await page.getByTestId("brand-password").fill("buzzdev123");
+  await page.getByTestId("brand-login-submit").click();
+  await expect(page).toHaveURL(/\/brand\/dashboard/);
+
+  await page.getByRole("link", { name: "Settings" }).click();
+  await expect(page).toHaveURL(/\/brand\/settings/);
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await expect(page.getByTestId("brand-email-locked")).toHaveText(
+    "Contact BUZZ to change",
+  );
+  await expect(page.getByTestId("brand-email")).toHaveValue(
+    "partnerships@acme.coffee",
+  );
+  const name = page.getByTestId("brand-name");
+  await expect(name).toHaveValue("Acme Coffee");
+  await name.fill("Acme Coffee");
+  const saveResp = page.waitForResponse(
+    (r) =>
+      r.url().includes("/api/brands/me") &&
+      r.request().method() === "PATCH" &&
+      !r.url().includes("ig-change"),
+  );
+  await page.getByTestId("brand-name-save").click();
+  const saved = await saveResp;
+  expect(saved.ok(), await saved.text()).toBeTruthy();
+  await expect(page.getByTestId("brand-name-saved")).toBeVisible();
+
+  const requestChange = page.getByTestId("brand-ig-change-open");
+  if (await requestChange.isVisible()) {
+    await requestChange.click();
+    await expect(page.getByTestId("brand-ig-requested")).toBeVisible();
+    await expect(page.getByTestId("brand-ig-reason")).toBeVisible();
+    await page.getByRole("button", { name: "Cancel" }).click();
+  } else {
+    await expect(page.getByTestId("brand-ig-pending")).toHaveText(
+      "Pending admin approval",
+    );
+  }
+});
+
 test("GET /logout signs out like the header button", async ({ page }) => {
   await page.goto("/brand/login");
   await page.getByTestId("brand-email").fill("partnerships@acme.coffee");

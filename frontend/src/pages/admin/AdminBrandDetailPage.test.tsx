@@ -37,6 +37,8 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
     error: null,
     isPending: false,
   }),
+  useApproveBrandIgChangeRequest: () => idleMutation(),
+  useDenyBrandIgChangeRequest: () => idleMutation(),
 }));
 
 import AdminBrandDetailPage from "./AdminBrandDetailPage";
@@ -179,5 +181,45 @@ describe("AdminBrandDetailPage", () => {
       brandId: "brand-1",
       confirm: "acme@example.test",
     });
+  });
+
+  it("shows approve and deny for a pending Instagram handle change", () => {
+    mockUseAdminBrand.mockReturnValue({
+      data: {
+        ...brandDetail(),
+        pendingIgChange: {
+          id: "ig-1",
+          currentHandle: "acme_brand",
+          requestedHandle: "acme.new",
+          reason: "Rebranded the public account.",
+          createdAt: Date.now(),
+        },
+      },
+      isPending: false,
+      isError: false,
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    act(() => {
+      root.render(
+        <MemoryRouter initialEntries={["/admin/brands/brand-1"]}>
+          <QueryClientProvider client={queryClient}>
+            <Routes>
+              <Route
+                path="/admin/brands/:brandId"
+                element={<AdminBrandDetailPage />}
+              />
+            </Routes>
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+    });
+    expect(
+      container.querySelector('[data-testid="approve-brand-ig"]'),
+    ).toBeTruthy();
+    expect(container.querySelector('[data-testid="deny-brand-ig"]')).toBeTruthy();
+    expect(container.textContent).toContain("@acme.new");
+    expect(container.textContent).toContain("Rebranded the public account.");
   });
 });

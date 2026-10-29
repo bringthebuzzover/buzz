@@ -53,6 +53,7 @@ KIND_APPLICATION_DENIED = "application-denied"
 KIND_REMINDER = "reminder"
 KIND_DROP_PUBLISHED = "drop-published"
 KIND_PASSWORD_RESET = "password-reset"
+KIND_PASSWORD_CHANGED = "password-changed"
 KIND_LATE_ADD_ORG = "late-add-org"
 KIND_LATE_ADD_BRAND = "late-add-brand"
 
@@ -873,6 +874,39 @@ async def send_password_reset_email(
             "║  DEV EMAIL — Password reset link:                           ║\n"
             f"║  To: {to_email:<52s}║\n"
             f"║  URL: {reset_url:<50s}║\n"
+            "╚══════════════════════════════════════════════════════════════╝"
+        )
+        return True
+
+    return await _dispatch(to_email, subject, body, idempotency_key=idempotency_key)
+
+
+async def send_brand_password_changed_email(
+    to_email: str,
+    *,
+    idempotency_key: str | None = None,
+) -> bool:
+    """Notice that a signed-in brand changed their password.
+
+    Best-effort, same as other transactional mail: a provider failure does
+    not undo the password change. Copy uses ``CONTACT_EMAIL`` from
+    ``brand_emails.json`` (the address SOT). Bodies for other mail live in
+    this module, not that JSON file.
+    """
+    subject = "Your Buzz password was changed"
+    body = (
+        "The password for your Buzz brand account was just changed.\n\n"
+        "If you made this change, no further action is needed. "
+        "Other signed-in sessions were signed out.\n\n"
+        "If you did not change your password, reset it from the brand login page "
+        f"or contact {CONTACT_EMAIL}."
+    )
+
+    if settings.ENVIRONMENT == "development":
+        logger.info(
+            "\n╔══════════════════════════════════════════════════════════════╗\n"
+            "║  DEV EMAIL — Brand password changed:                        ║\n"
+            f"║  To: {to_email:<52s}║\n"
             "╚══════════════════════════════════════════════════════════════╝"
         )
         return True

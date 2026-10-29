@@ -20,6 +20,7 @@ from app.exceptions import BuzzAPIException
 from app.models.brand import Brand
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import BrandStatus, OrgUserStatus, PortalRole
+from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.security.one_shot_tokens import hash_token
@@ -235,3 +236,56 @@ async def login_brand(db: AsyncSession, email: str, password: str) -> tuple[User
         email=brand.company_email,
     )
     return user, resp
+
+
+async def change_brand_password(
+    db: AsyncSession,
+    user: User,
+    *,
+    current_password: str,
+    new_password: str,
+) -> None:
+    """Set a new password for a signed-in brand.
+
+    View-as is refused even when the impersonation token is writable: an
+    admin must never choose the brand's password. Wrong current password is
+    ``WRONG_PASSWORD`` (400), not 401, so the SPA does not treat it as a
+    logged-out session. Outstanding reset links are burned in this
+    transaction; the route bumps ``token_version`` by issuing a fresh pair.
+    """
+
+    # Lazy: deps.auth is imported by auth routes that import this module.
+    from app.deps.auth import impersonated_by
+    from app.security.rate_limit import enforce_account_limit
+
+    if impersonated_by(user):
+        raise BuzzAPIException(
+            errors.FORBIDDEN,
+            "Exit View as before changing this password.",
+            status_code=403,
+        )
+    enforce_account_limit("brand_change_pw", str(user.id), limit=5, window=300)
+    stored = user.password_hash
+    if not stored or not verify_password(current_password, stored):
+        raise BuzzAPIException(
+            errors.WRONG_PASSWORD,
+            "Current password is incorrect.",
+            status_code=400,
+        )
+    if new_password == current_password:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "New password must be different from the current password.",
+            status_code=400,
+        )
+    now = _now()
+    await db.execute(
+        sa_update(PasswordResetToken)
+        .where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+    user.password_hash = hash_password(new_password)
+    await db.flush()

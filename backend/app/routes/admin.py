@@ -48,6 +48,7 @@ from app.schemas.acks import (
 )
 from app.schemas.admin import (
     AdminBrandDetail,
+    AdminBrandIgChangeRequestItem,
     AdminBrandItem,
     AdminCleanupStubsResponse,
     AdminCreateBrandRequest,
@@ -129,6 +130,15 @@ from app.services.admin_tables import (
     list_table_catalog,
     patch_table_row,
     query_table,
+)
+from app.services.brand_ig_change_requests import (
+    approve_request as approve_brand_ig_change_request,
+)
+from app.services.brand_ig_change_requests import (
+    deny_request as deny_brand_ig_change_request,
+)
+from app.services.brand_ig_change_requests import (
+    list_requests as list_brand_ig_change_requests,
 )
 from app.services.drop_requests import get_admin_drop_request, list_admin_drop_requests
 from app.services.ig_change_requests import (
@@ -385,6 +395,45 @@ async def deny_ig_change_request_endpoint(
     return api_response(
         data=AdminIgChangeRequestItem.model_validate(await deny_ig_change_request(db, request_id))
     )
+
+
+@router.get(
+    "/brand-ig-change-requests",
+    response_model=DataResponse[list[AdminBrandIgChangeRequestItem]],
+)
+async def list_brand_ig_change_requests_endpoint(
+    _user: CurrentAdmin,
+    status: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    rows = await list_brand_ig_change_requests(db, status=status)
+    return api_response(data=[AdminBrandIgChangeRequestItem.model_validate(row) for row in rows])
+
+
+@router.post(
+    "/brand-ig-change-requests/{request_id}/approve",
+    response_model=DataResponse[AdminBrandIgChangeRequestItem],
+)
+async def approve_brand_ig_change_request_endpoint(
+    request_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await approve_brand_ig_change_request(db, request_id)
+    return api_response(data=AdminBrandIgChangeRequestItem.model_validate(result))
+
+
+@router.post(
+    "/brand-ig-change-requests/{request_id}/deny",
+    response_model=DataResponse[AdminBrandIgChangeRequestItem],
+)
+async def deny_brand_ig_change_request_endpoint(
+    request_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await deny_brand_ig_change_request(db, request_id)
+    return api_response(data=AdminBrandIgChangeRequestItem.model_validate(result))
 
 
 # ── Brands ──────────────────────────────────────────────────────────────────
