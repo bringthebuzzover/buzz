@@ -13,8 +13,6 @@ no refresh token is issued — the admin's own refresh cookie stays untouched, s
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,14 +24,11 @@ from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.security import jwt
 from app.security.password import verify_password
+from app.timeutils import utcnow
 
 # Same constant-work trick as brand login: always run exactly one bcrypt verify
 # so response timing can't distinguish "no such admin" from "wrong password".
 _DUMMY_HASH = "$2b$12$BjsWQMEoE/Jrr8bmN2pUfO0P1IFZpAURUcSq7qQGTYUimfCYgUX6S"
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 async def login_admin(db: AsyncSession, email: str, password: str) -> tuple[User, UserResponse]:
@@ -62,7 +57,7 @@ async def login_admin(db: AsyncSession, email: str, password: str) -> tuple[User
             status_code=401,
         )
 
-    user.last_login_at = _now()
+    user.last_login_at = utcnow()
     await db.flush()
 
     return user, UserResponse(

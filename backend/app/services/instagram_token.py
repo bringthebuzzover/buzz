@@ -31,14 +31,11 @@ from app.models.user import User
 from app.security.session import bump_token_version
 from app.security.token_crypto import TokenDecryptionError, decrypt_token, encrypt_token
 from app.services.instagram import InstagramClient, get_instagram_client
+from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
 
 REFRESH_WINDOW_DAYS = 30  # start refreshing this far from expiry (on-login)
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 def clear_unusable_instagram_token(user: User, *, bump_session: bool = True) -> None:
@@ -65,7 +62,7 @@ def time_until_expiry(user: User, *, now: datetime | None = None) -> timedelta |
     exp = user.instagram_token_expires_at
     if exp.tzinfo is None:
         exp = exp.replace(tzinfo=timezone.utc)
-    return exp - (now or _now())
+    return exp - (now or utcnow())
 
 
 async def maybe_refresh_on_login(
@@ -176,7 +173,7 @@ async def refresh_instagram_token(user_id: uuid.UUID) -> bool:
         if user.status == OrgUserStatus.ERASED.value or not user.instagram_access_token:
             return False
 
-        now = _now()
+        now = utcnow()
         user.instagram_access_token = encrypt_token(new.access_token)
         user.instagram_token_issued_at = now
         user.instagram_token_expires_at = now + timedelta(seconds=new.expires_in)

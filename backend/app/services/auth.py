@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
@@ -35,12 +35,9 @@ from app.services.instagram import (
 )
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.org_apply import assert_handle_available, flag_ig_bind_mismatch
+from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 async def handle_instagram_callback(
@@ -80,7 +77,7 @@ async def handle_instagram_callback(
             status_code=400,
         )
 
-    now = _now()
+    now = utcnow()
     expires_at = now + timedelta(seconds=long.expires_in)
     existing = await db.scalar(
         select(User).where(

@@ -31,12 +31,7 @@ from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.drops import ApplicationResponse, DropDetailResponse, DropFeedItem
-
-
-def _as_utc(value: datetime) -> datetime:
-    """Coerce a (possibly naive) datetime to UTC for safe comparison."""
-
-    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+from app.timeutils import as_utc
 
 
 def is_drop_hidden(drop: Drop) -> bool:
@@ -260,14 +255,14 @@ def drop_apply_eligibility(
     be closed" rule is the inverse and stays in the finalize path.
     """
 
-    if now < _as_utc(drop.apply_open_at):
+    if now < as_utc(drop.apply_open_at):
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not open for applications yet.")
     if drop.applicant_selection_finalized_at is not None:
         raise BuzzAPIException(
             errors.DROP_NOT_OPEN,
             "Applicant selection for this drop is already finalized.",
         )
-    if now > _as_utc(drop.apply_close_at) and not drop.manual_reopen:
+    if now > as_utc(drop.apply_close_at) and not drop.manual_reopen:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is closed for applications.")
     if accepted_count >= drop.capacity_total:
         raise BuzzAPIException(errors.CAPACITY_EXCEEDED, "This drop has no remaining spots.")

@@ -10,7 +10,6 @@ by ``UNIQUE(post_id)`` on ``post_campaign_links`` plus a pre-check that returns
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
@@ -33,10 +32,7 @@ from app.schemas.posts import (
 )
 from app.services.campaigns import resolve_owned_application
 from app.services.erased_org_participation import post_metrics_are_frozen
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
+from app.timeutils import utcnow
 
 
 def _reject_if_metrics_frozen(post: SocialPost) -> None:
@@ -82,7 +78,7 @@ async def _dismiss_pending_for_post(
     )
     if except_application_id is not None:
         stmt = stmt.where(PostCampaignSuggestion.application_id != except_application_id)
-    await db.execute(stmt.values(dismissed_at=_now()))
+    await db.execute(stmt.values(dismissed_at=utcnow()))
 
 
 async def _confirm_own_and_dismiss_siblings(
@@ -104,7 +100,7 @@ async def _confirm_own_and_dismiss_siblings(
             PostCampaignSuggestion.confirmed_at.is_(None),
             PostCampaignSuggestion.dismissed_at.is_(None),
         )
-        .values(confirmed_at=_now())
+        .values(confirmed_at=utcnow())
     )
     await _dismiss_pending_for_post(db, post_id, except_application_id=application_id)
 
@@ -121,7 +117,7 @@ async def _dismiss_for_error(
     failure it describes. Callers do ``raise await _dismiss_for_error(...)``.
     """
 
-    suggestion.dismissed_at = _now()
+    suggestion.dismissed_at = utcnow()
     await db.commit()
     return exc
 
@@ -473,7 +469,7 @@ async def accept_suggestion(
             # Already linked to *this* campaign (e.g. manually linked while the
             # suggestion stayed pending). Reconcile the dangling suggestion and
             # succeed idempotently rather than 409 (mirrors link_post).
-            suggestion.confirmed_at = _now()
+            suggestion.confirmed_at = utcnow()
             await _dismiss_pending_for_post(db, post_id, except_application_id=application.id)
             await db.flush()
             return build_post_response(
@@ -510,7 +506,7 @@ async def accept_suggestion(
             select(PostCampaignLink).where(PostCampaignLink.post_id == post_id)
         )
         if winner is not None and winner.application_id == application.id:
-            suggestion.confirmed_at = _now()
+            suggestion.confirmed_at = utcnow()
             await _dismiss_pending_for_post(db, post_id, except_application_id=application.id)
             await db.flush()
             return build_post_response(
@@ -528,7 +524,7 @@ async def accept_suggestion(
             ),
         ) from None
 
-    suggestion.confirmed_at = _now()
+    suggestion.confirmed_at = utcnow()
     await _dismiss_pending_for_post(db, post_id, except_application_id=application.id)
     await db.flush()
 
@@ -562,5 +558,5 @@ async def dismiss_suggestion(
             "No pending suggestion for this post.",
             status_code=404,
         )
-    suggestion.dismissed_at = _now()
+    suggestion.dismissed_at = utcnow()
     await db.flush()
