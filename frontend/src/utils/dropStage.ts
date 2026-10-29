@@ -55,3 +55,6 @@ export const SEAT_PROGRESS_LABEL: Record<SeatProgress, string> = {
   delivered: "Delivered",
   posted: "Posted",
 };
+
+/** A seat ends by withdrawal or removal (final at once; mirrors the backend). */
+export const ENDED_DECISIONS: ReadonlySet<string> = new Set(["withdrew", "removed"]);

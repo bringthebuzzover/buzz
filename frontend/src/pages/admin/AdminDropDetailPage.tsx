@@ -77,7 +77,7 @@ import {
 import AddOrgToDropModal from "../../components/admin/AddOrgToDropModal";
 import CopyPublicDropUrl from "../../components/drop/CopyPublicDropUrl";
 import { carrierLabel, type Shipment } from "../../utils/shipments";
-import { SEAT_PROGRESS_LABEL } from "../../utils/dropStage";
+import { ENDED_DECISIONS, SEAT_PROGRESS_LABEL } from "../../utils/dropStage";
 import { SeatDecisionSelect, SendDecisionsBar } from "../../components/drop/SeatDecisions";
 
 const TABS = [
@@ -164,8 +164,6 @@ const APPLICANT_HEADERS = [
 ] as const;
 
 /** Withdrew and removed end a seat; it leaves the org's view and frees its units. */
-const ENDED_DECISIONS = new Set(["withdrew", "removed"]);
-
 const DECISION_TONE: Record<string, "good" | "bad" | "warn" | "neutral"> = {
   accepted: "good",
   denied: "bad",

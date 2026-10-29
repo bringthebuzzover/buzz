@@ -8,6 +8,7 @@ import {
   PUBLISHED_STAGES,
   type DropStage,
 } from "../../utils/dropStage";
+import { shortDate } from "../../utils/dropStatus";
 import { Notice } from "../forms/controls";
 import { Card, CardHeader } from "../ui/Card";
 import { GAP, TEXT } from "../../theme/tokens";
@@ -16,9 +17,6 @@ import { cn } from "../../theme/cn";
 /** D-2: BUZZ steps in when the brand hasn't sent decisions this long after close. */
 const BUZZ_STEPS_IN_DAYS = 5;
 
-function shortDate(epochMs: number): string {
-  return new Date(epochMs).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
 
 export default function BrandDropTrackerStepper({
   currentStage,

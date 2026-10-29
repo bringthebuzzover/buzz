@@ -43,33 +43,46 @@ import { STACK, SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import { useMdUp } from "../../hooks/useMdUp";
 import CopyPublicDropUrl from "../../components/drop/CopyPublicDropUrl";
+import { shortDate } from "../../utils/dropStatus";
+import { ENDED_DECISIONS } from "../../utils/dropStage";
 
 const backLink = <BackLink to="/brand/dashboard">Back to dashboard</BackLink>;
 
 /**
  * Applicants still waiting on a sent decision. Each change saves a private
  * draft; "Send decisions" emails the orgs and locks those seats.
+ *
+ * With ``choosableFrom`` (Upcoming / Applying) the brand sees who applied so
+ * far, read-only, and when it can choose.
  */
 function ApiApplicantTable({
   applicants,
   dropId,
   capacityTotal,
   totalProductUnits,
+  choosableFrom,
 }: {
   applicants: BrandDropApplicant[];
   dropId: string;
   capacityTotal: number;
   totalProductUnits: number | null | undefined;
+  choosableFrom?: number;
 }) {
   const mdUp = useMdUp();
   const decide = useSetSeatDecision(dropId);
   const send = useSendDecisions(dropId);
-  const showUnits = totalProductUnits != null;
+  const readOnly = choosableFrom != null;
+  const showUnits = totalProductUnits != null && !readOnly;
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   const open = useMemo(
-    () => applicants.filter((a) => a.decisionSentAt == null && !a.accountErased),
-    [applicants],
+    () =>
+      applicants.filter(
+        (a) =>
+          !a.accountErased &&
+          (readOnly ? !ENDED_DECISIONS.has(a.decision) : a.decisionSentAt == null),
+      ),
+    [applicants, readOnly],
   );
   // Capacity counts every acceptance, sent or drafted.
   const accepted = applicants.filter((a) => a.decision === "accepted");
@@ -138,7 +151,11 @@ function ApiApplicantTable({
     <Card kind="panel" pad="card" className="flex flex-col gap-5">
       <CardHeader
         title="Applicants"
-        description="Decisions stay private drafts until you send them."
+        description={
+          readOnly
+            ? `You can choose once applications close on ${shortDate(choosableFrom)}.`
+            : "Decisions stay private drafts until you send them."
+        }
         actions={
           categories.length > 0 ? (
             <Select
@@ -159,7 +176,9 @@ function ApiApplicantTable({
         className="mb-0"
       />
       {visible.length === 0 ? (
-        <EmptyState>No applicants waiting on a decision.</EmptyState>
+        <EmptyState>
+          {readOnly ? "No applications yet." : "No applicants waiting on a decision."}
+        </EmptyState>
       ) : !mdUp ? (
         <ul className="flex flex-col gap-3">
           {visible.map((app) => (
@@ -182,10 +201,12 @@ function ApiApplicantTable({
                 <p className={cn(TEXT.body, "mt-2 text-primary")}>{app.pitch ?? "—"}</p>
                 {shipToLine(app)}
               </div>
-              <div className="flex flex-wrap items-end gap-3">
-                {decisionField(app)}
-                {showUnits ? unitsField(app, { label: "Units", className: "w-24" }) : null}
-              </div>
+              {readOnly ? null : (
+                <div className="flex flex-wrap items-end gap-3">
+                  {decisionField(app)}
+                  {showUnits ? unitsField(app, { label: "Units", className: "w-24" }) : null}
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -193,7 +214,7 @@ function ApiApplicantTable({
         <Table>
           <THead>
             <tr>
-              <Th className="w-36">Decision</Th>
+              {readOnly ? null : <Th className="w-36">Decision</Th>}
               <Th>Organization</Th>
               <Th className="w-48">University</Th>
               <Th className="w-28">Type</Th>
@@ -206,7 +227,7 @@ function ApiApplicantTable({
           <TBody>
             {visible.map((app) => (
               <Tr key={app.id} className={cn(app.decision === "accepted" && "bg-accent-wash")}>
-                <Td>{decisionField(app)}</Td>
+                {readOnly ? null : <Td>{decisionField(app)}</Td>}
                 <Td>
                   <div className="text-primary">{app.orgName}</div>
                   {shipToLine(app)}
@@ -225,16 +246,18 @@ function ApiApplicantTable({
         </Table>
       )}
 
-      <SendDecisionsBar
-        seats={applicants}
-        pending={send.isPending}
-        error={decide.error ? decide.error.message : null}
-        onSend={() => send.mutateAsync()}
-        note={
-          `${accepted.length} of ${capacityTotal} spots` +
-          (showUnits ? ` · ${unitsTaken} of ${totalProductUnits} units` : "")
-        }
-      />
+      {readOnly ? null : (
+        <SendDecisionsBar
+          seats={applicants}
+          pending={send.isPending}
+          error={decide.error ? decide.error.message : null}
+          onSend={() => send.mutateAsync()}
+          note={
+            `${accepted.length} of ${capacityTotal} spots` +
+            (showUnits ? ` · ${unitsTaken} of ${totalProductUnits} units` : "")
+          }
+        />
+      )}
     </Card>
   );
 }
@@ -363,8 +386,10 @@ function ApiDropDetail() {
   const stage = detail.stage;
   // A canceled drop keeps a frozen report of what happened.
   const showResults = stage === "live" || stage === "wrapped" || stage === "canceled";
-  // Brands decide after applications close and until BUZZ wraps the drop.
+  // Brands decide after applications close and until BUZZ wraps the drop;
+  // before that they watch who applies.
   const canDecide = stage === "selecting" || stage === "live";
+  const watching = stage === "upcoming" || stage === "applying";
 
   const aggregateMetrics = {
     dropId: detail.id,
@@ -394,12 +419,13 @@ function ApiDropDetail() {
         <BrandCampaignEditor detail={detail} />
       ) : null}
 
-      {canDecide ? (
+      {canDecide || watching ? (
         <ApiApplicantTable
           applicants={detail.applications ?? []}
           dropId={detail.id}
           capacityTotal={detail.capacityTotal}
           totalProductUnits={detail.totalProductUnits}
+          choosableFrom={watching ? detail.applyCloseAt : undefined}
         />
       ) : null}
 

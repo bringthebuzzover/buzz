@@ -393,4 +393,49 @@ describe("BrandDropDetailPage", () => {
     expect(container.textContent).not.toContain("Shipping details removed");
     expect(container.textContent).not.toContain("Account deleted");
   });
+
+  it("lists applicants read-only while applications are open", () => {
+    const applicant = (id: string, orgName: string, decision: string) => ({
+      id,
+      dropId: "drop-1",
+      orgId: `org-${id}`,
+      orgName,
+      university: "Cornell University",
+      instagramHandle: "@org",
+      category: "fraternity",
+      followerCount: 100,
+      memberCount: 40,
+      pitch: "We love it",
+      decision,
+      decisionAt: null,
+      decisionSentAt: null,
+      appliedAt: now,
+      allocatedUnits: null,
+      deliveryAddress: null,
+      accountErased: false,
+      shipments: [],
+      attributedComments: 0,
+      attributedEngagement: 0,
+      attributedLikes: 0,
+      attributedPostCount: 0,
+      posts: [],
+    });
+    const closeAt = Date.UTC(2026, 10, 10, 12);
+    mockUseBrandDropDetail.mockReturnValue({
+      data: {
+        ...brandDrop(false),
+        applyCloseAt: closeAt,
+        applications: [applicant("a", "Alpha", "applied"), applicant("b", "Gone", "withdrew")],
+      },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+
+    expect(container.textContent).toContain("Alpha");
+    expect(container.textContent).not.toContain("Gone");
+    expect(container.textContent).toContain("You can choose once applications close on Nov 10.");
+    expect(container.querySelector('[data-testid="decision-a"]')).toBeNull();
+    expect(container.querySelector('[data-testid="send-decisions"]')).toBeNull();
+  });
 });
