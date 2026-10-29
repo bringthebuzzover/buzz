@@ -1,33 +1,147 @@
 /**
  * `/brand/requests/new` — Request a Drop. POSTs to /api/brands/me/drop-requests.
+ *
+ * Two fields are required (message, product). The rest are optional details.
+ * A short "What happens next" panel replaces any live preview: the brand does
+ * not control the drop title or cover from this form.
  */
-import { type FormEvent } from "react";
+import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
-import { useCreateBrandDropRequest } from "../../api/hooks/useBrandHooks";
+import {
+  useCreateBrandDropRequest,
+  type BrandDropRequestDraft,
+} from "../../api/hooks/useBrandHooks";
 import PageShell from "../../components/site/PageShell";
-import { Card } from "../../components/ui/Card";
+import { Card, CardHeader } from "../../components/ui/Card";
 import {
   Button,
   ErrorBanner,
   TextArea,
+  TextField,
 } from "../../components/forms/controls";
+import { TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
+
+const NEXT_STEPS = [
+  {
+    title: "We read your request",
+    body: "A Buzz representative reads this and replies by email.",
+  },
+  {
+    title: "We plan it together",
+    body: "We align on campuses, product, timing, and pricing.",
+  },
+  {
+    title: "BUZZ builds the drop",
+    body: "You review the draft, then track it from your dashboard.",
+  },
+] as const;
+
+function optionalText(raw: string): string | undefined {
+  const trimmed = raw.trim();
+  return trimmed || undefined;
+}
+
+function optionalInt(raw: string, label: string): number | undefined {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  const value = Number(trimmed);
+  if (!Number.isInteger(value)) {
+    throw new Error(`${label} must be a whole number.`);
+  }
+  return value;
+}
+
+function utcIsoDate(offsetDays = 0): string {
+  return new Date(Date.now() + offsetDays * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+function OptionalMark() {
+  return <span className="font-medium text-buzz-inkMuted"> (optional)</span>;
+}
+
+function WhatHappensNext() {
+  return (
+    <Card kind="card" pad="roomy">
+      <CardHeader
+        title="What happens next"
+        description="A representative handles the campaign. This form does not publish a drop."
+        className="mb-4"
+      />
+      <ol className="space-y-4">
+        {NEXT_STEPS.map((step, index) => (
+          <li key={step.title} className="flex gap-3">
+            <span
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-buzz-coral text-xs font-bold text-buzz-paper"
+              aria-hidden
+            >
+              {index + 1}
+            </span>
+            <div>
+              <p className="text-sm font-bold text-buzz-ink">{step.title}</p>
+              <p className={cn(TEXT.meta, "mt-0.5")}>{step.body}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </Card>
+  );
+}
 
 function RequestForm({
   onSubmit,
   submitting,
 }: {
-  onSubmit: (message: string, notes: string) => void;
+  onSubmit: (body: BrandDropRequestDraft) => void;
   submitting: boolean;
 }) {
+  const [formError, setFormError] = useState<string | null>(null);
+  const minDate = utcIsoDate(0);
+  const maxDate = utcIsoDate(365);
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting) return;
+    setFormError(null);
     const formData = new FormData(e.currentTarget);
-    onSubmit(
-      String(formData.get("message") ?? "").trim(),
-      String(formData.get("notes") ?? "").trim(),
-    );
+    const message = String(formData.get("message") ?? "").trim();
+    const product = String(formData.get("product") ?? "").trim();
+    if (!message || !product) {
+      setFormError("Tell us about the campaign and what you're sending.");
+      return;
+    }
+    let orgCount: number | undefined;
+    let unitsPerOrg: number | undefined;
+    try {
+      orgCount = optionalInt(
+        String(formData.get("orgCount") ?? ""),
+        "How many organizations",
+      );
+      unitsPerOrg = optionalInt(
+        String(formData.get("unitsPerOrg") ?? ""),
+        "Units per organization",
+      );
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Check the numbers and try again.");
+      return;
+    }
+    const body: BrandDropRequestDraft = { message, product };
+    const title = optionalText(String(formData.get("title") ?? ""));
+    const location = optionalText(String(formData.get("location") ?? ""));
+    const targetDate = optionalText(String(formData.get("targetDate") ?? ""));
+    const campaignHashtag = optionalText(String(formData.get("campaignHashtag") ?? ""));
+    const notes = optionalText(String(formData.get("notes") ?? ""));
+    if (title) body.title = title;
+    if (location) body.location = location;
+    if (targetDate) body.targetDate = targetDate;
+    if (orgCount !== undefined) body.orgCount = orgCount;
+    if (unitsPerOrg !== undefined) body.unitsPerOrg = unitsPerOrg;
+    if (campaignHashtag) body.campaignHashtag = campaignHashtag;
+    if (notes) body.notes = notes;
+    onSubmit(body);
   };
 
   return (
@@ -50,27 +164,134 @@ function RequestForm({
         </p>
       </div>
 
+      {formError ? <ErrorBanner>{formError}</ErrorBanner> : null}
+
       <form className="space-y-6" onSubmit={handleSubmit}>
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(16rem,0.8fr)]">
+          <Card kind="card" pad="roomy" className="space-y-6">
+            <CardHeader
+              title="The campaign"
+              description="The two things we need to start."
+              className="mb-0"
+            />
+            <TextArea
+              id="message"
+              name="message"
+              label="Tell us about the campaign"
+              required
+              rows={4}
+              placeholder="Share goals, timing, or anything a rep should know."
+            />
+            <TextArea
+              id="product"
+              name="product"
+              label="What you're sending"
+              required
+              rows={3}
+              placeholder="e.g. One case of cold brew in branded boxes"
+            />
+          </Card>
+          <WhatHappensNext />
+        </div>
+
         <Card kind="card" pad="roomy" className="space-y-6">
-          <TextArea
-            id="message"
-            name="message"
-            label="Message"
-            required
-            rows={4}
-            placeholder="Share goals, campuses, timing, or anything a rep should know."
+          <CardHeader
+            title="Details"
+            description="All optional. Leave a field blank if you're not sure."
+            className="mb-0"
+          />
+          <TextField
+            id="title"
+            name="title"
+            label={
+              <>
+                Title
+                <OptionalMark />
+              </>
+            }
+            maxLength={120}
+            placeholder="e.g. Fall Cold Brew Launch"
+          />
+          <TextField
+            id="location"
+            name="location"
+            label={
+              <>
+                Campuses or area
+                <OptionalMark />
+              </>
+            }
+            maxLength={255}
+            placeholder="e.g. Sample University, or Anywhere"
+          />
+          <TextField
+            id="targetDate"
+            name="targetDate"
+            type="date"
+            label={
+              <>
+                When do you want this live?
+                <OptionalMark />
+              </>
+            }
+            min={minDate}
+            max={maxDate}
+          />
+          <div className="grid gap-6 sm:grid-cols-2">
+            <TextField
+              id="orgCount"
+              name="orgCount"
+              type="number"
+              min={1}
+              max={200}
+              label={
+                <>
+                  How many organizations
+                  <OptionalMark />
+                </>
+              }
+              placeholder="e.g. 8"
+            />
+            <TextField
+              id="unitsPerOrg"
+              name="unitsPerOrg"
+              type="number"
+              min={1}
+              max={10000}
+              label={
+                <>
+                  Units per organization
+                  <OptionalMark />
+                </>
+              }
+              placeholder="e.g. 24"
+            />
+          </div>
+          <TextField
+            id="campaignHashtag"
+            name="campaignHashtag"
+            label={
+              <>
+                Campaign hashtag
+                <OptionalMark />
+              </>
+            }
+            placeholder="e.g. FallColdBrew"
           />
           <TextArea
             id="notes"
             name="notes"
             label={
               <>
-                Notes <span className="font-medium">(optional)</span>
+                Anything else
+                <OptionalMark />
               </>
             }
             rows={3}
-            placeholder="Extra context for the sales call."
+            maxLength={4000}
+            placeholder="Links to brand assets, or anything that didn't fit above."
           />
+          <p className={TEXT.meta}>Only the first two fields are required.</p>
           <Button
             type="submit"
             fullWidth
@@ -90,24 +311,18 @@ function ApiRequestDrop() {
   const navigate = useNavigate();
   const mutation = useCreateBrandDropRequest();
 
-  const handleSubmit = (message: string, notes: string) => {
-    mutation.mutate(
-      {
-        message,
-        ...(notes ? { notes } : {}),
+  const handleSubmit = (body: BrandDropRequestDraft) => {
+    mutation.mutate(body, {
+      onSuccess: () => {
+        navigate("/brand/dashboard#tickets", {
+          state: { ticketSubmitted: true },
+        });
       },
-      {
-        onSuccess: () => {
-          navigate("/brand/dashboard#tickets", {
-            state: { ticketSubmitted: true },
-          });
-        },
-      },
-    );
+    });
   };
 
   return (
-    <PageShell width="form">
+    <PageShell width="portal">
       {mutation.isError ? (
         <ErrorBanner>
           {mutation.error instanceof Error

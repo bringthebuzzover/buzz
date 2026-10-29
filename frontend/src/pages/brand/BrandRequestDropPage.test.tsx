@@ -103,16 +103,21 @@ describe("BrandRequestDropPage", () => {
     renderPage();
 
     const message = container.querySelector("#message") as HTMLTextAreaElement;
+    const product = container.querySelector("#product") as HTMLTextAreaElement;
+    const title = container.querySelector("#title") as HTMLInputElement;
     const notes = container.querySelector("#notes") as HTMLTextAreaElement;
     const form = container.querySelector("form") as HTMLFormElement;
     expect(message).toBeTruthy();
+    expect(product).toBeTruthy();
     expect(notes).toBeTruthy();
+    expect(container.textContent).toContain("What happens next");
+    expect(container.textContent).not.toContain("Live preview");
 
     await act(async () => {
       message.value = "Spring campus push";
-      message.dispatchEvent(new Event("input", { bubbles: true }));
+      product.value = "Cans of cold brew";
+      title.value = "Spring push";
       notes.value = "Prefer southeast";
-      notes.dispatchEvent(new Event("input", { bubbles: true }));
       form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
       await Promise.resolve();
     });
@@ -120,6 +125,8 @@ describe("BrandRequestDropPage", () => {
     expect(mockMutate).toHaveBeenCalledTimes(1);
     expect(mockMutate.mock.calls[0][0]).toEqual({
       message: "Spring campus push",
+      product: "Cans of cold brew",
+      title: "Spring push",
       notes: "Prefer southeast",
     });
 

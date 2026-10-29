@@ -1092,6 +1092,7 @@ async def create_admin_drop(
         brand_tracker_stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
         total_product_units=payload.total_product_units,
         campaign_hashtag=_normalize_campaign_hashtag(payload.campaign_hashtag),
+        brand_can_edit_creative=payload.brand_can_edit_creative,
         published_at=None,
         drop_request_id=ticket.id if ticket else None,
     )
