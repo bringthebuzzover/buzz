@@ -3,8 +3,8 @@
  *
  * Marketing routes keep the overlay header and the mobile join dock.
  * Bare auth routes draw their own frame: admin auth gets `AuthAdminHeader`,
- * the rest show no header or footer. Signed-in orgs off the marketing pages,
- * and `/onboarding/denied`, get the org portal top bar.
+ * the rest show no header or footer. Signed-in orgs and brands off the
+ * marketing pages get their portal top bar, and so does `/onboarding/denied`.
  */
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { SiteChromeProvider } from "../contexts/SiteChromeContext";
@@ -12,7 +12,7 @@ import SiteHeader from "../components/site/SiteHeader";
 import SiteFooter from "../components/site/SiteFooter";
 import ImpersonationBanner from "../components/site/ImpersonationBanner";
 import AuthAdminHeader from "../components/auth/AuthAdminHeader";
-import OrgPortalHeader from "../components/org/OrgPortalHeader";
+import PortalHeader, { type Portal } from "../components/site/PortalHeader";
 import { useAuth } from "../contexts/AuthContext";
 import { isAdminAuthPath, isBareAuthPath } from "../components/auth/authPaths";
 import { focusRingClass } from "../theme/controls";
@@ -27,9 +27,13 @@ export default function SiteLayout() {
   const marketing = isMarketingPath(pathname);
   const bare = isBareAuthPath(pathname);
   const { user, status } = useAuth();
-  const orgPortal =
-    pathname === "/onboarding/denied" ||
-    (!marketing && status === "authenticated" && user?.portalRole === "org");
+  const role = user?.portalRole;
+  const portal: Portal | null =
+    pathname === "/onboarding/denied"
+      ? "org"
+      : !marketing && status === "authenticated" && (role === "org" || role === "brand")
+        ? role
+        : null;
 
   return (
     <SiteChromeProvider>
@@ -39,8 +43,8 @@ export default function SiteLayout() {
           isAdminAuthPath(pathname) ? (
             <AuthAdminHeader />
           ) : null
-        ) : orgPortal ? (
-          <OrgPortalHeader />
+        ) : portal ? (
+          <PortalHeader portal={portal} />
         ) : (
           <SiteHeader />
         )}

@@ -214,7 +214,7 @@ describe("BrandDropDetailPage", () => {
     renderPage();
 
     const accept = container.querySelectorAll(
-      'input[aria-label="Accept Campus Greeks"]',
+      '[role="switch"][aria-label="Accept Campus Greeks"]',
     );
     expect(accept).toHaveLength(1);
     expect(container.querySelector("table")).toBeNull();
@@ -222,7 +222,7 @@ describe("BrandDropDetailPage", () => {
     expect(container.textContent).toContain("Ship to: Ithaca, NY");
   });
 
-  it("asks for in-app finalize confirm instead of window.confirm", () => {
+  it("accepts via the toggle and finalizes through the in-app confirm", () => {
     const confirmSpy = jest.spyOn(window, "confirm");
     mockUseBrandDropDetail.mockReturnValue({
       data: {
@@ -261,6 +261,16 @@ describe("BrandDropDetailPage", () => {
     });
     renderPage();
 
+    const toggle = container.querySelector(
+      '[role="switch"][aria-label="Accept Campus Greeks"]',
+    ) as HTMLButtonElement;
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    act(() => {
+      toggle.click();
+    });
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    expect(container.textContent).toContain("Accept 1 · Deny 0");
+
     const start = container.querySelector(
       '[data-testid="finalize-selection"]',
     ) as HTMLButtonElement;
@@ -278,6 +288,7 @@ describe("BrandDropDetailPage", () => {
       confirmBtn.click();
     });
     expect(mockFinalizeMutate).toHaveBeenCalledTimes(1);
+    expect(mockFinalizeMutate.mock.calls[0][0]).toEqual([{ orgId: "org-1", units: 0 }]);
     confirmSpy.mockRestore();
   });
 

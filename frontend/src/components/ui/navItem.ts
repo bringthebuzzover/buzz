@@ -7,6 +7,9 @@ export const quietLinkClass = cn(
   focusRingClass,
 );
 
+/** Row and detail links (a table's first column). Pen type is paper, hover yellow. */
+export const entityLinkClass = cn("text-primary hover:text-accent", focusRingClass);
+
 /** Marketing nav item: paper type, hairline underline when active. */
 export function marketingNavItemClass(active: boolean) {
   return cn(

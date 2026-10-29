@@ -122,6 +122,8 @@ export const TONE = {
   success: "border-transparent bg-buzz-fg text-buzz-onAccent",
   /** Needs attention: yellow wash and yellow label, no outline. */
   warn: "border-transparent bg-accent-wash text-accent",
+  /** In progress / awaiting approval: yellow outline and label, no fill. */
+  pending: "border-buzz-yellowLine bg-transparent text-accent",
   danger: "border-buzz-dangerLine bg-buzz-dangerFaded text-buzz-danger",
 } as const;
 
