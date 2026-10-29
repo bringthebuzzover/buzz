@@ -9,12 +9,15 @@
  * - Closed: disabled action with reason chip.
  * - Accepted on this drop: the card opens the campaign in My Campaigns (PRODUCT §6.3).
  *
+ * Pen `Drop / Tile`: a 420px media well (status badge and spots on top, brand
+ * and title over the scrim), then description, location, and the CTA pill.
+ *
  * The card is presentational; data fetching + mutations are wired by the parent
  * (`OrgDropFeedPage`) and the inline apply form.
  */
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Calendar, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import type { DropCardData, DropFeedStatus } from "../../types/drop";
 import { useCountdown } from "../../utils/useCountdown";
 import {
@@ -26,12 +29,11 @@ import {
 import { useWallClockNow } from "../../utils/wallClock";
 import NotifyMeModal from "./modals/NotifyMeModal";
 import { REMINDER_CHOICES, useDropNotify } from "../../api/hooks/useDropHooks";
-import { Card } from "../ui/Card";
 import { Chip } from "../ui/Chip";
 import { Toggle } from "../ui/Toggle";
 import { RemoteImage } from "../ui/RemoteImage";
 import { Button, ErrorBanner, buttonVariants } from "../forms/controls";
-import { PAD, STACK, TEXT, type Tone } from "../../theme/tokens";
+import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 type DropFeedCardProps = {
@@ -51,27 +53,27 @@ type DropFeedCardProps = {
   disableApply?: boolean;
 };
 
+/** Pen CTA: 36px pill. */
+const ctaClass = "h-9 px-4";
+
 function pad2(n: number): string {
   return n.toString().padStart(2, "0");
 }
 
 function HeroCountdownOverlay({ targetMs }: { targetMs: number }) {
   const { days, hours, minutes, seconds, done } = useCountdown(targetMs);
-  if (done) {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center bg-buzz-overlay/35">
-        <p className={cn(TEXT.h2, "text-buzz-fg drop-shadow-buzz")}>Opening now</p>
-      </div>
-    );
-  }
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-buzz-overlay/35 px-4">
-      <div className="text-center">
-        <p className={cn(TEXT.micro, "mb-2 text-buzz-fg/90")}>Opens In</p>
-        <div className={cn(TEXT.metric, "text-buzz-fg drop-shadow-buzz")}>
-          {days}d {pad2(hours)}:{pad2(minutes)}:{pad2(seconds)}
+    <div className="absolute inset-0 flex items-center justify-center bg-buzz-scrim px-4">
+      {done ? (
+        <p className={cn(TEXT.h3, "text-primary")}>Opening now</p>
+      ) : (
+        <div className="text-center">
+          <p className={cn(TEXT.micro, "mb-2 text-muted")}>Opens In</p>
+          <div className={cn(TEXT.metric, "text-primary")}>
+            {days}d {pad2(hours)}:{pad2(minutes)}:{pad2(seconds)}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -93,91 +95,93 @@ export default function DropFeedCard({
     [drop, acceptedCount, now],
   );
 
+  const spots =
+    feedStatus === "upcoming"
+      ? "Opens soon"
+      : feedStatus === "open"
+        ? acceptedCount === 0
+          ? `Up to ${drop.capacityTotal} spots`
+          : `${remaining} of ${drop.capacityTotal} spots remaining`
+        : closedReason
+          ? CLOSED_REASON_COPY[closedReason]
+          : "Closed";
+
+  const action = campaignTo ? (
+    <span
+      className={cn(buttonVariants({ variant: "secondary" }), ctaClass)}
+      data-testid="view-campaign"
+    >
+      View campaign
+    </span>
+  ) : feedStatus === "upcoming" ? null : feedStatus === "open" && !full ? (
+    <Button
+      type="button"
+      className={ctaClass}
+      data-testid="apply-button"
+      onClick={onApply}
+      disabled={alreadyApplied || disableApply}
+    >
+      {alreadyApplied ? "Already applied" : "Apply"}
+    </Button>
+  ) : feedStatus === "open" && full ? (
+    // Dead under getDropFeedStatus (full ⇒ closed). Kept as a guard.
+    // PRODUCT.md §7.2: capacity-Closed after finalize / reopen leftovers.
+    <Button type="button" variant="secondary" className={ctaClass} disabled>
+      {alreadyApplied ? "Applied" : "Spots filled"}
+    </Button>
+  ) : (
+    <Button type="button" variant="secondary" className={ctaClass} disabled>
+      {alreadyApplied ? "Applied" : "Closed"}
+    </Button>
+  );
+
   const card = (
-    <Card
-      kind="cardWarm"
-      pad="none"
+    <article
       data-testid="drop-card"
       data-drop-id={drop.id}
-      className="flex h-full flex-col overflow-hidden shadow-buzz transition hover:shadow-buzzLg"
+      className="flex h-full flex-col"
     >
-      <div className="relative h-48 overflow-hidden border-b border-buzz-lineMid">
+      <div className="group relative flex h-[420px] flex-col overflow-hidden rounded-buzzBoard bg-page p-5">
         <RemoteImage
           src={drop.image}
           label={drop.brandName}
           alt=""
-          className="h-full w-full object-cover"
+          fallback="placeholder"
+          className="absolute inset-0 h-full w-full rounded-buzzBoard object-cover"
+        />
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-transparent from-45% to-page/85"
+          aria-hidden
         />
         {feedStatus === "upcoming" ? (
           <HeroCountdownOverlay targetMs={drop.applyOpenAt} />
         ) : null}
-        <div className="absolute left-3 top-3 flex items-center gap-2">
-          <Chip accent>{drop.brandName}</Chip>
+        <div className="relative flex items-center gap-2">
           <FeedStatusChip status={feedStatus} full={full} />
+          <span className="ml-auto text-right text-xs text-primary">{spots}</span>
+        </div>
+        <div className="relative mt-auto">
+          <p className="text-xs font-medium uppercase tracking-[0.05em] text-muted">
+            {drop.brandName}
+          </p>
+          <h3 className={cn(TEXT.h2, "mt-2 line-clamp-3 leading-none text-primary")}>
+            {drop.title}
+          </h3>
         </div>
       </div>
 
-      <div className={cn("flex flex-1 flex-col", PAD.card)}>
-        <h3 className={cn(TEXT.h3, "mb-2 leading-tight text-buzz-coral")}>
-          {drop.title}
-        </h3>
-        <p className={cn(TEXT.body, "mb-4 line-clamp-3 text-buzz-inkMuted")}>
-          {drop.description}
-        </p>
-
-        <div className={cn(TEXT.meta, "mb-4 flex items-center gap-4 font-semibold")}>
-          <span className="flex items-center gap-1">
-            <MapPin size={14} className="text-buzz-coral" />
-            {drop.location}
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar size={14} className="text-buzz-coral" />
-            {feedStatus === "upcoming"
-              ? "Opens soon"
-              : feedStatus === "open"
-                ? acceptedCount === 0
-                  ? `Up to ${drop.capacityTotal} spots`
-                  : `${remaining} of ${drop.capacityTotal} spots remaining`
-                : closedReason
-                  ? CLOSED_REASON_COPY[closedReason]
-                  : "Closed"}
-          </span>
+      <div className="flex flex-1 flex-col gap-3 px-1 pt-4">
+        <p className={cn(TEXT.body, "line-clamp-3 text-muted")}>{drop.description}</p>
+        <div className="mt-auto flex min-h-9 items-center gap-2">
+          <MapPin size={14} className="shrink-0 text-quiet" aria-hidden />
+          <span className="min-w-0 truncate text-xs text-quiet">{drop.location}</span>
+          {action ? <span className="ml-auto shrink-0">{action}</span> : null}
         </div>
-
-        <div className="mt-auto">
-          {campaignTo ? (
-            <span
-              className={cn(buttonVariants({ fullWidth: true }))}
-              data-testid="view-campaign"
-            >
-              View campaign
-            </span>
-          ) : feedStatus === "upcoming" ? (
-            <UpcomingActions drop={drop} />
-          ) : feedStatus === "open" && !full ? (
-            <Button
-              type="button"
-              fullWidth
-              data-testid="apply-button"
-              onClick={onApply}
-              disabled={alreadyApplied || disableApply}
-            >
-              {alreadyApplied ? "Already applied" : "Apply"}
-            </Button>
-          ) : feedStatus === "open" && full ? (
-            // Dead under getDropFeedStatus (full ⇒ closed). Kept as a guard.
-            // PRODUCT.md §7.2: capacity-Closed after finalize / reopen leftovers.
-            <Button type="button" fullWidth disabled>
-              {alreadyApplied ? "Applied" : "Spots filled"}
-            </Button>
-          ) : (
-            <Button type="button" fullWidth disabled>
-              {alreadyApplied ? "Applied" : "Closed"}
-            </Button>
-          )}
-        </div>
+        {feedStatus === "upcoming" && !campaignTo ? (
+          <UpcomingActions drop={drop} />
+        ) : null}
       </div>
-    </Card>
+    </article>
   );
 
   if (!campaignTo) return card;
@@ -189,13 +193,8 @@ export default function DropFeedCard({
   );
 }
 
-function FeedStatusChip({
-  status,
-  full,
-}: {
-  status: DropFeedStatus;
-  full: boolean;
-}) {
+/** Pen badge on media: dark fill, yellow dot and label while the drop is live. */
+function FeedStatusChip({ status, full }: { status: DropFeedStatus; full: boolean }) {
   const label =
     status === "upcoming"
       ? "Upcoming"
@@ -204,9 +203,9 @@ function FeedStatusChip({
           ? "Full"
           : "Open"
         : "Closed";
-  const tone: Tone = status === "open" && !full ? "success" : "neutral";
+  const live = status !== "closed" && !full;
   return (
-    <Chip onMedia tone={tone}>
+    <Chip onMedia dot className={live ? "text-accent" : "text-muted"}>
       {label}
     </Chip>
   );
@@ -238,7 +237,7 @@ function NotifyToggle({
         />
       </div>
       {notified && reminderMinutes.length > 0 ? (
-        <p className={cn(TEXT.meta, "text-center")}>
+        <p className={TEXT.meta}>
           Reminders:{" "}
           {reminderMinutes
             .map((minutes) =>
@@ -263,9 +262,7 @@ function NotifyToggle({
 function UpcomingActions({ drop }: { drop: DropCardData }) {
   const notify = useDropNotify(drop.id);
   const serverMinutes =
-    drop.notifyRequested && drop.reminderMinutes != null
-      ? [drop.reminderMinutes]
-      : [];
+    drop.notifyRequested && drop.reminderMinutes != null ? [drop.reminderMinutes] : [];
   const notified = serverMinutes.length > 0;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -273,10 +270,7 @@ function UpcomingActions({ drop }: { drop: DropCardData }) {
   const handleConfirm = (selected: number | null) => {
     setFailed(false);
     const opts = { onError: () => setFailed(true) };
-    if (
-      selected == null ||
-      !(REMINDER_CHOICES as readonly number[]).includes(selected)
-    ) {
+    if (selected == null || !(REMINDER_CHOICES as readonly number[]).includes(selected)) {
       notify.mutate(null, opts);
       return;
     }
@@ -292,11 +286,9 @@ function UpcomingActions({ drop }: { drop: DropCardData }) {
         onClick={() => setIsModalOpen(true)}
       />
       {failed ? (
-        <ErrorBanner>
-          Couldn't update your reminder. Please try again.
-        </ErrorBanner>
+        <ErrorBanner>Couldn't update your reminder. Please try again.</ErrorBanner>
       ) : notified ? (
-        <p className={cn(TEXT.meta, "text-center text-buzz-coral")}>
+        <p className={cn(TEXT.meta, "text-accent")}>
           You're on the list — we'll let you know when this opens.
         </p>
       ) : null}

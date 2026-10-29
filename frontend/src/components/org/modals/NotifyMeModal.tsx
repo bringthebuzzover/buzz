@@ -4,6 +4,7 @@ import { REMINDER_CHOICES } from "../../../api/hooks/useDropHooks";
 import { Modal } from "../../ui/Modal";
 import { Button } from "../../forms/controls";
 import { STACK, TEXT } from "../../../theme/tokens";
+import { focusRingClass } from "../../../theme/controls";
 import { cn } from "../../../theme/cn";
 
 type NotifyMeModalProps = {
@@ -22,7 +23,9 @@ const REMINDER_LABELS: Record<(typeof REMINDER_CHOICES)[number], string> = {
 };
 
 /** UI order: longest lead time first. */
-const REMINDER_OPTIONS = ([...REMINDER_CHOICES] as Array<(typeof REMINDER_CHOICES)[number]>)
+const REMINDER_OPTIONS = (
+  [...REMINDER_CHOICES] as Array<(typeof REMINDER_CHOICES)[number]>
+)
   .sort((a, b) => b - a)
   .map((minutes) => ({ minutes, label: REMINDER_LABELS[minutes] }));
 
@@ -55,7 +58,7 @@ export default function NotifyMeModal({
       size="wide"
     >
       <div className={STACK.default}>
-        <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Reminder timing</p>
+        <p className={cn(TEXT.micro, "text-quiet")}>Reminder timing</p>
 
         <div className={STACK.tight} role="radiogroup" aria-label="Reminder timing">
           {REMINDER_OPTIONS.map((option) => {
@@ -72,19 +75,20 @@ export default function NotifyMeModal({
                   )
                 }
                 className={cn(
-                  "flex w-full items-center justify-between rounded-buzzControl border px-4 py-3 text-left transition",
+                  "flex w-full items-center justify-between rounded-buzzField border px-4 py-3 text-left text-primary transition",
+                  focusRingClass,
                   selected
-                    ? "border-buzz-coral bg-buzz-paper text-buzz-ink"
-                    : "border-buzz-lineMid bg-buzz-paper text-buzz-ink hover:bg-buzz-cream",
+                    ? "border-buzz-yellowLine bg-accent-wash"
+                    : "border-line bg-surface-tile hover:border-primary",
                 )}
               >
-                <span className={cn(TEXT.body, "font-semibold")}>{option.label}</span>
+                <span className={cn(TEXT.body, "font-medium")}>{option.label}</span>
                 {selected ? (
-                  <span className="rounded-full bg-buzz-coral p-1 text-buzz-paper">
+                  <span className="rounded-full bg-accent p-1 text-on-accent">
                     <Check size={14} />
                   </span>
                 ) : (
-                  <span className="h-5 w-5 rounded-full border border-buzz-inkFaint" />
+                  <span className="h-5 w-5 rounded-full border border-quiet" />
                 )}
               </button>
             );

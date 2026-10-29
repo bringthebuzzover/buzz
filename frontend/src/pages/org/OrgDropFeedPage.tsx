@@ -1,11 +1,13 @@
 /**
  * `/org/browse` — Drop Feed (PRODUCT.md §6.3). Renders all drops with status-aware
  * cards (Upcoming / Open / Closed / Full) plus a status filter chip group.
+ * Pen: page head, filter chips, then the "Current drops" track with arrows.
  *
  * Renders from the real backend (`GET /api/drops`) with working apply, feeding a
  * `DropFeedRow[]` into the shared presentational `FeedContent`.
  */
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import DropFeedCard from "../../components/org/DropFeedCard";
 import DropApplyForm from "../../components/org/DropApplyForm";
 import { getDropFeedStatus } from "../../utils/dropStatus";
@@ -14,9 +16,13 @@ import { useWallClockNow } from "../../utils/wallClock";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
 import { useCampaigns, type CampaignItem } from "../../api/hooks/useOrgHooks";
 import PageShell from "../../components/site/PageShell";
-import { QueryStatePanel, StatePanel } from "../../components/ui/StatePanel";
+import { QueryStatePanel } from "../../components/ui/StatePanel";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { filterChipClass } from "../../components/ui/navItem";
 import { Button } from "../../components/forms/controls";
-import { GAP, TEXT } from "../../theme/tokens";
+import { TEXT } from "../../theme/tokens";
+import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
 type FilterId = "all" | "upcoming" | "open" | "closed";
@@ -35,14 +41,103 @@ function matchesFilter(filter: FilterId, status: DropFeedStatus): boolean {
 
 function FeedHeader() {
   return (
-    <header className="mb-8 text-center">
-      <h1 className={TEXT.h1}>
-        Browse <span className="text-buzz-coral">Campaigns</span>
-      </h1>
-      <p className={cn(TEXT.body, "mt-2 text-buzz-inkMuted")}>
-        Browse open and upcoming drops from the brands in our network.
-      </p>
-    </header>
+    <PageHeader
+      className="mb-10"
+      kicker="Organization Portal"
+      title="Browse campaigns"
+      description="Browse open and upcoming drops from the brands in our network."
+    />
+  );
+}
+
+/** Pen carousel arrow: 40px ring. */
+function CarouselButton({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "flex h-10 w-10 items-center justify-center rounded-full border border-primary text-primary transition disabled:opacity-30",
+        focusRingClass,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** One card plus the 24px gap. */
+const CARD_STEP_PX = 376;
+
+/** Horizontal drop track. The arrows scroll it one card at a time. */
+function DropTrack({ children, count }: { children: ReactNode; count: number }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ start: true, end: true });
+
+  const updateEdges = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    setEdges({
+      start: el.scrollLeft <= 0,
+      end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 1,
+    });
+  }, []);
+
+  useEffect(() => {
+    updateEdges();
+    window.addEventListener("resize", updateEdges);
+    return () => window.removeEventListener("resize", updateEdges);
+  }, [updateEdges, count]);
+
+  const scroll = (direction: 1 | -1) =>
+    trackRef.current?.scrollBy({
+      left: direction * CARD_STEP_PX,
+      behavior: "smooth",
+    });
+
+  return (
+    <section aria-labelledby="current-drops">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <h2 id="current-drops" className={TEXT.h3}>
+          Current drops
+        </h2>
+        <div className="flex gap-3">
+          <CarouselButton
+            label="Previous drops"
+            disabled={edges.start}
+            onClick={() => scroll(-1)}
+          >
+            <ArrowLeft size={18} aria-hidden />
+          </CarouselButton>
+          <CarouselButton
+            label="Next drops"
+            disabled={edges.end}
+            onClick={() => scroll(1)}
+          >
+            <ChevronRight size={18} aria-hidden />
+          </CarouselButton>
+        </div>
+      </div>
+      <div
+        ref={trackRef}
+        onScroll={updateEdges}
+        className="flex snap-x snap-mandatory gap-6 overflow-x-auto pb-2 [scrollbar-width:none]"
+      >
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -99,18 +194,14 @@ function FeedContent({
     <PageShell width="wide">
       <FeedHeader />
 
-      <div className={cn("mb-8 flex flex-wrap justify-center", GAP.tight)}>
+      <div className="mb-10 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <button
             key={f.id}
             type="button"
+            aria-pressed={filter === f.id}
             onClick={() => setFilter(f.id)}
-            className={cn(
-              "rounded-full px-4 py-2 text-sm font-semibold transition",
-              filter === f.id
-                ? "bg-buzz-coral text-buzz-paper"
-                : "border border-buzz-lineMid bg-buzz-paper text-buzz-inkMuted hover:bg-buzz-cream",
-            )}
+            className={filterChipClass(filter === f.id)}
           >
             {f.label}
           </button>
@@ -118,22 +209,23 @@ function FeedContent({
       </div>
 
       {visibleDrops.length === 0 ? (
-        <StatePanel>No drops match this filter right now.</StatePanel>
+        <EmptyState title="No drops match this filter right now." />
       ) : (
-        <div className={cn("grid sm:grid-cols-2 lg:grid-cols-3", GAP.section)}>
+        <DropTrack count={visibleDrops.length}>
           {visibleDrops.map(({ row, status }) => (
-            <DropFeedCard
-              key={row.id}
-              drop={row}
-              acceptedCount={row.acceptedCount}
-              feedStatus={status}
-              alreadyApplied={row.alreadyApplied}
-              campaignTo={campaignPath?.(row.id)}
-              disableApply={disableApply}
-              onApply={() => onApply(row.id)}
-            />
+            <div key={row.id} className="w-[300px] shrink-0 snap-start sm:w-[352px]">
+              <DropFeedCard
+                drop={row}
+                acceptedCount={row.acceptedCount}
+                feedStatus={status}
+                alreadyApplied={row.alreadyApplied}
+                campaignTo={campaignPath?.(row.id)}
+                disableApply={disableApply}
+                onApply={() => onApply(row.id)}
+              />
+            </div>
           ))}
-        </div>
+        </DropTrack>
       )}
 
       {hasMore ? (
@@ -160,14 +252,8 @@ function FeedContent({
  * that blocked re-apply after denial when the API correctly returned false.
  */
 function ApiDropFeed() {
-  const {
-    items,
-    isLoading,
-    error,
-    hasNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-  } = useOrgDropFeed();
+  const { items, isLoading, error, hasNextPage, isFetchingNextPage, fetchNextPage } =
+    useOrgDropFeed();
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const { data: campaigns } = useCampaigns();
 
@@ -193,11 +279,7 @@ function ApiDropFeed() {
     return (
       <PageShell width="wide">
         <FeedHeader />
-        <QueryStatePanel
-          isPending={isLoading}
-          isError={Boolean(error)}
-          label="drops"
-        />
+        <QueryStatePanel isPending={isLoading} isError={Boolean(error)} label="drops" />
       </PageShell>
     );
   }
