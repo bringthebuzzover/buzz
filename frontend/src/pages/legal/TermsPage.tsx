@@ -11,13 +11,25 @@ import { siteIdentity } from "../../data/siteIdentity";
 export default function TermsPage() {
   const { contact, brand } = siteIdentity;
   return (
-    <LegalLayout title="Terms of Service" lastUpdated="July 2, 2026">
+    <LegalLayout
+      title="Terms of Service"
+      lastUpdated="July 2, 2026"
+      toc={[
+        { id: "accounts", label: "Accounts" },
+        { id: "campaigns", label: "Campaigns & the Buzz marketplace" },
+        { id: "your-content", label: "Your content" },
+        { id: "acceptable-use", label: "Acceptable use" },
+        { id: "disclaimers", label: "Disclaimers & limitation of liability" },
+        { id: "changes", label: "Changes & termination" },
+        { id: "contact", label: "Contact" },
+      ]}
+    >
       <p>
         These Terms govern your use of {brand.displayName} (“Buzz”). By creating
         an account or using the service, you agree to these Terms.
       </p>
 
-      <h2>Accounts</h2>
+      <h2 id="accounts">Accounts</h2>
       <ul>
         <li>You must provide accurate information and keep your credentials
           secure. You are responsible for activity under your account.</li>
@@ -26,7 +38,7 @@ export default function TermsPage() {
         <li>Brand accounts are provisioned or approved by Buzz.</li>
       </ul>
 
-      <h2>Campaigns &amp; the Buzz marketplace</h2>
+      <h2 id="campaigns">Campaigns &amp; the Buzz marketplace</h2>
       <p>
         Buzz facilitates connections between brands and student organizations.
         Brands approve or deny applicants for each drop, and Buzz coordinates
@@ -34,7 +46,7 @@ export default function TermsPage() {
         by the rules shown in the product.
       </p>
 
-      <h2>Your content</h2>
+      <h2 id="your-content">Your content</h2>
       <ul>
         <li>You retain ownership of the social content you create. By linking a
           post to a campaign, you grant the participating brand and Buzz a
@@ -44,27 +56,27 @@ export default function TermsPage() {
           platform (such as Instagram) you connect.</li>
       </ul>
 
-      <h2>Acceptable use</h2>
+      <h2 id="acceptable-use">Acceptable use</h2>
       <ul>
         <li>Do not misuse the service, attempt to access data you are not
           authorized to, or violate any law or third-party right.</li>
         <li>Do not submit false information or impersonate others.</li>
       </ul>
 
-      <h2>Disclaimers &amp; limitation of liability</h2>
+      <h2 id="disclaimers">Disclaimers &amp; limitation of liability</h2>
       <p>
         The service is provided “as is” without warranties of any kind. To the
         maximum extent permitted by law, Buzz is not liable for indirect or
         consequential damages arising from your use of the service.
       </p>
 
-      <h2>Changes &amp; termination</h2>
+      <h2 id="changes">Changes &amp; termination</h2>
       <p>
         We may update these Terms or suspend accounts that violate them. Continued
         use after an update constitutes acceptance of the revised Terms.
       </p>
 
-      <h2>Contact</h2>
+      <h2 id="contact">Contact</h2>
       <p>
         Questions: <a href={`mailto:${contact.email}`}>{contact.email}</a>.
       </p>

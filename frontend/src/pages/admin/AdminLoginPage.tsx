@@ -5,19 +5,22 @@
  * session entry point outside local dev.
  */
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAdminLogin } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
 import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
-import AuthShell from "../../components/site/AuthShell";
+import {
+  AuthArrowLink,
+  AuthCenter,
+  AuthHeading,
+} from "../../components/auth/AuthFrame";
+import AuthPending from "../../components/auth/AuthPending";
 import {
   Button,
   ErrorBanner,
   TextField,
 } from "../../components/forms/controls";
-import { TEXT } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
 import { pathForUser } from "../../utils/landing";
 import type { PortalRole } from "../../types/auth";
 import type { TokenResponse } from "../../api/hooks/useAdminHooks";
@@ -36,20 +39,18 @@ export default function AdminLoginPage() {
   }
 
   if (status === "restore_failed") {
-    return <SessionRestorePanel />;
+    return (
+      <AuthCenter>
+        <SessionRestorePanel embedded />
+      </AuthCenter>
+    );
   }
 
   // Wait for AuthProvider bootstrap before mounting controlled inputs — a
   // status flip mid-fill remounts empty fields and can block HTML5 submit
   // (E2E fill→click race; same window is rare but real for humans).
   if (status === "idle" || status === "authenticating") {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm font-medium text-buzz-inkMuted">
-          Restoring your session…
-        </p>
-      </div>
-    );
+    return <AuthPending />;
   }
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -82,51 +83,50 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <AuthShell align="center">
-      <h1 className={cn(TEXT.h1, "mb-2 text-center text-buzz-ink")}>
-        Admin <span className="text-buzz-coral">Login</span>
-      </h1>
-      <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
-        Sign in with your Buzz admin email and password.
-      </p>
+    <AuthCenter>
+      <AuthHeading kicker="Admin" title="Login">
+        Sign in with your BUZZ admin email and password.
+      </AuthHeading>
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-6">
         <TextField
           type="email"
           label="Email"
+          placeholder="e.g. you@company.com"
           data-testid="admin-email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          autoComplete="username"
         />
         <TextField
           type="password"
           label="Password"
+          placeholder="Your password"
           data-testid="admin-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          autoComplete="current-password"
         />
         {error && <ErrorBanner>{error}</ErrorBanner>}
 
         <Button
           type="submit"
+          size="field"
           data-testid="admin-login-submit"
           disabled={adminLogin.isPending}
           fullWidth
         >
-          {adminLogin.isPending ? "Signing in…" : "Sign in"}
+          Sign in
         </Button>
 
-        <p className="text-center text-sm text-buzz-inkMuted">
-          <Link
-            to="/admin/forgot-password"
-            className="font-semibold text-buzz-coral hover:underline"
-          >
+        <p>
+          <AuthArrowLink to="/admin/forgot-password">
             Forgot password?
-          </Link>
+          </AuthArrowLink>
         </p>
       </form>
-    </AuthShell>
+    </AuthCenter>
   );
 }

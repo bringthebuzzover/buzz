@@ -52,11 +52,11 @@ export function Loader({
     <div className={cn("flex flex-col items-center gap-4", className)} role="status">
       <BeeMark className={cn("h-10 w-10", MOTION.float)} />
       <span className="flex items-center gap-2" aria-hidden>
-        <span className="h-1.5 w-1.5 rounded-full bg-buzz-yellow" />
-        <span className="h-1.5 w-1.5 rounded-full bg-buzz-paper30" />
-        <span className="h-1.5 w-1.5 rounded-full bg-buzz-paper30" />
+        <span className="h-1.5 w-1.5 animate-buzz-dots rounded-full bg-accent motion-reduce:animate-none" />
+        <span className="h-1.5 w-1.5 animate-buzz-dots rounded-full bg-buzz-paper30 motion-reduce:animate-none [animation-delay:300ms]" />
+        <span className="h-1.5 w-1.5 animate-buzz-dots rounded-full bg-buzz-paper30 motion-reduce:animate-none [animation-delay:600ms]" />
       </span>
-      <p className={cn(TEXT.body, "text-buzz-inkMuted")}>{label}</p>
+      <p className={cn(TEXT.body, "text-quiet")}>{label}</p>
     </div>
   );
 }

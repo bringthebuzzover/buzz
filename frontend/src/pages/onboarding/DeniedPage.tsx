@@ -4,16 +4,26 @@
  * failed refresh) so denial UX survives logout; Instagram callback also lands
  * here on ACCOUNT_DENIED.
  */
-import AuthShell from "../../components/site/AuthShell";
-import { StatePanel } from "../../components/ui/StatePanel";
+import StatusHero from "../../components/auth/StatusHero";
+import { AnchorButton } from "../../components/forms/controls";
+import { siteIdentity } from "../../data/siteIdentity";
 
 export default function DeniedPage() {
+  const { contact } = siteIdentity;
   return (
-    <AuthShell align="center">
-      <StatePanel tone="danger" title="Application Denied">
-        Your organization&apos;s application was not approved. Contact Buzz
-        support if you have questions.
-      </StatePanel>
-    </AuthShell>
+    <StatusHero
+      title="Application Denied"
+      action={
+        <AnchorButton
+          href={`mailto:${contact.email}`}
+          variant="outline"
+        >
+          Contact
+        </AnchorButton>
+      }
+    >
+      Your organization&apos;s application was not approved. Contact BUZZ
+      support if you have questions.
+    </StatusHero>
   );
 }
