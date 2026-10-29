@@ -116,6 +116,8 @@ export default function AppRoot(): ReactElement {
               portal="brand"
               loginPath="/brand/login"
               title="Forgot password"
+              kicker="Brand"
+              frame="aside"
             />
           }
         />
@@ -126,6 +128,8 @@ export default function AppRoot(): ReactElement {
               portal="brand"
               loginPath="/brand/login"
               title="Reset password"
+              kicker="Brand"
+              frame="aside"
             />
           }
         />
@@ -277,9 +281,8 @@ export default function AppRoot(): ReactElement {
             </PortalGuard>
           }
         />
-        {/* Admin login is public (admins have no Instagram identity, so this is
-            their only session entry point off-dev) and keeps the marketing
-            chrome; the panel itself lives outside this layout. */}
+        {/* Admin login is public. SiteLayout swaps in AuthAdminHeader so the
+            public "Join Us" header does not show. */}
         <Route path="admin/login" element={<AdminLoginPage />} />
         <Route
           path="admin/forgot-password"
@@ -288,6 +291,8 @@ export default function AppRoot(): ReactElement {
               portal="admin"
               loginPath="/admin/login"
               title="Forgot password"
+              kicker="Admin"
+              frame="admin"
             />
           }
         />
@@ -298,6 +303,8 @@ export default function AppRoot(): ReactElement {
               portal="admin"
               loginPath="/admin/login"
               title="Reset password"
+              kicker="Admin"
+              frame="admin"
             />
           }
         />
