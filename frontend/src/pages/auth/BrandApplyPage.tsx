@@ -8,22 +8,21 @@
  * invite email to set their password.
  */
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import {
-  useBrandApply,
-  usePublicConfig,
-} from "../../api/hooks/useOnboardingHooks";
+import { useBrandApply, usePublicConfig } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
-import AuthShell from "../../components/site/AuthShell";
+import {
+  AuthArrowLink,
+  AuthHeading,
+  AuthLinkRow,
+  AuthSplit,
+} from "../../components/auth/AuthFrame";
+import AuthPending from "../../components/auth/AuthPending";
 import {
   Button,
   ErrorBanner,
   LinkButton,
-  TextArea,
   TextField,
 } from "../../components/forms/controls";
-import { TEXT } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
 
 export default function BrandApplyPage() {
   const config = usePublicConfig();
@@ -60,63 +59,53 @@ export default function BrandApplyPage() {
   };
 
   if (config.isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm font-medium text-buzz-inkMuted">Loading...</p>
-      </div>
-    );
+    return <AuthPending />;
   }
 
   if (submitted) {
     return (
-      <AuthShell align="center" className="text-center">
-        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-          Application <span className="text-buzz-coral">Received</span>
-        </h1>
-        <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
-          Thanks! Our team will review your brand. Once approved, you'll get an
-          email with a link to set your password and sign in.
-        </p>
-        <LinkButton to="/">Back home</LinkButton>
-      </AuthShell>
+      <AuthSplit>
+        <AuthHeading kicker="Brand" title="Application Received">
+          Thanks! Our team will review your brand. Once approved, you&apos;ll get
+          an email with a link to set your password and sign in.
+        </AuthHeading>
+        <LinkButton to="/" size="field">
+          Back home
+        </LinkButton>
+      </AuthSplit>
     );
   }
 
   if (disabled) {
     return (
-      <AuthShell align="center" className="text-center">
-        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-          Brand <span className="text-buzz-coral">Sign-Up</span>
-        </h1>
-        <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
+      <AuthSplit>
+        <AuthHeading kicker="Brand" title="Sign-Up">
           Brand accounts are currently set up by invitation only. Reach out to
           the Buzz team to get started.
-        </p>
-        <Link to="/brand/login" className="font-bold text-buzz-coral hover:underline">
-          Already have an account? Brand login
-        </Link>
-        <p className="mt-4 text-sm font-medium text-buzz-inkMuted">
-          <Link to="/for-brands" className="font-bold text-buzz-coral hover:underline">
-            See how it works
-          </Link>
-        </p>
-      </AuthShell>
+        </AuthHeading>
+        <div className="space-y-3">
+          <AuthLinkRow quiet="Already have an account?">
+            <AuthArrowLink to="/brand/login">Brand login</AuthArrowLink>
+          </AuthLinkRow>
+          <p>
+            <AuthArrowLink to="/for-brands">See how it works</AuthArrowLink>
+          </p>
+        </div>
+      </AuthSplit>
     );
   }
 
   return (
-    <AuthShell align="stack">
-      <h1 className={cn(TEXT.h1, "mb-2 text-center text-buzz-ink")}>
-        Apply as a <span className="text-buzz-coral">Brand</span>
-      </h1>
-      <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
-        Tell us about your brand. We'll review and email you a setup link once
-        approved.
-      </p>
+    <AuthSplit>
+      <AuthHeading kicker="Apply as a" title="Brand">
+        Tell us about your brand. We&apos;ll review and email you a setup link
+        once approved.
+      </AuthHeading>
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-6">
         <TextField
           label="Brand name"
+          placeholder="e.g. Sample Brand"
           value={brandName}
           onChange={(e) => setBrandName(e.target.value)}
           required
@@ -129,13 +118,14 @@ export default function BrandApplyPage() {
           onChange={(e) => setCompanyEmail(e.target.value)}
           placeholder="you@brand.com"
           required
+          autoComplete="email"
         />
 
         <TextField
           label={
             <>
               Instagram handle{" "}
-              <span className="font-normal text-buzz-inkMuted">(optional)</span>
+              <span className="font-normal text-quiet">(optional)</span>
             </>
           }
           value={instagramHandle}
@@ -143,40 +133,33 @@ export default function BrandApplyPage() {
           placeholder="yourbrand"
         />
 
-        <TextArea
+        <TextField
           label={
             <>
-              What are you hoping to do on Buzz?{" "}
-              <span className="font-normal text-buzz-inkMuted">(optional)</span>
+              What are you hoping to do on BUZZ?{" "}
+              <span className="font-normal text-quiet">(optional)</span>
             </>
           }
-          rows={3}
           value={intentMessage}
           onChange={(e) => setIntentMessage(e.target.value)}
+          placeholder="e.g. Sample our new cold brew at fall campus events"
         />
 
         {error && <ErrorBanner>{error}</ErrorBanner>}
 
-        <Button
-          type="submit"
-          disabled={apply.isPending}
-          fullWidth
-        >
-          {apply.isPending ? "Submitting…" : "Submit application"}
+        <Button type="submit" size="field" disabled={apply.isPending} fullWidth>
+          Submit application
         </Button>
 
-        <p className="text-center text-xs text-buzz-inkMuted">
-          <Link to="/for-brands" className="font-bold text-buzz-coral hover:underline">
-            See how it works
-          </Link>
-        </p>
-        <p className="text-center text-xs text-buzz-inkMuted">
-          Already have an account?{" "}
-          <Link to="/brand/login" className="font-bold text-buzz-coral hover:underline">
-            Brand login
-          </Link>
-        </p>
+        <div className="space-y-3">
+          <p>
+            <AuthArrowLink to="/for-brands">See how it works</AuthArrowLink>
+          </p>
+          <AuthLinkRow quiet="Already have an account?">
+            <AuthArrowLink to="/brand/login">Brand login</AuthArrowLink>
+          </AuthLinkRow>
+        </div>
       </form>
-    </AuthShell>
+    </AuthSplit>
   );
 }

@@ -5,19 +5,23 @@
  * route guards forward to the dashboard without racing AuthProvider bootstrap.
  */
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useBrandLogin, usePublicConfig } from "../../api/hooks/useOnboardingHooks";
 import { ApiError } from "../../api/client";
 import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
-import AuthShell from "../../components/site/AuthShell";
+import {
+  AuthArrowLink,
+  AuthHeading,
+  AuthLinkRow,
+  AuthSplit,
+} from "../../components/auth/AuthFrame";
+import AuthPending from "../../components/auth/AuthPending";
 import {
   Button,
   ErrorBanner,
   TextField,
 } from "../../components/forms/controls";
-import { TEXT } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
 import { pathForUser } from "../../utils/landing";
 import type { PortalRole } from "../../types/auth";
 import type { TokenResponse } from "../../api/hooks/useOnboardingHooks";
@@ -40,19 +44,17 @@ export default function BrandLoginPage() {
   }
 
   if (status === "restore_failed") {
-    return <SessionRestorePanel />;
+    return (
+      <AuthSplit>
+        <SessionRestorePanel embedded />
+      </AuthSplit>
+    );
   }
 
   // Wait for AuthProvider bootstrap before mounting controlled inputs — a
   // status flip mid-fill remounts empty fields and can block HTML5 submit.
   if (status === "idle" || status === "authenticating") {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm font-medium text-buzz-inkMuted">
-          Restoring your session…
-        </p>
-      </div>
-    );
+    return <AuthPending />;
   }
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -81,60 +83,54 @@ export default function BrandLoginPage() {
   };
 
   return (
-    <AuthShell align="center">
-      <h1 className={cn(TEXT.h1, "mb-2 text-center text-buzz-ink")}>
-        Brand <span className="text-buzz-coral">Login</span>
-      </h1>
-      <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
+    <AuthSplit>
+      <AuthHeading kicker="Brand" title="Login">
         Sign in with your brand account email and password.
-      </p>
+      </AuthHeading>
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-6">
         <TextField
           type="email"
           label="Email"
+          placeholder="e.g. you@company.com"
           data-testid="brand-email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          autoComplete="username"
         />
         <TextField
           type="password"
           label="Password"
+          placeholder="Your password"
           data-testid="brand-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          autoComplete="current-password"
         />
         {error && <ErrorBanner>{error}</ErrorBanner>}
 
         <Button
           type="submit"
+          size="field"
           data-testid="brand-login-submit"
           disabled={brandLogin.isPending}
           fullWidth
         >
-          {brandLogin.isPending ? "Signing in…" : "Sign in"}
+          Sign in
         </Button>
 
-        <p className="text-center text-sm text-buzz-inkMuted">
-          <Link
-            to="/brand/forgot-password"
-            className="font-semibold text-buzz-coral hover:underline"
-          >
-            Forgot password?
-          </Link>
+        <p>
+          <AuthArrowLink to="/brand/forgot-password">Forgot password?</AuthArrowLink>
         </p>
 
         {selfRegistration ? (
-          <p className="text-center text-xs text-buzz-inkMuted">
-            New to Buzz?{" "}
-            <Link to="/brand/apply" className="font-bold text-buzz-coral hover:underline">
-              Apply as a brand
-            </Link>
-          </p>
+          <AuthLinkRow quiet="New to BUZZ?">
+            <AuthArrowLink to="/brand/apply">Apply as a brand</AuthArrowLink>
+          </AuthLinkRow>
         ) : null}
       </form>
-    </AuthShell>
+    </AuthSplit>
   );
 }
