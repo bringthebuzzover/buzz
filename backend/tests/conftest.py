@@ -590,6 +590,13 @@ def mint_access_token(user: User) -> str:
     )
 
 
+async def admin_headers(db: AsyncSession) -> dict[str, str]:
+    """Bearer headers for a freshly persisted admin user."""
+
+    admin = await persist(db, make_user(role=PortalRole.ADMIN))
+    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
+
+
 def mint_expired_access_token(user: User) -> str:
     """An access token whose ``exp`` is already in the past."""
 

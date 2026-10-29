@@ -14,6 +14,7 @@ from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage
 from app.models.shipment import DropApplicationShipment
 from app.models.user import User
 from tests.conftest import (
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -22,11 +23,6 @@ from tests.conftest import (
     mint_access_token,
     persist,
 )
-
-
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 async def _live_brand(db_session):
@@ -59,7 +55,7 @@ class TestAdminBrandErase:
         brand_user.token_version = 1
         await db_session.flush()
         hidden_before = drop.hidden_at
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/brands/{brand.id}/erase",
             json={"confirm": "acme@brand.test"},
@@ -105,7 +101,7 @@ class TestAdminBrandErase:
 
     async def test_tools_409_after_erase(self, app_client: AsyncClient, db_session):
         brand, drop, _org_user, _app = await _live_brand(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         wiped = await app_client.post(
             f"/api/admin/brands/{brand.id}/erase",
             json={"confirm": "acme@brand.test"},
@@ -134,7 +130,7 @@ class TestAdminBrandErase:
 
     async def test_wrong_confirm_and_idempotent(self, app_client: AsyncClient, db_session):
         brand, _drop, _org_user, _app = await _live_brand(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         bad = await app_client.post(
             f"/api/admin/brands/{brand.id}/erase",
             json={"confirm": "wrong@x.test"},
@@ -181,7 +177,7 @@ class TestAdminBrandErase:
         erased_brand = await make_brand(db_session, company_email="gone@brand.test")
         erased_brand.status = BrandStatus.ERASED.value
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         all_res = await app_client.get("/api/admin/brands", headers=headers)
         ids = {row["id"] for row in all_res.json()["data"]}

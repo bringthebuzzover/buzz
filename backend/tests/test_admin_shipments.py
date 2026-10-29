@@ -11,6 +11,7 @@ from app.models.enums import ApplicationDecision, BrandTrackerStage, PortalRole
 from app.models.shipment import DropApplicationShipment
 from app.services.shipments import infer_carrier
 from tests.conftest import (
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -19,11 +20,6 @@ from tests.conftest import (
     mint_access_token,
     persist,
 )
-
-
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 async def _accepted_seat(db_session):
@@ -49,7 +45,7 @@ class TestInferCarrier:
 class TestAdminShipments:
     async def test_zero_one_n_and_mixed(self, app_client: AsyncClient, db_session):
         drop, org_user, app = await _accepted_seat(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         empty = await app_client.get(f"/api/admin/drops/{drop.id}", headers=headers)
         assert empty.status_code == 200
@@ -80,7 +76,7 @@ class TestAdminShipments:
         self, app_client: AsyncClient, db_session
     ):
         _, _, app = await _accepted_seat(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         missing = await app_client.post(
             f"/api/admin/applications/{app.id}/shipments",
             json={"trackingNumber": "NW-TRK-001"},
@@ -103,7 +99,7 @@ class TestAdminShipments:
 
     async def test_uniqueness(self, app_client: AsyncClient, db_session):
         _, _, app = await _accepted_seat(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         body = {"trackingNumber": "1ZAAA"}
         assert (
             await app_client.post(
@@ -122,7 +118,7 @@ class TestAdminShipments:
         app_b = await make_application(
             db_session, drop, org_b, decision=ApplicationDecision.ACCEPTED
         )
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         await app_client.post(
             f"/api/admin/applications/{app_a.id}/shipments",
             json={"trackingNumber": "1ZONLYA"},
@@ -153,7 +149,7 @@ class TestAdminShipments:
         res = await app_client.patch(
             f"/api/admin/drops/{drop.id}/tracker",
             json={"stage": "awaiting_products"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         await db_session.refresh(drop)
@@ -169,13 +165,13 @@ class TestAdminShipments:
         res = await app_client.post(
             f"/api/admin/applications/{app.id}/shipments",
             json={"trackingNumber": "1ZNO"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
 
     async def test_delete(self, app_client: AsyncClient, db_session):
         _, _, app = await _accepted_seat(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         created = await app_client.post(
             f"/api/admin/applications/{app.id}/shipments",
             json={"trackingNumber": "1ZDEL"},
@@ -198,7 +194,7 @@ class TestBrandSeesPerOrg:
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, org_user)
         app = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         await app_client.post(
             f"/api/admin/applications/{app.id}/shipments",
             json={"trackingNumber": "1ZBRAND"},

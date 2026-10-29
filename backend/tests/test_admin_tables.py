@@ -8,6 +8,7 @@ from app.models.enums import ApplicationDecision, PortalRole
 from app.models.shipment import DropApplicationShipment
 from app.security.password import hash_password
 from tests.conftest import (
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -17,11 +18,6 @@ from tests.conftest import (
     mint_access_token,
     persist,
 )
-
-
-async def _admin_headers(db_session) -> dict[str, str]:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 class TestAdminTablesGate:
@@ -40,7 +36,7 @@ class TestAdminTablesCatalog:
     async def test_lists_all_tables_and_flags_secrets(
         self, app_client: AsyncClient, db_session
     ) -> None:
-        res = await app_client.get("/api/admin/tables", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/tables", headers=await admin_headers(db_session))
         assert res.status_code == 200
         by_name = {item["name"]: item for item in res.json()["data"]}
         assert "users" in by_name
@@ -69,7 +65,7 @@ class TestAdminTablesQuery:
         res = await app_client.post(
             "/api/admin/tables/users/query",
             json={"filters": {"eduEmail": "club@college.edu"}},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         rows = res.json()["data"]["rows"]
@@ -84,7 +80,7 @@ class TestAdminTablesQuery:
         res = await app_client.post(
             "/api/admin/tables/nope/query",
             json={},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 404
 
@@ -92,7 +88,7 @@ class TestAdminTablesQuery:
         res = await app_client.post(
             "/api/admin/tables/users/query",
             json={"filters": {"passwordHash": "x"}},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
 
@@ -103,7 +99,7 @@ class TestAdminTablesPatch:
         res = await app_client.patch(
             f"/api/admin/tables/users/{user.id}",
             json={"fields": {"passwordHash": "x"}},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
 
@@ -112,7 +108,7 @@ class TestAdminTablesPatch:
         res = await app_client.patch(
             f"/api/admin/tables/users/{user.id}",
             json={"fields": {"status": "active"}},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
 
@@ -124,7 +120,7 @@ class TestAdminTablesPatch:
         res = await app_client.patch(
             f"/api/admin/tables/organizations/{org.id}",
             json={"fields": {"claimedInstagramUsername": "spoofed"}},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
 
@@ -141,7 +137,7 @@ class TestAdminTablesPatch:
                     "shippingPostalCode": "14850",
                 }
             },
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         row = res.json()["data"]["row"]
@@ -154,7 +150,7 @@ class TestAdminTablesPatch:
         res = await app_client.patch(
             f"/api/admin/tables/drops/{drop.id}",
             json={"fields": {"title": "New Title"}},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         assert res.json()["data"]["row"]["title"] == "New Title"
@@ -163,7 +159,7 @@ class TestAdminTablesPatch:
         brand = await make_brand(db_session, brand_name="Acme")
         res = await app_client.get(
             f"/api/admin/tables/brands/{brand.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         assert res.json()["data"]["row"]["brandName"] == "Acme"
@@ -188,7 +184,7 @@ class TestAdminTablesPatch:
         res = await app_client.patch(
             f"/api/admin/tables/drop_application_shipments/{second.id}",
             json={"fields": {"trackingNumber": "1ZAAAA"}},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 409
         assert res.json()["error"]["code"] == "VALIDATION_ERROR"
@@ -205,7 +201,7 @@ class TestAdminTablesPatch:
         res = await app_client.patch(
             f"/api/admin/tables/notify_me/{notify.id}",
             json={"fields": {"reminderMinutes": "soon"}},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
         assert res.json()["error"]["code"] == "VALIDATION_ERROR"
