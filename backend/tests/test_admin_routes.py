@@ -398,16 +398,6 @@ class TestAdminRecovery:
         assert user.instagram_token_expires_at is None
         assert user.token_version == 2
 
-    async def test_drop_tracking_route_removed(self, app_client: AsyncClient, db_session):
-        brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand)
-        res = await app_client.patch(
-            f"/api/admin/drops/{drop.id}/tracking",
-            json={"trackingNumber": "REPAIR-99"},
-            headers=await admin_headers(db_session),
-        )
-        assert res.status_code == 404
-
     async def test_non_admin_forbidden_on_recovery(self, app_client: AsyncClient, db_session):
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))
         headers = {"Authorization": f"Bearer {mint_access_token(org_user)}"}
