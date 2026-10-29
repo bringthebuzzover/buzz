@@ -719,8 +719,18 @@ async def add_org_to_drop(
         )
     )
     never_applied = len(existing_rows) == 0
+    # The seat to reuse is any row except a denial the org was already told
+    # about; an unsent denial is still a draft, so it becomes the acceptance
+    # (else the next "Send decisions" would email "not selected").
     active = next(
-        (row for row in existing_rows if row.decision != ApplicationDecision.DENIED.value),
+        (
+            row
+            for row in existing_rows
+            if not (
+                row.decision == ApplicationDecision.DENIED.value
+                and row.decision_sent_at is not None
+            )
+        ),
         None,
     )
     if (
