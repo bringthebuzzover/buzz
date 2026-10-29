@@ -281,7 +281,6 @@ export const buttonVariants = cva(
         compact: "h-9 px-3 text-xs",
         /** 48px. Only for a button sitting on the same row as a field. */
         field: "h-12 px-4 text-sm",
-        hero: "h-14 px-8 text-base",
       },
       fullWidth: {
         true: "w-full",

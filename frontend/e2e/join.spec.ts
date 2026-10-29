@@ -33,19 +33,19 @@ test("home join buttons route to /org/apply and /brand/apply", async ({
   ).toBeVisible();
 
   await expect(
-    section.getByRole("link", { name: /apply as brand/i }),
+    section.getByRole("link", { name: /apply as a brand/i }),
   ).toHaveAttribute("href", "/brand/apply");
   await expect(
-    section.getByRole("link", { name: /join as student organization/i }),
+    section.getByRole("link", { name: /join as a student organization/i }),
   ).toHaveAttribute("href", "/org/apply");
 
-  await section.getByRole("link", { name: /apply as brand/i }).click();
+  await section.getByRole("link", { name: /apply as a brand/i }).click();
   await expect(page).toHaveURL(/\/brand\/apply$/);
 
   await page.goto("/");
   await page
     .locator("#home-join")
-    .getByRole("link", { name: /join as student organization/i })
+    .getByRole("link", { name: /join as a student organization/i })
     .click();
   await expect(page).toHaveURL(/\/org\/apply$/);
 });

@@ -45,7 +45,6 @@ export default function LoginPage() {
       <Button
         type="button"
         variant="outline"
-        size="hero"
         onClick={() => login(next)}
         disabled={status === "authenticating"}
       >

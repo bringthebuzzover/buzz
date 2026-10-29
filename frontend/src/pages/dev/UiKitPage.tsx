@@ -104,7 +104,6 @@ export default function UiKitPage() {
             <Button variant="danger">Danger</Button>
           </div>
           <div className={cx("flex flex-wrap items-center", GAP.tight)}>
-            <Button size="hero">Hero</Button>
             <Button>Default</Button>
             <Button size="compact">Compact</Button>
             <Button size="field">Field</Button>
