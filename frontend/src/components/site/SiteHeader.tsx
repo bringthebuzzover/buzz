@@ -16,15 +16,10 @@ import { useSignOut } from "../../api/hooks/useSignOut";
 import { useAuth } from "../../contexts/AuthContext";
 import { goToHomeJoin } from "../../utils/scrollHomeJoin";
 import { Logo } from "../ui/BrandMark";
-import { ORG_PORTAL_LINKS } from "../org/OrgPortalHeader";
+import { BRAND_PORTAL_LINKS, ORG_PORTAL_LINKS } from "./PortalHeader";
 import { Button } from "../forms/controls";
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
-
-const BRAND_NAV_LINKS = [
-  { to: "/brand/dashboard", label: "Dashboard" as const },
-  { to: "/brand/settings", label: "Setup" as const },
-] as const;
 
 const ORG_DESKTOP_MIN_PX = 1024;
 const COMPACT_DESKTOP_MIN_PX = 650;
@@ -109,7 +104,7 @@ export default function SiteHeader() {
 
   const navLinks = isApiAuth
     ? user.portalRole === "brand"
-      ? BRAND_NAV_LINKS
+      ? BRAND_PORTAL_LINKS
       : user.portalRole === "org"
         ? ORG_PORTAL_LINKS
         : []
