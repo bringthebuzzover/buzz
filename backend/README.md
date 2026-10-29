@@ -120,11 +120,10 @@ poetry run pytest
 
 ### One-shot quality gate
 
-Run all three stages — **Black → Ruff → pytest** — fail-fast:
+Run the full gate from the repo root (backend, frontend, then Playwright):
 
 ```bash
-./scripts/check.sh           # format in place, lint, test
-./scripts/check.sh --check   # don't rewrite; verify only (CI mode)
+./scripts/ci-local.sh
 ```
 
 CI runs `black --check`, then `ruff check`, then `mypy`, then `pytest`
@@ -205,7 +204,6 @@ backend/
       token_refresh.py  # §10.5.2 safety-net cron
       metric_sync.py    # §10.1 Instagram metric sync
   scripts/
-    check.sh        # Local quality gate (black → ruff → mypy → alembic → pytest)
     run_job.py      # Background-job runner: run_job.py <name> (Railway Cron)
     dump_openapi.py # Write ../openapi.json at the repo root (source for `cd ../frontend && npm run gen:api`)
     seed_dev.py     # Destructive local dev seed
