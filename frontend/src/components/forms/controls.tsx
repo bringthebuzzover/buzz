@@ -386,18 +386,44 @@ export function ErrorBanner({ children }: { children: ReactNode }) {
   );
 }
 
-/** Pen Notice: yellow-faded fill, yellow line, paper text. Not the paper success chip. */
-export function SuccessBanner({ children }: { children: ReactNode }) {
+/**
+ * Pen Notice. Accent is the yellow wash used for a real success. Neutral is
+ * the info note: paper-08 fill, paper-09 line, paper text.
+ */
+export function Notice({
+  tone = "neutral",
+  children,
+}: {
+  tone?: "neutral" | "accent";
+  children: ReactNode;
+}) {
   if (!children) return null;
+  const accent = tone === "accent";
   return (
     <div
-      className="flex items-start gap-3 rounded-buzzField border border-buzz-yellowLine bg-accent-wash px-4 py-4 text-sm text-primary"
+      className={cn(
+        "flex items-start gap-3 rounded-buzzField border px-4 py-4 text-sm text-primary",
+        accent
+          ? "border-buzz-yellowLine bg-accent-wash"
+          : "border-line bg-buzz-paper08",
+      )}
       role="status"
     >
-      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+      <span
+        className={cn(
+          "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
+          accent ? "bg-accent" : "bg-quiet",
+        )}
+        aria-hidden
+      />
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
+}
+
+/** Pen Notice, accent tone. Not the paper success chip. */
+export function SuccessBanner({ children }: { children: ReactNode }) {
+  return <Notice tone="accent">{children}</Notice>;
 }
 
 export function WarningBanner({ children }: { children: ReactNode }) {

@@ -20,6 +20,7 @@ import {
   ActionButton,
   AdminTable,
   Cell,
+  entityLinkClass,
   ErrorNote,
   FilterChips,
   PageHeading,
@@ -206,7 +207,7 @@ export default function AdminOrgsPage() {
               <Cell>
                 <Link
                   to={`/admin/orgs/${row.userId}`}
-                  className="block text-primary hover:text-accent"
+                  className={`block ${entityLinkClass}`}
                 >
                   {row.orgName ?? "Profile not submitted"}
                 </Link>

@@ -33,6 +33,7 @@ import { instagramProfileUrl } from "../../utils/instagramProfileUrl";
 import {
   ActionButton,
   AdminBackLink,
+  entityLinkClass,
   ErrorNote,
   Field,
   FieldGrid,
@@ -54,6 +55,7 @@ import { Checkbox } from "../../components/forms/Checkbox";
 import { Button, SuccessBanner, TextField } from "../../components/forms/controls";
 import { Modal } from "../../components/ui/Modal";
 import { STACK } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 import ComposeEmailModal from "../../components/admin/ComposeEmailModal";
 
 function confirmHandleMatches(typed: string, stored: string): boolean {
@@ -488,7 +490,7 @@ export default function AdminOrgDetailPage() {
                       href={claimedProfileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-accent hover:underline"
+                      className={cn("hover:underline", entityLinkClass)}
                     >
                       @{claimedBare}
                     </a>
@@ -506,7 +508,7 @@ export default function AdminOrgDetailPage() {
                     href={igProfileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:text-accent"
+                    className={entityLinkClass}
                   >
                     {connectedHandle}
                   </a>

@@ -52,6 +52,7 @@ import {
   AdminTable,
   Cell,
   ErrorNote,
+  entityLinkClass,
   Field,
   FieldGrid,
   HeadingIconButton,
@@ -1016,7 +1017,7 @@ function Applicants({
           <Cell>
             <Link
               to={`/admin/orgs/${applicant.userId}`}
-              className="block text-primary hover:text-accent"
+              className={`block ${entityLinkClass}`}
             >
               {applicant.orgName}
             </Link>
@@ -1373,7 +1374,7 @@ export default function AdminDropDetailPage() {
                   Drop request{" "}
                   <Link
                     to={`/admin/requests/${data.dropRequestId}`}
-                    className="text-primary hover:text-accent"
+                    className={entityLinkClass}
                   >
                     View ticket
                   </Link>

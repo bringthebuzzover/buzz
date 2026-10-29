@@ -15,6 +15,7 @@ import {
   FilterChips,
   PageHeading,
   Pill,
+  entityLinkClass,
   QueryState,
   Row,
   rowActionClass,
@@ -103,7 +104,7 @@ export default function AdminIgChangeRequestsPage() {
     <div>
       <PageHeading
         title="Instagram identity requests"
-        subtitle="Organizations: a rename stays a login; an account switch needs a tester add, then Connect. Brands: approve or deny on the brand page."
+        subtitle="Organizations: a rename stays a login; an account switch needs a tester add, then Connect. Brands: approval only updates the caption @."
       />
 
       <FilterChips
@@ -135,7 +136,7 @@ export default function AdminIgChangeRequestsPage() {
               <Cell>
                 <Link
                   to={ticket.accountTo}
-                  className="text-primary hover:text-accent"
+                  className={entityLinkClass}
                 >
                   {ticket.name}
                 </Link>

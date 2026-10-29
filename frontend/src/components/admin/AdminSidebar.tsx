@@ -26,6 +26,14 @@ import { focusRingClass } from "../../theme/controls";
 import { Logo } from "../ui/BrandMark";
 import { adminNavItemClass } from "../ui/navItem";
 
+/** Sidebar link only. The /admin/ui-kit route stays registered for every build. */
+export function showAdminUiKitNav(
+  nodeEnv: string | undefined = process.env.NODE_ENV,
+  appEnv: string | undefined = process.env.REACT_APP_ENV,
+): boolean {
+  return nodeEnv === "development" || appEnv === "staging";
+}
+
 type NavItem = {
   to: string;
   label: string;
@@ -158,6 +166,7 @@ function SignedInAs() {
 
 export default function AdminSidebar() {
   const [open, setOpen] = useState(false);
+  const showUiKit = showAdminUiKitNav();
   const location = useLocation();
   const overview = useAdminOverview();
   const total = (overview.data?.queues ?? []).reduce(
@@ -187,16 +196,18 @@ export default function AdminSidebar() {
       {open && (
         <div className="border-b border-line bg-page px-6 py-4 sm:px-8 lg:hidden">
           <NavItems key={location.pathname} onNavigate={() => setOpen(false)} />
-          <div className="mt-4 border-t border-line pt-4">
-            <NavLink
-              to="/admin/ui-kit"
-              onClick={() => setOpen(false)}
-              className={({ isActive }) => adminNavItemClass(isActive)}
-            >
-              <Component size={16} aria-hidden className="text-quiet" />
-              <span className="min-w-0 flex-1 truncate">UI kit</span>
-            </NavLink>
-          </div>
+          {showUiKit && (
+            <div className="mt-4 border-t border-line pt-4">
+              <NavLink
+                to="/admin/ui-kit"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) => adminNavItemClass(isActive)}
+              >
+                <Component size={16} aria-hidden className="text-quiet" />
+                <span className="min-w-0 flex-1 truncate">UI kit</span>
+              </NavLink>
+            </div>
+          )}
           <div className="mt-4">
             <SignedInAs />
           </div>
@@ -207,26 +218,28 @@ export default function AdminSidebar() {
         <div className="flex min-h-0 flex-1 flex-col gap-8">
           <AdminWordmark className="px-3" />
           <NavItems />
-          <div className="flex flex-col gap-2 border-t border-line px-3 pt-4">
-            <p className="text-xs text-quiet">Development only</p>
-            <NavLink
-              to="/admin/ui-kit"
-              className={({ isActive }) => adminNavItemClass(isActive)}
-            >
-              {({ isActive }) => (
-                <>
-                  <Component
-                    size={16}
-                    aria-hidden
-                    className={isActive ? "text-primary" : "text-quiet"}
-                  />
-                  <span className={cn("min-w-0 flex-1 truncate", isActive && "text-accent")}>
-                    UI kit
-                  </span>
-                </>
-              )}
-            </NavLink>
-          </div>
+          {showUiKit && (
+            <div className="flex flex-col gap-2 border-t border-line px-3 pt-4">
+              <p className="text-xs text-quiet">Development only</p>
+              <NavLink
+                to="/admin/ui-kit"
+                className={({ isActive }) => adminNavItemClass(isActive)}
+              >
+                {({ isActive }) => (
+                  <>
+                    <Component
+                      size={16}
+                      aria-hidden
+                      className={isActive ? "text-primary" : "text-quiet"}
+                    />
+                    <span className={cn("min-w-0 flex-1 truncate", isActive && "text-accent")}>
+                      UI kit
+                    </span>
+                  </>
+                )}
+              </NavLink>
+            </div>
+          )}
           <div className="flex-1" />
         </div>
         <SignedInAs />

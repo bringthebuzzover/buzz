@@ -151,7 +151,7 @@ export default function AdminHealthPage() {
             title="Instagram connections"
             description="Organization accounts only. Authenticated requests with an expired Instagram token return INSTAGRAM_TOKEN_EXPIRED until the organization reconnects via OAuth (/reconnect-instagram). The refresh job never retries a token that has already lapsed."
           >
-            <div className="grid gap-3 px-6 pb-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 px-6 pb-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {health.data.instagramTokens.map((signal) => {
                 const meta = TOKEN_BUCKET_META[signal.key];
                 const hot = !signal.ok && signal.count > 0;

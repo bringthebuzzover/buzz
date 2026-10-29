@@ -30,6 +30,7 @@ import {
   humanizeKey,
 } from "../../components/admin/labels";
 import { TEXT } from "../../theme/tokens";
+import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
 function QueueCard({
@@ -51,6 +52,7 @@ function QueueCard({
       data-testid={`queue-${queueKey}`}
       className={cn(
         "flex flex-col gap-2 rounded-buzzBoard border p-5 transition hover:border-accent",
+        focusRingClass,
         clear
           ? "border-line bg-surface-tile"
           : "border-buzz-yellowLine bg-accent-wash",
