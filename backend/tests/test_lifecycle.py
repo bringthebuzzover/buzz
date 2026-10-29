@@ -269,3 +269,30 @@ async def test_units_change_keeps_a_sent_seat_live(app_client: AsyncClient, db_s
     assert seat.allocated_units == 4
     assert seat.decision_sent_at == sent_at
     assert await drop_stage(db_session, drop) == DropStage.LIVE
+
+
+async def test_sent_decision_only_moves_forward_to_accepted(
+    app_client: AsyncClient, db_session
+) -> None:
+    drop, live = await _closed_drop_with_live_seat(db_session)
+    _, org = await _org(db_session, "Told no")
+    denied = await make_application(db_session, drop, org, decision=ApplicationDecision.DENIED)
+    admin = await admin_headers(db_session)
+
+    def url(seat) -> str:
+        return f"/api/admin/drops/{drop.id}/applications/{seat.id}/decision"
+
+    # A live seat can't be re-decided (removal is the way out); nor can a
+    # sent denial go back to undecided.
+    for seat, decision in ((live, "denied"), (live, "applied"), (denied, "applied")):
+        res = await app_client.put(url(seat), json={"decision": decision}, headers=admin)
+        assert res.json()["error"]["code"] == "DECISION_ALREADY_SENT", (seat.id, decision)
+
+    # BUZZ reverses the denial; it waits for the next send.
+    res = await app_client.put(
+        url(denied), json={"decision": "accepted", "allocatedUnits": 1}, headers=admin
+    )
+    assert res.status_code == 200, res.text
+    await db_session.refresh(denied)
+    assert denied.decision == ApplicationDecision.ACCEPTED.value
+    assert denied.decision_sent_at is None

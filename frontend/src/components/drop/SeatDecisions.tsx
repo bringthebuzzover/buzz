@@ -26,15 +26,19 @@ export function SeatDecisionSelect({
   id,
   orgName,
   value,
+  sent = false,
   disabled,
   onChange,
 }: {
   id: string;
   orgName: string;
   value: string;
+  /** A sent decision only moves forward to Accept (BUZZ reversing a denial). */
+  sent?: boolean;
   disabled?: boolean;
   onChange: (decision: SeatDecision) => void;
 }) {
+  const locked = (option: SeatDecision) => sent && option !== value && option !== "accepted";
   return (
     <Select
       id={`decision-${id}`}
@@ -46,9 +50,13 @@ export function SeatDecisionSelect({
       disabled={disabled}
       onChange={(e) => onChange(e.target.value as SeatDecision)}
     >
-      <option value="applied">Undecided</option>
+      <option value="applied" disabled={locked("applied")}>
+        Undecided
+      </option>
       <option value="accepted">Accept</option>
-      <option value="denied">Deny</option>
+      <option value="denied" disabled={locked("denied")}>
+        Deny
+      </option>
     </Select>
   );
 }
