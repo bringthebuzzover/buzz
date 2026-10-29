@@ -13,6 +13,7 @@ import {
 import { ApiError } from "../../api/client";
 import FieldError from "../forms/FieldError";
 import { TextField, WarningBanner } from "../forms/controls";
+import { focusRingClass } from "../../theme/controls";
 import { GAP, STACK, SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
@@ -58,6 +59,11 @@ type Props = {
   required?: boolean;
   legacyHint?: string | null;
   error?: string;
+  /**
+   * `split` is the apply form: 14px legend and street beside apt.
+   * Profile pages keep the stacked fieldset title.
+   */
+  layout?: "stack" | "split";
 };
 
 export default function ShippingAddressFields({
@@ -68,6 +74,7 @@ export default function ShippingAddressFields({
   required = true,
   legacyHint,
   error,
+  layout = "stack",
 }: Props) {
   const suggest = useAddressSuggest();
   const preview = useAddressPreview();
@@ -152,10 +159,90 @@ export default function ShippingAddressFields({
     onChange({ ...value, placeId: "", ...partial });
   };
 
+  const split = layout === "split";
+
+  const street = (
+    <div className="relative">
+      <TextField
+        id={`${testIdPrefix}-shipping-line1`}
+        data-testid={`${testIdPrefix}-shipping-line1`}
+        label="Street"
+        className={inputClass}
+        value={value.line1}
+        onChange={(e) => {
+          allowSuggest.current = true;
+          setStreetActive(true);
+          patch({ line1: e.target.value });
+        }}
+        onFocus={() => {
+          allowSuggest.current = true;
+          setStreetActive(true);
+        }}
+        onBlur={() => {
+          setStreetActive(false);
+          dismissSuggestions();
+        }}
+        autoComplete="street-address"
+        required={required}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${testIdPrefix}-shipping-error` : undefined}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-controls={listId}
+        aria-expanded={open}
+      />
+      {open && suggestions.length > 0 ? (
+        <ul
+          id={listId}
+          role="listbox"
+          className={cn(
+            SURFACE.card,
+            "absolute z-10 mt-1 max-h-48 w-full overflow-auto p-0",
+          )}
+        >
+          {suggestions.map((item) => (
+            <li key={item.placeId} role="option" aria-selected={false}>
+              <button
+                type="button"
+                className={cn(
+                  "w-full px-3 py-2 text-left text-sm text-primary hover:bg-surface-pop",
+                  focusRingClass,
+                )}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => void pick(item)}
+              >
+                {item.text}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+
+  const apt = (
+      <TextField
+        id={`${testIdPrefix}-shipping-line2`}
+        data-testid={`${testIdPrefix}-shipping-line2`}
+        label={
+          <>
+            Apt, CPO, or PO Box{" "}
+            <span className="font-normal text-quiet">(optional)</span>
+          </>
+        }
+        className={inputClass}
+        value={value.line2}
+        onChange={(e) => patch({ line2: e.target.value })}
+        autoComplete="address-line2"
+      />
+  );
+
   return (
     <fieldset className={STACK.default}>
-      <legend className={TEXT.h3}>Shipping address (US)</legend>
-      <p className={TEXT.meta}>
+      <legend className={split ? "text-sm font-medium text-primary" : TEXT.h3}>
+        Shipping address (US)
+      </legend>
+      <p className={split ? "text-xs text-quiet" : TEXT.meta}>
         Where brands should ship product. PO Boxes and campus CPO/dorm lines
         are allowed.
       </p>
@@ -166,74 +253,17 @@ export default function ShippingAddressFields({
         </WarningBanner>
       ) : null}
 
-      <div className="relative">
-        <TextField
-          id={`${testIdPrefix}-shipping-line1`}
-          data-testid={`${testIdPrefix}-shipping-line1`}
-          label="Street"
-          className={inputClass}
-          value={value.line1}
-          onChange={(e) => {
-            allowSuggest.current = true;
-            setStreetActive(true);
-            patch({ line1: e.target.value });
-          }}
-          onFocus={() => {
-            allowSuggest.current = true;
-            setStreetActive(true);
-          }}
-          onBlur={() => {
-            setStreetActive(false);
-            dismissSuggestions();
-          }}
-          autoComplete="street-address"
-          required={required}
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? `${testIdPrefix}-shipping-error` : undefined}
-          role="combobox"
-          aria-autocomplete="list"
-          aria-controls={listId}
-          aria-expanded={open}
-        />
-        {open && suggestions.length > 0 ? (
-          <ul
-            id={listId}
-            role="listbox"
-            className={cn(
-              SURFACE.card,
-              "absolute z-10 mt-1 max-h-48 w-full overflow-auto p-0",
-            )}
-          >
-            {suggestions.map((item) => (
-              <li key={item.placeId} role="option" aria-selected={false}>
-                <button
-                  type="button"
-                  className="w-full px-3 py-2 text-left text-sm text-buzz-ink hover:bg-buzz-cream"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => void pick(item)}
-                >
-                  {item.text}
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
-
-      <TextField
-        id={`${testIdPrefix}-shipping-line2`}
-        data-testid={`${testIdPrefix}-shipping-line2`}
-        label={
-          <>
-            Apt, CPO, or PO Box{" "}
-            <span className="font-normal text-buzz-inkMuted">(optional)</span>
-          </>
-        }
-        className={inputClass}
-        value={value.line2}
-        onChange={(e) => patch({ line2: e.target.value })}
-        autoComplete="address-line2"
-      />
+      {split ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {street}
+          {apt}
+        </div>
+      ) : (
+        <>
+          {street}
+          {apt}
+        </>
+      )}
 
       <div className={cn("grid grid-cols-1 sm:grid-cols-3", GAP.default)}>
         <TextField
