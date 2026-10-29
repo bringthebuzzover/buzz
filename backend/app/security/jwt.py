@@ -66,8 +66,6 @@ class TokenPayload(BaseModel):
     imp_readonly: bool | None = None  # impersonation session may not mutate
     bind: str | None = None  # user id for Connect Instagram OAuth bind
     next: str | None = None  # allowlisted post-OAuth SPA path (public drop)
-    # META-REVIEWER-PATH: set only on states minted by the reviewer link.
-    reviewer: bool | None = None
 
 
 def _now() -> datetime:
@@ -200,16 +198,12 @@ def create_oauth_state_token(
     *,
     bind_user_id: uuid.UUID | str | None = None,
     next_path: str | None = None,
-    reviewer: bool = False,
 ) -> str:
     """Mint a signed, short-lived CSRF ``state`` for the OAuth round-trip.
 
     When ``bind_user_id`` is set, the callback binds Instagram to that existing
     user instead of inserting (LAUNCH.md Phase A Connect). ``next_path`` must
     already be allowlisted (``/d/<uuid>``); other values are dropped.
-
-    ``reviewer`` is META-REVIEWER-PATH. It is omitted unless the reviewer
-    link mints the state. Normal login and Connect never set it.
     """
 
     issued = _now()
@@ -223,9 +217,6 @@ def create_oauth_state_token(
     }
     if bind_user_id is not None:
         claims["bind"] = str(bind_user_id)
-    # META-REVIEWER-PATH: absent on every non-reviewer state.
-    if reviewer:
-        claims["reviewer"] = True
     allowed_next = allowlisted_oauth_next(next_path)
     if allowed_next is not None:
         claims["next"] = allowed_next

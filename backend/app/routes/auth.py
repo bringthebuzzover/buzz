@@ -221,16 +221,7 @@ async def instagram_callback(
         )
     _clear_state_cookie(response)
 
-    # META-REVIEWER-PATH: reviewer states are handled only by the isolated module.
-    # Normal login and Connect leave ``reviewer`` unset and skip this branch.
-    if state_payload.reviewer:
-        from app.meta_reviewer.callback import complete_reviewer_instagram_callback
-
-        user = await complete_reviewer_instagram_callback(
-            db, ig, payload.code, bind_user_id=bind_user_id
-        )
-    else:
-        user = await handle_instagram_callback(db, ig, payload.code, bind_user_id=bind_user_id)
+    user = await handle_instagram_callback(db, ig, payload.code, bind_user_id=bind_user_id)
     # Don't mint fresh credentials for a terminally-denied account — symmetric
     # with the refresh boundary. New users are pending_org_profile, so signup
     # is unaffected. Distinct code so the SPA can land on /onboarding/denied.
