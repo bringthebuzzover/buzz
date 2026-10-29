@@ -41,7 +41,7 @@ import {
   TextArea,
   TextField,
 } from "../../components/forms/controls";
-import { Modal } from "../../components/ui/Modal";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { Tabs } from "../../components/ui/Tabs";
 import { Toggle } from "../../components/ui/Toggle";
 import { STACK, TEXT } from "../../theme/tokens";
@@ -927,16 +927,13 @@ function RemoveParticipantButton({
 }) {
   const remove = useRemoveParticipant(dropId);
   const [open, setOpen] = useState(false);
-  const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const matches = typed.trim().toLowerCase() === "remove";
 
-  async function submit() {
+  async function submit(typed: string) {
     setError(null);
     try {
       await remove.mutateAsync({ applicationId: applicant.id, confirm: typed.trim() });
       setOpen(false);
-      setTyped("");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not remove this participant.");
     }
@@ -950,50 +947,28 @@ function RemoveParticipantButton({
         testId={`remove-participant-${applicant.id}`}
         onClick={() => {
           setError(null);
-          setTyped("");
           setOpen(true);
         }}
       >
         Remove
       </ActionButton>
       {open && (
-        <Modal
-          onClose={() => setOpen(false)}
+        <ConfirmDialog
           title="Remove participant"
           description="Deletes this seat, its tracking numbers, and its linked post metrics from this drop. Type remove to confirm."
-        >
-          <div className={STACK.tight}>
-            {error && <ErrorNote>{error}</ErrorNote>}
-            <TextField
-              id={`remove-confirm-${applicant.id}`}
-              data-testid={`remove-confirm-${applicant.id}`}
-              label="Type remove"
-              size="compact"
-              value={typed}
-              autoComplete="off"
-              spellCheck={false}
-              onChange={(e) => setTyped(e.target.value)}
-            />
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="compact"
-                onClick={() => setOpen(false)}
-              >
-                Cancel
-              </Button>
-              <ActionButton
-                variant="danger"
-                testId={`remove-confirm-submit-${applicant.id}`}
-                disabled={!matches || remove.isPending}
-                onClick={() => void submit()}
-              >
-                {remove.isPending ? "Removing…" : "Remove from drop"}
-              </ActionButton>
-            </div>
-          </div>
-        </Modal>
+          expected="remove"
+          inputLabel="Type remove"
+          matches={(typed) => typed.trim().toLowerCase() === "remove"}
+          error={error}
+          destructive
+          confirmLabel="Remove from drop"
+          pendingLabel="Removing…"
+          pending={remove.isPending}
+          inputTestId={`remove-confirm-${applicant.id}`}
+          submitTestId={`remove-confirm-submit-${applicant.id}`}
+          onConfirm={(typed) => void submit(typed)}
+          onClose={() => setOpen(false)}
+        />
       )}
     </>
   );
@@ -1075,7 +1050,6 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
   const hide = useHideDrop(drop.id);
   const unhide = useUnhideDrop(drop.id);
   const [open, setOpen] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
   const [notifyBrand, setNotifyBrand] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1083,11 +1057,8 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
     return null;
   }
 
-  const confirmMatches = confirmText.trim() === drop.title.trim();
-
   function closeDialog() {
     setOpen(false);
-    setConfirmText("");
     setNotifyBrand(false);
     setError(null);
   }
@@ -1129,75 +1100,42 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
         {hidden ? <Eye size={16} aria-hidden /> : <EyeOff size={16} aria-hidden />}
       </HeadingIconButton>
       {open && (
-        <Modal
-          onClose={closeDialog}
-          title={hidden ? "Unhide campaign" : "Hide campaign"}
-          description={
-            hidden
-              ? "Organization and brand portals will see this drop again at the same URLs."
-              : "Removes this published drop from every organization and brand portal. Type the drop title to confirm. No email unless you opt in."
-          }
-        >
-          <div className={STACK.tight}>
-            {error && <ErrorNote>{error}</ErrorNote>}
-            {hidden ? (
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="compact"
-                  onClick={closeDialog}
-                >
-                  Cancel
-                </Button>
-                <ActionButton
-                  variant="primary"
-                  testId="drop-unhide-submit"
-                  disabled={unhide.isPending}
-                  onClick={() => void doUnhide()}
-                >
-                  {unhide.isPending ? "Unhiding…" : "Unhide"}
-                </ActionButton>
-              </div>
-            ) : (
-              <>
-                <TextField
-                  id="hide-drop-confirm"
-                  data-testid="hide-drop-confirm"
-                  label="Type the drop title to confirm"
-                  size="compact"
-                  value={confirmText}
-                  autoComplete="off"
-                  onChange={(e) => setConfirmText(e.target.value)}
-                />
-                <Checkbox
-                  data-testid="hide-drop-notify-brand"
-                  checked={notifyBrand}
-                  onChange={(e) => setNotifyBrand(e.target.checked)}
-                  label="Email the brand that this campaign was withdrawn"
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="compact"
-                    onClick={closeDialog}
-                  >
-                    Cancel
-                  </Button>
-                  <ActionButton
-                    variant="danger"
-                    testId="hide-drop-submit"
-                    disabled={!confirmMatches || hide.isPending}
-                    onClick={() => void doHide()}
-                  >
-                    {hide.isPending ? "Hiding…" : "Hide campaign"}
-                  </ActionButton>
-                </div>
-              </>
-            )}
-          </div>
-        </Modal>
+        hidden ? (
+          <ConfirmDialog
+            title="Unhide campaign"
+            description="Organization and brand portals will see this drop again at the same URLs."
+            error={error}
+            confirmLabel="Unhide"
+            pendingLabel="Unhiding…"
+            pending={unhide.isPending}
+            submitTestId="drop-unhide-submit"
+            onConfirm={() => void doUnhide()}
+            onClose={closeDialog}
+          />
+        ) : (
+          <ConfirmDialog
+            title="Hide campaign"
+            description="Removes this published drop from every organization and brand portal. Type the drop title to confirm. No email unless you opt in."
+            expected={drop.title}
+            inputLabel="Type the drop title to confirm"
+            error={error}
+            destructive
+            confirmLabel="Hide campaign"
+            pendingLabel="Hiding…"
+            pending={hide.isPending}
+            inputTestId="hide-drop-confirm"
+            submitTestId="hide-drop-submit"
+            onConfirm={() => void doHide()}
+            onClose={closeDialog}
+          >
+            <Checkbox
+              data-testid="hide-drop-notify-brand"
+              checked={notifyBrand}
+              onChange={(e) => setNotifyBrand(e.target.checked)}
+              label="Email the brand that this campaign was withdrawn"
+            />
+          </ConfirmDialog>
+        )
       )}
     </>
   );
