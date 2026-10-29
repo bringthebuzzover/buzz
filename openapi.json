@@ -8782,14 +8782,14 @@
           "orgName",
           "university",
           "eduEmail",
-          "instagramHandle",
           "memberCount",
           "category",
           "contactName",
           "shippingLine1",
           "shippingCity",
           "shippingState",
-          "shippingPostalCode"
+          "shippingPostalCode",
+          "instagramHandle"
         ],
         "title": "OrgApplyRequest",
         "type": "object"
