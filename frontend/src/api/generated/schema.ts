@@ -341,6 +341,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/drops/{drop_id}/applications/{application_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Seat Decision Endpoint
+         * @description Draft one seat's decision (any stage, may overbook; goes out on the next send).
+         */
+        put: operations["put_seat_decision_endpoint_api_admin_drops__drop_id__applications__application_id__decision_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/drops/{drop_id}/applications/{application_id}/remove": {
         parameters: {
             query?: never;
@@ -355,43 +375,6 @@ export interface paths {
          * @description Remove one org from one drop. Deletes that seat, its shipments, and its linked metrics.
          */
         post: operations["remove_participant_endpoint_api_admin_drops__drop_id__applications__application_id__remove_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/drops/{drop_id}/clear-reopen": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Clear Reopen Endpoint */
-        post: operations["clear_reopen_endpoint_api_admin_drops__drop_id__clear_reopen_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/drops/{drop_id}/finalize-applicants": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Finalize Drop Applicants Endpoint
-         * @description Same batch finalize as the brand portal: window closed, selection stage, deny the rest.
-         */
-        post: operations["finalize_drop_applicants_endpoint_api_admin_drops__drop_id__finalize_applicants_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -432,7 +415,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/drops/{drop_id}/reopen": {
+    "/api/admin/drops/{drop_id}/send-decisions": {
         parameters: {
             query?: never;
             header?: never;
@@ -441,8 +424,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Reopen Drop Endpoint */
-        post: operations["reopen_drop_endpoint_api_admin_drops__drop_id__reopen_post"];
+        /**
+         * Send Decisions Endpoint
+         * @description Send every drafted decision on the drop (any stage).
+         */
+        post: operations["send_decisions_endpoint_api_admin_drops__drop_id__send_decisions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -469,23 +455,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/drops/{drop_id}/tracker": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Advance Tracker Endpoint */
-        patch: operations["advance_tracker_endpoint_api_admin_drops__drop_id__tracker_patch"];
-        trace?: never;
-    };
     "/api/admin/drops/{drop_id}/unhide": {
         parameters: {
             query?: never;
@@ -497,6 +466,40 @@ export interface paths {
         put?: never;
         /** Unhide Drop Endpoint */
         post: operations["unhide_drop_endpoint_api_admin_drops__drop_id__unhide_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/drops/{drop_id}/unwrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unwrap Drop Endpoint */
+        post: operations["unwrap_drop_endpoint_api_admin_drops__drop_id__unwrap_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/drops/{drop_id}/wrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Wrap Drop Endpoint */
+        post: operations["wrap_drop_endpoint_api_admin_drops__drop_id__wrap_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1617,7 +1620,27 @@ export interface paths {
         patch: operations["patch_brand_drop_creative_api_brands_me_drops__drop_id__patch"];
         trace?: never;
     };
-    "/api/brands/me/drops/{drop_id}/finalize-applicants": {
+    "/api/brands/me/drops/{drop_id}/applications/{application_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Seat Decision
+         * @description Draft one applicant's decision. Nothing reaches the org until Send decisions.
+         */
+        put: operations["put_seat_decision_api_brands_me_drops__drop_id__applications__application_id__decision_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/brands/me/drops/{drop_id}/send-decisions": {
         parameters: {
             query?: never;
             header?: never;
@@ -1626,8 +1649,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Finalize Drop Applicants */
-        post: operations["finalize_drop_applicants_api_brands_me_drops__drop_id__finalize_applicants_post"];
+        /**
+         * Post Send Decisions
+         * @description Send every drafted decision (repeatable; undecided applicants keep waiting).
+         */
+        post: operations["post_send_decisions_api_brands_me_drops__drop_id__send_decisions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2302,6 +2328,8 @@ export interface components {
             decision: string;
             /** Decisionat */
             decisionAt: number | null;
+            /** Decisionsentat */
+            decisionSentAt?: number | null;
             /** Deliveryaddress */
             deliveryAddress: string | null;
             /** Followercount */
@@ -2708,8 +2736,6 @@ export interface components {
             description: string;
             /** Droprequestid */
             dropRequestId?: string | null;
-            /** Finalizedat */
-            finalizedAt: number | null;
             /** Hiddenat */
             hiddenAt?: number | null;
             /**
@@ -2728,22 +2754,21 @@ export interface components {
             linkedPostCount: number;
             /** Location */
             location: string;
-            /** Manualreopen */
-            manualReopen: boolean;
             /** Needstracking */
             needsTracking: boolean;
             /** Pendingsuggestioncount */
             pendingSuggestionCount: number;
             /** Publishedat */
             publishedAt?: number | null;
-            /** Stage */
-            stage: string;
+            stage: components["schemas"]["DropStage"];
             /** Title */
             title: string;
             /** Totalproductunits */
             totalProductUnits: number | null;
             /** Trackerevents */
             trackerEvents: components["schemas"]["AdminTrackerEventItem"][];
+            /** Wrappedat */
+            wrappedAt?: number | null;
         };
         /**
          * AdminDropHideRequest
@@ -2811,8 +2836,6 @@ export interface components {
             createdAt: number;
             /** Droprequestid */
             dropRequestId?: string | null;
-            /** Finalizedat */
-            finalizedAt: number | null;
             /** Hiddenat */
             hiddenAt?: number | null;
             /**
@@ -2820,18 +2843,17 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /** Manualreopen */
-            manualReopen: boolean;
             /** Needstracking */
             needsTracking: boolean;
             /** Publishedat */
             publishedAt?: number | null;
-            /** Stage */
-            stage: string;
+            stage: components["schemas"]["DropStage"];
             /** Title */
             title: string;
             /** Totalproductunits */
             totalProductUnits: number | null;
+            /** Wrappedat */
+            wrappedAt?: number | null;
         };
         /** AdminDropRequestItem */
         AdminDropRequestItem: {
@@ -3492,6 +3514,8 @@ export interface components {
             decision: string;
             /** Decisionat */
             decisionAt: number | null;
+            /** Decisionsentat */
+            decisionSentAt: number | null;
             /** Deliveryaddress */
             deliveryAddress: string | null;
             /**
@@ -3533,8 +3557,6 @@ export interface components {
          * @description Full drop detail for the brand portal (§8.2).
          */
         BrandDropDetailResponse: {
-            /** Applicantselectionfinalizedat */
-            applicantSelectionFinalizedAt: number | null;
             /** Applications */
             applications: components["schemas"]["BrandDropDetailApplicant"][];
             /** Applycloseat */
@@ -3550,8 +3572,6 @@ export interface components {
             brandId: string;
             /** Brandname */
             brandName: string;
-            /** Brandtrackerstage */
-            brandTrackerStage: string;
             /** Campaignhashtag */
             campaignHashtag: string | null;
             /** Capacitytotal */
@@ -3569,10 +3589,9 @@ export interface components {
             image: string;
             /** Location */
             location: string;
-            /** Manualreopen */
-            manualReopen: boolean;
             /** Publishedat */
             publishedAt?: number | null;
+            stage: components["schemas"]["DropStage"];
             /** Title */
             title: string;
             /** Totalcomments */
@@ -3593,8 +3612,6 @@ export interface components {
          * @description One drop in ``GET /api/brands/me/drops`` with per-drop aggregate fields.
          */
         BrandDropListItem: {
-            /** Applicantselectionfinalizedat */
-            applicantSelectionFinalizedAt: number | null;
             /** Applycloseat */
             applyCloseAt: number;
             /** Applyopenat */
@@ -3606,8 +3623,6 @@ export interface components {
             brandId: string;
             /** Brandname */
             brandName: string;
-            /** Brandtrackerstage */
-            brandTrackerStage: string;
             /** Campaignhashtag */
             campaignHashtag: string | null;
             /** Capacitytotal */
@@ -3625,8 +3640,7 @@ export interface components {
             image: string;
             /** Location */
             location: string;
-            /** Manualreopen */
-            manualReopen: boolean;
+            stage: components["schemas"]["DropStage"];
             /** Title */
             title: string;
             /** Totalcomments */
@@ -3901,8 +3915,6 @@ export interface components {
             applyOpenAt: number;
             /** Brandname */
             brandName: string;
-            /** Brandtrackerstage */
-            brandTrackerStage: string;
             /** Capacitytotal */
             capacityTotal: number;
             /** Decision */
@@ -3923,6 +3935,8 @@ export interface components {
             id: string;
             /** Image */
             image: string;
+            /** Linksopen */
+            linksOpen: boolean;
             /**
              * Orgid
              * Format: uuid
@@ -3932,6 +3946,7 @@ export interface components {
             pitch: string | null;
             /** Shipments */
             shipments: components["schemas"]["ShipmentItem"][];
+            stage: components["schemas"]["DropStage"];
             /** Title */
             title: string;
             /** Totalproductunits */
@@ -3948,8 +3963,6 @@ export interface components {
             appliedAt: number;
             /** Brandname */
             brandName: string;
-            /** Brandtrackerstage */
-            brandTrackerStage: string;
             /** Decision */
             decision: string;
             /** Decisionat */
@@ -3966,10 +3979,13 @@ export interface components {
             id: string;
             /** Image */
             image: string;
+            /** Linksopen */
+            linksOpen: boolean;
             /** Pitch */
             pitch: string | null;
             /** Shipments */
             shipments: components["schemas"]["ShipmentItem"][];
+            stage: components["schemas"]["DropStage"];
             /** Title */
             title: string;
         };
@@ -4322,18 +4338,9 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /** DataResponse[DropReopenResponse] */
-        DataResponse_DropReopenResponse_: {
-            data?: components["schemas"]["DropReopenResponse"] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** DataResponse[FinalizeApplicantsResponse] */
-        DataResponse_FinalizeApplicantsResponse_: {
-            data?: components["schemas"]["FinalizeApplicantsResponse"] | null;
+        /** DataResponse[DropStageResponse] */
+        DataResponse_DropStageResponse_: {
+            data?: components["schemas"]["DropStageResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -4475,6 +4482,15 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[SendDecisionsResponse] */
+        DataResponse_SendDecisionsResponse_: {
+            data?: components["schemas"]["SendDecisionsResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[ShipmentItem] */
         DataResponse_ShipmentItem_: {
             data?: components["schemas"]["ShipmentItem"] | null;
@@ -4487,15 +4503,6 @@ export interface components {
         /** DataResponse[TokenResponse] */
         DataResponse_TokenResponse_: {
             data?: components["schemas"]["TokenResponse"] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** DataResponse[TrackerAdvanceResponse] */
-        DataResponse_TrackerAdvanceResponse_: {
-            data?: components["schemas"]["TrackerAdvanceResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -4687,16 +4694,13 @@ export interface components {
          *
          *     Superset of the feed item: adds ``brand_id``, ``total_product_units`` and
          *     ``created_at``, plus the same notify-me fields as the feed so the detail
-         *     surface can show subscribed state without a second lookup. Still omits
-         *     ``brand_tracker_stage`` (org status is derived on the campaigns surface).
+         *     surface can show subscribed state without a second lookup.
          */
         DropDetailResponse: {
             /** Acceptedcount */
             acceptedCount: number;
             /** Alreadyapplied */
             alreadyApplied: boolean;
-            /** Applicantselectionfinalizedat */
-            applicantSelectionFinalizedAt: number | null;
             /** Applycloseat */
             applyCloseAt: number;
             /** Applyopenat */
@@ -4727,12 +4731,11 @@ export interface components {
             intentStatus?: string | null;
             /** Location */
             location: string;
-            /** Manualreopen */
-            manualReopen: boolean;
             /** Notifyrequested */
             notifyRequested: boolean;
             /** Reminderminutes */
             reminderMinutes: number | null;
+            stage: components["schemas"]["DropStage"];
             /** Title */
             title: string;
             /** Totalproductunits */
@@ -4751,8 +4754,6 @@ export interface components {
             acceptedCount: number;
             /** Alreadyapplied */
             alreadyApplied: boolean;
-            /** Applicantselectionfinalizedat */
-            applicantSelectionFinalizedAt: number | null;
             /** Applycloseat */
             applyCloseAt: number;
             /** Applyopenat */
@@ -4772,12 +4773,11 @@ export interface components {
             image: string;
             /** Location */
             location: string;
-            /** Manualreopen */
-            manualReopen: boolean;
             /** Notifyrequested */
             notifyRequested: boolean;
             /** Reminderminutes */
             reminderMinutes: number | null;
+            stage: components["schemas"]["DropStage"];
             /** Title */
             title: string;
         };
@@ -4789,15 +4789,28 @@ export interface components {
             /** Pitch */
             pitch?: string | null;
         };
-        /** DropReopenResponse */
-        DropReopenResponse: {
+        /**
+         * DropStage
+         * @description Computed drop stage (``app.services.lifecycle``; never stored).
+         *
+         *     ``draft`` → ``upcoming`` → ``applying`` → ``selecting`` → ``live`` →
+         *     ``wrapped``. Only draft (unpublished) and wrapped (``wrapped_at``) come
+         *     from a BUZZ click; the rest follow from the apply dates and the seats.
+         *     Hidden is a separate flag (``drops.hidden_at``), not a stage.
+         * @enum {string}
+         */
+        DropStage: "draft" | "upcoming" | "applying" | "selecting" | "live" | "wrapped";
+        /**
+         * DropStageResponse
+         * @description A drop's computed stage after a lifecycle action (wrap / unwrap).
+         */
+        DropStageResponse: {
             /**
              * Dropid
              * Format: uuid
              */
             dropId: string;
-            /** Manualreopen */
-            manualReopen: boolean;
+            stage: components["schemas"]["DropStage"];
         };
         /**
          * EngagementSeriesPoint
@@ -4822,39 +4835,6 @@ export interface components {
             } | null;
             /** Message */
             message: string;
-        };
-        /**
-         * FinalizeAllocation
-         * @description One (org, units) entry in a finalize-applicants request (§8.3).
-         */
-        FinalizeAllocation: {
-            /**
-             * Orgid
-             * Format: uuid
-             */
-            orgId: string;
-            /**
-             * Units
-             * @default 0
-             */
-            units: number;
-        };
-        /**
-         * FinalizeApplicantsRequest
-         * @description Body for ``POST /api/brands/me/drops/{id}/finalize-applicants`` (§8.3).
-         */
-        FinalizeApplicantsRequest: {
-            /** Allocations */
-            allocations: components["schemas"]["FinalizeAllocation"][];
-        };
-        /** FinalizeApplicantsResponse */
-        FinalizeApplicantsResponse: {
-            /** Acceptedcount */
-            acceptedCount: number;
-            /** Deniedcount */
-            deniedCount: number;
-            /** Finalizedcount */
-            finalizedCount: number;
         };
         /**
          * ForgotPasswordRequest
@@ -5411,6 +5391,29 @@ export interface components {
             /** Status */
             status: string;
         };
+        /**
+         * SeatDecisionRequest
+         * @description Draft one seat's decision (``applied`` = back to undecided).
+         */
+        SeatDecisionRequest: {
+            /** Allocatedunits */
+            allocatedUnits?: number | null;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "applied" | "accepted" | "denied";
+        };
+        /**
+         * SendDecisionsResponse
+         * @description How many drafted decisions just went out.
+         */
+        SendDecisionsResponse: {
+            /** Acceptedcount */
+            acceptedCount: number;
+            /** Deniedcount */
+            deniedCount: number;
+        };
         /** ShipmentItem */
         ShipmentItem: {
             /** Carrier */
@@ -5468,23 +5471,6 @@ export interface components {
              */
             token_type: "bearer";
             user: components["schemas"]["UserResponse"];
-        };
-        /** TrackerAdvanceRequest */
-        TrackerAdvanceRequest: {
-            /** Note */
-            note?: string | null;
-            /** Stage */
-            stage: string;
-        };
-        /** TrackerAdvanceResponse */
-        TrackerAdvanceResponse: {
-            /**
-             * Dropid
-             * Format: uuid
-             */
-            dropId: string;
-            /** Stage */
-            stage: string;
         };
         /**
          * UserResponse
@@ -6285,6 +6271,44 @@ export interface operations {
             };
         };
     };
+    put_seat_decision_endpoint_api_admin_drops__drop_id__applications__application_id__decision_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeatDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminDropDetail_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     remove_participant_endpoint_api_admin_drops__drop_id__applications__application_id__remove_post: {
         parameters: {
             query?: never;
@@ -6310,76 +6334,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminRemoveParticipantResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    clear_reopen_endpoint_api_admin_drops__drop_id__clear_reopen_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                drop_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_DropReopenResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    finalize_drop_applicants_endpoint_api_admin_drops__drop_id__finalize_applicants_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                drop_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FinalizeApplicantsRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_FinalizeApplicantsResponse_"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -6463,7 +6417,7 @@ export interface operations {
             };
         };
     };
-    reopen_drop_endpoint_api_admin_drops__drop_id__reopen_post: {
+    send_decisions_endpoint_api_admin_drops__drop_id__send_decisions_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6482,7 +6436,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DataResponse_DropReopenResponse_"];
+                    "application/json": components["schemas"]["DataResponse_SendDecisionsResponse_"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -6529,43 +6483,6 @@ export interface operations {
             };
         };
     };
-    advance_tracker_endpoint_api_admin_drops__drop_id__tracker_patch: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                drop_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TrackerAdvanceRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_TrackerAdvanceResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
     unhide_drop_endpoint_api_admin_drops__drop_id__unhide_post: {
         parameters: {
             query?: never;
@@ -6586,6 +6503,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminDropDetail_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    unwrap_drop_endpoint_api_admin_drops__drop_id__unwrap_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_DropStageResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    wrap_drop_endpoint_api_admin_drops__drop_id__wrap_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_DropStageResponse_"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -8495,7 +8478,45 @@ export interface operations {
             };
         };
     };
-    finalize_drop_applicants_api_brands_me_drops__drop_id__finalize_applicants_post: {
+    put_seat_decision_api_brands_me_drops__drop_id__applications__application_id__decision_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeatDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_BrandDropDetailResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    post_send_decisions_api_brands_me_drops__drop_id__send_decisions_post: {
         parameters: {
             query?: never;
             header?: {
@@ -8506,11 +8527,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FinalizeApplicantsRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -8518,7 +8535,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DataResponse_FinalizeApplicantsResponse_"];
+                    "application/json": components["schemas"]["DataResponse_SendDecisionsResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

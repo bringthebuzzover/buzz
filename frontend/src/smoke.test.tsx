@@ -44,7 +44,7 @@ describe("API provider-tree smoke", () => {
       capacityTotal: 5,
       applyOpenAt: Date.now() - 1_000,
       applyCloseAt: Date.now() + 100_000,
-      manualReopen: false,
+      stage: "applying",
     };
     const render = () =>
       renderToString(

@@ -173,7 +173,6 @@ async def test_upsert_reopens_expired_when_drop_open_again(db_session) -> None:
     assert first.status == DropApplyIntentStatus.EXPIRED.value
 
     drop.apply_close_at = now + timedelta(days=3)
-    drop.manual_reopen = True
     await db_session.flush()
     second = await record_drop_apply_intent(db_session, org_id=org.id, drop_id=drop.id, pitch="v2")
     assert second.id == first.id
@@ -271,7 +270,6 @@ async def test_promote_closed_drop_expires_without_application(db_session) -> No
     now = datetime.now(timezone.utc)
     drop.apply_close_at = now - timedelta(hours=1)
     drop.apply_open_at = now - timedelta(days=8)
-    drop.manual_reopen = False
     await db_session.flush()
     await promote_drop_apply_intents(db_session, user)
     await db_session.refresh(intent)

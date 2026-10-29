@@ -640,12 +640,6 @@ export function useSendBrandEmail() {
   });
 }
 
-export function useClearReopen(dropId: string) {
-  return useAdminMutation((_: void) =>
-    apiFetch(`/api/admin/drops/${dropId}/clear-reopen`, { method: "POST" }),
-  );
-}
-
 export type AdminSyncAutolinkResult =
   components["schemas"]["AdminSyncAutolinkResponse"];
 
@@ -860,33 +854,42 @@ export function usePatchAdminDropConfig(dropId: string) {
   );
 }
 
-export function useFinalizeAdminApplicants(dropId: string) {
-  return useAdminMutation((allocations: { orgId: string; units: number }[]) =>
-    apiFetch(`/api/admin/drops/${dropId}/finalize-applicants`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ allocations }),
-    }),
-  );
-}
+export type SeatDecision = "applied" | "accepted" | "denied";
 
-export function useAdvanceTracker(dropId: string) {
+/** Draft one seat (BUZZ may decide at any stage and overbook). */
+export function useSetAdminSeatDecision(dropId: string) {
   return useAdminMutation(
-    (input: { stage: string; note?: string }) =>
-      apiFetch(`/api/admin/drops/${dropId}/tracker`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          stage: input.stage,
-          note: input.note || null,
-        }),
-      }),
+    (input: {
+      applicationId: string;
+      decision: SeatDecision;
+      allocatedUnits?: number | null;
+    }) =>
+      apiFetch(
+        `/api/admin/drops/${dropId}/applications/${input.applicationId}/decision`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            decision: input.decision,
+            allocatedUnits: input.allocatedUnits ?? null,
+          }),
+        },
+      ),
   );
 }
 
-export function useReopenDrop(dropId: string) {
+export function useSendAdminDecisions(dropId: string) {
   return useAdminMutation((_: void) =>
-    apiFetch(`/api/admin/drops/${dropId}/reopen`, { method: "POST" }),
+    apiFetch(`/api/admin/drops/${dropId}/send-decisions`, { method: "POST" }),
+  );
+}
+
+/** Wrap (`true`) or unwrap (`false`) a drop. */
+export function useSetDropWrapped(dropId: string) {
+  return useAdminMutation((wrapped: boolean) =>
+    apiFetch(`/api/admin/drops/${dropId}/${wrapped ? "wrap" : "unwrap"}`, {
+      method: "POST",
+    }),
   );
 }
 

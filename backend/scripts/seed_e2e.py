@@ -23,7 +23,6 @@ if str(_BACKEND_ROOT) not in sys.path:
 
 from app.deps.db import async_session_factory, engine  # noqa: E402
 from app.models.drop import Drop  # noqa: E402
-from app.models.enums import BrandTrackerStage  # noqa: E402
 from scripts.seed_dev import _seed, _uuid  # noqa: E402
 
 E2E_DROP_ID = uuid.UUID(int=99)
@@ -44,8 +43,6 @@ async def _add_open_drop() -> None:
                 capacity_total=20,
                 apply_open_at=now - timedelta(days=1),
                 apply_close_at=now + timedelta(days=14),
-                manual_reopen=False,
-                brand_tracker_stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
                 published_at=now - timedelta(days=1),
             )
         )

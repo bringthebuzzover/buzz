@@ -53,3 +53,9 @@ class DropApplication(Base):
         sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
     )
     decision_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    # When the decision went out ("Send decisions" or a late-add). Until then an
+    # accepted/denied seat is a draft only the brand and BUZZ see; the org still
+    # sees ``applied``.
+    decision_sent_at: Mapped[datetime | None] = mapped_column(
+        sa.DateTime(timezone=True), nullable=True
+    )

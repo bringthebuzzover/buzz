@@ -6,7 +6,7 @@
  * auto-link suggestions with accept/dismiss. Enforces one-post-one-campaign by
  * disabling posts already linked to a different campaign.
  *
- * `readOnly` (finished campaigns) hides all mutating affordances.
+ * `readOnly` (links closed after the wrap grace period) hides all mutating affordances.
  */
 import { Camera, Music2 } from "lucide-react";
 import IgPreviousAccountBanner from "./IgPreviousAccountBanner";

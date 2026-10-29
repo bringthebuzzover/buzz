@@ -8,7 +8,6 @@ import ApiPostSelector from "../../components/org/ApiPostSelector";
 import { CampaignStatusBadge } from "../../components/org/CampaignRow";
 import { useCampaignDetail, useCampaignAggregate } from "../../api/hooks/useOrgHooks";
 import { ApiError } from "../../api/errors";
-import { BRAND_DROP_TRACKER_FULL_ORDER } from "../../types/brandPortal";
 import { deriveOrgCampaignStatus } from "../../utils/orgCampaignStatus";
 import PageShell from "../../components/site/PageShell";
 import { Card, CardHeader, StatCard } from "../../components/ui/Card";
@@ -18,7 +17,6 @@ import { StatePanel } from "../../components/ui/StatePanel";
 import { SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import ShipmentList from "../../components/shipments/ShipmentList";
-import type { Shipment } from "../../utils/shipments";
 
 /** Pen `Stat` row: Posts, Likes, Comments, Instagram Reach. */
 function CampaignMetrics({
@@ -51,18 +49,6 @@ function CampaignMetrics({
 }
 
 const backLink = <BackLink to="/org/campaigns">Back to My Campaigns</BackLink>;
-
-function shipmentOnTheWay(detail: {
-  shipments?: Shipment[];
-  brandTrackerStage: string;
-}): boolean {
-  if ((detail.shipments ?? []).length > 0) return true;
-  const idx = BRAND_DROP_TRACKER_FULL_ORDER.indexOf(
-    detail.brandTrackerStage as (typeof BRAND_DROP_TRACKER_FULL_ORDER)[number],
-  );
-  const awaitingIdx = BRAND_DROP_TRACKER_FULL_ORDER.indexOf("awaiting_products");
-  return idx >= awaitingIdx && idx !== -1;
-}
 
 function ApiCampaignDetail() {
   const { campaignId } = useParams<{ campaignId: string }>();
@@ -106,9 +92,8 @@ function ApiCampaignDetail() {
     engagement: 0,
     estimatedReach: 0,
   };
-  const onTheWay = shipmentOnTheWay(detail);
-
   const shipments = detail.shipments ?? [];
+  const onTheWay = shipments.length > 0;
 
   return (
     <PageShell width="wide" className="flex flex-col gap-10">
@@ -147,14 +132,9 @@ function ApiCampaignDetail() {
               className={shipments.length > 0 ? "mb-5" : "mb-0"}
               title={onTheWay ? "Awaiting product" : "Accepted"}
               description={
-                <>
-                  {onTheWay
-                    ? "You are accepted! Your shipment is on the way."
-                    : "Accepted — awaiting shipping."}
-                  {detail.brandTrackerStage === "awaiting_products"
-                    ? " If the product already arrived, link a post or reel below."
-                    : null}
-                </>
+                onTheWay
+                  ? "You are accepted! Your shipment is on the way. Once it arrives, link a post or reel below."
+                  : "Accepted — awaiting shipping."
               }
             />
             {shipments.length > 0 ? (
@@ -164,12 +144,8 @@ function ApiCampaignDetail() {
               </>
             ) : null}
           </Card>
-          {detail.brandTrackerStage === "awaiting_products" ? (
-            <>
-              <CampaignMetrics agg={agg} />
-              <ApiPostSelector applicationId={detail.id} />
-            </>
-          ) : null}
+          <CampaignMetrics agg={agg} />
+          <ApiPostSelector applicationId={detail.id} readOnly={!detail.linksOpen} />
         </>
       ) : null}
 
@@ -187,11 +163,15 @@ function ApiCampaignDetail() {
               <CardHeader
                 className="mb-0"
                 title="Final results"
-                description="This campaign has ended. Your linked posts are read-only — final metrics are shown above."
+                description={
+                  detail.linksOpen
+                    ? "This campaign has wrapped. You can still link late posts for a few weeks."
+                    : "This campaign has ended. Your linked posts are read-only — final metrics are shown above."
+                }
               />
             </Card>
           ) : null}
-          <ApiPostSelector applicationId={detail.id} readOnly={status === "finished"} />
+          <ApiPostSelector applicationId={detail.id} readOnly={!detail.linksOpen} />
         </>
       ) : null}
     </PageShell>

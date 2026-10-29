@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from httpx import AsyncClient
 
-from app.models.enums import ApplicationDecision, BrandTrackerStage, PortalRole
+from app.models.enums import ApplicationDecision, PortalRole
 from tests.conftest import (
     admin_headers,
     make_application,
@@ -120,9 +120,7 @@ class TestHideUnhideDrop:
         brand = await make_brand(db_session, company_email="ops@acme.test")
         brand.user_id = brand_user.id
         await db_session.flush()
-        drop = await make_drop(
-            db_session, brand, title="Gone", stage=BrandTrackerStage.AWAITING_PRODUCTS
-        )
+        drop = await make_drop(db_session, brand, title="Gone")
         app = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
         ticket = await make_drop_request(db_session, brand)
         ticket.converted_drop_id = drop.id
@@ -159,9 +157,7 @@ class TestHideUnhideDrop:
 
     async def test_hidden_drop_not_in_no_tracking_health(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        drop = await make_drop(
-            db_session, brand, title="No TN", stage=BrandTrackerStage.AWAITING_PRODUCTS
-        )
+        drop = await make_drop(db_session, brand, title="No TN")
         drop.hidden_at = datetime.now(timezone.utc)
         await db_session.flush()
 
@@ -169,7 +165,7 @@ class TestHideUnhideDrop:
         signal = next(
             item
             for item in res.json()["data"]["integrity"]
-            if item["key"] == "awaiting_products_no_tracking"
+            if item["key"] == "live_seats_no_tracking"
         )
         assert signal["count"] == 0
         assert signal["ok"] is True

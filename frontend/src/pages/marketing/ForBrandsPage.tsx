@@ -34,11 +34,11 @@ const BRAND_FAQ = [
   },
   {
     q: "Do we choose the organizations?",
-    a: "Yes. After the apply window you batch-finalize: approve or deny applicants up to capacity.",
+    a: "Yes. After the apply window you accept or deny each applicant up to capacity, then send your decisions. You can add more later.",
   },
   {
     q: "What can we see after the drop is published?",
-    a: "Applicants, read-only totals, and a tracker that starts at Awaiting Products.",
+    a: "Applicants, read-only totals, and the drop's stage: Upcoming, Applying, Selecting, Live, then Wrapped.",
   },
 ];
 

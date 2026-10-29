@@ -40,7 +40,8 @@ export default function ApiDropOrgTable({
   title = "Posts by organization",
 }: Props) {
   const accepted = useMemo(
-    () => applicants.filter((a) => a.decision === "accepted"),
+    // Live seats only: a drafted acceptance is not a participant until sent.
+    () => applicants.filter((a) => a.decision === "accepted" && a.decisionSentAt != null),
     [applicants],
   );
   const [category, setCategory] = useState<string>("all");

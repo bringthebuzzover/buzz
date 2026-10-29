@@ -17,7 +17,6 @@ from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
     OrgUserStatus,
     PortalRole,
     SocialMediaProductType,
@@ -60,6 +59,10 @@ READ_ROUTES = [
     "/api/admin/brands",
     "/api/admin/drops",
 ]
+
+
+async def _new_org(db_session):
+    return await make_org(db_session, await persist(db_session, make_user(role=PortalRole.ORG)))
 
 
 class TestPanelGate:
@@ -240,40 +243,47 @@ class TestDropList:
 
     async def test_stage_filter(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        await make_drop(db_session, brand, title="Early", stage=BrandTrackerStage.REQUEST_RECEIVED)
-        await make_drop(db_session, brand, title="Late", stage=BrandTrackerStage.DROP_ACTIVE)
+        await make_drop(db_session, brand, title="Draft", published_at=None)
+        await make_drop(db_session, brand, title="Applying")
 
         res = await app_client.get(
-            "/api/admin/drops?stage=drop_active", headers=await admin_headers(db_session)
+            "/api/admin/drops?stage=applying", headers=await admin_headers(db_session)
         )
-        assert [r["title"] for r in res.json()["data"]] == ["Late"]
+        assert [r["title"] for r in res.json()["data"]] == ["Applying"]
+        assert res.json()["data"][0]["stage"] == "applying"
 
-    async def test_attention_autoclose_overdue(self, app_client: AsyncClient, db_session):
-        """Past its window, still request_received, not manually reopened — the
-        canary for a dead ``drop_autoclose`` cron."""
+    async def test_attention_awaiting_decisions(self, app_client: AsyncClient, db_session):
+        """Window closed with undecided or unsent seats."""
         brand = await make_brand(db_session)
-        await make_drop(
-            db_session,
-            brand,
-            title="Overdue",
-            apply_open_at=utcnow() - timedelta(days=10),
-            apply_close_at=utcnow() - timedelta(days=1),
-            stage=BrandTrackerStage.REQUEST_RECEIVED,
+        closed = dict(
+            apply_open_at=utcnow() - timedelta(days=10), apply_close_at=utcnow() - timedelta(days=1)
         )
-        await make_drop(db_session, brand, title="Open")
+        waiting = await make_drop(db_session, brand, title="Waiting", **closed)
+        done = await make_drop(db_session, brand, title="Done", **closed)
+        still_open = await make_drop(db_session, brand, title="Open")
+        for drop, decision in (
+            (waiting, ApplicationDecision.APPLIED),
+            (done, ApplicationDecision.ACCEPTED),
+            (still_open, ApplicationDecision.APPLIED),
+        ):
+            org = await make_org(
+                db_session, await persist(db_session, make_user(role=PortalRole.ORG))
+            )
+            await make_application(db_session, drop, org, decision=decision)
 
         res = await app_client.get(
-            "/api/admin/drops?attention=autoclose_overdue",
+            "/api/admin/drops?attention=awaiting_decisions",
             headers=await admin_headers(db_session),
         )
-        assert [r["title"] for r in res.json()["data"]] == ["Overdue"]
+        assert [r["title"] for r in res.json()["data"]] == ["Waiting"]
 
     async def test_attention_no_tracking(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        await make_drop(db_session, brand, title="No TN", stage=BrandTrackerStage.AWAITING_PRODUCTS)
-        tracked = await make_drop(
-            db_session, brand, title="Tracked", stage=BrandTrackerStage.AWAITING_PRODUCTS
-        )
+        untracked = await make_drop(db_session, brand, title="No TN")
+        await make_drop(db_session, brand, title="No seats")
+        lone = await _new_org(db_session)
+        await make_application(db_session, untracked, lone, decision=ApplicationDecision.ACCEPTED)
+        tracked = await make_drop(db_session, brand, title="Tracked")
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, org_user)
         app = await make_application(
@@ -298,7 +308,7 @@ class TestDropList:
             await app_client.get("/api/admin/drops?attention=bogus", headers=headers)
         ).status_code == 400
         assert (
-            await app_client.get("/api/admin/drops?stage=drop_active&stage=bogus", headers=headers)
+            await app_client.get("/api/admin/drops?stage=live&stage=bogus", headers=headers)
         ).status_code == 400
         assert (
             await app_client.get(
@@ -308,47 +318,58 @@ class TestDropList:
 
     async def test_multi_stage_filter_ors(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        await make_drop(db_session, brand, title="Early", stage=BrandTrackerStage.REQUEST_RECEIVED)
-        await make_drop(db_session, brand, title="Active", stage=BrandTrackerStage.DROP_ACTIVE)
-        await make_drop(db_session, brand, title="Finished", stage=BrandTrackerStage.DROP_FINISHED)
+        await make_drop(db_session, brand, title="Early", published_at=None)
+        await make_drop(db_session, brand, title="Active")
+        await make_drop(db_session, brand, title="Finished", wrapped_at=utcnow())
 
         res = await app_client.get(
-            "/api/admin/drops?stage=request_received&stage=drop_active",
+            "/api/admin/drops?stage=draft&stage=applying",
             headers=await admin_headers(db_session),
         )
         assert sorted(r["title"] for r in res.json()["data"]) == ["Active", "Early"]
 
     async def test_multi_attention_filter_ors(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        await make_drop(
+        overdue = await make_drop(
             db_session,
             brand,
             title="Overdue",
             apply_open_at=utcnow() - timedelta(days=10),
             apply_close_at=utcnow() - timedelta(days=1),
-            stage=BrandTrackerStage.REQUEST_RECEIVED,
         )
-        await make_drop(db_session, brand, title="No TN", stage=BrandTrackerStage.AWAITING_PRODUCTS)
+        untracked = await make_drop(db_session, brand, title="No TN")
         await make_drop(db_session, brand, title="Open")
+        for drop, decision in (
+            (overdue, ApplicationDecision.APPLIED),
+            (untracked, ApplicationDecision.ACCEPTED),
+        ):
+            org = await make_org(
+                db_session, await persist(db_session, make_user(role=PortalRole.ORG))
+            )
+            await make_application(db_session, drop, org, decision=decision)
 
         res = await app_client.get(
-            "/api/admin/drops?attention=autoclose_overdue&attention=no_tracking",
+            "/api/admin/drops?attention=awaiting_decisions&attention=no_tracking",
             headers=await admin_headers(db_session),
         )
         assert sorted(r["title"] for r in res.json()["data"]) == ["No TN", "Overdue"]
 
     async def test_stage_and_attention_combine(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        await make_drop(db_session, brand, title="No TN", stage=BrandTrackerStage.AWAITING_PRODUCTS)
-        tracked = await make_drop(
-            db_session, brand, title="Tracked", stage=BrandTrackerStage.AWAITING_PRODUCTS
+        untracked = await make_drop(db_session, brand, title="No TN")
+        lone = await _new_org(db_session)
+        await make_application(db_session, untracked, lone, decision=ApplicationDecision.ACCEPTED)
+        wrapped = await make_drop(db_session, brand, title="Wrapped", wrapped_at=utcnow())
+        other = await make_org(
+            db_session, await persist(db_session, make_user(role=PortalRole.ORG))
         )
+        await make_application(db_session, wrapped, other, decision=ApplicationDecision.ACCEPTED)
+        tracked = await make_drop(db_session, brand, title="Tracked")
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, org_user)
         app = await make_application(
             db_session, tracked, org, decision=ApplicationDecision.ACCEPTED
         )
-        await make_drop(db_session, brand, title="Active", stage=BrandTrackerStage.DROP_ACTIVE)
         headers = await admin_headers(db_session)
         await app_client.post(
             f"/api/admin/applications/{app.id}/shipments",
@@ -357,7 +378,7 @@ class TestDropList:
         )
 
         res = await app_client.get(
-            "/api/admin/drops?stage=awaiting_products&stage=drop_active&attention=no_tracking",
+            "/api/admin/drops?stage=applying&stage=live&attention=no_tracking",
             headers=headers,
         )
         assert [r["title"] for r in res.json()["data"]] == ["No TN"]
@@ -425,29 +446,21 @@ class TestOverview:
         assert _queue(data, "orgs_ig_bind_mismatch")["count"] == 0
         assert data["items"] == []
 
-    async def test_awaiting_finalization_queue(self, app_client: AsyncClient, db_session):
+    async def test_awaiting_decisions_queue(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        await make_drop(
+        drop = await make_drop(
             db_session,
             brand,
-            stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
             apply_open_at=utcnow() - timedelta(days=10),
             apply_close_at=utcnow() - timedelta(days=2),
         )
+        org = await _new_org(db_session)
+        await make_application(db_session, drop, org)
 
         res = await app_client.get("/api/admin/overview", headers=await admin_headers(db_session))
-        queue = _queue(res.json()["data"], "drops_awaiting_finalization")
+        queue = _queue(res.json()["data"], "drops_awaiting_decisions")
         assert queue["count"] == 1
         assert queue["oldestAt"] is not None
-
-    async def test_ready_to_advance_queue(self, app_client: AsyncClient, db_session):
-        brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
-        drop.applicant_selection_finalized_at = utcnow()
-        await db_session.flush()
-
-        res = await app_client.get("/api/admin/overview", headers=await admin_headers(db_session))
-        assert _queue(res.json()["data"], "drops_ready_to_advance")["count"] == 1
 
     async def test_warnings_omit_zero_counts(self, app_client: AsyncClient, db_session):
         res = await app_client.get("/api/admin/overview", headers=await admin_headers(db_session))
@@ -464,8 +477,7 @@ class TestOverview:
 
     async def test_warns_on_stranded_applicants(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand)
-        drop.applicant_selection_finalized_at = utcnow()
+        drop = await make_drop(db_session, brand, wrapped_at=utcnow())
         user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, user)
         await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
@@ -491,13 +503,14 @@ class TestHealth:
 
     async def test_autoclose_signal_flips(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        await make_drop(
+        stub = await make_drop(
             db_session,
             brand,
             apply_open_at=utcnow() - timedelta(days=10),
             apply_close_at=utcnow() - timedelta(days=1),
-            stage=BrandTrackerStage.REQUEST_RECEIVED,
         )
+        stub.brand_tracker_stage = "request_received"  # legacy stub (signal removed in PR5)
+        await db_session.flush()
 
         res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         signal = _signal(res.json()["data"], "pipeline", "drop_autoclose")
@@ -558,8 +571,8 @@ class TestHealth:
         assert signal["ok"] is True
 
     async def test_over_capacity_detected(self, app_client: AsyncClient, db_session):
-        """Capacity is only checked per finalize call, so a second round can
-        exceed it. This is the standing query that catches it."""
+        """BUZZ decisions ignore capacity, so a drop can go over it. This is
+        the standing query that catches it."""
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand, capacity_total=1)
         for name in ("One", "Two"):
@@ -655,48 +668,45 @@ class TestHealth:
         assert _signal(data, "pipeline", "metric_sync")["count"] == 1
 
 
-class TestAdminFinalizeApplicants:
-    async def test_admin_finalizes_with_brand_rules(self, app_client: AsyncClient, db_session):
+class TestAdminSeatDecisions:
+    async def test_admin_decides_any_time_and_sends(self, app_client: AsyncClient, db_session):
+        """BUZZ is not bound by the window or capacity (late adds, swaps)."""
         brand = await make_brand(db_session)
-        drop = await make_drop(
-            db_session,
-            brand,
-            stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
-            apply_open_at=utcnow() - timedelta(days=30),
-            apply_close_at=utcnow() - timedelta(days=1),
-            capacity_total=3,
-        )
-        user = await persist(db_session, make_user(role=PortalRole.ORG))
-        org = await make_org(db_session, user, org_name="Theta")
-        await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
-        await db_session.flush()
+        drop = await make_drop(db_session, brand, capacity_total=1)  # window still open
+        apps = []
+        for name in ("Theta", "Iota"):
+            org = await make_org(
+                db_session, await persist(db_session, make_user(role=PortalRole.ORG)), org_name=name
+            )
+            apps.append(await make_application(db_session, drop, org))
+        headers = await admin_headers(db_session)
 
-        res = await app_client.post(
-            f"/api/admin/drops/{drop.id}/finalize-applicants",
-            json={"allocations": [{"orgId": str(org.id), "units": 0}]},
+        for application in apps:
+            res = await app_client.put(
+                f"/api/admin/drops/{drop.id}/applications/{application.id}/decision",
+                json={"decision": "accepted"},
+                headers=headers,
+            )
+            assert res.status_code == 200, res.text
+        res = await app_client.post(f"/api/admin/drops/{drop.id}/send-decisions", headers=headers)
+        assert res.status_code == 200
+        assert res.json()["data"] == {"acceptedCount": 2, "deniedCount": 0}
+
+    async def test_admin_change_to_sent_seat_makes_it_unsent(
+        self, app_client: AsyncClient, db_session
+    ):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        org = await _new_org(db_session)
+        application = await make_application(
+            db_session, drop, org, decision=ApplicationDecision.DENIED
+        )
+        res = await app_client.put(
+            f"/api/admin/drops/{drop.id}/applications/{application.id}/decision",
+            json={"decision": "accepted"},
             headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
-        body = res.json()["data"]
-        assert body["acceptedCount"] == 1
-        assert body["deniedCount"] == 0
-        await db_session.refresh(drop)
-        assert drop.applicant_selection_finalized_at is not None
-        assert drop.brand_tracker_stage == BrandTrackerStage.FINALIZING_AGREEMENTS.value
-
-    async def test_window_still_open_is_rejected(self, app_client: AsyncClient, db_session):
-        brand = await make_brand(db_session)
-        drop = await make_drop(
-            db_session,
-            brand,
-            stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
-            apply_open_at=utcnow() - timedelta(days=1),
-            apply_close_at=utcnow() + timedelta(days=1),
-        )
-        res = await app_client.post(
-            f"/api/admin/drops/{drop.id}/finalize-applicants",
-            json={"allocations": []},
-            headers=await admin_headers(db_session),
-        )
-        assert res.status_code == 400
-        assert res.json()["error"]["code"] == "APPLY_WINDOW_OPEN"
+        await db_session.refresh(application)
+        assert application.decision == ApplicationDecision.ACCEPTED.value
+        assert application.decision_sent_at is None

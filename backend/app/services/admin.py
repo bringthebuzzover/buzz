@@ -36,7 +36,6 @@ from app.models.user import User
 from app.schemas.admin import AdminDropConfigPatch, AdminDropCreateRequest
 from app.security.session import bump_token_version, commit_revocation
 from app.services.brand_ig_change_requests import brands_with_pending_ig_change
-from app.services.brands import finalize_applicants
 from app.services.drop_apply_intents import (
     expire_open_intents_for_org,
     promote_drop_apply_intents,
@@ -70,18 +69,11 @@ from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
+from app.services.lifecycle import apply_window_closed, drop_stage, seat_is_live
 from app.services.org_apply import ig_bind_mismatch_open
 from app.services.org_connect import create_org_connect_token
 
 logger = logging.getLogger(__name__)
-
-_STAGE_ORDER = [
-    BrandTrackerStage.REQUEST_RECEIVED.value,
-    BrandTrackerStage.FINALIZING_AGREEMENTS.value,
-    BrandTrackerStage.AWAITING_PRODUCTS.value,
-    BrandTrackerStage.DROP_ACTIVE.value,
-    BrandTrackerStage.DROP_FINISHED.value,
-]
 
 _ORG_STATUSES = frozenset(member.value for member in OrgUserStatus)
 _BRAND_STATUSES = frozenset(member.value for member in BrandStatus)
@@ -690,19 +682,18 @@ async def add_org_to_drop(
     email_org: bool,
     email_brand: bool,
 ) -> dict[str, Any]:
-    """Write an accepted seat without reopening apply or bumping capacity."""
+    """Write an accepted, already-sent seat without reopening apply or bumping capacity.
+
+    Any stage once published, wrapped included (a retro add); never hidden.
+    """
 
     drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-    if (
-        drop.published_at is None
-        or drop.hidden_at is not None
-        or drop.brand_tracker_stage == BrandTrackerStage.DROP_FINISHED.value
-    ):
+    if drop.published_at is None or drop.hidden_at is not None:
         raise BuzzAPIException(
             errors.DROP_NOT_ELIGIBLE,
-            "This drop cannot accept a late-add (must be published, visible, and not finished).",
+            "This drop cannot accept a late-add (must be published and visible).",
             status_code=409,
         )
 
@@ -728,11 +719,25 @@ async def add_org_to_drop(
         )
     )
     never_applied = len(existing_rows) == 0
+    # The seat to reuse is any row except a denial the org was already told
+    # about; an unsent denial is still a draft, so it becomes the acceptance
+    # (else the next "Send decisions" would email "not selected").
     active = next(
-        (row for row in existing_rows if row.decision != ApplicationDecision.DENIED.value),
+        (
+            row
+            for row in existing_rows
+            if not (
+                row.decision == ApplicationDecision.DENIED.value
+                and row.decision_sent_at is not None
+            )
+        ),
         None,
     )
-    if active is not None and active.decision == ApplicationDecision.ACCEPTED.value:
+    if (
+        active is not None
+        and active.decision == ApplicationDecision.ACCEPTED.value
+        and active.decision_sent_at is not None
+    ):
         raise BuzzAPIException(
             errors.ALREADY_ACCEPTED,
             "This organization is already accepted on this drop.",
@@ -750,6 +755,7 @@ async def add_org_to_drop(
         application = active
         application.decision = ApplicationDecision.ACCEPTED.value
         application.decision_at = now
+        application.decision_sent_at = now
         application.allocated_units = units
     else:
         application = DropApplication(
@@ -760,6 +766,7 @@ async def add_org_to_drop(
             allocated_units=units,
             applied_at=now,
             decision_at=now,
+            decision_sent_at=now,
         )
         db.add(application)
 
@@ -813,25 +820,16 @@ async def sync_and_autolink_drop(
 ) -> dict[str, Any]:
     """Graph-sync accepted orgs, then autolink suggestions.
 
-    Published, unhidden drops in Awaiting Products or Active only.
+    Any published, visible drop (BUZZ may sync a wrapped drop for a retro).
     """
 
     drop = await db.get(Drop, drop_id)
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-    if (
-        drop.published_at is None
-        or drop.hidden_at is not None
-        or drop.brand_tracker_stage
-        not in (
-            BrandTrackerStage.AWAITING_PRODUCTS.value,
-            BrandTrackerStage.DROP_ACTIVE.value,
-        )
-    ):
+    if drop.published_at is None or drop.hidden_at is not None:
         raise BuzzAPIException(
             errors.DROP_NOT_ELIGIBLE,
-            "Sync and autolink only run on a published, visible drop that is "
-            "Awaiting Products or Active.",
+            "Sync and autolink only run on a published, visible drop.",
             status_code=409,
         )
     brand = await db.get(Brand, drop.brand_id)
@@ -846,7 +844,7 @@ async def sync_and_autolink_drop(
             .join(User, User.id == Organization.user_id)
             .where(
                 DropApplication.drop_id == drop.id,
-                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+                seat_is_live(),
                 User.status != OrgUserStatus.ERASED.value,
             )
             .distinct()
@@ -855,17 +853,6 @@ async def sync_and_autolink_drop(
     media = await sync_metrics_for_orgs(db, ig, orgs)
     auto = await scan_autolink(db, drop_id=drop.id)
     return {**media, **auto}
-
-
-async def clear_manual_reopen(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
-    """Clear the permanent reopen flag so drop_autoclose can run again."""
-    drop = await db.get(Drop, drop_id)
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-
-    drop.manual_reopen = False
-    await db.flush()
-    return {"drop_id": str(drop.id), "manual_reopen": False}
 
 
 async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str, Any]:
@@ -886,150 +873,53 @@ async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str
     return {"user_id": str(user.id), "instagram_token_cleared": True}
 
 
-async def finalize_drop_applicants(
-    db: AsyncSession,
-    drop_id: UUID,
-    allocations: list[dict[str, Any]],
-) -> dict[str, int]:
-    """Batch-finalize applicants with the same rules as the brand portal (§7.1)."""
-    drop = await db.get(Drop, drop_id)
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-    brand = await db.get(Brand, drop.brand_id)
-    if brand is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Brand not found.", status_code=404)
-    return await finalize_applicants(db, brand, drop_id, allocations)
+async def wrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
+    """Wrap a published drop up: off the feed, reporting period over.
 
-
-async def advance_tracker(
-    db: AsyncSession,
-    drop_id: UUID,
-    stage: str,
-    *,
-    note: str | None = None,
-) -> dict[str, Any]:
-    """Advance a drop's tracker stage (forward-only state machine, §8.5)."""
-    drop = await db.get(Drop, drop_id)
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-
-    current = drop.brand_tracker_stage
-    requested = stage
-
-    if requested not in _STAGE_ORDER:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            f"Invalid tracker stage: {requested}.",
-            status_code=400,
-        )
-
-    current_idx = _STAGE_ORDER.index(current)
-    requested_idx = _STAGE_ORDER.index(requested)
-
-    if requested_idx <= current_idx:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            f"Cannot move tracker backwards (current: {current}, requested: {requested}).",
-            status_code=400,
-        )
-
-    # Applicant selection must happen before any fulfillment stage. Forbid
-    # skipping past finalizing_agreements while the drop is unfinalized — a
-    # multi-stage jump (e.g. request_received -> drop_active) would otherwise
-    # strand applied orgs that can never be decided (finalize requires the
-    # finalizing_agreements stage and there is no backward transition).
-    finalizing_idx = _STAGE_ORDER.index(BrandTrackerStage.FINALIZING_AGREEMENTS.value)
-    if requested_idx > finalizing_idx and drop.applicant_selection_finalized_at is None:
-        raise BuzzAPIException(
-            errors.DROP_NOT_IN_SELECTION_STAGE,
-            "Finalize applicant selection before advancing past the selection stage.",
-            status_code=400,
-        )
-
-    awaiting_idx = _STAGE_ORDER.index(BrandTrackerStage.AWAITING_PRODUCTS.value)
-    # Jumping over awaiting_products skips the fulfillment stage brands see.
-    if requested_idx > awaiting_idx and current_idx < awaiting_idx:
-        raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Advance to awaiting_products before drop_active.",
-            status_code=400,
-        )
-
-    drop.brand_tracker_stage = requested
-    event = DropTrackerEvent(
-        drop_id=drop.id,
-        stage=requested,
-        note=note,
-    )
-    db.add(event)
-
-    await db.flush()
-    return {"drop_id": str(drop.id), "stage": drop.brand_tracker_stage}
-
-
-async def reopen_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
-    """Reopen a drop's apply window (§4.1, §8.5).
-
-    Sets ``manual_reopen=true``. For drops still in selection
-    (``request_received`` / ``finalizing_agreements`` / pre-live), also clears
-    ``applicant_selection_finalized_at`` and rewinds to ``finalizing_agreements``
-    when past it so a new selection round can run.
-
-    Live / finished drops (``drop_active`` / ``drop_finished``) with selection
-    already finalized cannot reopen apply — ``apply_to_drop`` / feed treat
-    ``applicant_selection_finalized_at`` as closed before ``manual_reopen``, and
-    clearing finalize here would risk implying a new selection round while org
-    campaigns stay live. Those requests get 409; stage and finalize stay put.
-    Unfinalized live / finished drops still get the apply-window flag only.
+    Not a lock: BUZZ can still late-add and link, orgs keep linking for
+    ``ORG_LINK_GRACE``, and metrics keep syncing for a while.
     """
-    drop = await db.get(Drop, drop_id)
+
+    drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
-
-    live_or_finished = {
-        BrandTrackerStage.DROP_ACTIVE.value,
-        BrandTrackerStage.DROP_FINISHED.value,
-    }
-    if (
-        drop.brand_tracker_stage in live_or_finished
-        and drop.applicant_selection_finalized_at is not None
-    ):
+    if drop.published_at is None:
         raise BuzzAPIException(
-            errors.ALREADY_FINALIZED,
-            "Apply cannot be reopened while applicant selection is finalized "
-            "on a live or finished drop.",
+            errors.VALIDATION_ERROR, "Only published drops can be wrapped up.", status_code=409
+        )
+    if drop.wrapped_at is None and (
+        drop.hidden_at is not None or not apply_window_closed(drop, datetime.now(timezone.utc))
+    ):
+        # Wrap-up follows Selecting or Live; close applications first.
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Close applications (move the close date) before wrapping up; unhide a hidden drop"
+            " first.",
             status_code=409,
         )
-
-    drop.manual_reopen = True
-
-    if drop.applicant_selection_finalized_at is not None:
-        drop.applicant_selection_finalized_at = None
-        finalizing = BrandTrackerStage.FINALIZING_AGREEMENTS.value
-        if _STAGE_ORDER.index(drop.brand_tracker_stage) > _STAGE_ORDER.index(finalizing):
-            drop.brand_tracker_stage = finalizing
-            db.add(
-                DropTrackerEvent(
-                    drop_id=drop.id,
-                    stage=finalizing,
-                    note="reopened for a new selection round",
-                )
-            )
-    await db.flush()
-    return {"drop_id": str(drop.id), "manual_reopen": True}
+    if drop.wrapped_at is None:
+        drop.wrapped_at = datetime.now(timezone.utc)
+        db.add(DropTrackerEvent(drop_id=drop.id, stage="wrapped", note="wrapped up"))
+    stage = await drop_stage(db, drop)
+    return {"drop_id": drop.id, "stage": stage}
 
 
-_LOGISTICS_FIELDS = frozenset(
-    {"capacity_total", "apply_open_at", "apply_close_at", "total_product_units"}
-)
+async def unwrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
+    """Undo a wrap-up; the stage goes back to whatever the dates and seats say."""
+
+    drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
+    if drop is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    was_wrapped = drop.wrapped_at is not None
+    drop.wrapped_at = None
+    stage = await drop_stage(db, drop)
+    if was_wrapped:
+        db.add(DropTrackerEvent(drop_id=drop.id, stage=stage.value, note="unwrapped"))
+    return {"drop_id": drop.id, "stage": stage}
+
+
+_WINDOW_FIELDS = frozenset({"apply_open_at", "apply_close_at"})
 _CREATIVE_FIELDS = frozenset({"title", "description", "image", "location"})
-_PRE_LIVE_STAGES = frozenset(
-    {
-        BrandTrackerStage.REQUEST_RECEIVED.value,
-        BrandTrackerStage.FINALIZING_AGREEMENTS.value,
-        BrandTrackerStage.AWAITING_PRODUCTS.value,
-    }
-)
 
 
 def _normalize_campaign_hashtag(raw: str | None) -> str | None:
@@ -1092,7 +982,6 @@ async def create_admin_drop(
         capacity_total=payload.capacity_total,
         apply_open_at=payload.apply_open_at,
         apply_close_at=payload.apply_close_at,
-        brand_tracker_stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
         total_product_units=payload.total_product_units,
         campaign_hashtag=_normalize_campaign_hashtag(payload.campaign_hashtag),
         brand_can_edit_creative=payload.brand_can_edit_creative,
@@ -1111,7 +1000,7 @@ async def create_admin_drop(
 
 
 async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
-    """Set published_at, seed awaiting_products tracker, email the brand."""
+    """Set published_at, log it, email the brand."""
 
     drop = await db.get(Drop, drop_id)
     if drop is None:
@@ -1139,12 +1028,10 @@ async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
 
     now = datetime.now(timezone.utc)
     drop.published_at = now
-    if drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value:
-        drop.brand_tracker_stage = BrandTrackerStage.AWAITING_PRODUCTS.value
     db.add(
         DropTrackerEvent(
             drop_id=drop.id,
-            stage=BrandTrackerStage.AWAITING_PRODUCTS.value,
+            stage=(await drop_stage(db, drop)).value,
             note="published",
         )
     )
@@ -1190,7 +1077,7 @@ async def hide_drop(
     db.add(
         DropTrackerEvent(
             drop_id=drop.id,
-            stage=drop.brand_tracker_stage,
+            stage=(await drop_stage(db, drop)).value,
             note="hidden",
         )
     )
@@ -1220,7 +1107,7 @@ async def unhide_drop(db: AsyncSession, drop_id: UUID) -> Drop:
     db.add(
         DropTrackerEvent(
             drop_id=drop.id,
-            stage=drop.brand_tracker_stage,
+            stage=(await drop_stage(db, drop)).value,
             note="unhidden",
         )
     )
@@ -1329,12 +1216,11 @@ async def update_drop_config(
     if not updates:
         return
 
-    logistics_touched = bool(_LOGISTICS_FIELDS & updates.keys())
-    if logistics_touched and drop.brand_tracker_stage not in _PRE_LIVE_STAGES:
+    # Reopening = moving the close date later; only a wrapped drop is past that.
+    if _WINDOW_FIELDS & updates.keys() and drop.wrapped_at is not None:
         raise BuzzAPIException(
-            errors.VALIDATION_ERROR,
-            "Capacity, apply window, and unit budget cannot be changed while "
-            "the drop is live or finished.",
+            errors.DROP_WRAPPED,
+            "The apply window of a wrapped-up drop cannot change. Unwrap it first.",
             status_code=409,
         )
 
@@ -1348,14 +1234,22 @@ async def update_drop_config(
         if key in updates and isinstance(updates[key], str):
             updates[key] = updates[key].strip()
 
-    if "total_product_units" in updates and drop.applicant_selection_finalized_at is not None:
-        current = drop.total_product_units
-        new = updates["total_product_units"]
-        if (current is None) != (new is None):
+    if "total_product_units" in updates and (drop.total_product_units is None) != (
+        updates["total_product_units"] is None
+    ):
+        has_accepted = await db.scalar(
+            select(DropApplication.id)
+            .where(
+                DropApplication.drop_id == drop.id,
+                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+            )
+            .limit(1)
+        )
+        if has_accepted is not None:
             raise BuzzAPIException(
                 errors.VALIDATION_ERROR,
-                "Cannot switch between spot-only and unit-allocated mode after "
-                "applicant selection is finalized.",
+                "Cannot switch between spot-only and unit-allocated mode once orgs "
+                "are accepted.",
                 status_code=409,
             )
 

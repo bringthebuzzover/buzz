@@ -46,7 +46,7 @@ from app.models.drop_request import DropRequest
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
+    DropStage,
     OrgUserStatus,
     Platform,
     PortalRole,
@@ -398,10 +398,9 @@ async def make_drop(
     capacity_total: int = 5,
     apply_open_at: datetime | None = None,
     apply_close_at: datetime | None = None,
-    manual_reopen: bool = False,
-    stage: BrandTrackerStage = BrandTrackerStage.REQUEST_RECEIVED,
     total_product_units: int | None = None,
     published_at: datetime | None | object = ...,
+    wrapped_at: datetime | None = None,
 ) -> Drop:
     """Persist a ``drops`` row owned by ``brand`` (apply window open by default).
 
@@ -426,10 +425,9 @@ async def make_drop(
         capacity_total=capacity_total,
         apply_open_at=open_at,
         apply_close_at=close_at,
-        manual_reopen=manual_reopen,
-        brand_tracker_stage=stage.value,
         total_product_units=total_product_units,
         published_at=pub,  # type: ignore[arg-type]
+        wrapped_at=wrapped_at,
     )
     db.add(drop)
     await db.flush()
@@ -444,15 +442,23 @@ async def make_application(
     decision: ApplicationDecision = ApplicationDecision.APPLIED,
     pitch: str | None = None,
     applied_at: datetime | None = None,
+    sent: bool = True,
 ) -> DropApplication:
-    """Persist a ``drop_applications`` row."""
+    """Persist a ``drop_applications`` row.
 
+    A non-``applied`` decision is *sent* by default (the org sees it; an
+    accepted seat is live). Pass ``sent=False`` for a drafted decision.
+    """
+
+    decided_at = None if decision == ApplicationDecision.APPLIED else datetime.now(timezone.utc)
     application = DropApplication(
         id=uuid.uuid4(),
         drop_id=drop.id,
         org_id=org.id,
         decision=decision.value,
         pitch=pitch,
+        decision_at=decided_at,
+        decision_sent_at=decided_at if sent else None,
     )
     if applied_at is not None:
         application.applied_at = applied_at
@@ -566,7 +572,7 @@ async def make_tracker_event(
     db: AsyncSession,
     drop: Drop,
     *,
-    stage: BrandTrackerStage = BrandTrackerStage.REQUEST_RECEIVED,
+    stage: DropStage = DropStage.DRAFT,
     note: str | None = None,
 ) -> DropTrackerEvent:
     """Persist a ``drop_tracker_events`` row."""

@@ -79,7 +79,7 @@ from app.models import (  # noqa: E402
 from app.models.enums import (  # noqa: E402
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
+    DropStage,
     OrgCategory,
     OrgUserStatus,
     Platform,
@@ -328,8 +328,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         capacity_total=10,
         apply_open_at=now - timedelta(days=7),
         apply_close_at=now + timedelta(days=7),
-        manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.REQUEST_RECEIVED.value,
         total_product_units=200,
         campaign_hashtag="AcmeFallBrew",
         published_at=None,  # legacy-style unpublished stub / draft
@@ -344,8 +342,6 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         capacity_total=6,
         apply_open_at=now - timedelta(days=3),
         apply_close_at=now + timedelta(days=14),
-        manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.FINALIZING_AGREEMENTS.value,
         total_product_units=None,
         published_at=now - timedelta(days=3),
     )
@@ -359,13 +355,8 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         capacity_total=20,
         apply_open_at=now - timedelta(days=30),
         apply_close_at=now - timedelta(days=5),
-        manual_reopen=False,
-        # drop_active so the brand drop page shows linked-post insights
-        # (awaiting_products hides that list until the drop is live).
-        brand_tracker_stage=BrandTrackerStage.DROP_ACTIVE.value,
         total_product_units=400,
         campaign_hashtag="NorthwindGameDay",
-        applicant_selection_finalized_at=now - timedelta(days=6),
         published_at=now - timedelta(days=30),
     )
     drop_finished = Drop(
@@ -378,10 +369,8 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         capacity_total=15,
         apply_open_at=now - timedelta(days=120),
         apply_close_at=now - timedelta(days=90),
-        manual_reopen=False,
-        brand_tracker_stage=BrandTrackerStage.DROP_FINISHED.value,
         total_product_units=300,
-        applicant_selection_finalized_at=now - timedelta(days=89),
+        wrapped_at=now - timedelta(days=60),
         published_at=now - timedelta(days=120),
     )
 
@@ -395,6 +384,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         allocated_units=40,
         applied_at=now - timedelta(days=25),
         decision_at=now - timedelta(days=6),
+        decision_sent_at=now - timedelta(days=6),
     )
     app_accepted_finished = DropApplication(
         id=_uuid(41),
@@ -404,6 +394,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         allocated_units=30,
         applied_at=now - timedelta(days=110),
         decision_at=now - timedelta(days=89),
+        decision_sent_at=now - timedelta(days=89),
     )
     app_applied = DropApplication(
         id=_uuid(42),
@@ -427,6 +418,7 @@ def _build_seed_rows() -> dict[str, list[Base]]:
         decision=ApplicationDecision.DENIED.value,
         applied_at=now - timedelta(days=2),
         decision_at=now - timedelta(hours=12),
+        decision_sent_at=now - timedelta(hours=12),
     )
     app_pending_org = DropApplication(
         id=_uuid(45),
@@ -521,8 +513,8 @@ def _build_seed_rows() -> dict[str, list[Base]]:
     tracker_brief = DropTrackerEvent(
         id=_uuid(80),
         drop_id=drop_brief.id,
-        stage=BrandTrackerStage.REQUEST_RECEIVED.value,
-        note="Drop created — request received.",
+        stage=DropStage.DRAFT.value,
+        note="Drop created.",
         occurred_at=drop_brief.apply_open_at,
     )
 
@@ -674,8 +666,7 @@ async def upsert_staging_demo(session: AsyncSession, *, password: str) -> None:
     drop.capacity_total = 10
     drop.apply_open_at = now - timedelta(days=1)
     drop.apply_close_at = now + timedelta(days=30)
-    drop.manual_reopen = False
-    drop.brand_tracker_stage = BrandTrackerStage.AWAITING_PRODUCTS.value
+    drop.wrapped_at = None
     drop.total_product_units = 200
     drop.campaign_hashtag = "SampleFallBrew"
     drop.published_at = now - timedelta(days=1)
@@ -694,6 +685,7 @@ async def upsert_staging_demo(session: AsyncSession, *, password: str) -> None:
         application.pitch = "Sample application for the Fall Cold Brew Launch. Fake staging data."
         application.allocated_units = None
         application.decision_at = None
+        application.decision_sent_at = None
         if created:
             application.applied_at = now
     await session.flush()
