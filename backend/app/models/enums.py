@@ -16,7 +16,7 @@ Naming conventions
   (uppercased only when the value itself is uppercase) so model code can
   use either ``PortalRole.ORG`` or ``"org"`` interchangeably.
 
-See `buzz-ops `engineering/architecture.md`` §3.2 for the canonical list.
+See buzz-ops ``engineering/architecture.md`` §3.2 for the canonical list.
 """
 
 from __future__ import annotations
