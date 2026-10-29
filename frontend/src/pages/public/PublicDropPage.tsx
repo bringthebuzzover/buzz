@@ -31,7 +31,7 @@ import {
   SuccessBanner,
   TextArea,
 } from "../../components/forms/controls";
-import { STACK, TEXT } from "../../theme/tokens";
+import { PAD, STACK, SURFACE, TEXT } from "../../theme/tokens";
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
@@ -140,16 +140,18 @@ export default function PublicDropPage() {
       ) : null}
 
       {anonymous && feedStatus === "open" ? (
-        <>
-          <h2 className={cn(TEXT.h2, "mb-2")}>
-            Request to join BUZZ and apply
-          </h2>
-          <p className={cn(TEXT.body, "mb-6 text-muted")}>
-            Same application as joining Buzz. We&apos;ll submit this drop when
-            your organization is approved and connected — you&apos;re not applied yet.
-          </p>
+        <div className={cn(SURFACE.card, PAD.card, "flex flex-col gap-5")}>
+          <div className="flex flex-col gap-2">
+            <h2 className={TEXT.h3}>Request to join BUZZ and apply</h2>
+            <p className={cn(TEXT.body, "text-muted")}>
+              Same application as joining Buzz. We&apos;ll submit this drop when
+              your organization is approved and connected — you&apos;re not applied yet.
+            </p>
+          </div>
           <OrgApplyForm
             dropId={dropId}
+            paired
+            className="space-y-4"
             submitLabel="Request to join Buzz and apply"
             loginHref={loginHref}
             onSuccess={(result, eduEmail) => {
@@ -158,7 +160,7 @@ export default function PublicDropPage() {
               });
             }}
           />
-        </>
+        </div>
       ) : null}
 
       {anonymous && feedStatus !== "open" ? (

@@ -59,6 +59,7 @@ export function MarketingHero({
           {title}
         </h1>
         <p className="mt-4 max-w-sm text-base leading-relaxed text-primary">{sub}</p>
+        {/* Pen hero Join instance is 44px. The default yellow pill is 40. */}
         <div className="mt-6 flex items-center gap-6">
           {primary.to ? (
             <LinkButton to={primary.to} className="h-11 px-5">
@@ -175,33 +176,38 @@ export function CurrentDrops() {
             </CarouselButton>
           </div>
         </div>
-        <div className="mt-7 overflow-hidden">
-          <div
-            className="flex transition-transform duration-500 motion-reduce:transition-none"
-            style={{ transform: `translateX(-${index * 100}%)` }}
-          >
-            {FEATURED_COLLABS.map((item) => (
-              <div key={item.id} className="w-full shrink-0 pr-0 md:pr-8">
-                <div className="relative h-[420px] overflow-hidden rounded-buzzBoard md:h-[605px]">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-page/85 via-transparent to-page/20" />
-                  <p className="absolute bottom-8 left-8 text-2xl font-medium text-primary md:text-buzzH2">
-                    {item.title}
-                  </p>
+        {/* Pen scroller: card is 1076 of a 1344 track (80%), 16px gap, so the next card peeks. */}
+        <div className="mt-7 [container-type:inline-size]">
+          <div className="overflow-hidden">
+            <div
+              className="flex gap-4 transition-transform duration-500 motion-reduce:transition-none"
+              style={{
+                transform: `translateX(calc(${-index} * (min(1076px, 80cqw) + 1rem)))`,
+              }}
+            >
+              {FEATURED_COLLABS.map((item) => (
+                <div key={item.id} className="w-[min(1076px,80cqw)] shrink-0">
+                  <div className="relative h-[420px] overflow-hidden rounded-buzzBoard md:h-[605px]">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-page/85 via-transparent to-page/20" />
+                    <p className="absolute bottom-8 left-8 text-2xl font-medium text-primary md:text-buzzH2">
+                      {item.title}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-base">{collab.subtitle}</p>
-          <span className="inline-flex h-9 items-center rounded-full border border-on-accent/20 px-3.5 text-xs">
-            View drop
-          </span>
+          <div className="mt-4 flex w-[min(1076px,80cqw)] items-center justify-between gap-4">
+            <p className="text-base">{collab.subtitle}</p>
+            <span className="inline-flex h-9 shrink-0 items-center rounded-full border border-on-accent/20 px-3.5 text-xs">
+              View drop
+            </span>
+          </div>
         </div>
       </div>
     </section>
@@ -534,7 +540,10 @@ export function StatusHero({
         <BeeMark className="mb-6 h-28 w-28 motion-safe:animate-buzz-float" />
       )}
       {kicker ? (
-        <p className="mt-2 max-w-xl text-xl font-medium leading-tight">{title}</p>
+        <BeeMark className="h-[120px] w-[120px] motion-safe:animate-buzz-float" />
+      ) : null}
+      {kicker ? (
+        <p className="mt-6 max-w-xl text-xl font-medium leading-tight">{title}</p>
       ) : (
         <h1 className="max-w-xl text-[36px] font-medium leading-tight md:text-buzzTitle">{title}</h1>
       )}
@@ -545,7 +554,6 @@ export function StatusHero({
           Log in
         </LinkButton>
       </div>
-      {kicker ? <BeeMark className="mt-10 h-16 w-16 opacity-90" /> : null}
     </div>
   );
 }
