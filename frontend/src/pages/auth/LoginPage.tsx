@@ -49,7 +49,7 @@ export default function LoginPage() {
         onClick={() => login(next)}
         disabled={status === "authenticating"}
       >
-        <img src={instagramIcon} alt="" className="h-5 w-5" />
+        <img src={instagramIcon} alt="" className="buzz-icon-on-ink h-5 w-5" />
         {status === "authenticating"
           ? "Logging in..."
           : "Continue with Instagram"}

@@ -15,8 +15,8 @@ import { waitForAuthSettled } from "./authSettled";
 const MOBILE = { width: 375, height: 812 };
 const DESKTOP = { width: 1440, height: 900 };
 
-/** Radii the design system allows: buzzCheck 6px, buzzControl 8px, buzzCard 16px, buzzModal 24px, plus pills and square. */
-const ALLOWED_RADII = new Set(["0px", "6px", "8px", "16px", "24px", "9999px"]);
+/** Radii the design system allows. Pen: check 5, control/media 8, field 10, board/modal 16, phone 32, plus the previous 6/24 and pills. */
+const ALLOWED_RADII = new Set(["0px", "5px", "6px", "8px", "10px", "16px", "24px", "32px", "9999px"]);
 
 /** Public routes: reachable with no session, so these stay fast and stable. */
 const PUBLIC_ROUTES = [

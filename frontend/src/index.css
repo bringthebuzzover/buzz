@@ -1,6 +1,41 @@
 /**
- * Global Tailwind layers: base resets typography/body background from the Buzz palette.
+ * Global Tailwind layers. Pulse Black: ink page, paper type, yellow accent.
+ * Switzer is Indian Type Foundry via Fontshare (free for commercial use).
+ * Weights 600 and 700 reuse the 500 file so the app doesn't faux-bold past
+ * the pen's cap.
  */
+@font-face {
+  font-family: Switzer;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./fonts/switzer-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Switzer;
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("./fonts/switzer-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Switzer;
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("./fonts/switzer-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: Switzer;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./fonts/switzer-500.woff2") format("woff2");
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,7 +47,7 @@
   }
 
   body {
-    @apply m-0 bg-buzz-cream font-sans text-base text-buzz-ink;
+    @apply m-0 bg-buzz-cream font-sans text-base text-buzz-ink selection:bg-buzz-yellow selection:text-buzz-onAccent;
   }
 
   /**
@@ -40,9 +75,40 @@
    */
   .buzz-datetime::-webkit-calendar-picker-indicator {
     @apply cursor-pointer opacity-60 transition;
+    filter: invert(1);
   }
 
   .buzz-datetime::-webkit-calendar-picker-indicator:hover {
     @apply opacity-100;
+  }
+
+  /**
+   * Black social glyphs shipped as PNGs. On ink they disappear; this paints
+   * them paper without recoloring the yellow wordmark.
+   */
+  .buzz-icon-on-ink {
+    filter: brightness(0) invert(1);
+  }
+}
+
+@layer utilities {
+  /**
+   * Marketing card hover (scale 1.03 / 240ms). The transition itself lives on
+   * the `buzz-hover-lift` class via Tailwind; this block only kills the
+   * transform when the user asks for less motion.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .buzz-hover-lift:hover {
+      transform: none;
+    }
+
+    .animate-buzz-rise,
+    .animate-buzz-fade,
+    .animate-buzz-float,
+    .animate-buzz-modal,
+    .animate-marquee,
+    .animate-marquee-reverse {
+      animation: none !important;
+    }
   }
 }

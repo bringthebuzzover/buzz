@@ -14,7 +14,7 @@
  */
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bell, BellRing, Calendar, MapPin } from "lucide-react";
+import { Calendar, MapPin } from "lucide-react";
 import type { DropCardData, DropFeedStatus } from "../../types/drop";
 import { useCountdown } from "../../utils/useCountdown";
 import {
@@ -28,6 +28,7 @@ import NotifyMeModal from "./modals/NotifyMeModal";
 import { REMINDER_CHOICES, useDropNotify } from "../../api/hooks/useDropHooks";
 import { Card } from "../ui/Card";
 import { Chip } from "../ui/Chip";
+import { Toggle } from "../ui/Toggle";
 import { RemoteImage } from "../ui/RemoteImage";
 import { Button, ErrorBanner, buttonVariants } from "../forms/controls";
 import { PAD, STACK, TEXT, type Tone } from "../../theme/tokens";
@@ -59,15 +60,15 @@ function HeroCountdownOverlay({ targetMs }: { targetMs: number }) {
   if (done) {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-buzz-overlay/35">
-        <p className={cn(TEXT.h2, "text-buzz-paper drop-shadow")}>Opening now</p>
+        <p className={cn(TEXT.h2, "text-buzz-fg drop-shadow-buzz")}>Opening now</p>
       </div>
     );
   }
   return (
     <div className="absolute inset-0 flex items-center justify-center bg-buzz-overlay/35 px-4">
       <div className="text-center">
-        <p className={cn(TEXT.micro, "mb-2 text-buzz-paper/90")}>Opens In</p>
-        <div className={cn(TEXT.metric, "text-buzz-paper drop-shadow")}>
+        <p className={cn(TEXT.micro, "mb-2 text-buzz-fg/90")}>Opens In</p>
+        <div className={cn(TEXT.metric, "text-buzz-fg drop-shadow-buzz")}>
           {days}d {pad2(hours)}:{pad2(minutes)}:{pad2(seconds)}
         </div>
       </div>
@@ -204,7 +205,11 @@ function FeedStatusChip({
           : "Open"
         : "Closed";
   const tone: Tone = status === "open" && !full ? "success" : "neutral";
-  return <Chip tone={tone}>{label}</Chip>;
+  return (
+    <Chip onMedia tone={tone}>
+      {label}
+    </Chip>
+  );
 }
 
 /** Presentational toggle. */
@@ -221,16 +226,17 @@ function NotifyToggle({
 }) {
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        fullWidth
-        onClick={onClick}
-        disabled={disabled}
-      >
-        {notified ? <BellRing size={16} /> : <Bell size={16} />}
-        <span>{notified ? "Notifying you" : "Notify Me"}</span>
-      </Button>
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm text-primary">
+          {notified ? "Notifying you" : "Notify Me"}
+        </span>
+        <Toggle
+          checked={notified}
+          disabled={disabled}
+          onChange={() => onClick()}
+          label={notified ? "Notifying you" : "Notify Me"}
+        />
+      </div>
       {notified && reminderMinutes.length > 0 ? (
         <p className={cn(TEXT.meta, "text-center")}>
           Reminders:{" "}

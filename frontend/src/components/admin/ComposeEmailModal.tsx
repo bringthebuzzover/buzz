@@ -3,7 +3,6 @@ import { ApiError } from "../../api/client";
 import { Button, TextArea, TextField } from "../forms/controls";
 import { Modal } from "../ui/Modal";
 import { STACK } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
 import { composeDefaultBody, opsCcAddresses } from "../../utils/composeEmail";
 import { ErrorNote } from "./AdminPrimitives";
 
@@ -49,7 +48,7 @@ export default function ComposeEmailModal({
       description="Sends via Buzz. Replies go to the contact address. Ops is CC'd."
       size="wide"
     >
-      <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
+      <div className={STACK.tight}>
         {error && <ErrorNote>{error}</ErrorNote>}
         <TextField
           id="compose-email-to"

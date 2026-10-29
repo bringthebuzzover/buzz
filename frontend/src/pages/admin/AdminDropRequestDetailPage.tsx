@@ -530,7 +530,7 @@ function DraftEditor({
             <img
               src={form.image.trim()}
               alt=""
-              className="max-h-40 rounded-buzzCard border border-buzz-lineMid object-cover"
+              className="max-h-40 rounded-buzzBoard border border-buzz-lineMid object-cover"
             />
           ) : null}
         </EditorSection>
@@ -658,7 +658,7 @@ function DraftEditor({
       {!published && (
         <div
           className={cn(
-            "mb-6 flex flex-wrap items-center justify-between gap-3 rounded-buzzCard border px-4 py-3",
+            "mb-6 flex flex-wrap items-center justify-between gap-3 rounded-buzzBoard border px-4 py-3",
             TONE.warn,
           )}
         >

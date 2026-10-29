@@ -30,7 +30,7 @@ export default function RunningTotalsBar({ metrics }: RunningTotalsBarProps) {
     },
   ];
   return (
-    <div className="grid grid-cols-3 divide-x divide-buzz-paper/30 rounded-buzzCard bg-buzz-coral px-2 py-4 text-buzz-paper shadow-buzz">
+    <div className="grid grid-cols-3 divide-x divide-buzz-paper/30 rounded-buzzBoard bg-buzz-coral px-2 py-4 text-buzz-paper shadow-buzz">
       {items.map(({ icon: Icon, label, value }) => (
         <div key={label} className="flex items-center justify-center gap-3 px-3">
           <Icon size={18} className="shrink-0" />
