@@ -15,7 +15,7 @@
  * The card is presentational; data fetching + mutations are wired by the parent
  * (`OrgDropFeedPage`) and the inline apply form.
  */
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { MapPin } from "lucide-react";
 import type { DropCardData, DropFeedStatus } from "../../types/drop";
@@ -28,7 +28,6 @@ import {
   isDropFull,
   spotsRemaining,
 } from "../../utils/dropStatus";
-import { useWallClockNow } from "../../utils/wallClock";
 import NotifyMeModal from "./modals/NotifyMeModal";
 import { REMINDER_CHOICES, useDropNotify } from "../../api/hooks/useDropHooks";
 import { Chip } from "../ui/Chip";
@@ -89,13 +88,9 @@ export default function DropFeedCard({
   campaignTo,
   disableApply = false,
 }: DropFeedCardProps) {
-  const now = useWallClockNow();
   const remaining = spotsRemaining(drop, acceptedCount);
   const full = isDropFull(drop, acceptedCount);
-  const closedReason = useMemo(
-    () => getDropClosedReason(drop, acceptedCount, now),
-    [drop, acceptedCount, now],
-  );
+  const closedReason = getDropClosedReason(drop.stage, full);
 
   const spots =
     feedStatus === "upcoming"

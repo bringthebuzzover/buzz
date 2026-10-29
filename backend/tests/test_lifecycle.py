@@ -609,6 +609,6 @@ async def test_no_decisions_or_sends_on_a_hidden_drop(app_client: AsyncClient, d
         json={"decision": "accepted", "allocatedUnits": 3},
         headers=admin,
     )
-    assert res.json()["error"]["code"] == "DROP_NOT_OPEN"
+    assert res.json()["error"]["code"] == "DROP_HIDDEN"
     res = await app_client.post(f"/api/admin/drops/{drop.id}/send-decisions", headers=admin)
-    assert res.json()["error"]["code"] == "DROP_NOT_OPEN"
+    assert res.json()["error"]["code"] == "DROP_HIDDEN"

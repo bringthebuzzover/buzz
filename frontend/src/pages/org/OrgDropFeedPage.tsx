@@ -10,9 +10,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import DropFeedCard from "../../components/org/DropFeedCard";
 import DropApplyForm from "../../components/org/DropApplyForm";
-import { getDropFeedStatus } from "../../utils/dropStatus";
+import { getDropFeedStatus, isDropFull } from "../../utils/dropStatus";
 import type { DropFeedRow, DropFeedStatus } from "../../types/drop";
-import { useWallClockNow } from "../../utils/wallClock";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
 import { useCampaigns, type CampaignItem } from "../../api/hooks/useOrgHooks";
 import PageShell from "../../components/site/PageShell";
@@ -170,14 +169,11 @@ function FeedContent({
   onLoadMore?: () => void;
 }) {
   const [filter, setFilter] = useState<FilterId>("all");
-  // Live wall-clock so a drop flips Upcoming→Open the moment its countdown ends
-  // (status/chips/Apply re-derive on each tick, not just on refetch).
-  const now = useWallClockNow();
 
   /** Visible cards after status filter. Drops are sorted: Open -> Upcoming -> Closed. */
   const visibleDrops = useMemo(() => {
     const enriched = rows.map((row) => {
-      const status = getDropFeedStatus(row, row.acceptedCount, now);
+      const status = getDropFeedStatus(row.stage, isDropFull(row, row.acceptedCount));
       return { row, status };
     });
     const sortKey: Record<DropFeedStatus, number> = {
@@ -188,7 +184,7 @@ function FeedContent({
     return enriched
       .filter((item) => matchesFilter(filter, item.status))
       .sort((a, b) => sortKey[a.status] - sortKey[b.status]);
-  }, [rows, now, filter]);
+  }, [rows, filter]);
 
   return (
     <PageShell width="wide">

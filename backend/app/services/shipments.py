@@ -17,7 +17,7 @@ from app.models.drop import Drop
 from app.models.enums import ApplicationDecision
 from app.models.shipment import CARRIERS, DropApplicationShipment
 from app.services.drop_notices import notify_shipped
-from app.services.lifecycle import drop_running, reject_if_canceled, seat_is_live
+from app.services.lifecycle import drop_running, require_drop, seat_is_live
 from app.timeutils import utcnow
 
 _UPS_TRACK = "https://www.ups.com/track?tracknum="
@@ -108,7 +108,7 @@ async def _live_seat(db: AsyncSession, application_id: UUID, action: str) -> Dro
         )
     drop = await db.get(Drop, application.drop_id)
     if drop is not None:
-        reject_if_canceled(drop)
+        require_drop(drop)
     return application
 
 
