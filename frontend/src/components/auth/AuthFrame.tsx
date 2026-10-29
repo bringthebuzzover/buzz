@@ -16,6 +16,22 @@ const publicUrl = process.env.PUBLIC_URL ?? "";
 const ASIDE_STATEMENT =
   "Connecting brands with campus communities for authentic college marketing, at scale.";
 
+/** Quiet legal links for auth frames that hide the site footer. */
+function AuthLegalLinks() {
+  const linkClass = cn("rounded-full text-muted", focusRingClass);
+  return (
+    <p className="text-sm text-quiet" data-testid="auth-legal-links">
+      <Link to="/privacy" className={linkClass}>
+        Privacy
+      </Link>
+      <span aria-hidden> · </span>
+      <Link to="/terms" className={linkClass}>
+        Terms
+      </Link>
+    </p>
+  );
+}
+
 function BeeFlight() {
   const dots = [3, 3.4, 3.8, 4.1, 4.5, 4.9, 5.2, 5.6, 6];
   return (
@@ -61,6 +77,7 @@ function AuthAside() {
           {ASIDE_STATEMENT}
         </p>
         <p className="text-sm text-quiet">bringthebuzzover.com</p>
+        <AuthLegalLinks />
         <BeeFlight />
       </div>
     </aside>
@@ -102,6 +119,7 @@ export function AuthCenter({ children }: { children: ReactNode }) {
         className={cn("w-full max-w-[440px] space-y-6", MOTION.publicEnter)}
       >
         {children}
+        <AuthLegalLinks />
       </div>
     </div>
   );
