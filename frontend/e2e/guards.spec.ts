@@ -9,7 +9,7 @@ test("org session is blocked from the brand dashboard (403)", async ({ page }) =
   await page.goto("/brand/dashboard");
   await waitForAuthSettled(page, "org");
   // The brand dashboard must NOT render…
-  await expect(page.getByRole("heading", { name: /brand dashboard/i })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toHaveCount(0);
   // …and the 403 guard page is shown instead.
   await expect(page.getByRole("heading", { name: "403" })).toBeVisible();
   await expect(page.getByText(/don't have access/i)).toBeVisible();

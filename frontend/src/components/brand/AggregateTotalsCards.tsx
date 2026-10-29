@@ -1,72 +1,30 @@
 /**
- * Five-tile totals row for the Brand Aggregate Dashboard. Engagement, reach,
- * posts submitted, orgs involved, and campuses reached (buzz-ops product/PRODUCT.md §5.3.2).
+ * Pen KPI row for the brand dashboard: drops, engagement, reach, posts,
+ * organizations, campuses (buzz-ops product/PRODUCT.md §5.3.2). Each total
+ * appears once; there is no separate summary band.
  */
-import {
-  Building2,
-  Camera,
-  Eye,
-  Heart,
-  Users,
-} from "lucide-react";
 import type { BrandAggregateMetrics } from "../../types/metrics";
-import { Card } from "../ui/Card";
-import { GAP, TEXT } from "../../theme/tokens";
+import { StatCard } from "../ui/Card";
+import { GAP } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
-
-type AggregateTotalsCardsProps = {
-  metrics: BrandAggregateMetrics;
-};
 
 export default function AggregateTotalsCards({
   metrics,
-}: AggregateTotalsCardsProps) {
+}: {
+  metrics: BrandAggregateMetrics;
+}) {
   const tiles = [
-    {
-      icon: Heart,
-      label: "Engagement",
-      value: metrics.totalEngagement.toLocaleString(),
-    },
-    {
-      icon: Eye,
-      label: "Reach",
-      value: metrics.totalReach.toLocaleString(),
-    },
-    {
-      icon: Camera,
-      label: "Posts",
-      value: metrics.totalPosts.toLocaleString(),
-    },
-    {
-      icon: Users,
-      label: "Organizations",
-      value: metrics.totalOrgs.toLocaleString(),
-    },
-    {
-      icon: Building2,
-      label: "Campuses",
-      value: metrics.totalCampuses.toLocaleString(),
-    },
+    { label: "Drops", value: metrics.totalDrops },
+    { label: "Engagement", value: metrics.totalEngagement },
+    { label: "Reach", value: metrics.totalReach },
+    { label: "Posts", value: metrics.totalPosts },
+    { label: "Organizations", value: metrics.totalOrgs },
+    { label: "Campuses", value: metrics.totalCampuses },
   ];
   return (
-    <div
-      className={cn(
-        "grid grid-cols-2 lg:grid-cols-5",
-        GAP.default,
-        // Five tiles: on two columns the last one spans the row; at lg they
-        // sit as five equal columns. Do not add sm spans — those overrode lg
-        // and stranded Orgs/Campuses as full-width slabs.
-        "[&>*:last-child]:col-span-2 lg:[&>*:last-child]:col-span-1",
-      )}
-    >
-      {tiles.map(({ icon: Icon, label, value }) => (
-        <Card key={label} kind="tile" pad="default" className="text-center">
-          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-surface-pop">
-            <Icon size={20} className="text-accent" />
-          </div>
-          <div className={TEXT.metric}>{value}</div>
-          <div className={cn(TEXT.micro, "mt-1 text-buzz-inkMuted")}>{label}</div>
-        </Card>
+    <div className={cn("grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6", GAP.default)}>
+      {tiles.map(({ label, value }) => (
+        <StatCard key={label} label={label} value={value.toLocaleString()} />
       ))}
     </div>
   );
