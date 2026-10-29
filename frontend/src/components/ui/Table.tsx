@@ -3,9 +3,9 @@ import { cn } from "../../theme/cn";
 
 /** Shared with `AdminTable` so the admin grid and this primitive don't drift. */
 export const tableHeadClass =
-  "px-4 py-2 text-left text-xs font-normal text-buzz-inkMuted";
+  "px-4 py-2 text-left text-xs font-normal text-quiet";
 
-export const tableCellClass = "px-4 py-3 text-sm text-buzz-fg";
+export const tableCellClass = "px-4 py-3 text-sm text-primary";
 
 export function Table({
   className,

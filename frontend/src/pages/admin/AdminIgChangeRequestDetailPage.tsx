@@ -10,6 +10,7 @@ import {
 } from "../../api/hooks/useAdminHooks";
 import {
   ActionButton,
+  AdminBackLink,
   ErrorNote,
   Field,
   FieldGrid,
@@ -54,12 +55,7 @@ export default function AdminIgChangeRequestDetailPage() {
 
   return (
     <div>
-      <Link
-        to="/admin/ig-changes?status=pending"
-        className="mb-4 inline-block text-xs font-bold text-buzz-coral hover:underline"
-      >
-        &larr; All Instagram requests
-      </Link>
+      <AdminBackLink to="/admin/ig-changes?status=pending" />
       <QueryState
         isPending={ticket.isPending}
         isError={ticket.isError}
@@ -82,7 +78,7 @@ export default function AdminIgChangeRequestDetailPage() {
               <Field label="University">{data.university ?? "—"}</Field>
               <Field label="Submitted">{formatDateTime(data.createdAt)}</Field>
             </FieldGrid>
-            <p className="whitespace-pre-wrap px-4 py-4 text-sm font-medium text-buzz-ink">
+            <p className="mx-6 mb-6 whitespace-pre-wrap border-l-2 border-accent py-1 pl-4 text-base text-primary">
               {data.reason}
             </p>
           </Panel>
@@ -97,7 +93,7 @@ export default function AdminIgChangeRequestDetailPage() {
           {pending && (
             <Panel title="Decide">
               <div className="space-y-3 px-4 py-4">
-                <p className="text-sm font-medium text-buzz-inkMuted">
+                <p className="text-sm font-medium text-muted">
                   Admin chooses the path. Rename tells them to log in again.
                   Switch releases the old Graph account and closes the portal
                   until they Connect.
@@ -127,7 +123,6 @@ export default function AdminIgChangeRequestDetailPage() {
                     Approve rename
                   </ActionButton>
                   <ActionButton
-                    variant="primary"
                     testId="ig-change-approve-switch"
                     disabled={busy || !testerConfirmed}
                     onClick={() =>
@@ -145,7 +140,6 @@ export default function AdminIgChangeRequestDetailPage() {
                     Approve switch
                   </ActionButton>
                   <ActionButton
-                    variant="danger"
                     testId="ig-change-deny"
                     disabled={busy}
                     onClick={() =>
@@ -160,7 +154,7 @@ export default function AdminIgChangeRequestDetailPage() {
                 </div>
                 <Link
                   to={`/admin/orgs/${data.userId}`}
-                  className="inline-block text-xs font-bold text-buzz-coral hover:underline"
+                  className="inline-block text-xs text-accent hover:underline"
                 >
                   Open organization profile
                 </Link>

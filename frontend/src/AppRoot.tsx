@@ -55,6 +55,7 @@ import AdminIgChangeRequestsPage from "./pages/admin/AdminIgChangeRequestsPage";
 import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import AdminNotFoundPage from "./pages/admin/AdminNotFoundPage";
 // META-REVIEWER-PATH: delete this import and the /meta-review route below.
 import MetaReviewerPage from "./meta-reviewer/MetaReviewerPage";
 import UiKitPage from "./pages/dev/UiKitPage";
@@ -335,11 +336,10 @@ export default function AppRoot(): ReactElement {
         <Route path="drops" element={<AdminDropsPage />} />
         <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />
-        {/* Primitive gallery. PortalGuard keeps it admin-only in every build;
-            production used to omit the route, so signed-in admins hit the
-            public 404. */}
+        {/* Primitive gallery. The route stays admin-only in every build.
+            The sidebar link is development and staging only. */}
         <Route path="ui-kit" element={<UiKitPage />} />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<AdminNotFoundPage />} />
       </Route>
     </Routes>
   );

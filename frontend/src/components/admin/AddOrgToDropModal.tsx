@@ -116,14 +116,14 @@ export default function AddOrgToDropModal({
               onChange={(e) => setQuery(e.target.value)}
               autoComplete="off"
             />
-            <ul className="max-h-64 overflow-y-auto divide-y divide-buzz-lineMid rounded-buzzControl border border-buzz-lineMid">
+            <ul className="max-h-64 overflow-y-auto divide-y divide-line rounded-buzzControl border border-line">
               {orgs.isPending && (
-                <li className="px-3 py-2 text-sm text-buzz-inkMuted">
+                <li className="px-3 py-2 text-sm text-muted">
                   Loading organizations…
                 </li>
               )}
               {!orgs.isPending && matches.length === 0 && (
-                <li className="px-3 py-2 text-sm text-buzz-inkMuted">
+                <li className="px-3 py-2 text-sm text-muted">
                   No matching organizations.
                 </li>
               )}
@@ -135,7 +135,7 @@ export default function AddOrgToDropModal({
                     className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-buzz-paper"
                     onClick={() => setPicked(org)}
                   >
-                    <span className="text-sm font-semibold text-buzz-ink">
+                    <span className="text-sm font-semibold text-primary">
                       {org.orgName ?? "Unnamed organization"}
                     </span>
                     <span className={TEXT.meta}>
@@ -151,7 +151,7 @@ export default function AddOrgToDropModal({
           </>
         ) : (
           <>
-            <p className="text-sm font-semibold text-buzz-ink">
+            <p className="text-sm font-semibold text-primary">
               {picked.orgName ?? "Unnamed organization"}
             </p>
             <p className={TEXT.meta}>

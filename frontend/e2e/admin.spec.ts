@@ -126,8 +126,12 @@ test("admin sets up the reviewer org from the overview when the path is on", asy
   await loginAsAdmin(page);
   const card = page.getByTestId("meta-reviewer-admin");
   await expect(card).toBeVisible();
-  await expect(card).toContainText("Not set up.");
-  await expect(page.getByTestId("meta-reviewer-drop")).toHaveText(dropId);
+  await expect(card).toContainText("Not set up");
+  await expect(page.getByTestId("meta-reviewer-drop")).toHaveText("Open drop");
+  await expect(page.getByTestId("meta-reviewer-drop")).toHaveAttribute(
+    "href",
+    `/admin/drops/${dropId}`,
+  );
 
   const seedReq = page.waitForRequest(
     (r) =>
@@ -139,7 +143,7 @@ test("admin sets up the reviewer org from the overview when the path is on", asy
   expect(req.postData() ?? "").not.toContain(secret);
 
   await expect(card).toContainText("Reviewer organization created.");
-  await expect(card).toContainText("Set up.");
+  await expect(card).toContainText("Reviewer organization ready");
   await expect(page.getByTestId("meta-reviewer-org")).toHaveAttribute(
     "href",
     `/admin/orgs/${orgUserId}`,

@@ -59,6 +59,7 @@ export function Tabs<T extends string>({
             type="button"
             role="tab"
             aria-selected={selected}
+            data-testid={`tab-${tab.id}`}
             tabIndex={selected ? 0 : -1}
             className={cn(
               "-mb-px border-b-2 pb-3 text-sm transition",
