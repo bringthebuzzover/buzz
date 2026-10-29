@@ -10,10 +10,12 @@ Who may do what:
 
 * **brand** — after applications close, before wrap-up, on unsent seats only,
   within capacity and the unit budget;
-* **BUZZ** — any time, any seat, may overbook. Changing a sent seat makes it
-  unsent again, so the change goes out with the next send. BUZZ also ends
-  seats softly: ``withdrew`` (the org pulled out) or ``removed`` (reason
-  required). Those take effect at once and keep the row, shipments and posts.
+* **BUZZ** — any time, any seat, may overbook. A sent denial can be reversed
+  to accepted (unsent again, so it goes out with the next send); a sent
+  acceptance keeps its decision and only its units change (it stays live).
+  BUZZ also ends seats softly: ``withdrew`` (the org pulled out) or
+  ``removed`` (reason required). Those take effect at once and keep the row,
+  shipments and posts.
 
 A canceled drop takes no decisions; BUZZ can still end a seat on it.
 """
@@ -63,9 +65,15 @@ async def lock_drop(db: AsyncSession, drop_id: object) -> Drop:
     return drop
 
 
-def _require_brand_may_select(drop: Drop) -> None:
+def _require_visible(drop: Drop) -> None:
+    """Seats move only on a published, unhidden drop (any actor)."""
+
     if drop.published_at is None or drop.hidden_at is not None:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
+
+
+def _require_brand_may_select(drop: Drop) -> None:
+    _require_visible(drop)
     if drop.wrapped_at is not None:
         raise BuzzAPIException(errors.DROP_WRAPPED, "This drop is wrapped up.")
     if not apply_window_closed(drop, utcnow()):
@@ -110,6 +118,7 @@ async def set_seat_decision(
         return await end_seat(db, application, decision=decision, reason=reason)
     reject_if_canceled(drop)
 
+    _require_visible(drop)
     if actor == "brand":
         _require_brand_may_select(drop)
         if application.decision_sent_at is not None:
@@ -117,6 +126,19 @@ async def set_seat_decision(
                 errors.DECISION_ALREADY_SENT,
                 "This decision was already sent. Ask BUZZ to change it.",
             )
+
+    if (
+        application.decision_sent_at is not None
+        and decision != application.decision
+        and decision != ApplicationDecision.ACCEPTED.value
+    ):
+        # A sent decision only moves forward to accepted (BUZZ reversing a
+        # denial). Taking back a live seat is a removal, not a re-decision.
+        raise BuzzAPIException(
+            errors.DECISION_ALREADY_SENT,
+            "This decision was already sent. A sent denial can only be reversed to"
+            " accepted; to take back a live seat, remove the organization from the drop.",
+        )
 
     units = allocated_units if drop.total_product_units is not None else None
     if decision == ApplicationDecision.ACCEPTED.value:
@@ -140,8 +162,12 @@ async def set_seat_decision(
     else:
         units = None
 
-    changed = decision != application.decision or units != application.allocated_units
-    if not changed:
+    if decision == application.decision:
+        # Same decision: at most a units change. A sent acceptance stays sent
+        # (the seat stays live), so re-allocating units never un-sends it.
+        if units != application.allocated_units:
+            application.allocated_units = units
+            await db.flush()
         return application
     application.decision = decision
     application.allocated_units = units
@@ -193,6 +219,7 @@ async def send_decisions(db: AsyncSession, drop: Drop, *, actor: Actor) -> dict[
     """
 
     reject_if_canceled(drop)
+    _require_visible(drop)
     if actor == "brand":
         _require_brand_may_select(drop)
 

@@ -242,7 +242,7 @@ describe("AdminDropDetailPage", () => {
 
   it("defaults to Applicants for a published drop; Config holds the checkbox", () => {
     mockUseAdminDrop.mockReturnValue({
-      data: adminDrop({ publishedAt: now }),
+      data: adminDrop({ publishedAt: now, stage: "selecting" }),
       isPending: false,
       isError: false,
     });
@@ -594,17 +594,20 @@ describe("AdminDropDetailPage", () => {
     expect(container.querySelector('[data-testid="drop-unwrap"]')).toBeTruthy();
   });
 
-  it("locks only the apply window on a wrapped drop", () => {
+  it("leaves only the copy editable on a wrapped drop", () => {
     mockUseAdminDrop.mockReturnValue({
       data: adminDrop({ publishedAt: now, stage: "wrapped", wrappedAt: now }),
       isPending: false,
       isError: false,
     });
     renderAt("/admin/drops/drop-1?tab=config");
-    expect(container.textContent).toContain("locked on a wrapped drop");
+    expect(container.textContent).toContain("only the copy and location can change");
     const disabled = (id: string) =>
       (container.querySelector(`#${id}`) as HTMLInputElement | null)?.disabled;
-    expect(disabled("drop-config-capacity")).toBe(false);
+    expect(disabled("drop-config-title")).toBe(false);
+    expect(disabled("drop-config-location")).toBe(false);
+    expect(disabled("drop-config-capacity")).toBe(true);
+    expect(disabled("drop-config-hashtag")).toBe(true);
     expect(disabled("drop-config-close-at")).toBe(true);
   });
 });

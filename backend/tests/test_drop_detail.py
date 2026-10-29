@@ -60,6 +60,18 @@ async def test_detail_reflects_accepted_and_applied(app_client: AsyncClient, db_
     assert data["alreadyApplied"] is True
 
 
+async def test_draft_acceptance_does_not_fill_a_spot(app_client: AsyncClient, db_session) -> None:
+    _, _, headers = await _org_ctx(db_session)
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, capacity_total=1)
+    other_org = await make_org(db_session, await persist(db_session, make_user()), org_name="Draft")
+    await make_application(
+        db_session, drop, other_org, decision=ApplicationDecision.ACCEPTED, sent=False
+    )
+    data = (await app_client.get(f"/api/drops/{drop.id}", headers=headers)).json()["data"]
+    assert data["acceptedCount"] == 0
+
+
 async def test_detail_unknown_is_drop_not_open(app_client: AsyncClient, db_session) -> None:
     _, _, headers = await _org_ctx(db_session)
     resp = await app_client.get(f"/api/drops/{uuid.uuid4()}", headers=headers)
