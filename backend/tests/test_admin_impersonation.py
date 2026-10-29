@@ -13,7 +13,7 @@ from app.models.enums import OrgUserStatus, PortalRole
 from app.security import jwt
 from app.security.password import hash_password
 from app.security.session import bump_token_version
-from tests.conftest import make_brand, make_org, make_user, mint_access_token, persist
+from tests.conftest import make_org, make_user, mint_access_token, persist
 
 
 async def _admin(db_session, *, email: str | None = None, password: str | None = None):
@@ -92,30 +92,6 @@ class TestAdminLogin:
             json={"email": "gone@buzz.test", "password": "supersecret1"},
         )
         assert res.status_code == 401
-
-
-class TestAdminUserList:
-    async def test_lists_org_and_brand_but_not_admins(self, app_client: AsyncClient, db_session):
-        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
-        await make_org(db_session, org_user, org_name="Listed Org")
-        await make_brand(db_session, brand_name="Listed Brand")
-
-        res = await app_client.get("/api/admin/users", headers=await _admin_headers(db_session))
-        assert res.status_code == 200
-        rows = res.json()["data"]
-
-        roles = {r["portalRole"] for r in rows}
-        assert "admin" not in roles
-        names = {r["displayName"] for r in rows}
-        assert {"Listed Org", "Listed Brand"} <= names
-
-    async def test_requires_admin(self, app_client: AsyncClient, db_session):
-        org_user = await persist(db_session, make_user(role=PortalRole.ORG))
-        res = await app_client.get(
-            "/api/admin/users",
-            headers={"Authorization": f"Bearer {mint_access_token(org_user)}"},
-        )
-        assert res.status_code == 403
 
 
 class TestImpersonate:

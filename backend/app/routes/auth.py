@@ -25,7 +25,6 @@ from app.models.user import User
 from app.response import APIResponse, DataResponse, api_error_response, api_response
 from app.schemas.acks import (
     CancelPendingEduEmailResponse,
-    ChangeEduEmailResponse,
     InstagramBindStartResponse,
     InstagramDeauthorizeResponse,
     OkResponse,
@@ -46,7 +45,6 @@ from app.schemas.onboarding import (
     BrandLoginRequest,
     BrandSetPasswordRequest,
     CancelPendingEduEmailRequest,
-    ChangeEduEmailRequest,
     ForgotPasswordRequest,
     OrgConnectRedeemRequest,
     PublicResendVerificationRequest,
@@ -78,7 +76,6 @@ from app.services.email import (
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.onboarding import (
     cancel_pending_edu_email,
-    change_edu_email,
     resend_verification_email,
     resend_verification_from_token,
     resend_verification_public,
@@ -641,21 +638,6 @@ async def resend_verification_endpoint(
     """Re-send the .edu verification email (rate-limited, auth required)."""
     result = await resend_verification_email(db, user)
     return api_response(data=ResendVerificationResponse.model_validate(result))
-
-
-@router.post(
-    "/verify-email/change",
-    response_model=DataResponse[ChangeEduEmailResponse],
-    dependencies=[Depends(rate_limited("verify_change", limit=5, window=60))],
-)
-async def change_edu_email_endpoint(
-    payload: ChangeEduEmailRequest,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    """Correct a typo'd .edu while still awaiting verification."""
-    result = await change_edu_email(db, user, payload.edu_email)
-    return api_response(data=ChangeEduEmailResponse.model_validate(result))
 
 
 @router.post(

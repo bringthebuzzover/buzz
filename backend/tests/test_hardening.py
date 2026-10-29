@@ -186,7 +186,7 @@ def test_enforce_account_limit_raises_over_cap() -> None:
 async def test_inactive_admin_forbidden(app_client: AsyncClient, db_session) -> None:
     admin = await persist(db_session, make_user(role=PortalRole.ADMIN, status=OrgUserStatus.DENIED))
     resp = await app_client.get(
-        "/api/admin/orgs/pending",
+        "/api/admin/orgs",
         headers={"Authorization": f"Bearer {mint_access_token(admin)}"},
     )
     assert resp.status_code == 403

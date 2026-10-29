@@ -21,9 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import errors
 from app.config import settings
 from app.exceptions import BuzzAPIException
-from app.models.brand import Brand
 from app.models.enums import OrgUserStatus, PortalRole
-from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.security import jwt
@@ -127,36 +125,3 @@ async def mint_impersonation_token(
         impersonated_by=admin.id,
         impersonation_readonly=settings.IMPERSONATION_READONLY,
     )
-
-
-async def list_impersonatable_users(db: AsyncSession) -> list[dict[str, object]]:
-    """Every org + brand user, with a display name pulled from their profile.
-
-    Admins are excluded — they are not valid impersonation targets.
-    """
-
-    rows = list(
-        await db.execute(
-            select(User, Organization, Brand)
-            .outerjoin(Organization, Organization.user_id == User.id)
-            .outerjoin(Brand, Brand.user_id == User.id)
-            .where(User.portal_role != PortalRole.ADMIN.value)
-            .order_by(User.portal_role.asc(), User.created_at.asc())
-        )
-    )
-
-    return [
-        {
-            "id": user.id,
-            "portal_role": user.portal_role,
-            "status": user.status,
-            "display_name": (
-                org.org_name if org is not None else (brand.brand_name if brand else None)
-            ),
-            "email": (brand.company_email if brand is not None else user.edu_email),
-            "instagram_handle": user.instagram_username,
-            "impersonatable": user.status == OrgUserStatus.ACTIVE.value,
-            "created_at": user.created_at,
-        }
-        for user, org, brand in rows
-    ]

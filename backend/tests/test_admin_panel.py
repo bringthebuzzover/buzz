@@ -125,25 +125,6 @@ class TestOrgList:
         assert res.status_code == 400
         assert res.json()["error"]["code"] == "VALIDATION_ERROR"
 
-    async def test_pending_route_still_narrow(self, app_client: AsyncClient, db_session):
-        """``/orgs/pending`` shares the generalized query but keeps its own
-        schema, and must drop profileless rows rather than 500."""
-        await persist(
-            db_session,
-            make_user(role=PortalRole.ORG, status=OrgUserStatus.PENDING_APPROVAL),
-        )  # no profile
-        user = await persist(
-            db_session,
-            make_user(role=PortalRole.ORG, status=OrgUserStatus.PENDING_APPROVAL),
-        )
-        await make_org(db_session, user, org_name="Has Profile")
-
-        res = await app_client.get(
-            "/api/admin/orgs/pending", headers=await _admin_headers(db_session)
-        )
-        assert res.status_code == 200
-        assert [r["orgName"] for r in res.json()["data"]] == ["Has Profile"]
-
 
 class TestOrgDetail:
     async def test_returns_profile_and_tallies(self, app_client: AsyncClient, db_session):

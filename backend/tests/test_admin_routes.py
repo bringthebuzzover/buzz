@@ -42,11 +42,11 @@ class TestAdminGate:
     async def test_non_admin_forbidden(self, app_client: AsyncClient, db_session):
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))
         headers = {"Authorization": f"Bearer {mint_access_token(org_user)}"}
-        res = await app_client.get("/api/admin/orgs/pending", headers=headers)
+        res = await app_client.get("/api/admin/orgs", headers=headers)
         assert res.status_code == 403
 
     async def test_unauthorized(self, app_client: AsyncClient):
-        res = await app_client.get("/api/admin/orgs/pending")
+        res = await app_client.get("/api/admin/orgs")
         assert res.status_code == 401
 
 
@@ -60,7 +60,7 @@ class TestPendingOrgs:
         await make_org(db_session, user, org_name="Pending Org")
 
         res = await app_client.get(
-            "/api/admin/orgs/pending", headers=await _admin_headers(db_session)
+            "/api/admin/orgs?status=pending_approval", headers=await _admin_headers(db_session)
         )
         assert res.status_code == 200
         data = res.json()["data"]
@@ -74,7 +74,7 @@ class TestPendingOrgs:
         await make_org(db_session, user, org_name="Active Org")
 
         res = await app_client.get(
-            "/api/admin/orgs/pending", headers=await _admin_headers(db_session)
+            "/api/admin/orgs?status=pending_approval", headers=await _admin_headers(db_session)
         )
         assert res.status_code == 200
         assert len(res.json()["data"]) == 0
@@ -183,7 +183,7 @@ class TestPendingBrands:
         await db_session.flush()
 
         res = await app_client.get(
-            "/api/admin/brands/pending", headers=await _admin_headers(db_session)
+            "/api/admin/brands?status=pending_review", headers=await _admin_headers(db_session)
         )
         assert res.status_code == 200
         data = res.json()["data"]
@@ -195,7 +195,7 @@ class TestPendingBrands:
         # make_brand creates with status=APPROVED by default
 
         res = await app_client.get(
-            "/api/admin/brands/pending", headers=await _admin_headers(db_session)
+            "/api/admin/brands?status=pending_review", headers=await _admin_headers(db_session)
         )
         assert len(res.json()["data"]) == 0
 

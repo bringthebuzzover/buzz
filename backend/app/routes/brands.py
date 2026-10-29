@@ -57,7 +57,6 @@ from app.services.brands import (
 from app.services.drop_requests import (
     brand_drop_request_response,
     create_brand_drop_request,
-    get_brand_drop_request,
     list_brand_drop_requests,
 )
 
@@ -186,20 +185,6 @@ async def list_drop_requests(
     brand = await _require_brand(db, user)
     tickets = await list_brand_drop_requests(db, brand)
     return api_response(data=[await brand_drop_request_response(db, t) for t in tickets])
-
-
-@router.get(
-    "/me/drop-requests/{request_id}",
-    response_model=DataResponse[BrandDropRequestResponse],
-)
-async def get_drop_request(
-    request_id: uuid.UUID,
-    user: CurrentBrand,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    brand = await _require_brand(db, user)
-    ticket = await get_brand_drop_request(db, brand, request_id)
-    return api_response(data=await brand_drop_request_response(db, ticket))
 
 
 @router.get("/me/drops", response_model=DataResponse[list[BrandDropListItem]])
