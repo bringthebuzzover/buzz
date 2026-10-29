@@ -385,6 +385,7 @@ class AdminBrandItem(CamelModel):
     approved_at: datetime | None
     last_login_at: datetime | None
     impersonatable: bool
+    ig_change_pending: bool = False
     created_at: datetime
 
     @field_serializer("approved_at", "last_login_at", "created_at")
@@ -541,6 +542,42 @@ class AdminDropItem(CamelModel):
         return to_epoch_ms(value)
 
 
+class AdminBrandPendingIgChange(CamelModel):
+    """Open brand handle-change ticket on ``AdminBrandDetail``."""
+
+    id: uuid.UUID
+    current_handle: str
+    requested_handle: str
+    reason: str
+    created_at: datetime
+
+    @field_serializer("created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+
+class AdminBrandIgChangeRequestItem(CamelModel):
+    id: uuid.UUID
+    brand_id: uuid.UUID
+    user_id: uuid.UUID
+    brand_name: str
+    company_email: str
+    current_handle: str
+    requested_handle: str
+    reason: str
+    status: str
+    decided_at: datetime | None = None
+    created_at: datetime
+
+    @field_serializer("created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("decided_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
+        return to_epoch_ms(value)
+
+
 class AdminBrandDetail(CamelModel):
     id: uuid.UUID
     user_id: uuid.UUID
@@ -555,6 +592,7 @@ class AdminBrandDetail(CamelModel):
     created_at: datetime
     last_login_at: datetime | None
     impersonatable: bool
+    pending_ig_change: AdminBrandPendingIgChange | None = None
     invite: AdminInviteState
     drops: list[AdminDropItem]
 

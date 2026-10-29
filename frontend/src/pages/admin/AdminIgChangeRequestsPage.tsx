@@ -1,8 +1,14 @@
 /**
- * /admin/ig-changes — org Instagram identity-change tickets (PRODUCT §3.1.4).
+ * /admin/ig-changes — org identity tickets and brand caption-handle tickets.
+ *
+ * The two queues stay on separate endpoints. This page merges them and filters
+ * by type in the URL. Brand approval only writes the caption @.
  */
 import { Link, useSearchParams } from "react-router-dom";
-import { useAdminIgChangeRequests } from "../../api/hooks/useAdminHooks";
+import {
+  useAdminBrandIgChangeRequests,
+  useAdminIgChangeRequests,
+} from "../../api/hooks/useAdminHooks";
 import { LinkButton } from "../../components/forms/controls";
 import {
   AdminTable,
@@ -16,14 +22,31 @@ import {
 } from "../../components/admin/AdminPrimitives";
 import { formatDate } from "../../components/admin/labels";
 
-const FILTERS = [
+const STATUS_FILTERS = [
   { value: null, label: "All" },
   { value: "pending", label: "Pending" },
   { value: "approved", label: "Approved" },
   { value: "denied", label: "Denied" },
 ] as const;
 
-const HEADERS = ["Organization", "Change", "Status", "Created", ""] as const;
+const TYPE_FILTERS = [
+  { value: null, label: "Organizations and brands" },
+  { value: "organization", label: "Organizations" },
+  { value: "brand", label: "Brands" },
+] as const;
+
+const HEADERS = ["Type", "Account", "Change", "Status", "Created", ""] as const;
+
+type ListedRequest = {
+  key: string;
+  type: "Organization" | "Brand";
+  name: string;
+  accountTo: string;
+  change: string;
+  status: string;
+  createdAt: number | null;
+  openTo: string;
+};
 
 function statusTone(status: string): "good" | "warn" | "bad" | "neutral" {
   if (status === "approved") return "good";
@@ -32,20 +55,66 @@ function statusTone(status: string): "good" | "warn" | "bad" | "neutral" {
   return "neutral";
 }
 
+function atHandle(raw: string): string {
+  const handle = raw.replace(/^@/, "").trim();
+  return handle ? `@${handle}` : "—";
+}
+
 export default function AdminIgChangeRequestsPage() {
   const [searchParams] = useSearchParams();
   const status = searchParams.get("status");
-  const requests = useAdminIgChangeRequests(status ?? undefined);
+  const type = searchParams.get("type");
+  const orgRequests = useAdminIgChangeRequests(status ?? undefined);
+  const brandRequests = useAdminBrandIgChangeRequests(status ?? undefined);
+
+  const rows: ListedRequest[] = [];
+  if (type !== "brand") {
+    for (const ticket of orgRequests.data ?? []) {
+      rows.push({
+        key: `org-${ticket.id}`,
+        type: "Organization",
+        name: ticket.orgName ?? "Organization",
+        accountTo: `/admin/orgs/${ticket.userId}`,
+        change: `${atHandle(ticket.currentHandle)} → ${atHandle(ticket.requestedHandle)}`,
+        status: ticket.status,
+        createdAt: ticket.createdAt,
+        openTo: `/admin/ig-changes/${ticket.id}`,
+      });
+    }
+  }
+  if (type !== "organization") {
+    for (const ticket of brandRequests.data ?? []) {
+      rows.push({
+        key: `brand-${ticket.id}`,
+        type: "Brand",
+        name: ticket.brandName,
+        accountTo: `/admin/brands/${ticket.brandId}`,
+        change: `${atHandle(ticket.currentHandle)} → ${atHandle(ticket.requestedHandle)}`,
+        status: ticket.status,
+        createdAt: ticket.createdAt,
+        openTo: `/admin/brands/${ticket.brandId}`,
+      });
+    }
+  }
+  rows.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+
+  const ready = Boolean(orgRequests.data) && Boolean(brandRequests.data);
 
   return (
     <div>
       <PageHeading
         title="Instagram identity requests"
-        subtitle="Rename stays a login; account switch needs tester add, then Connect."
+        subtitle="Organizations: a rename stays a login, and an account switch needs a tester add, then Connect. Brands: approval only updates the caption @."
       />
 
       <FilterChips
-        options={[...FILTERS]}
+        options={[...TYPE_FILTERS]}
+        active={type}
+        basePath="/admin/ig-changes"
+        param="type"
+      />
+      <FilterChips
+        options={[...STATUS_FILTERS]}
         active={status}
         basePath="/admin/ig-changes"
         param="status"
@@ -53,39 +122,34 @@ export default function AdminIgChangeRequestsPage() {
 
       <Panel>
         <QueryState
-          isPending={requests.isPending}
-          isError={requests.isError}
+          isPending={orgRequests.isPending || brandRequests.isPending}
+          isError={orgRequests.isError || brandRequests.isError}
           label="Instagram identity requests"
         />
-        {requests.data && (
+        {ready && (
           <AdminTable
             headers={HEADERS}
-            isEmpty={requests.data.length === 0}
+            isEmpty={rows.length === 0}
             empty="No Instagram identity requests match this filter."
           >
-            {requests.data.map((ticket) => (
-              <Row key={ticket.id}>
+            {rows.map((ticket) => (
+              <Row key={ticket.key}>
+                <Cell>{ticket.type}</Cell>
                 <Cell>
                   <Link
-                    to={`/admin/orgs/${ticket.userId}`}
+                    to={ticket.accountTo}
                     className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
                   >
-                    {ticket.orgName ?? "Organization"}
+                    {ticket.name}
                   </Link>
                 </Cell>
-                <Cell muted>
-                  @{ticket.currentHandle} → @{ticket.requestedHandle}
-                </Cell>
+                <Cell muted>{ticket.change}</Cell>
                 <Cell>
                   <Pill tone={statusTone(ticket.status)}>{ticket.status}</Pill>
                 </Cell>
                 <Cell muted>{formatDate(ticket.createdAt)}</Cell>
                 <Cell align="right">
-                  <LinkButton
-                    to={`/admin/ig-changes/${ticket.id}`}
-                    size="compact"
-                    variant="outline"
-                  >
+                  <LinkButton to={ticket.openTo} size="compact" variant="outline">
                     Open
                   </LinkButton>
                 </Cell>
