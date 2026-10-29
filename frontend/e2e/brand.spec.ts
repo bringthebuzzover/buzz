@@ -20,7 +20,7 @@ test("brand can log in and reach the dashboard", async ({ page }) => {
   expect(resp.ok(), await resp.text()).toBeTruthy();
 
   await expect(page).toHaveURL(/\/brand\/dashboard/);
-  await expect(page.getByRole("heading", { name: /brand dashboard/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
 });
 
 test("brand dashboard compare-drops fits 375px", async ({ page }) => {
@@ -44,7 +44,7 @@ test("brand dashboard compare-drops fits 375px", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/brand\/dashboard/);
   await expect(
-    page.getByRole("heading", { name: /brand dashboard/i }),
+    page.getByRole("heading", { name: "Dashboard", exact: true }),
   ).toBeVisible();
   const overflow = await page.evaluate(
     () =>
@@ -95,9 +95,7 @@ test("brand plan campaign creates a ticket receipt, not a drop", async ({
   await expect(page).toHaveURL(/\/brand\/dashboard/);
   await expect(page).not.toHaveURL(/\/brand\/drops\//);
   await expect(page.getByTestId("ticket-submitted-toast")).toBeVisible();
-  await expect(page.getByTestId("drop-request-row").first()).toContainText(
-    /representative will contact you/i,
-  );
+  await expect(page.getByTestId("drop-request-row").first()).toContainText("Received");
   await expect(page.getByText("E2E plan campaign ticket")).toBeVisible();
 });
 
