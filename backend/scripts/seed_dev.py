@@ -13,8 +13,10 @@ Strategy
 * **Staging demo** — non-destructive upsert of obviously fake rows (Sample
   Org, Sample Club, Sample Brand, Fall Cold Brew Launch). Runs only when
   ``ENVIRONMENT=staging`` and ``STAGING_SEED_CONFIRM=buzz-staging``. Never
-  truncates. Refuses ``ENVIRONMENT=production`` and any host listed in
-  ``PROD_DATABASE_HOSTS``. Manual one-off (``railway run``), not preDeploy.
+  truncates. Refuses ``ENVIRONMENT=production``, any host listed in
+  ``PROD_DATABASE_HOSTS``, and a ``FRONTEND_URL`` whose host is
+  ``bringthebuzzover.com`` or ``www.bringthebuzzover.com``. Manual one-off
+  (``railway run``), not preDeploy.
 * Stable seed UUIDs (``uuid.UUID(int=N)``).
 
 Usage
@@ -90,6 +92,8 @@ from app.models.enums import (  # noqa: E402
 
 LOCAL_HOSTS = {"localhost", "127.0.0.1", ""}
 STAGING_SEED_CONFIRM = "buzz-staging"
+# Apex production SPA only. staging.bringthebuzzover.com is a different host.
+PROD_FRONTEND_HOSTS = {"bringthebuzzover.com", "www.bringthebuzzover.com"}
 
 # Stable ids, clear of the local fixture range (1..100) and test accounts (9001..).
 _SAMPLE_ORG_USER = uuid.UUID(int=8101)
@@ -121,17 +125,22 @@ def prod_db_hosts_from_env(raw: str | None = None) -> set[str]:
     return {part.strip().lower() for part in raw.split(",") if part.strip()}
 
 
+def _frontend_host(frontend_url: str) -> str:
+    return (urlparse(frontend_url).hostname or "").lower()
+
+
 def resolve_seed_mode(
     database_url: str,
     *,
     environment: str,
     confirm: str,
     prod_hosts: set[str],
+    frontend_url: str,
 ) -> str:
     """Return ``local`` (truncate) or ``staging`` (demo upsert).
 
-    ``SystemExit(2)`` on production, a denylisted host, or a remote database
-    without the staging opt-in.
+    ``SystemExit(2)`` on production, a denylisted database host, a production
+    SPA host, or a remote database without the staging opt-in.
     """
 
     host = _db_host(database_url)
@@ -141,6 +150,13 @@ def resolve_seed_mode(
     if host and host in prod_hosts:
         print(
             f"refusing to seed: DATABASE_URL host '{host}' is listed in PROD_DATABASE_HOSTS.",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+    spa_host = _frontend_host(frontend_url)
+    if spa_host in PROD_FRONTEND_HOSTS:
+        print(
+            f"refusing to seed: FRONTEND_URL host '{spa_host}' is production.",
             file=sys.stderr,
         )
         raise SystemExit(2)
@@ -692,6 +708,7 @@ async def _seed() -> None:
         environment=settings.ENVIRONMENT,
         confirm=os.environ.get("STAGING_SEED_CONFIRM", ""),
         prod_hosts=prod_db_hosts_from_env(),
+        frontend_url=settings.FRONTEND_URL,
     )
 
     session_factory = async_sessionmaker(engine, expire_on_commit=False)

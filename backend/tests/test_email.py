@@ -17,9 +17,11 @@ from app.services import email
 @pytest.fixture
 def _resend_key(monkeypatch):
     monkeypatch.setattr(settings, "RESEND_API_KEY", "re_test_key")
-    # Production ignores EMAIL_ALLOWLIST and does not prefix subjects.
+    # Defaults: fail-closed off, no allowlist, no subject prefix.
     monkeypatch.setattr(settings, "ENVIRONMENT", "production")
     monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "")
+    monkeypatch.setattr(settings, "EMAIL_FAIL_CLOSED", False)
+    monkeypatch.setattr(settings, "EMAIL_SUBJECT_PREFIX", "")
 
 
 def _stub_transport(monkeypatch, handler) -> None:
@@ -267,9 +269,106 @@ async def test_org_ig_switch_email_tester_invite_copy(monkeypatch, _resend_key) 
     assert "Or paste this link:" in html
 
 
-async def test_allowlisted_address_is_delivered(monkeypatch, _resend_key) -> None:
-    monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
+def _historical_payload(*, cc: list[str] | None = None) -> dict:
+    """Resend JSON from before the allowlist flags existed."""
+
+    body: dict = {
+        "from": EMAIL_FROM,
+        "to": ["to@campus.edu"],
+        "subject": "Subject",
+        "text": "Body text",
+        "reply_to": CONTACT_EMAIL,
+    }
+    if cc is not None:
+        body["cc"] = cc
+    return body
+
+
+@pytest.mark.parametrize("environment", ["staging", "production"])
+async def test_unset_email_flags_match_historical_dispatch(
+    monkeypatch, _resend_key, environment: str
+) -> None:
+    """Staging and production send the same payload when the new vars are unset."""
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", environment)
+    monkeypatch.setattr(settings, "EMAIL_FAIL_CLOSED", False)
+    monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "")
+    monkeypatch.setattr(settings, "EMAIL_SUBJECT_PREFIX", "")
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"id": "email_hist"})
+
+    _stub_transport(monkeypatch, handler)
+    cc = ["ops@acme.test", "other@example.com"]
+    assert await email._dispatch("to@campus.edu", "Subject", "Body text", cc=cc) is True
+    assert seen["body"] == _historical_payload(cc=cc)
+
+
+@pytest.mark.parametrize("environment", ["staging", "production"])
+async def test_allowlist_without_fail_closed_does_not_filter(
+    monkeypatch, _resend_key, environment: str
+) -> None:
+    monkeypatch.setattr(settings, "ENVIRONMENT", environment)
+    monkeypatch.setattr(settings, "EMAIL_FAIL_CLOSED", False)
+    monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "@campus.edu")
+    monkeypatch.setattr(settings, "EMAIL_SUBJECT_PREFIX", "")
+    seen: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"id": "email_open"})
+
+    _stub_transport(monkeypatch, handler)
+    assert (
+        await email._dispatch(
+            "outsider@example.com",
+            "Subject",
+            "Body text",
+            cc=["drop@other.test"],
+        )
+        is True
+    )
+    assert seen["body"]["to"] == ["outsider@example.com"]
+    assert seen["body"]["cc"] == ["drop@other.test"]
+    assert seen["body"]["subject"] == "Subject"
+
+
+@pytest.mark.parametrize("environment", ["staging", "production"])
+async def test_fail_closed_empty_allowlist_suppresses_all(
+    monkeypatch, _resend_key, caplog, environment: str
+) -> None:
+    monkeypatch.setattr(settings, "ENVIRONMENT", environment)
+    monkeypatch.setattr(settings, "EMAIL_FAIL_CLOSED", True)
+    monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "")
+    monkeypatch.setattr(settings, "EMAIL_SUBJECT_PREFIX", "")
+    called = False
+
+    def handler(request: httpx.Request) -> httpx.Response:  # pragma: no cover
+        nonlocal called
+        called = True
+        return httpx.Response(200, json={})
+
+    _stub_transport(monkeypatch, handler)
+    with caplog.at_level("WARNING"):
+        assert await email._dispatch("org@campus.edu", "Hello", "Body") is False
+    assert called is False
+    assert "email suppressed (not allowlisted)" in caplog.text
+    assert "[STAGING]" not in caplog.text
+    assert "org@campus.edu" not in caplog.text
+    assert email._email_addr_hash("org@campus.edu") in caplog.text
+
+
+async def test_fail_closed_allowlisted_address_is_delivered(monkeypatch, _resend_key) -> None:
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.setattr(settings, "EMAIL_FAIL_CLOSED", True)
     monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "ops@acme.test, @campus.edu")
+    monkeypatch.setattr(settings, "EMAIL_SUBJECT_PREFIX", "[STAGING] ")
     seen: dict = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -284,9 +383,11 @@ async def test_allowlisted_address_is_delivered(monkeypatch, _resend_key) -> Non
     assert seen["body"]["subject"] == "[STAGING] Hello"
 
 
-async def test_non_allowlisted_address_is_suppressed(monkeypatch, _resend_key, caplog) -> None:
+async def test_fail_closed_suppresses_non_allowlisted(monkeypatch, _resend_key, caplog) -> None:
     monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
+    monkeypatch.setattr(settings, "EMAIL_FAIL_CLOSED", True)
     monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "@campus.edu")
+    monkeypatch.setattr(settings, "EMAIL_SUBJECT_PREFIX", "")
     called = False
 
     def handler(request: httpx.Request) -> httpx.Response:  # pragma: no cover
@@ -303,9 +404,11 @@ async def test_non_allowlisted_address_is_suppressed(monkeypatch, _resend_key, c
     assert email._email_addr_hash("outsider@example.com") in caplog.text
 
 
-async def test_allowlist_filters_cc(monkeypatch, _resend_key, caplog) -> None:
-    monkeypatch.setattr(settings, "ENVIRONMENT", "development")
+async def test_fail_closed_filters_cc(monkeypatch, _resend_key, caplog) -> None:
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.setattr(settings, "EMAIL_FAIL_CLOSED", True)
     monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "org@campus.edu, kept@campus.edu")
+    monkeypatch.setattr(settings, "EMAIL_SUBJECT_PREFIX", "")
     seen: dict = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -332,49 +435,10 @@ async def test_allowlist_filters_cc(monkeypatch, _resend_key, caplog) -> None:
     assert email._email_addr_hash("drop@other.test") in caplog.text
 
 
-async def test_staging_empty_allowlist_suppresses_all(monkeypatch, _resend_key, caplog) -> None:
-    monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
-    monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "")
-    called = False
-
-    def handler(request: httpx.Request) -> httpx.Response:  # pragma: no cover
-        nonlocal called
-        called = True
-        return httpx.Response(200, json={})
-
-    _stub_transport(monkeypatch, handler)
-    with caplog.at_level("WARNING"):
-        assert await email._dispatch("org@campus.edu", "Hello", "Body") is False
-    assert called is False
-    assert "email suppressed (not allowlisted)" in caplog.text
-    assert "[STAGING] Hello" in caplog.text
-    assert "org@campus.edu" not in caplog.text
-
-
-async def test_production_ignores_allowlist(monkeypatch, _resend_key) -> None:
+async def test_subject_prefix_is_explicit_and_not_doubled(monkeypatch, _resend_key) -> None:
     monkeypatch.setattr(settings, "ENVIRONMENT", "production")
-    monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "@campus.edu")
-    seen: dict = {}
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        import json
-
-        seen["body"] = json.loads(request.content)
-        return httpx.Response(200, json={"id": "email_prod"})
-
-    _stub_transport(monkeypatch, handler)
-    assert (
-        await email._dispatch("outsider@example.com", "Hello", "Body", cc=["drop@other.test"])
-        is True
-    )
-    assert seen["body"]["to"] == ["outsider@example.com"]
-    assert seen["body"]["cc"] == ["drop@other.test"]
-    assert seen["body"]["subject"] == "Hello"
-
-
-async def test_staging_subject_prefix_is_not_doubled(monkeypatch, _resend_key) -> None:
-    monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
-    monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "org@campus.edu")
+    monkeypatch.setattr(settings, "EMAIL_FAIL_CLOSED", False)
+    monkeypatch.setattr(settings, "EMAIL_SUBJECT_PREFIX", "[STAGING] ")
     seen: dict = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
