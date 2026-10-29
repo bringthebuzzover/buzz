@@ -340,6 +340,7 @@ async def test_buzz_removes_with_reason_and_blocks_reapply(
     await db_session.refresh(seat)
     assert seat.decision == ApplicationDecision.ACCEPTED.value
     assert seat.end_reason is None
+    assert seat.decision_sent_at is not None  # late-add is sent, not a draft
 
 
 async def test_delivered_per_seat(app_client: AsyncClient, db_session) -> None:
