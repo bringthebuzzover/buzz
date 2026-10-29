@@ -4,7 +4,7 @@
  * RequireStatus → RequireRole, architecture §5.4).
  */
 import type { ReactElement } from "react";
-import { Routes, Route, Navigate, useParams } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import type { PortalRole } from "./types/auth";
 import SiteLayout from "./layouts/SiteLayout";
 import AdminLayout from "./layouts/AdminLayout";
@@ -75,18 +75,6 @@ function PortalGuard({
         <RequireRole role={role}>{children}</RequireRole>
       </RequireStatus>
     </RequireAuth>
-  );
-}
-
-/** Forward a legacy `/campaigns/:id` deep link to the real campaign detail
- * route, preserving the id (don't drop it onto the generic feed). */
-function LegacyCampaignRedirect(): ReactElement {
-  const { campaignId } = useParams<{ campaignId: string }>();
-  return (
-    <Navigate
-      to={campaignId ? `/org/campaigns/${campaignId}` : "/org/campaigns"}
-      replace
-    />
   );
 }
 
@@ -236,47 +224,6 @@ export default function AppRoot(): ReactElement {
           }
         />
 
-        {/* Legacy redirects */}
-        <Route
-          path="campaigns"
-          element={
-            <PortalGuard role="org">
-              <Navigate to="/org/browse" replace />
-            </PortalGuard>
-          }
-        />
-        <Route
-          path="campaigns/:campaignId"
-          element={
-            <PortalGuard role="org">
-              <LegacyCampaignRedirect />
-            </PortalGuard>
-          }
-        />
-        <Route
-          path="register"
-          element={
-            <PortalGuard role="org">
-              <Navigate to="/org/browse" replace />
-            </PortalGuard>
-          }
-        />
-        <Route
-          path="brand"
-          element={
-            <PortalGuard role="brand">
-              <Navigate to="/brand/dashboard" replace />
-            </PortalGuard>
-          }
-        />
-        <Route
-          path="brand/campaigns/new"
-          element={
-            <PortalGuard role="brand">
-              <Navigate to="/brand/requests/new" replace />
-            </PortalGuard>
-          }
-        />
         {/* Admin login is public. SiteLayout swaps in AuthAdminHeader so the
             public "Join Us" header does not show. */}
         <Route path="admin/login" element={<AdminLoginPage />} />

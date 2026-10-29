@@ -222,7 +222,7 @@ test("view as survives a direct URL and a new tab", async ({ page }) => {
 
   // Drop the same-tab latch so only the httpOnly intent cookie can remint.
   await page.evaluate(() => sessionStorage.clear());
-  await page.goto("/campaigns");
+  await page.goto("/org/browse");
   await expect(page).toHaveURL(/\/org\/browse$/);
   await waitForAuthSettled(page, "org");
   await expect(page.getByTestId("impersonation-banner")).toBeVisible();
