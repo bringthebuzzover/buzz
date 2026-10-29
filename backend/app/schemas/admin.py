@@ -8,7 +8,7 @@ remapping.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -141,6 +141,7 @@ class AdminDropCreateRequest(CamelModel):
     total_product_units: int | None = Field(default=None, ge=1)
     campaign_hashtag: str | None = None
     drop_request_id: uuid.UUID | None = None
+    brand_can_edit_creative: bool = False
 
     @field_validator("apply_open_at", "apply_close_at")
     @classmethod
@@ -162,6 +163,13 @@ class AdminDropRequestItem(CamelModel):
     brand_id: uuid.UUID
     brand_name: str
     message: str
+    product: str | None
+    title: str | None
+    location: str | None
+    target_date: date | None
+    org_count: int | None
+    units_per_org: int | None
+    campaign_hashtag: str | None
     notes: str | None
     status: str
     converted_drop_id: uuid.UUID | None

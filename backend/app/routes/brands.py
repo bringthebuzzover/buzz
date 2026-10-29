@@ -171,9 +171,7 @@ async def create_drop_request(
 ) -> APIResponse:
     """Plan your Campaign — create an intake ticket (LAUNCH.md Phase B)."""
     brand = await _require_brand(db, user)
-    ticket = await create_brand_drop_request(
-        db, brand, message=payload.message, notes=payload.notes
-    )
+    ticket = await create_brand_drop_request(db, brand, payload)
     return api_response(data=await brand_drop_request_response(db, ticket))
 
 

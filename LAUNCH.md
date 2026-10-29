@@ -62,7 +62,7 @@ Public contact mailbox (`ops.brand-mailbox`) is **ops-parallel**, not a code gat
 | Fork                  | Lock                                                                                                                                                                                                                |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Request vs drop       | **Two objects.** Ticket (`drop_requests`) is “request received.” A **new** `drops` row is what admin drafts and publishes. `request_received` is **not** a drop tracker stage.                                      |
-| Intake vs creative    | Ticket message/notes are **reference only**. They do **not** become title/description. Admin writes creative on the drop.                                                                                           |
+| Intake vs creative    | Ticket message, product, and notes are **reference only**. They do **not** become the org-facing description. Prefill may copy title, location, hashtag, organization count into capacity, and organization count × units per organization into total units when both are set. Admin writes the description. |
 | Admin UX              | Ticket detail: **side-by-side** ticket and draft-drop editor. Save draft; **Publish** is a separate action.                                                                                                         |
 | Who writes creative   | **Admin** on the draft and after publish (title, description, location, **https** image URL). Brand gets a creative editor **only** when admin sets `brand_can_edit_creative` on that drop (default off).           |
 | Image URL             | **https only.** Reject blank, `http:`, `data:`, `javascript:`, `placehold.co`. No relative URLs.                                                                                                                    |
@@ -249,7 +249,7 @@ PRODUCT §5.2 already said “request then Buzz logistics.” That as-built foug
 ### Target (shipped — Phase B)
 
 ```
-/brand/requests/new → POST /api/brands/me/drop-requests {message, notes?}
+/brand/requests/new → POST /api/brands/me/drop-requests {message, product, title?, location?, targetDate?, orgCount?, unitsPerOrg?, campaignHashtag?, notes?}
   → drop_requests (received)
   → brand dashboard: ticket “A representative will contact you.”
   → no drops row, no feed card, no Notify Me, no autoclose
