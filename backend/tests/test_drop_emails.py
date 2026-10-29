@@ -125,6 +125,18 @@ async def test_shipment_and_withdraw_notices(app_client: AsyncClient, db_session
     assert kinds == ["seat-withdrew", "seat-withdrew-ops"]
     assert BRAND not in [to for _, to in _kinds(sent)]
 
+    # An applicant pulling out frees no live seat: just the confirmation.
+    _, browser = await _org(db_session, "Browser")
+    pending = await make_application(db_session, drop, browser)
+    browser_user = await db_session.get(type(user), browser.user_id)
+    sent.clear()
+    res = await app_client.post(
+        f"/api/campaigns/{pending.id}/withdraw",
+        headers={"Authorization": f"Bearer {mint_access_token(browser_user)}"},
+    )
+    assert res.status_code == 200, res.text
+    assert _kinds(sent) == [("seat-withdrew", "browser@example.edu")]
+
 
 async def test_wrap_sends_not_selected_thanks_and_recap(
     app_client: AsyncClient, db_session, sent
@@ -140,15 +152,23 @@ async def test_wrap_sends_not_selected_thanks_and_recap(
         db_session, drop, drafted, decision=ApplicationDecision.ACCEPTED, sent=False
     )
 
+    # A drafted acceptance is never silently turned into "not selected".
+    res = await app_client.post(f"/api/admin/drops/{drop.id}/wrap", headers=admin)
+    assert res.status_code == 409, res.text
+    assert sent == []
+    res = await app_client.post(f"/api/admin/drops/{drop.id}/send-decisions", headers=admin)
+    assert res.status_code == 200, res.text
+    sent.clear()
+
     res = await app_client.post(f"/api/admin/drops/{drop.id}/wrap", headers=admin)
     assert res.status_code == 200, res.text
     await db_session.refresh(left_waiting)
     assert left_waiting.decision == ApplicationDecision.DENIED.value
     assert left_waiting.decision_sent_at is not None
     assert sorted(_kinds(sent)) == [
-        ("application-denied", "drafted@example.edu"),
         ("application-denied", "waiting@example.edu"),
         ("drop-wrapped", BRAND),
+        ("drop-wrapped-org", "drafted@example.edu"),
         ("drop-wrapped-org", "live@example.edu"),
     ]
 
@@ -161,9 +181,14 @@ async def test_cancel_emails_orgs_in_the_running_and_brand(
     _, applied = await _org(db_session, "Applied")
     _, accepted = await _org(db_session, "Accepted")
     _, denied = await _org(db_session, "Denied")
+    _, drafted = await _org(db_session, "Drafted")
     await make_application(db_session, drop, applied)
     await make_application(db_session, drop, accepted, decision=ApplicationDecision.ACCEPTED)
     await make_application(db_session, drop, denied, decision=ApplicationDecision.DENIED)
+    # An unsent denial still reads "applied" to the org, so it hears about the cancel.
+    await make_application(
+        db_session, drop, drafted, decision=ApplicationDecision.DENIED, sent=False
+    )
 
     res = await app_client.post(
         f"/api/admin/drops/{drop.id}/cancel", json={"confirm": "Snack drop"}, headers=admin
@@ -173,6 +198,7 @@ async def test_cancel_emails_orgs_in_the_running_and_brand(
         ("drop-canceled", BRAND),
         ("drop-canceled-org", "accepted@example.edu"),
         ("drop-canceled-org", "applied@example.edu"),
+        ("drop-canceled-org", "drafted@example.edu"),
     ]
 
 
