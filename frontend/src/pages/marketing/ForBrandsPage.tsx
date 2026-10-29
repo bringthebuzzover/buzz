@@ -58,7 +58,7 @@ export default function ForBrandsPage() {
           Tell us about the campaign
         </label>
         <div className={cn(SURFACE.inset, "mb-3 min-h-[4.5rem] px-3 py-2 text-sm font-medium text-buzz-inkMuted")}>
-          We&apos;d like a spring activation around trail running on a few
+          We&apos;d like a spring activation around cold brew on a few
           campuses — happy to jump on a call.
         </div>
         <label className="mb-1 block text-xs font-semibold text-buzz-ink">

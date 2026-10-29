@@ -6,19 +6,21 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApiError } from "../../api/errors";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
 const mockMutate = jest.fn();
+const mockMutation = {
+  mutate: (...args: unknown[]) => mockMutate(...args),
+  isPending: false,
+  isError: false,
+  error: null as unknown,
+};
 
 jest.mock("../../api/hooks/useBrandHooks", () => ({
-  useCreateBrandDropRequest: () => ({
-    mutate: mockMutate,
-    isPending: false,
-    isError: false,
-    error: null,
-  }),
+  useCreateBrandDropRequest: () => mockMutation,
 }));
 
 import BrandRequestDropPage from "./BrandRequestDropPage";
@@ -39,6 +41,9 @@ describe("BrandRequestDropPage", () => {
 
   beforeEach(() => {
     mockMutate.mockReset();
+    mockMutation.isPending = false;
+    mockMutation.isError = false;
+    mockMutation.error = null;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -137,5 +142,48 @@ describe("BrandRequestDropPage", () => {
     const locationEl = container.querySelector('[data-testid="location"]');
     expect(locationEl?.textContent).toContain("/brand/dashboard");
     expect(locationEl?.textContent).not.toContain("/brand/drops/");
+  });
+
+  it("rejects a hashtag that is not letters, numbers, or underscores", async () => {
+    renderPage();
+    const message = container.querySelector("#message") as HTMLTextAreaElement;
+    const product = container.querySelector("#product") as HTMLTextAreaElement;
+    const hashtag = container.querySelector("#campaignHashtag") as HTMLInputElement;
+    const form = container.querySelector("form") as HTMLFormElement;
+
+    await act(async () => {
+      message.value = "Spring campus push";
+      product.value = "Cans of cold brew";
+      hashtag.value = "fall brew!";
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
+
+    expect(mockMutate).not.toHaveBeenCalled();
+    expect(container.textContent).toContain(
+      "Use 1–100 letters, numbers, or underscores",
+    );
+    expect(container.textContent).toContain("Dates are UTC.");
+  });
+
+  it("shows a field error from server validation instead of the envelope message", () => {
+    mockMutation.isError = true;
+    mockMutation.error = new ApiError(
+      "VALIDATION_ERROR",
+      "Request validation failed.",
+      422,
+      {
+        errors: [
+          {
+            loc: ["body", "campaignHashtag"],
+            msg: "campaignHashtag must be 1-100 letters, numbers, or underscores",
+          },
+        ],
+      },
+    );
+    renderPage();
+    expect(container.textContent).toContain(
+      "campaignHashtag must be 1-100 letters, numbers, or underscores",
+    );
+    expect(container.textContent).not.toContain("Request validation failed.");
   });
 });
