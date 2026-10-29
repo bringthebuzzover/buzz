@@ -140,8 +140,9 @@ function ApiApplicantTable({
   const subtle = (app: BrandDropApplicant) =>
     app.decision === "accepted" ? "text-muted" : "text-quiet";
 
+  // Addresses come only with an accepted seat (D-3).
   const shipToLine = (app: BrandDropApplicant) =>
-    app.accountErased ? null : (
+    app.accountErased || app.decision !== "accepted" ? null : (
       <p className={cn("mt-1 text-xs", subtle(app))}>
         Ship to: {app.deliveryAddress || <AddressPending />}
       </p>
