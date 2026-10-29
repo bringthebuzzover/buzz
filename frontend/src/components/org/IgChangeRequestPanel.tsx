@@ -8,7 +8,8 @@ import { ApiError } from "../../api/errors";
 import { Button, ErrorBanner, Notice, TextField } from "../forms/controls";
 import { Card } from "../ui/Card";
 import { Modal } from "../ui/Modal";
-import { fieldLabelClass, focusRingClass } from "../../theme/controls";
+import { fieldLabelClass } from "../../theme/controls";
+import { quietLinkClass } from "../ui/navItem";
 import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
@@ -88,10 +89,7 @@ export default function IgChangeRequestPanel({
                 type="button"
                 data-testid="ig-change-open"
                 onClick={() => setOpen(true)}
-                className={cn(
-                  "inline-flex items-center gap-2 self-start text-sm text-muted transition hover:text-primary",
-                  focusRingClass,
-                )}
+                className={cn(quietLinkClass, "self-start")}
               >
                 <Pencil size={14} aria-hidden />
                 Request a change
