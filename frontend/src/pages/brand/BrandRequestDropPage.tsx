@@ -6,22 +6,23 @@
  * not control the drop title or cover from this form.
  */
 import { type FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   useCreateBrandDropRequest,
   type BrandDropRequestDraft,
 } from "../../api/hooks/useBrandHooks";
 import PageShell from "../../components/site/PageShell";
 import { Card, CardHeader } from "../../components/ui/Card";
+import { PageHeader } from "../../components/ui/PageHeader";
 import { userFacingApiError } from "../../api/userFacingError";
 import {
   Button,
   ErrorBanner,
+  Notice,
   TextArea,
   TextField,
 } from "../../components/forms/controls";
-import { TEXT } from "../../theme/tokens";
+import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 /** Optional leading #, then 1–100 letters, numbers, or underscores. */
@@ -33,15 +34,15 @@ const HASHTAG_ERROR =
 const NEXT_STEPS = [
   {
     title: "We read your request",
-    body: "A Buzz representative reads this and replies by email.",
+    body: "A BUZZ representative reviews it and reaches out by email.",
   },
   {
     title: "We plan it together",
-    body: "We align on campuses, product, timing, and pricing.",
+    body: "On a call we agree on product, campuses, timing and pricing.",
   },
   {
     title: "BUZZ builds the drop",
-    body: "You review the draft, then track it from your dashboard.",
+    body: "We set it up and publish it. Track it under Requests on your dashboard.",
   },
 ] as const;
 
@@ -67,37 +68,33 @@ function utcIsoDate(offsetDays = 0): string {
 }
 
 function OptionalMark() {
-  return <span className="font-medium text-buzz-inkMuted"> (optional)</span>;
+  return <span className="font-normal text-quiet"> (optional)</span>;
 }
 
 function WhatHappensNext() {
   return (
-    <Card kind="card" pad="roomy">
-      <CardHeader
-        title="What happens next"
-        description="A representative handles the campaign. This form does not publish a drop."
-        className="mb-4"
-      />
-      <ol className="space-y-4">
-        {NEXT_STEPS.map((step, index) => (
-          <li key={step.title} className="flex gap-3">
-            <span
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-on-accent"
-              aria-hidden
-            >
-              {index + 1}
-            </span>
-            <div>
-              <p className="text-sm font-bold text-buzz-ink">{step.title}</p>
-              <p className={cn(TEXT.meta, "mt-0.5")}>{step.body}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
-      <p className={cn(TEXT.meta, "mt-4")}>
-        Only the first two fields are required.
-      </p>
-    </Card>
+    <aside className={cn(STACK.default, "lg:w-[400px] lg:shrink-0")}>
+      <Card kind="panel" pad="card">
+        <CardHeader title="What happens next" className="mb-5" />
+        <ol className="flex flex-col gap-4">
+          {NEXT_STEPS.map((step, index) => (
+            <li key={step.title} className="flex gap-3">
+              <span
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-medium text-on-accent"
+                aria-hidden
+              >
+                {index + 1}
+              </span>
+              <div>
+                <p className={cn(TEXT.body, "font-medium text-primary")}>{step.title}</p>
+                <p className={cn(TEXT.body, "mt-1 text-quiet")}>{step.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </Card>
+      <Notice tone="accent">Only the first two fields are required.</Notice>
+    </aside>
   );
 }
 
@@ -122,8 +119,7 @@ function RequestForm({
   const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
   const minDate = utcIsoDate(0);
   const maxDate = utcIsoDate(365);
-  const errorFor = (key: string) =>
-    fieldMessage(clientErrors, serverFieldErrors, key);
+  const errorFor = (key: string) => fieldMessage(clientErrors, serverFieldErrors, key);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -188,125 +184,86 @@ function RequestForm({
     onSubmit(body);
   };
 
-  return (
+  const optional = (label: string) => (
     <>
-      <Link
-        to="/brand/dashboard"
-        className="mb-6 flex items-center text-sm font-bold text-buzz-inkMuted transition hover:text-accent"
-      >
-        <ChevronLeft size={16} className="mr-1" />
-        Back to dashboard
-      </Link>
+      {label}
+      <OptionalMark />
+    </>
+  );
 
-      <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold text-buzz-ink">
-          Request a <span className="text-accent">Drop</span>
-        </h1>
-        <p className="text-sm font-medium text-buzz-inkMuted">
-          Tell us what you want to run. A Buzz representative will contact you
-          to plan the campaign — this is not a live drop yet.
-        </p>
-      </div>
+  return (
+    <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+      <form className={cn("min-w-0 flex-1", STACK.group)} onSubmit={handleSubmit}>
+        {formError ? <ErrorBanner>{formError}</ErrorBanner> : null}
+        <Card kind="panel" pad="card" className="flex flex-col gap-5">
+          <CardHeader
+            title="The campaign"
+            description="The two things we need to start."
+            className="mb-0"
+          />
+          <TextArea
+            id="message"
+            name="message"
+            label="Tell us about the campaign"
+            required
+            rows={4}
+            placeholder="e.g. Launching our cold brew this fall; want orgs to sample it at tailgates"
+            error={errorFor("message")}
+          />
+          <TextArea
+            id="product"
+            name="product"
+            label="What you're sending"
+            required
+            rows={3}
+            placeholder="e.g. 200 cans of cold brew + branded koozies"
+            error={errorFor("product")}
+          />
+        </Card>
 
-      {formError ? <ErrorBanner>{formError}</ErrorBanner> : null}
-
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(16rem,0.8fr)]">
-          <Card kind="card" pad="roomy" className="space-y-6">
-            <CardHeader
-              title="The campaign"
-              description="The two things we need to start."
-              className="mb-0"
-            />
-            <TextArea
-              id="message"
-              name="message"
-              label="Tell us about the campaign"
-              required
-              rows={4}
-              placeholder="Share goals, timing, or anything a rep should know."
-              error={errorFor("message")}
-            />
-            <TextArea
-              id="product"
-              name="product"
-              label="What you're sending"
-              required
-              rows={3}
-              placeholder="e.g. One case of cold brew in branded boxes"
-              error={errorFor("product")}
-            />
-          </Card>
-          <WhatHappensNext />
-        </div>
-
-        <Card kind="card" pad="roomy" className="space-y-6">
+        <Card kind="panel" pad="card" className="flex flex-col gap-5">
           <CardHeader
             title="Details"
-            description="All optional. Leave a field blank if you're not sure."
+            description="All optional. Leave anything blank if you are not sure yet."
             className="mb-0"
           />
           <TextField
             id="title"
             name="title"
-            label={
-              <>
-                Title
-                <OptionalMark />
-              </>
-            }
+            label={optional("Title")}
             maxLength={120}
             placeholder="e.g. Fall Cold Brew Launch"
+            hint="A short name for your Requests list. BUZZ sets the final drop title."
             error={errorFor("title")}
           />
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2">
             <TextField
               id="location"
               name="location"
-              label={
-                <>
-                  Campuses or area
-                  <OptionalMark />
-                </>
-              }
+              label={optional("Campuses or area")}
               maxLength={255}
               placeholder="e.g. Sample University, or Anywhere"
               error={errorFor("location")}
             />
-            <div>
-              <TextField
-                id="targetDate"
-                name="targetDate"
-                type="date"
-                label={
-                  <>
-                    When do you want this live?
-                    <OptionalMark />
-                  </>
-                }
-                min={minDate}
-                max={maxDate}
-                error={errorFor("targetDate")}
-                aria-describedby="targetDate-hint"
-              />
-              <p id="targetDate-hint" className={cn(TEXT.meta, "mt-1")}>
-                Dates are UTC.
-              </p>
-            </div>
+            <TextField
+              id="targetDate"
+              name="targetDate"
+              type="date"
+              label={optional("When do you want this live?")}
+              min={minDate}
+              max={maxDate}
+              hint="Dates are UTC."
+              error={errorFor("targetDate")}
+            />
           </div>
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2">
             <TextField
               id="orgCount"
               name="orgCount"
               type="number"
               min={1}
               max={200}
-              label={
-                <>
-                  How many organizations
-                  <OptionalMark />
-                </>
-              }
+              label={optional("How many organizations?")}
               placeholder="e.g. 8"
               error={errorFor("orgCount")}
             />
@@ -316,12 +273,7 @@ function RequestForm({
               type="number"
               min={1}
               max={10000}
-              label={
-                <>
-                  Units per organization
-                  <OptionalMark />
-                </>
-              }
+              label={optional("Units per organization")}
               placeholder="e.g. 24"
               error={errorFor("unitsPerOrg")}
             />
@@ -329,41 +281,29 @@ function RequestForm({
           <TextField
             id="campaignHashtag"
             name="campaignHashtag"
-            label={
-              <>
-                Campaign hashtag
-                <OptionalMark />
-              </>
-            }
-            placeholder="e.g. FallColdBrew"
+            label={optional("Campaign hashtag")}
+            placeholder="e.g. SampleFallBrew (no # needed)"
             error={errorFor("campaignHashtag")}
           />
           <TextArea
             id="notes"
             name="notes"
-            label={
-              <>
-                Anything else
-                <OptionalMark />
-              </>
-            }
+            label={optional("Anything else")}
             rows={3}
             maxLength={4000}
-            placeholder="Links to brand assets, or anything that didn't fit above."
+            placeholder="e.g. Links to brand assets, launches, campuses you care about"
             error={errorFor("notes")}
           />
-          <div className="flex justify-end">
-            <Button
-              type="submit"
-              disabled={submitting}
-              data-testid="submit-drop-request"
-            >
-              {submitting ? "Submitting..." : "Submit Request"}
-            </Button>
-          </div>
         </Card>
+
+        <div className="flex justify-end">
+          <Button type="submit" disabled={submitting} data-testid="submit-drop-request">
+            {submitting ? "Sending..." : "Send request"}
+          </Button>
+        </div>
       </form>
-    </>
+      <WhatHappensNext />
+    </div>
   );
 }
 
@@ -390,8 +330,18 @@ function ApiRequestDrop() {
     : { fields: {}, banner: null };
 
   return (
-    <PageShell width="portal">
-      {apiError.banner ? <ErrorBanner>{apiError.banner}</ErrorBanner> : null}
+    <PageShell width="wide">
+      <PageHeader
+        kicker="Brand Portal"
+        title="Request a drop"
+        description="Tell us what you want to run. BUZZ handles the setup with you."
+        className="mb-10"
+      />
+      {apiError.banner ? (
+        <div className="mb-6">
+          <ErrorBanner>{apiError.banner}</ErrorBanner>
+        </div>
+      ) : null}
       <RequestForm
         onSubmit={handleSubmit}
         submitting={mutation.isPending}
