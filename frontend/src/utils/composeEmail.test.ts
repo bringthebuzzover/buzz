@@ -18,4 +18,8 @@ describe("composeDefaultBody", () => {
     expect(body).toContain("Hi Theta,");
     expect(body).toContain(brandEmails.contactEmail);
   });
+
+  it("signs with the BUZZ brand name", () => {
+    expect(composeDefaultBody("Theta")).toContain("This email was sent by BUZZ.");
+  });
 });
