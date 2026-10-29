@@ -11,9 +11,16 @@
 import { useState } from "react";
 import PageShell from "../../components/site/PageShell";
 import { Card, CardHeader } from "../../components/ui/Card";
-import { Chip } from "../../components/ui/Chip";
+import { Badge, Chip } from "../../components/ui/Chip";
 import { StatePanel } from "../../components/ui/StatePanel";
+import { EmptyState, Loader } from "../../components/ui/EmptyState";
 import { Modal } from "../../components/ui/Modal";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { Tabs } from "../../components/ui/Tabs";
+import { Table, TBody, Td, Th, THead, Tr } from "../../components/ui/Table";
+import { Toast } from "../../components/ui/Toast";
+import { BeeMark, Logo } from "../../components/ui/BrandMark";
 import {
   Banner,
   Button,
@@ -21,12 +28,14 @@ import {
   DateTimeField,
   ErrorBanner,
   LinkButton,
+  Radio,
   Select,
   SuccessBanner,
   TextArea,
   TextField,
   WarningBanner,
 } from "../../components/forms/controls";
+import { MOTION } from "../../theme/motion";
 import { GAP, PAD, STACK, SURFACE, TEXT, TONE } from "../../theme/tokens";
 import { cx } from "../../theme/shells";
 
@@ -44,7 +53,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function UiKitPage() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [checked, setChecked] = useState(true);
+  const [tab, setTab] = useState<"config" | "applicants">("config");
+  const [toast, setToast] = useState(false);
 
   return (
     <PageShell width="reading" className={STACK.section}>
@@ -84,6 +96,7 @@ export default function UiKitPage() {
         <Card className={STACK.default}>
           <div className={cx("flex flex-wrap items-center", GAP.tight)}>
             <Button>Primary</Button>
+            <Button variant="secondary">Secondary</Button>
             <Button variant="outline">Outline</Button>
             <Button variant="ghost">Ghost</Button>
             <Button variant="danger">Danger</Button>
@@ -114,7 +127,8 @@ export default function UiKitPage() {
 
       <Section title="Controls — default size">
         <Card className={STACK.default}>
-          <TextField id="k-text" label="Text field" placeholder="Placeholder" />
+          <TextField id="k-text" label="Text field" placeholder="Placeholder" hint="We'll send a verification link here." />
+          <TextField id="k-err" label="With error" defaultValue="not-an-email" error="Enter a valid email." />
           <TextField id="k-text-d" label="Disabled" placeholder="Disabled" disabled />
           <Select id="k-select" label="Select" defaultValue="a">
             <option value="a">Option A</option>
@@ -128,6 +142,7 @@ export default function UiKitPage() {
             onChange={(e) => setChecked(e.target.checked)}
           />
           <Checkbox label="Checkbox disabled" disabled />
+          <Radio name="k-radio" value="a" label="Radio option" defaultChecked />
         </Card>
       </Section>
 
@@ -165,6 +180,8 @@ export default function UiKitPage() {
               </Chip>
             ))}
             <Chip accent>Brand accent</Chip>
+            <Badge>Open</Badge>
+            <Badge tone="success">Done</Badge>
             <Chip tone="neutral">A Very Long Brand Name That Must Not Wrap</Chip>
           </div>
           <div className={cx("grid sm:grid-cols-4", GAP.tight)}>
@@ -211,6 +228,75 @@ export default function UiKitPage() {
           />
           <p className={TEXT.body}>Card body.</p>
         </Card>
+      </Section>
+
+      <Section title="Page header, tabs, table">
+        <PageHeader
+          kicker="Organization Portal"
+          title="Browse campaigns"
+          description="Browse open and upcoming drops from the brands in our network."
+        />
+        <Tabs
+          label="Drop"
+          tabs={[
+            { id: "config", label: "Config" },
+            { id: "applicants", label: "Applicants" },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
+        <Table>
+          <THead>
+            <Tr>
+              <Th>Organization</Th>
+              <Th>Handle</Th>
+            </Tr>
+          </THead>
+          <TBody>
+            <Tr>
+              <Td>Sample Org</Td>
+              <Td muted>@sampleorg</Td>
+            </Tr>
+          </TBody>
+        </Table>
+      </Section>
+
+      <Section title="Empty, loader, marks">
+        <EmptyState title="Nothing here yet" action={<Button size="compact">Refresh</Button>}>
+          Support
+        </EmptyState>
+        <Loader />
+        <div className={cx("flex items-center", GAP.default)}>
+          <Logo />
+          <BeeMark className={MOTION.float} />
+        </div>
+      </Section>
+
+      <Section title="Toast and confirm">
+        <div className={cx("flex flex-wrap", GAP.tight)}>
+          <Button type="button" variant="secondary" onClick={() => setToast(true)}>
+            Show toast
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setConfirmOpen(true)}>
+            Type to confirm
+          </Button>
+        </div>
+        {toast ? (
+          <Toast tone="warn" onDismiss={() => setToast(false)}>
+            Saved. This toast is local to the kit.
+          </Toast>
+        ) : null}
+        {confirmOpen ? (
+          <ConfirmDialog
+            title="Erase this brand"
+            description="This cannot be undone."
+            expected="erase"
+            confirmLabel="Erase"
+            destructive
+            onClose={() => setConfirmOpen(false)}
+            onConfirm={() => setConfirmOpen(false)}
+          />
+        ) : null}
       </Section>
 
       <Section title="Modal">

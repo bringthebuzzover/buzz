@@ -9,16 +9,40 @@ module.exports = {
       colors: tailwindThemeExtend.colors,
       boxShadow: tailwindThemeExtend.boxShadow,
       dropShadow: tailwindThemeExtend.dropShadow,
+      fontFamily: {
+        // Switzer 400 / 500 (Fontshare). 600 and 700 are pinned to the 500
+        // file in index.css so existing font-semibold / font-bold don't
+        // faux-bold past the pen's weight cap.
+        sans: [
+          "Switzer",
+          "ui-sans-serif",
+          "system-ui",
+          "Segoe UI",
+          "sans-serif",
+        ],
+      },
       fontSize: {
         buzzMicro: ["0.75rem", { lineHeight: "1rem" }],
+        // Pen type scale. Desktop sizes; mobile steps live on TEXT.*.
+        buzzDisplay: ["115px", { lineHeight: "0.9", letterSpacing: "-0.045em" }],
+        buzzTitle: ["64px", { lineHeight: "0.95", letterSpacing: "-0.04em" }],
+        buzzStatement: ["54px", { lineHeight: "1.0", letterSpacing: "-0.03em" }],
+        buzzH2: ["44px", { lineHeight: "1.05", letterSpacing: "-0.04em" }],
+        buzzH3: ["20px", { lineHeight: "1.3", letterSpacing: "-0.01em" }],
+        buzzBody: ["16px", { lineHeight: "1.5" }],
+        buzzSmall: ["14px", { lineHeight: "1.45" }],
+        buzzLabel: ["12px", { lineHeight: "1.35", letterSpacing: "0.04em" }],
       },
       borderRadius: {
-        // Small controls (the checkbox) need a tighter corner than a text
-        // field, or a 20px box reads as a circle.
-        buzzCheck: "0.375rem",
-        buzzControl: "0.5rem",
-        buzzCard: "1rem",
-        buzzModal: "1.5rem",
+        // Pen: check 5, control 8, field 10, card/media 8, board/modal 16, phone 32.
+        // `buzzCard` stays 16 (radius-board) because the Card primitive is a panel.
+        buzzCheck: "5px",
+        buzzControl: "8px",
+        buzzField: "10px",
+        buzzMedia: "8px",
+        buzzCard: "16px",
+        buzzModal: "16px",
+        buzzPhone: "32px",
       },
       zIndex: {
         buzzDrawer: "55",
@@ -59,6 +83,27 @@ module.exports = {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
         },
+        // Pulse motion. Modal keyframes include the centering translate so
+        // fill-mode doesn't knock the dialog off center. See theme/motion.ts.
+        buzzRise: {
+          "0%": { opacity: "0", transform: "translateY(24px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        buzzFade: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        buzzFloat: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-8px)" },
+        },
+        buzzModal: {
+          "0%": {
+            opacity: "0",
+            transform: "translate(-50%, calc(-50% + 12px))",
+          },
+          "100%": { opacity: "1", transform: "translate(-50%, -50%)" },
+        },
       },
       animation: {
         "slide-in-left":
@@ -70,6 +115,10 @@ module.exports = {
         "marquee-reverse": "marqueeReverse 50s linear infinite",
         shake: "shake 0.45s ease-in-out",
         "fade-in": "fadeIn 0.38s ease-out forwards",
+        "buzz-rise": "buzzRise 600ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        "buzz-fade": "buzzFade 220ms ease-out both",
+        "buzz-float": "buzzFloat 3.2s ease-in-out infinite",
+        "buzz-modal": "buzzModal 220ms cubic-bezier(0.22, 1, 0.36, 1) both",
       },
     },
   },

@@ -20,6 +20,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import { STATUS_LABELS } from "./labels";
 import { Button, Checkbox, ErrorBanner } from "../forms/controls";
 import { Card, CardHeader } from "../ui/Card";
+import { PageHeader } from "../ui/PageHeader";
+import { tableHeadClass } from "../ui/Table";
 import { Chip } from "../ui/Chip";
 import { StatePanel } from "../ui/StatePanel";
 import { TEXT, TONE, type Tone as TokenTone } from "../../theme/tokens";
@@ -43,12 +45,12 @@ function toneForStatus(status: string): Tone {
   return "neutral";
 }
 
-/** Filter / tab chips. Sentence case — not TEXT.micro, which is all-caps for status tags. */
+/** Filter / tab chips. Sentence case, same as the status Chip. */
 export function filterChipClass(selected: boolean) {
   return cn(
     "inline-flex items-center whitespace-nowrap rounded-full border px-3 py-1 text-sm transition",
     selected
-      ? "border-buzz-coral bg-buzz-coral text-buzz-paper"
+      ? "border-transparent bg-buzz-yellow text-buzz-onAccent"
       : cn(TONE.neutral, "hover:border-buzz-coral hover:text-buzz-coral"),
   );
 }
@@ -109,19 +111,7 @@ export function PageHeading({
   subtitle?: string;
   actions?: ReactNode;
 }) {
-  return (
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <h1 className={TEXT.h1}>{title}</h1>
-        {subtitle && (
-          <p className={cn(TEXT.meta, "mt-1 max-w-2xl font-medium")}>
-            {subtitle}
-          </p>
-        )}
-      </div>
-      {actions}
-    </div>
-  );
+  return <PageHeader title={title} description={subtitle} actions={actions} />;
 }
 
 export function Panel({
@@ -191,12 +181,12 @@ export function AdminTable({
   return (
     <div className="md:overflow-x-auto">
       <table className="w-full text-left text-sm max-md:block">
-        <thead className="bg-buzz-cream text-xs uppercase tracking-wide text-buzz-inkMuted max-md:hidden">
+        <thead className="max-md:hidden">
           <tr>
             {headers.map((header, i) => (
               <th
                 key={header || `actions-${i}`}
-                className="px-4 py-2.5 font-semibold"
+                className={tableHeadClass}
               >
                 {/* A blank header is a deliberate spacer for an actions column. */}
                 {header}

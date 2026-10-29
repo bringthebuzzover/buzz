@@ -12,6 +12,9 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAdminOverview } from "../../api/hooks/useAdminHooks";
 import { cn } from "../../theme/cn";
+import { BeeMark } from "../ui/BrandMark";
+import { Chip } from "../ui/Chip";
+import { appNavItemClass } from "../ui/navItem";
 
 type NavItem = {
   to: string;
@@ -56,23 +59,19 @@ const NAV: readonly NavItem[] = [
 
 function AdminWordmark({ className }: { className?: string }) {
   return (
-    <p className={cn("text-lg font-semibold text-buzz-ink", className)}>
-      Buzz <span className="text-buzz-coral">admin</span>
+    <p className={cn("flex items-center gap-2 text-lg font-medium text-buzz-fg", className)}>
+      <BeeMark className="h-5 w-5" />
+      Buzz <span className="text-buzz-yellow">admin</span>
     </p>
   );
 }
 
-function Badge({ count, className }: { count: number; className?: string }) {
+function CountBadge({ count, className }: { count: number; className?: string }) {
   if (count === 0) return null;
   return (
-    <span
-      className={cn(
-        "rounded-full bg-buzz-coral px-2 py-0.5 text-xs font-bold text-buzz-paper",
-        className,
-      )}
-    >
+    <Chip accent className={cn("px-2 py-0.5", className)}>
       {count}
-    </span>
+    </Chip>
   );
 }
 
@@ -98,15 +97,11 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
             end={item.to === "/admin"}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-2 rounded-buzzControl px-3 py-2 text-sm font-semibold transition ${
-                isActive
-                  ? "bg-buzz-butter text-buzz-ink"
-                  : "text-buzz-inkMuted hover:bg-buzz-cream hover:text-buzz-ink"
-              }`
+              cn(appNavItemClass(isActive), "w-full")
             }
           >
             {item.label}
-            <Badge count={badge} className="ml-auto" />
+            <CountBadge count={badge} className="ml-auto" />
           </NavLink>
         );
       })}
@@ -157,7 +152,7 @@ export default function AdminSidebar() {
           className="rounded-buzzControl border-2 border-buzz-lineMid px-3 py-1.5 text-xs font-semibold text-buzz-ink"
         >
           Menu
-          <Badge count={total} className="ml-2" />
+          <CountBadge count={total} className="ml-2" />
         </button>
         <AdminWordmark />
       </div>
@@ -174,7 +169,7 @@ export default function AdminSidebar() {
       )}
 
       {/* Desktop rail. */}
-      <aside className="hidden w-56 shrink-0 flex-col justify-between border-r border-buzz-lineMid bg-buzz-paper p-4 lg:flex">
+      <aside className="hidden w-[248px] shrink-0 flex-col justify-between border-r border-buzz-line bg-buzz-dark p-4 lg:flex">
         <div>
           <AdminWordmark className="mb-5 px-3" />
           <NavItems />

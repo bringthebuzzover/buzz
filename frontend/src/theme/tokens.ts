@@ -1,23 +1,17 @@
 /**
  * Semantic layout / type / surface tokens.
  *
- * The palette (`palette.ts`) and Tailwind config already owned color, radius,
- * shadow and z-index. What was missing — and what made the UI look unplanned —
- * is a named vocabulary for *rhythm, rank and surface*. Before this file, pages
- * picked spacing numbers by feel (`p-3` and `p-4` were both common, 36% of
- * spacing sat off any scale), invented their own heading sizes (9 text sizes,
- * `font-black` in 23 places), and hand-rolled card treatments (11 `rounded-*`
- * variants, 5 shadows).
+ * Color lives in `palette.ts`. This file names rhythm, rank, and surface so
+ * pages don't invent their own.
  *
- * Rules for consumers:
- *  - Reach for a token by ROLE, never by number. If no role fits, the design
- *    needs a decision, not a new arbitrary value.
- *  - Weight is capped at `font-semibold` (600). Hierarchy comes from size and
- *    color, not from heavier ink.
- *  - Secondary text must be quieter than body text (`TEXT.meta`), never louder.
+ * Type scale is the pen's eight steps (115 / 64 / 54 / 44 / 20 / 16 / 14 / 12),
+ * weight 500 on display ranks and 400 on body. `h1` is the pen's page title
+ * (44px, `type-h2`), not the marketing display, so portal titles don't become
+ * posters. Marketing display / title / statement are here for later page PRs.
  *
- * `frontend/scripts/check-ui-primitives.sh` enforces the ban on the raw
- * utilities these tokens replace.
+ * Pen spacing is 4, 8, 12, 16, 24, 32, 48, 64, 96. Tailwind's default scale
+ * already has those except that its `5` is 20px and the pen's space-5 is 24px
+ * (Tailwind `6`). `STACK` / `GAP` use 8 / 16 / 24 / 32, which match.
  */
 
 /** Vertical rhythm between siblings. Four steps, chosen by relationship. */
@@ -52,67 +46,75 @@ export const PAD = {
   roomy: "p-8",
 } as const;
 
-/** Marketing section band. One value so bands cannot drift apart. */
-export const SECTION_Y = "py-16 md:py-20";
+/**
+ * Marketing section band. Pen `section-y`: 68px mobile, 108px desktop.
+ */
+export const SECTION_Y = "py-[68px] md:py-[108px]";
 
 /**
- * Type scale: five ranks plus two support roles. A surface should use at most
- * three of these. `tracking-tight` on the large ranks keeps long headlines from
- * looking airy at display sizes.
+ * Type scale. A surface should use at most three ranks. Large ranks carry the
+ * tracking in the font-size token (`buzzDisplay`, `buzzH2`, …).
  */
 export const TEXT = {
-  /** Marketing hero only — one per page, never in a portal. */
-  display: "text-4xl font-semibold tracking-tight md:text-5xl",
-  /** Page title. One per surface. */
-  h1: "text-3xl font-semibold tracking-tight",
+  /** Marketing hero only — one per page, never in a portal. 48 / 115. */
+  display:
+    "text-[48px] font-medium leading-[0.95] tracking-tight md:text-buzzDisplay",
+  /** Marketing title. 36 / 64. */
+  title: "text-[36px] font-medium leading-tight tracking-tight md:text-buzzTitle",
+  /** Marketing statement. 32 / 54. */
+  statement:
+    "text-[32px] font-medium leading-tight tracking-tight md:text-buzzStatement",
+  /** Page title. Pen type-h2: 28 / 44. */
+  h1: "text-[28px] font-medium leading-[1.1] tracking-tight md:text-buzzH2",
   /** Section title. */
-  h2: "text-2xl font-semibold tracking-tight",
-  /** Card, panel, or fieldset title. */
-  h3: "text-lg font-semibold",
-  /** Body copy in dense product UI. */
-  body: "text-sm",
-  /** Long-form reading: legal pages, marketing paragraphs. */
-  bodyLong: "text-base leading-relaxed",
+  h2: "text-buzzH3 font-medium md:text-[28px] md:leading-tight",
+  /** Card, panel, or fieldset title. Pen type-h3, 20px. */
+  h3: "text-buzzH3 font-medium",
+  /** Body copy in dense product UI. Pen type-small, 14px. */
+  body: "text-buzzSmall",
+  /** Long-form reading: legal pages, marketing paragraphs. Pen type-body, 16px. */
+  bodyLong: "text-buzzBody leading-relaxed",
   /** Secondary / supporting text. Always quieter than body. */
-  meta: "text-xs text-buzz-inkMuted",
-  /** Eyebrow and chip label. 12px (`text-xs`); all-caps. Do not use `text-buzzMicro` here — see `cn.ts`. */
-  micro: "text-xs uppercase",
+  meta: "text-buzzLabel text-buzz-inkMuted",
+  /** Eyebrow and chip label. 12px. Sentence case — the pen badges aren't caps. */
+  micro: "text-xs",
   /** Metric numerals. Tabular so columns of numbers line up. */
-  metric: "text-2xl font-semibold tabular-nums",
+  metric: "text-buzzH3 font-medium tabular-nums",
 } as const;
 
 /**
  * Surface treatments. Every card in the app should name one of these rather
  * than assembling its own radius + border + background + shadow.
+ * Panels are flat: hairline on ink-raised. The pen doesn't use a drop shadow
+ * on cards; `shadow-buzzLg` stays on the modal only.
  */
 export const SURFACE = {
-  /** Elevated card on the cream page background. */
-  card: "rounded-buzzCard border border-buzz-lineMid bg-buzz-paper shadow-buzz",
-  /** Flat card — use in grids, where stacked shadows read as noise. */
-  cardFlat: "rounded-buzzCard border border-buzz-lineMid bg-buzz-paper",
-  /** Warm card: drop feed tiles, marketing highlights. */
-  cardWarm: "rounded-buzzCard border border-buzz-lineMid bg-buzz-butter",
-  /** Portal / admin panel. */
-  panel: "rounded-buzzCard border border-buzz-lineMid bg-buzz-paper",
-  /** Inset block inside a card: read-only values, callouts, mock rows. */
-  inset: "rounded-buzzControl border border-buzz-lineMid bg-buzz-cream",
-  /** Modal shell. */
-  modal: "rounded-buzzModal border border-buzz-lineMid bg-buzz-paper shadow-buzzLg",
+  /** Raised card on the ink page. */
+  card: "rounded-buzzCard border border-buzz-line bg-buzz-paper",
+  /** Flat card — same ink-raised fill, for grids. */
+  cardFlat: "rounded-buzzCard border border-buzz-line bg-buzz-paper",
+  /** Yellow-faded card: highlights, selected tiles. */
+  cardWarm: "rounded-buzzCard border border-buzz-yellowLine bg-buzz-butter",
+  /** Portal / admin panel. Pen radius-board. */
+  panel: "rounded-buzzCard border border-buzz-line bg-buzz-inkRaised",
+  /** Inset block inside a card. */
+  inset: "rounded-buzzField border border-buzz-line bg-buzz-paper04",
+  /** Modal shell. Pen ink-pop, radius-board. */
+  modal: "rounded-buzzModal border border-buzz-line bg-buzz-inkPop shadow-buzzLg",
 } as const;
 
 /**
- * Status tones as one border + fill + text triple.
- *
- * This replaces three divergent copies (`AdminPrimitives.TONE_CLASS`,
- * `BrandAggregateDashboardPage.toneClass`, `CampaignRow.STATUS_TONE`) and the
- * stock `green-*`/`amber-*`/`red-*`/`emerald-*` classes that leaked into a
- * dozen files.
+ * Status tones. POLISH: yellow fill is live (see `Chip accent`), yellow
+ * outline is attention, white is done, grey is closed, red is errors only.
+ * Green and amber washes are not in the palette.
  */
 export const TONE = {
-  neutral: "border-buzz-lineMid bg-buzz-cream text-buzz-inkMuted",
-  success: "border-buzz-successLine bg-buzz-successWash text-buzz-success",
-  warn: "border-buzz-warnLine bg-buzz-warnWash text-buzz-warn",
-  danger: "border-buzz-dangerLine bg-buzz-dangerWash text-buzz-danger",
+  neutral: "border-buzz-line bg-buzz-paper08 text-buzz-inkMuted",
+  /** Done / active: paper fill, ink label. */
+  success: "border-transparent bg-buzz-fg text-buzz-onAccent",
+  /** Needs attention: yellow outline and yellow label. */
+  warn: "border-buzz-yellowLine bg-buzz-yellowFaded text-buzz-yellow",
+  danger: "border-buzz-dangerLine bg-buzz-dangerFaded text-buzz-danger",
 } as const;
 
 export type Tone = keyof typeof TONE;
