@@ -35,9 +35,9 @@ from app.security.one_shot_tokens import hash_token
 from app.security.token_crypto import encrypt_token
 from app.services.instagram import MediaFields, MediaRef
 from app.services.instagram_token import (
-    days_until_expiry,
     maybe_refresh_on_login,
     refresh_instagram_token,
+    time_until_expiry,
 )
 from tests.conftest import (
     FakeInstagramClient,
@@ -592,7 +592,7 @@ async def test_token_refresh_cron_includes_last_day(db_session) -> None:
 async def test_on_login_noop_for_brand() -> None:
     brand_user = make_user()
     brand_user.portal_role = "brand"
-    assert days_until_expiry(brand_user) is None
+    assert time_until_expiry(brand_user) is None
     bg = BackgroundTasks()
     await maybe_refresh_on_login(brand_user, bg, FakeInstagramClient())
     assert len(bg.tasks) == 0
@@ -995,7 +995,7 @@ async def test_on_login_noop_for_fresh_token() -> None:
 
 async def test_on_login_noop_without_token() -> None:
     user = make_user(instagram_user_id="ig_notoken")  # org, no IG token
-    assert days_until_expiry(user) is None
+    assert time_until_expiry(user) is None
     bg = BackgroundTasks()
     await maybe_refresh_on_login(user, bg, FakeInstagramClient())
     assert len(bg.tasks) == 0

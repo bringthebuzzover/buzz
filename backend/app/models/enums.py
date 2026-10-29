@@ -224,24 +224,3 @@ DropApplyIntentStatusEnum = sa.Enum(
     native_enum=True,
     values_callable=_enum_values,
 )
-
-
-ALL_ENUM_TYPES: tuple[sa.Enum, ...] = (
-    PortalRoleEnum,
-    OrgUserStatusEnum,
-    BrandStatusEnum,
-    OrgCategoryEnum,
-    ApplicationDecisionEnum,
-    BrandTrackerStageEnum,
-    PlatformEnum,
-    SocialMediaTypeEnum,
-    SocialMediaProductTypeEnum,
-    PostLinkSourceEnum,
-    SuggestionMatchReasonEnum,
-    DropApplyIntentStatusEnum,
-)
-"""Ordered tuple of every native ENUM type, used by the initial migration's
-``downgrade()`` to drop the corresponding PG types after the tables are gone.
-SQLAlchemy creates these implicitly when a table that references them is
-created, but it does **not** issue ``DROP TYPE`` on table drop — that has to
-be explicit (see ``migrations/versions/<ts>_initial_schema.py``)."""

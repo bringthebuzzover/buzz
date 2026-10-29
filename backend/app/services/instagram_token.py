@@ -68,18 +68,6 @@ def time_until_expiry(user: User, *, now: datetime | None = None) -> timedelta |
     return exp - (now or _now())
 
 
-def days_until_expiry(user: User, *, now: datetime | None = None) -> int | None:
-    """Whole days of remaining IG token lifetime (floor), or None if not applicable.
-
-    Prefer :func:`time_until_expiry` for expiry decisions — a token with 12 hours
-    left has ``days_until_expiry == 0`` but is still valid.
-    """
-    remaining = time_until_expiry(user, now=now)
-    if remaining is None:
-        return None
-    return int(remaining.total_seconds() // 86400)
-
-
 async def maybe_refresh_on_login(
     user: User,
     background_tasks: BackgroundTasks | None,
