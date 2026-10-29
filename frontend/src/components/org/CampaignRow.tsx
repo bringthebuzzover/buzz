@@ -1,16 +1,17 @@
 /**
- * Single row in My Campaigns. Shows a status badge, the parent drop's title and
- * brand, the org campaign's tracking number when Accepted, and links to the
- * detail page (`/org/campaigns/:applicationId`).
+ * Single row in My Campaigns. Pen `Campaign / Row`: 72px thumb, brand, title,
+ * tracking meta when Accepted, the status badge, and a chevron to the detail
+ * page (`/org/campaigns/:applicationId`).
  */
 import { Link } from "react-router-dom";
-import { ChevronRight, Truck } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { OrgCampaignStatus } from "../../types/orgCampaign";
 import { ORG_CAMPAIGN_STATUS_LABELS } from "../../types/orgCampaign";
 import { Card } from "../ui/Card";
 import { Chip } from "../ui/Chip";
 import { RemoteImage } from "../ui/RemoteImage";
 import { TEXT, type Tone } from "../../theme/tokens";
+import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
 type CampaignRowProps = {
@@ -22,12 +23,25 @@ type CampaignRowProps = {
   shipments?: { trackingNumber: string }[];
 };
 
+/** Pen badges: Applied is the yellow wash, Accepted paper with a dot, Finished quiet. */
 const STATUS_TONE: Record<OrgCampaignStatus, Tone> = {
   active: "success",
-  accepted: "warn",
-  applied: "neutral",
+  accepted: "neutral",
+  applied: "warn",
   finished: "neutral",
 };
+
+export function CampaignStatusBadge({ status }: { status: OrgCampaignStatus }) {
+  return (
+    <Chip
+      tone={STATUS_TONE[status]}
+      dot={status !== "finished"}
+      className={status === "accepted" ? "text-primary" : undefined}
+    >
+      {ORG_CAMPAIGN_STATUS_LABELS[status]}
+    </Chip>
+  );
+}
 
 export default function CampaignRow({
   applicationId,
@@ -38,38 +52,37 @@ export default function CampaignRow({
   shipments,
 }: CampaignRowProps) {
   return (
-    <Link to={`/org/campaigns/${applicationId}`} className="block">
+    <Link
+      to={`/org/campaigns/${applicationId}`}
+      className={cn("block rounded-buzzBoard", focusRingClass)}
+    >
       <Card
         kind="tile"
         pad="default"
-        className="flex items-center justify-between gap-4 transition hover:shadow-buzzLg"
+        className="flex items-center gap-5 transition hover:border-primary"
       >
-        <div className="flex min-w-0 items-center gap-4">
-          <RemoteImage
-            src={image}
-            label={brandName}
-            alt=""
-            className="h-16 w-16 shrink-0 rounded-buzzControl border border-buzz-lineMid object-cover"
-          />
-          <div className="min-w-0">
-            <div className="mb-1 flex flex-wrap items-center gap-2">
-              <Chip tone={STATUS_TONE[status]}>
-                {ORG_CAMPAIGN_STATUS_LABELS[status]}
-              </Chip>
-              <Chip accent>{brandName}</Chip>
-            </div>
-            <h3 className={TEXT.h3}>{title}</h3>
-            {status === "accepted" && shipments && shipments.length > 0 ? (
-              <p className={cn(TEXT.meta, "mt-1 flex items-center gap-1")}>
-                <Truck size={12} className="text-buzz-coral" />
-                {shipments.length === 1
-                  ? `Tracking #${shipments[0].trackingNumber}`
-                  : `${shipments.length} tracking numbers`}
-              </p>
-            ) : null}
-          </div>
+        <RemoteImage
+          src={image}
+          label={brandName}
+          alt=""
+          fallback="placeholder"
+          className="h-[72px] w-[72px] shrink-0 rounded-buzzCard object-cover"
+        />
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <p className="truncate text-xs uppercase tracking-[0.05em] text-quiet">
+            {brandName}
+          </p>
+          <h3 className="text-xl font-medium leading-tight text-primary">{title}</h3>
+          {status === "accepted" && shipments && shipments.length > 0 ? (
+            <p className={cn(TEXT.body, "text-muted")}>
+              {shipments.length === 1
+                ? `Tracking #${shipments[0].trackingNumber}`
+                : `${shipments.length} tracking numbers`}
+            </p>
+          ) : null}
         </div>
-        <ChevronRight size={20} className="shrink-0 text-buzz-inkFaint" />
+        <CampaignStatusBadge status={status} />
+        <ChevronRight size={18} className="shrink-0 text-quiet" aria-hidden />
       </Card>
     </Link>
   );

@@ -26,8 +26,10 @@ import PostInsights from "../posts/PostInsights";
 import { formatInsightCount } from "../posts/postInsights";
 import { Card, CardHeader } from "../ui/Card";
 import { Chip } from "../ui/Chip";
-import { StatePanel } from "../ui/StatePanel";
-import { PAD, STACK, SURFACE, TEXT } from "../../theme/tokens";
+import { Loader, EmptyState } from "../ui/EmptyState";
+import { RemoteImage } from "../ui/RemoteImage";
+import { PAD, SURFACE, TEXT } from "../../theme/tokens";
+import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
 type Props = {
@@ -35,15 +37,12 @@ type Props = {
   readOnly?: boolean;
 };
 
+/** Pen row and card actions: 36px pills. */
+const pillClass = "h-9 px-4";
+
 function PlatformIcon({ platform }: { platform: string }) {
   const Icon = platform === "instagram" ? Camera : Music2;
-  return (
-    <Icon
-      size={16}
-      aria-hidden
-      className="size-4 shrink-0 text-buzz-coral"
-    />
-  );
+  return <Icon size={12} aria-hidden className="shrink-0" />;
 }
 
 export default function ApiPostSelector({ applicationId, readOnly = false }: Props) {
@@ -69,53 +68,57 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
     dismiss.error) as Error | null;
 
   return (
-    <div className={STACK.group}>
+    <div className="flex flex-col gap-10">
       {mutationError ? (
         <ErrorBanner>
           {mutationError.message || "Something went wrong. Please try again."}
         </ErrorBanner>
       ) : null}
       {!readOnly && suggestions && suggestions.length > 0 ? (
-        <Card kind="tile" pad="card">
+        <Card kind="panel" pad="card">
           <CardHeader
+            className="mb-5"
             title="Suggested posts"
             description="We spotted these posts that look like they belong to this campaign."
           />
-          <ul className={STACK.tight}>
+          <ul className="flex flex-col gap-3">
             {suggestions.map((s: Suggestion) => (
               <li
                 key={s.postId}
-                className={cn(
-                  SURFACE.inset,
-                  PAD.tight,
-                  "flex items-center justify-between gap-3",
-                )}
+                className="flex flex-wrap items-center gap-4 rounded-buzzField border border-buzz-yellowLine bg-accent-wash p-4"
               >
-                <div className="min-w-0">
-                  <p className={cn(TEXT.body, "truncate font-medium text-buzz-ink")}>
+                <RemoteImage
+                  src={s.thumbnailUrl}
+                  label={s.caption || "Post"}
+                  alt=""
+                  fallback="placeholder"
+                  className="h-14 w-14 shrink-0 rounded-buzzCard object-cover"
+                />
+                <div className="min-w-0 flex-1 basis-40">
+                  <p className={cn(TEXT.body, "truncate font-medium text-primary")}>
                     {s.caption || "(no caption)"}
                   </p>
-                  <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>
+                  <p className="mt-1 text-xs text-quiet">
                     {s.matchReason.replace(/_/g, " ")} · {s.likes} likes
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <Button
                     type="button"
-                    size="compact"
-                    disabled={busy}
-                    onClick={() => accept.mutate(s.postId)}
-                  >
-                    Confirm
-                  </Button>
-                  <Button
-                    type="button"
-                    size="compact"
                     variant="outline"
+                    className={pillClass}
                     disabled={busy}
                     onClick={() => dismiss.mutate(s.postId)}
                   >
                     Dismiss
+                  </Button>
+                  <Button
+                    type="button"
+                    className={pillClass}
+                    disabled={busy}
+                    onClick={() => accept.mutate(s.postId)}
+                  >
+                    Confirm
                   </Button>
                 </div>
               </li>
@@ -125,75 +128,78 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
       ) : null}
 
       <IgPreviousAccountBanner />
-      <Card kind="tile" pad="card">
+      <Card kind="panel" pad="card">
         <CardHeader
+          className="mb-5"
           title="Linked posts"
           description="One post can only belong to one campaign."
           actions={
-            <Button
+            <button
               type="button"
-              size="compact"
-              variant="outline"
               disabled={busy}
               onClick={() => refreshPosts.mutate()}
               title="Reload the posts Buzz already synced — does not fetch from Instagram"
+              className={cn(
+                "text-sm text-muted transition hover:text-primary disabled:opacity-50",
+                focusRingClass,
+              )}
             >
-              {refreshPosts.isPending ? "Reloading…" : "Show latest synced posts"}
-            </Button>
+              {refreshPosts.isPending ? "Reloading…" : "Show latest synced posts →"}
+            </button>
           }
         />
 
         {isLoading ? (
-          <StatePanel>Loading your posts…</StatePanel>
+          <Loader label="Loading your posts…" className="py-8" />
         ) : !posts || posts.length === 0 ? (
-          <StatePanel>No posts found for your account yet.</StatePanel>
+          <EmptyState title="No posts found for your account yet." />
         ) : (
-          <ul className={STACK.tight}>
+          <ul className="flex flex-col gap-3">
             {posts.map((post: PostItem) => {
               const linkedHere = post.linkedApplicationId === applicationId;
-              const conflict =
-                post.linkedApplicationId != null && !linkedHere;
+              const conflict = post.linkedApplicationId != null && !linkedHere;
               return (
                 <li
                   key={post.id}
                   className={cn(
-                    SURFACE.inset,
-                    PAD.tight,
-                    "flex items-start justify-between gap-3",
+                    SURFACE.tile,
+                    PAD.default,
+                    "flex flex-wrap items-start gap-4",
                   )}
                 >
-                  <div className="flex min-w-0 flex-1 items-start gap-2">
-                    <span className="mt-0.5">
+                  <RemoteImage
+                    src={post.thumbnailUrl ?? post.mediaUrl}
+                    label={post.caption || "Post"}
+                    alt=""
+                    fallback="placeholder"
+                    className="h-[120px] w-24 shrink-0 rounded-buzzCard object-cover"
+                  />
+                  <div className="min-w-0 flex-1 basis-56">
+                    <p className={cn(TEXT.body, "line-clamp-2 font-medium text-primary")}>
+                      {post.caption || "(no caption)"}
+                    </p>
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-quiet">
                       <PlatformIcon platform={post.platform} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className={cn(TEXT.body, "truncate font-medium text-buzz-ink")}>
-                        {post.caption || "(no caption)"}
-                      </p>
-                      <p className={TEXT.meta}>
-                        {`${formatInsightCount(post.likes)} likes · ${formatInsightCount(post.comments)} comments`}
-                      </p>
-                      <PostInsights post={post} />
-                    </div>
+                      {`${formatInsightCount(post.likes)} likes · ${formatInsightCount(post.comments)} comments`}
+                    </p>
+                    <PostInsights post={post} />
                   </div>
                   {readOnly ? (
                     linkedHere ? (
-                      <span className={cn(TEXT.meta, "shrink-0 font-semibold text-buzz-coral")}>
+                      <Chip dot className="shrink-0 text-primary">
                         Linked
-                      </span>
+                      </Chip>
                     ) : null
                   ) : conflict ? (
                     <Chip>Linked to another campaign</Chip>
                   ) : (
                     <Button
                       type="button"
-                      size="compact"
-                      variant={linkedHere ? "outline" : "primary"}
+                      variant="outline"
+                      className={pillClass}
                       disabled={busy}
                       onClick={() =>
-                        linkedHere
-                          ? unlink.mutate(post.id)
-                          : link.mutate(post.id)
+                        linkedHere ? unlink.mutate(post.id) : link.mutate(post.id)
                       }
                     >
                       {linkedHere ? "Unlink" : "Link"}
