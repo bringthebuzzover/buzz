@@ -102,6 +102,12 @@ async def set_seat_decision(
     application = await db.get(DropApplication, application_id)
     if application is None or application.drop_id != drop.id:
         raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
+    if application.decision in ENDED_DECISIONS:
+        # Withdrew / removed are final; BUZZ brings an org back with a late add.
+        raise BuzzAPIException(
+            errors.DECISION_ALREADY_SENT,
+            "This seat has ended. To bring the organization back, late-add it.",
+        )
     if decision in ENDED_DECISIONS:
         if actor != "admin":
             raise BuzzAPIException(errors.FORBIDDEN, "Only BUZZ can end a seat.", status_code=403)
@@ -186,6 +192,13 @@ async def end_seat(
     and its units free up. ``removed`` needs a reason.
     """
 
+    if (
+        application.decision == ApplicationDecision.DENIED.value
+        and application.decision_sent_at is not None
+    ):
+        raise BuzzAPIException(
+            errors.DECISION_ALREADY_SENT, "This organization was denied; there is no seat to end."
+        )
     cleaned = (reason or "").strip() or None
     if decision == ApplicationDecision.REMOVED.value and cleaned is None:
         raise BuzzAPIException(
