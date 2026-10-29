@@ -9,7 +9,6 @@ import {
 import { Button, Checkbox, TextField } from "../forms/controls";
 import { Modal } from "../ui/Modal";
 import { STACK, TEXT } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
 import { ActionButton, ErrorNote } from "./AdminPrimitives";
 import { STATUS_LABELS } from "./labels";
 
@@ -104,7 +103,7 @@ export default function AddOrgToDropModal({
       description={`Accept a seat on ${dropTitle} without reopening apply. Overbooking is allowed.`}
       size="wide"
     >
-      <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
+      <div className={STACK.tight}>
         {error && <ErrorNote>{error}</ErrorNote>}
         {picked == null ? (
           <>

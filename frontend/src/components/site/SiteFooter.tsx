@@ -4,8 +4,8 @@
  * the static legal pages (`/privacy`, `/terms`, `/data-deletion`).
  */
 import { Link } from "react-router-dom";
-import { siteIdentity } from "../../data/siteIdentity";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
+import { Logo } from "../ui/BrandMark";
 
 const linkClass = "hover:text-buzz-coral";
 
@@ -16,14 +16,10 @@ export default function SiteFooter() {
     // No top margin: it used to sit outside <main>, so a vertically centered
     // auth page was centered in a box that stopped 64px short of the footer
     // and read as sitting high. Separation is the border plus this padding.
-    <footer className="border-t border-buzz-line bg-buzz-paper px-6 py-12 sm:px-8">
+    <footer className="border-t border-buzz-line bg-buzz-dark px-6 py-12 sm:px-8">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <img
-            src={siteIdentity.images.logoCoral}
-            alt={siteIdentity.images.logoAlt}
-            className="w-36 h-auto"
-          />
+          <Logo className="mb-4 h-10 w-auto" />
           <p className="max-w-xs text-sm font-medium leading-relaxed text-buzz-inkMuted">
             Connecting brands with campus communities for authentic college
             marketing, at scale.

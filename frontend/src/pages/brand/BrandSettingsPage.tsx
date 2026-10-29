@@ -336,7 +336,7 @@ export default function BrandSettingsPage() {
           size="wide"
         >
           <form
-            className={cn("px-6 pb-6 pt-4", STACK.default)}
+            className={STACK.default}
             onSubmit={submitHandleChange}
           >
             {igError ? <ErrorBanner>{igError}</ErrorBanner> : null}

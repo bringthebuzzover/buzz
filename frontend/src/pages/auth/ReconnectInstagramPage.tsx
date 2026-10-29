@@ -36,7 +36,7 @@ export default function ReconnectInstagramPage() {
         onClick={() => login(next)}
         disabled={status === "authenticating"}
       >
-        <img src={instagramIcon} alt="" className="h-5 w-5" />
+        <img src={instagramIcon} alt="" className="buzz-icon-on-ink h-5 w-5" />
         {status === "authenticating"
           ? "Connecting…"
           : "Reconnect with Instagram"}

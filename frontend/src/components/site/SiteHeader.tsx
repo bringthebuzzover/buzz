@@ -17,6 +17,7 @@ import { useSiteChrome } from "../../contexts/SiteChromeContext";
 import { useSignOut } from "../../api/hooks/useSignOut";
 import { useAuth } from "../../contexts/AuthContext";
 import { goToHomeJoin } from "../../utils/scrollHomeJoin";
+import { appNavItemClass, marketingNavItemClass } from "../ui/navItem";
 
 const ORG_NAV_LINKS = [
   { to: "/org/browse", label: "Browse Campaigns" },
@@ -101,9 +102,7 @@ export default function SiteHeader() {
   };
 
   const navItemClass = (active: boolean) =>
-    `whitespace-nowrap transition hover:text-buzz-butterBright ${
-      active ? "underline decoration-2 underline-offset-8" : ""
-    }`;
+    isApiAuth ? appNavItemClass(active) : marketingNavItemClass(active);
 
   const handleJoinClick = () => {
     goToHomeJoin(pathname, navigate);
@@ -126,7 +125,7 @@ export default function SiteHeader() {
             className="text-buzz-inkMuted hover:opacity-80"
             aria-label="Instagram"
           >
-            <img src={images.socialInstagramIcon} alt="" className="h-4 w-4" />
+            <img src={images.socialInstagramIcon} alt="" className="buzz-icon-on-ink h-4 w-4" />
           </a>
           <a
             href={social.linkedin.companyUrl}
@@ -135,7 +134,7 @@ export default function SiteHeader() {
             className="text-buzz-inkMuted hover:opacity-80"
             aria-label="LinkedIn"
           >
-            <img src={images.socialLinkedinIcon} alt="" className="h-4 w-4" />
+            <img src={images.socialLinkedinIcon} alt="" className="buzz-icon-on-ink h-4 w-4" />
           </a>
         </div>
 
@@ -179,9 +178,9 @@ export default function SiteHeader() {
 
       {/* Coral nav bar. Logo is in-flow (1fr / auto / 1fr) so it cannot cover
           the side clusters. Org uses lg; guest/brand keep 650px. */}
-      <nav className="relative bg-buzz-coral text-buzz-paper shadow-buzz">
+      <nav className="relative border-b border-buzz-line bg-buzz-cream/90 text-buzz-fg backdrop-blur-md">
         <div
-          className={`relative hidden h-[6rem] grid-cols-[1fr_auto_1fr] items-center px-8 py-4 font-medium ${
+          className={`relative hidden h-16 grid-cols-[1fr_auto_1fr] items-center px-8 font-medium ${
             isOrgNav ? "lg:grid" : "min-[650px]:grid"
           }`}
         >
@@ -210,7 +209,7 @@ export default function SiteHeader() {
             type="button"
             data-testid="site-header-logo"
             onClick={() => navigate("/")}
-            className="flex h-16 max-w-[11rem] shrink-0 cursor-pointer items-center justify-center px-2"
+            className="flex h-10 max-w-[9rem] shrink-0 cursor-pointer items-center justify-center px-2"
           >
             <img
               src={images.logo}
@@ -223,7 +222,7 @@ export default function SiteHeader() {
             <button
               type="button"
               onClick={openContactModal}
-              className="whitespace-nowrap transition hover:text-buzz-butterBright"
+              className="whitespace-nowrap text-sm text-buzz-fg transition hover:text-buzz-yellow"
             >
               Contact
             </button>
@@ -231,7 +230,7 @@ export default function SiteHeader() {
               <button
                 type="button"
                 onClick={handleJoinClick}
-                className="whitespace-nowrap transition hover:text-buzz-butterBright"
+                className="inline-flex h-10 items-center rounded-full bg-buzz-yellow px-4 text-sm font-medium text-buzz-onAccent transition hover:bg-buzz-yellowHover"
               >
                 Join Us!
               </button>
@@ -248,7 +247,7 @@ export default function SiteHeader() {
           <button
             type="button"
             onClick={() => setMobileNavOpen((o) => !o)}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-buzzControl border border-buzz-paper/30 bg-buzz-paper/10 text-buzz-paper transition hover:bg-buzz-paper/20"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-buzz-line text-buzz-fg transition hover:bg-buzz-paper08"
             aria-expanded={mobileNavOpen}
             aria-controls="mobile-nav-menu"
             aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
@@ -290,9 +289,9 @@ export default function SiteHeader() {
           />
           <div
             id="mobile-nav-menu"
-            className={`absolute bottom-0 left-0 right-8 top-0 z-10 flex flex-col border border-buzz-lineMid bg-buzz-paper shadow-buzzLg transition-transform duration-300 ease-out ${
+            className={`absolute bottom-0 left-0 right-8 top-0 z-10 flex flex-col border border-buzz-line bg-buzz-paper shadow-buzzLg transition-transform duration-300 ease-out ${
               mobileNavOpen ? "translate-x-0" : "-translate-x-full"
-            } rounded-tl-none rounded-br-3xl rounded-tr-3xl`}
+            } rounded-br-buzzModal rounded-tr-buzzModal`}
           >
             <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 pb-8 pt-5">
               <ul className="flex flex-col gap-0 text-sm font-semibold uppercase tracking-wide text-buzz-ink">

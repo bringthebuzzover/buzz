@@ -31,28 +31,28 @@ export default function Marquee({
   return (
     <div
       className={cn(
-        "w-full overflow-hidden bg-buzz-cream",
+        "w-full overflow-hidden bg-page",
         SECTION_Y,
         !hideBottomBorder && "border-b border-buzz-line",
       )}
     >
       <div className="mb-8 text-center">
-        <h2 className={cn(TEXT.h2, "text-buzz-ink")}>{title}</h2>
+        <h2 className={cn(TEXT.h2, "text-primary")}>{title}</h2>
         {subtitle ? (
-          <p className={cn(TEXT.body, "mt-1 text-buzz-inkMuted")}>{subtitle}</p>
+          <p className={cn(TEXT.body, "mt-1 text-muted")}>{subtitle}</p>
         ) : null}
       </div>
       <div className="relative flex w-full flex-nowrap items-center">
         <div
           className={cn(
-            "flex w-max shrink-0 items-center justify-center space-x-8 px-4 sm:space-x-16 sm:px-8",
+            "flex w-max shrink-0 items-center justify-center space-x-8 px-4 motion-reduce:animate-none sm:space-x-16 sm:px-8",
             reverse ? "animate-marquee-reverse" : "animate-marquee",
           )}
         >
           {[...items, ...items].map((item, i) => (
             <div
               key={`${item.domain}-${i}`}
-              className="group flex h-20 w-20 flex-col items-center justify-center opacity-80 transition duration-300 hover:opacity-100 sm:h-32 sm:w-32"
+              className="group flex h-20 w-20 flex-col items-center justify-center sm:h-32 sm:w-32"
             >
               <div className="relative mb-2 flex h-12 w-12 items-center justify-center sm:mb-3 sm:h-20 sm:w-20">
                 <RemoteImage
@@ -60,7 +60,7 @@ export default function Marquee({
                   label={item.name}
                   alt={item.name}
                   className={cn(
-                    "object-contain drop-shadow-buzz grayscale transition duration-300 group-hover:grayscale-0",
+                    "buzz-icon-on-ink object-contain opacity-60 transition duration-300 group-hover:opacity-100",
                     item.logoClassName
                       ? "absolute left-1/2 top-1/2 h-auto w-auto max-h-full -translate-x-1/2 -translate-y-1/2"
                       : "h-full w-full",
@@ -68,7 +68,7 @@ export default function Marquee({
                   )}
                 />
               </div>
-              <span className="block whitespace-nowrap text-center text-buzzMicro font-medium text-buzz-inkMuted">
+              <span className="block whitespace-nowrap text-center text-buzzMicro font-medium text-muted">
                 {item.name}
               </span>
             </div>

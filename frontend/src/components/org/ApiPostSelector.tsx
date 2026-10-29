@@ -76,7 +76,7 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
         </ErrorBanner>
       ) : null}
       {!readOnly && suggestions && suggestions.length > 0 ? (
-        <Card kind="card" pad="card">
+        <Card kind="tile" pad="card">
           <CardHeader
             title="Suggested posts"
             description="We spotted these posts that look like they belong to this campaign."
@@ -125,7 +125,7 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
       ) : null}
 
       <IgPreviousAccountBanner />
-      <Card kind="card" pad="card">
+      <Card kind="tile" pad="card">
         <CardHeader
           title="Linked posts"
           description="One post can only belong to one campaign."

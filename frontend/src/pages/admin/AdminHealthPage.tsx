@@ -58,7 +58,7 @@ function SignalRow({
       {to && !signal.ok ? (
         <Link
           to={to}
-          className="flex items-start gap-3 px-4 py-3 transition hover:bg-buzz-neutralWash"
+          className="flex items-start gap-3 px-4 py-3 transition hover:bg-surface-pop"
         >
           {body}
         </Link>

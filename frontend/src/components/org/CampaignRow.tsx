@@ -40,7 +40,7 @@ export default function CampaignRow({
   return (
     <Link to={`/org/campaigns/${applicationId}`} className="block">
       <Card
-        kind="card"
+        kind="tile"
         pad="default"
         className="flex items-center justify-between gap-4 transition hover:shadow-buzzLg"
       >

@@ -82,10 +82,30 @@ hit_outside_primitives "font weight above semibold" \
   "hierarchy comes from size and colour; TEXT caps weight at semibold"
 hit_outside_primitives "stock Tailwind radius" \
   'rounded-(sm|md|lg|xl|2xl|3xl)([^a-zA-Z-]|$)' \
-  "use rounded-buzzControl / rounded-buzzCard / rounded-buzzModal, or the Card primitive"
+  "use rounded-buzzControl / rounded-buzzCard / rounded-buzzBoard / rounded-buzzModal, or the Card primitive"
 hit_outside_primitives "stock Tailwind shadow" \
   'shadow-(sm|md|lg|xl|2xl)([^a-zA-Z-]|$)' \
   "use shadow-buzz / shadow-buzzLg, or the Card primitive"
+
+# Legacy names that read backwards after the Pulse Black remap:
+# `text-buzz-paper` is dark, `bg-buzz-ink` is light, `buzz-coral` / `buzz-cream`
+# are the old accent and page. New files use the semantic aliases
+# (bg-page, text-primary, text-on-accent, accent, accent-wash).
+# Files that still carry the old names are pinned in the allowlist.
+ALLOWLIST="$ROOT/frontend/scripts/ui-legacy-allowlist.txt"
+legacy_hits="$(grep -lE 'text-buzz-paper([^A-Za-z0-9]|$)|bg-buzz-ink([^A-Za-z]|$)|buzz-coral|buzz-cream' \
+  "$SRC" --include='*.tsx' --include='*.ts' -r --exclude-dir=theme || true)"
+if [[ -n "$legacy_hits" ]]; then
+  while IFS= read -r file; do
+    rel="${file#"$SRC"/}"
+    if ! grep -qxF "$rel" "$ALLOWLIST"; then
+      echo "check-ui-primitives: legacy palette class in $rel"
+      echo "  -> use bg-page, text-primary, text-muted, text-on-accent, accent, or accent-wash"
+      echo
+      fail=1
+    fi
+  done <<< "$legacy_hits"
+fi
 
 if [[ "$fail" -ne 0 ]]; then
   echo "check-ui-primitives: FAILED"

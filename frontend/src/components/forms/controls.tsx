@@ -8,15 +8,18 @@ import type {
 import { cva, type VariantProps } from "class-variance-authority";
 import { Link, type LinkProps } from "react-router-dom";
 import {
-  CONTROL_HEIGHT,
   fieldClass,
+  fieldErrorClass,
+  fieldHintClass,
   fieldLabelClass,
   fieldLabelCompactClass,
+  focusRingClass,
   selectChevronClass,
   selectWrapClass,
   textAreaClass,
   type ControlSize,
 } from "../../theme/controls";
+import FieldError from "./FieldError";
 import { TONE, type Tone } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
@@ -44,13 +47,23 @@ function FieldLabel({
 export function TextField({
   id,
   label,
+  hint,
+  error,
   size = "default",
   className,
   ...props
 }: Omit<InputHTMLAttributes<HTMLInputElement>, "size"> & {
   label?: ReactNode;
+  /** Quiet helper under the field. Hidden while `error` is set. */
+  hint?: ReactNode;
+  error?: string;
   size?: ControlSize;
 }) {
+  const hintId = hint && id ? `${id}-hint` : undefined;
+  const errorId = error && id ? `${id}-error` : undefined;
+  const describedBy = [errorId, hint && !error ? hintId : undefined]
+    .filter(Boolean)
+    .join(" ") || undefined;
   return (
     <div>
       {label && (
@@ -58,7 +71,19 @@ export function TextField({
           {label}
         </FieldLabel>
       )}
-      <input id={id} className={cn(fieldClass[size], className)} {...props} />
+      <input
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        className={cn(fieldClass[size], error && fieldErrorClass, className)}
+        {...props}
+      />
+      {error ? <FieldError id={errorId ?? `${id ?? "field"}-error`} message={error} /> : null}
+      {hint && !error ? (
+        <p id={hintId} className={fieldHintClass}>
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -66,6 +91,8 @@ export function TextField({
 export function TextArea({
   id,
   label,
+  hint,
+  error,
   size = "default",
   resizable = false,
   className,
@@ -73,6 +100,8 @@ export function TextArea({
   ...props
 }: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "size"> & {
   label?: ReactNode;
+  hint?: ReactNode;
+  error?: string;
   size?: ControlSize;
   wrapperClassName?: string;
   /**
@@ -90,13 +119,26 @@ export function TextArea({
       )}
       <textarea
         id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={
+          [error && id ? `${id}-error` : undefined, hint && !error && id ? `${id}-hint` : undefined]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
         className={cn(
           textAreaClass[size],
           resizable ? "resize-y" : "resize-none",
+          error && fieldErrorClass,
           className,
         )}
         {...props}
       />
+      {error ? <FieldError id={id ? `${id}-error` : "textarea-error"} message={error} /> : null}
+      {hint && !error ? (
+        <p id={id ? `${id}-hint` : undefined} className={fieldHintClass}>
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -135,12 +177,16 @@ export function DateTimeField({
 export function Select({
   id,
   label,
+  hint,
+  error,
   size = "default",
   className,
   children,
   ...props
 }: Omit<SelectHTMLAttributes<HTMLSelectElement>, "size"> & {
   label?: ReactNode;
+  hint?: ReactNode;
+  error?: string;
   size?: ControlSize;
 }) {
   return (
@@ -153,9 +199,16 @@ export function Select({
       <div className={selectWrapClass}>
         <select
           id={id}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={
+            [error && id ? `${id}-error` : undefined, hint && !error && id ? `${id}-hint` : undefined]
+              .filter(Boolean)
+              .join(" ") || undefined
+          }
           className={cn(
             fieldClass[size],
             "cursor-pointer appearance-none pr-10",
+            error && fieldErrorClass,
             className,
           )}
           {...props}
@@ -175,11 +228,18 @@ export function Select({
           />
         </svg>
       </div>
+      {error ? <FieldError id={id ? `${id}-error` : "select-error"} message={error} /> : null}
+      {hint && !error ? (
+        <p id={id ? `${id}-hint` : undefined} className={fieldHintClass}>
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
 
 export { Checkbox } from "./Checkbox";
+export { Radio } from "../ui/Radio";
 
 /**
  * One button contract for the whole app.
@@ -188,26 +248,39 @@ export { Checkbox } from "./Checkbox";
  * without it a hugging CTA rendered full-bleed with padding sized for a
  * hugging button. `fullWidth` is how a form submit opts back in.
  *
- * Disabled is a designed state, not `opacity` alone — a faded coral fill read
- * as a broken button rather than a gated one.
+ * Pen pills: primary is yellow with ink type (40px), secondary is the dark pill
+ * (36px, paper-09 line), ghost and outline are the stroked 44px pill, danger
+ * is the solid red pill. Labels on yellow are `on-accent` (#0b0b0b, 13.4:1).
+ * Light paper type on yellow is 1.29:1 and is not used.
+ *
+ * Disabled is a designed state, not `opacity` alone.
  */
+const GHOST_PILL =
+  "h-11 border border-primary bg-transparent px-6 text-sm text-primary hover:border-accent hover:bg-accent hover:text-on-accent disabled:border-transparent disabled:bg-transparent disabled:text-quiet";
+
 export const buttonVariants = cva(
-  "inline-flex select-none items-center justify-center gap-2 self-center whitespace-nowrap rounded-buzzControl font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-coral/40 disabled:cursor-not-allowed",
+  `inline-flex select-none items-center justify-center gap-2 self-center whitespace-nowrap rounded-full font-normal transition disabled:cursor-not-allowed ${focusRingClass}`,
   {
     variants: {
       variant: {
+        // Pen Pill / Yellow: 40px, 14px, weight 400.
         primary:
-          "bg-buzz-coral text-buzz-paper hover:bg-buzz-coralDark disabled:bg-buzz-neutralHover disabled:text-buzz-inkFaint",
-        outline:
-          "border-2 border-buzz-coral bg-transparent text-buzz-coral hover:bg-buzz-coral hover:text-buzz-paper disabled:border-buzz-neutralHover disabled:bg-transparent disabled:text-buzz-inkFaint",
-        ghost:
-          "bg-transparent font-medium text-buzz-inkMuted underline-offset-2 hover:text-buzz-coral hover:underline disabled:text-buzz-inkFaint",
+          "h-10 bg-accent px-4 text-sm text-on-accent hover:bg-buzz-yellowHover disabled:bg-buzz-neutral disabled:text-quiet",
+        // Pen Pill / Dark: 36px, paper-09 line so the fill reads on the page.
+        secondary:
+          "h-9 border border-line bg-buzz-inkBtn px-3.5 text-xs text-primary hover:bg-surface-pop disabled:border-transparent disabled:bg-buzz-neutral disabled:text-quiet",
+        // Pen Pill / Ghost: 44px, paper stroke, padding 24. `outline` keeps the old name.
+        outline: GHOST_PILL,
+        ghost: GHOST_PILL,
+        // Pen Pill / Danger: 40px, solid red, paper label, weight 400.
         danger:
-          "border-2 border-buzz-dangerLine bg-buzz-dangerWash text-buzz-danger hover:border-buzz-danger hover:bg-buzz-danger hover:text-buzz-paper disabled:border-buzz-neutralHover disabled:bg-transparent disabled:text-buzz-inkFaint",
+          "h-10 bg-buzz-dangerFill px-4 text-sm text-primary hover:bg-buzz-dangerInk hover:text-on-accent disabled:bg-buzz-neutral disabled:text-quiet",
       },
       size: {
-        default: `${CONTROL_HEIGHT.default} px-5 text-sm`,
-        compact: `${CONTROL_HEIGHT.compact} px-3 text-xs`,
+        default: "",
+        compact: "h-9 px-3 text-xs",
+        /** 48px. Only for a button sitting on the same row as a field. */
+        field: "h-12 px-4 text-sm",
         hero: "h-14 px-8 text-base",
       },
       fullWidth: {
@@ -313,8 +386,18 @@ export function ErrorBanner({ children }: { children: ReactNode }) {
   );
 }
 
+/** Pen Notice: yellow-faded fill, yellow line, paper text. Not the paper success chip. */
 export function SuccessBanner({ children }: { children: ReactNode }) {
-  return <Banner tone="success">{children}</Banner>;
+  if (!children) return null;
+  return (
+    <div
+      className="flex items-start gap-3 rounded-buzzField border border-buzz-yellowLine bg-accent-wash px-4 py-4 text-sm text-primary"
+      role="status"
+    >
+      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
 }
 
 export function WarningBanner({ children }: { children: ReactNode }) {

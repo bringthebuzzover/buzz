@@ -142,7 +142,7 @@ export default function ConnectInstagramPage() {
         onClick={() => void onConnect()}
         disabled={bindStart.isPending}
       >
-        <img src={instagramIcon} alt="" className="h-5 w-5" />
+        <img src={instagramIcon} alt="" className="buzz-icon-on-ink h-5 w-5" />
         {bindStart.isPending ? "Starting…" : "Connect with Instagram"}
       </Button>
 

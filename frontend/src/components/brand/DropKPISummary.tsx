@@ -37,9 +37,9 @@ export default function DropKPISummary({ metrics }: DropKPISummaryProps) {
   return (
     <div className={cn("grid grid-cols-1 sm:grid-cols-3", GAP.default)}>
       {tiles.map(({ icon: Icon, label, value }) => (
-        <Card key={label} kind="cardWarm" pad="card" className="text-center">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-buzz-paper">
-            <Icon size={20} className="text-buzz-coral" />
+        <Card key={label} kind="stat" pad="card" className="text-center">
+          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-surface-pop">
+            <Icon size={20} className="text-accent" />
           </div>
           <div className={TEXT.metric}>{value}</div>
           <div className={cn(TEXT.micro, "mt-2 text-buzz-inkMuted")}>{label}</div>
