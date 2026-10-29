@@ -1,4 +1,4 @@
-"""My-Campaigns orchestration (architecture.md §7.2/§7.3).
+"""My-Campaigns orchestration (buzz-ops engineering/architecture.md §7.2/§7.3).
 
 A "campaign" is an org's ``drop_applications`` row joined with its parent drop.
 Denied applications are invisible to the org (filtered from the list, 404 on

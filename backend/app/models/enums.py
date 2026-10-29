@@ -16,7 +16,7 @@ Naming conventions
   (uppercased only when the value itself is uppercase) so model code can
   use either ``PortalRole.ORG`` or ``"org"`` interchangeably.
 
-See ``architecture.md`` §3.2 for the canonical list.
+See `buzz-ops `engineering/architecture.md`` §3.2 for the canonical list.
 """
 
 from __future__ import annotations
@@ -65,7 +65,7 @@ class BrandStatus(StrEnum):
 class OrgCategory(StrEnum):
     """Classification of a student org (``organizations.category``).
 
-    Drives brand-side applicant filtering (PRODUCT.md §5.3.1). Nullable on the
+    Drives brand-side applicant filtering (buzz-ops product/PRODUCT.md §5.3.1). Nullable on the
     column — orgs onboarded before this field, or that decline to classify,
     have no category.
     """

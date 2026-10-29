@@ -1,4 +1,4 @@
-"""Buzz-issued JWT encode/decode (architecture.md §5.3).
+"""Buzz-issued JWT encode/decode (buzz-ops engineering/architecture.md §5.3).
 
 Four token *types*, all signed with ``settings.SECRET_KEY`` /
 ``settings.JWT_ALGORITHM`` and carrying an explicit ``type`` claim so none
@@ -202,7 +202,7 @@ def create_oauth_state_token(
     """Mint a signed, short-lived CSRF ``state`` for the OAuth round-trip.
 
     When ``bind_user_id`` is set, the callback binds Instagram to that existing
-    user instead of inserting (LAUNCH.md Phase A Connect). ``next_path`` must
+    user instead of inserting (the org Connect step). ``next_path`` must
     already be allowlisted (``/d/<uuid>``); other values are dropped.
     """
 

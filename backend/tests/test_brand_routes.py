@@ -1,4 +1,4 @@
-"""Tests for brand portal routes (architecture.md §8.1–§8.4)."""
+"""Tests for brand portal routes (buzz-ops engineering/architecture.md §8.1–§8.4)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Notify Me reminder delivery (architecture.md §10.6, PRODUCT §6.3.1).
+"""Notify Me reminder delivery (buzz-ops engineering/architecture.md §10.6, PRODUCT §6.3.1).
 
 Every ~5 minutes. An org that tapped Notify Me on an Upcoming drop picked a
 lead time (5 / 15 / 60 minutes); this job emails them once ``apply_open_at``

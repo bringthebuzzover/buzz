@@ -1,4 +1,4 @@
-"""Instagram OAuth login + callback flow (architecture.md §3.4).
+"""Instagram OAuth login + callback flow (buzz-ops engineering/architecture.md §3.4).
 
 Uses ``FakeInstagramClient`` (via ``fake_instagram``) so no network/secrets
 are needed. ``app_client`` shares the rolled-back ``db_session``.

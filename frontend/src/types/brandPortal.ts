@@ -2,7 +2,7 @@
  * Brand portal domain types — post-publish drop tracker stages and the rolled-up
  * brand-side summary view of a drop (no per-org breakdown in v1).
  *
- * LAUNCH.md Phase B: brand-facing stepper is three stages after publish.
+ * buzz-ops engineering/plans/archive/2026-seeded-launch.md Phase B: brand-facing stepper is three stages after publish.
  * Legacy stages remain typed for older drops / admin labels.
  */
 

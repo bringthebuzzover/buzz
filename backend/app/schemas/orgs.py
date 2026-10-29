@@ -1,4 +1,4 @@
-"""Pydantic models for the org profile surface (architecture.md §5.1, §3.1).
+"""Pydantic models for the org profile surface (buzz-ops engineering/architecture.md §5.1, §3.1).
 
 ``GET /api/orgs/me`` returns the full org profile; ``PATCH /api/orgs/me`` accepts
 the editable subset. ``edu_email`` and ``instagram_handle`` on the response are

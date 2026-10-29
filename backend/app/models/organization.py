@@ -45,7 +45,7 @@ class Organization(Base):
 
     follower_count: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
     member_count: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
-    # Org classification for brand-side applicant filtering (PRODUCT.md §5.3.1).
+    # Org classification for brand-side applicant filtering (buzz-ops product/PRODUCT.md §5.3.1).
     category: Mapped[str | None] = mapped_column(OrgCategoryEnum, nullable=True)
 
     city: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)

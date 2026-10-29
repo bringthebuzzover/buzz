@@ -18,7 +18,7 @@ staging and production send the same payload as before.
 
 Optional Resend ``Idempotency-Key`` values are opt-in per call
 (``build_idempotency_key``). A missing key sends with no header. Policy and
-per-kind choices: ``gaps/archive/ops.email-ledger.md``.
+per-kind choices: buzz-ops ``engineering/gaps/archive/ops.email-ledger.md``.
 """
 
 from __future__ import annotations
@@ -814,7 +814,7 @@ async def send_drop_published_email(
     drop_url: str,
     idempotency_key: str | None = None,
 ) -> bool:
-    """Tell a brand their campaign is live on the org feed (LAUNCH.md Phase B)."""
+    """Tell a brand their campaign is live on the org feed."""
     name = brand_name or "your brand"
     title = drop_title or "your campaign"
     subject = f"Your Buzz drop is live — {title}" if drop_title else "Your Buzz drop is live"

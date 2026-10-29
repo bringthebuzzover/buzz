@@ -1,6 +1,6 @@
 """One-shot: convert unpublished request_received stubs into closed tickets.
 
-LAUNCH.md Phase B / B6b. Idempotent — a second write run is a no-op.
+buzz-ops engineering/plans/archive/2026-seeded-launch.md Phase B / B6b. Idempotent — a second write run is a no-op.
 
     poetry run python scripts/cleanup_request_received_stubs.py --dry-run
     poetry run python scripts/cleanup_request_received_stubs.py

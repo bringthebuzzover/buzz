@@ -1,4 +1,4 @@
-"""Brand portal orchestration (architecture.md §8.1–§8.4).
+"""Brand portal orchestration (buzz-ops engineering/architecture.md §8.1–§8.4).
 
 Pure service functions (no FastAPI types) the route layer calls. Brand-facing
 endpoints gate on ``_require_brand`` (active brand must have a ``brands`` row,

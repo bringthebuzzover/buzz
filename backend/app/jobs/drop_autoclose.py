@@ -1,6 +1,6 @@
-"""Drop auto-close job (architecture.md §10.2).
+"""Drop auto-close job (buzz-ops engineering/architecture.md §10.2).
 
-LAUNCH.md Phase B: autoclose only walks **published** drops. Legacy
+Autoclose only walks **published** drops. Legacy
 ``request_received`` stubs are frozen (hidden from the org feed) until the
 one-shot cleanup converts them to tickets.
 

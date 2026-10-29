@@ -1,4 +1,4 @@
-"""Pydantic models for the drops surface (architecture.md §5.5, §7.1).
+"""Pydantic models for the drops surface (buzz-ops engineering/architecture.md §5.5, §7.1).
 
 Responses are **camelCase** with **epoch-ms** datetimes (see ``schemas.common``)
 so they match the frontend ``Drop`` TypeScript type field-for-field. Only the

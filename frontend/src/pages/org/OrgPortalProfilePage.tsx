@@ -1,5 +1,5 @@
 /**
- * `/org/profile` — view/edit org profile after onboarding (PRODUCT.md §3.1).
+ * `/org/profile` — view/edit org profile after onboarding (buzz-ops product/PRODUCT.md §3.1).
  *
  * Distinct from `/onboarding/profile`, which creates the org row. Instagram
  * handle is login identity (request-change modal, not PATCH). .edu rotates via

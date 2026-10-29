@@ -1,4 +1,4 @@
-"""Brand drop-request intake (LAUNCH.md Phase B / PRODUCT §5.2).
+"""Brand drop-request intake (buzz-ops product/PRODUCT.md §5.2).
 
 Plan your Campaign creates a ``drop_requests`` ticket only — never a ``drops``
 row. Admins convert tickets into unpublished drafts, then Publish.

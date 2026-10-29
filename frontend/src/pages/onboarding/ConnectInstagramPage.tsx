@@ -1,6 +1,6 @@
 /**
  * /onboarding/connect-instagram — bind Instagram after admin Approve
- * (LAUNCH.md Phase A / PRODUCT §6.1). Status: pending_instagram.
+ * (buzz-ops engineering/plans/archive/2026-seeded-launch.md Phase A / PRODUCT §6.1). Status: pending_instagram.
  *
  * Approval email carries ?token= for one-shot session mint when the org has no
  * live cookie; then they start bind OAuth via bind-start.

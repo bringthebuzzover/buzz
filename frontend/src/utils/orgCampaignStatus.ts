@@ -1,7 +1,7 @@
 /**
  * Derive org-facing My Campaigns status from application decision + brand tracker stage.
  *
- * Denied is filtered out of the visible surface (PRODUCT.md §6.4). Labels/order
+ * Denied is filtered out of the visible surface (buzz-ops product/PRODUCT.md §6.4). Labels/order
  * live in `types/orgCampaign` and are re-exported here for a single import path.
  */
 

@@ -1,9 +1,9 @@
-"""Auth / onboarding orchestration (architecture.md §3.4).
+"""Auth / onboarding orchestration (buzz-ops engineering/architecture.md §3.4).
 
 Pure service functions — no FastAPI types — that the route layer calls.
 Instagram OAuth: returning users refresh tokens; Connect binds an existing
 apply-first user; unknown Graph ids without bind context do **not** insert
-(``ORG_APPLY_REQUIRED`` — LAUNCH.md Phase A).
+(``ORG_APPLY_REQUIRED`` — buzz-ops engineering/plans/archive/2026-seeded-launch.md Phase A).
 """
 
 from __future__ import annotations

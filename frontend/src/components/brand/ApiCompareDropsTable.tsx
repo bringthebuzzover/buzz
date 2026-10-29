@@ -1,6 +1,6 @@
 /**
  * API-path "Compare drops" table for the brand aggregate dashboard
- * (PRODUCT.md §5.3.2). Renders directly from the per-drop aggregates already
+ * (buzz-ops product/PRODUCT.md §5.3.2). Renders directly from the per-drop aggregates already
  * returned by `GET /api/brands/me/drops` (`BrandDropItem`), so no extra fetch.
  * The demo `CompareDropsTable` recomputes from raw stores and can't take API
  * types — this is its production counterpart.

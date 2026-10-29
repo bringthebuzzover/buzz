@@ -1,4 +1,4 @@
-"""Org profile routes — ``/api/orgs`` (architecture.md §5.1).
+"""Org profile routes — ``/api/orgs`` (buzz-ops engineering/architecture.md §5.1).
 
 ``POST /api/orgs/onboarding`` (Stage 7) creates the org profile and advances the
 account to email verification; the rest is the active-org profile read/update +

@@ -1,4 +1,4 @@
-"""Tests for the Stage 8 background jobs (architecture.md §10)."""
+"""Tests for the Stage 8 background jobs (buzz-ops engineering/architecture.md §10)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,6 @@
-"""Pydantic models for the org "My Campaigns" surface (architecture.md §7.2/§7.3).
+"""Pydantic models for the org "My Campaigns" surface.
+
+See buzz-ops engineering/architecture.md §7.2/§7.3.
 
 Each campaign is a ``drop_applications`` row joined with its parent ``drops``
 row. ``brand_tracker_stage`` is passed through **raw** (the frontend derives the

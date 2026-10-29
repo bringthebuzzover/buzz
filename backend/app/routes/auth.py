@@ -1,4 +1,4 @@
-"""Auth routes — ``/api/auth/*`` (architecture.md §5.1).
+"""Auth routes — ``/api/auth/*`` (buzz-ops engineering/architecture.md §5.1).
 
 Covers the org Instagram OAuth handshake plus the shared session surface
 (``/refresh``, ``/logout``, ``/me``). All JSON responses use the standard
@@ -396,7 +396,8 @@ async def refresh(
         )
     # Return user in the same response as the mint so the SPA bootstrap can
     # skip a follow-up /me. That /me was the mint-then-read race window in
-    # gaps/auth.ci-session-restore-flake.md — same UserResponse fields as
+    # buzz-ops engineering/gaps/archive/auth.ci-session-restore-flake.md — same
+    # UserResponse fields as
     # /me, same transaction, so token_version can't drift between them.
     return api_response(data=RefreshResponse(access_token=access, user=build_user_response(user)))
 

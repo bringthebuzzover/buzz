@@ -1,4 +1,4 @@
-"""Org profile orchestration (architecture.md §5.1 ``/api/orgs/me``).
+"""Org profile orchestration (buzz-ops engineering/architecture.md §5.1 ``/api/orgs/me``).
 
 Pure service functions (no FastAPI types) the route layer calls.
 

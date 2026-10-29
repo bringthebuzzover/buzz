@@ -85,7 +85,7 @@ class Settings(BaseSettings):
         description="One of: development, staging, production.",
     )
 
-    # --- JWT (architecture.md §5.3) ---
+    # --- JWT (buzz-ops engineering/architecture.md §5.3) ---
     JWT_ALGORITHM: str = Field(
         default="HS256",
         description="Signing algorithm for Buzz-issued JWTs.",
@@ -132,7 +132,7 @@ class Settings(BaseSettings):
         description="Lifetime of the View-as intent cookie, independent of the access TTL.",
     )
 
-    # --- Refresh cookie (architecture.md §11.1) ---
+    # --- Refresh cookie (buzz-ops engineering/architecture.md §11.1) ---
     REFRESH_COOKIE_NAME: str = Field(default="buzz_refresh")
     REFRESH_COOKIE_SECURE: bool = Field(
         default=False,
@@ -156,7 +156,7 @@ class Settings(BaseSettings):
         description="Short-lived cookie binding the OAuth state to the browser.",
     )
 
-    # --- Instagram OAuth (architecture.md §3.4) ---
+    # --- Instagram OAuth (buzz-ops engineering/architecture.md §3.4) ---
     INSTAGRAM_CLIENT_ID: str = Field(default="")
     INSTAGRAM_CLIENT_SECRET: str = Field(default="")
     INSTAGRAM_REDIRECT_URI: str = Field(default="")
@@ -196,7 +196,7 @@ class Settings(BaseSettings):
         ),
     )
 
-    # --- Onboarding + email (architecture.md §3.4, §4) ---
+    # --- Onboarding + email (buzz-ops engineering/architecture.md §3.4, §4) ---
     FRONTEND_URL: str = Field(
         default="http://localhost:3000",
         description="Base URL of the React SPA for building email links.",
@@ -267,11 +267,11 @@ class Settings(BaseSettings):
         description=(
             "In-memory per-IP (and per-account for login) rate limiting on auth "
             "+ public endpoints. Per-process: assumes a single web replica "
-            "(see DEPLOYMENT.md). Disabled in the test suite."
+            "(see buzz-ops engineering/infra.md). Disabled in the test suite."
         ),
     )
 
-    # --- Token encryption at rest (architecture.md §10.5 / §11.1) ---
+    # --- Token encryption at rest (buzz-ops engineering/architecture.md §10.5 / §11.1) ---
     TOKEN_ENCRYPTION_KEY: str = Field(
         default="",
         description=(

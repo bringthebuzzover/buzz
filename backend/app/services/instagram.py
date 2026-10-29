@@ -1,4 +1,4 @@
-"""Instagram OAuth client — the external-IO seam (architecture.md §3.4).
+"""Instagram OAuth client — the external-IO seam (buzz-ops engineering/architecture.md §3.4).
 
 The OAuth handshake is defined behind an :class:`InstagramClient` protocol so
 the flow is fully testable with a fake; the real :class:`HttpInstagramClient`
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 ACCOUNT_TYPE_BUSINESS = "BUSINESS"
 ACCOUNT_TYPE_MEDIA_CREATOR = "MEDIA_CREATOR"
 ALLOWED_ACCOUNT_TYPES = frozenset({ACCOUNT_TYPE_BUSINESS, ACCOUNT_TYPE_MEDIA_CREATOR})
-# Scopes Buzz asks for at Business Login (META.md). Extra names on the
+# Scopes Buzz asks for at Business Login. Extra names on the
 # code-exchange ``permissions`` field are logged; login still proceeds.
 EXPECTED_IG_LOGIN_PERMISSIONS = frozenset(
     {"instagram_business_basic", "instagram_business_manage_insights"}

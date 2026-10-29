@@ -1,4 +1,4 @@
-"""Admin orchestration (architecture.md §8.5, §9.2).
+"""Admin orchestration (buzz-ops engineering/architecture.md §8.5, §9.2).
 
 Pure service functions (no FastAPI types) the route layer calls.
 """
