@@ -77,6 +77,11 @@ jobs:
       - name: Type-check
         run: npx tsc --noEmit
 
+      - name: Unit tests (Jest)
+        run: npm test -- --watchAll=false
+        env:
+          CI: "true"
+
       - name: API types in sync with spec
         # Regenerate TS types from the committed openapi.json; fail if they're
         # stale (spec changed but `npm run gen:api` wasn't run). The backend job
