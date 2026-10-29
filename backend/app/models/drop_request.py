@@ -7,7 +7,7 @@ admins convert a ticket into an unpublished ``drops`` row, then Publish.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
@@ -23,6 +23,15 @@ class DropRequest(Base):
     brand_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("brands.id"), nullable=False)
 
     message: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    # Nullable so tickets created before structured intake stay valid.
+    # ``product`` is required on create; the column stays nullable.
+    product: Mapped[str | None] = mapped_column(sa.String(1000), nullable=True)
+    title: Mapped[str | None] = mapped_column(sa.String(120), nullable=True)
+    location: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    target_date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
+    org_count: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    units_per_org: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    campaign_hashtag: Mapped[str | None] = mapped_column(sa.String(100), nullable=True)
     notes: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
 
     # received | converted | closed

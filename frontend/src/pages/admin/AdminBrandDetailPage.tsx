@@ -12,7 +12,9 @@ import { Mail, Trash2 } from "lucide-react";
 import {
   useAdminBrand,
   useApproveBrand,
+  useApproveBrandIgChangeRequest,
   useDenyBrand,
+  useDenyBrandIgChangeRequest,
   useEraseBrand,
   useResendBrandInvite,
   useSendBrandEmail,
@@ -60,6 +62,8 @@ export default function AdminBrandDetailPage() {
   const resend = useResendBrandInvite();
   const sendEmail = useSendBrandEmail();
   const erase = useEraseBrand();
+  const approveIg = useApproveBrandIgChangeRequest();
+  const denyIg = useDenyBrandIgChangeRequest();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
   const [inviteNotice, setInviteNotice] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -68,6 +72,7 @@ export default function AdminBrandDetailPage() {
   const [eraseTyped, setEraseTyped] = useState("");
   const [eraseError, setEraseError] = useState<string | null>(null);
   const [eraseNotice, setEraseNotice] = useState<string | null>(null);
+  const [igDecisionError, setIgDecisionError] = useState<string | null>(null);
 
   const data = brand.data;
   const busy =
@@ -88,6 +93,7 @@ export default function AdminBrandDetailPage() {
   const canResendInvite = data?.status === "approved" && !data.passwordSet;
   const igHandle = data?.instagramHandle?.replace(/^@/, "") ?? "";
   const igProfileUrl = instagramProfileUrl(igHandle);
+  const pendingIg = data?.pendingIgChange ?? null;
 
   const onApprove = async () => {
     if (!data) return;
@@ -350,6 +356,62 @@ export default function AdminBrandDetailPage() {
               <p className="whitespace-pre-wrap px-4 py-4 text-sm font-medium text-buzz-ink">
                 {data.intentMessage}
               </p>
+            </Panel>
+          )}
+
+          {pendingIg && (
+            <Panel title="Instagram handle change">
+              <FieldGrid>
+                <Field label="Current">
+                  {pendingIg.currentHandle
+                    ? `@${pendingIg.currentHandle.replace(/^@/, "")}`
+                    : "—"}
+                </Field>
+                <Field label="Requested">
+                  @{pendingIg.requestedHandle.replace(/^@/, "")}
+                </Field>
+                <Field label="Reason">
+                  <span className="whitespace-pre-wrap">{pendingIg.reason}</span>
+                </Field>
+                <Field label="Submitted">{formatDateTime(pendingIg.createdAt)}</Field>
+              </FieldGrid>
+              {igDecisionError && <ErrorNote>{igDecisionError}</ErrorNote>}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <ActionButton
+                  variant="primary"
+                  testId="approve-brand-ig"
+                  disabled={approveIg.isPending || denyIg.isPending}
+                  onClick={() => {
+                    setIgDecisionError(null);
+                    void approveIg.mutateAsync(pendingIg.id).catch((err) => {
+                      setIgDecisionError(
+                        err instanceof ApiError
+                          ? err.message
+                          : "Could not approve the handle change.",
+                      );
+                    });
+                  }}
+                >
+                  Approve
+                </ActionButton>
+                <ActionButton
+                  variant="danger"
+                  testId="deny-brand-ig"
+                  disabled={approveIg.isPending || denyIg.isPending}
+                  onClick={() => {
+                    setIgDecisionError(null);
+                    void denyIg.mutateAsync(pendingIg.id).catch((err) => {
+                      setIgDecisionError(
+                        err instanceof ApiError
+                          ? err.message
+                          : "Could not deny the handle change.",
+                      );
+                    });
+                  }}
+                >
+                  Deny
+                </ActionButton>
+              </div>
             </Panel>
           )}
 

@@ -1,11 +1,11 @@
 /**
  * /admin/requests/:id — side-by-side ticket | draft-drop editor (LAUNCH.md Phase B).
  *
- * Left: intake ticket (reference only — not auto-filled into creative).
- * Right: draft form. Save draft mints an unpublished drop linked to the ticket;
- * Publish is a separate action once a drop exists.
+ * Left: draft editor (Campaign, Logistics, Settings, Drop). Save and Publish
+ * sit in the page header. Right: the brand request, read-only.
+ * Prefill copies title, location, capacity, total units, and hashtag only.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   useAdminDrop,
@@ -34,11 +34,12 @@ import {
 } from "../../components/admin/labels";
 import {
   DateTimeField,
+  Select,
   SuccessBanner,
   TextArea,
   TextField,
 } from "../../components/forms/controls";
-import { TEXT } from "../../theme/tokens";
+import { STACK, TEXT, TONE } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 function isValidHeroImage(url: string): boolean {
@@ -71,6 +72,7 @@ type DraftFormState = {
   openAt: string;
   closeAt: string;
   hashtag: string;
+  brandCanEditCreative: boolean;
 };
 
 function emptyForm(): DraftFormState {
@@ -85,6 +87,7 @@ function emptyForm(): DraftFormState {
     openAt: win.openAt,
     closeAt: win.closeAt,
     hashtag: "",
+    brandCanEditCreative: false,
   };
 }
 
@@ -100,7 +103,80 @@ function formFromDrop(drop: AdminDropDetail): DraftFormState {
     openAt: toDatetimeLocalValue(drop.applyOpenAt),
     closeAt: toDatetimeLocalValue(drop.applyCloseAt),
     hashtag: drop.campaignHashtag ?? "",
+    brandCanEditCreative: Boolean(drop.brandCanEditCreative),
   };
+}
+
+/**
+ * Copy logistics the brand already named. The org-facing description is left
+ * untouched — the admin writes it. Missing optionals are left alone so a blank
+ * ticket does not wipe capacity or a hashtag the admin already typed. Total
+ * units are set only when both organization count and units per org exist.
+ */
+function applyRequestPrefill(
+  form: DraftFormState,
+  ticket: {
+    title?: string | null;
+    location?: string | null;
+    campaignHashtag?: string | null;
+    orgCount?: number | null;
+    unitsPerOrg?: number | null;
+  },
+): DraftFormState {
+  const next = { ...form };
+  const title = ticket.title?.trim();
+  if (title) next.title = title;
+  const location = ticket.location?.trim();
+  if (location) next.location = location;
+  const hashtag = ticket.campaignHashtag?.trim();
+  if (hashtag) next.hashtag = hashtag;
+  if (ticket.orgCount != null) next.capacity = String(ticket.orgCount);
+  if (ticket.orgCount != null && ticket.unitsPerOrg != null) {
+    next.units = String(ticket.orgCount * ticket.unitsPerOrg);
+  }
+  return next;
+}
+
+function EditorSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className={cn(STACK.tight, "border-t border-buzz-lineMid px-4 py-4")}>
+      <div>
+        <h3 className={TEXT.h3}>{title}</h3>
+        {description ? (
+          <p className={cn(TEXT.meta, "mt-1")}>{description}</p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function display(value: string | number | null | undefined): string {
+  if (value == null) return "—";
+  const text = String(value).trim();
+  return text || "—";
+}
+
+function formatTargetDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return iso;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function requiredReady(form: DraftFormState): boolean {
@@ -118,7 +194,10 @@ function requiredReady(form: DraftFormState): boolean {
 
 function TicketPanel({ ticket }: { ticket: AdminDropRequest }) {
   return (
-    <Panel title="Ticket" description="Reference only — do not paste as title/description.">
+    <Panel
+      title="Brand request"
+      description="Read-only. The message and product stay here — they are not copied into the org-facing description."
+    >
       <FieldGrid columns={2}>
         <Field label="Brand">
           <Link
@@ -146,9 +225,43 @@ function TicketPanel({ ticket }: { ticket: AdminDropRequest }) {
       </FieldGrid>
       <div className="space-y-3 border-t border-buzz-lineMid px-4 py-4">
         <div>
-          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Message</p>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Title</p>
+          <p className="text-sm font-medium text-buzz-ink">{display(ticket.title)}</p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Tell us about the campaign</p>
           <p className="whitespace-pre-wrap text-sm font-medium text-buzz-ink">
             {ticket.message}
+          </p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>What you're sending</p>
+          <p className="whitespace-pre-wrap text-sm font-medium text-buzz-ink">
+            {display(ticket.product)}
+          </p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Campuses or area</p>
+          <p className="text-sm font-medium text-buzz-ink">{display(ticket.location)}</p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>When do you want this live?</p>
+          <p className="text-sm font-medium text-buzz-ink">
+            {formatTargetDate(ticket.targetDate)}
+          </p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Organizations</p>
+          <p className="text-sm font-medium text-buzz-ink">{display(ticket.orgCount)}</p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Units per organization</p>
+          <p className="text-sm font-medium text-buzz-ink">{display(ticket.unitsPerOrg)}</p>
+        </div>
+        <div>
+          <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Campaign hashtag</p>
+          <p className="text-sm font-medium text-buzz-ink">
+            {display(ticket.campaignHashtag)}
           </p>
         </div>
         <div>
@@ -204,9 +317,13 @@ function PublishedDropSummary({ drop }: { drop: AdminDropDetail }) {
 function DraftEditor({
   ticket,
   linkedDrop,
+  linkedPending,
+  linkedError,
 }: {
   ticket: AdminDropRequest;
   linkedDrop: AdminDropDetail | undefined;
+  linkedPending: boolean;
+  linkedError: boolean;
 }) {
   const create = useCreateAdminDrop();
   const [minted, setMinted] = useState<AdminDropDetail | undefined>(undefined);
@@ -256,7 +373,7 @@ function DraftEditor({
     if (form.units.trim() !== "") {
       const u = Number(form.units);
       if (!Number.isInteger(u) || u < 1) {
-        throw new Error("Unit budget must be an integer ≥ 1, or leave empty.");
+        throw new Error("Total units must be an integer ≥ 1, or leave empty.");
       }
       units = u;
     } else {
@@ -272,6 +389,7 @@ function DraftEditor({
       applyCloseAt: closeMs,
       totalProductUnits: units,
       campaignHashtag: form.hashtag.trim() || null,
+      brandCanEditCreative: form.brandCanEditCreative,
     };
   };
 
@@ -330,161 +448,245 @@ function DraftEditor({
     }
   };
 
-  if (published && drop) {
-    return <PublishedDropSummary drop={drop} />;
-  }
+  const prefill = () => {
+    setForm((prev) => applyRequestPrefill(prev, ticket));
+    setError(null);
+    setNotice(
+      "Filled from the request. Nothing is saved until you save the draft.",
+    );
+  };
+
+  const saveLabel =
+    create.isPending || patch.isPending ? "Saving…" : "Save draft";
+  const headerActions = published ? null : (
+    <div className="flex flex-wrap gap-2">
+      <ActionButton
+        testId="save-draft"
+        disabled={busy || !ready}
+        onClick={() => void onSaveDraft()}
+      >
+        {saveLabel}
+      </ActionButton>
+      {drop ? (
+        <ActionButton
+          variant="primary"
+          testId="publish-drop"
+          disabled={busy || !ready}
+          onClick={() => void onPublish()}
+        >
+          {publish.isPending ? "Publishing…" : "Publish"}
+        </ActionButton>
+      ) : (
+        <ActionButton variant="primary" disabled onClick={() => undefined}>
+          Publish
+        </ActionButton>
+      )}
+    </div>
+  );
+
+  const editor =
+    published && drop ? (
+      <PublishedDropSummary drop={drop} />
+    ) : (
+      <Panel
+        title="Draft drop"
+        description="You write the org-facing description. Prefill does not copy the brand message or product."
+      >
+        <EditorSection
+          title="Campaign"
+          description="What organizations see: title, story, and hero image."
+        >
+          <TextField
+            id="draft-title"
+            label="Title"
+            size="compact"
+            data-testid="draft-title"
+            value={form.title}
+            disabled={busy}
+            onChange={(e) => setField("title", e.target.value)}
+          />
+          <TextArea
+            id="draft-description"
+            label="Description"
+            size="compact"
+            data-testid="draft-description"
+            rows={4}
+            value={form.description}
+            disabled={busy}
+            placeholder="Org-facing copy. Write this yourself."
+            onChange={(e) => setField("description", e.target.value)}
+          />
+          <TextField
+            id="draft-image"
+            label="Image (https)"
+            size="compact"
+            data-testid="draft-image"
+            value={form.image}
+            disabled={busy}
+            placeholder="https://…"
+            onChange={(e) => setField("image", e.target.value)}
+          />
+          {isValidHeroImage(form.image) ? (
+            <img
+              src={form.image.trim()}
+              alt=""
+              className="max-h-40 rounded-buzzCard border border-buzz-lineMid object-cover"
+            />
+          ) : null}
+        </EditorSection>
+
+        <EditorSection
+          title="Logistics"
+          description="Where it runs, how many seats, and the apply window."
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <TextField
+                id="draft-location"
+                label="Location"
+                size="compact"
+                data-testid="draft-location"
+                value={form.location}
+                disabled={busy}
+                onChange={(e) => setField("location", e.target.value)}
+              />
+            </div>
+            <TextField
+              id="draft-capacity"
+              label="Capacity"
+              size="compact"
+              type="number"
+              min={1}
+              data-testid="draft-capacity"
+              value={form.capacity}
+              disabled={busy}
+              onChange={(e) => setField("capacity", e.target.value)}
+            />
+            <TextField
+              id="draft-units"
+              label="Total units"
+              size="compact"
+              type="number"
+              min={1}
+              data-testid="draft-units"
+              value={form.units}
+              disabled={busy}
+              placeholder="Optional — organizations × units per org"
+              onChange={(e) => setField("units", e.target.value)}
+            />
+            <DateTimeField
+              id="draft-open-at"
+              label="Apply opens"
+              size="compact"
+              data-testid="draft-open-at"
+              value={form.openAt}
+              disabled={busy}
+              onChange={(e) => setField("openAt", e.target.value)}
+            />
+            <DateTimeField
+              id="draft-close-at"
+              label="Apply closes"
+              size="compact"
+              data-testid="draft-close-at"
+              value={form.closeAt}
+              disabled={busy}
+              onChange={(e) => setField("closeAt", e.target.value)}
+            />
+          </div>
+        </EditorSection>
+
+        <EditorSection
+          title="Settings"
+          description="Hashtag matching and who may edit creative after publish."
+        >
+          <TextField
+            id="draft-hashtag"
+            label="Campaign hashtag"
+            size="compact"
+            data-testid="draft-hashtag"
+            value={form.hashtag}
+            disabled={busy}
+            placeholder="optional"
+            onChange={(e) => setField("hashtag", e.target.value)}
+          />
+          <Select
+            id="draft-brand-can-edit"
+            data-testid="draft-brand-can-edit"
+            label="Who can edit"
+            size="compact"
+            value={form.brandCanEditCreative ? "brand" : "admin"}
+            disabled={busy}
+            onChange={(e) =>
+              setField("brandCanEditCreative", e.target.value === "brand")
+            }
+          >
+            <option value="admin">Admin only</option>
+            <option value="brand">
+              Brand can edit title, description, and image
+            </option>
+          </Select>
+        </EditorSection>
+
+        <EditorSection
+          title="Drop"
+          description="Unpublished until you publish. Organizations cannot see it yet."
+        >
+          <Pill tone="warn">Draft</Pill>
+          {!ready && (
+            <p className="text-xs font-medium text-buzz-inkMuted">
+              Fill title, description, https image, location, capacity, and
+              apply window to enable Save and Publish.
+            </p>
+          )}
+        </EditorSection>
+      </Panel>
+    );
 
   return (
-    <Panel
-      title="Draft drop"
-      description="Admin writes creative and logistics. Ticket text is reference only."
-    >
-      <div className="space-y-3 px-4 py-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Pill tone="warn">Draft</Pill>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <TextField
-              id="draft-title"
-              label="Title"
-              size="compact"
-              data-testid="draft-title"
-              value={form.title}
-              disabled={busy}
-              onChange={(e) => setField("title", e.target.value)}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <TextArea
-              id="draft-description"
-              label="Description"
-              size="compact"
-              data-testid="draft-description"
-              rows={3}
-              value={form.description}
-              disabled={busy}
-              onChange={(e) => setField("description", e.target.value)}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <TextField
-              id="draft-image"
-              label="Image (https)"
-              size="compact"
-              data-testid="draft-image"
-              value={form.image}
-              disabled={busy}
-              placeholder="https://…"
-              onChange={(e) => setField("image", e.target.value)}
-            />
-            {isValidHeroImage(form.image) ? (
-              <img
-                src={form.image.trim()}
-                alt=""
-                className="mt-2 max-h-40 rounded-buzzCard border border-buzz-lineMid object-cover"
-              />
-            ) : null}
-          </div>
-          <div className="sm:col-span-2">
-            <TextField
-              id="draft-location"
-              label="Location"
-              size="compact"
-              data-testid="draft-location"
-              value={form.location}
-              disabled={busy}
-              onChange={(e) => setField("location", e.target.value)}
-            />
-          </div>
-          <TextField
-            id="draft-capacity"
-            label="Capacity"
-            size="compact"
-            type="number"
-            min={1}
-            data-testid="draft-capacity"
-            value={form.capacity}
-            disabled={busy}
-            onChange={(e) => setField("capacity", e.target.value)}
-          />
-          <TextField
-            id="draft-units"
-            label="Unit budget"
-            size="compact"
-            type="number"
-            min={1}
-            data-testid="draft-units"
-            value={form.units}
-            disabled={busy}
-            placeholder="Optional"
-            onChange={(e) => setField("units", e.target.value)}
-          />
-          <DateTimeField
-            id="draft-open-at"
-            label="Apply opens"
-            size="compact"
-            data-testid="draft-open-at"
-            value={form.openAt}
-            disabled={busy}
-            onChange={(e) => setField("openAt", e.target.value)}
-          />
-          <DateTimeField
-            id="draft-close-at"
-            label="Apply closes"
-            size="compact"
-            data-testid="draft-close-at"
-            value={form.closeAt}
-            disabled={busy}
-            onChange={(e) => setField("closeAt", e.target.value)}
-          />
-          <div className="sm:col-span-2">
-            <TextField
-              id="draft-hashtag"
-              label="Campaign hashtag"
-              size="compact"
-              data-testid="draft-hashtag"
-              value={form.hashtag}
-              disabled={busy}
-              placeholder="optional"
-              onChange={(e) => setField("hashtag", e.target.value)}
-            />
-          </div>
-        </div>
+    <div>
+      <PageHeading
+        title={`Request · ${ticket.brandName}`}
+        subtitle="Write the drop on the left. The brand request stays on the right."
+        actions={headerActions}
+      />
 
-        <div className="flex flex-wrap gap-2 pt-2">
-          <ActionButton
-            testId="save-draft"
-            disabled={busy || !ready}
-            onClick={() => void onSaveDraft()}
-          >
-            {create.isPending || patch.isPending ? "Saving…" : "Save draft"}
-          </ActionButton>
-          {drop ? (
-            <ActionButton
-              variant="primary"
-              testId="publish-drop"
-              disabled={busy || !ready}
-              onClick={() => void onPublish()}
-            >
-              {publish.isPending ? "Publishing…" : "Publish"}
-            </ActionButton>
-          ) : (
-            <ActionButton variant="primary" disabled onClick={() => undefined}>
-              Publish
-            </ActionButton>
+      {linkedPending && (
+        <QueryState isPending isError={false} label="the linked draft" />
+      )}
+      {linkedError && <ErrorNote>Could not load the linked drop.</ErrorNote>}
+
+      {!published && (
+        <div
+          className={cn(
+            "mb-6 flex flex-wrap items-center justify-between gap-3 rounded-buzzCard border px-4 py-3",
+            TONE.warn,
           )}
+        >
+          <div>
+            <p className="text-sm font-semibold">Start with Prefill</p>
+            <p className="mt-0.5 text-xs font-medium">
+              Copies title, location, capacity, total units, and hashtag.
+              Nothing is saved until you save the draft.
+            </p>
+          </div>
+          <ActionButton
+            testId="prefill-from-request"
+            disabled={busy}
+            onClick={prefill}
+          >
+            Prefill from request
+          </ActionButton>
         </div>
-        {!ready && (
-          <p className="text-xs font-medium text-buzz-inkMuted">
-            Fill title, description, https image, location, capacity, and apply
-            window to enable Save draft / Publish.
-          </p>
-        )}
-        {notice && <SuccessBanner>{notice}</SuccessBanner>}
-        {error && <ErrorNote>{error}</ErrorNote>}
+      )}
+
+      {notice && <SuccessBanner>{notice}</SuccessBanner>}
+      {error && <ErrorNote>{error}</ErrorNote>}
+
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(16rem,0.8fr)]">
+        {editor}
+        <TicketPanel ticket={ticket} />
       </div>
-    </Panel>
+    </div>
   );
 }
 
@@ -510,31 +712,12 @@ export default function AdminDropRequestDetailPage() {
       />
 
       {ticket.data && (
-        <>
-          <PageHeading
-            title={`Request · ${ticket.data.brandName}`}
-            subtitle="Side-by-side ticket and draft. Publish only after creative and logistics are real."
-          />
-
-          {linkedId && linked.isPending && (
-            <QueryState
-              isPending={linked.isPending}
-              isError={false}
-              label="the linked draft"
-            />
-          )}
-          {linkedId && linked.isError && (
-            <ErrorNote>Could not load the linked drop.</ErrorNote>
-          )}
-
-          <div className="grid items-start gap-6 lg:grid-cols-2">
-            <TicketPanel ticket={ticket.data} />
-            <DraftEditor
-              ticket={ticket.data}
-              linkedDrop={linked.data}
-            />
-          </div>
-        </>
+        <DraftEditor
+          ticket={ticket.data}
+          linkedDrop={linked.data}
+          linkedPending={Boolean(linkedId && linked.isPending)}
+          linkedError={Boolean(linkedId && linked.isError)}
+        />
       )}
     </div>
   );

@@ -5,7 +5,7 @@
  * /api/brands/me/drops, /api/brands/me/drop-requests,
  * /api/brands/me/engagement-series).
  */
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import AggregateTotalsCards from "../../components/brand/AggregateTotalsCards";
 import ApiCompareDropsTable from "../../components/brand/ApiCompareDropsTable";
@@ -63,6 +63,17 @@ function StatusPill({ status }: { status: string }) {
   return <Chip tone={statusTone(status)}>{status.replace(/_/g, " ")}</Chip>;
 }
 
+/** Title when the brand gave one; otherwise the first line of the message. */
+export function requestListLabel(ticket: {
+  title?: string | null;
+  message: string;
+}): string {
+  const title = ticket.title?.trim();
+  if (title) return title;
+  const first = ticket.message.split(/\r?\n/).find((line) => line.trim());
+  return (first ?? ticket.message).trim();
+}
+
 function RequestsPanel({ tickets }: { tickets: BrandDropRequest[] }) {
   return (
     <Card kind="card" pad="none" className="scroll-mt-8 overflow-hidden" id="tickets">
@@ -87,10 +98,19 @@ function RequestsPanel({ tickets }: { tickets: BrandDropRequest[] }) {
             >
               <div className="min-w-0 flex-1">
                 <p className={cn(TEXT.body, "line-clamp-2 font-semibold text-buzz-ink")}>
-                  {ticket.message}
+                  {requestListLabel(ticket)}
                 </p>
                 <p className={cn(TEXT.meta, "mt-1")}>
-                  A representative will contact you.
+                  {ticket.convertedDropId ? (
+                    <Link
+                      to={`/brand/drops/${ticket.convertedDropId}`}
+                      className="font-bold text-buzz-coral hover:underline"
+                    >
+                      View drop
+                    </Link>
+                  ) : (
+                    "A representative will contact you."
+                  )}
                 </p>
               </div>
               <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">

@@ -11,6 +11,7 @@ from app.models.admin_audit_event import AdminAuditEvent
 from app.models.application import DropApplication
 from app.models.base import Base
 from app.models.brand import Brand
+from app.models.brand_ig_change_request import BrandIgChangeRequest
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.drop import Drop
 from app.models.drop_apply_intent import DropApplyIntent
@@ -34,6 +35,7 @@ __all__ = [
     "AdminAuditEvent",
     "Base",
     "Brand",
+    "BrandIgChangeRequest",
     "BrandInviteToken",
     "Drop",
     "DropApplication",
