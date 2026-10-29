@@ -170,6 +170,16 @@ async def test_rate_limit_disabled_does_not_block(app_client: AsyncClient) -> No
         assert resp.status_code == 200
 
 
+async def test_refresh_is_rate_limited(app_client: AsyncClient) -> None:
+    # No cookie -> 401 each call, but the per-IP limiter still counts; the 61st
+    # (limit=60/60s) is throttled before the handler runs.
+    settings.RATE_LIMIT_ENABLED = True
+    rate_limit.reset()
+    statuses = [(await app_client.post("/api/auth/refresh")).status_code for _ in range(61)]
+    assert statuses[:60] == [401] * 60
+    assert statuses[60] == 429
+
+
 def test_enforce_account_limit_raises_over_cap() -> None:
     settings.RATE_LIMIT_ENABLED = True
     rate_limit.reset()

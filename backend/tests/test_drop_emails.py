@@ -40,8 +40,9 @@ def sent(monkeypatch) -> list[tuple[str, str, str, list[str] | None]]:
         out.append((str(idempotency_key).split("/")[0], to, subject, cc))
         return True
 
-    async def denied(to, *, idempotency_key=None, **_):
-        out.append((str(idempotency_key).split("/")[0], to, "not selected", None))
+    async def denied(to, *, org_name, drop_title, brand_name, idempotency_key=None):
+        subject = f"not selected: {org_name} / {drop_title} / {brand_name}"
+        out.append((str(idempotency_key).split("/")[0], to, subject, None))
         return True
 
     monkeypatch.setattr(drop_notices, "send_lifecycle_email", lifecycle)
@@ -91,6 +92,8 @@ async def test_send_decisions_emails_each_org_once(
         ("seat-accepted", "yes@example.edu"),
     ]
     assert "Good news" in next(s for k, _, s, _ in sent if k == "seat-accepted")
+    denied = next(s for k, _, s, _ in sent if k == "application-denied")
+    assert denied.startswith("not selected: No / Snack drop / ") and not denied.endswith("/ ")
 
     # A second send has nothing new; the brand never got a per-seat email.
     sent.clear()
