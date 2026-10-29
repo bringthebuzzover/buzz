@@ -1172,6 +1172,11 @@
             "title": "Applyopenat",
             "type": "string"
           },
+          "brandCanEditCreative": {
+            "default": false,
+            "title": "Brandcaneditcreative",
+            "type": "boolean"
+          },
           "campaignHashtag": {
             "anyOf": [
               {
@@ -1686,6 +1691,17 @@
             "title": "Brandname",
             "type": "string"
           },
+          "campaignHashtag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaignhashtag"
+          },
           "convertedDropId": {
             "anyOf": [
               {
@@ -1707,6 +1723,17 @@
             "title": "Id",
             "type": "string"
           },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
           "message": {
             "title": "Message",
             "type": "string"
@@ -1722,9 +1749,65 @@
             ],
             "title": "Notes"
           },
+          "orgCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgcount"
+          },
+          "product": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product"
+          },
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "targetDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetdate"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "unitsPerOrg": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitsperorg"
           },
           "updatedAt": {
             "title": "Updatedat",
@@ -1736,6 +1819,13 @@
           "brandId",
           "brandName",
           "message",
+          "product",
+          "title",
+          "location",
+          "targetDate",
+          "orgCount",
+          "unitsPerOrg",
+          "campaignHashtag",
           "notes",
           "status",
           "convertedDropId",
@@ -4404,13 +4494,10 @@
         "type": "object"
       },
       "BrandDropRequestCreate": {
-        "description": "Body for ``POST /api/brands/me/drop-requests`` (LAUNCH.md Phase B).",
+        "additionalProperties": false,
+        "description": "Body for ``POST /api/brands/me/drop-requests`` (PRODUCT \u00a75.2).\n\n``message`` and ``product`` are required. Every other field may be omitted.\nUnknown keys are rejected. Length and range checks run after strip.",
         "properties": {
-          "message": {
-            "title": "Message",
-            "type": "string"
-          },
-          "notes": {
+          "campaignHashtag": {
             "anyOf": [
               {
                 "type": "string"
@@ -4419,22 +4506,121 @@
                 "type": "null"
               }
             ],
+            "title": "Campaignhashtag"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "message": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Notes"
+          },
+          "orgCount": {
+            "anyOf": [
+              {
+                "maximum": 200.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgcount"
+          },
+          "product": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Product",
+            "type": "string"
+          },
+          "targetDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetdate"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "unitsPerOrg": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitsperorg"
           }
         },
         "required": [
-          "message"
+          "message",
+          "product"
         ],
         "title": "BrandDropRequestCreate",
         "type": "object"
       },
       "BrandDropRequestResponse": {
-        "description": "A brand intake ticket (not a live drop).",
+        "description": "A brand intake ticket (not a live drop).\n\nStructured fields are nullable: tickets filed before they existed only\nhave ``message`` and ``notes``.",
         "properties": {
           "brandId": {
             "format": "uuid",
             "title": "Brandid",
             "type": "string"
+          },
+          "campaignHashtag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Campaignhashtag"
           },
           "convertedDropId": {
             "anyOf": [
@@ -4457,6 +4643,17 @@
             "title": "Id",
             "type": "string"
           },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
           "message": {
             "title": "Message",
             "type": "string"
@@ -4472,9 +4669,65 @@
             ],
             "title": "Notes"
           },
+          "orgCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgcount"
+          },
+          "product": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product"
+          },
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "targetDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetdate"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "unitsPerOrg": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitsperorg"
           },
           "updatedAt": {
             "title": "Updatedat",
@@ -4485,6 +4738,13 @@
           "id",
           "brandId",
           "message",
+          "product",
+          "title",
+          "location",
+          "targetDate",
+          "orgCount",
+          "unitsPerOrg",
+          "campaignHashtag",
           "notes",
           "status",
           "convertedDropId",

@@ -80,6 +80,7 @@ test("brand plan campaign creates a ticket receipt, not a drop", async ({
   await expect(page).toHaveURL(/\/brand\/requests\/new/);
 
   await page.locator("#message").fill("E2E plan campaign ticket");
+  await page.locator("#product").fill("Cold brew cans");
   await page.locator("#notes").fill("Optional notes for the rep");
 
   const createResp = page.waitForResponse(

@@ -908,6 +908,7 @@ class TestAdminCreateAndPublish:
         drop_id = data["id"]
         assert data["publishedAt"] is None
         assert data["title"] == "Campus Spring"
+        assert data["brandCanEditCreative"] is False
 
         await db_session.refresh(ticket)
         assert ticket.status == "converted"
@@ -960,6 +961,59 @@ class TestAdminCreateAndPublish:
             headers=await _admin_headers(db_session),
         )
         assert res.status_code == 422
+
+    async def test_create_persists_brand_can_edit_creative(
+        self, app_client: AsyncClient, db_session
+    ):
+        brand = await make_brand(db_session)
+        ticket = await make_drop_request(db_session, brand)
+        res = await app_client.post(
+            f"/api/admin/brands/{brand.id}/drops",
+            json=_draft_body(dropRequestId=str(ticket.id), brandCanEditCreative=True),
+            headers=await _admin_headers(db_session),
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert data["brandCanEditCreative"] is True
+        drop = await db_session.get(Drop, data["id"])
+        assert drop is not None
+        assert drop.brand_can_edit_creative is True
+
+
+class TestAdminDropRequestFields:
+    async def test_list_and_get_echo_structured_fields(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        ticket = await make_drop_request(db_session, brand, message="Structured", notes="n")
+        ticket.product = "Cans"
+        ticket.title = "Fall"
+        ticket.location = "Bay Area"
+        ticket.target_date = datetime.now(timezone.utc).date()
+        ticket.org_count = 8
+        ticket.units_per_org = 24
+        ticket.campaign_hashtag = "Fall_Brew"
+        await db_session.flush()
+        headers = await _admin_headers(db_session)
+
+        one = await app_client.get(f"/api/admin/drop-requests/{ticket.id}", headers=headers)
+        assert one.status_code == 200, one.text
+        data = one.json()["data"]
+        assert data["message"] == "Structured"
+        assert data["product"] == "Cans"
+        assert data["title"] == "Fall"
+        assert data["location"] == "Bay Area"
+        assert data["targetDate"] == ticket.target_date.isoformat()
+        assert data["orgCount"] == 8
+        assert data["unitsPerOrg"] == 24
+        assert data["campaignHashtag"] == "Fall_Brew"
+        assert data["notes"] == "n"
+        assert data["brandName"] == brand.brand_name
+
+        listed = await app_client.get("/api/admin/drop-requests", headers=headers)
+        assert listed.status_code == 200, listed.text
+        row = next(item for item in listed.json()["data"] if item["id"] == str(ticket.id))
+        assert row["product"] == "Cans"
+        assert row["orgCount"] == 8
+        assert row["unitsPerOrg"] == 24
 
 
 class TestCleanupRequestReceived:

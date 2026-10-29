@@ -11,15 +11,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const mockUseAdminDropRequest = jest.fn();
 const mockUseAdminDrop = jest.fn();
+const mockCreateDrop = jest.fn();
 
 jest.mock("../../api/hooks/useAdminHooks", () => ({
   useAdminDropRequest: (...args: unknown[]) => mockUseAdminDropRequest(...args),
   useAdminDrop: (...args: unknown[]) => mockUseAdminDrop(...args),
   useCreateAdminDrop: () => ({
-    mutateAsync: jest.fn().mockResolvedValue({
-      id: "drop-1",
-      publishedAt: null,
-    }),
+    mutateAsync: (...args: unknown[]) => mockCreateDrop(...args),
     isPending: false,
   }),
   usePatchAdminDropConfig: () => ({
@@ -85,6 +83,11 @@ describe("AdminDropRequestDetailPage", () => {
   let root: Root;
 
   beforeEach(() => {
+    mockCreateDrop.mockReset();
+    mockCreateDrop.mockResolvedValue({
+      id: "drop-1",
+      publishedAt: null,
+    });
     mockUseAdminDropRequest.mockReturnValue({
       data: { ...openTicket },
       isPending: false,
@@ -322,9 +325,90 @@ describe("AdminDropRequestDetailPage", () => {
     expect(container.querySelector('[data-testid="draft-title"]')).toBeNull();
     expect(container.querySelector('[data-testid="save-draft"]')).toBeNull();
     expect(container.querySelector('[data-testid="publish-drop"]')).toBeNull();
+    expect(container.querySelector('[data-testid="prefill-from-request"]')).toBeNull();
     const configLink = Array.from(container.querySelectorAll("a")).find((el) =>
       (el.getAttribute("href") ?? "").includes("tab=config"),
     );
     expect(configLink).toBeTruthy();
+  });
+
+  function renderOpenTicket() {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    act(() => {
+      root.render(
+        <MemoryRouter initialEntries={["/admin/requests/req-1"]}>
+          <QueryClientProvider client={queryClient}>
+            <Routes>
+              <Route
+                path="/admin/requests/:requestId"
+                element={<AdminDropRequestDetailPage />}
+              />
+            </Routes>
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+    });
+  }
+
+  it("prefills the draft from the request and does not save", () => {
+    mockUseAdminDropRequest.mockReturnValue({
+      data: {
+        ...openTicket,
+        title: "Fall Cold Brew",
+        product: "Cans",
+        location: "Bay Area",
+        campaignHashtag: "FallBrew",
+        orgCount: 8,
+        unitsPerOrg: 24,
+      },
+      isPending: false,
+      isError: false,
+    });
+    renderOpenTicket();
+
+    const prefill = container.querySelector(
+      '[data-testid="prefill-from-request"]',
+    ) as HTMLButtonElement;
+    expect(prefill).toBeTruthy();
+    act(() => {
+      prefill.click();
+    });
+
+    const value = (testId: string) =>
+      (container.querySelector(`[data-testid="${testId}"]`) as HTMLInputElement | HTMLTextAreaElement)
+        .value;
+    expect(value("draft-title")).toBe("Fall Cold Brew");
+    expect(value("draft-description")).toBe("");
+    expect(value("draft-location")).toBe("Bay Area");
+    expect(value("draft-hashtag")).toBe("FallBrew");
+    expect(value("draft-capacity")).toBe("8");
+    expect(value("draft-units")).toBe("192");
+    expect(mockCreateDrop).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Nothing is saved until you save the draft");
+  });
+
+  it("leaves capacity and units alone when the request has no scale", () => {
+    renderOpenTicket();
+    const prefill = container.querySelector(
+      '[data-testid="prefill-from-request"]',
+    ) as HTMLButtonElement;
+    act(() => {
+      prefill.click();
+    });
+    const capacity = container.querySelector(
+      '[data-testid="draft-capacity"]',
+    ) as HTMLInputElement;
+    const units = container.querySelector(
+      '[data-testid="draft-units"]',
+    ) as HTMLInputElement;
+    expect(capacity.value).toBe("10");
+    expect(units.value).toBe("");
+    expect(
+      (container.querySelector('[data-testid="draft-description"]') as HTMLTextAreaElement)
+        .value,
+    ).toBe("");
+    expect(mockCreateDrop).not.toHaveBeenCalled();
   });
 });

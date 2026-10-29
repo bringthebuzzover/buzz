@@ -17,6 +17,7 @@ export type BrandDropApplicant = components["schemas"]["BrandDropDetailApplicant
 export type BrandAggregate = components["schemas"]["BrandAggregateResponse"];
 export type EngagementPoint = components["schemas"]["EngagementSeriesPoint"];
 export type BrandDropRequest = components["schemas"]["BrandDropRequestResponse"];
+export type BrandDropRequestDraft = components["schemas"]["BrandDropRequestCreate"];
 
 // ── Hooks ────────────────────────────────────────────────────────────────
 
@@ -173,7 +174,7 @@ export function useEngagementSeries(bucketCount = 12, windowDays = 14) {
 export function useCreateBrandDropRequest() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { message: string; notes?: string }) => {
+    mutationFn: async (body: BrandDropRequestDraft) => {
       const { data } = await apiFetch<BrandDropRequest>(
         "/api/brands/me/drop-requests",
         {
