@@ -146,7 +146,8 @@ export default function DropFeedCard({
           src={drop.image}
           label={drop.brandName}
           alt=""
-          fallback="placeholder"
+          // The countdown covers the well while upcoming; the icon would sit under it.
+          fallback={feedStatus === "upcoming" ? "blank" : "placeholder"}
           className="absolute inset-0 h-full w-full rounded-buzzBoard object-cover"
         />
         <div
