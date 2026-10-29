@@ -202,6 +202,25 @@ async def test_security_headers_present(app_client: AsyncClient) -> None:
     assert resp.headers["x-frame-options"] == "DENY"
 
 
+async def test_staging_docs_require_basic_auth(app_client: AsyncClient, monkeypatch) -> None:
+    """Docs gate is request-time. Health and the rest of the API stay open."""
+    import base64
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "staging")
+    monkeypatch.setattr(settings, "STAGING_BASIC_AUTH", "stage-user:stage-pass")
+    blocked = await app_client.get("/api/openapi.json")
+    assert blocked.status_code == 401
+    assert "basic" in blocked.headers.get("www-authenticate", "").lower()
+    token = base64.b64encode(b"stage-user:stage-pass").decode("ascii")
+    opened = await app_client.get(
+        "/api/openapi.json",
+        headers={"Authorization": f"Basic {token}"},
+    )
+    assert opened.status_code == 200
+    health = await app_client.get("/api/health")
+    assert health.status_code == 200
+
+
 async def test_openapi_available_in_development(app_client: AsyncClient) -> None:
     """Test suite runs with ENVIRONMENT=development; docs must stay on."""
     from app.main import _DOCS_ENABLED
@@ -214,12 +233,24 @@ async def test_openapi_available_in_development(app_client: AsyncClient) -> None
 
 
 def test_openapi_gated_off_development() -> None:
-    """Off-dev FastAPI must not mount docs or openapi.json (404)."""
+    """Docs stay on in development. Staging mounts them only behind basic auth.
+
+    Production never mounts them, even when ``STAGING_BASIC_AUTH`` is set.
+    """
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    def _app(environment: str) -> FastAPI:
-        enabled = environment == "development"
+    from app.main import docs_enabled
+
+    assert docs_enabled("development", "") is True
+    assert docs_enabled("development", "user:pass") is True
+    assert docs_enabled("staging", "") is False
+    assert docs_enabled("staging", "user:pass") is True
+    assert docs_enabled("production", "") is False
+    assert docs_enabled("production", "user:pass") is False
+
+    def _app(environment: str, staging_basic_auth: str = "") -> FastAPI:
+        enabled = docs_enabled(environment, staging_basic_auth)
         return FastAPI(
             docs_url="/api/docs" if enabled else None,
             openapi_url="/api/openapi.json" if enabled else None,
@@ -229,7 +260,11 @@ def test_openapi_gated_off_development() -> None:
         assert client.get("/api/openapi.json").status_code == 200
         assert client.get("/api/docs").status_code == 200
 
-    with TestClient(_app("production")) as client:
+    with TestClient(_app("production", "user:pass")) as client:
+        assert client.get("/api/openapi.json").status_code == 404
+        assert client.get("/api/docs").status_code == 404
+
+    with TestClient(_app("staging", "")) as client:
         assert client.get("/api/openapi.json").status_code == 404
         assert client.get("/api/docs").status_code == 404
 
