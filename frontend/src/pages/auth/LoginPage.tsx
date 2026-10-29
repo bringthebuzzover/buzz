@@ -1,6 +1,7 @@
 /**
  * /login — Instagram OAuth entry point. Public page.
  */
+import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { Navigate, useSearchParams } from "react-router-dom";
 import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
@@ -19,6 +20,7 @@ export default function LoginPage() {
   const { status, user, login } = useAuth();
   const [searchParams] = useSearchParams();
   const next = allowlistedOAuthNext(searchParams.get("next"));
+  const [connecting, setConnecting] = useState(false);
 
   if (status === "idle" || status === "authenticating") {
     return <AuthPending />;
@@ -54,7 +56,12 @@ export default function LoginPage() {
         type="button"
         size="field"
         fullWidth
-        onClick={() => login(next)}
+        loading={connecting}
+        loadingLabel="Connecting…"
+        onClick={() => {
+          setConnecting(true);
+          login(next);
+        }}
       >
         Continue with Instagram
       </Button>

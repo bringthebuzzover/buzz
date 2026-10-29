@@ -147,7 +147,13 @@ export default function BrandApplyPage() {
 
         {error && <ErrorBanner>{error}</ErrorBanner>}
 
-        <Button type="submit" size="field" disabled={apply.isPending} fullWidth>
+        <Button
+          type="submit"
+          size="field"
+          loading={apply.isPending}
+          loadingLabel="Submitting…"
+          fullWidth
+        >
           Submit application
         </Button>
 

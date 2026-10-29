@@ -3,6 +3,7 @@
  * long-lived token is past expiry. Must not call authenticated APIs (anti-loop
  * with apiFetch hard-nav). Usable under idle / error / needs_instagram_reconnect.
  */
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
@@ -19,6 +20,7 @@ export default function ReconnectInstagramPage() {
   const { login, status } = useAuth();
   const [searchParams] = useSearchParams();
   const next = allowlistedOAuthNext(searchParams.get("next"));
+  const [connecting, setConnecting] = useState(false);
 
   return (
     <AuthSplit>
@@ -33,8 +35,12 @@ export default function ReconnectInstagramPage() {
         size="field"
         fullWidth
         data-testid="reconnect-instagram-cta"
-        onClick={() => login(next)}
-        disabled={status === "authenticating"}
+        loading={connecting || status === "authenticating"}
+        loadingLabel="Connecting…"
+        onClick={() => {
+          setConnecting(true);
+          login(next);
+        }}
       >
         Reconnect with Instagram
       </Button>

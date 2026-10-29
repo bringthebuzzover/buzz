@@ -102,7 +102,9 @@ describe("OrgApplyPage typed Instagram handle", () => {
       );
       const id = label?.getAttribute("for");
       if (id) {
-        return container.querySelector(`#${id}`) as
+        // getElementById accepts React useId() values (`:r0:`); `#:r0:` is not a valid selector.
+        const el = container.ownerDocument.getElementById(id);
+        return (el && container.contains(el) ? el : null) as
           | HTMLInputElement
           | HTMLTextAreaElement
           | HTMLSelectElement
