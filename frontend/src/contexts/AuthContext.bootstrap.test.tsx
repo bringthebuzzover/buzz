@@ -540,8 +540,8 @@ describe("AuthProvider bootstrap resolution", () => {
     expect(peekViewAsLatch()?.userId).toBe("org-target");
   });
 
-  it("remints View as from the intent cookie on /campaigns with no latch", async () => {
-    window.history.pushState({}, "", "/campaigns");
+  it("remints View as from the intent cookie on /org/browse with no latch", async () => {
+    window.history.pushState({}, "", "/org/browse");
     refreshMock.mockImplementation(async () => {
       setAccessToken("admin-access");
       return true;
