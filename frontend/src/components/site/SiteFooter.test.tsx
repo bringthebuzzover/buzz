@@ -1,5 +1,5 @@
 /**
- * Footer columns: How it works vs Apply; org login stays in the header.
+ * Compact footer (pen Site / Footer): tours, apply, and both logins.
  */
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -30,7 +30,7 @@ describe("SiteFooter", () => {
     container.remove();
   });
 
-  it("splits tours and apply; omits org login", () => {
+  it("lists tours, apply, and both portal logins", () => {
     act(() => {
       root.render(
         <MemoryRouter>
@@ -40,11 +40,13 @@ describe("SiteFooter", () => {
     });
 
     expect(container.textContent).toMatch(/How it works/);
+    expect(container.textContent).toMatch(/Get started/);
     expect(container.textContent).toMatch(/Apply as Organization/);
     expect(container.textContent).toMatch(/Apply as Brand/);
+    expect(container.textContent).toMatch(/Organization login/);
+    expect(container.textContent).toMatch(/Brand login/);
     expect(container.querySelector('a[href="/for-orgs"]')).not.toBeNull();
-    expect(container.querySelector('a[href="/login"]')).toBeNull();
-    expect(container.textContent).not.toMatch(/Get Started/);
-    expect(container.textContent).not.toMatch(/Organization login/);
+    expect(container.querySelector('a[href="/login"]')).not.toBeNull();
+    expect(container.querySelector('a[href="/brand/login"]')).not.toBeNull();
   });
 });

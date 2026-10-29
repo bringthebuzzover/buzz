@@ -107,8 +107,36 @@
     .animate-buzz-float,
     .animate-buzz-modal,
     .animate-marquee,
-    .animate-marquee-reverse {
+    .animate-marquee-reverse,
+    .bee-route,
+    .bee-flap {
       animation: none !important;
     }
   }
+}
+
+/**
+ * College-network bee. The path is set inline (`offset-path`) so the same
+ * class drives the mark and its trail. 10s is one loop of the six-stop route.
+ */
+@keyframes bee-route {
+  to {
+    offset-distance: 100%;
+  }
+}
+
+@keyframes bee-flap {
+  50% {
+    transform: scaleX(0.82);
+  }
+}
+
+.bee-route {
+  offset-anchor: center;
+  offset-rotate: auto;
+  animation: bee-route 10s linear infinite;
+}
+
+.bee-flap {
+  animation: bee-flap 0.28s ease-in-out infinite;
 }

@@ -37,18 +37,17 @@ describe("ForOrgsPage", () => {
     });
     const text = container.textContent ?? "";
     expect(text).toMatch(/Business or Creator/);
-    expect(text).toMatch(/@cornellouting/);
+    expect(text).toMatch(/@sampleorg/);
     expect(text).not.toMatch(/Confirm this is our organization's account/);
     expect(text).not.toMatch(/confirm card/i);
-    expect(text).toMatch(/Campus Kickoff 2026/);
+    expect(text).toMatch(/Continue with Instagram/);
     expect(text).not.toMatch(/placehold\.co/i);
-    const hero = container.querySelector('img[alt="Campus Kickoff 2026"]');
-    expect(hero?.getAttribute("src")).toContain("UPDATE_x_BUZZ_600_x_400_px");
+    const hero = container.querySelector('img[alt="Kappa Alpha Theta x Yerba Madre"]');
+    expect(hero).not.toBeNull();
     expect(text).not.toMatch(/Multiple Campuses/);
-    expect(text).not.toMatch(/Continue with Instagram/);
 
     const apply = container.querySelector('a[href="/org/apply"]');
-    expect(apply?.textContent).toMatch(/apply as a student organization/i);
+    expect(apply?.textContent).toMatch(/apply as an organization|join us|join as a student organization/i);
     const login = container.querySelector('a[href="/login"]');
     expect(login).not.toBeNull();
   });

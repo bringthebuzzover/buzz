@@ -53,6 +53,15 @@ describe("RemoteImage", () => {
     expect(html).not.toContain("referrerpolicy");
   });
 
+  it("leaves the parent fill when the empty fallback is blank", () => {
+    const html = renderToString(
+      <RemoteImage src={null} label="Sample Brand" fallback="blank" />,
+    );
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("SB");
+    expect(html).not.toContain("image-fallback");
+  });
+
   it("shows initials instead of an img when the URL is not displayable", () => {
     const html = renderToString(
       <RemoteImage src="javascript:alert(1)" label="Meta Review Test Drop" />,
