@@ -9,7 +9,7 @@
  *
  * Naming collision to remember: the utility `text-buzz-ink` is body text, which
  * is the pen's *paper* (#f0f0f0). The pen's dark `ink` (#0b0b0b) is `cream`
- * (page), `onAccent` (text on yellow), and `dark`. `bg-buzz-paper` is the
+ * (page) and `onAccent` (text on yellow). `bg-buzz-paper` is the
  * raised card (`ink-raised`), not the light text color.
  */
 export const pulse = {
@@ -75,12 +75,8 @@ export const tailwindThemeExtend = {
       fg: pulse.fg,
       onAccent: pulse.onAccent,
       inkRaised: pulse.inkRaised,
-      inkPop: pulse.inkPop,
       inkBtn: pulse.inkBtn,
-      white: pulse.white,
       greyMedia: pulse.greyMedia,
-      paper60: pulse.paper60,
-      paper52: pulse.paper52,
       paper30: pulse.paper30,
       paper09: pulse.paper09,
       paper08: pulse.paper08,
@@ -94,9 +90,6 @@ export const tailwindThemeExtend = {
       // --- legacy aliases (class names already used across the app) ---
       /** Was #F7366D. Now the yellow accent. */
       coral: pulse.yellow,
-      coralLight: pulse.yellow,
-      /** Was #FF005D. Now yellow hover. */
-      coralDark: pulse.yellowHover,
 
       /** Was #fffcf5 page. Now pen ink. */
       cream: pulse.ink,
@@ -124,34 +117,17 @@ export const tailwindThemeExtend = {
 
       neutral: pulse.inkPop,
 
-      dark: pulse.ink,
-      darkDeep: "#000000",
       /** Pair with `/60` or `/70`. The pen scrim is `buzz-scrim`. */
       overlay: "#000000",
 
       /**
-       * Status text on ink. Green and amber are gone (POLISH): done reads as
-       * paper, attention as yellow, errors as danger-ink. Solid destructive
-       * fills use `dangerFill` (#b91c1c) with `fg` text — #121212 on that red
-       * is only 2.9:1.
+       * Status text on ink. Green and amber are gone (POLISH): attention reads
+       * as yellow, errors as danger-ink. Solid destructive fills use
+       * `dangerFill` (#b91c1c) with `fg` text — #121212 on that red is only
+       * 2.9:1.
        */
       danger: pulse.dangerInk,
-      dangerWash: pulse.dangerFaded,
-      success: pulse.fg,
-      successWash: pulse.paper08,
-      successLine: "#f0f0f033",
       warn: pulse.yellow,
-      warnWash: pulse.yellowFaded,
-      warnLine: pulse.yellowLine,
-
-      // Reserved. Not part of the Pulse Black palette; still used by nothing
-      // in product UI today, kept so a stray class does not fall through to
-      // an undefined color.
-      blue: "#3b82f6",
-      blueDark: "#1e3a8a",
-      spectrumStart: "#facc15",
-      spectrumMid: "#f97316",
-      spectrumEnd: "#9333ea",
     },
   },
   boxShadow: {

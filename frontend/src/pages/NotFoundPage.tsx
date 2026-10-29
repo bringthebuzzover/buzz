@@ -4,7 +4,8 @@
  * inside its own shell.
  */
 import { useLocation } from "react-router-dom";
-import { StatusHero } from "../components/marketing/sections";
+import { HomeLoginActions } from "../components/site/StatusHero";
+import { BeeMark } from "../components/ui/BrandMark";
 import { TEXT } from "../theme/tokens";
 
 export default function NotFoundPage() {
@@ -18,8 +19,13 @@ export default function NotFoundPage() {
     );
   }
   return (
-    <div className="bg-page">
-      <StatusHero kicker="404" title="This page does not exist." />
+    <div className="flex min-h-[640px] flex-col items-center justify-center bg-page px-4 py-16 text-center text-primary">
+      <h1 className="text-[48px] font-medium leading-none text-accent md:text-buzzDisplay">404</h1>
+      <BeeMark className="h-[120px] w-[120px] motion-safe:animate-buzz-float" />
+      <p className="mt-6 max-w-xl text-xl font-medium leading-tight">This page does not exist.</p>
+      <div className="mt-6">
+        <HomeLoginActions />
+      </div>
     </div>
   );
 }

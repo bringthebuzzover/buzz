@@ -8,7 +8,5 @@ components/drop/CopyPublicDropUrl.tsx
 components/site/modals/ContactModal.tsx
 pages/brand/BrandAggregateDashboardPage.tsx
 pages/brand/BrandDropDetailPage.tsx
-pages/brand/BrandRequestDropPage.tsx
-pages/brand/BrandSettingsPage.tsx
 pages/onboarding/OrgProfilePage.tsx
 pages/onboarding/PendingApprovalPage.tsx

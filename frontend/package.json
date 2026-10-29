@@ -19,7 +19,7 @@
     "start": "craco start",
     "build": "craco build && node scripts/write-serve-json.js",
     "build:prod": "node scripts/check-deploy-env.js && npm run build",
-    "start:prod": "node scripts/start-static.js",
+    "start:prod": "serve -s build -l $PORT",
     "test": "craco test",
     "gen:api": "npx -y openapi-typescript@7.13.0 ../openapi.json -o src/api/generated/schema.ts",
     "e2e": "playwright test",
