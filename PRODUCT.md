@@ -90,7 +90,7 @@ After a verified data-deletion request (mailto on `/data-deletion`), a Buzz **ad
 
 After a verified data-deletion request, a Buzz **admin** may **erase** a brand from the admin brand detail page (confirm by typing the **company email**).
 
-- Erase removes login identity and contact PII (`company_email` is freed for reuse via a sentinel, `instagram_handle` and intent wiped, password cleared), deletes pending Instagram handle-change requests, and ends the session (`token_version` bump). `brands.status` and the brand user’s `users.status` become **erased**.
+- Erase removes login identity and contact PII (`company_email` is freed for reuse via a sentinel, `instagram_handle` and intent wiped, password cleared), deletes the brand’s Instagram handle-change requests (all of them, not only pending), and ends the session (`token_version` bump). `brands.status` and the brand user’s `users.status` become **erased**.
 - Erase **does not** delete drops, applications, shipments, links, or numeric metrics. Org **My Campaigns** still lists those seats with a tombstone brand name (e.g. “Deleted brand”). Published drops are **not** hidden (`hidden_at` stays unset); the org **feed** already omits them because the brand is no longer `approved`.
 - Compose email, late-add, and sync+autolink **refuse** an erased brand (409).
 - When a company email is on file before erase, Buzz may send a **confirmation email** to that address after a successful erase (best-effort; failure does not undo erase).
@@ -107,12 +107,12 @@ Admin reviews previous vs requested `@`, the reason, and risk context (accepted 
 
 ### 3.1.5 Brand settings and Instagram handle change
 
-An **approved** brand opens **Settings** (`/brand/settings`).
+An **approved** brand opens **Setup** (`/brand/settings`). The nav item is **Setup**. The page shows a **Brand Portal** label above the title.
 
 - **Brand name** is editable (`PATCH /api/brands/me` with `brandName` only). Drop titles are not rewritten. Company email and Instagram handle are not fields on that PATCH.
 - **Company email** is the login identity and is view-only. The page says to contact Buzz to change it. There is no self-serve email change.
 - **Password** changes while signed in (`POST /api/auth/brand/change-password` with the current password and a new one of at least 8 characters that differs from the current). A wrong current password is `WRONG_PASSWORD` (400), not 401. Success revokes other sessions (`token_version`), keeps this session, invalidates outstanding reset links, and emails the company address that the password changed. Admin **View as** cannot change the password (403), including when impersonation is not read-only.
-- **Instagram handle** is not a direct edit. The brand submits a requested `@` and a reason (`POST /api/brands/me/ig-change-requests`). One pending request at a time (409 `INVALID_ONBOARDING_STATE`). While it is open, Settings shows **Pending admin approval**. Admin approves or denies from the brand detail page and from the Instagram identity requests list (type **Brand**). Approve writes `brands.instagram_handle` only. It does not touch Graph ids, tokens, posts, or `token_version`. Existing post links stay. Later autolink uses the new `@`. Deny writes nothing. The brands list shows a pending badge (`igChangePending`).
+- **Instagram handle** is not a direct edit. The brand submits a requested `@` and a reason (`POST /api/brands/me/ig-change-requests`). One pending request at a time (409 `INVALID_ONBOARDING_STATE`). While it is open, Setup says Buzz keeps using the current `@` until an admin approves the requested one. Admin approves or denies from the brand detail page and from the Instagram identity requests list (type **Brand**). Approve writes `brands.instagram_handle` only. It does not touch Graph ids, tokens, posts, or `token_version`. Existing post links stay. Later autolink uses the new `@`. Deny writes nothing. A second decision on the same ticket is `400`. The brands list shows a pending badge (`igChangePending`). Pending tickets also count on Overview **Needs a look** and the admin sidebar badge.
 
 ### 3.2 Demo / internal preview
 

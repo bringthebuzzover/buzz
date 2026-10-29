@@ -29,6 +29,7 @@ from app.jobs.names import (
 from app.jobs.token_cleanup import DEFAULT_GRACE_DAYS
 from app.models.application import DropApplication
 from app.models.brand import Brand
+from app.models.brand_ig_change_request import BrandIgChangeRequest
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.drop import Drop
 from app.models.enums import (
@@ -405,6 +406,12 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
             OrgIgChangeRequest.status == "pending"
         ),
     )
+    brand_ig_changes_pending = await _count_and_oldest(
+        db,
+        select(
+            func.count(BrandIgChangeRequest.id), func.min(BrandIgChangeRequest.created_at)
+        ).where(BrandIgChangeRequest.status == "pending"),
+    )
     ig_bind_mismatch = await _count_and_oldest(
         db,
         select(func.count(Organization.id), func.min(Organization.ig_bind_mismatched_at))
@@ -444,6 +451,26 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
                 "created_at": req.created_at,
             }
         )
+    brand_change_rows = list(
+        await db.execute(
+            select(BrandIgChangeRequest, Brand)
+            .join(Brand, Brand.id == BrandIgChangeRequest.brand_id)
+            .where(BrandIgChangeRequest.status == "pending")
+        )
+    )
+    for req, brand in brand_change_rows:
+        current = f"@{req.current_handle}" if req.current_handle else "—"
+        items.append(
+            {
+                "kind": "brand_ig_change_pending",
+                "id": req.id,
+                "user_id": brand.user_id,
+                "org_name": brand.brand_name,
+                "subtitle": f"{current} → @{req.requested_handle}",
+                "href": f"/admin/brands/{brand.id}",
+                "created_at": req.created_at,
+            }
+        )
     mismatch_rows = list(
         await db.execute(
             select(Organization, User)
@@ -478,6 +505,7 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
         "queues": [
             {"key": "orgs_pending_approval", **orgs_pending},
             {"key": "orgs_ig_change_pending", **ig_changes_pending},
+            {"key": "brands_ig_change_pending", **brand_ig_changes_pending},
             {"key": "orgs_ig_bind_mismatch", **ig_bind_mismatch},
             {"key": "brands_pending_review", **brands_pending},
             {"key": "drops_awaiting_finalization", **awaiting_finalization},

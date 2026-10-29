@@ -24,11 +24,12 @@ import {
   TextArea,
   TextField,
 } from "../../components/forms/controls";
+import { siteIdentity } from "../../data/siteIdentity";
 import PageShell from "../../components/site/PageShell";
 import { Card, CardHeader } from "../../components/ui/Card";
-import { Chip } from "../../components/ui/Chip";
 import { Modal } from "../../components/ui/Modal";
-import { STACK, TEXT } from "../../theme/tokens";
+import { fieldLabelClass } from "../../theme/controls";
+import { GAP, STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 function atHandle(raw: string | null | undefined): string {
@@ -139,7 +140,8 @@ export default function BrandSettingsPage() {
 
   return (
     <PageShell width="form">
-      <h1 className={TEXT.h1}>Settings</h1>
+      <p className={TEXT.meta}>Brand Portal</p>
+      <h1 className={cn("mt-1", TEXT.h1)}>Setup</h1>
       <p className={cn("mt-2", TEXT.meta)}>
         Brand profile and the sign-in for this account.
       </p>
@@ -189,7 +191,7 @@ export default function BrandSettingsPage() {
               disabled={updateProfile.isPending || !shownName.trim()}
               data-testid="brand-name-save"
             >
-              {updateProfile.isPending ? "Saving…" : "Save"}
+              {updateProfile.isPending ? "Saving…" : "Save brand name"}
             </Button>
           </form>
 
@@ -199,23 +201,20 @@ export default function BrandSettingsPage() {
               {atHandle(profile.data?.instagramHandle)}
             </p>
             {pending ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <Chip tone="warn">
-                  <span data-testid="brand-ig-pending">Pending admin approval</span>
-                </Chip>
-                <span className={TEXT.meta}>{atHandle(pending.requestedHandle)}</span>
-              </div>
+              <p className={cn("mt-3", TEXT.body)} data-testid="brand-ig-pending">
+                You asked to change {atHandle(pending.currentHandle)} to{" "}
+                {atHandle(pending.requestedHandle)}. BUZZ keeps using{" "}
+                {atHandle(pending.currentHandle)} until an admin approves it.
+              </p>
             ) : (
-              <div className="mt-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIgOpen(true)}
-                  data-testid="brand-ig-change-open"
-                >
-                  Request change
-                </Button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setIgOpen(true)}
+                data-testid="brand-ig-change-open"
+                className="mt-3 text-sm font-medium text-buzz-inkMuted underline-offset-2 hover:text-buzz-coral hover:underline"
+              >
+                Request change
+              </button>
             )}
           </div>
         </Card>
@@ -226,77 +225,80 @@ export default function BrandSettingsPage() {
             description="Email and password for this brand account."
           />
           <div>
-            <TextField
-              id="brand-email"
-              label="Email"
-              name="email"
-              value={profile.data?.companyEmail ?? ""}
-              readOnly
-              data-testid="brand-email"
-            />
-            <p className={cn("mt-2", TEXT.meta)} data-testid="brand-email-locked">
-              Contact BUZZ to change
+            <p className={fieldLabelClass}>Email</p>
+            <p className={cn("mt-1", TEXT.body)} data-testid="brand-email">
+              {profile.data?.companyEmail ?? "—"}
             </p>
+            <a
+              href={`mailto:${siteIdentity.contact.email}`}
+              className={cn("mt-2 inline-block", TEXT.meta, "underline-offset-2 hover:underline")}
+              data-testid="brand-email-locked"
+            >
+              Contact BUZZ to change
+            </a>
           </div>
 
           <form
             className={cn("mt-6 border-t border-buzz-lineMid pt-4", STACK.default)}
             onSubmit={savePassword}
           >
-            <div>
-              <TextField
-                id="brand-current-password"
-                label="Current password"
-                name="currentPassword"
-                type="password"
-                autoComplete="current-password"
-                value={currentPassword}
-                onChange={(event) => {
-                  setCurrentPassword(event.target.value);
-                  setPasswordSaved(false);
-                }}
-                disabled={viewingAs}
-                data-testid="brand-current-password"
-                aria-invalid={
-                  passwordMapped?.fields.currentPassword ? true : undefined
-                }
-                aria-describedby={
-                  passwordMapped?.fields.currentPassword
-                    ? "brand-current-password-error"
-                    : undefined
-                }
-              />
-              <FieldError
-                id="brand-current-password-error"
-                message={passwordMapped?.fields.currentPassword}
-              />
+            <div className={cn("grid grid-cols-1 sm:grid-cols-2", GAP.default)}>
+              <div>
+                <TextField
+                  id="brand-current-password"
+                  label="Current password"
+                  name="currentPassword"
+                  type="password"
+                  autoComplete="current-password"
+                  value={currentPassword}
+                  onChange={(event) => {
+                    setCurrentPassword(event.target.value);
+                    setPasswordSaved(false);
+                  }}
+                  disabled={viewingAs}
+                  data-testid="brand-current-password"
+                  aria-invalid={
+                    passwordMapped?.fields.currentPassword ? true : undefined
+                  }
+                  aria-describedby={
+                    passwordMapped?.fields.currentPassword
+                      ? "brand-current-password-error"
+                      : undefined
+                  }
+                />
+                <FieldError
+                  id="brand-current-password-error"
+                  message={passwordMapped?.fields.currentPassword}
+                />
+              </div>
+              <div>
+                <TextField
+                  id="brand-new-password"
+                  label="New password"
+                  name="newPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(event) => {
+                    setNewPassword(event.target.value);
+                    setPasswordSaved(false);
+                  }}
+                  disabled={viewingAs}
+                  data-testid="brand-new-password"
+                  aria-invalid={passwordMapped?.fields.newPassword ? true : undefined}
+                  aria-describedby={
+                    passwordMapped?.fields.newPassword
+                      ? "brand-new-password-error"
+                      : undefined
+                  }
+                />
+                <FieldError
+                  id="brand-new-password-error"
+                  message={passwordMapped?.fields.newPassword}
+                />
+              </div>
             </div>
-            <div>
-              <TextField
-                id="brand-new-password"
-                label="New password"
-                name="newPassword"
-                type="password"
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(event) => {
-                  setNewPassword(event.target.value);
-                  setPasswordSaved(false);
-                }}
-                disabled={viewingAs}
-                data-testid="brand-new-password"
-                aria-invalid={passwordMapped?.fields.newPassword ? true : undefined}
-                aria-describedby={
-                  passwordMapped?.fields.newPassword
-                    ? "brand-new-password-error"
-                    : undefined
-                }
-              />
-              <FieldError
-                id="brand-new-password-error"
-                message={passwordMapped?.fields.newPassword}
-              />
-            </div>
+            <p className={TEXT.meta}>Signs you out on your other devices.</p>
             {viewingAs ? (
               <p className={TEXT.meta}>
                 Password changes are unavailable while viewing as this brand.
