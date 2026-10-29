@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { X } from "lucide-react";
 import { focusRingClass } from "../../theme/controls";
 import { TONE, type Tone } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
@@ -32,10 +33,13 @@ export function Toast({
         <button
           type="button"
           onClick={onDismiss}
-          className={cn("rounded-full px-1 text-current", focusRingClass)}
+          className={cn(
+            "-m-1 inline-flex shrink-0 rounded-full p-1 text-current opacity-70 transition hover:opacity-100",
+            focusRingClass,
+          )}
           aria-label="Dismiss"
         >
-          ×
+          <X size={16} aria-hidden />
         </button>
       ) : null}
     </div>

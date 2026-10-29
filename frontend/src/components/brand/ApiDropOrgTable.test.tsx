@@ -70,6 +70,18 @@ describe("ApiDropOrgTable", () => {
     expect(html).not.toContain("Account deleted");
   });
 
+  it("keeps a missing address as Address pending in the warn tone", () => {
+    const html = renderToString(
+      <ApiDropOrgTable
+        applicants={[{ ...erased, accountErased: false, orgName: "Campus Club" }]}
+      />,
+    );
+    expect(html).toContain("Ship to");
+    expect(html).toMatch(
+      /<span data-testid="address-pending" class="[^"]*text-accent[^"]*">Address pending<\/span>/,
+    );
+  });
+
   it("shows Instagram insights on a linked post, including an em dash for missing values", () => {
     const html = renderToString(
       <ApiDropOrgTable

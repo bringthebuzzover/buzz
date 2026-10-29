@@ -52,9 +52,8 @@ import {
   formatElapsed,
 } from "../../components/admin/labels";
 import { Checkbox } from "../../components/forms/Checkbox";
-import { Button, SuccessBanner, TextField } from "../../components/forms/controls";
-import { Modal } from "../../components/ui/Modal";
-import { STACK } from "../../theme/tokens";
+import { SuccessBanner } from "../../components/forms/controls";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { cn } from "../../theme/cn";
 import ComposeEmailModal from "../../components/admin/ComposeEmailModal";
 
@@ -80,7 +79,6 @@ export default function AdminOrgDetailPage() {
   const [eraseNotice, setEraseNotice] = useState<string | null>(null);
   const [eraseError, setEraseError] = useState<string | null>(null);
   const [eraseConfirmOpen, setEraseConfirmOpen] = useState(false);
-  const [eraseTyped, setEraseTyped] = useState("");
   const [testerInviteConfirmed, setTesterInviteConfirmed] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -187,27 +185,24 @@ export default function AdminOrgDetailPage() {
   function openEraseConfirm() {
     setEraseError(null);
     setEraseNotice(null);
-    setEraseTyped("");
     setEraseConfirmOpen(true);
   }
 
   function cancelEraseConfirm() {
     setEraseConfirmOpen(false);
-    setEraseTyped("");
     setEraseError(null);
   }
 
-  async function onErase() {
+  async function onErase(typed: string) {
     if (!data?.instagramHandle) return;
     setEraseError(null);
     setEraseNotice(null);
     try {
       const result = await erase.mutateAsync({
         userId: data.userId,
-        confirm: eraseTyped,
+        confirm: typed,
       });
       setEraseConfirmOpen(false);
-      setEraseTyped("");
       if (result.emailSent) {
         setEraseNotice(
           result.emailToDomain
@@ -347,48 +342,25 @@ export default function AdminOrgDetailPage() {
           />
 
           {eraseConfirmOpen && canErase && connectedHandle && (
-            <Modal
-              onClose={cancelEraseConfirm}
+            <ConfirmDialog
               title="Erase this organization"
               description="Removes login, contact details, and Instagram post content. Campaign metrics stay frozen for the brand. Type the Instagram handle to confirm."
-            >
-              <div className={STACK.tight}>
-                {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
-                <TextField
-                  id="erase-org-confirm"
-                  data-testid="erase-org-confirm"
-                  label={`Type ${connectedHandle} exactly`}
-                  size="compact"
-                  value={eraseTyped}
-                  autoComplete="off"
-                  spellCheck={false}
-                  onChange={(e) => setEraseTyped(e.target.value)}
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="compact"
-                    data-testid="erase-org-cancel"
-                    disabled={erase.isPending}
-                    onClick={cancelEraseConfirm}
-                  >
-                    Cancel
-                  </Button>
-                  <ActionButton
-                    variant="danger"
-                    testId="erase-org-submit"
-                    disabled={
-                      busy ||
-                      !confirmHandleMatches(eraseTyped, data.instagramHandle ?? "")
-                    }
-                    onClick={() => void onErase()}
-                  >
-                    {erase.isPending ? "Erasing…" : "Erase account"}
-                  </ActionButton>
-                </div>
-              </div>
-            </Modal>
+              expected={connectedHandle}
+              inputLabel={`Type ${connectedHandle} exactly`}
+              matches={(typed) =>
+                confirmHandleMatches(typed, data.instagramHandle ?? "")
+              }
+              error={eraseError}
+              destructive
+              confirmLabel="Erase account"
+              pendingLabel="Erasing…"
+              pending={erase.isPending}
+              inputTestId="erase-org-confirm"
+              cancelTestId="erase-org-cancel"
+              submitTestId="erase-org-submit"
+              onConfirm={(typed) => void onErase(typed)}
+              onClose={cancelEraseConfirm}
+            />
           )}
 
           {composeOpen && canWriteEmail && data.eduEmail && (

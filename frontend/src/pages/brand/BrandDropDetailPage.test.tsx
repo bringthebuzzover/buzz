@@ -222,6 +222,50 @@ describe("BrandDropDetailPage", () => {
     expect(container.textContent).toContain("Ship to: Ithaca, NY");
   });
 
+  it("shows a missing applicant address as Address pending in the warn tone", () => {
+    mockUseBrandDropDetail.mockReturnValue({
+      data: {
+        ...brandDrop(false),
+        brandTrackerStage: "finalizing_agreements",
+        applyCloseAt: now - 1000,
+        applications: [
+          {
+            id: "app-1",
+            dropId: "drop-1",
+            orgId: "org-1",
+            orgName: "Campus Greeks",
+            university: "Cornell",
+            instagramHandle: "campusgreeks",
+            category: "fraternity",
+            followerCount: 100,
+            memberCount: 40,
+            pitch: null,
+            decision: "applied",
+            decisionAt: null,
+            appliedAt: now,
+            allocatedUnits: null,
+            deliveryAddress: null,
+            accountErased: false,
+            shipments: [],
+            attributedComments: 0,
+            attributedEngagement: 0,
+            attributedLikes: 0,
+            attributedPostCount: 0,
+            posts: [],
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+
+    expect(container.textContent).toContain("Ship to: Address pending");
+    const pending = container.querySelector('[data-testid="address-pending"]');
+    expect(pending?.textContent).toBe("Address pending");
+    expect(pending?.className).toContain("text-accent");
+  });
+
   it("accepts via the toggle and finalizes through the in-app confirm", () => {
     const confirmSpy = jest.spyOn(window, "confirm");
     mockUseBrandDropDetail.mockReturnValue({

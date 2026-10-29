@@ -22,6 +22,7 @@ import {
   fieldClass,
 } from "../../components/forms/controls";
 import AuthShell from "../../components/site/AuthShell";
+import { AuthHeading } from "../../components/auth/AuthFrame";
 import ShippingAddressFields, {
   EMPTY_SHIPPING,
   shippingToApi,
@@ -128,25 +129,20 @@ export default function OrgProfilePage() {
 
   return (
     <AuthShell align="stack">
-      <h1 className="mb-2 text-center text-3xl font-bold text-buzz-ink">
-        Set Up Your <span className="text-buzz-coral">Organization Profile</span>
-      </h1>
-      <p className="mb-8 text-center text-sm font-medium text-buzz-inkMuted">
+      <AuthHeading kicker="Organization setup" title="Set up your organization profile">
         Tell us about your organization to continue. Sign in with the
         organization&apos;s Instagram Business or Creator account — not a
         personal member account.
-      </p>
+      </AuthHeading>
 
-      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+      <form onSubmit={(e) => void onSubmit(e)} className="mt-8 space-y-4">
         {error && <ErrorBanner>{error}</ErrorBanner>}
         {signedInAs && (
-          <div className="rounded-buzzControl border border-buzz-lineMid bg-buzz-paper px-3 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-buzz-inkMuted">
-              Signed in as
-            </p>
-            <p className="mt-1 text-sm font-semibold text-buzz-ink">{signedInAs}</p>
-            <p className="mt-1 text-xs text-buzz-inkMuted">
-              This Instagram account is your organization identity on Buzz.
+          <div className="flex flex-col gap-1 rounded-buzzField border border-line bg-surface-tile px-4 py-3">
+            <p className="text-xs text-quiet">Signed in as</p>
+            <p className="text-sm text-primary">{signedInAs}</p>
+            <p className="text-xs text-quiet">
+              This Instagram account is your organization identity on BUZZ.
             </p>
           </div>
         )}
@@ -180,7 +176,7 @@ export default function OrgProfilePage() {
             required
             error={fieldErrors.eduEmail}
           />
-          <p className="mt-1 text-xs text-buzz-inkMuted">
+          <p className="mt-1 text-xs text-quiet">
             We&apos;ll send a verification link here.
           </p>
         </div>

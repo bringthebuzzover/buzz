@@ -431,6 +431,7 @@ export function FilterMultiSelect({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const listId = useId();
   const selectedSet = new Set(selected);
   const orderedSelected = options.filter((option) => selectedSet.has(option.value));
@@ -450,7 +451,9 @@ export function FilterMultiSelect({
       }
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
     };
     document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -471,6 +474,7 @@ export function FilterMultiSelect({
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -486,7 +490,7 @@ export function FilterMultiSelect({
           role="listbox"
           aria-multiselectable="true"
           aria-label={label}
-          className="absolute left-0 z-buzzDrawer mt-2 min-w-[14rem] rounded-buzzBoard border border-line bg-surface-pop py-1 shadow-buzz"
+          className="absolute left-0 z-buzzDrawer mt-2 flex w-[280px] max-w-[calc(100vw-2rem)] flex-col gap-0.5 rounded-buzzField border border-line bg-surface-pop p-2 shadow-buzz"
         >
           {options.map((option) => {
             const checked = selectedSet.has(option.value);
@@ -494,10 +498,8 @@ export function FilterMultiSelect({
               <div
                 key={option.value}
                 className={cn(
-                  "px-3 py-1.5",
-                  checked
-                    ? "bg-accent-wash text-accent"
-                    : "text-muted hover:bg-buzz-paper08 hover:text-primary",
+                  "rounded-buzzControl p-3 text-primary",
+                  checked ? "bg-accent-wash" : "hover:bg-buzz-paper08",
                 )}
               >
                 <Checkbox
@@ -506,7 +508,7 @@ export function FilterMultiSelect({
                   checked={checked}
                   onChange={() => toggle(option.value)}
                   label={
-                    <span className="text-xs font-medium">{option.label}</span>
+                    <span className="text-sm">{option.label}</span>
                   }
                 />
               </div>

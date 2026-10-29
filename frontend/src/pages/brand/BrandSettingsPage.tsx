@@ -29,7 +29,7 @@ import { siteIdentity } from "../../data/siteIdentity";
 import PageShell from "../../components/site/PageShell";
 import { Card, CardHeader } from "../../components/ui/Card";
 import { Chip } from "../../components/ui/Chip";
-import { Modal } from "../../components/ui/Modal";
+import { Modal, ModalActions } from "../../components/ui/Modal";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { quietLinkClass } from "../../components/ui/navItem";
 import { GAP, STACK, TEXT } from "../../theme/tokens";
@@ -344,39 +344,37 @@ export default function BrandSettingsPage() {
           description={`BUZZ approves handle changes before they take effect. ${atHandle(
             profile.data?.instagramHandle,
           )} stays in use until then.`}
-          size="wide"
         >
-          <form className={STACK.default} onSubmit={submitHandleChange}>
-            {igError ? <ErrorBanner>{igError}</ErrorBanner> : null}
-            <ReadOnlyRow
-              label="Current handle"
-              value={atHandle(profile.data?.instagramHandle)}
-            />
-            <TextField
-              id="brand-ig-requested"
-              label="New handle"
-              name="requestedHandle"
-              value={requestedHandle}
-              onChange={(event) => setRequestedHandle(event.target.value)}
-              autoComplete="off"
-              placeholder="e.g. @yourbrand_new"
-              data-testid="brand-ig-requested"
-            />
-            <TextArea
-              id="brand-ig-reason"
-              label="Why"
-              name="reason"
-              rows={3}
-              placeholder="e.g. We moved our US account to a new handle"
-              hint="At least 10 characters."
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              data-testid="brand-ig-reason"
-            />
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={closeIg}>
-                Cancel
-              </Button>
+          <form className="flex flex-col gap-6" onSubmit={submitHandleChange}>
+            <div className={STACK.default}>
+              {igError ? <ErrorBanner>{igError}</ErrorBanner> : null}
+              <ReadOnlyRow
+                label="Current handle"
+                value={atHandle(profile.data?.instagramHandle)}
+              />
+              <TextField
+                id="brand-ig-requested"
+                label="New handle"
+                name="requestedHandle"
+                value={requestedHandle}
+                onChange={(event) => setRequestedHandle(event.target.value)}
+                autoComplete="off"
+                placeholder="e.g. @yourbrand_new"
+                data-testid="brand-ig-requested"
+              />
+              <TextArea
+                id="brand-ig-reason"
+                label="Why"
+                name="reason"
+                rows={3}
+                placeholder="e.g. We moved our US account to a new handle"
+                hint="At least 10 characters."
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                data-testid="brand-ig-reason"
+              />
+            </div>
+            <ModalActions onCancel={closeIg}>
               <Button
                 type="submit"
                 disabled={
@@ -388,7 +386,7 @@ export default function BrandSettingsPage() {
               >
                 {submitIg.isPending ? "Submitting…" : "Submit request"}
               </Button>
-            </div>
+            </ModalActions>
           </form>
         </Modal>
       ) : null}
