@@ -7,7 +7,7 @@ future model edit that silently drops one of these constraints fails
 loudly in CI.
 
 The most important assertion is ``test_one_post_one_campaign``: the
-PRODUCT.md §4.2 invariant "one post can belong to at most one campaign"
+buzz-ops product/PRODUCT.md §4.2 invariant "one post can belong to at most one campaign"
 is encoded as ``UNIQUE(post_id)`` on ``post_campaign_links`` and is the
 hard rule the entire attribution model depends on.
 
@@ -20,7 +20,7 @@ the test's own assertions and rolls back fully at teardown.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 import pytest
 from sqlalchemy import text
@@ -50,10 +50,7 @@ from app.models.enums import (
     SocialMediaType,
     SuggestionMatchReason,
 )
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
+from app.timeutils import utcnow
 
 
 async def _seed_org_brand_drop_post(
@@ -95,8 +92,8 @@ async def _seed_org_brand_drop_post(
         image="https://example.com/img.png",
         location="SF",
         capacity_total=5,
-        apply_open_at=_now() - timedelta(days=1),
-        apply_close_at=_now() + timedelta(days=1),
+        apply_open_at=utcnow() - timedelta(days=1),
+        apply_close_at=utcnow() + timedelta(days=1),
         manual_reopen=False,
         brand_tracker_stage=BrandTrackerStage.REQUEST_RECEIVED.value,
     )
@@ -116,7 +113,7 @@ async def _seed_org_brand_drop_post(
         caption="x",
         media_type=SocialMediaType.IMAGE.value,
         media_product_type=SocialMediaProductType.FEED.value,
-        posted_at=_now(),
+        posted_at=utcnow(),
     )
     session.add_all([app, post])
     await session.flush()
@@ -125,7 +122,7 @@ async def _seed_org_brand_drop_post(
 
 @pytest.mark.asyncio
 async def test_one_post_one_campaign(db_session: AsyncSession) -> None:
-    """PRODUCT.md §4.2: a single post can belong to at most one campaign.
+    """buzz-ops product/PRODUCT.md §4.2: a single post can belong to at most one campaign.
 
     Enforced by ``UNIQUE(post_id)`` on ``post_campaign_links``. This is the
     most important constraint in the schema and the reason every reattribution
@@ -389,7 +386,7 @@ async def test_social_posts_unique_per_org_platform_external_id(
             caption="x",
             media_type=SocialMediaType.IMAGE.value,
             media_product_type=SocialMediaProductType.FEED.value,
-            posted_at=_now(),
+            posted_at=utcnow(),
         )
     )
     await db_session.flush()
@@ -403,7 +400,7 @@ async def test_social_posts_unique_per_org_platform_external_id(
             caption="x",
             media_type=SocialMediaType.IMAGE.value,
             media_product_type=SocialMediaProductType.FEED.value,
-            posted_at=_now(),
+            posted_at=utcnow(),
         )
     )
     with pytest.raises(IntegrityError):
@@ -428,7 +425,7 @@ async def test_social_posts_same_external_id_allowed_across_orgs(
             caption="a",
             media_type=SocialMediaType.IMAGE.value,
             media_product_type=SocialMediaProductType.FEED.value,
-            posted_at=_now(),
+            posted_at=utcnow(),
         )
     )
     db_session.add(
@@ -440,7 +437,7 @@ async def test_social_posts_same_external_id_allowed_across_orgs(
             caption="b",
             media_type=SocialMediaType.IMAGE.value,
             media_product_type=SocialMediaProductType.FEED.value,
-            posted_at=_now(),
+            posted_at=utcnow(),
         )
     )
     await db_session.flush()  # no IntegrityError

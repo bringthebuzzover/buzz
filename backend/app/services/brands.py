@@ -1,4 +1,4 @@
-"""Brand portal orchestration (architecture.md §8.1–§8.4).
+"""Brand portal orchestration (buzz-ops engineering/architecture.md §8.1–§8.4).
 
 Pure service functions (no FastAPI types) the route layer calls. Brand-facing
 endpoints gate on ``_require_brand`` (active brand must have a ``brands`` row,
@@ -32,6 +32,7 @@ from app.schemas.brands import (
     BrandDropCreativePatch,
     BrandDropDetailApplicant,
     BrandDropDetailResponse,
+    BrandDropListItem,
     BrandDropPostItem,
 )
 from app.services.drop_image import validate_https_image
@@ -111,6 +112,38 @@ def _brand_post_item(post: SocialPost, *, anonymize: bool) -> BrandDropPostItem:
     return item
 
 
+def _brand_drop_fields(drop: Drop, brand: Brand, agg: dict[str, int]) -> dict[str, Any]:
+    """Fields shared by the brand drop list item and the brand drop detail."""
+
+    return {
+        "id": drop.id,
+        "brand_id": drop.brand_id,
+        "brand_name": brand.brand_name,
+        "title": drop.title,
+        "description": drop.description,
+        "image": drop.image,
+        "location": drop.location,
+        "capacity_total": drop.capacity_total,
+        "apply_open_at": drop.apply_open_at,
+        "apply_close_at": drop.apply_close_at,
+        "manual_reopen": drop.manual_reopen,
+        "brand_tracker_stage": drop.brand_tracker_stage,
+        "total_product_units": drop.total_product_units,
+        "campaign_hashtag": drop.campaign_hashtag,
+        "applicant_selection_finalized_at": drop.applicant_selection_finalized_at,
+        "created_at": drop.created_at,
+        **agg,
+    }
+
+
+async def build_brand_drop_list_item(
+    db: AsyncSession, brand: Brand, drop: Drop
+) -> BrandDropListItem:
+    """One row of ``GET /api/brands/me/drops``."""
+
+    return BrandDropListItem(**_brand_drop_fields(drop, brand, await _drop_aggregate(db, drop.id)))
+
+
 async def build_brand_drop_detail(
     db: AsyncSession, brand: Brand, drop: Drop
 ) -> BrandDropDetailResponse:
@@ -173,30 +206,10 @@ async def build_brand_drop_detail(
         )
 
     return BrandDropDetailResponse(
-        id=drop.id,
-        brand_id=drop.brand_id,
-        brand_name=brand.brand_name,
-        title=drop.title,
-        description=drop.description,
-        image=drop.image,
-        location=drop.location,
-        capacity_total=drop.capacity_total,
-        apply_open_at=drop.apply_open_at,
-        apply_close_at=drop.apply_close_at,
-        manual_reopen=drop.manual_reopen,
-        brand_tracker_stage=drop.brand_tracker_stage,
-        total_product_units=drop.total_product_units,
-        campaign_hashtag=drop.campaign_hashtag,
+        **_brand_drop_fields(drop, brand, agg),
         brand_can_edit_creative=drop.brand_can_edit_creative,
-        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
-        created_at=drop.created_at,
         published_at=drop.published_at,
         applications=applicants,
-        total_posts=agg["total_posts"],
-        total_likes=agg["total_likes"],
-        total_comments=agg["total_comments"],
-        total_engagement=agg["total_engagement"],
-        total_reach=agg["total_reach"],
     )
 
 

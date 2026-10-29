@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from uuid import uuid4
 
 from httpx import AsyncClient
@@ -20,11 +20,8 @@ from app.services.org_apply_prefill import (
     raw_token_from_apply_url,
 )
 from app.services.org_apply_prefill_parse import ParsedPrefill, parse_form_row, parse_shipping
+from app.timeutils import utcnow
 from tests.test_org_apply import _APPLY
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 def test_parse_ent_cornell() -> None:
@@ -348,7 +345,7 @@ async def test_deliver_saved_prefill_email_skips_and_sends(db_session, monkeypat
             warnings=[],
         ),
     )
-    used.used_at = _now()
+    used.used_at = utcnow()
     await db_session.flush()
     assert (
         await deliver_saved_prefill_email(
@@ -382,7 +379,7 @@ async def test_deliver_saved_prefill_email_skips_and_sends(db_session, monkeypat
             warnings=[],
         ),
     )
-    expired.expires_at = _now() - timedelta(days=1)
+    expired.expires_at = utcnow() - timedelta(days=1)
     await db_session.flush()
     assert (
         await deliver_saved_prefill_email(
@@ -454,7 +451,7 @@ async def test_apply_ignores_bad_prefill_token(app_client: AsyncClient, db_sessi
 
 
 async def test_cleanup_sweeps_org_apply_prefills(db_session) -> None:
-    old = _now() - timedelta(days=10)
+    old = utcnow() - timedelta(days=10)
     db_session.add(
         OrgApplyPrefill(
             id=uuid4(),

@@ -7,7 +7,6 @@ import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { ApiError } from "../../api/client";
 import { userFacingApiError } from "../../api/userFacingError";
-import FieldError from "../forms/FieldError";
 import { Button, ErrorBanner, SuccessBanner, TextField } from "../forms/controls";
 import { Card } from "../ui/Card";
 import { quietLinkClass } from "../ui/navItem";
@@ -147,20 +146,16 @@ export default function EduEmailRotatePanel({
         </button>
       ) : (
         <form onSubmit={(e) => void onRotate(e)} className="space-y-3">
-          <div>
-            <TextField
-              id="edu-rotate-email"
-              type="email"
-              required
-              label="New school email"
-              value={nextEmail}
-              onChange={(ev) => setNextEmail(ev.target.value)}
-              placeholder="you@university.edu"
-              aria-invalid={Boolean(fieldError)}
-              aria-describedby={fieldError ? "edu-rotate-email-error" : undefined}
-            />
-            <FieldError id="edu-rotate-email-error" message={fieldError ?? undefined} />
-          </div>
+          <TextField
+            id="edu-rotate-email"
+            type="email"
+            required
+            label="New school email"
+            value={nextEmail}
+            onChange={(ev) => setNextEmail(ev.target.value)}
+            placeholder="you@university.edu"
+            error={fieldError ?? undefined}
+          />
           <div className="flex gap-2">
             <Button type="submit" size="compact" disabled={busy}>
               {rotate.isPending ? "Sending…" : "Send verification"}

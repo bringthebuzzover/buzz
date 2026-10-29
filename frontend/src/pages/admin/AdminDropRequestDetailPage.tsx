@@ -1,5 +1,5 @@
 /**
- * /admin/requests/:id — side-by-side ticket | draft-drop editor (LAUNCH.md Phase B).
+ * /admin/requests/:id — side-by-side ticket | draft-drop editor (buzz-ops engineering/plans/archive/2026-seeded-launch.md Phase B).
  *
  * Left: draft editor (Campaign, Logistics, Settings, Drop). Save and Publish
  * sit in the page header. Right: the brand request, read-only.

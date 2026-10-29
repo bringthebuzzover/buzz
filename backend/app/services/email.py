@@ -18,7 +18,7 @@ staging and production send the same payload as before.
 
 Optional Resend ``Idempotency-Key`` values are opt-in per call
 (``build_idempotency_key``). A missing key sends with no header. Policy and
-per-kind choices: ``gaps/archive/ops.email-ledger.md``.
+per-kind choices: buzz-ops ``engineering/gaps/archive/ops.email-ledger.md``.
 """
 
 from __future__ import annotations
@@ -503,23 +503,6 @@ def build_org_apply_prefill_email(
 
 
 _UPDATE_BRAND = "UPDATE"
-_FORM_TS_FORMATS = ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y %H:%M", "%m/%d/%Y")
-
-
-def applied_on_from_source_row_key(key: str | None) -> str | None:
-    """Prefill ``source_row_key`` prefix → 'August 30'. None if unparseable."""
-    text = (key or "").strip()
-    if "|" in text:
-        text = text.split("|", 1)[0].strip()
-    if not text:
-        return None
-    for fmt in _FORM_TS_FORMATS:
-        try:
-            dt = datetime.strptime(text, fmt)
-        except ValueError:
-            continue
-        return f"{dt.strftime('%B')} {dt.day}"
-    return None
 
 
 async def send_org_apply_prefill_update_email(
@@ -831,7 +814,7 @@ async def send_drop_published_email(
     drop_url: str,
     idempotency_key: str | None = None,
 ) -> bool:
-    """Tell a brand their campaign is live on the org feed (LAUNCH.md Phase B)."""
+    """Tell a brand their campaign is live on the org feed."""
     name = brand_name or "your brand"
     title = drop_title or "your campaign"
     subject = f"Your Buzz drop is live — {title}" if drop_title else "Your Buzz drop is live"
@@ -1212,11 +1195,6 @@ def _verification_rotate_text(verify_url: str, org_name: str) -> str:
         "This link expires in 24 hours.\n\n"
         "If you didn't request this, ignore this email."
     )
-
-
-def _verification_body(verify_url: str, org_name: str) -> str:
-    """Backward-compatible alias (signup). Prefer ``_verification_signup_text``."""
-    return _verification_signup_text(verify_url, org_name or "your organization")
 
 
 def _org_connect_text(connect_url: str, org_name: str) -> str:

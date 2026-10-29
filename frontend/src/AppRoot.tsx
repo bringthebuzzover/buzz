@@ -4,7 +4,7 @@
  * RequireStatus → RequireRole, architecture §5.4).
  */
 import type { ReactElement } from "react";
-import { Routes, Route, Navigate, useParams } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import type { PortalRole } from "./types/auth";
 import SiteLayout from "./layouts/SiteLayout";
 import AdminLayout from "./layouts/AdminLayout";
@@ -56,8 +56,6 @@ import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDe
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import AdminNotFoundPage from "./pages/admin/AdminNotFoundPage";
-// META-REVIEWER-PATH: delete this import and the /meta-review route below.
-import MetaReviewerPage from "./meta-reviewer/MetaReviewerPage";
 import UiKitPage from "./pages/dev/UiKitPage";
 
 /** Composite guard: wraps children in the real auth stack for a given portal role. */
@@ -77,18 +75,6 @@ function PortalGuard({
         <RequireRole role={role}>{children}</RequireRole>
       </RequireStatus>
     </RequireAuth>
-  );
-}
-
-/** Forward a legacy `/campaigns/:id` deep link to the real campaign detail
- * route, preserving the id (don't drop it onto the generic feed). */
-function LegacyCampaignRedirect(): ReactElement {
-  const { campaignId } = useParams<{ campaignId: string }>();
-  return (
-    <Navigate
-      to={campaignId ? `/org/campaigns/${campaignId}` : "/org/campaigns"}
-      replace
-    />
   );
 }
 
@@ -137,8 +123,6 @@ export default function AppRoot(): ReactElement {
         <Route path="brand/apply" element={<BrandApplyPage />} />
         <Route path="org/apply" element={<OrgApplyPage />} />
         <Route path="d/:dropId" element={<PublicDropPage />} />
-        {/* META-REVIEWER-PATH: fragment secret, 404 from the API when the flag is off. */}
-        <Route path="meta-review" element={<MetaReviewerPage />} />
 
         {/* Onboarding pages. These require an authenticated session
             (architecture §6.4) — RequireAuth standardizes the redirect to
@@ -240,47 +224,6 @@ export default function AppRoot(): ReactElement {
           }
         />
 
-        {/* Legacy redirects */}
-        <Route
-          path="campaigns"
-          element={
-            <PortalGuard role="org">
-              <Navigate to="/org/browse" replace />
-            </PortalGuard>
-          }
-        />
-        <Route
-          path="campaigns/:campaignId"
-          element={
-            <PortalGuard role="org">
-              <LegacyCampaignRedirect />
-            </PortalGuard>
-          }
-        />
-        <Route
-          path="register"
-          element={
-            <PortalGuard role="org">
-              <Navigate to="/org/browse" replace />
-            </PortalGuard>
-          }
-        />
-        <Route
-          path="brand"
-          element={
-            <PortalGuard role="brand">
-              <Navigate to="/brand/dashboard" replace />
-            </PortalGuard>
-          }
-        />
-        <Route
-          path="brand/campaigns/new"
-          element={
-            <PortalGuard role="brand">
-              <Navigate to="/brand/requests/new" replace />
-            </PortalGuard>
-          }
-        />
         {/* Admin login is public. SiteLayout swaps in AuthAdminHeader so the
             public "Join Us" header does not show. */}
         <Route path="admin/login" element={<AdminLoginPage />} />

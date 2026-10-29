@@ -1,9 +1,9 @@
-"""Admin routes — ``/api/admin`` (architecture.md §5.1, §8.5).
+"""Admin routes — ``/api/admin`` (buzz-ops engineering/architecture.md §5.1, §8.5).
 
 Reads are all ``GET`` and back the admin panel's sidebar sections. Mutations cover
 account approve/deny/recovery, drop tracker/reopen, per-org shipments,
 allowlisted table inspect/patch, and impersonation. Remaining stuck states
-without a product path stay in ``gaps/``.
+without a product path stay in buzz-ops ``engineering/gaps/``.
 """
 
 from __future__ import annotations
@@ -23,7 +23,6 @@ from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
 from app.models.brand import Brand
 from app.models.drop_request import DropRequest
-from app.models.enums import BrandStatus, OrgUserStatus
 from app.response import APIResponse, DataResponse, api_error_response, api_response
 from app.schemas.acks import (
     AdminAddOrgRequest,
@@ -66,9 +65,6 @@ from app.schemas.admin import (
     AdminOrgDetail,
     AdminOrgItem,
     AdminOverviewResponse,
-    AdminPendingBrandItem,
-    AdminPendingOrgItem,
-    AdminUserItem,
     ImpersonateRequest,
     ImpersonateResponse,
     TrackerAdvanceRequest,
@@ -117,7 +113,7 @@ from app.services.admin import (
     unhide_drop,
     update_drop_config,
 )
-from app.services.admin_auth import list_impersonatable_users, mint_impersonation_token
+from app.services.admin_auth import mint_impersonation_token
 from app.services.admin_erase import erase_brand, erase_org_user
 from app.services.admin_read import (
     get_brand_detail,
@@ -182,7 +178,7 @@ async def get_health_endpoint(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Inferred pipeline freshness, Instagram token buckets, and standing
-    integrity / silent-loss counts. See ``gaps/`` for why the pipeline
+    integrity / silent-loss counts. See buzz-ops ``engineering/gaps/`` for why the pipeline
     block is inferred rather than measured."""
     return api_response(data=AdminHealthResponse(**await get_health(db)))
 
@@ -199,17 +195,6 @@ async def list_orgs_endpoint(
 ) -> APIResponse:
     rows = await list_orgs(db, status=status, attention=attention)
     return api_response(data=[AdminOrgItem(**r) for r in rows])
-
-
-@router.get("/orgs/pending", response_model=DataResponse[list[AdminPendingOrgItem]])
-async def get_pending_orgs(
-    _user: CurrentAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    rows = await list_orgs(db, status=OrgUserStatus.PENDING_APPROVAL.value)
-    # A pending-approval user always has a profile; the guard is a safety net so
-    # the narrow schema's non-null fields can't blow up on bad data.
-    return api_response(data=[AdminPendingOrgItem(**r) for r in rows if r["id"] is not None])
 
 
 @router.get("/orgs/{user_id}", response_model=DataResponse[AdminOrgDetail])
@@ -449,15 +434,6 @@ async def list_brands_endpoint(
 ) -> APIResponse:
     rows = await list_brands(db, status=status)
     return api_response(data=[AdminBrandItem(**r) for r in rows])
-
-
-@router.get("/brands/pending", response_model=DataResponse[list[AdminPendingBrandItem]])
-async def get_pending_brands(
-    _user: CurrentAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    rows = await list_brands(db, status=BrandStatus.PENDING_REVIEW.value)
-    return api_response(data=[AdminPendingBrandItem(**r) for r in rows])
 
 
 @router.get("/brands/{brand_id}", response_model=DataResponse[AdminBrandDetail])
@@ -898,16 +874,6 @@ async def patch_admin_table_row(
 
 
 # ── Impersonation ───────────────────────────────────────────────────────────
-
-
-@router.get("/users", response_model=DataResponse[list[AdminUserItem]])
-async def list_users_endpoint(
-    _user: CurrentAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    """Org + brand users for the admin impersonation picker."""
-    rows = await list_impersonatable_users(db)
-    return api_response(data=[AdminUserItem(**r) for r in rows])
 
 
 def _impersonate_body(token: str, target: UserResponse) -> ImpersonateResponse:

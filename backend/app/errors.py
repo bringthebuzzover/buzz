@@ -1,7 +1,7 @@
 """Stable API error code constants.
 
 Codes are the **machine-readable contract** between API and frontend
-(`architecture.md` §5.2, §11.3). The frontend must branch on `code` only —
+(buzz-ops `engineering/architecture.md` §5.2, §11.3). The frontend must branch on `code` only —
 never parse `message` strings. New codes are additive; existing values must
 not change once shipped.
 """

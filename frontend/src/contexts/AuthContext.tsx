@@ -118,9 +118,7 @@ function onAuthRoute(): boolean {
     p.startsWith("/onboarding/verify-email") ||
     p.startsWith("/onboarding/connect-instagram") ||
     p.startsWith("/admin") ||
-    p.startsWith("/auth/") ||
-    // META-REVIEWER-PATH: public entry. Do not attach the local seeded org.
-    p === "/meta-review"
+    p.startsWith("/auth/")
   );
 }
 

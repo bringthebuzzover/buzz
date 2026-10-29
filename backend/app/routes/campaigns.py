@@ -1,4 +1,6 @@
-"""My-Campaigns routes — ``/api/campaigns`` (architecture.md §5.1, §7.2/§7.3/§7.4).
+"""My-Campaigns routes — ``/api/campaigns``.
+
+See buzz-ops engineering/architecture.md §5.1, §7.2/§7.3/§7.4.
 
 Org-only. Denied applications are never returned (filtered from the list, 404
 on detail). Every ``/{id}/*`` sub-resource verifies caller ownership via the

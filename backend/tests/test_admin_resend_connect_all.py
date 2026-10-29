@@ -7,12 +7,7 @@ from unittest.mock import AsyncMock
 from httpx import AsyncClient
 
 from app.models.enums import OrgUserStatus, PortalRole
-from tests.conftest import make_org, make_user, mint_access_token, persist
-
-
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
+from tests.conftest import admin_headers, make_org, make_user, mint_access_token, persist
 
 
 async def _org(
@@ -76,7 +71,7 @@ async def test_resend_connect_all_only_pending_instagram(
         name="No School Email",
     )
 
-    headers = await _admin_headers(db_session)
+    headers = await admin_headers(db_session)
     resp = await app_client.post("/api/admin/orgs/resend-connect-all", headers=headers)
     assert resp.status_code == 200, resp.text
     data = resp.json()["data"]
@@ -104,7 +99,7 @@ async def test_resend_connect_all_counts_send_failure(
         email="fail@test.edu",
         name="Fail Send",
     )
-    headers = await _admin_headers(db_session)
+    headers = await admin_headers(db_session)
     resp = await app_client.post("/api/admin/orgs/resend-connect-all", headers=headers)
     assert resp.status_code == 200, resp.text
     data = resp.json()["data"]
@@ -112,7 +107,7 @@ async def test_resend_connect_all_counts_send_failure(
 
 
 async def test_resend_connect_all_empty(app_client: AsyncClient, db_session) -> None:
-    headers = await _admin_headers(db_session)
+    headers = await admin_headers(db_session)
     resp = await app_client.post("/api/admin/orgs/resend-connect-all", headers=headers)
     assert resp.status_code == 200, resp.text
     assert resp.json()["data"] == {

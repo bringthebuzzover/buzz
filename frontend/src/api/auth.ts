@@ -130,14 +130,12 @@ function pathIs(pathname: string, prefix: string): boolean {
  * remint. Public auth pages (`/brand/login`, `/org/apply`, …) are excluded.
  * `/brand/setup` is included: it is a real invite route, and a full load
  * while viewing as a brand has to remint before the page leaves the form.
- * Legacy `/campaigns` is the org portal.
  */
 export function viewAsPortalRoleFromPath(
   pathname: string,
 ): "org" | "brand" | null {
   if (pathIs(pathname, "/org/apply")) return null;
   if (pathname === "/org" || pathname.startsWith("/org/")) return "org";
-  if (pathname === "/campaigns" || pathname.startsWith("/campaigns/")) return "org";
   if (
     pathIs(pathname, "/brand/login") ||
     pathIs(pathname, "/brand/apply") ||
@@ -379,7 +377,7 @@ let refreshInFlightStartedWith: string | null = null;
  * response carries the same ``UserResponse`` payload as ``/me`` (built in the
  * same transaction), so bootstrap can consume this and skip a follow-up
  * ``/me`` — that follow-up was the mint-then-read race in
- * ``gaps/auth.ci-session-restore-flake.md``. Callers must ``take`` the value
+ * buzz-ops ``engineering/gaps/archive/auth.ci-session-restore-flake.md``. Callers must ``take`` the value
  * (single-use) so a stale user from an earlier refresh never resurfaces.
  */
 let lastRefreshedUser: AuthUser | null = null;

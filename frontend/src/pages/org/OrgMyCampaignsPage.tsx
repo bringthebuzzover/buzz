@@ -1,5 +1,5 @@
 /**
- * `/org/campaigns` — My Campaigns (PRODUCT.md §6.4).
+ * `/org/campaigns` — My Campaigns (buzz-ops product/PRODUCT.md §6.4).
  *
  * Renders from the real backend (GET /api/campaigns). The status chips filter
  * the loaded rows on the client; Accepted covers accepted and active seats.

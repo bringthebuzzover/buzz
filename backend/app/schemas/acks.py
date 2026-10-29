@@ -54,11 +54,6 @@ class ResendVerificationResponse(CamelModel):
     email_sent_to: str
 
 
-class ChangeEduEmailResponse(CamelModel):
-    email_sent_to: str
-    status: str
-
-
 class RotateEduEmailResponse(CamelModel):
     email_sent_to: str
     pending_edu_email: str

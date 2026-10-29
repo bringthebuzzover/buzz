@@ -42,6 +42,7 @@ from app.services.erased_org_participation import freeze_statements
 from app.services.posts import link_post, unlink_post
 from tests.conftest import (
     FakeInstagramClient,
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -55,11 +56,6 @@ from tests.conftest import (
     persist,
     set_request_cookies,
 )
-
-
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 async def _seed_erasable_org(db_session, *, with_email: bool = True):
@@ -197,7 +193,7 @@ class TestAdminOrgErase:
         user.instagram_granted_permissions = "instagram_business_basic"
         await _seed_identity_leftovers(db_session, user, org)
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
@@ -325,7 +321,7 @@ class TestAdminOrgErase:
         db_session.add(other_owned)
         db_session.add(blank)
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
@@ -367,7 +363,7 @@ class TestAdminOrgErase:
         user, _org, *_rest = await _seed_erasable_org(db_session)
         user.pending_edu_email = "new-officer@school.edu"
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
@@ -386,7 +382,7 @@ class TestAdminOrgErase:
         send = AsyncMock(return_value=True)
         monkeypatch.setattr("app.services.admin_erase.send_org_erased_email", send)
         user, *_ = await _seed_erasable_org(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         bad = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
@@ -410,7 +406,7 @@ class TestAdminOrgErase:
         user = await persist(db_session, make_user(role=PortalRole.ORG))
         user.instagram_username = None
         await make_org(db_session, user)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
             headers=headers,
@@ -425,7 +421,7 @@ class TestAdminOrgErase:
         send = AsyncMock(return_value=True)
         monkeypatch.setattr("app.services.admin_erase.send_org_erased_email", send)
         user, *_ = await _seed_erasable_org(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         first = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
             headers=headers,
@@ -446,7 +442,7 @@ class TestAdminOrgErase:
         send = AsyncMock(return_value=True)
         monkeypatch.setattr("app.services.admin_erase.send_org_erased_email", send)
         user, *_ = await _seed_erasable_org(db_session, with_email=False)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
             headers=headers,
@@ -462,7 +458,7 @@ class TestAdminOrgErase:
         send = AsyncMock(return_value=False)
         monkeypatch.setattr("app.services.admin_erase.send_org_erased_email", send)
         user, *_ = await _seed_erasable_org(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
             headers=headers,
@@ -482,7 +478,7 @@ class TestAdminOrgErase:
         )
         erased.instagram_username = None
         await make_org(db_session, erased, org_name="Deleted organization")
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         all_res = await app_client.get("/api/admin/orgs", headers=headers)
         ids = {row["userId"] for row in all_res.json()["data"]}
@@ -498,7 +494,7 @@ class TestAdminOrgErase:
         user = await persist(
             db_session, make_user(role=PortalRole.ORG, status=OrgUserStatus.ERASED)
         )
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/clear-instagram-token", headers=headers
         )
@@ -566,7 +562,7 @@ class TestAdminOrgErase:
         ghost_id = ghost.id
         live_id = live.id
 
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         erased = await app_client.post(
             f"/api/admin/orgs/{erased_user.id}/erase",
             headers=headers,
@@ -975,7 +971,7 @@ class TestAdminOrgErase:
             )
         )
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         erased = await app_client.post(
             f"/api/admin/orgs/{erased_user.id}/erase",
             headers=headers,

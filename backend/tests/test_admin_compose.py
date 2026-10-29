@@ -9,17 +9,12 @@ from httpx import AsyncClient
 from app.brand_emails import CONTACT_EMAIL, OPS_CC_EMAIL
 from app.models.enums import OrgUserStatus, PortalRole
 from tests.conftest import (
+    admin_headers,
     make_brand,
     make_org,
     make_user,
-    mint_access_token,
     persist,
 )
-
-
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 class TestAdminComposeEmail:
@@ -39,7 +34,7 @@ class TestAdminComposeEmail:
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/send-email",
             json={"subject": "Hello", "body": "Please confirm.", "to": "evil@x.test"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200, res.text
         data = res.json()["data"]
@@ -56,7 +51,7 @@ class TestAdminComposeEmail:
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/send-email",
             json={"subject": "  ", "body": "hi"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
         assert res.json()["error"]["code"] == "VALIDATION_ERROR"
@@ -69,7 +64,7 @@ class TestAdminComposeEmail:
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/send-email",
             json={"subject": "Hi", "body": "Hello"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
 
@@ -77,7 +72,7 @@ class TestAdminComposeEmail:
         res = await app_client.post(
             "/api/admin/orgs/00000000-0000-0000-0000-000000000001/send-email",
             json={"subject": "Hi", "body": "Hello"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 404
 
@@ -92,7 +87,7 @@ class TestAdminComposeEmail:
         res = await app_client.post(
             f"/api/admin/orgs/{user.id}/send-email",
             json={"subject": "Hi", "body": "Hello"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 502
         assert res.json()["error"]["code"] == "EMAIL_SEND_FAILED"
@@ -107,7 +102,7 @@ class TestAdminComposeEmail:
         res = await app_client.post(
             f"/api/admin/brands/{brand.id}/send-email",
             json={"subject": "Check-in", "body": "How is the drop going?"},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200, res.text
         assert res.json()["data"]["to"] == "acme@brand.test"

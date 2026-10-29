@@ -1,4 +1,4 @@
-"""Drop feed orchestration (architecture.md §5.1 ``GET /api/drops``, §7.1).
+"""Drop feed orchestration (buzz-ops engineering/architecture.md §5.1 ``GET /api/drops``, §7.1).
 
 Pure service functions (no FastAPI types) the route layer calls. The org feed
 returns a page of drops enriched with two server-computed fields:
@@ -23,7 +23,6 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from app import errors
 from app.exceptions import BuzzAPIException
-from app.meta_reviewer.gate import reject_reviewer_mutation
 from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
@@ -31,14 +30,8 @@ from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.user import User
-from app.schemas import drops as schemas
 from app.schemas.drops import ApplicationResponse, DropDetailResponse, DropFeedItem
-
-
-def _as_utc(value: datetime) -> datetime:
-    """Coerce a (possibly naive) datetime to UTC for safe comparison."""
-
-    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+from app.timeutils import as_utc
 
 
 def is_drop_hidden(drop: Drop) -> bool:
@@ -50,7 +43,7 @@ def is_drop_hidden(drop: Drop) -> bool:
 def _browsable_drop_filters() -> tuple[ColumnElement[bool], ...]:
     """Predicate for drops an org may see in the feed (requires the Brand join).
 
-    Published only (LAUNCH.md Phase B): unpublished drafts and legacy
+    Published only: unpublished drafts and legacy
     ``request_received`` stubs never appear on the org feed.
     """
 
@@ -262,14 +255,14 @@ def drop_apply_eligibility(
     be closed" rule is the inverse and stays in the finalize path.
     """
 
-    if now < _as_utc(drop.apply_open_at):
+    if now < as_utc(drop.apply_open_at):
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not open for applications yet.")
     if drop.applicant_selection_finalized_at is not None:
         raise BuzzAPIException(
             errors.DROP_NOT_OPEN,
             "Applicant selection for this drop is already finalized.",
         )
-    if now > _as_utc(drop.apply_close_at) and not drop.manual_reopen:
+    if now > as_utc(drop.apply_close_at) and not drop.manual_reopen:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is closed for applications.")
     if accepted_count >= drop.capacity_total:
         raise BuzzAPIException(errors.CAPACITY_EXCEEDED, "This drop has no remaining spots.")
@@ -323,8 +316,6 @@ async def apply_to_drop(
     capacity remains (``drop_apply_eligibility``, mirrors feed UX).
     """
 
-    # META-REVIEWER-PATH: reviewer org cannot apply (pre-accepted on one drop).
-    reject_reviewer_mutation(org_user)
     org = await _require_org(db, org_user)
     drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
     if drop is None:
@@ -395,8 +386,6 @@ async def set_notify(
 ) -> NotifyMe:
     """Upsert the caller org's reminder for a drop (one row per org+drop)."""
 
-    # META-REVIEWER-PATH: reviewer org cannot subscribe to other drops.
-    reject_reviewer_mutation(org_user)
     org = await _require_org(db, org_user)
     drop = await get_drop_or_404(db, drop_id)
     await _require_browsable_drop(db, drop)
@@ -422,8 +411,6 @@ async def set_notify(
 async def clear_notify(db: AsyncSession, org_user: User, drop_id: uuid.UUID) -> None:
     """Remove the caller org's reminder for a drop (idempotent)."""
 
-    # META-REVIEWER-PATH: reviewer org cannot change notify rows.
-    reject_reviewer_mutation(org_user)
     org = await _require_org(db, org_user)
     drop = await get_drop_or_404(db, drop_id)
     await _require_browsable_drop(db, drop)
@@ -433,30 +420,3 @@ async def clear_notify(db: AsyncSession, org_user: User, drop_id: uuid.UUID) -> 
     if notify is not None:
         await db.delete(notify)
         await db.flush()
-
-
-# --- Brand drop creation removed (LAUNCH.md Phase B) ---------------------------
-# Brand intake now creates ``drop_requests`` via ``app.services.drop_requests``.
-
-
-def build_brand_drop_response(drop: Drop, brand: Brand) -> schemas.BrandDropResponse:
-    """Serialize a ``Drop`` into the brand-facing wire shape."""
-    return schemas.BrandDropResponse(
-        id=drop.id,
-        brand_id=drop.brand_id,
-        brand_name=brand.brand_name,
-        title=drop.title,
-        description=drop.description,
-        image=drop.image,
-        location=drop.location,
-        capacity_total=drop.capacity_total,
-        apply_open_at=drop.apply_open_at,
-        apply_close_at=drop.apply_close_at,
-        manual_reopen=drop.manual_reopen,
-        brand_tracker_stage=drop.brand_tracker_stage,
-        total_product_units=drop.total_product_units,
-        campaign_hashtag=drop.campaign_hashtag,
-        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
-        published_at=drop.published_at,
-        created_at=drop.created_at,
-    )

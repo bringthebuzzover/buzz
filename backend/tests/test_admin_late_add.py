@@ -10,6 +10,7 @@ from httpx import AsyncClient
 from app.models.application import DropApplication
 from app.models.enums import ApplicationDecision, BrandTrackerStage, OrgUserStatus, PortalRole
 from tests.conftest import (
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -18,11 +19,6 @@ from tests.conftest import (
     mint_access_token,
     persist,
 )
-
-
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 async def _org(db_session, *, name: str = "Late Org", status: str = OrgUserStatus.ACTIVE.value):
@@ -41,7 +37,7 @@ class TestAdminLateAdd:
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/add-org",
             json={"orgId": str(org.id)},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200, res.text
         data = res.json()["data"]
@@ -61,7 +57,7 @@ class TestAdminLateAdd:
         _, denied = await _org(db_session, name="Denied Club")
         applied = await make_application(db_session, drop, pending)
         await make_application(db_session, drop, denied, decision=ApplicationDecision.DENIED)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
 
         flip = await app_client.post(
             f"/api/admin/drops/{drop.id}/add-org",
@@ -89,7 +85,7 @@ class TestAdminLateAdd:
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/add-org",
             json={"orgId": str(org.id)},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 409
         assert res.json()["error"]["code"] == "ALREADY_ACCEPTED"
@@ -101,7 +97,7 @@ class TestAdminLateAdd:
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/add-org",
             json={"orgId": str(org.id)},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 409
         assert res.json()["error"]["code"] == "INVALID_ONBOARDING_STATE"
@@ -114,7 +110,7 @@ class TestAdminLateAdd:
         await db_session.flush()
         finished = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
         _, org = await _org(db_session)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         for drop in (draft, hidden, finished):
             res = await app_client.post(
                 f"/api/admin/drops/{drop.id}/add-org",
@@ -143,7 +139,7 @@ class TestAdminLateAdd:
         await make_application(db_session, drop, leftover)
         _, first = await _org(db_session, name="First Seat")
         _, extra = await _org(db_session, name="Overbook Seat")
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         a = await app_client.post(
             f"/api/admin/drops/{drop.id}/add-org",
             json={"orgId": str(first.id), "allocatedUnits": 8},
@@ -179,7 +175,7 @@ class TestAdminLateAdd:
         add = await app_client.post(
             f"/api/admin/drops/{drop.id}/add-org",
             json={"orgId": str(seated.id)},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert add.status_code == 200
         blocked = await app_client.post(
@@ -210,7 +206,7 @@ class TestAdminLateAdd:
                 "emailOrg": True,
                 "emailBrand": True,
             },
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200, res.text
         data = res.json()["data"]
@@ -228,12 +224,12 @@ class TestAdminLateAdd:
         add = await app_client.post(
             f"/api/admin/drops/{drop.id}/add-org",
             json={"orgId": str(org.id)},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert add.status_code == 200
         detail = await app_client.get(
             f"/api/admin/drops/{drop.id}",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert detail.status_code == 200
         seated = next(a for a in detail.json()["data"]["applicants"] if a["orgId"] == str(org.id))

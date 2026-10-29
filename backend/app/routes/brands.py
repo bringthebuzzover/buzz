@@ -1,4 +1,4 @@
-"""Brand routes — ``/api/brands`` (architecture.md §5.1, §8.1–§8.4).
+"""Brand routes — ``/api/brands`` (buzz-ops engineering/architecture.md §5.1, §8.1–§8.4).
 
 Stage 5C adds the brand portal backend: profile, drop creation, drops list
 with per-drop aggregate, drop detail with applicants + attributed totals,
@@ -45,9 +45,9 @@ from app.services.brand_ig_change_requests import (
     submit_request as submit_brand_ig_change,
 )
 from app.services.brands import (
-    _drop_aggregate,
     _require_brand,
     build_brand_drop_detail,
+    build_brand_drop_list_item,
     compute_brand_aggregate,
     compute_engagement_series,
     finalize_applicants,
@@ -57,7 +57,6 @@ from app.services.brands import (
 from app.services.drop_requests import (
     brand_drop_request_response,
     create_brand_drop_request,
-    get_brand_drop_request,
     list_brand_drop_requests,
 )
 
@@ -169,7 +168,7 @@ async def create_drop_request(
     user: CurrentBrand,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Plan your Campaign — create an intake ticket (LAUNCH.md Phase B)."""
+    """Plan your Campaign — create an intake ticket."""
     brand = await _require_brand(db, user)
     ticket = await create_brand_drop_request(db, brand, payload)
     return api_response(data=await brand_drop_request_response(db, ticket))
@@ -188,20 +187,6 @@ async def list_drop_requests(
     return api_response(data=[await brand_drop_request_response(db, t) for t in tickets])
 
 
-@router.get(
-    "/me/drop-requests/{request_id}",
-    response_model=DataResponse[BrandDropRequestResponse],
-)
-async def get_drop_request(
-    request_id: uuid.UUID,
-    user: CurrentBrand,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    brand = await _require_brand(db, user)
-    ticket = await get_brand_drop_request(db, brand, request_id)
-    return api_response(data=await brand_drop_request_response(db, ticket))
-
-
 @router.get("/me/drops", response_model=DataResponse[list[BrandDropListItem]])
 async def list_brand_drops(
     user: CurrentBrand,
@@ -217,34 +202,7 @@ async def list_brand_drops(
         )
     )
 
-    items: list[BrandDropListItem] = []
-    for drop in drops:
-        agg = await _drop_aggregate(db, drop.id)
-        items.append(
-            BrandDropListItem(
-                id=drop.id,
-                brand_id=drop.brand_id,
-                brand_name=brand.brand_name,
-                title=drop.title,
-                description=drop.description,
-                image=drop.image,
-                location=drop.location,
-                capacity_total=drop.capacity_total,
-                apply_open_at=drop.apply_open_at,
-                apply_close_at=drop.apply_close_at,
-                manual_reopen=drop.manual_reopen,
-                brand_tracker_stage=drop.brand_tracker_stage,
-                total_product_units=drop.total_product_units,
-                campaign_hashtag=drop.campaign_hashtag,
-                applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
-                created_at=drop.created_at,
-                total_posts=agg["total_posts"],
-                total_likes=agg["total_likes"],
-                total_comments=agg["total_comments"],
-                total_engagement=agg["total_engagement"],
-                total_reach=agg["total_reach"],
-            )
-        )
+    items = [await build_brand_drop_list_item(db, brand, drop) for drop in drops]
     return api_response(data=items)
 
 

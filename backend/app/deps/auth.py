@@ -1,4 +1,4 @@
-"""FastAPI auth dependencies (architecture.md §5.4).
+"""FastAPI auth dependencies (buzz-ops engineering/architecture.md §5.4).
 
 Three independent, composable gates:
 

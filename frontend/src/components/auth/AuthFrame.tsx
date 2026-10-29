@@ -10,8 +10,7 @@ import { focusRingClass } from "../../theme/controls";
 import { MOTION } from "../../theme/motion";
 import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
-
-const publicUrl = process.env.PUBLIC_URL ?? "";
+import { publicAsset } from "../../utils/publicAsset";
 
 const ASIDE_STATEMENT =
   "Connecting brands with campus communities for authentic college marketing, at scale.";
@@ -65,7 +64,7 @@ function AuthAside() {
       className="relative flex min-h-[420px] w-full shrink-0 flex-col overflow-hidden lg:min-h-screen lg:w-[620px]"
     >
       <img
-        src={`${publicUrl}/auth-campus.jpg`}
+        src={publicAsset("auth-campus.jpg")}
         alt=""
         className="absolute inset-0 h-full w-full object-cover"
       />

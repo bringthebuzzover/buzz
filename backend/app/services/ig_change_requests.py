@@ -8,7 +8,6 @@ Graph id. Account switch must clear Graph ids in the same commit as the
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -17,7 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.exceptions import BuzzAPIException
-from app.meta_reviewer.gate import reject_reviewer_mutation
 from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.enums import ApplicationDecision, BrandTrackerStage, OrgUserStatus, PortalRole
@@ -43,16 +41,13 @@ from app.services.org_apply import (
     normalize_claimed_handle,
 )
 from app.services.org_connect import create_org_connect_token
+from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
 
 _KINDS = frozenset({"rename", "account_switch"})
 _STATUSES = frozenset({"pending", "approved", "denied"})
 _REASON_MIN = 10
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 def _serialize(row: OrgIgChangeRequest) -> dict[str, Any]:
@@ -132,8 +127,6 @@ async def submit_request(
     reason: str,
     kind: str = "account_switch",
 ) -> dict[str, Any]:
-    # META-REVIEWER-PATH: a reconnect rebinds this org; it does not open a ticket.
-    reject_reviewer_mutation(user)
     if kind not in _KINDS:
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,
@@ -330,7 +323,7 @@ async def approve_request(
             status_code=400,
         )
 
-    now = _now()
+    now = utcnow()
     req.status = "approved"
     req.decided_kind = kind
     req.decided_at = now
@@ -389,7 +382,7 @@ async def deny_request(db: AsyncSession, request_id: UUID) -> dict[str, Any]:
     if user is None or org is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
     req.status = "denied"
-    req.decided_at = _now()
+    req.decided_at = utcnow()
     await db.flush()
     email_sent = await send_org_ig_change_denied_email(
         user.edu_email or "",

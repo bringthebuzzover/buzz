@@ -1,4 +1,4 @@
-"""Brand drop-request intake (LAUNCH.md Phase B / PRODUCT §5.2).
+"""Brand drop-request intake (buzz-ops product/PRODUCT.md §5.2).
 
 Plan your Campaign creates a ``drop_requests`` ticket only — never a ``drops``
 row. Admins convert tickets into unpublished drafts, then Publish.
@@ -96,17 +96,6 @@ async def list_brand_drop_requests(db: AsyncSession, brand: Brand) -> list[DropR
             .order_by(DropRequest.created_at.desc())
         )
     )
-
-
-async def get_brand_drop_request(
-    db: AsyncSession,
-    brand: Brand,
-    request_id: uuid.UUID,
-) -> DropRequest:
-    ticket = await db.get(DropRequest, request_id)
-    if ticket is None or ticket.brand_id != brand.id:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop request not found.", status_code=404)
-    return ticket
 
 
 async def list_admin_drop_requests(

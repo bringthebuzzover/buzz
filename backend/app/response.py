@@ -2,7 +2,7 @@
 
 Every endpoint returns the same shape — `{ data, meta, error }` — so the
 frontend's `api/client.ts` can branch uniformly on `error.code` for failures
-and read `data`/`meta` for success (`architecture.md` §5.2).
+and read `data`/`meta` for success (buzz-ops `engineering/architecture.md` §5.2).
 """
 
 from __future__ import annotations

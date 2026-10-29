@@ -181,32 +181,6 @@ async def test_onboarding_takeover_stale_unverified_edu(
     assert peer.edu_email is None
 
 
-async def test_change_edu_email_while_pending(app_client: AsyncClient, db_session) -> None:
-    user, evt, _raw = await _seed_pending_verification(
-        db_session, email="old@test.edu", suffix="chg1"
-    )
-    org = Organization(
-        id=uuid.uuid4(),
-        user_id=user.id,
-        org_name="Change Club",
-        university="Test University",
-    )
-    db_session.add(org)
-    await db_session.flush()
-
-    resp = await app_client.post(
-        "/api/auth/verify-email/change",
-        json={"eduEmail": "new@test.edu"},
-        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
-    )
-    assert resp.status_code == 200, resp.text
-    assert resp.json()["data"]["emailSentTo"] == "new@test.edu"
-    await db_session.refresh(user)
-    await db_session.refresh(evt)
-    assert user.edu_email == "new@test.edu"
-    assert evt.expires_at <= datetime.now(timezone.utc)
-
-
 async def test_onboarding_rejects_unknown_field(app_client: AsyncClient, db_session) -> None:
     user = await persist(
         db_session,
@@ -960,23 +934,6 @@ async def test_rotate_edu_email_pending_approval_eligible(
     assert user.edu_email == "pend@test.edu"
     assert user.pending_edu_email == "pend-new@test.edu"
     assert user.status == OrgUserStatus.PENDING_APPROVAL.value
-
-
-async def test_rotate_rejects_onboarding_only_change_path(
-    app_client: AsyncClient, db_session
-) -> None:
-    """POST /verify-email/change stays onboarding-only (typo fix)."""
-    user = await _seed_verified_org(db_session, email="keep@test.edu", suffix="r3")
-    resp = await app_client.post(
-        "/api/auth/verify-email/change",
-        json={"eduEmail": "typo@test.edu"},
-        headers={"Authorization": f"Bearer {mint_access_token(user)}"},
-    )
-    assert resp.status_code == 400
-    assert resp.json()["error"]["code"] == "INVALID_ONBOARDING_STATE"
-    await db_session.refresh(user)
-    assert user.edu_email == "keep@test.edu"
-    assert user.pending_edu_email is None
 
 
 async def test_cancel_pending_edu_email(app_client: AsyncClient, db_session) -> None:

@@ -15,8 +15,6 @@ export type OrgOnboardingResponse = components["schemas"]["OrgOnboardingResponse
 export type VerifyEmailResponse = components["schemas"]["VerifyEmailResponse"];
 export type ResendVerificationResponse =
   components["schemas"]["ResendVerificationResponse"];
-export type ChangeEduEmailResponse =
-  components["schemas"]["ChangeEduEmailResponse"];
 export type RotateEduEmailResponse =
   components["schemas"]["RotateEduEmailResponse"];
 export type CancelPendingEduEmailResponse =
@@ -243,22 +241,6 @@ export function useResendVerification() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: "{}",
-        },
-      );
-      return data;
-    },
-  });
-}
-
-export function useChangeEduEmail() {
-  return useMutation({
-    mutationFn: async (eduEmail: string) => {
-      const { data } = await apiFetch<ChangeEduEmailResponse>(
-        "/api/auth/verify-email/change",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eduEmail }),
         },
       );
       return data;

@@ -1,4 +1,4 @@
-"""Buzz-issued JWT encode/decode (architecture.md §5.3).
+"""Buzz-issued JWT encode/decode (buzz-ops engineering/architecture.md §5.3).
 
 Four token *types*, all signed with ``settings.SECRET_KEY`` /
 ``settings.JWT_ALGORITHM`` and carrying an explicit ``type`` claim so none
@@ -18,13 +18,14 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 import jwt
 from pydantic import BaseModel
 
 from app.config import settings
+from app.timeutils import utcnow
 
 ACCESS_TOKEN_TYPE = "access"
 REFRESH_TOKEN_TYPE = "refresh"
@@ -66,12 +67,6 @@ class TokenPayload(BaseModel):
     imp_readonly: bool | None = None  # impersonation session may not mutate
     bind: str | None = None  # user id for Connect Instagram OAuth bind
     next: str | None = None  # allowlisted post-OAuth SPA path (public drop)
-    # META-REVIEWER-PATH: set only on states minted by the reviewer link.
-    reviewer: bool | None = None
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 def _encode(claims: dict[str, Any]) -> str:
@@ -101,7 +96,7 @@ def create_access_token(
     revoke outstanding access tokens the same way refresh tokens already are.
     """
 
-    issued = _now()
+    issued = utcnow()
     ttl_minutes = (
         settings.IMPERSONATION_TOKEN_TTL_MINUTES
         if impersonated_by is not None
@@ -143,7 +138,7 @@ def create_view_as_intent_token(
     ``imp_ver``. Omit it on the first mint so the cap is 8h from then.
     """
 
-    issued = _now()
+    issued = utcnow()
     exp = (
         expires_at
         if expires_at is not None
@@ -169,7 +164,7 @@ def create_refresh_token(user_id: uuid.UUID | str, token_version: int = 0) -> st
     revoke) invalidates every outstanding refresh token at once (§11.1).
     """
 
-    issued = _now()
+    issued = utcnow()
     claims: dict[str, Any] = {
         "sub": str(user_id),
         "type": REFRESH_TOKEN_TYPE,
@@ -200,19 +195,15 @@ def create_oauth_state_token(
     *,
     bind_user_id: uuid.UUID | str | None = None,
     next_path: str | None = None,
-    reviewer: bool = False,
 ) -> str:
     """Mint a signed, short-lived CSRF ``state`` for the OAuth round-trip.
 
     When ``bind_user_id`` is set, the callback binds Instagram to that existing
-    user instead of inserting (LAUNCH.md Phase A Connect). ``next_path`` must
+    user instead of inserting (the org Connect step). ``next_path`` must
     already be allowlisted (``/d/<uuid>``); other values are dropped.
-
-    ``reviewer`` is META-REVIEWER-PATH. It is omitted unless the reviewer
-    link mints the state. Normal login and Connect never set it.
     """
 
-    issued = _now()
+    issued = utcnow()
     claims: dict[str, Any] = {
         "sub": "oauth",
         "type": OAUTH_STATE_TOKEN_TYPE,
@@ -223,9 +214,6 @@ def create_oauth_state_token(
     }
     if bind_user_id is not None:
         claims["bind"] = str(bind_user_id)
-    # META-REVIEWER-PATH: absent on every non-reviewer state.
-    if reviewer:
-        claims["reviewer"] = True
     allowed_next = allowlisted_oauth_next(next_path)
     if allowed_next is not None:
         claims["next"] = allowed_next

@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select, update
@@ -18,7 +18,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import errors
 from app.config import settings
 from app.exceptions import BuzzAPIException
-from app.meta_reviewer.gate import reject_reviewer_mutation  # META-REVIEWER-PATH
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.organization import Organization
 from app.models.user import User
@@ -35,18 +34,9 @@ from app.services.instagram import (
     require_instagram_handle,
 )
 from app.services.instagram_token import clear_unusable_instagram_token
+from app.timeutils import as_utc, utcnow
 
 logger = logging.getLogger(__name__)
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value
 
 
 _ROTATE_ELIGIBLE_STATUSES = frozenset(
@@ -108,8 +98,8 @@ async def _release_unverified_edu_claim(
         )
 
     org = await db.scalar(select(Organization).where(Organization.user_id == existing.id))
-    claim_at = _as_utc(org.created_at if org is not None else existing.created_at)
-    age = _now() - claim_at
+    claim_at = as_utc(org.created_at if org is not None else existing.created_at)
+    age = utcnow() - claim_at
     if age < timedelta(hours=settings.EDU_EMAIL_UNVERIFIED_CLAIM_TTL_HOURS):
         raise BuzzAPIException(
             errors.EDU_EMAIL_TAKEN,
@@ -125,13 +115,13 @@ async def _release_unverified_edu_claim(
             EmailVerificationToken.user_id == existing.id,
             EmailVerificationToken.used_at.is_(None),
         )
-        .values(expires_at=_now())
+        .values(expires_at=utcnow())
     )
     await db.flush()
 
 
 async def _count_active_verification_tokens(db: AsyncSession, user_id: uuid.UUID) -> int:
-    now = _now()
+    now = utcnow()
     unused = await db.scalars(
         select(EmailVerificationToken).where(
             EmailVerificationToken.user_id == user_id,
@@ -150,7 +140,7 @@ async def _invalidate_verification_tokens(db: AsyncSession, user_id: uuid.UUID) 
             EmailVerificationToken.user_id == user_id,
             EmailVerificationToken.used_at.is_(None),
         )
-        .values(expires_at=_now())
+        .values(expires_at=utcnow())
     )
 
 
@@ -174,7 +164,7 @@ async def _mint_and_send_verification(
         user_id=user.id,
         token_hash=hash_token(raw),
         email=edu_email,
-        expires_at=_now() + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
+        expires_at=utcnow() + timedelta(hours=settings.VERIFICATION_TOKEN_TTL_HOURS),
     )
     db.add(evt)
     await db.flush()
@@ -197,7 +187,7 @@ async def _seed_follower_count_from_graph(
     ig: InstagramClient,
 ) -> None:
     """Best-effort Graph followers write after org create. Never raises."""
-    now = _now()
+    now = utcnow()
     if not user.instagram_access_token:
         logger.warning(
             "onboarding followers_seed_failed org_id=%s user_id=%s reason=missing_token",
@@ -349,61 +339,6 @@ async def submit_org_onboarding(
     }
 
 
-async def change_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict[str, Any]:
-    """Correct the .edu address while still awaiting verification."""
-    # META-REVIEWER-PATH: do not let the seeded org replace the email purge keys on.
-    reject_reviewer_mutation(user)
-    if user.portal_role != PortalRole.ORG.value:
-        raise BuzzAPIException(
-            errors.INVALID_ONBOARDING_STATE,
-            "Only organization users verify a .edu email.",
-            status_code=400,
-        )
-    if user.status != OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
-        raise BuzzAPIException(
-            errors.INVALID_ONBOARDING_STATE,
-            "Account is not awaiting email verification.",
-            status_code=400,
-        )
-
-    if user.edu_email == edu_email:
-        # Same address — behave like a resend rather than a no-op conflict.
-        return await resend_verification_email(db, user)
-
-    await _release_unverified_edu_claim(db, claimant_id=user.id, edu_email=edu_email)
-
-    org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
-    if org is None:
-        raise BuzzAPIException(
-            errors.INVALID_ONBOARDING_STATE,
-            "Organization profile is missing.",
-            status_code=400,
-        )
-
-    user.edu_email = edu_email
-    await _invalidate_verification_tokens(db, user.id)
-
-    try:
-        await db.flush()
-    except IntegrityError as exc:
-        raise BuzzAPIException(
-            errors.EDU_EMAIL_TAKEN,
-            "This .edu email is already associated with another account.",
-            status_code=409,
-        ) from exc
-
-    ok = await _mint_and_send_verification(
-        db, user, edu_email, org_name=org.org_name, kind="signup"
-    )
-    if not ok:
-        raise BuzzAPIException(
-            errors.EMAIL_SEND_FAILED,
-            "We could not send the verification email. Please try again.",
-            status_code=502,
-        )
-    return {"email_sent_to": edu_email, "status": user.status}
-
-
 async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     """Redeem a one-time .edu verification token.
 
@@ -414,7 +349,7 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     Returns ``session_minted: True`` on the onboarding branch so the route can
     issue a JWT + refresh cookie (apply-first has no prior IG session).
     """
-    now = _now()
+    now = utcnow()
 
     # FOR UPDATE locks the token row so two concurrent redemptions (double-click)
     # serialize: the second waits, then sees used_at already set and is rejected.
@@ -457,8 +392,6 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
         and user.pending_edu_email
         and token_email == user.pending_edu_email
     ):
-        # META-REVIEWER-PATH: finishing a rotate would detach the seeded org from purge.
-        reject_reviewer_mutation(user)
         evt.used_at = now
         user.edu_email = user.pending_edu_email
         user.pending_edu_email = None
@@ -542,8 +475,6 @@ async def rotate_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict
     Keeps the live ``edu_email`` until the new address is verified. Does not
     demote status or gate the portal.
     """
-    # META-REVIEWER-PATH: do not let the seeded org replace the email purge keys on.
-    reject_reviewer_mutation(user)
     if user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,

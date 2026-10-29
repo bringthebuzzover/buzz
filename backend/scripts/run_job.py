@@ -1,4 +1,4 @@
-"""Background-job runner (architecture.md §10 / §1.3).
+"""Background-job runner (buzz-ops engineering/architecture.md §10 / §1.3).
 
 A scheduler (Railway Cron) invokes one job per command, e.g.::
 

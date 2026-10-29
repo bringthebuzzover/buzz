@@ -110,23 +110,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/brands/pending": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Pending Brands */
-        get: operations["get_pending_brands_api_admin_brands_pending_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/admin/brands/{brand_id}": {
         parameters: {
             query?: never;
@@ -530,7 +513,7 @@ export interface paths {
         /**
          * Get Health Endpoint
          * @description Inferred pipeline freshness, Instagram token buckets, and standing
-         *     integrity / silent-loss counts. See ``gaps/`` for why the pipeline
+         *     integrity / silent-loss counts. See buzz-ops ``engineering/gaps/`` for why the pipeline
          *     block is inferred rather than measured.
          */
         get: operations["get_health_endpoint_api_admin_health_get"];
@@ -678,23 +661,6 @@ export interface paths {
         };
         /** List Orgs Endpoint */
         get: operations["list_orgs_endpoint_api_admin_orgs_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/orgs/pending": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Pending Orgs */
-        get: operations["get_pending_orgs_api_admin_orgs_pending_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -981,26 +947,6 @@ export interface paths {
          *     Blocked in production (run the script with ``--confirm`` after explicit ops OK).
          */
         post: operations["cleanup_request_received_endpoint_api_admin_tools_cleanup_request_received_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Users Endpoint
-         * @description Org + brand users for the admin impersonation picker.
-         */
-        get: operations["list_users_endpoint_api_admin_users_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1451,26 +1397,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/verify-email/change": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Change Edu Email Endpoint
-         * @description Correct a typo'd .edu while still awaiting verification.
-         */
-        post: operations["change_edu_email_endpoint_api_auth_verify_email_change_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/auth/verify-email/resend": {
         parameters: {
             query?: never;
@@ -1647,26 +1573,9 @@ export interface paths {
         put?: never;
         /**
          * Create Drop Request
-         * @description Plan your Campaign — create an intake ticket (LAUNCH.md Phase B).
+         * @description Plan your Campaign — create an intake ticket.
          */
         post: operations["create_drop_request_api_brands_me_drop_requests_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/brands/me/drop-requests/{request_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Drop Request */
-        get: operations["get_drop_request_api_brands_me_drop_requests__request_id__get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2061,74 +1970,6 @@ export interface paths {
          *     closed rather than reporting a healthy API with a dead DB.
          */
         get: operations["get_health_api_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/meta-reviewer/seed": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Meta Reviewer Seed
-         * @description Admin-only idempotent seed. 404 when the flag is off, before auth.
-         */
-        post: operations["meta_reviewer_seed_api_meta_reviewer_seed_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/meta-reviewer/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Meta Reviewer Start
-         * @description Verify the reusable link secret and mint a reviewer OAuth state.
-         *
-         *     The state cookie is the same CSRF binding as Connect. ``next`` is not
-         *     taken from the client (no open redirect).
-         */
-        post: operations["meta_reviewer_start_api_meta_reviewer_start_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/meta-reviewer/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Meta Reviewer Status
-         * @description Admin-only setup status. 404 when the flag is off, before auth.
-         *
-         *     Returns whether the reviewer org exists, its admin-page user id, and the
-         *     configured drop id. Never returns the link secret, its hash, or the email.
-         *     Not rate-limited: the admin overview reads it on each visit. Flag-off
-         *     still 404s before auth, so that probe never reaches the handler body.
-         */
-        get: operations["meta_reviewer_status_api_meta_reviewer_status_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2799,7 +2640,7 @@ export interface components {
         };
         /**
          * AdminDropCreateRequest
-         * @description Admin-minted unpublished draft drop (LAUNCH.md Phase B).
+         * @description Admin-minted unpublished draft drop.
          */
         AdminDropCreateRequest: {
             /**
@@ -3323,58 +3164,6 @@ export interface components {
             /** Warnings */
             warnings: components["schemas"]["AdminWarningItem"][];
         };
-        /** AdminPendingBrandItem */
-        AdminPendingBrandItem: {
-            /** Brandname */
-            brandName: string;
-            /** Companyemail */
-            companyEmail: string;
-            /** Createdat */
-            createdAt: number;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Instagramhandle */
-            instagramHandle: string | null;
-            /** Intentmessage */
-            intentMessage: string | null;
-            /** Status */
-            status: string;
-            /**
-             * Userid
-             * Format: uuid
-             */
-            userId: string;
-        };
-        /** AdminPendingOrgItem */
-        AdminPendingOrgItem: {
-            /** Createdat */
-            createdAt: number;
-            /** Followercount */
-            followerCount: number | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Instagramhandle */
-            instagramHandle: string | null;
-            /** Membercount */
-            memberCount: number | null;
-            /** Orgname */
-            orgName: string;
-            /** Status */
-            status: string;
-            /** University */
-            university: string;
-            /**
-             * Userid
-             * Format: uuid
-             */
-            userId: string;
-        };
         /**
          * AdminQueueItem
          * @description One action-required queue. ``oldest_at`` is what makes a count
@@ -3549,31 +3338,6 @@ export interface components {
             occurredAt: number;
             /** Stage */
             stage: string;
-        };
-        /**
-         * AdminUserItem
-         * @description A row in the ``/api/admin/users`` impersonation picker.
-         */
-        AdminUserItem: {
-            /** Createdat */
-            createdAt: number;
-            /** Displayname */
-            displayName: string | null;
-            /** Email */
-            email: string | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Impersonatable */
-            impersonatable: boolean;
-            /** Instagramhandle */
-            instagramHandle: string | null;
-            /** Portalrole */
-            portalRole: string;
-            /** Status */
-            status: string;
         };
         /** AdminVerificationState */
         AdminVerificationState: {
@@ -4224,21 +3988,6 @@ export interface components {
             /** Status */
             status: string;
         };
-        /**
-         * ChangeEduEmailRequest
-         * @description Correct a typo'd .edu while still awaiting verification.
-         */
-        ChangeEduEmailRequest: {
-            /** Eduemail */
-            eduEmail: string;
-        };
-        /** ChangeEduEmailResponse */
-        ChangeEduEmailResponse: {
-            /** Emailsentto */
-            emailSentTo: string;
-            /** Status */
-            status: string;
-        };
         /** ClearInstagramTokenResponse */
         ClearInstagramTokenResponse: {
             /** Instagramtokencleared */
@@ -4555,15 +4304,6 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /** DataResponse[ChangeEduEmailResponse] */
-        DataResponse_ChangeEduEmailResponse_: {
-            data?: components["schemas"]["ChangeEduEmailResponse"] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
         /** DataResponse[ClearInstagramTokenResponse] */
         DataResponse_ClearInstagramTokenResponse_: {
             data?: components["schemas"]["ClearInstagramTokenResponse"] | null;
@@ -4630,24 +4370,6 @@ export interface components {
         /** DataResponse[InstagramDeauthorizeResponse] */
         DataResponse_InstagramDeauthorizeResponse_: {
             data?: components["schemas"]["InstagramDeauthorizeResponse"] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** DataResponse[MetaReviewerSeedResponse] */
-        DataResponse_MetaReviewerSeedResponse_: {
-            data?: components["schemas"]["MetaReviewerSeedResponse"] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** DataResponse[MetaReviewerStatusResponse] */
-        DataResponse_MetaReviewerStatusResponse_: {
-            data?: components["schemas"]["MetaReviewerStatusResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -4858,40 +4580,10 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /** DataResponse[list[AdminPendingBrandItem]] */
-        DataResponse_list_AdminPendingBrandItem__: {
-            /** Data */
-            data?: components["schemas"]["AdminPendingBrandItem"][] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** DataResponse[list[AdminPendingOrgItem]] */
-        DataResponse_list_AdminPendingOrgItem__: {
-            /** Data */
-            data?: components["schemas"]["AdminPendingOrgItem"][] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
         /** DataResponse[list[AdminTableInfo]] */
         DataResponse_list_AdminTableInfo__: {
             /** Data */
             data?: components["schemas"]["AdminTableInfo"][] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** DataResponse[list[AdminUserItem]] */
-        DataResponse_list_AdminUserItem__: {
-            /** Data */
-            data?: components["schemas"]["AdminUserItem"][] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -5252,37 +4944,6 @@ export interface components {
              */
             postId: string;
         };
-        /** MetaReviewerSeedResponse */
-        MetaReviewerSeedResponse: {
-            /** Applicationid */
-            applicationId: string;
-            /** Createdapplication */
-            createdApplication: boolean;
-            /** Createduser */
-            createdUser: boolean;
-            /** Dropid */
-            dropId: string;
-            /** Orgid */
-            orgId: string;
-            /** Userid */
-            userId: string;
-        };
-        /**
-         * MetaReviewerStatusResponse
-         * @description Setup snapshot. ``user_id`` is the admin org-page key, not a secret.
-         */
-        MetaReviewerStatusResponse: {
-            /** Dropid */
-            dropId: string | null;
-            /** Enabled */
-            enabled: boolean;
-            /** Orgid */
-            orgId: string | null;
-            /** Seeded */
-            seeded: boolean;
-            /** Userid */
-            userId: string | null;
-        };
         /**
          * NotifyRequest
          * @description Body for ``POST /api/drops/{id}/notify`` (architecture §7.1).
@@ -5381,7 +5042,7 @@ export interface components {
          * OrgCategory
          * @description Classification of a student org (``organizations.category``).
          *
-         *     Drives brand-side applicant filtering (PRODUCT.md §5.3.1). Nullable on the
+         *     Drives brand-side applicant filtering (buzz-ops product/PRODUCT.md §5.3.1). Nullable on the
          *     column — orgs onboarded before this field, or that decline to classify,
          *     have no category.
          * @enum {string}
@@ -5700,7 +5361,7 @@ export interface components {
          *     bearer we just minted. Serializing both from the same transaction lets the
          *     SPA bootstrap without a follow-up ``/me`` — closing the
          *     ``token_version`` mint-then-read race
-         *     (see ``gaps/auth.ci-session-restore-flake.md``).
+         *     (see buzz-ops ``engineering/gaps/archive/auth.ci-session-restore-flake.md``).
          */
         RefreshResponse: {
             /** Access Token */
@@ -6125,37 +5786,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminBrandInviteResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    get_pending_brands_api_admin_brands_pending_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_list_AdminPendingBrandItem__"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -7242,37 +6872,6 @@ export interface operations {
             };
         };
     };
-    get_pending_orgs_api_admin_orgs_pending_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_list_AdminPendingOrgItem__"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
     resend_all_pending_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post: {
         parameters: {
             query?: never;
@@ -7802,37 +7401,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminCleanupStubsResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    list_users_endpoint_api_admin_users_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_list_AdminUserItem__"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -8465,41 +8033,6 @@ export interface operations {
             };
         };
     };
-    change_edu_email_endpoint_api_auth_verify_email_change_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangeEduEmailRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_ChangeEduEmailResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
     resend_verification_endpoint_api_auth_verify_email_resend_post: {
         parameters: {
             query?: never;
@@ -8840,39 +8373,6 @@ export interface operations {
                 "application/json": components["schemas"]["BrandDropRequestCreate"];
             };
         };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_BrandDropRequestResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    get_drop_request_api_brands_me_drop_requests__request_id__get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                request_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -9660,103 +9160,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_HealthStatusResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    meta_reviewer_seed_api_meta_reviewer_seed_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_MetaReviewerSeedResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    meta_reviewer_start_api_meta_reviewer_start_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    token: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_InstagramBindStartResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    meta_reviewer_status_api_meta_reviewer_status_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_MetaReviewerStatusResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

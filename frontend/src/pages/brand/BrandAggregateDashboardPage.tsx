@@ -1,5 +1,5 @@
 /**
- * `/brand/dashboard` — Brand Aggregate Dashboard (PRODUCT.md §5.3.2).
+ * `/brand/dashboard` — Brand Aggregate Dashboard (buzz-ops product/PRODUCT.md §5.3.2).
  *
  * Renders from the real backend (GET /api/brands/me/aggregate,
  * /api/brands/me/drops, /api/brands/me/drop-requests,
