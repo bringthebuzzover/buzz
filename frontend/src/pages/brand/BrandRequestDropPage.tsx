@@ -14,14 +14,22 @@ import {
 } from "../../api/hooks/useBrandHooks";
 import PageShell from "../../components/site/PageShell";
 import { Card, CardHeader } from "../../components/ui/Card";
+import { userFacingApiError } from "../../api/userFacingError";
 import {
   Button,
   ErrorBanner,
   TextArea,
   TextField,
 } from "../../components/forms/controls";
+import FieldError from "../../components/forms/FieldError";
 import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+
+/** Optional leading #, then 1–100 letters, numbers, or underscores. */
+const HASHTAG_RE = /^#?[A-Za-z0-9_]{1,100}$/;
+
+const HASHTAG_ERROR =
+  "Use 1–100 letters, numbers, or underscores. A leading # is optional.";
 
 const NEXT_STEPS = [
   {
@@ -87,31 +95,55 @@ function WhatHappensNext() {
           </li>
         ))}
       </ol>
+      <p className={cn(TEXT.meta, "mt-4")}>
+        Only the first two fields are required.
+      </p>
     </Card>
   );
+}
+
+function fieldMessage(
+  client: Record<string, string>,
+  server: Record<string, string>,
+  key: string,
+): string | undefined {
+  return client[key] || server[key] || undefined;
 }
 
 function RequestForm({
   onSubmit,
   submitting,
+  serverFieldErrors,
 }: {
   onSubmit: (body: BrandDropRequestDraft) => void;
   submitting: boolean;
+  serverFieldErrors: Record<string, string>;
 }) {
   const [formError, setFormError] = useState<string | null>(null);
+  const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
   const minDate = utcIsoDate(0);
   const maxDate = utcIsoDate(365);
+  const errorFor = (key: string) =>
+    fieldMessage(clientErrors, serverFieldErrors, key);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (submitting) return;
     setFormError(null);
+    setClientErrors({});
     const formData = new FormData(e.currentTarget);
     const message = String(formData.get("message") ?? "").trim();
     const product = String(formData.get("product") ?? "").trim();
-    if (!message || !product) {
-      setFormError("Tell us about the campaign and what you're sending.");
-      return;
+    const nextErrors: Record<string, string> = {};
+    if (!message) {
+      nextErrors.message = "Tell us about the campaign.";
+    }
+    if (!product) {
+      nextErrors.product = "Tell us what you're sending.";
+    }
+    const hashtagRaw = String(formData.get("campaignHashtag") ?? "").trim();
+    if (hashtagRaw && !HASHTAG_RE.test(hashtagRaw)) {
+      nextErrors.campaignHashtag = HASHTAG_ERROR;
     }
     let orgCount: number | undefined;
     let unitsPerOrg: number | undefined;
@@ -125,21 +157,34 @@ function RequestForm({
         "Units per organization",
       );
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Check the numbers and try again.");
+      const messageText =
+        err instanceof Error ? err.message : "Check the numbers and try again.";
+      if (messageText.startsWith("How many organizations")) {
+        nextErrors.orgCount = messageText;
+      } else if (messageText.startsWith("Units per organization")) {
+        nextErrors.unitsPerOrg = messageText;
+      } else {
+        nextErrors.orgCount = messageText;
+      }
+    }
+    if (Object.keys(nextErrors).length > 0) {
+      setClientErrors(nextErrors);
+      if (!message || !product) {
+        setFormError("Tell us about the campaign and what you're sending.");
+      }
       return;
     }
     const body: BrandDropRequestDraft = { message, product };
     const title = optionalText(String(formData.get("title") ?? ""));
     const location = optionalText(String(formData.get("location") ?? ""));
     const targetDate = optionalText(String(formData.get("targetDate") ?? ""));
-    const campaignHashtag = optionalText(String(formData.get("campaignHashtag") ?? ""));
     const notes = optionalText(String(formData.get("notes") ?? ""));
     if (title) body.title = title;
     if (location) body.location = location;
     if (targetDate) body.targetDate = targetDate;
     if (orgCount !== undefined) body.orgCount = orgCount;
     if (unitsPerOrg !== undefined) body.unitsPerOrg = unitsPerOrg;
-    if (campaignHashtag) body.campaignHashtag = campaignHashtag;
+    if (hashtagRaw) body.campaignHashtag = hashtagRaw;
     if (notes) body.notes = notes;
     onSubmit(body);
   };
@@ -174,22 +219,32 @@ function RequestForm({
               description="The two things we need to start."
               className="mb-0"
             />
-            <TextArea
-              id="message"
-              name="message"
-              label="Tell us about the campaign"
-              required
-              rows={4}
-              placeholder="Share goals, timing, or anything a rep should know."
-            />
-            <TextArea
-              id="product"
-              name="product"
-              label="What you're sending"
-              required
-              rows={3}
-              placeholder="e.g. One case of cold brew in branded boxes"
-            />
+            <div>
+              <TextArea
+                id="message"
+                name="message"
+                label="Tell us about the campaign"
+                required
+                rows={4}
+                placeholder="Share goals, timing, or anything a rep should know."
+                aria-invalid={Boolean(errorFor("message")) || undefined}
+                aria-describedby={errorFor("message") ? "message-error" : undefined}
+              />
+              <FieldError id="message-error" message={errorFor("message")} />
+            </div>
+            <div>
+              <TextArea
+                id="product"
+                name="product"
+                label="What you're sending"
+                required
+                rows={3}
+                placeholder="e.g. One case of cold brew in branded boxes"
+                aria-invalid={Boolean(errorFor("product")) || undefined}
+                aria-describedby={errorFor("product") ? "product-error" : undefined}
+              />
+              <FieldError id="product-error" message={errorFor("product")} />
+            </div>
           </Card>
           <WhatHappensNext />
         </div>
@@ -200,106 +255,162 @@ function RequestForm({
             description="All optional. Leave a field blank if you're not sure."
             className="mb-0"
           />
-          <TextField
-            id="title"
-            name="title"
-            label={
-              <>
-                Title
-                <OptionalMark />
-              </>
-            }
-            maxLength={120}
-            placeholder="e.g. Fall Cold Brew Launch"
-          />
-          <TextField
-            id="location"
-            name="location"
-            label={
-              <>
-                Campuses or area
-                <OptionalMark />
-              </>
-            }
-            maxLength={255}
-            placeholder="e.g. Sample University, or Anywhere"
-          />
-          <TextField
-            id="targetDate"
-            name="targetDate"
-            type="date"
-            label={
-              <>
-                When do you want this live?
-                <OptionalMark />
-              </>
-            }
-            min={minDate}
-            max={maxDate}
-          />
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div>
             <TextField
-              id="orgCount"
-              name="orgCount"
-              type="number"
-              min={1}
-              max={200}
+              id="title"
+              name="title"
               label={
                 <>
-                  How many organizations
+                  Title
                   <OptionalMark />
                 </>
               }
-              placeholder="e.g. 8"
+              maxLength={120}
+              placeholder="e.g. Fall Cold Brew Launch"
+              aria-invalid={Boolean(errorFor("title")) || undefined}
+              aria-describedby={errorFor("title") ? "title-error" : undefined}
             />
+            <FieldError id="title-error" message={errorFor("title")} />
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <TextField
+                id="location"
+                name="location"
+                label={
+                  <>
+                    Campuses or area
+                    <OptionalMark />
+                  </>
+                }
+                maxLength={255}
+                placeholder="e.g. Sample University, or Anywhere"
+                aria-invalid={Boolean(errorFor("location")) || undefined}
+                aria-describedby={
+                  errorFor("location") ? "location-error" : undefined
+                }
+              />
+              <FieldError id="location-error" message={errorFor("location")} />
+            </div>
+            <div>
+              <TextField
+                id="targetDate"
+                name="targetDate"
+                type="date"
+                label={
+                  <>
+                    When do you want this live?
+                    <OptionalMark />
+                  </>
+                }
+                min={minDate}
+                max={maxDate}
+                aria-invalid={Boolean(errorFor("targetDate")) || undefined}
+                aria-describedby={
+                  errorFor("targetDate")
+                    ? "targetDate-hint targetDate-error"
+                    : "targetDate-hint"
+                }
+              />
+              <p id="targetDate-hint" className={cn(TEXT.meta, "mt-1")}>
+                Dates are UTC.
+              </p>
+              <FieldError id="targetDate-error" message={errorFor("targetDate")} />
+            </div>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <TextField
+                id="orgCount"
+                name="orgCount"
+                type="number"
+                min={1}
+                max={200}
+                label={
+                  <>
+                    How many organizations
+                    <OptionalMark />
+                  </>
+                }
+                placeholder="e.g. 8"
+                aria-invalid={Boolean(errorFor("orgCount")) || undefined}
+                aria-describedby={errorFor("orgCount") ? "orgCount-error" : undefined}
+              />
+              <FieldError id="orgCount-error" message={errorFor("orgCount")} />
+            </div>
+            <div>
+              <TextField
+                id="unitsPerOrg"
+                name="unitsPerOrg"
+                type="number"
+                min={1}
+                max={10000}
+                label={
+                  <>
+                    Units per organization
+                    <OptionalMark />
+                  </>
+                }
+                placeholder="e.g. 24"
+                aria-invalid={Boolean(errorFor("unitsPerOrg")) || undefined}
+                aria-describedby={
+                  errorFor("unitsPerOrg") ? "unitsPerOrg-error" : undefined
+                }
+              />
+              <FieldError
+                id="unitsPerOrg-error"
+                message={errorFor("unitsPerOrg")}
+              />
+            </div>
+          </div>
+          <div>
             <TextField
-              id="unitsPerOrg"
-              name="unitsPerOrg"
-              type="number"
-              min={1}
-              max={10000}
+              id="campaignHashtag"
+              name="campaignHashtag"
               label={
                 <>
-                  Units per organization
+                  Campaign hashtag
                   <OptionalMark />
                 </>
               }
-              placeholder="e.g. 24"
+              placeholder="e.g. FallColdBrew"
+              aria-invalid={Boolean(errorFor("campaignHashtag")) || undefined}
+              aria-describedby={
+                errorFor("campaignHashtag") ? "campaignHashtag-error" : undefined
+              }
+            />
+            <FieldError
+              id="campaignHashtag-error"
+              message={errorFor("campaignHashtag")}
             />
           </div>
-          <TextField
-            id="campaignHashtag"
-            name="campaignHashtag"
-            label={
-              <>
-                Campaign hashtag
-                <OptionalMark />
-              </>
-            }
-            placeholder="e.g. FallColdBrew"
-          />
-          <TextArea
-            id="notes"
-            name="notes"
-            label={
-              <>
-                Anything else
-                <OptionalMark />
-              </>
-            }
-            rows={3}
-            maxLength={4000}
-            placeholder="Links to brand assets, or anything that didn't fit above."
-          />
-          <p className={TEXT.meta}>Only the first two fields are required.</p>
-          <Button
-            type="submit"
-            fullWidth
-            disabled={submitting}
-            data-testid="submit-drop-request"
-          >
-            {submitting ? "Submitting..." : "Submit Request"}
-          </Button>
+          <div>
+            <TextArea
+              id="notes"
+              name="notes"
+              label={
+                <>
+                  Anything else
+                  <OptionalMark />
+                </>
+              }
+              rows={3}
+              maxLength={4000}
+              placeholder="Links to brand assets, or anything that didn't fit above."
+              aria-invalid={Boolean(errorFor("notes")) || undefined}
+              aria-describedby={errorFor("notes") ? "notes-error" : undefined}
+            />
+            <FieldError id="notes-error" message={errorFor("notes")} />
+          </div>
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              disabled={submitting}
+              data-testid="submit-drop-request"
+            >
+              {submitting ? "Submitting..." : "Submit Request"}
+            </Button>
+          </div>
         </Card>
       </form>
     </>
@@ -321,16 +432,21 @@ function ApiRequestDrop() {
     });
   };
 
+  const apiError = mutation.isError
+    ? userFacingApiError(
+        mutation.error,
+        "Couldn’t submit your request. Please try again.",
+      )
+    : { fields: {}, banner: null };
+
   return (
     <PageShell width="portal">
-      {mutation.isError ? (
-        <ErrorBanner>
-          {mutation.error instanceof Error
-            ? mutation.error.message
-            : "Couldn’t submit your request. Please try again."}
-        </ErrorBanner>
-      ) : null}
-      <RequestForm onSubmit={handleSubmit} submitting={mutation.isPending} />
+      {apiError.banner ? <ErrorBanner>{apiError.banner}</ErrorBanner> : null}
+      <RequestForm
+        onSubmit={handleSubmit}
+        submitting={mutation.isPending}
+        serverFieldErrors={apiError.fields}
+      />
     </PageShell>
   );
 }

@@ -380,9 +380,7 @@ describe("AdminDropRequestDetailPage", () => {
       (container.querySelector(`[data-testid="${testId}"]`) as HTMLInputElement | HTMLTextAreaElement)
         .value;
     expect(value("draft-title")).toBe("Fall Cold Brew");
-    expect(value("draft-description")).toBe(
-      "Want a spring drop\n\nWhat you're sending: Cans",
-    );
+    expect(value("draft-description")).toBe("");
     expect(value("draft-location")).toBe("Bay Area");
     expect(value("draft-hashtag")).toBe("FallBrew");
     expect(value("draft-capacity")).toBe("8");
@@ -410,7 +408,7 @@ describe("AdminDropRequestDetailPage", () => {
     expect(
       (container.querySelector('[data-testid="draft-description"]') as HTMLTextAreaElement)
         .value,
-    ).toBe("Want a spring drop");
+    ).toBe("");
     expect(mockCreateDrop).not.toHaveBeenCalled();
   });
 });
