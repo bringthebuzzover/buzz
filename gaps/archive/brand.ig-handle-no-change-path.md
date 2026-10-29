@@ -3,8 +3,9 @@ id: brand.ig-handle-no-change-path
 title: Brands have no path to change Instagram handle after apply
 kind: ux_hole
 severity: P3
-status: open
+status: fixed
 surface: brand
+closed_in: bdb8c21
 evidence:
   - path: backend/app/schemas/brands.py
     note: Brand apply collects instagram_handle once; no brand-profile PATCH for it
