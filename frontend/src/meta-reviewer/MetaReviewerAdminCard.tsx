@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { apiFetch, ApiError } from "../api/client";
 import type { components } from "../api/generated/schema";
-import { Panel } from "../components/admin/AdminPrimitives";
+import { Panel, Pill } from "../components/admin/AdminPrimitives";
 import { Button, ErrorBanner, SuccessBanner } from "../components/forms/controls";
 
 type ReviewerStatus = components["schemas"]["MetaReviewerStatusResponse"];
@@ -73,49 +73,63 @@ export default function MetaReviewerAdminCard() {
   return (
     <div data-testid="meta-reviewer-admin">
       <Panel
-        title="Meta App Review reviewer"
-        description="Sets up the sandbox organization for App Review. This does not show the reviewer link."
+        title="Meta App Review"
+        description="The sandbox organization Meta's reviewer signs in as. The reviewer link is never shown here."
       >
-        <div className="space-y-3 px-4 py-4">
-          <p className="text-sm font-medium text-buzz-ink">{seeded ? "Set up." : "Not set up."}</p>
-          {dropId ? (
-            <p className="text-sm font-medium text-buzz-inkMuted">
-              Drop{" "}
-              <Link
-                to={`/admin/drops/${dropId}`}
-                className="font-semibold text-buzz-ink underline"
-                data-testid="meta-reviewer-drop"
-              >
-                {dropId}
-              </Link>
-            </p>
-          ) : (
-            <p className="text-sm font-medium text-buzz-inkMuted">No drop configured.</p>
-          )}
-          {userId ? (
-            <p>
-              <Link
-                to={`/admin/orgs/${userId}`}
-                className="text-sm font-semibold text-buzz-coral underline"
-                data-testid="meta-reviewer-org"
-              >
-                Open organization
-              </Link>
-            </p>
-          ) : null}
+        <div className="space-y-4 px-6 pb-6">
+          <Pill tone={seeded ? "good" : "neutral"}>
+            {seeded ? "Reviewer organization ready" : "Not set up"}
+          </Pill>
+          <dl className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <dt className="text-xs text-quiet">Drop</dt>
+              <dd className="mt-1 text-sm text-muted">
+                {dropId ? (
+                  <Link
+                    to={`/admin/drops/${dropId}`}
+                    className="hover:text-primary"
+                    data-testid="meta-reviewer-drop"
+                  >
+                    Open drop
+                  </Link>
+                ) : (
+                  "No drop configured."
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-quiet">Organization</dt>
+              <dd className="mt-1 text-sm text-muted">
+                {userId ? (
+                  <Link
+                    to={`/admin/orgs/${userId}`}
+                    className="hover:text-primary"
+                    data-testid="meta-reviewer-org"
+                  >
+                    Open organization
+                  </Link>
+                ) : (
+                  "—"
+                )}
+              </dd>
+            </div>
+          </dl>
+          <p className="text-xs text-quiet">
+            Run again any time. It only creates what is missing.
+          </p>
           {seed.data ? <SuccessBanner>{seedResultCopy(seed.data)}</SuccessBanner> : null}
           {seedError ? <ErrorBanner>{seedError}</ErrorBanner> : null}
           {statusError ? <ErrorBanner>{statusError}</ErrorBanner> : null}
           <Button
             type="button"
-            size="compact"
+            variant="outline"
             data-testid="meta-reviewer-seed"
             disabled={seed.isPending}
             onClick={() => {
               seed.mutate();
             }}
           >
-            Set up reviewer org
+            Set up reviewer organization
           </Button>
         </div>
       </Panel>

@@ -25,8 +25,10 @@ import {
 } from "../../api/hooks/useAdminHooks";
 import {
   ActionButton,
+  AdminBackLink,
   AdminTable,
   Cell,
+  entityLinkClass,
   ErrorNote,
   Field,
   FieldGrid,
@@ -127,12 +129,7 @@ export default function AdminBrandDetailPage() {
 
   return (
     <div>
-      <Link
-        to="/admin/brands"
-        className="mb-4 inline-block text-xs font-bold text-buzz-coral hover:underline"
-      >
-        &larr; All brands
-      </Link>
+      <AdminBackLink to="/admin/brands" />
 
       <QueryState
         isPending={brand.isPending}
@@ -352,7 +349,7 @@ export default function AdminBrandDetailPage() {
 
           {data.intentMessage && (
             <Panel title="Application message">
-              <p className="whitespace-pre-wrap px-4 py-4 text-sm font-medium text-buzz-ink">
+              <p className="whitespace-pre-wrap px-4 py-4 text-sm font-medium text-primary">
                 {data.intentMessage}
               </p>
             </Panel>
@@ -450,7 +447,7 @@ export default function AdminBrandDetailPage() {
                     href={igProfileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
+                    className={entityLinkClass}
                   >
                     @{igHandle}
                   </a>
@@ -478,7 +475,7 @@ export default function AdminBrandDetailPage() {
                   <Cell>
                     <Link
                       to={`/admin/drops/${drop.id}`}
-                      className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
+                      className={entityLinkClass}
                     >
                       {drop.title}
                     </Link>

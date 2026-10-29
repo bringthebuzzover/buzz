@@ -13,14 +13,25 @@ import { siteIdentity } from "../../data/siteIdentity";
 export default function PrivacyPolicyPage() {
   const { contact, brand } = siteIdentity;
   return (
-    <LegalLayout title="Privacy Policy" lastUpdated="July 2, 2026">
+    <LegalLayout
+      title="Privacy Policy"
+      lastUpdated="July 2, 2026"
+      toc={[
+        { id: "information-we-collect", label: "Information we collect" },
+        { id: "how-we-use-information", label: "How we use information" },
+        { id: "how-information-is-shared", label: "How information is shared" },
+        { id: "data-retention", label: "Data retention" },
+        { id: "your-choices", label: "Your choices & rights" },
+        { id: "contact", label: "Contact" },
+      ]}
+    >
       <p>
         {brand.displayName} (“Buzz”, “we”, “us”) connects brands with student
         organizations for campus marketing campaigns. This policy explains what
         information we collect, how we use it, and the choices you have.
       </p>
 
-      <h2>Information we collect</h2>
+      <h2 id="information-we-collect">Information we collect</h2>
       <ul>
         <li>
           <strong>Contact &amp; inquiry details:</strong> your name, email
@@ -46,7 +57,7 @@ export default function PrivacyPolicyPage() {
         </li>
       </ul>
 
-      <h2>How we use information</h2>
+      <h2 id="how-we-use-information">How we use information</h2>
       <ul>
         <li>To operate the platform — matching brands and organizations,
           managing campaigns, and displaying engagement metrics.</li>
@@ -57,7 +68,7 @@ export default function PrivacyPolicyPage() {
         <li>To secure the service, prevent abuse, and comply with law.</li>
       </ul>
 
-      <h2>How information is shared</h2>
+      <h2 id="how-information-is-shared">How information is shared</h2>
       <p>
         We do not sell your personal information. We share data with service
         providers who process it on our behalf, including:
@@ -75,14 +86,14 @@ export default function PrivacyPolicyPage() {
         where required by law.
       </p>
 
-      <h2>Data retention</h2>
+      <h2 id="data-retention">Data retention</h2>
       <p>
         We keep information for as long as your account is active or as needed to
         provide the service, then retain and delete it in line with our
         operational and legal needs.
       </p>
 
-      <h2>Your choices &amp; rights</h2>
+      <h2 id="your-choices">Your choices &amp; rights</h2>
       <ul>
         <li>You may request access to, correction of, or deletion of your
           personal information by contacting us.</li>
@@ -92,7 +103,7 @@ export default function PrivacyPolicyPage() {
           applicable privacy laws.</li>
       </ul>
 
-      <h2>Contact</h2>
+      <h2 id="contact">Contact</h2>
       <p>
         Questions or requests: <a href={`mailto:${contact.email}`}>{contact.email}</a>.
       </p>

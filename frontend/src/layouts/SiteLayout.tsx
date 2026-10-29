@@ -1,11 +1,17 @@
 /**
  * Default marketing shell: `SiteChromeProvider`, `SiteHeader`, animated `<Outlet />`, `SiteFooter`.
+ *
+ * Marketing routes keep the overlay header and the mobile join dock.
+ * Bare auth routes draw their own frame: admin auth gets `AuthAdminHeader`,
+ * the rest show no header or footer.
  */
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { SiteChromeProvider } from "../contexts/SiteChromeContext";
 import SiteHeader from "../components/site/SiteHeader";
 import SiteFooter from "../components/site/SiteFooter";
 import ImpersonationBanner from "../components/site/ImpersonationBanner";
+import AuthAdminHeader from "../components/auth/AuthAdminHeader";
+import { isAdminAuthPath, isBareAuthPath } from "../components/auth/authPaths";
 import { focusRingClass } from "../theme/controls";
 import { cn } from "../theme/cn";
 
@@ -16,11 +22,17 @@ function isMarketingPath(pathname: string): boolean {
 export default function SiteLayout() {
   const { pathname } = useLocation();
   const marketing = isMarketingPath(pathname);
+  const bare = isBareAuthPath(pathname);
+
   return (
     <SiteChromeProvider>
-      <div className={cn("flex min-h-screen flex-col", marketing ? "bg-page" : "bg-buzz-cream")}>
+      <div className="flex min-h-screen flex-col bg-page">
         <ImpersonationBanner />
-        <SiteHeader />
+        {bare ? (
+          isAdminAuthPath(pathname) ? <AuthAdminHeader /> : null
+        ) : (
+          <SiteHeader />
+        )}
         {/* Flex column all the way to the outlet so `AUTH_SHELL.center` can
             claim the space between header and footer with `flex-1` and center
             in it for real, instead of a guessed min-height on the page. */}
@@ -33,7 +45,7 @@ export default function SiteLayout() {
             <Outlet />
           </div>
         </main>
-        {marketing ? <MobileJoinDock /> : <SiteFooter />}
+        {bare ? null : marketing ? <MobileJoinDock /> : <SiteFooter />}
       </div>
     </SiteChromeProvider>
   );
