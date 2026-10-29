@@ -14,12 +14,3 @@ JOB_TOKEN_CLEANUP: Final = "token_cleanup"
 JOB_AUTOLINK_SCAN: Final = "autolink_scan"
 JOB_TOKEN_REFRESH: Final = "token_refresh"
 JOB_METRIC_SYNC: Final = "metric_sync"
-
-ALL_JOB_NAMES: Final[tuple[str, ...]] = (
-    JOB_DROP_AUTOCLOSE,
-    JOB_NOTIFY_REMINDERS,
-    JOB_TOKEN_CLEANUP,
-    JOB_AUTOLINK_SCAN,
-    JOB_TOKEN_REFRESH,
-    JOB_METRIC_SYNC,
-)

@@ -503,23 +503,6 @@ def build_org_apply_prefill_email(
 
 
 _UPDATE_BRAND = "UPDATE"
-_FORM_TS_FORMATS = ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y %H:%M", "%m/%d/%Y")
-
-
-def applied_on_from_source_row_key(key: str | None) -> str | None:
-    """Prefill ``source_row_key`` prefix → 'August 30'. None if unparseable."""
-    text = (key or "").strip()
-    if "|" in text:
-        text = text.split("|", 1)[0].strip()
-    if not text:
-        return None
-    for fmt in _FORM_TS_FORMATS:
-        try:
-            dt = datetime.strptime(text, fmt)
-        except ValueError:
-            continue
-        return f"{dt.strftime('%B')} {dt.day}"
-    return None
 
 
 async def send_org_apply_prefill_update_email(
@@ -1212,11 +1195,6 @@ def _verification_rotate_text(verify_url: str, org_name: str) -> str:
         "This link expires in 24 hours.\n\n"
         "If you didn't request this, ignore this email."
     )
-
-
-def _verification_body(verify_url: str, org_name: str) -> str:
-    """Backward-compatible alias (signup). Prefer ``_verification_signup_text``."""
-    return _verification_signup_text(verify_url, org_name or "your organization")
 
 
 def _org_connect_text(connect_url: str, org_name: str) -> str:

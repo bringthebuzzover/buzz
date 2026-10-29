@@ -30,7 +30,6 @@ from app.models.enums import ApplicationDecision, BrandStatus, BrandTrackerStage
 from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.user import User
-from app.schemas import drops as schemas
 from app.schemas.drops import ApplicationResponse, DropDetailResponse, DropFeedItem
 
 
@@ -426,30 +425,3 @@ async def clear_notify(db: AsyncSession, org_user: User, drop_id: uuid.UUID) -> 
     if notify is not None:
         await db.delete(notify)
         await db.flush()
-
-
-# --- Brand drop creation removed (LAUNCH.md Phase B) ---------------------------
-# Brand intake now creates ``drop_requests`` via ``app.services.drop_requests``.
-
-
-def build_brand_drop_response(drop: Drop, brand: Brand) -> schemas.BrandDropResponse:
-    """Serialize a ``Drop`` into the brand-facing wire shape."""
-    return schemas.BrandDropResponse(
-        id=drop.id,
-        brand_id=drop.brand_id,
-        brand_name=brand.brand_name,
-        title=drop.title,
-        description=drop.description,
-        image=drop.image,
-        location=drop.location,
-        capacity_total=drop.capacity_total,
-        apply_open_at=drop.apply_open_at,
-        apply_close_at=drop.apply_close_at,
-        manual_reopen=drop.manual_reopen,
-        brand_tracker_stage=drop.brand_tracker_stage,
-        total_product_units=drop.total_product_units,
-        campaign_hashtag=drop.campaign_hashtag,
-        applicant_selection_finalized_at=drop.applicant_selection_finalized_at,
-        published_at=drop.published_at,
-        created_at=drop.created_at,
-    )

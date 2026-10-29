@@ -223,16 +223,6 @@ def _apply_insights(post: SocialPost, insights: dict[str, int | float]) -> None:
     post.insights_raw = stored
 
 
-def _apply_metrics(
-    post: SocialPost, fields: MediaFields, insights: dict[str, int | float], now: datetime
-) -> None:
-    """Full apply (basics + insights + stamp) — used by tests and happy path."""
-
-    _apply_basics(post, fields)
-    _apply_insights(post, insights)
-    post.metrics_updated_at = now
-
-
 async def _eligible_orgs(db: AsyncSession, now: datetime) -> list[Organization]:
     """Orgs with at least one accepted application on a live-stage drop.
 
