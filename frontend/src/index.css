@@ -105,7 +105,9 @@
     .animate-buzz-rise,
     .animate-buzz-fade,
     .animate-buzz-float,
-    .animate-buzz-modal {
+    .animate-buzz-modal,
+    .animate-marquee,
+    .animate-marquee-reverse {
       animation: none !important;
     }
   }

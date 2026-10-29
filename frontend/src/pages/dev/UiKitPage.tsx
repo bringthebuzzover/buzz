@@ -20,6 +20,7 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { Tabs } from "../../components/ui/Tabs";
 import { Table, TBody, Td, Th, THead, Tr } from "../../components/ui/Table";
 import { Toast } from "../../components/ui/Toast";
+import { Toggle } from "../../components/ui/Toggle";
 import { BeeMark, Logo } from "../../components/ui/BrandMark";
 import {
   Banner,
@@ -40,7 +41,7 @@ import { GAP, PAD, STACK, SURFACE, TEXT, TONE } from "../../theme/tokens";
 import { cx } from "../../theme/shells";
 
 const TONES = ["neutral", "success", "warn", "danger"] as const;
-const SURFACES = ["card", "cardFlat", "cardWarm", "panel", "inset", "modal"] as const;
+const SURFACES = ["card", "cardFlat", "cardWarm", "panel", "tile", "stat", "inset", "modal"] as const;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -55,6 +56,7 @@ export default function UiKitPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [checked, setChecked] = useState(true);
+  const [toggled, setToggled] = useState(true);
   const [tab, setTab] = useState<"config" | "applicants">("config");
   const [toast, setToast] = useState(false);
 
@@ -105,6 +107,7 @@ export default function UiKitPage() {
             <Button size="hero">Hero</Button>
             <Button>Default</Button>
             <Button size="compact">Compact</Button>
+            <Button size="field">Field</Button>
           </div>
           <div className={cx("flex flex-wrap items-center", GAP.tight)}>
             <Button disabled>Primary disabled</Button>
@@ -143,6 +146,14 @@ export default function UiKitPage() {
           />
           <Checkbox label="Checkbox disabled" disabled />
           <Radio name="k-radio" value="a" label="Radio option" defaultChecked />
+          <div className={cx("flex items-end", GAP.tight)}>
+            <TextField id="k-field" label="Inline with a field button" />
+            <Button size="field">Continue</Button>
+          </div>
+          <div className="flex items-center gap-3">
+            <Toggle checked={toggled} onChange={setToggled} label="Notify me" />
+            <span className={TEXT.body}>{toggled ? "On" : "Off"}</span>
+          </div>
         </Card>
       </Section>
 
@@ -183,6 +194,11 @@ export default function UiKitPage() {
             <Badge>Open</Badge>
             <Badge tone="success">Done</Badge>
             <Chip tone="neutral">A Very Long Brand Name That Must Not Wrap</Chip>
+            <span className="relative inline-flex h-16 w-40 items-start overflow-hidden rounded-buzzMedia bg-buzz-greyMedia">
+              <Chip onMedia className="absolute left-2 top-2">
+                Closed
+              </Chip>
+            </span>
           </div>
           <div className={cx("grid sm:grid-cols-4", GAP.tight)}>
             {TONES.map((tone) => (
@@ -307,9 +323,9 @@ export default function UiKitPage() {
             title="Modal title"
             description="Escape closes, focus is trapped, the page behind cannot scroll."
           >
-            <div className="px-6 pb-4 pt-4">
+            <div>
               <p className={TEXT.body}>Modal body content.</p>
-              <div className="mt-4 flex justify-end gap-2">
+              <div className="mt-3 flex justify-end gap-3">
                 <Button
                   type="button"
                   variant="ghost"

@@ -8,12 +8,12 @@ import type {
 import { cva, type VariantProps } from "class-variance-authority";
 import { Link, type LinkProps } from "react-router-dom";
 import {
-  CONTROL_HEIGHT,
   fieldClass,
   fieldErrorClass,
   fieldHintClass,
   fieldLabelClass,
   fieldLabelCompactClass,
+  focusRingClass,
   selectChevronClass,
   selectWrapClass,
   textAreaClass,
@@ -248,32 +248,39 @@ export { Radio } from "../ui/Radio";
  * without it a hugging CTA rendered full-bleed with padding sized for a
  * hugging button. `fullWidth` is how a form submit opts back in.
  *
- * Pen pills: primary is yellow with ink type, secondary is the dark pill,
- * outline is the stroked ghost pill, ghost is text only, danger is the solid
- * red pill. Labels on yellow are `onAccent` (#0b0b0b, 13.4:1). Light paper
- * type on yellow is 1.29:1 and is not used.
+ * Pen pills: primary is yellow with ink type (40px), secondary is the dark pill
+ * (36px, paper-09 line), ghost and outline are the stroked 44px pill, danger
+ * is the solid red pill. Labels on yellow are `on-accent` (#0b0b0b, 13.4:1).
+ * Light paper type on yellow is 1.29:1 and is not used.
  *
  * Disabled is a designed state, not `opacity` alone.
  */
+const GHOST_PILL =
+  "h-11 border border-primary bg-transparent px-6 text-sm text-primary hover:border-accent hover:bg-accent hover:text-on-accent disabled:border-transparent disabled:bg-transparent disabled:text-quiet";
+
 export const buttonVariants = cva(
-  "inline-flex select-none items-center justify-center gap-2 self-center whitespace-nowrap rounded-full font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-yellow/40 disabled:cursor-not-allowed",
+  `inline-flex select-none items-center justify-center gap-2 self-center whitespace-nowrap rounded-full font-normal transition disabled:cursor-not-allowed ${focusRingClass}`,
   {
     variants: {
       variant: {
+        // Pen Pill / Yellow: 40px, 14px, weight 400.
         primary:
-          "bg-buzz-yellow text-buzz-onAccent hover:bg-buzz-yellowHover disabled:bg-buzz-neutral disabled:text-buzz-inkFaint",
+          "h-10 bg-accent px-4 text-sm text-on-accent hover:bg-buzz-yellowHover disabled:bg-buzz-neutral disabled:text-quiet",
+        // Pen Pill / Dark: 36px, paper-09 line so the fill reads on the page.
         secondary:
-          "bg-buzz-inkBtn text-buzz-fg hover:bg-buzz-inkPop disabled:bg-buzz-neutral disabled:text-buzz-inkFaint",
-        outline:
-          "border border-buzz-fg bg-transparent text-buzz-fg hover:border-buzz-yellow hover:bg-buzz-yellow hover:text-buzz-onAccent disabled:border-buzz-neutral disabled:bg-transparent disabled:text-buzz-inkFaint",
-        ghost:
-          "bg-transparent text-buzz-inkMuted hover:text-buzz-yellow disabled:text-buzz-inkFaint",
+          "h-9 border border-line bg-buzz-inkBtn px-3.5 text-xs text-primary hover:bg-surface-pop disabled:border-transparent disabled:bg-buzz-neutral disabled:text-quiet",
+        // Pen Pill / Ghost: 44px, paper stroke, padding 24. `outline` keeps the old name.
+        outline: GHOST_PILL,
+        ghost: GHOST_PILL,
+        // Pen Pill / Danger: 40px, solid red, paper label, weight 400.
         danger:
-          "bg-buzz-dangerFill text-buzz-fg hover:bg-buzz-dangerInk hover:text-buzz-onAccent disabled:bg-buzz-neutral disabled:text-buzz-inkFaint",
+          "h-10 bg-buzz-dangerFill px-4 text-sm text-primary hover:bg-buzz-dangerInk hover:text-on-accent disabled:bg-buzz-neutral disabled:text-quiet",
       },
       size: {
-        default: `${CONTROL_HEIGHT.default} px-5 text-sm`,
-        compact: `${CONTROL_HEIGHT.compact} px-3 text-xs`,
+        default: "",
+        compact: "h-9 px-3 text-xs",
+        /** 48px. Only for a button sitting on the same row as a field. */
+        field: "h-12 px-4 text-sm",
         hero: "h-14 px-8 text-base",
       },
       fullWidth: {
@@ -379,8 +386,18 @@ export function ErrorBanner({ children }: { children: ReactNode }) {
   );
 }
 
+/** Pen Notice: yellow-faded fill, yellow line, paper text. Not the paper success chip. */
 export function SuccessBanner({ children }: { children: ReactNode }) {
-  return <Banner tone="success">{children}</Banner>;
+  if (!children) return null;
+  return (
+    <div
+      className="flex items-start gap-3 rounded-buzzField border border-buzz-yellowLine bg-accent-wash px-4 py-4 text-sm text-primary"
+      role="status"
+    >
+      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
 }
 
 export function WarningBanner({ children }: { children: ReactNode }) {

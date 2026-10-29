@@ -31,16 +31,17 @@ module.exports = {
         buzzH3: ["20px", { lineHeight: "1.3", letterSpacing: "-0.01em" }],
         buzzBody: ["16px", { lineHeight: "1.5" }],
         buzzSmall: ["14px", { lineHeight: "1.45" }],
-        buzzLabel: ["12px", { lineHeight: "1.35", letterSpacing: "0.04em" }],
+        // Tracking lives on kickers, not on this size — labels in fields are sentence case.
+        buzzLabel: ["12px", { lineHeight: "1.35" }],
       },
       borderRadius: {
         // Pen: check 5, control 8, field 10, card/media 8, board/modal 16, phone 32.
-        // `buzzCard` stays 16 (radius-board) because the Card primitive is a panel.
         buzzCheck: "5px",
         buzzControl: "8px",
         buzzField: "10px",
         buzzMedia: "8px",
-        buzzCard: "16px",
+        buzzCard: "8px",
+        buzzBoard: "16px",
         buzzModal: "16px",
         buzzPhone: "32px",
       },

@@ -8,7 +8,20 @@ export function marketingNavItemClass(active: boolean) {
   );
 }
 
-/** App / admin nav item: pill. Active is the yellow wash. */
+/**
+ * Admin nav item. Pen: radius 10, padding 12, 16px icon slot, yellow-faded
+ * active state. The authenticated header keeps the pill (`appNavItemClass`).
+ */
+export function adminNavItemClass(active: boolean) {
+  return cn(
+    "inline-flex w-full items-center gap-3 rounded-buzzField p-3 text-sm font-normal transition",
+    active
+      ? "bg-accent-wash text-accent"
+      : "text-muted hover:bg-buzz-paper08 hover:text-primary",
+  );
+}
+
+/** App header nav item: pill. Active is the yellow wash. */
 export function appNavItemClass(active: boolean) {
   return cn(
     "inline-flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition",

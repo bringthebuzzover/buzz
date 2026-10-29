@@ -53,7 +53,6 @@ import { Checkbox } from "../../components/forms/Checkbox";
 import { Button, SuccessBanner, TextField } from "../../components/forms/controls";
 import { Modal } from "../../components/ui/Modal";
 import { STACK } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
 import ComposeEmailModal from "../../components/admin/ComposeEmailModal";
 
 function confirmHandleMatches(typed: string, stored: string): boolean {
@@ -355,7 +354,7 @@ export default function AdminOrgDetailPage() {
               title="Erase this organization"
               description="Removes login, contact details, and Instagram post content. Campaign metrics stay frozen for the brand. Type the Instagram handle to confirm."
             >
-              <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
+              <div className={STACK.tight}>
                 {eraseError && <ErrorNote>{eraseError}</ErrorNote>}
                 <TextField
                   id="erase-org-confirm"

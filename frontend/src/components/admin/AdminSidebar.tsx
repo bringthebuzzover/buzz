@@ -9,16 +9,25 @@
  */
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import {
+  Activity,
+  Building2,
+  Inbox,
+  LayoutDashboard,
+  Package,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useAdminOverview } from "../../api/hooks/useAdminHooks";
 import { cn } from "../../theme/cn";
 import { BeeMark } from "../ui/BrandMark";
-import { Chip } from "../ui/Chip";
-import { appNavItemClass } from "../ui/navItem";
+import { adminNavItemClass } from "../ui/navItem";
 
 type NavItem = {
   to: string;
   label: string;
+  icon: LucideIcon;
   /** Overview queue keys whose counts roll up into this item's badge. */
   badgeKeys?: readonly string[];
 };
@@ -27,6 +36,7 @@ const NAV: readonly NavItem[] = [
   {
     to: "/admin",
     label: "Overview",
+    icon: LayoutDashboard,
     badgeKeys: [
       "orgs_pending_approval",
       "orgs_ig_change_pending",
@@ -39,23 +49,27 @@ const NAV: readonly NavItem[] = [
   {
     to: "/admin/orgs",
     label: "Organizations",
+    icon: Users,
     badgeKeys: ["orgs_pending_approval", "orgs_ig_bind_mismatch"],
   },
   {
     to: "/admin/brands",
     label: "Brands",
+    icon: Building2,
     badgeKeys: ["brands_pending_review"],
   },
   {
     to: "/admin/requests",
     label: "Requests",
+    icon: Inbox,
   },
   {
     to: "/admin/drops",
     label: "Drops",
+    icon: Package,
     badgeKeys: ["drops_ready_to_advance"],
   },
-  { to: "/admin/health", label: "Health" },
+  { to: "/admin/health", label: "Health", icon: Activity },
 ];
 
 function AdminWordmark({ className }: { className?: string }) {
@@ -70,9 +84,14 @@ function AdminWordmark({ className }: { className?: string }) {
 function CountBadge({ count, className }: { count: number; className?: string }) {
   if (count === 0) return null;
   return (
-    <Chip accent className={cn("px-2 py-0.5", className)}>
+    <span
+      className={cn(
+        "rounded-full bg-accent-wash px-2 py-0.5 text-xs font-medium text-accent",
+        className,
+      )}
+    >
       {count}
-    </Chip>
+    </span>
   );
 }
 
@@ -89,6 +108,7 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
           (total, key) => total + (counts.get(key) ?? 0),
           0,
         );
+        const Icon = item.icon;
         return (
           <NavLink
             key={item.to}
@@ -97,11 +117,10 @@ function NavItems({ onNavigate }: { onNavigate?: () => void }) {
             // on their detail routes.
             end={item.to === "/admin"}
             onClick={onNavigate}
-            className={({ isActive }) =>
-              cn(appNavItemClass(isActive), "w-full")
-            }
+            className={({ isActive }) => adminNavItemClass(isActive)}
           >
-            {item.label}
+            <Icon size={16} aria-hidden />
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
             <CountBadge count={badge} className="ml-auto" />
           </NavLink>
         );
@@ -124,7 +143,7 @@ function SignedInAs() {
         type="button"
         data-testid="admin-sign-out"
         onClick={() => void logout()}
-        className="mt-2 text-xs font-bold text-buzz-coral hover:underline"
+        className="mt-2 text-xs font-medium text-accent hover:underline"
       >
         Sign out
       </button>
@@ -170,7 +189,7 @@ export default function AdminSidebar() {
       )}
 
       {/* Desktop rail. */}
-      <aside className="hidden w-[248px] shrink-0 flex-col justify-between border-r border-buzz-line bg-buzz-dark p-4 lg:flex">
+      <aside className="hidden w-[248px] shrink-0 flex-col justify-between border-r border-line bg-page px-4 py-8 lg:flex">
         <div>
           <AdminWordmark className="mb-5 px-3" />
           <NavItems />

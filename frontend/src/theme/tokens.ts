@@ -66,8 +66,8 @@ export const TEXT = {
     "text-[32px] font-medium leading-tight tracking-tight md:text-buzzStatement",
   /** Page title. Pen type-h2: 28 / 44. */
   h1: "text-[28px] font-medium leading-[1.1] tracking-tight md:text-buzzH2",
-  /** Section title. */
-  h2: "text-buzzH3 font-medium md:text-[28px] md:leading-tight",
+  /** Section title. Same pen type-h2 sizes (28 mobile / 44 desktop). */
+  h2: "text-[28px] font-medium leading-[1.1] tracking-tight md:text-buzzH2",
   /** Card, panel, or fieldset title. Pen type-h3, 20px. */
   h3: "text-buzzH3 font-medium",
   /** Body copy in dense product UI. Pen type-small, 14px. */
@@ -89,18 +89,26 @@ export const TEXT = {
  * on cards; `shadow-buzzLg` stays on the modal only.
  */
 export const SURFACE = {
-  /** Raised card on the ink page. */
-  card: "rounded-buzzCard border border-buzz-line bg-buzz-paper",
+  /** Raised card on the ink page. Radius-board, ink-raised. */
+  card: "rounded-buzzBoard border border-line bg-surface-card",
   /** Flat card — same ink-raised fill, for grids. */
-  cardFlat: "rounded-buzzCard border border-buzz-line bg-buzz-paper",
+  cardFlat: "rounded-buzzBoard border border-line bg-surface-card",
   /** Yellow-faded card: highlights, selected tiles. */
-  cardWarm: "rounded-buzzCard border border-buzz-yellowLine bg-buzz-butter",
-  /** Portal / admin panel. Pen radius-board. */
-  panel: "rounded-buzzCard border border-buzz-line bg-buzz-inkRaised",
+  cardWarm: "rounded-buzzBoard border border-buzz-yellowLine bg-accent-wash",
+  /** Portal / admin panel. Ink-raised, radius-board. */
+  panel: "rounded-buzzBoard border border-line bg-buzz-inkRaised",
+  /**
+   * Pen tile (count, post, campaign row, empty): paper-04 fill, paper-09 line,
+   * radius-board. Stat uses `stat` (radius-card, 8px).
+   */
+  tile: "rounded-buzzBoard border border-line bg-surface-tile",
+  /** Pen Stat: paper-04, paper-09, radius-card. */
+  stat: "rounded-buzzCard border border-line bg-surface-tile",
   /** Inset block inside a card. */
-  inset: "rounded-buzzField border border-buzz-line bg-buzz-paper04",
-  /** Modal shell. Pen ink-pop, radius-board. */
-  modal: "rounded-buzzModal border border-buzz-line bg-buzz-inkPop shadow-buzzLg",
+  inset: "rounded-buzzField border border-line bg-surface-tile",
+  /** Modal shell. Pen: 560-wide content, ink-pop, padding 32, shadow 0 24 64. */
+  modal:
+    "rounded-buzzBoard border border-line bg-surface-pop p-8 shadow-buzzModal",
 } as const;
 
 /**
@@ -112,8 +120,8 @@ export const TONE = {
   neutral: "border-buzz-line bg-buzz-paper08 text-buzz-inkMuted",
   /** Done / active: paper fill, ink label. */
   success: "border-transparent bg-buzz-fg text-buzz-onAccent",
-  /** Needs attention: yellow outline and yellow label. */
-  warn: "border-buzz-yellowLine bg-buzz-yellowFaded text-buzz-yellow",
+  /** Needs attention: yellow wash and yellow label, no outline. */
+  warn: "border-transparent bg-accent-wash text-accent",
   danger: "border-buzz-dangerLine bg-buzz-dangerFaded text-buzz-danger",
 } as const;
 

@@ -16,7 +16,7 @@ export const MOTION = {
   float: "animate-buzz-float motion-reduce:animate-none",
   /** Drop-card hover. Marketing only. */
   hoverLift:
-    "buzz-hover-lift transition-transform duration-[240ms] ease-out motion-reduce:transition-none",
+    "buzz-hover-lift transition-transform duration-[240ms] ease-out hover:scale-[1.03] motion-reduce:transition-none motion-reduce:hover:scale-100",
   /** Dialog panel. Keeps the centering translate inside the keyframes. */
   modal: "animate-buzz-modal motion-reduce:animate-none",
   /** Scrim. */

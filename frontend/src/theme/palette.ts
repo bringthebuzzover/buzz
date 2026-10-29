@@ -45,6 +45,28 @@ export const pulse = {
 
 export const tailwindThemeExtend = {
   colors: {
+    /** Pen ink. `bg-page`, `ring-offset-page`. */
+    page: pulse.ink,
+    /** Pen ink-raised. Raised cards and panels. */
+    "surface-card": pulse.inkRaised,
+    /** Pen paper-04. Stat, count, post, campaign, and empty tiles. */
+    "surface-tile": pulse.paper04,
+    /** Pen ink-pop. Modals and popovers. */
+    "surface-pop": pulse.inkPop,
+    /** Pen paper. `text-primary`. */
+    primary: pulse.fg,
+    /** paper-60. `text-muted`. */
+    muted: pulse.paper60,
+    /** paper-52. Quietest AA text. `text-quiet`. */
+    quiet: pulse.paper52,
+    /** Ink on yellow. `text-on-accent`. */
+    "on-accent": pulse.onAccent,
+    /** paper-09 hairline. `border-line`. */
+    line: pulse.paper09,
+    /** Pen yellow. `bg-accent`, `text-accent`. */
+    accent: pulse.yellow,
+    /** yellow-faded. `bg-accent-wash`. */
+    "accent-wash": pulse.yellowFaded,
     buzz: {
       yellow: pulse.yellow,
       yellowHover: pulse.yellowHover,
@@ -101,8 +123,6 @@ export const tailwindThemeExtend = {
       lineMid: pulse.paper09,
 
       neutral: pulse.inkPop,
-      neutralHover: "#1c1c1c",
-      neutralWash: "#101010",
 
       dark: pulse.ink,
       darkDeep: "#000000",
@@ -137,6 +157,8 @@ export const tailwindThemeExtend = {
   boxShadow: {
     buzz: "0 8px 24px rgba(0, 0, 0, 0.28)",
     buzzLg: "0 24px 80px rgba(0, 0, 0, 0.55)",
+    /** Pen modal shadow. Not the toast shadow (`buzzLg`). */
+    buzzModal: "0 24px 64px rgba(0, 0, 0, 0.6)",
   },
   dropShadow: {
     buzz: "0 1px 1px rgba(0, 0, 0, 0.45)",

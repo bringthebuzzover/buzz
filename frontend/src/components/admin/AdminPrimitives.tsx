@@ -216,8 +216,8 @@ export function Row({ children }: { children: ReactNode }) {
   return (
     <tr
       className={cn(
-        "border-t border-buzz-lineMid align-middle hover:bg-buzz-neutralWash",
-        "max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:gap-y-3 max-md:rounded-buzzCard max-md:border max-md:border-buzz-lineMid max-md:bg-buzz-paper max-md:p-4 max-md:hover:bg-buzz-paper",
+        "border-t border-buzz-lineMid align-middle hover:bg-surface-pop",
+        "max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:gap-y-3 max-md:rounded-buzzBoard max-md:border max-md:border-buzz-lineMid max-md:bg-buzz-paper max-md:p-4 max-md:hover:bg-buzz-paper",
       )}
     >
       {children}
@@ -381,7 +381,7 @@ export function FilterMultiSelect({
                 className={`px-3 py-1.5 ${
                   checked
                     ? "bg-buzz-coral/10 text-buzz-coral"
-                    : "text-buzz-inkMuted hover:bg-buzz-neutralWash hover:text-buzz-ink"
+                    : "text-buzz-inkMuted hover:bg-surface-pop hover:text-buzz-ink"
                 }`}
               >
                 <Checkbox

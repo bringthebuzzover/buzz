@@ -3,6 +3,7 @@
  * Yellow (#f6d32a) fails on white and on paper; ink type on yellow passes.
  */
 import { buttonVariants } from "../components/forms/controls";
+import { chipOnMediaClass } from "../components/ui/Chip";
 import { MOTION } from "./motion";
 import { pulse, tailwindThemeExtend } from "./palette";
 
@@ -88,15 +89,60 @@ describe("Pulse Black contrast", () => {
 
   it("puts ink type on the yellow button and paper type on the danger fill", () => {
     const primary = buttonVariants({ variant: "primary" });
-    expect(primary).toContain("bg-buzz-yellow");
-    expect(primary).toContain("text-buzz-onAccent");
+    expect(primary).toContain("bg-accent");
+    expect(primary).toContain("text-on-accent");
+    expect(primary).not.toMatch(/\btext-primary\b/);
     expect(primary).not.toMatch(/\btext-buzz-fg\b/);
     expect(primary).not.toMatch(/\btext-buzz-ink\b/);
 
     const danger = buttonVariants({ variant: "danger" });
     expect(danger).toContain("bg-buzz-dangerFill");
-    expect(danger).toContain("text-buzz-fg");
-    expect(danger).toContain("hover:text-buzz-onAccent");
+    expect(danger).toContain("text-primary");
+    expect(danger).toContain("hover:text-on-accent");
+  });
+
+  it("keeps the focus ring, media chips, secondary edge, and modal type", () => {
+    const primary = buttonVariants({ variant: "primary" });
+    expect(primary).toContain("ring-buzz-yellow");
+    expect(primary).toContain("ring-offset-2");
+    expect(primary).toContain("ring-offset-page");
+    expect(primary).not.toContain("ring-buzz-yellow/40");
+    expect(contrast(pulse.yellow, pulse.ink)).toBeGreaterThanOrEqual(3);
+
+    // Ink at 80% over white is the worst photograph behind a status chip.
+    const media = composite("#0b0b0bcc", pulse.white);
+    expect(chipOnMediaClass).toContain("bg-page/80");
+    expect(chipOnMediaClass).toContain("text-primary");
+    expect(chipOnMediaClass).toContain("border-line");
+    expect(chipOnMediaClass).toContain("backdrop-blur");
+    expect(contrast(pulse.fg, media)).toBeGreaterThanOrEqual(AA);
+
+    const secondary = buttonVariants({ variant: "secondary" });
+    expect(secondary).toContain("border-line");
+    const edge = composite(pulse.paper09, pulse.ink);
+    // paper-09 is the pen hairline (about 1.2:1 on ink). The label on the
+    // dark pill is the pair that has to clear AA.
+    expect(contrast(edge, pulse.ink)).toBeGreaterThan(1.15);
+    expect(contrast(pulse.fg, pulse.inkBtn)).toBeGreaterThanOrEqual(AA);
+
+    expect(contrast(pulse.fg, pulse.inkPop)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it("maps the semantic aliases and drops the invented neutrals", () => {
+    const colors = tailwindThemeExtend.colors;
+    expect(colors.page).toBe(pulse.ink);
+    expect(colors["surface-card"]).toBe(pulse.inkRaised);
+    expect(colors["surface-tile"]).toBe(pulse.paper04);
+    expect(colors["surface-pop"]).toBe(pulse.inkPop);
+    expect(colors.primary).toBe(pulse.fg);
+    expect(colors.muted).toBe(pulse.paper60);
+    expect(colors.quiet).toBe(pulse.paper52);
+    expect(colors["on-accent"]).toBe(pulse.onAccent);
+    expect(colors.line).toBe(pulse.paper09);
+    expect(colors.accent).toBe(pulse.yellow);
+    expect(colors["accent-wash"]).toBe(pulse.yellowFaded);
+    expect(colors.buzz).not.toHaveProperty("neutralHover");
+    expect(colors.buzz).not.toHaveProperty("neutralWash");
   });
 
   it("ships reduced-motion escapes on every motion utility", () => {

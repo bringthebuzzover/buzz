@@ -13,7 +13,7 @@ import { cn } from "../theme/cn";
 
 export default function AdminLayout() {
   return (
-    <div className="min-h-screen bg-buzz-neutralWash lg:flex">
+    <div className="min-h-screen bg-page lg:flex">
       <AdminSidebar />
       <main className={cn(PAGE_SHELL, PAGE_WIDTH.wide, "min-w-0 flex-1")}>
         <Outlet />

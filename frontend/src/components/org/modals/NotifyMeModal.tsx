@@ -54,7 +54,7 @@ export default function NotifyMeModal({
       description="Pick one reminder before the drop opens, or confirm with none to opt out."
       size="wide"
     >
-      <div className={cn("px-6 pb-6 pt-4", STACK.default)}>
+      <div className={STACK.default}>
         <p className={cn(TEXT.micro, "text-buzz-inkMuted")}>Reminder timing</p>
 
         <div className={STACK.tight} role="radiogroup" aria-label="Reminder timing">

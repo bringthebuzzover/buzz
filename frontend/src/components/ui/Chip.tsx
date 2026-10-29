@@ -3,17 +3,26 @@ import { TEXT, TONE, type Tone } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 /**
+ * Status chip drawn on a photo. Solid ink at 80% so Closed/Full stay readable
+ * over any image. `bg-page` is opaque hex, so the `/80` modifier is valid.
+ */
+export const chipOnMediaClass =
+  "border border-line bg-page/80 text-primary backdrop-blur";
+
+/**
  * Status and brand tags. Padding stays tighter than a compact button so a
  * chip reads as a label, not a control. `whitespace-nowrap` is load-bearing:
  * long brand names were wrapping to two lines inside a `rounded-full`.
  *
  * `accent` is the yellow fill (live / waiting). `dot` is the pen's open badge
  * (yellow dot on the faded wash) and only applies when `accent` is off.
+ * `onMedia` is the solid chip for labels that sit on photographs.
  */
 export function Chip({
   tone = "neutral",
   accent = false,
   dot = false,
+  onMedia = false,
   className,
   children,
 }: {
@@ -22,6 +31,8 @@ export function Chip({
   accent?: boolean;
   /** 6px dot in the current text color. Pen open-badge. */
   dot?: boolean;
+  /** Solid ink chip for labels placed on photos. */
+  onMedia?: boolean;
   className?: string;
   children: ReactNode;
 }) {
@@ -30,9 +41,11 @@ export function Chip({
       className={cn(
         "inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1",
         TEXT.micro,
-        accent
-          ? "border-transparent bg-buzz-yellow text-buzz-onAccent"
-          : TONE[tone],
+        onMedia
+          ? chipOnMediaClass
+          : accent
+            ? "border-transparent bg-accent text-on-accent"
+            : TONE[tone],
         className,
       )}
     >

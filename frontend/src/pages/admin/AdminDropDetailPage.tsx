@@ -287,7 +287,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
           {previewSrc ? (
-            <div className="relative aspect-video min-h-48 w-full shrink-0 overflow-hidden rounded-buzzCard border border-buzz-lineMid sm:w-auto">
+            <div className="relative aspect-video min-h-48 w-full shrink-0 overflow-hidden rounded-buzzBoard border border-buzz-lineMid sm:w-auto">
               <img
                 src={previewSrc}
                 alt=""
@@ -971,7 +971,7 @@ function RemoveParticipantButton({
           title="Remove participant"
           description="Deletes this seat, its tracking numbers, and its linked post metrics from this drop. Type remove to confirm."
         >
-          <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
+          <div className={STACK.tight}>
             {error && <ErrorNote>{error}</ErrorNote>}
             <TextField
               id={`remove-confirm-${applicant.id}`}
@@ -1149,7 +1149,7 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
               : "Removes this published drop from every organization and brand portal. Type the drop title to confirm. No email unless you opt in."
           }
         >
-          <div className={cn(STACK.tight, "px-6 pb-6 pt-4")}>
+          <div className={STACK.tight}>
             {error && <ErrorNote>{error}</ErrorNote>}
             {hidden ? (
               <div className="flex flex-wrap gap-2">
