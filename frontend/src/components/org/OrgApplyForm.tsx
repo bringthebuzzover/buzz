@@ -9,7 +9,6 @@ import {
   type OrgApplyInput,
 } from "../../api/hooks/useOnboardingHooks";
 import { userFacingApiError } from "../../api/userFacingError";
-import FieldError from "../forms/FieldError";
 import { AuthArrowLink, AuthLinkRow } from "../auth/AuthFrame";
 import {
   Button,
@@ -201,83 +200,54 @@ export default function OrgApplyForm({
     <form onSubmit={(e) => void onSubmit(e)} className={cn("space-y-6", className)}>
       {error && <ErrorBanner>{error}</ErrorBanner>}
       <div className={pairClass}>
-        <div>
-          <TextField
-            data-testid="org-apply-org-name"
-            label="Organization name"
-            placeholder="e.g. Sample Club"
-            value={orgName}
-            onChange={(e) => setOrgName(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldErrors.orgName)}
-            aria-describedby={fieldErrors.orgName ? "org-apply-org-name-error" : undefined}
-          />
-          <FieldError id="org-apply-org-name-error" message={fieldErrors.orgName} />
-        </div>
-
-        <div>
-          <TextField
-            data-testid="org-apply-university"
-            label="University"
-            placeholder="e.g. Sample University"
-            value={university}
-            onChange={(e) => setUniversity(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldErrors.university)}
-            aria-describedby={
-              fieldErrors.university ? "org-apply-university-error" : undefined
-            }
-          />
-          <FieldError
-            id="org-apply-university-error"
-            message={fieldErrors.university}
-          />
-        </div>
-      </div>
-
-      <div>
         <TextField
-          data-testid="org-apply-edu-email"
-          type="email"
-          label="School (.edu) email"
-          value={eduEmail}
-          onChange={(e) => setEduEmail(e.target.value)}
-          placeholder="e.g. you@university.edu"
-          hint="We'll send a verification link here."
+          id="org-apply-org-name"
+          data-testid="org-apply-org-name"
+          label="Organization name"
+          placeholder="e.g. Sample Club"
+          value={orgName}
+          onChange={(e) => setOrgName(e.target.value)}
           required
-          aria-invalid={Boolean(fieldErrors.eduEmail)}
-          aria-describedby={
-            fieldErrors.eduEmail ? "org-apply-edu-email-error" : undefined
-          }
+          error={fieldErrors.orgName}
         />
-        <FieldError
-          id="org-apply-edu-email-error"
-          message={fieldErrors.eduEmail}
+
+        <TextField
+          id="org-apply-university"
+          data-testid="org-apply-university"
+          label="University"
+          placeholder="e.g. Sample University"
+          value={university}
+          onChange={(e) => setUniversity(e.target.value)}
+          required
+          error={fieldErrors.university}
         />
       </div>
+
+      <TextField
+        id="org-apply-edu-email"
+        data-testid="org-apply-edu-email"
+        type="email"
+        label="School (.edu) email"
+        value={eduEmail}
+        onChange={(e) => setEduEmail(e.target.value)}
+        placeholder="e.g. you@university.edu"
+        hint="We'll send a verification link here."
+        required
+        error={fieldErrors.eduEmail}
+      />
 
       <div className={pairClass}>
-        <div>
-          <TextField
-            data-testid="org-apply-instagram"
-            label="Instagram handle"
-            value={instagramHandle}
-            onChange={(e) => setInstagramHandle(e.target.value)}
-            placeholder="e.g. @yourorg"
-            required
-            autoComplete="off"
-            aria-invalid={Boolean(fieldErrors.instagramHandle)}
-            aria-describedby={
-              fieldErrors.instagramHandle
-                ? "org-apply-instagram-error"
-                : undefined
-            }
-          />
-          <FieldError
-            id="org-apply-instagram-error"
-            message={fieldErrors.instagramHandle}
-          />
-        </div>
+        <TextField
+          id="org-apply-instagram"
+          data-testid="org-apply-instagram"
+          label="Instagram handle"
+          value={instagramHandle}
+          onChange={(e) => setInstagramHandle(e.target.value)}
+          placeholder="e.g. @yourorg"
+          required
+          autoComplete="off"
+          error={fieldErrors.instagramHandle}
+        />
 
         <TextField
           label={
@@ -298,26 +268,18 @@ export default function OrgApplyForm({
       </p>
 
       <div className={pairClass}>
-        <div>
-          <TextField
-            data-testid="org-apply-member-count"
-            type="number"
-            min="0"
-            label="Number of members"
-            placeholder="e.g. 85"
-            value={memberCount}
-            onChange={(e) => setMemberCount(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldErrors.memberCount)}
-            aria-describedby={
-              fieldErrors.memberCount ? "org-apply-member-count-error" : undefined
-            }
-          />
-          <FieldError
-            id="org-apply-member-count-error"
-            message={fieldErrors.memberCount}
-          />
-        </div>
+        <TextField
+          id="org-apply-member-count"
+          data-testid="org-apply-member-count"
+          type="number"
+          min="0"
+          label="Number of members"
+          placeholder="e.g. 85"
+          value={memberCount}
+          onChange={(e) => setMemberCount(e.target.value)}
+          required
+          error={fieldErrors.memberCount}
+        />
 
         <Select
           data-testid="org-apply-category"
@@ -335,24 +297,16 @@ export default function OrgApplyForm({
         </Select>
       </div>
 
-      <div>
-        <TextField
-          data-testid="org-apply-contact-name"
-          label="Contact name"
-          placeholder="e.g. Sam Sample"
-          value={contactName}
-          onChange={(e) => setContactName(e.target.value)}
-          required
-          aria-invalid={Boolean(fieldErrors.contactName)}
-          aria-describedby={
-            fieldErrors.contactName ? "org-apply-contact-name-error" : undefined
-          }
-        />
-        <FieldError
-          id="org-apply-contact-name-error"
-          message={fieldErrors.contactName}
-        />
-      </div>
+      <TextField
+        id="org-apply-contact-name"
+        data-testid="org-apply-contact-name"
+        label="Contact name"
+        placeholder="e.g. Sam Sample"
+        value={contactName}
+        onChange={(e) => setContactName(e.target.value)}
+        required
+        error={fieldErrors.contactName}
+      />
 
       <ShippingAddressFields
         value={shipping}

@@ -9,7 +9,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { userFacingApiError } from "../../api/userFacingError";
-import FieldError from "../../components/forms/FieldError";
 import {
   Button,
   ErrorBanner,
@@ -235,41 +234,23 @@ export default function OrgPortalProfilePage() {
           <Card kind="panel" pad="card">
             <CardHeader className="mb-5" title="Details" />
             <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <TextField
-                  id="org-profile-org-name"
-                  label="Organization name"
-                  value={orgName}
-                  onChange={(e) => setOrgName(e.target.value)}
-                  required
-                  aria-invalid={Boolean(fieldErrors.orgName)}
-                  aria-describedby={
-                    fieldErrors.orgName ? "org-profile-org-name-error" : undefined
-                  }
-                />
-                <FieldError
-                  id="org-profile-org-name-error"
-                  message={fieldErrors.orgName}
-                />
-              </div>
+              <TextField
+                id="org-profile-org-name"
+                label="Organization name"
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                required
+                error={fieldErrors.orgName}
+              />
 
-              <div>
-                <TextField
-                  id="org-profile-university"
-                  label="University"
-                  value={university}
-                  onChange={(e) => setUniversity(e.target.value)}
-                  required
-                  aria-invalid={Boolean(fieldErrors.university)}
-                  aria-describedby={
-                    fieldErrors.university ? "org-profile-university-error" : undefined
-                  }
-                />
-                <FieldError
-                  id="org-profile-university-error"
-                  message={fieldErrors.university}
-                />
-              </div>
+              <TextField
+                id="org-profile-university"
+                label="University"
+                value={university}
+                onChange={(e) => setUniversity(e.target.value)}
+                required
+                error={fieldErrors.university}
+              />
 
               <TextField
                 id="org-profile-tiktok"
@@ -294,25 +275,16 @@ export default function OrgPortalProfilePage() {
                 </p>
               </div>
 
-              <div>
-                <TextField
-                  id="org-profile-member-count"
-                  type="number"
-                  min="0"
-                  label="Number of members"
-                  value={memberCount}
-                  onChange={(e) => setMemberCount(e.target.value)}
-                  required
-                  aria-invalid={Boolean(fieldErrors.memberCount)}
-                  aria-describedby={
-                    fieldErrors.memberCount ? "org-profile-member-count-error" : undefined
-                  }
-                />
-                <FieldError
-                  id="org-profile-member-count-error"
-                  message={fieldErrors.memberCount}
-                />
-              </div>
+              <TextField
+                id="org-profile-member-count"
+                type="number"
+                min="0"
+                label="Number of members"
+                value={memberCount}
+                onChange={(e) => setMemberCount(e.target.value)}
+                required
+                error={fieldErrors.memberCount}
+              />
 
               <Select
                 id="org-profile-category"
@@ -336,14 +308,7 @@ export default function OrgPortalProfilePage() {
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
                   required
-                  aria-invalid={Boolean(fieldErrors.contactName)}
-                  aria-describedby={
-                    fieldErrors.contactName ? "org-profile-contact-name-error" : undefined
-                  }
-                />
-                <FieldError
-                  id="org-profile-contact-name-error"
-                  message={fieldErrors.contactName}
+                  error={fieldErrors.contactName}
                 />
               </div>
             </div>
