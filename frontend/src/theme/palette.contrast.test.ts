@@ -73,6 +73,14 @@ describe("Pulse Black contrast", () => {
     // A selected row on the wash uses muted, not quiet, for its secondary text.
     const mutedOnWash = composite(pulse.paper60, washOnCard);
     expect(contrast(mutedOnWash, washOnCard)).toBeGreaterThanOrEqual(AA);
+    // Modals and popovers sit on ink-pop: quiet support text, yellow on the
+    // wash (selected radio, stage row, Address pending), muted on a wash row.
+    const faintOnPop = composite(pulse.paper52, pulse.inkPop);
+    const washOnPop = composite(pulse.yellowFaded, pulse.inkPop);
+    expect(contrast(faintOnPop, pulse.inkPop)).toBeGreaterThanOrEqual(AA);
+    expect(contrast(pulse.yellow, pulse.inkPop)).toBeGreaterThanOrEqual(AA);
+    expect(contrast(pulse.fg, washOnPop)).toBeGreaterThanOrEqual(AA);
+    expect(contrast(composite(pulse.paper60, washOnPop), washOnPop)).toBeGreaterThanOrEqual(AA);
     // paper-30 is the loader's idle dots, not a text color.
     expect(contrast(idleOnInk, pulse.ink)).toBeLessThan(AA);
   });

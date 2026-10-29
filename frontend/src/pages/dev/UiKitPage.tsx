@@ -13,7 +13,7 @@ import { Card, CardHeader } from "../../components/ui/Card";
 import { Badge, Chip } from "../../components/ui/Chip";
 import { StatePanel } from "../../components/ui/StatePanel";
 import { EmptyState, Loader } from "../../components/ui/EmptyState";
-import { Modal } from "../../components/ui/Modal";
+import { Modal, ModalActions } from "../../components/ui/Modal";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { Tabs } from "../../components/ui/Tabs";
@@ -321,26 +321,12 @@ export default function UiKitPage() {
             title="Modal title"
             description="Escape closes, focus is trapped, the page behind cannot scroll."
           >
-            <div>
-              <p className={TEXT.body}>Modal body content.</p>
-              <div className="mt-3 flex justify-end gap-3">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="compact"
-                  onClick={() => setModalOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  size="compact"
-                  onClick={() => setModalOpen(false)}
-                >
-                  Done
-                </Button>
-              </div>
-            </div>
+            <p className={TEXT.body}>Modal body content.</p>
+            <ModalActions onCancel={() => setModalOpen(false)}>
+              <Button type="button" onClick={() => setModalOpen(false)}>
+                Done
+              </Button>
+            </ModalActions>
           </Modal>
         )}
       </Section>
