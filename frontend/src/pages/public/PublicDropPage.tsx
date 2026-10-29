@@ -13,8 +13,7 @@ import {
   type DropDetail,
 } from "../../api/hooks/useDropHooks";
 import { ApiError } from "../../api/errors";
-import { closedChipLabel, getDropFeedStatus } from "../../utils/dropStatus";
-import { useWallClockNow } from "../../utils/wallClock";
+import { closedChipLabel, getDropFeedStatus, isDropFull } from "../../utils/dropStatus";
 import { allowlistedOAuthNext, publicDropPath } from "../../utils/oauthNext";
 import OrgApplyForm, {
   goToVerifyEmailWait,
@@ -43,7 +42,6 @@ export default function PublicDropPage() {
   const { dropId } = useParams<{ dropId: string }>();
   const { status, user, login } = useAuth();
   const drop = useDropDetail(dropId);
-  const now = useWallClockNow();
   const navigate = useNavigate();
 
   if (drop.isLoading || status === "authenticating" || status === "idle") {
@@ -73,7 +71,7 @@ export default function PublicDropPage() {
   }
 
   const data = drop.data;
-  const feedStatus = getDropFeedStatus(data, data.acceptedCount, now);
+  const feedStatus = getDropFeedStatus(data.stage, isDropFull(data, data.acceptedCount));
   const loginHref = `/login?next=${encodeURIComponent(publicDropPath(dropId))}`;
   const nextPath = allowlistedOAuthNext(publicDropPath(dropId));
 

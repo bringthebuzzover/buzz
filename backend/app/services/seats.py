@@ -37,9 +37,8 @@ from app.models.tracker_event import DropTrackerEvent
 from app.services.drop_notices import notify_decisions
 from app.services.lifecycle import (
     ENDED_DECISIONS,
-    apply_window_closed,
     drop_stage,
-    reject_if_canceled,
+    require_drop,
 )
 from app.timeutils import utcnow
 
@@ -55,21 +54,12 @@ async def lock_drop(db: AsyncSession, drop_id: object) -> Drop:
     return drop
 
 
-def _require_visible(drop: Drop) -> None:
-    """Seats move only on a published, unhidden drop (any actor)."""
+def _require_may_decide(drop: Drop, actor: Actor) -> None:
+    """Seats move only on a published, unhidden drop. A brand also needs the
+    window closed and the drop not wrapped; BUZZ decides at any such stage."""
 
-    if drop.published_at is None or drop.hidden_at is not None:
-        raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
-
-
-def _require_brand_may_select(drop: Drop) -> None:
-    _require_visible(drop)
-    if drop.wrapped_at is not None:
-        raise BuzzAPIException(errors.DROP_WRAPPED, "This drop is wrapped up.")
-    if not apply_window_closed(drop, utcnow()):
-        raise BuzzAPIException(
-            errors.APPLY_WINDOW_OPEN, "Applications are still open for this drop."
-        )
+    brand = actor == "brand"
+    require_drop(drop, published=True, visible=True, unwrapped=brand, applications_closed=brand)
 
 
 async def _taken(db: AsyncSession, drop: Drop, *, excluding: DropApplication) -> tuple[int, int]:
@@ -112,16 +102,12 @@ async def set_seat_decision(
         if actor != "admin":
             raise BuzzAPIException(errors.FORBIDDEN, "Only BUZZ can end a seat.", status_code=403)
         return await end_seat(db, application, decision=decision, reason=reason)
-    reject_if_canceled(drop)
-
-    _require_visible(drop)
-    if actor == "brand":
-        _require_brand_may_select(drop)
-        if application.decision_sent_at is not None:
-            raise BuzzAPIException(
-                errors.DECISION_ALREADY_SENT,
-                "This decision was already sent. Ask BUZZ to change it.",
-            )
+    _require_may_decide(drop, actor)
+    if actor == "brand" and application.decision_sent_at is not None:
+        raise BuzzAPIException(
+            errors.DECISION_ALREADY_SENT,
+            "This decision was already sent. Ask BUZZ to change it.",
+        )
 
     if (
         application.decision_sent_at is not None
@@ -221,10 +207,7 @@ async def send_decisions(db: AsyncSession, drop: Drop, *, actor: Actor) -> dict[
     denial. Accepted orgs see the campaign in My Campaigns from now on.
     """
 
-    reject_if_canceled(drop)
-    _require_visible(drop)
-    if actor == "brand":
-        _require_brand_may_select(drop)
+    _require_may_decide(drop, actor)
 
     pending = list(
         await db.scalars(

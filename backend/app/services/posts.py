@@ -33,7 +33,7 @@ from app.schemas.posts import (
 )
 from app.services.campaigns import resolve_owned_application
 from app.services.erased_org_participation import post_metrics_are_frozen
-from app.services.lifecycle import org_link_open, reject_if_canceled
+from app.services.lifecycle import org_link_open, require_drop
 from app.timeutils import utcnow
 
 
@@ -129,7 +129,7 @@ async def _require_links_open(db: AsyncSession, org_user: User, drop_id: uuid.UU
     always, unless the drop is canceled."""
     drop = await db.get(Drop, drop_id)
     if drop is not None:
-        reject_if_canceled(drop)
+        require_drop(drop)
     if impersonated_by(org_user) is not None:
         return
     if drop is not None and not org_link_open(drop, utcnow()):
