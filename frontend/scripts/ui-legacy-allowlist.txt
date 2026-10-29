@@ -5,12 +5,6 @@ components/brand/ApiDropOrgTable.tsx
 components/brand/BrandDropTrackerStepper.tsx
 components/brand/RunningTotalsBar.tsx
 components/drop/CopyPublicDropUrl.tsx
-components/org/ApiPostSelector.tsx
-components/org/CampaignRow.tsx
-components/org/DropFeedCard.tsx
-components/org/modals/NotifyMeModal.tsx
-components/posts/PostInsights.tsx
-components/shipments/ShipmentList.tsx
 components/site/modals/ContactModal.tsx
 pages/brand/BrandAggregateDashboardPage.tsx
 pages/brand/BrandDropDetailPage.tsx
@@ -18,7 +12,3 @@ pages/brand/BrandRequestDropPage.tsx
 pages/brand/BrandSettingsPage.tsx
 pages/onboarding/OrgProfilePage.tsx
 pages/onboarding/PendingApprovalPage.tsx
-pages/org/OrgCampaignDetailPage.tsx
-pages/org/OrgDropFeedPage.tsx
-pages/org/OrgMyCampaignsPage.tsx
-pages/org/OrgPortalProfilePage.tsx
