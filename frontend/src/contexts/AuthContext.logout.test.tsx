@@ -2,8 +2,8 @@
  * SPA logout must send Bearer before clearing memory so the API can bump
  * token_version (auth.spa-logout-drops-bearer).
  */
-import { createRoot, type Root } from "react-dom/client";
-import { act } from "react-dom/test-utils";
+import { act } from "react";
+import { flushPromises, renderWithProviders } from "../testUtils";
 import { AuthProvider, useAuth } from "./AuthContext";
 
 jest.mock("../api/auth", () => {
@@ -28,14 +28,9 @@ function Probe({ onReady }: { onReady: (logout: () => Promise<void>) => void }) 
 }
 
 describe("AuthContext logout Bearer ordering", () => {
-  let container: HTMLDivElement;
-  let root: Root;
   let hrefValue = "";
 
   beforeEach(() => {
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
     mockedLogout.mockClear();
     setAccessToken(null);
     hrefValue = "";
@@ -53,27 +48,23 @@ describe("AuthContext logout Bearer ordering", () => {
   });
 
   afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
     setAccessToken(null);
   });
 
   it("passes the access token to apiLogout before clearing memory", async () => {
     let logoutFn: (() => Promise<void>) | null = null;
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe
-            onReady={(fn) => {
-              logoutFn = fn;
-            }}
-          />
-        </AuthProvider>,
-      );
-    });
+    renderWithProviders(
+      <AuthProvider>
+        <Probe
+          onReady={(fn) => {
+            logoutFn = fn;
+          }}
+        />
+      </AuthProvider>,
+      { router: false },
+    );
+    await flushPromises();
 
     // Install after bootstrap so anonymous fetchMe cannot wipe it first.
     setAccessToken("access-before-logout");

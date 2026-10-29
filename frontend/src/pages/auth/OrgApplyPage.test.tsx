@@ -6,12 +6,7 @@
  * Uses react-dom (no @testing-library/react in this package).
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import { renderWithProviders } from "../../testUtils";
 
 const mockApply = jest.fn();
 const mockPrefill = {
@@ -59,37 +54,15 @@ import OrgApplyPage from "./OrgApplyPage";
 
 describe("OrgApplyPage typed Instagram handle", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockApply.mockReset();
     mockPrefill.data = undefined;
     mockPrefill.isError = false;
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   function renderPage() {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <QueryClientProvider client={queryClient}>
-          <MemoryRouter>
-            <OrgApplyPage />
-          </MemoryRouter>
-        </QueryClientProvider>,
-      );
-    });
+    container = renderWithProviders(<OrgApplyPage />).container;
   }
 
   function fillRequiredFieldsExceptHandle() {
