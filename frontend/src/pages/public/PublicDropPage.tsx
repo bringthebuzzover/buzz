@@ -197,11 +197,12 @@ function PublicDropHero({
     feedStatus === "upcoming" ? "Upcoming" : feedStatus === "open" ? "Open" : "Closed";
 
   return (
-    <div className="relative aspect-square overflow-hidden rounded-buzzBoard">
+    <div className="relative aspect-square overflow-hidden rounded-buzzBoard bg-buzz-greyMedia">
       <RemoteImage
         src={drop.image}
         label={drop.brandName}
         alt=""
+        fallback="blank"
         className="absolute inset-0 h-full w-full object-cover"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-page via-page/25 to-page/30" />

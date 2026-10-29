@@ -77,6 +77,11 @@ type RemoteImageProps = {
   label: string;
   alt?: string;
   className?: string;
+  /**
+   * What to draw when the URL cannot be shown.
+   * `blank` leaves the parent's fill (the pen's grey media well).
+   */
+  fallback?: "initials" | "blank";
 };
 
 export function RemoteImage({
@@ -84,12 +89,14 @@ export function RemoteImage({
   label,
   alt = "",
   className,
+  fallback = "initials",
 }: RemoteImageProps) {
   const resolved = displayableImageSrc(src);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const failed = resolved == null || failedSrc === resolved;
 
   if (failed) {
+    if (fallback === "blank") return null;
     return (
       <span
         className={cn(

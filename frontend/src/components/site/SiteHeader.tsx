@@ -266,9 +266,9 @@ export default function SiteHeader() {
 
       <div
         className={cn(
-          "pointer-events-none fixed inset-x-0 bottom-0 z-buzzDrawer",
+          "fixed inset-x-0 bottom-0 z-buzzDrawer transition-opacity duration-300",
           mobileOnly,
-          mobileNavOpen && "pointer-events-auto",
+          mobileNavOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
         )}
         style={{ top: mobilePanelTopPx }}
         aria-hidden={!mobileNavOpen}
