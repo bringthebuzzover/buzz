@@ -1,10 +1,11 @@
 """Drop lifecycle: the computed stage and the seat rules every surface shares.
 
 Single source of truth for "where is this drop?" The stage is never stored;
-it is computed in SQL from four facts so a screen can never disagree with
+it is computed in SQL from a few facts so a screen can never disagree with
 the dates or the seats:
 
 * ``published_at`` — null means **draft**;
+* ``canceled_at`` — set means **canceled** (BUZZ click, final);
 * ``wrapped_at`` — set means **wrapped** (BUZZ click);
 * the apply window — before it **upcoming**, inside it **applying**;
 * after the window, **live** once any accepted decision went out, else
@@ -13,8 +14,10 @@ the dates or the seats:
 Hidden is a separate flag (``drops.hidden_at``) on top of any stage.
 
 Seats move on their own. A drop stage never blocks a seat except hidden
-(and later canceled). Wrapped only ends org self-service linking after
+and canceled. Wrapped only ends org self-service linking after
 ``ORG_LINK_GRACE``; BUZZ (View as) can always link, and can always late-add.
+A canceled drop takes no new seats, decisions, shipments or links; what
+exists stays for the brand report.
 """
 
 from __future__ import annotations
@@ -27,6 +30,8 @@ from sqlalchemy import and_, case, exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
+from app import errors
+from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.enums import ApplicationDecision, DropStage
@@ -47,12 +52,45 @@ def seat_is_live() -> ColumnElement[bool]:
     )
 
 
-def seat_is_denied_and_sent() -> ColumnElement[bool]:
-    """A denial the org has been told about (invisible to the org afterwards)."""
+# A seat ends by withdrawal or removal: final at once, never a draft.
+ENDED_DECISIONS = frozenset({ApplicationDecision.WITHDREW.value, ApplicationDecision.REMOVED.value})
+
+# Seats the org no longer sees once sent: a denial or an ended seat.
+ORG_HIDDEN_DECISIONS = ENDED_DECISIONS | {ApplicationDecision.DENIED.value}
+
+
+def seat_hidden_from_org() -> ColumnElement[bool]:
+    """Ended seats the org was told about; gone from its campaigns."""
 
     return and_(
-        DropApplication.decision == ApplicationDecision.DENIED.value,
+        DropApplication.decision.in_(ORG_HIDDEN_DECISIONS),
         DropApplication.decision_sent_at.is_not(None),
+    )
+
+
+def seat_frees_reapply() -> ColumnElement[bool]:
+    """Seats that let the org apply again (a sent denial or a withdrawal).
+
+    A removed seat keeps the org off the drop.
+    """
+
+    return and_(
+        DropApplication.decision.in_(
+            (ApplicationDecision.DENIED.value, ApplicationDecision.WITHDREW.value)
+        ),
+        DropApplication.decision_sent_at.is_not(None),
+    )
+
+
+def seat_in_report() -> ColumnElement[bool]:
+    """Seats whose posts count for the brand: accepted, or ended after it (D-8)."""
+
+    return DropApplication.decision.in_(
+        (
+            ApplicationDecision.ACCEPTED.value,
+            ApplicationDecision.WITHDREW.value,
+            ApplicationDecision.REMOVED.value,
+        )
     )
 
 
@@ -64,6 +102,7 @@ def drop_stage_expr(now: datetime) -> ColumnElement[str]:
     )
     return case(
         (Drop.published_at.is_(None), DropStage.DRAFT.value),
+        (Drop.canceled_at.is_not(None), DropStage.CANCELED.value),
         (Drop.wrapped_at.is_not(None), DropStage.WRAPPED.value),
         (Drop.apply_open_at > now, DropStage.UPCOMING.value),
         (Drop.apply_close_at >= now, DropStage.APPLYING.value),
@@ -92,6 +131,21 @@ async def drop_stage(db: AsyncSession, drop: Drop, *, now: datetime | None = Non
     return (await drop_stages(db, [drop.id], now=now))[drop.id]
 
 
+def drop_running() -> ColumnElement[bool]:
+    """Published and neither wrapped nor canceled (hidden is its own check)."""
+
+    return and_(
+        Drop.published_at.is_not(None), Drop.wrapped_at.is_(None), Drop.canceled_at.is_(None)
+    )
+
+
+def reject_if_canceled(drop: Drop) -> None:
+    """A canceled drop is frozen: no new seats, decisions, shipments or links."""
+
+    if drop.canceled_at is not None:
+        raise BuzzAPIException(errors.DROP_CANCELED, "This drop was canceled.", status_code=409)
+
+
 def apply_window_closed(drop: Drop, now: datetime) -> bool:
     """Applications closed: the close date has passed."""
 
@@ -101,7 +155,7 @@ def apply_window_closed(drop: Drop, now: datetime) -> bool:
 def org_link_open(drop: Drop, now: datetime) -> bool:
     """Whether the org itself may link/unlink posts (BUZZ View as always may)."""
 
-    if drop.hidden_at is not None:
+    if drop.hidden_at is not None or drop.canceled_at is not None:
         return False
     if drop.wrapped_at is None:
         return True
@@ -113,6 +167,7 @@ def _open_until_after_wrap(window: timedelta) -> ColumnElement[bool]:
     return and_(
         Drop.published_at.is_not(None),
         Drop.hidden_at.is_(None),
+        Drop.canceled_at.is_(None),
         (Drop.wrapped_at.is_(None)) | (Drop.wrapped_at > cutoff),
     )
 

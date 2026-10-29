@@ -31,7 +31,12 @@ from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.drops import ApplicationResponse, DropDetailResponse, DropFeedItem
-from app.services.lifecycle import drop_stage, drop_stage_expr, seat_is_denied_and_sent
+from app.services.lifecycle import (
+    drop_running,
+    drop_stage,
+    drop_stage_expr,
+    seat_frees_reapply,
+)
 from app.timeutils import as_utc, utcnow
 
 
@@ -44,16 +49,11 @@ def is_drop_hidden(drop: Drop) -> bool:
 def _browsable_drop_filters() -> tuple[ColumnElement[bool], ...]:
     """Predicate for drops an org may see in the feed (requires the Brand join).
 
-    Published, not hidden, not wrapped up: drafts never appear, and a wrapped
-    drop lives on in My Campaigns only.
+    Published, not hidden, not wrapped up or canceled: drafts never appear,
+    and a wrapped drop lives on in My Campaigns only.
     """
 
-    return (
-        Brand.status == BrandStatus.APPROVED.value,
-        Drop.wrapped_at.is_(None),
-        Drop.published_at.isnot(None),
-        Drop.hidden_at.is_(None),
-    )
+    return (Brand.status == BrandStatus.APPROVED.value, drop_running(), Drop.hidden_at.is_(None))
 
 
 async def _require_browsable_drop(db: AsyncSession, drop: Drop) -> Brand:
@@ -66,7 +66,12 @@ async def _require_browsable_drop(db: AsyncSession, drop: Drop) -> Brand:
     brand = await db.get(Brand, drop.brand_id)
     if brand is None or brand.status != BrandStatus.APPROVED.value:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
-    if drop.published_at is None or drop.wrapped_at is not None or is_drop_hidden(drop):
+    if (
+        drop.published_at is None
+        or drop.wrapped_at is not None
+        or drop.canceled_at is not None
+        or is_drop_hidden(drop)
+    ):
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
     return brand
 
@@ -167,14 +172,14 @@ async def _applied_drop_ids(
     org_id: uuid.UUID | None,
     drop_ids: list[uuid.UUID],
 ) -> set[uuid.UUID]:
-    """Drop ids the calling org holds a seat on (anything but a sent denial)."""
+    """Drop ids the calling org holds a place on (it cannot apply again)."""
 
     if org_id is None or not drop_ids:
         return set()
     rows = await db.scalars(
         select(DropApplication.drop_id).where(
             DropApplication.org_id == org_id,
-            ~seat_is_denied_and_sent(),
+            ~seat_frees_reapply(),
             DropApplication.drop_id.in_(drop_ids),
         )
     )
@@ -304,7 +309,7 @@ async def apply_to_drop(
 
     Order: lock drop row (``FOR UPDATE``, serializes vs decisions) → drop
     exists → drop is browsable (approved brand, not wrapped) → not already
-    applied (a prior *sent* denial does NOT block) → apply window open /
+    applied (a prior *sent* denial or a withdrawal does NOT block) → apply window open /
     capacity remains (``drop_apply_eligibility``, mirrors feed UX).
     """
 
@@ -320,7 +325,7 @@ async def apply_to_drop(
         select(DropApplication.id).where(
             DropApplication.org_id == org.id,
             DropApplication.drop_id == drop.id,
-            ~seat_is_denied_and_sent(),
+            ~seat_frees_reapply(),
         )
     )
     if existing is not None:

@@ -36,6 +36,7 @@ from app.services.email import (
     build_idempotency_key,
     send_drop_opening_reminder_email,
 )
+from app.services.lifecycle import drop_running
 
 
 async def send_due_reminders(db: AsyncSession) -> dict[str, Any]:
@@ -59,8 +60,7 @@ async def send_due_reminders(db: AsyncSession) -> dict[str, Any]:
                     Drop.apply_close_at > now,
                     # Same browsable gate as the org feed / detail / notify APIs.
                     Brand.status == BrandStatus.APPROVED.value,
-                    Drop.wrapped_at.is_(None),
-                    Drop.published_at.isnot(None),
+                    drop_running(),
                     Drop.hidden_at.is_(None),
                 )
                 .with_for_update(of=NotifyMe, skip_locked=True)

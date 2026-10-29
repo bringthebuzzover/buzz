@@ -35,7 +35,7 @@ from app.schemas.brands import (
 )
 from app.services.drop_image import validate_https_image
 from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
-from app.services.lifecycle import drop_stage
+from app.services.lifecycle import drop_stage, reject_if_canceled, seat_in_report
 from app.services.shipments import shipments_by_application_ids
 
 logger = logging.getLogger(__name__)
@@ -172,6 +172,7 @@ async def build_brand_drop_detail(
                 applied_at=app.applied_at,
                 decision_at=app.decision_at,
                 decision_sent_at=app.decision_sent_at,
+                delivered_at=app.delivered_at,
                 org_name=TOMBSTONE_ORG_NAME if erased else org.org_name,
                 university="" if erased else org.university,
                 instagram_handle="" if erased else (org_user.instagram_username or ""),
@@ -218,6 +219,7 @@ async def update_brand_drop_creative(
     if not updates:
         return
 
+    reject_if_canceled(drop)
     if not drop.brand_can_edit_creative:
         raise BuzzAPIException(
             errors.FORBIDDEN,
@@ -250,10 +252,7 @@ async def _drop_aggregate(db: AsyncSession, drop_id: UUID) -> dict[str, int]:
         await db.scalars(
             select(PostCampaignLink.post_id)
             .join(DropApplication, DropApplication.id == PostCampaignLink.application_id)
-            .where(
-                DropApplication.drop_id == drop_id,
-                DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-            )
+            .where(DropApplication.drop_id == drop_id, seat_in_report())
         )
     )
 

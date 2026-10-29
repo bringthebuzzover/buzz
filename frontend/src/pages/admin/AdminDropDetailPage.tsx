@@ -6,8 +6,10 @@
  * URL.
  *
  * The stage is computed (utils/dropStage). BUZZ drafts and sends per-seat
- * decisions at any stage, reopens by moving the close date, and wraps or
- * unwraps the drop. Tracking numbers live on accepted, sent seats.
+ * decisions at any stage, reopens by moving the close date, wraps or unwraps
+ * the drop, and can cancel it (final). A seat ends as withdrew or removed (with
+ * a reason); hard delete is only for test data. Tracking and delivery live on
+ * accepted, sent seats.
  */
 import { useState, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -15,18 +17,21 @@ import { Eye, EyeOff } from "lucide-react";
 import {
   useAdminDrop,
   useAddApplicantShipment,
+  useCancelDrop,
   useDeleteApplicantShipment,
+  useDeleteSeat,
   useHideDrop,
   usePatchAdminDropConfig,
   usePublishDrop,
-  useRemoveParticipant,
   useSendAdminDecisions,
   useSetAdminSeatDecision,
+  useSetApplicantDelivered,
   useSetDropWrapped,
   useSyncAndAutolink,
   useUnhideDrop,
   type AdminApplicant,
   type AdminDropConfigPatch,
+  type AdminSeatDecision,
   type AdminDropDetail,
 } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
@@ -72,11 +77,7 @@ import {
 import AddOrgToDropModal from "../../components/admin/AddOrgToDropModal";
 import CopyPublicDropUrl from "../../components/drop/CopyPublicDropUrl";
 import { carrierLabel, type Shipment } from "../../utils/shipments";
-import {
-  SeatDecisionSelect,
-  SendDecisionsBar,
-  type SeatDecision,
-} from "../../components/drop/SeatDecisions";
+import { SeatDecisionSelect, SendDecisionsBar } from "../../components/drop/SeatDecisions";
 
 const TABS = [
   { id: "tracker", label: "Lifecycle" },
@@ -161,10 +162,18 @@ const APPLICANT_HEADERS = [
   "",
 ] as const;
 
+/** Withdrew and removed end a seat; it leaves the org's view and frees its units. */
+const ENDED_DECISIONS = new Set(["withdrew", "removed"]);
+
+const DECISION_TONE: Record<string, "good" | "bad" | "warn" | "neutral"> = {
+  accepted: "good",
+  denied: "bad",
+  removed: "bad",
+  withdrew: "neutral",
+};
+
 function DecisionPill({ decision }: { decision: string }) {
-  const tone =
-    decision === "accepted" ? "good" : decision === "denied" ? "bad" : "warn";
-  return <Pill tone={tone}>{decision}</Pill>;
+  return <Pill tone={DECISION_TONE[decision] ?? "warn"}>{decision}</Pill>;
 }
 
 function DropConfigEditors({ data }: { data: AdminDropDetail }) {
@@ -461,10 +470,60 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
   );
 }
 
+function CancelDropButton({ drop }: { drop: AdminDropDetail }) {
+  const cancel = useCancelDrop(drop.id);
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(typed: string) {
+    setError(null);
+    try {
+      await cancel.mutateAsync(typed.trim());
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not cancel this drop.");
+    }
+  }
+
+  return (
+    <>
+      <ActionButton
+        variant="danger"
+        testId="drop-cancel"
+        onClick={() => {
+          setError(null);
+          setOpen(true);
+        }}
+      >
+        Cancel drop
+      </ActionButton>
+      {open && (
+        <ConfirmDialog
+          title="Cancel this drop"
+          description="Final: there is no undo. Decisions, tracking, delivery, post links and metric syncs stop. Seats and posts stay on record, and you can still end a seat with a reason."
+          expected={drop.title}
+          inputLabel="Type the drop title"
+          error={error}
+          destructive
+          confirmLabel="Cancel drop"
+          cancelLabel="Keep drop"
+          pendingLabel="Canceling…"
+          pending={cancel.isPending}
+          inputTestId="drop-cancel-confirm"
+          submitTestId="drop-cancel-submit"
+          onConfirm={(typed) => void submit(typed)}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
 function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
   const setWrapped = useSetDropWrapped(drop.id);
   const [error, setError] = useState<string | null>(null);
   const wrapped = drop.stage === "wrapped";
+  const canceled = drop.stage === "canceled";
 
   async function toggle() {
     setError(null);
@@ -478,12 +537,19 @@ function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
   return (
     <Panel
       title="Lifecycle"
-      description="The stage is computed from the dates and the seats. Reopen applications by moving the close date later in Config. Wrap the drop when the campaign is over; organizations can still link posts for 30 days after."
+      description="The stage is computed from the dates and the seats. Reopen applications by moving the close date later in Config. Wrap the drop when the campaign is over; organizations can still link posts for 30 days after. Cancel only a drop that will not happen."
     >
       <div className="space-y-4 px-6 py-5">
-        <StageRail current={drop.stage} />
+        {canceled ? (
+          <p className={cn(TEXT.body, "flex items-center gap-2 text-muted")} data-testid="drop-canceled">
+            <Pill tone="bad">Canceled</Pill>
+            {drop.canceledAt != null ? formatDateTime(drop.canceledAt) : null}
+          </p>
+        ) : (
+          <StageRail current={drop.stage} />
+        )}
         {error && <ErrorNote>{error}</ErrorNote>}
-        {drop.publishedAt != null && (
+        {drop.publishedAt != null && !canceled && (
           <div className="flex flex-wrap gap-2">
             <ActionButton
               variant={wrapped ? "secondary" : "primary"}
@@ -493,6 +559,7 @@ function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
             >
               {wrapped ? "Unwrap drop" : "Wrap up drop"}
             </ActionButton>
+            {!wrapped && <CancelDropButton drop={drop} />}
           </div>
         )}
       </div>
@@ -509,6 +576,7 @@ function ApplicantShipmentEditor({
 }) {
   const add = useAddApplicantShipment(dropId, applicant.id);
   const remove = useDeleteApplicantShipment(dropId, applicant.id);
+  const setDelivered = useSetApplicantDelivered(applicant.id);
   const [tn, setTn] = useState("");
   const [carrier, setCarrier] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -591,6 +659,25 @@ function ApplicantShipmentEditor({
         >
           {add.isPending ? "Adding…" : "Add tracking"}
         </ActionButton>
+        <Checkbox
+          data-testid={`delivered-${applicant.id}`}
+          checked={applicant.deliveredAt != null}
+          disabled={setDelivered.isPending}
+          onChange={(e) => {
+            setError(null);
+            setDelivered
+              .mutateAsync(e.target.checked)
+              .catch((err: unknown) =>
+                setError(err instanceof ApiError ? err.message : "Could not save delivery."),
+              );
+          }}
+          label={
+            <span className="text-xs text-muted">
+              Delivered
+              {applicant.deliveredAt != null ? ` ${formatDate(applicant.deliveredAt)}` : ""}
+            </span>
+          }
+        />
       </div>
     </div>
   );
@@ -630,19 +717,83 @@ function SignupIntents({
   );
 }
 
-/** BUZZ can seat an org at any published stage, including after wrap (retro). */
+/** BUZZ can seat an org at any published stage, including after wrap (retro), until canceled. */
 function canLateAdd(drop: AdminDropDetail): boolean {
-  return drop.publishedAt != null && drop.hiddenAt == null;
+  return drop.publishedAt != null && drop.hiddenAt == null && drop.stage !== "canceled";
 }
 
-function RemoveParticipantButton({
+/** End a seat on record: the org withdrew (by email, say) or BUZZ removed it. */
+function EndSeatButton({
+  applicant,
+  onEnd,
+  pending,
+  error,
+}: {
+  applicant: AdminApplicant;
+  onEnd: (decision: "withdrew" | "removed", reason: string) => Promise<boolean>;
+  pending: boolean;
+  error: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<"removed" | "withdrew">("removed");
+  const [reason, setReason] = useState("");
+
+  return (
+    <>
+      <ActionButton
+        quiet
+        variant="secondary"
+        testId={`end-seat-${applicant.id}`}
+        onClick={() => setOpen(true)}
+      >
+        End seat
+      </ActionButton>
+      {open && (
+        <ConfirmDialog
+          title={`End ${applicant.orgName}'s seat`}
+          description="The seat leaves the organization's view at once and its units are freed. Linked posts stay on record. Removed seats can't re-apply; a withdrawn org can."
+          error={error}
+          destructive
+          confirmLabel="End seat"
+          pendingLabel="Saving…"
+          pending={pending}
+          submitTestId={`end-seat-submit-${applicant.id}`}
+          onConfirm={() =>
+            void onEnd(kind, reason.trim()).then((ok) => ok && setOpen(false))
+          }
+          onClose={() => setOpen(false)}
+        >
+          <Select
+            id={`end-kind-${applicant.id}`}
+            label="Why it ended"
+            value={kind}
+            onChange={(e) => setKind(e.target.value as "removed" | "withdrew")}
+          >
+            <option value="removed">BUZZ removed it</option>
+            <option value="withdrew">The organization withdrew</option>
+          </Select>
+          <TextArea
+            id={`end-reason-${applicant.id}`}
+            data-testid={`end-reason-${applicant.id}`}
+            label={kind === "removed" ? "Reason (required, BUZZ-only)" : "Note (optional, BUZZ-only)"}
+            value={reason}
+            maxLength={500}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </ConfirmDialog>
+      )}
+    </>
+  );
+}
+
+function DeleteSeatButton({
   dropId,
   applicant,
 }: {
   dropId: string;
   applicant: AdminApplicant;
 }) {
-  const remove = useRemoveParticipant(dropId);
+  const remove = useDeleteSeat(dropId);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -652,7 +803,7 @@ function RemoveParticipantButton({
       await remove.mutateAsync({ applicationId: applicant.id, confirm: typed.trim() });
       setOpen(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not remove this participant.");
+      setError(err instanceof ApiError ? err.message : "Could not delete this seat.");
     }
   }
 
@@ -661,28 +812,28 @@ function RemoveParticipantButton({
       <ActionButton
         quiet
         variant="secondary"
-        testId={`remove-participant-${applicant.id}`}
+        testId={`delete-seat-${applicant.id}`}
         onClick={() => {
           setError(null);
           setOpen(true);
         }}
       >
-        Remove
+        Delete
       </ActionButton>
       {open && (
         <ConfirmDialog
-          title="Remove participant"
-          description="Deletes this seat, its tracking numbers, and its linked post metrics from this drop. Type remove to confirm."
-          expected="remove"
-          inputLabel="Type remove"
-          matches={(typed) => typed.trim().toLowerCase() === "remove"}
+          title="Delete seat (test data)"
+          description="Erases this seat, its tracking numbers, and its linked post metrics as if it never existed. For test data and mistakes only; to end a real seat, use End seat. Type delete to confirm."
+          expected="delete"
+          inputLabel="Type delete"
+          matches={(typed) => typed.trim().toLowerCase() === "delete"}
           error={error}
           destructive
-          confirmLabel="Remove from drop"
-          pendingLabel="Removing…"
+          confirmLabel="Delete seat"
+          pendingLabel="Deleting…"
           pending={remove.isPending}
-          inputTestId={`remove-confirm-${applicant.id}`}
-          submitTestId={`remove-confirm-submit-${applicant.id}`}
+          inputTestId={`delete-confirm-${applicant.id}`}
+          submitTestId={`delete-confirm-submit-${applicant.id}`}
           onConfirm={(typed) => void submit(typed)}
           onClose={() => setOpen(false)}
         />
@@ -705,9 +856,10 @@ function Applicants({
   const [error, setError] = useState<string | null>(null);
   const setDecision = async (
     applicant: AdminApplicant,
-    decision: SeatDecision,
+    decision: AdminSeatDecision,
     units?: number,
-  ) => {
+    reason?: string,
+  ): Promise<boolean> => {
     setError(null);
     try {
       await decide.mutateAsync({
@@ -717,9 +869,12 @@ function Applicants({
           decision === "accepted" && unitsMode
             ? (units ?? applicant.allocatedUnits ?? 0)
             : null,
+        reason,
       });
+      return true;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not save the decision.");
+      return false;
     }
   };
   return (
@@ -738,98 +893,124 @@ function Applicants({
       isEmpty={applicants.length === 0}
       empty="Nobody has applied to this drop."
     >
-      {applicants.map((applicant) => (
-        <Row key={applicant.id} attention={applicant.decision === "applied"}>
-          <Cell>
-            <Link
-              to={`/admin/orgs/${applicant.userId}`}
-              className={`block ${entityLinkClass}`}
-            >
-              {applicant.orgName}
-            </Link>
-            {applicant.university ? (
-              <span className="mt-0.5 block text-xs text-quiet">
-                {applicant.university}
-              </span>
-            ) : null}
-            {applicant.accountErased ? (
-              <span className="mt-1 flex flex-wrap items-center gap-2">
-                <Pill tone="neutral">Metrics frozen</Pill>
-                {applicant.metricsFrozenAt != null ? (
-                  <span className="text-xs font-medium text-muted">
-                    {formatDate(applicant.metricsFrozenAt)}
-                  </span>
-                ) : null}
-              </span>
-            ) : null}
-          </Cell>
-          <Cell muted>
-            {formatCompactCount(applicant.followerCount)}
-          </Cell>
-          <Cell>
-            {applicant.accountErased ? (
-              <DecisionPill decision={applicant.decision} />
-            ) : (
-              <div className="flex flex-col gap-1">
-                <SeatDecisionSelect
-                  id={applicant.id}
-                  orgName={applicant.orgName}
-                  value={applicant.decision}
+      {applicants.map((applicant) => {
+        const ended = ENDED_DECISIONS.has(applicant.decision);
+        const live = applicant.decision === "accepted" && applicant.decisionSentAt != null;
+        return (
+          <Row key={applicant.id} attention={applicant.decision === "applied"}>
+            <Cell>
+              <Link
+                to={`/admin/orgs/${applicant.userId}`}
+                className={`block ${entityLinkClass}`}
+              >
+                {applicant.orgName}
+              </Link>
+              {applicant.university ? (
+                <span className="mt-0.5 block text-xs text-quiet">
+                  {applicant.university}
+                </span>
+              ) : null}
+              {applicant.addedBy === "late_add" ? (
+                <span className="mt-1 block">
+                  <Pill tone="neutral">Late add</Pill>
+                </span>
+              ) : null}
+              {applicant.accountErased ? (
+                <span className="mt-1 flex flex-wrap items-center gap-2">
+                  <Pill tone="neutral">Metrics frozen</Pill>
+                  {applicant.metricsFrozenAt != null ? (
+                    <span className="text-xs font-medium text-muted">
+                      {formatDate(applicant.metricsFrozenAt)}
+                    </span>
+                  ) : null}
+                </span>
+              ) : null}
+            </Cell>
+            <Cell muted>
+              {formatCompactCount(applicant.followerCount)}
+            </Cell>
+            <Cell>
+              {applicant.accountErased || ended ? (
+                <div className="flex flex-col gap-1">
+                  <DecisionPill decision={applicant.decision} />
+                  {applicant.endReason ? (
+                    <span className="max-w-48 text-xs text-muted">{applicant.endReason}</span>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <SeatDecisionSelect
+                    id={applicant.id}
+                    orgName={applicant.orgName}
+                    value={applicant.decision}
+                    disabled={decide.isPending}
+                    onChange={(next) => void setDecision(applicant, next)}
+                  />
+                  {applicant.decision !== "applied" && applicant.decisionSentAt == null ? (
+                    <span className="text-xs font-medium text-buzz-warn">Not sent</span>
+                  ) : null}
+                </div>
+              )}
+            </Cell>
+            <Cell muted>
+              {unitsMode && applicant.decision === "accepted" && !applicant.accountErased ? (
+                <TextField
+                  key={`${applicant.id}-${applicant.allocatedUnits ?? 0}`}
+                  id={`units-${applicant.id}`}
+                  aria-label={`Units for ${applicant.orgName}`}
+                  type="number"
+                  min={0}
+                  size="compact"
+                  className="w-20"
                   disabled={decide.isPending}
-                  onChange={(next) => void setDecision(applicant, next)}
+                  defaultValue={applicant.allocatedUnits ?? 0}
+                  onBlur={(e) => {
+                    const units = Math.max(0, parseInt(e.target.value, 10) || 0);
+                    if (units !== (applicant.allocatedUnits ?? 0)) {
+                      void setDecision(applicant, "accepted", units);
+                    }
+                  }}
                 />
-                {applicant.decision !== "applied" && applicant.decisionSentAt == null ? (
-                  <span className="text-xs font-medium text-buzz-warn">Not sent</span>
-                ) : null}
-              </div>
-            )}
-          </Cell>
-          <Cell muted>
-            {unitsMode && applicant.decision === "accepted" && !applicant.accountErased ? (
-              <TextField
-                key={`${applicant.id}-${applicant.allocatedUnits ?? 0}`}
-                id={`units-${applicant.id}`}
-                aria-label={`Units for ${applicant.orgName}`}
-                type="number"
-                min={0}
-                size="compact"
-                className="w-20"
-                disabled={decide.isPending}
-                defaultValue={applicant.allocatedUnits ?? 0}
-                onBlur={(e) => {
-                  const units = Math.max(0, parseInt(e.target.value, 10) || 0);
-                  if (units !== (applicant.allocatedUnits ?? 0)) {
-                    void setDecision(applicant, "accepted", units);
-                  }
-                }}
-              />
-            ) : (
-              applicant.allocatedUnits ?? "—"
-            )}
-          </Cell>
-          <Cell muted>{applicant.linkedPostCount}</Cell>
-          <Cell muted>{formatDate(applicant.appliedAt)}</Cell>
-          <Cell muted>
-            {applicant.accountErased
-              ? "—"
-              : adminApplicantShipTo(
-                  applicant.decision,
-                  applicant.shippingCity,
-                  applicant.shippingState,
+              ) : (
+                applicant.allocatedUnits ?? "—"
+              )}
+            </Cell>
+            <Cell muted>{applicant.linkedPostCount}</Cell>
+            <Cell muted>{formatDate(applicant.appliedAt)}</Cell>
+            <Cell muted>
+              {applicant.accountErased
+                ? "—"
+                : adminApplicantShipTo(
+                    applicant.decision,
+                    applicant.shippingCity,
+                    applicant.shippingState,
+                  )}
+            </Cell>
+            <Cell>
+              {live ? (
+                <ApplicantShipmentEditor dropId={dropId} applicant={applicant} />
+              ) : (
+                <span className="text-xs font-medium text-muted">—</span>
+              )}
+            </Cell>
+            <Cell align="right">
+              <div className="flex flex-col items-end gap-1">
+                {!ended && !applicant.accountErased && (
+                  <EndSeatButton
+                    applicant={applicant}
+                    pending={decide.isPending}
+                    error={error}
+                    onEnd={(decision, reason) =>
+                      setDecision(applicant, decision, undefined, reason || undefined)
+                    }
+                  />
                 )}
-          </Cell>
-          <Cell>
-            {applicant.decision === "accepted" && applicant.decisionSentAt != null ? (
-              <ApplicantShipmentEditor dropId={dropId} applicant={applicant} />
-            ) : (
-              <span className="text-xs font-medium text-muted">—</span>
-            )}
-          </Cell>
-          <Cell align="right">
-            <RemoveParticipantButton dropId={dropId} applicant={applicant} />
-          </Cell>
-        </Row>
-      ))}
+                <DeleteSeatButton dropId={dropId} applicant={applicant} />
+              </div>
+            </Cell>
+          </Row>
+        );
+      })}
     </AdminTable>
     </>
   );

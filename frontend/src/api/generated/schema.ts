@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/admin/applications/{application_id}/delivered": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Application Delivered
+         * @description Mark the seat delivered (or not). A fact, never a gate.
+         */
+        put: operations["set_application_delivered_api_admin_applications__application_id__delivered_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/applications/{application_id}/shipments": {
         parameters: {
             query?: never;
@@ -351,7 +371,8 @@ export interface paths {
         get?: never;
         /**
          * Put Seat Decision Endpoint
-         * @description Draft one seat's decision (any stage, may overbook; goes out on the next send).
+         * @description Set one seat's status. accepted/denied are drafts until the next send (may
+         *     overbook); withdrew/removed end the seat at once, keeping its history.
          */
         put: operations["put_seat_decision_endpoint_api_admin_drops__drop_id__applications__application_id__decision_put"];
         post?: never;
@@ -361,7 +382,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/drops/{drop_id}/applications/{application_id}/remove": {
+    "/api/admin/drops/{drop_id}/applications/{application_id}/delete": {
         parameters: {
             query?: never;
             header?: never;
@@ -371,10 +392,30 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Remove Participant Endpoint
-         * @description Remove one org from one drop. Deletes that seat, its shipments, and its linked metrics.
+         * Delete Seat Endpoint
+         * @description Hard-delete one seat (test data, mistakes): the seat, its shipments, its linked metrics.
          */
-        post: operations["remove_participant_endpoint_api_admin_drops__drop_id__applications__application_id__remove_post"];
+        post: operations["delete_seat_endpoint_api_admin_drops__drop_id__applications__application_id__delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/drops/{drop_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Drop Endpoint
+         * @description Cancel a published drop (typed title; final).
+         */
+        post: operations["cancel_drop_endpoint_api_admin_drops__drop_id__cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1720,7 +1761,7 @@ export interface paths {
         };
         /**
          * List Campaigns
-         * @description The caller org's campaigns (non-denied applications + joined drop).
+         * @description The caller org's campaigns (seats that have not ended + joined drop).
          */
         get: operations["list_campaigns_api_campaigns_get"];
         put?: never;
@@ -1764,6 +1805,26 @@ export interface paths {
          */
         get: operations["campaign_aggregate_api_campaigns__application_id__aggregate_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/campaigns/{application_id}/delivered": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Campaign Delivered
+         * @description Org says "I got it": it has the product (a fact, never a gate).
+         */
+        put: operations["set_campaign_delivered_api_campaigns__application_id__delivered_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1849,6 +1910,26 @@ export interface paths {
          * @description Reject a pending suggestion (404 ``SUGGESTION_NOT_FOUND``).
          */
         post: operations["dismiss_campaign_suggestion_api_campaigns__application_id__suggestions__post_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/campaigns/{application_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw Campaign
+         * @description Withdraw: while applied, or accepted before shipping (409 after).
+         */
+        post: operations["withdraw_campaign_api_campaigns__application_id__withdraw_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2320,6 +2401,12 @@ export interface components {
              * @default false
              */
             accountErased: boolean;
+            /**
+             * Addedby
+             * @default apply
+             * @enum {string}
+             */
+            addedBy: "apply" | "late_add";
             /** Allocatedunits */
             allocatedUnits: number | null;
             /** Appliedat */
@@ -2330,8 +2417,12 @@ export interface components {
             decisionAt: number | null;
             /** Decisionsentat */
             decisionSentAt?: number | null;
+            /** Deliveredat */
+            deliveredAt?: number | null;
             /** Deliveryaddress */
             deliveryAddress: string | null;
+            /** Endreason */
+            endReason?: string | null;
             /** Followercount */
             followerCount: number | null;
             /**
@@ -2588,6 +2679,14 @@ export interface components {
             /** Status */
             status: string;
         };
+        /**
+         * AdminCancelDropRequest
+         * @description Typed confirm: the drop title (cancel is final, D-11).
+         */
+        AdminCancelDropRequest: {
+            /** Confirm */
+            confirm: string;
+        };
         /** AdminCleanupStubsResponse */
         AdminCleanupStubsResponse: {
             /** Convertedcount */
@@ -2635,6 +2734,36 @@ export interface components {
             instagramHandle?: string | null;
             /** Intentmessage */
             intentMessage?: string | null;
+        };
+        /**
+         * AdminDeleteSeatRequest
+         * @description Typed confirm. The word ``delete`` — erased orgs no longer have a handle.
+         */
+        AdminDeleteSeatRequest: {
+            /** Confirm */
+            confirm: string;
+        };
+        /** AdminDeleteSeatResponse */
+        AdminDeleteSeatResponse: {
+            /**
+             * Applicationid
+             * Format: uuid
+             */
+            applicationId: string;
+            /**
+             * Dropid
+             * Format: uuid
+             */
+            dropId: string;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Postsremoved */
+            postsRemoved: number;
+            /** Shipmentsremoved */
+            shipmentsRemoved: number;
         };
         /**
          * AdminDropConfigPatch
@@ -2728,6 +2857,8 @@ export interface components {
             brandStatus: string;
             /** Campaignhashtag */
             campaignHashtag: string | null;
+            /** Canceledat */
+            canceledAt?: number | null;
             /** Capacitytotal */
             capacityTotal: number;
             /** Createdat */
@@ -3200,36 +3331,6 @@ export interface components {
             oldestAt: number | null;
         };
         /**
-         * AdminRemoveParticipantRequest
-         * @description Typed confirm. The word ``remove`` — erased orgs no longer have a handle.
-         */
-        AdminRemoveParticipantRequest: {
-            /** Confirm */
-            confirm: string;
-        };
-        /** AdminRemoveParticipantResponse */
-        AdminRemoveParticipantResponse: {
-            /**
-             * Applicationid
-             * Format: uuid
-             */
-            applicationId: string;
-            /**
-             * Dropid
-             * Format: uuid
-             */
-            dropId: string;
-            /**
-             * Orgid
-             * Format: uuid
-             */
-            orgId: string;
-            /** Postsremoved */
-            postsRemoved: number;
-            /** Shipmentsremoved */
-            shipmentsRemoved: number;
-        };
-        /**
          * AdminResendConnectAllResponse
          * @description Bulk Connect email for ``pending_instagram`` orgs only.
          */
@@ -3242,6 +3343,22 @@ export interface components {
             skipped: number;
             /** Targeted */
             targeted: number;
+        };
+        /**
+         * AdminSeatDecisionRequest
+         * @description BUZZ sets any seat status. ``withdrew`` / ``removed`` end it at once;
+         *     ``removed`` needs a ``reason``.
+         */
+        AdminSeatDecisionRequest: {
+            /** Allocatedunits */
+            allocatedUnits?: number | null;
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "applied" | "accepted" | "denied" | "withdrew" | "removed";
+            /** Reason */
+            reason?: string | null;
         };
         /**
          * AdminSignal
@@ -3516,6 +3633,8 @@ export interface components {
             decisionAt: number | null;
             /** Decisionsentat */
             decisionSentAt: number | null;
+            /** Deliveredat */
+            deliveredAt?: number | null;
             /** Deliveryaddress */
             deliveryAddress: string | null;
             /**
@@ -3921,6 +4040,8 @@ export interface components {
             decision: string;
             /** Decisionat */
             decisionAt: number | null;
+            /** Deliveredat */
+            deliveredAt: number | null;
             /** Description */
             description: string | null;
             /**
@@ -3967,6 +4088,8 @@ export interface components {
             decision: string;
             /** Decisionat */
             decisionAt: number | null;
+            /** Deliveredat */
+            deliveredAt: number | null;
             /**
              * Dropid
              * Format: uuid
@@ -4104,6 +4227,15 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[AdminDeleteSeatResponse] */
+        DataResponse_AdminDeleteSeatResponse_: {
+            data?: components["schemas"]["AdminDeleteSeatResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[AdminDropDetail] */
         DataResponse_AdminDropDetail_: {
             data?: components["schemas"]["AdminDropDetail"] | null;
@@ -4170,15 +4302,6 @@ export interface components {
         /** DataResponse[AdminOverviewResponse] */
         DataResponse_AdminOverviewResponse_: {
             data?: components["schemas"]["AdminOverviewResponse"] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** DataResponse[AdminRemoveParticipantResponse] */
-        DataResponse_AdminRemoveParticipantResponse_: {
-            data?: components["schemas"]["AdminRemoveParticipantResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -4668,6 +4791,14 @@ export interface components {
             } | null;
         };
         /**
+         * DeliveredRequest
+         * @description Set or clear the seat's delivered fact.
+         */
+        DeliveredRequest: {
+            /** Delivered */
+            delivered: boolean;
+        };
+        /**
          * DevLoginRequest
          * @description Body for the dev-only ``POST /api/auth/dev-login`` (both optional).
          *
@@ -4794,15 +4925,17 @@ export interface components {
          * @description Computed drop stage (``app.services.lifecycle``; never stored).
          *
          *     ``draft`` → ``upcoming`` → ``applying`` → ``selecting`` → ``live`` →
-         *     ``wrapped``. Only draft (unpublished) and wrapped (``wrapped_at``) come
-         *     from a BUZZ click; the rest follow from the apply dates and the seats.
+         *     ``wrapped``, or ``canceled`` from any published stage before wrap-up.
+         *     Only draft (unpublished), wrapped (``wrapped_at``) and canceled
+         *     (``canceled_at``) come from a BUZZ click; the rest follow from the apply
+         *     dates and the seats.
          *     Hidden is a separate flag (``drops.hidden_at``), not a stage.
          * @enum {string}
          */
-        DropStage: "draft" | "upcoming" | "applying" | "selecting" | "live" | "wrapped";
+        DropStage: "draft" | "upcoming" | "applying" | "selecting" | "live" | "wrapped" | "canceled";
         /**
          * DropStageResponse
-         * @description A drop's computed stage after a lifecycle action (wrap / unwrap).
+         * @description A drop's computed stage after a lifecycle action (wrap / unwrap / cancel).
          */
         DropStageResponse: {
             /**
@@ -5547,6 +5680,43 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    set_application_delivered_api_admin_applications__application_id__delivered_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveredRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     add_application_shipment_api_admin_applications__application_id__shipments_post: {
         parameters: {
             query?: never;
@@ -6285,7 +6455,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SeatDecisionRequest"];
+                "application/json": components["schemas"]["AdminSeatDecisionRequest"];
             };
         };
         responses: {
@@ -6309,7 +6479,7 @@ export interface operations {
             };
         };
     };
-    remove_participant_endpoint_api_admin_drops__drop_id__applications__application_id__remove_post: {
+    delete_seat_endpoint_api_admin_drops__drop_id__applications__application_id__delete_post: {
         parameters: {
             query?: never;
             header?: {
@@ -6323,7 +6493,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AdminRemoveParticipantRequest"];
+                "application/json": components["schemas"]["AdminDeleteSeatRequest"];
             };
         };
         responses: {
@@ -6333,7 +6503,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["DataResponse_AdminRemoveParticipantResponse_"];
+                    "application/json": components["schemas"]["DataResponse_AdminDeleteSeatResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    cancel_drop_endpoint_api_admin_drops__drop_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCancelDropRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_DropStageResponse_"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -8746,6 +8953,43 @@ export interface operations {
             };
         };
     };
+    set_campaign_delivered_api_campaigns__application_id__delivered_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveredRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
     link_campaign_post_api_campaigns__application_id__link_post_post: {
         parameters: {
             query?: never;
@@ -8896,6 +9140,39 @@ export interface operations {
             path: {
                 application_id: string;
                 post_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    withdraw_campaign_api_campaigns__application_id__withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                application_id: string;
             };
             cookie?: never;
         };
