@@ -28,7 +28,9 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
   useSendAdminDecisions: () => idleMutation(),
   useSetDropWrapped: () => idleMutation(),
   useHideDrop: () => idleMutation(),
-  useRemoveParticipant: () => idleMutation(),
+  useDeleteSeat: () => idleMutation(),
+  useCancelDrop: () => idleMutation(),
+  useSetApplicantDelivered: () => idleMutation(),
   useUnhideDrop: () => idleMutation(),
   useAdminOrgs: () => ({ data: [], isPending: false, isError: false }),
   useAddOrgToDrop: () => idleMutation(),
@@ -325,7 +327,7 @@ describe("AdminDropDetailPage", () => {
     expect(addTracking.disabled).toBe(true);
   });
 
-  it("shows an erased org as a frozen participant with remove", () => {
+  it("shows an erased org as a frozen participant with delete only", () => {
     mockUseAdminDrop.mockReturnValue({
       data: adminDrop({
         publishedAt: now,
@@ -363,9 +365,105 @@ describe("AdminDropDetailPage", () => {
     expect(container.textContent).toContain("Metrics frozen");
     expect(container.textContent).not.toContain("Cornell University");
     expect(container.textContent).not.toContain("Account deleted");
-    expect(
-      container.querySelector('[data-testid="remove-participant-app-2"]'),
-    ).toBeTruthy();
+    expect(container.querySelector('[data-testid="delete-seat-app-2"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="end-seat-app-2"]')).toBeNull();
+  });
+
+  function seat(overrides: Record<string, unknown> = {}) {
+    return {
+      id: "app-3",
+      orgId: "org-3",
+      userId: "user-3",
+      orgName: "Kappa",
+      university: "Duke",
+      instagramHandle: "kappa",
+      followerCount: 10,
+      deliveryAddress: null,
+      shippingCity: null,
+      shippingState: null,
+      accountErased: false,
+      decision: "accepted",
+      allocatedUnits: null,
+      pitch: null,
+      shipments: [],
+      linkedPostCount: 0,
+      appliedAt: now,
+      decisionAt: now,
+      decisionSentAt: now,
+      addedBy: "apply",
+      deliveredAt: null,
+      endReason: null,
+      ...overrides,
+    };
+  }
+
+  it("ends a seat with a reason, and shows ended seats as read-only", async () => {
+    mockDecide.mockClear();
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({
+        publishedAt: now,
+        stage: "live",
+        applicants: [
+          seat({ addedBy: "late_add" }),
+          seat({ id: "app-4", decision: "removed", endReason: "No posts" }),
+        ],
+      }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1");
+
+    expect(container.textContent).toContain("Late add");
+    expect(container.querySelector('[data-testid="decision-app-4"]')).toBeNull();
+    expect(container.textContent).toContain("No posts");
+    expect(container.querySelector('[data-testid="end-seat-app-4"]')).toBeNull();
+    expect(container.querySelector('[data-testid="delivered-app-3"]')).toBeTruthy();
+
+    act(() => {
+      (container.querySelector('[data-testid="end-seat-app-3"]') as HTMLButtonElement).click();
+    });
+    const reason = document.querySelector(
+      '[data-testid="end-reason-app-3"]',
+    ) as HTMLTextAreaElement;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLTextAreaElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(reason, "Missed the deadline");
+      reason.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      (
+        document.querySelector('[data-testid="end-seat-submit-app-3"]') as HTMLButtonElement
+      ).click();
+    });
+    expect(mockDecide).toHaveBeenCalledWith({
+      applicationId: "app-3",
+      decision: "removed",
+      allocatedUnits: null,
+      reason: "Missed the deadline",
+    });
+  });
+
+  it("offers cancel on a running drop and shows a canceled drop as final", () => {
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({ publishedAt: now, stage: "live" }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1?tab=tracker");
+    expect(container.querySelector('[data-testid="drop-cancel"]')).toBeTruthy();
+
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({ publishedAt: now, stage: "canceled", canceledAt: now }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1?tab=tracker");
+    expect(container.querySelector('[data-testid="drop-canceled"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="drop-cancel"]')).toBeNull();
+    expect(container.querySelector('[data-testid="drop-wrap"]')).toBeNull();
   });
 
   it("opens a hide dialog that asks the admin to type the drop title", () => {

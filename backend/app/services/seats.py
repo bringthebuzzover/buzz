@@ -11,7 +11,11 @@ Who may do what:
 * **brand** — after applications close, before wrap-up, on unsent seats only,
   within capacity and the unit budget;
 * **BUZZ** — any time, any seat, may overbook. Changing a sent seat makes it
-  unsent again, so the change goes out with the next send.
+  unsent again, so the change goes out with the next send. BUZZ also ends
+  seats softly: ``withdrew`` (the org pulled out) or ``removed`` (reason
+  required). Those take effect at once and keep the row, shipments and posts.
+
+A canceled drop takes no decisions; BUZZ can still end a seat on it.
 """
 
 from __future__ import annotations
@@ -37,7 +41,12 @@ from app.services.email import (
     build_idempotency_key,
     send_application_denied_email,
 )
-from app.services.lifecycle import apply_window_closed, drop_stage
+from app.services.lifecycle import (
+    ENDED_DECISIONS,
+    apply_window_closed,
+    drop_stage,
+    reject_if_canceled,
+)
 from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
@@ -88,12 +97,18 @@ async def set_seat_decision(
     decision: str,
     allocated_units: int | None,
     actor: Actor,
+    reason: str | None = None,
 ) -> DropApplication:
     """Draft one seat's decision. *drop* must already be locked (``lock_drop``)."""
 
     application = await db.get(DropApplication, application_id)
     if application is None or application.drop_id != drop.id:
         raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
+    if decision in ENDED_DECISIONS:
+        if actor != "admin":
+            raise BuzzAPIException(errors.FORBIDDEN, "Only BUZZ can end a seat.", status_code=403)
+        return await end_seat(db, application, decision=decision, reason=reason)
+    reject_if_canceled(drop)
 
     if actor == "brand":
         _require_brand_may_select(drop)
@@ -132,6 +147,7 @@ async def set_seat_decision(
     application.allocated_units = units
     application.decision_at = None if decision == ApplicationDecision.APPLIED.value else utcnow()
     application.decision_sent_at = None
+    application.end_reason = None
     try:
         await db.flush()
     except IntegrityError as exc:
@@ -144,6 +160,31 @@ async def set_seat_decision(
     return application
 
 
+async def end_seat(
+    db: AsyncSession, application: DropApplication, *, decision: str, reason: str | None
+) -> DropApplication:
+    """End a seat softly (``withdrew`` / ``removed``), effective at once.
+
+    The row, its shipments and its linked posts stay: posts still count in
+    the brand report but can no longer be linked or unlinked (D-8). The spot
+    and its units free up. ``removed`` needs a reason.
+    """
+
+    cleaned = (reason or "").strip() or None
+    if decision == ApplicationDecision.REMOVED.value and cleaned is None:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR, "Say why the seat is removed.", status_code=400
+        )
+    now = utcnow()
+    application.decision = decision
+    application.allocated_units = None
+    application.decision_at = now
+    application.decision_sent_at = now
+    application.end_reason = cleaned
+    await db.flush()
+    return application
+
+
 async def send_decisions(db: AsyncSession, drop: Drop, *, actor: Actor) -> dict[str, int]:
     """Send every decided, unsent seat. *drop* must already be locked.
 
@@ -151,6 +192,7 @@ async def send_decisions(db: AsyncSession, drop: Drop, *, actor: Actor) -> dict[
     the campaign in My Campaigns from now on.
     """
 
+    reject_if_canceled(drop)
     if actor == "brand":
         _require_brand_may_select(drop)
 

@@ -19,22 +19,24 @@ from app.models.enums import ApplicationDecisionEnum
 
 class DropApplication(Base):
     __tablename__ = "drop_applications"
-    # At most one *active* (non-denied) application per (drop, org): the apply
-    # service rejects a duplicate non-denied row but a prior ``denied`` does not
-    # block re-application (so a plain UNIQUE(drop_id, org_id) would be wrong —
-    # it would forbid re-applying). A partial unique index makes that invariant
-    # a hard DB guarantee while still allowing denied + re-applied rows.
+    # At most one *active* application per (drop, org). A prior ``denied`` or
+    # ``withdrew`` row does not block re-applying (so a plain UNIQUE would be
+    # wrong); a ``removed`` row does. The partial unique index makes that a
+    # hard DB guarantee.
     __table_args__ = (
         sa.Index(
             "uq_drop_application_active",
             "drop_id",
             "org_id",
             unique=True,
-            postgresql_where=sa.text("decision <> 'denied'"),
+            postgresql_where=sa.text("decision NOT IN ('denied', 'withdrew')"),
         ),
         sa.CheckConstraint(
             "allocated_units IS NULL OR allocated_units >= 0",
             name="ck_drop_applications_allocated_units_nonneg",
+        ),
+        sa.CheckConstraint(
+            "added_by IN ('apply', 'late_add')", name="ck_drop_applications_added_by"
         ),
     )
 
@@ -59,3 +61,11 @@ class DropApplication(Base):
     decision_sent_at: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True), nullable=True
     )
+    # ``apply`` (the org applied) or ``late_add`` (BUZZ seated it directly).
+    added_by: Mapped[str] = mapped_column(
+        sa.String(16), nullable=False, server_default="apply", default="apply"
+    )
+    # The org has the product ("I got it", or BUZZ). A fact, never a gate.
+    delivered_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    # Why the seat ended (withdrew or removed). BUZZ-only.
+    end_reason: Mapped[str | None] = mapped_column(sa.Text, nullable=True)

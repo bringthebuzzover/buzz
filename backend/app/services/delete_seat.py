@@ -1,8 +1,10 @@
-"""Admin removal of one org from one drop.
+"""Admin hard delete of one seat (typed ``delete``).
 
-For test data and mistakes. Erase does not do this: erase freezes metrics.
-Removing the seat deletes that drop's application, its shipments, its post
-link, and the linked post, so live totals fall. The drop's published capacity
+For test data and mistakes only (PRODUCT §7.1). A real seat that ends is
+soft-ended instead (``seats.end_seat``: withdrew / removed), which keeps its
+history. Erase does not do this either: erase freezes metrics. Deleting the
+seat deletes that drop's application, its shipments, its post link, and the
+linked post, so live totals fall. The drop's published capacity
 is unchanged. A later metric sync can rediscover a still-active org's media;
 an erased org is not synced.
 """
@@ -29,10 +31,10 @@ from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
-REMOVE_CONFIRM = "remove"
+DELETE_CONFIRM = "delete"
 
 
-async def remove_participant_from_drop(
+async def delete_seat(
     db: AsyncSession,
     *,
     actor_id: UUID,
@@ -40,12 +42,12 @@ async def remove_participant_from_drop(
     application_id: UUID,
     confirm: str,
 ) -> dict[str, object]:
-    """Delete one seat and its linked metrics. Confirm must be ``remove``."""
+    """Delete one seat and its linked metrics. Confirm must be ``delete``."""
 
-    if confirm.strip().casefold() != REMOVE_CONFIRM:
+    if confirm.strip().casefold() != DELETE_CONFIRM:
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,
-            "Type remove to confirm.",
+            "Type delete to confirm.",
             status_code=400,
         )
 
@@ -107,7 +109,7 @@ async def remove_participant_from_drop(
     db.add(
         AdminAuditEvent(
             actor_user_id=actor_id,
-            action="participant_removed",
+            action="seat_deleted",
             drop_id=saved_drop_id,
             org_id=saved_org_id,
             application_id=saved_application_id,
@@ -116,7 +118,7 @@ async def remove_participant_from_drop(
     )
     await db.flush()
     logger.info(
-        "participant_removed actor_user_id=%s drop_id=%s org_id=%s "
+        "seat_deleted actor_user_id=%s drop_id=%s org_id=%s "
         "application_id=%s posts=%s shipments=%s",
         actor_id,
         saved_drop_id,

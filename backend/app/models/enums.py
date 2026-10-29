@@ -79,19 +79,28 @@ class OrgCategory(StrEnum):
 
 
 class ApplicationDecision(StrEnum):
-    """Brand decision on a drop application (``drop_applications.decision``)."""
+    """Seat status (``drop_applications.decision``).
+
+    ``applied`` = undecided; ``accepted`` / ``denied`` are drafts until sent.
+    ``withdrew`` (the org pulled out) and ``removed`` (BUZZ, with a reason)
+    end a seat softly: the row, its shipments and its posts stay for history.
+    """
 
     APPLIED = "applied"
     ACCEPTED = "accepted"
     DENIED = "denied"
+    WITHDREW = "withdrew"
+    REMOVED = "removed"
 
 
 class DropStage(StrEnum):
     """Computed drop stage (``app.services.lifecycle``; never stored).
 
     ``draft`` → ``upcoming`` → ``applying`` → ``selecting`` → ``live`` →
-    ``wrapped``. Only draft (unpublished) and wrapped (``wrapped_at``) come
-    from a BUZZ click; the rest follow from the apply dates and the seats.
+    ``wrapped``, or ``canceled`` from any published stage before wrap-up.
+    Only draft (unpublished), wrapped (``wrapped_at``) and canceled
+    (``canceled_at``) come from a BUZZ click; the rest follow from the apply
+    dates and the seats.
     Hidden is a separate flag (``drops.hidden_at``), not a stage.
     """
 
@@ -101,6 +110,7 @@ class DropStage(StrEnum):
     SELECTING = "selecting"
     LIVE = "live"
     WRAPPED = "wrapped"
+    CANCELED = "canceled"
 
 
 class BrandTrackerStage(StrEnum):

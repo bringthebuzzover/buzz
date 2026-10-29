@@ -584,12 +584,15 @@ class AdminApplicantItem(CamelModel):
     applied_at: datetime
     decision_at: datetime | None
     decision_sent_at: datetime | None = None
+    added_by: Literal["apply", "late_add"] = "apply"
+    delivered_at: datetime | None = None
+    end_reason: str | None = None
 
     @field_serializer("applied_at")
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("decision_at", "decision_sent_at", "metrics_frozen_at")
+    @field_serializer("decision_at", "decision_sent_at", "delivered_at", "metrics_frozen_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
@@ -641,6 +644,7 @@ class AdminDropDetail(CamelModel):
     apply_open_at: datetime
     apply_close_at: datetime
     wrapped_at: datetime | None = None
+    canceled_at: datetime | None = None
     published_at: datetime | None = None
     hidden_at: datetime | None = None
     drop_request_id: uuid.UUID | None = None
@@ -655,6 +659,6 @@ class AdminDropDetail(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("wrapped_at", "published_at", "hidden_at")
+    @field_serializer("wrapped_at", "canceled_at", "published_at", "hidden_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)

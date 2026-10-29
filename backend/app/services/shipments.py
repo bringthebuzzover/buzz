@@ -16,7 +16,8 @@ from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.enums import ApplicationDecision
 from app.models.shipment import CARRIERS, DropApplicationShipment
-from app.services.lifecycle import seat_is_live
+from app.services.lifecycle import drop_running, reject_if_canceled, seat_is_live
+from app.timeutils import utcnow
 
 _UPS_TRACK = "https://www.ups.com/track?tracknum="
 _FEDEX_TRACK = "https://www.fedex.com/fedextrack/?trknbr="
@@ -86,15 +87,12 @@ def unshipped_live_seat_clause() -> tuple[ColumnElement[bool], ...]:
             ),
         )
     )
-    return (Drop.published_at.is_not(None), Drop.wrapped_at.is_(None), has_unshipped)
+    return (drop_running(), has_unshipped)
 
 
-async def add_shipment(
-    db: AsyncSession,
-    application_id: UUID,
-    tracking_number: str,
-    carrier: str | None,
-) -> dict[str, Any]:
+async def _live_seat(db: AsyncSession, application_id: UUID, action: str) -> DropApplication:
+    """The seat, if it is a sent acceptance on a drop that is not canceled."""
+
     application = await db.get(DropApplication, application_id)
     if application is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
@@ -104,9 +102,33 @@ async def add_shipment(
     ):
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,
-            "Tracking can only be added once the acceptance is sent.",
+            f"{action} only once the acceptance is sent.",
             status_code=400,
         )
+    drop = await db.get(Drop, application.drop_id)
+    if drop is not None:
+        reject_if_canceled(drop)
+    return application
+
+
+async def set_delivered(db: AsyncSession, application_id: UUID, delivered: bool) -> None:
+    """The org has the product (org "I got it", or BUZZ). Never a gate."""
+
+    application = await _live_seat(db, application_id, "Delivery can be marked")
+    if not delivered:
+        application.delivered_at = None
+    elif application.delivered_at is None:
+        application.delivered_at = utcnow()
+    await db.flush()
+
+
+async def add_shipment(
+    db: AsyncSession,
+    application_id: UUID,
+    tracking_number: str,
+    carrier: str | None,
+) -> dict[str, Any]:
+    await _live_seat(db, application_id, "Tracking can be added")
 
     cleaned = tracking_number.strip()
     if not cleaned:

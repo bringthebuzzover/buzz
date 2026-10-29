@@ -26,6 +26,7 @@ from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
     BrandTrackerStage,
+    DropStage,
     OrgUserStatus,
     PortalRole,
 )
@@ -69,9 +70,10 @@ from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import InstagramClient
 from app.services.instagram_token import clear_unusable_instagram_token
-from app.services.lifecycle import drop_stage, seat_is_live
+from app.services.lifecycle import drop_stage, reject_if_canceled, seat_is_live
 from app.services.org_apply import ig_bind_mismatch_open
 from app.services.org_connect import create_org_connect_token
+from app.services.seats import lock_drop
 
 logger = logging.getLogger(__name__)
 
@@ -684,12 +686,14 @@ async def add_org_to_drop(
 ) -> dict[str, Any]:
     """Write an accepted, already-sent seat without reopening apply or bumping capacity.
 
-    Any stage once published, wrapped included (a retro add); never hidden.
+    Any stage once published, wrapped included (a retro add); never hidden or
+    canceled. A removed seat comes back; a withdrawal or denial gets a new row.
     """
 
     drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    reject_if_canceled(drop)
     if drop.published_at is None or drop.hidden_at is not None:
         raise BuzzAPIException(
             errors.DROP_NOT_ELIGIBLE,
@@ -720,7 +724,12 @@ async def add_org_to_drop(
     )
     never_applied = len(existing_rows) == 0
     active = next(
-        (row for row in existing_rows if row.decision != ApplicationDecision.DENIED.value),
+        (
+            row
+            for row in existing_rows
+            if row.decision
+            not in (ApplicationDecision.DENIED.value, ApplicationDecision.WITHDREW.value)
+        ),
         None,
     )
     if (
@@ -747,6 +756,7 @@ async def add_org_to_drop(
         application.decision_at = now
         application.decision_sent_at = now
         application.allocated_units = units
+        application.end_reason = None
     else:
         application = DropApplication(
             id=uuid4(),
@@ -757,6 +767,7 @@ async def add_org_to_drop(
             applied_at=now,
             decision_at=now,
             decision_sent_at=now,
+            added_by="late_add",
         )
         db.add(application)
 
@@ -816,6 +827,7 @@ async def sync_and_autolink_drop(
     drop = await db.get(Drop, drop_id)
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    reject_if_canceled(drop)
     if drop.published_at is None or drop.hidden_at is not None:
         raise BuzzAPIException(
             errors.DROP_NOT_ELIGIBLE,
@@ -870,9 +882,8 @@ async def wrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     ``ORG_LINK_GRACE``, and metrics keep syncing for a while.
     """
 
-    drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    drop = await lock_drop(db, drop_id)
+    reject_if_canceled(drop)
     if drop.published_at is None:
         raise BuzzAPIException(
             errors.VALIDATION_ERROR, "Only published drops can be wrapped up.", status_code=409
@@ -887,15 +898,38 @@ async def wrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
 async def unwrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     """Undo a wrap-up; the stage goes back to whatever the dates and seats say."""
 
-    drop = await db.scalar(select(Drop).where(Drop.id == drop_id).with_for_update())
-    if drop is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    drop = await lock_drop(db, drop_id)
+    reject_if_canceled(drop)
     was_wrapped = drop.wrapped_at is not None
     drop.wrapped_at = None
     stage = await drop_stage(db, drop)
     if was_wrapped:
         db.add(DropTrackerEvent(drop_id=drop.id, stage=stage.value, note="unwrapped"))
     return {"drop_id": drop.id, "stage": stage}
+
+
+async def cancel_drop(db: AsyncSession, drop_id: UUID, *, confirm: str) -> dict[str, Any]:
+    """Cancel a published, unwrapped drop. Final (D-11): duplicate it instead.
+
+    Off the feed and frozen: no new seats, decisions, shipments or links, and
+    metric sync stops. Seats, shipments and posts stay for the brand report.
+    """
+
+    drop = await lock_drop(db, drop_id)
+    if confirm.strip() != drop.title.strip():
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR, "Type the drop title to confirm.", status_code=400
+        )
+    reject_if_canceled(drop)
+    if drop.published_at is None or drop.wrapped_at is not None:
+        raise BuzzAPIException(
+            errors.VALIDATION_ERROR,
+            "Only a published drop that is not wrapped up can be canceled.",
+            status_code=409,
+        )
+    drop.canceled_at = datetime.now(timezone.utc)
+    db.add(DropTrackerEvent(drop_id=drop.id, stage=DropStage.CANCELED.value, note="canceled"))
+    return {"drop_id": drop.id, "stage": await drop_stage(db, drop)}
 
 
 _WINDOW_FIELDS = frozenset({"apply_open_at", "apply_close_at"})
@@ -1191,6 +1225,7 @@ async def update_drop_config(
     drop = await db.get(Drop, drop_id)
     if drop is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Drop not found.", status_code=404)
+    reject_if_canceled(drop)
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:

@@ -72,6 +72,9 @@ class Drop(Base):
     # BUZZ wrapped the drop up (reporting period over). Not a lock: BUZZ can
     # still late-add, and orgs can link for ``ORG_LINK_GRACE`` after this.
     wrapped_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    # BUZZ canceled the drop (final; D-11). New seats, links and shipments
+    # stop; what exists stays for the brand report.
+    canceled_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
     drop_request_id: Mapped[uuid.UUID | None] = mapped_column(
         sa.Uuid,
         sa.ForeignKey("drop_requests.id", use_alter=True, name="fk_drops_drop_request_id"),

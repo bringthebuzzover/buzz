@@ -31,6 +31,7 @@ class CampaignListItem(CamelModel):
     allocated_units: int | None
     applied_at: datetime
     decision_at: datetime | None
+    delivered_at: datetime | None
     title: str
     brand_name: str
     stage: DropStage
@@ -41,7 +42,7 @@ class CampaignListItem(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("decision_at")
+    @field_serializer("decision_at", "delivered_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
@@ -58,6 +59,7 @@ class CampaignDetailResponse(CamelModel):
     allocated_units: int | None
     applied_at: datetime
     decision_at: datetime | None
+    delivered_at: datetime | None
     title: str
     description: str | None
     brand_name: str
@@ -73,6 +75,6 @@ class CampaignDetailResponse(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("decision_at")
+    @field_serializer("decision_at", "delivered_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)

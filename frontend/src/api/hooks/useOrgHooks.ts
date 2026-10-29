@@ -241,3 +241,35 @@ export function useDismissSuggestion(applicationId: string) {
     },
   });
 }
+
+/** Leave a drop: free before anything ships; after that only BUZZ can end the seat. */
+export function useWithdrawCampaign(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (_: void) => {
+      await apiFetch(`/api/campaigns/${applicationId}/withdraw`, { method: "POST" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-detail", applicationId] });
+    },
+  });
+}
+
+/** "I got it" (or undo): the org confirms its package arrived. */
+export function useSetCampaignDelivered(applicationId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (delivered: boolean) => {
+      await apiFetch(`/api/campaigns/${applicationId}/delivered`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ delivered }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      queryClient.invalidateQueries({ queryKey: ["campaign-detail", applicationId] });
+    },
+  });
+}
