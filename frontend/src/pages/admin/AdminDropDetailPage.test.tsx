@@ -281,6 +281,12 @@ describe("AdminDropDetailPage", () => {
     });
     expect(container.querySelector('[data-testid="drop-wrap"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="drop-unwrap"]')).toBeNull();
+
+    // The wrap confirm says who gets emailed.
+    act(() => {
+      (container.querySelector('[data-testid="drop-wrap"]') as HTMLButtonElement).click();
+    });
+    expect(document.body.textContent).toContain('emailed "not selected"');
   });
 
   it("shows follower count and city/state ship-to on Applicants", () => {
