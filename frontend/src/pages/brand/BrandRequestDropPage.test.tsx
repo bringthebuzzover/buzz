@@ -3,13 +3,9 @@
  * (not /brand/drops/:id).
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { renderWithProviders } from "../../testUtils";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { ApiError } from "../../api/errors";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
 
 const mockMutate = jest.fn();
 const mockMutation = {
@@ -37,58 +33,39 @@ function LocationProbe() {
 
 describe("BrandRequestDropPage", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockMutate.mockReset();
     mockMutation.isPending = false;
     mockMutation.isError = false;
     mockMutation.error = null;
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   function renderPage() {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/brand/requests/new"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route path="/brand/requests/new" element={<BrandRequestDropPage />} />
-              <Route
-                path="/brand/dashboard"
-                element={
-                  <div>
-                    Dashboard
-                    <LocationProbe />
-                  </div>
-                }
-              />
-              <Route
-                path="/brand/drops/:dropId"
-                element={
-                  <div>
-                    Drop detail
-                    <LocationProbe />
-                  </div>
-                }
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(
+      <Routes>
+        <Route path="/brand/requests/new" element={<BrandRequestDropPage />} />
+        <Route
+          path="/brand/dashboard"
+          element={
+            <div>
+              Dashboard
+              <LocationProbe />
+            </div>
+          }
+        />
+        <Route
+          path="/brand/drops/:dropId"
+          element={
+            <div>
+              Drop detail
+              <LocationProbe />
+            </div>
+          }
+        />
+      </Routes>,
+      { route: "/brand/requests/new" },
+    ).container;
   }
 
   it("submits message/notes to drop-requests and does not navigate to /brand/drops/", async () => {

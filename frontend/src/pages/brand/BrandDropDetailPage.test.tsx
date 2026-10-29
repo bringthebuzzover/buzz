@@ -2,12 +2,7 @@
  * BrandDropDetailPage — creative editor gating and per-seat decisions.
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import { renderWithProviders } from "../../testUtils";
 
 const mockUseBrandDropDetail = jest.fn();
 const mockDecide = jest.fn();
@@ -56,23 +51,15 @@ function brandDrop(brandCanEditCreative: boolean) {
 
 describe("BrandDropDetailPage", () => {
   let container: HTMLDivElement;
-  let root: Root;
   const originalMatchMedia = window.matchMedia;
 
   beforeEach(() => {
     mockUseBrandDropDetail.mockReset();
     mockDecide.mockReset();
     mockSend.mockReset().mockResolvedValue(undefined);
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
   });
 
   afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
     if (originalMatchMedia) {
       window.matchMedia = originalMatchMedia;
     } else {
@@ -81,23 +68,10 @@ describe("BrandDropDetailPage", () => {
   });
 
   function renderPage() {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/brand/drops/drop-1"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/brand/drops/:dropId"
-                element={<BrandDropDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<BrandDropDetailPage />, {
+      route: "/brand/drops/drop-1",
+      path: "/brand/drops/:dropId",
+    }).container;
   }
 
   it("hides the campaign editor when brandCanEditCreative is false", () => {

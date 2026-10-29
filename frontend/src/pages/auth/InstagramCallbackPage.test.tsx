@@ -1,40 +1,18 @@
 /**
  * Instagram OAuth callback error copy (no Graph / HTTP-status jargon).
  */
-import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter } from "react-router-dom";
+import { flushPromises, renderWithProviders } from "../../testUtils";
 import InstagramCallbackPage from "./InstagramCallbackPage";
 import { INSTAGRAM_CALLBACK_MISSING_PARAMS } from "../../utils/instagramCallbackCopy";
 
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
-
 describe("InstagramCallbackPage", () => {
-  let container: HTMLDivElement;
-  let root: Root;
-
-  beforeEach(() => {
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
   afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
     jest.restoreAllMocks();
   });
 
   it("explains missing OAuth params without code/state jargon", () => {
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/auth/instagram/callback"]}>
-          <InstagramCallbackPage />
-        </MemoryRouter>,
-      );
+    const { container } = renderWithProviders(<InstagramCallbackPage />, {
+      route: "/auth/instagram/callback",
     });
     expect(container.textContent).toContain(INSTAGRAM_CALLBACK_MISSING_PARAMS);
     expect(container.textContent).toMatch(/Couldn't finish sign-in/);
@@ -55,16 +33,10 @@ describe("InstagramCallbackPage", () => {
       }),
     } as Response);
 
-    await act(async () => {
-      root.render(
-        <MemoryRouter
-          initialEntries={["/auth/instagram/callback?code=abc&state=xyz"]}
-        >
-          <InstagramCallbackPage />
-        </MemoryRouter>,
-      );
-      await Promise.resolve();
+    const { container } = renderWithProviders(<InstagramCallbackPage />, {
+      route: "/auth/instagram/callback?code=abc&state=xyz",
     });
+    await flushPromises();
 
     expect(container.textContent).toMatch(/Instagram didn't connect/);
     expect(container.textContent).not.toMatch(/401/);

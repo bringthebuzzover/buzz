@@ -2,12 +2,7 @@
  * Admin org erase uses an in-app type-to-confirm dialog, not window.prompt.
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import { renderWithProviders } from "../../testUtils";
 
 const idleMutation = () => ({
   mutate: jest.fn(),
@@ -107,7 +102,6 @@ function setInputValue(el: HTMLInputElement, value: string) {
 
 describe("AdminOrgDetailPage erase confirm", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockUseAdminOrg.mockReset();
@@ -124,40 +118,13 @@ describe("AdminOrgDetailPage erase confirm", () => {
       emailSent: true,
       emailToDomain: "cornell.edu",
     });
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   function renderPage() {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter
-          initialEntries={[
-            "/admin/orgs/11111111-1111-1111-1111-111111111111",
-          ]}
-        >
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/admin/orgs/:userId"
-                element={<AdminOrgDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<AdminOrgDetailPage />, {
+      route: "/admin/orgs/11111111-1111-1111-1111-111111111111",
+      path: "/admin/orgs/:userId",
+    }).container;
   }
 
   it("links claimed Instagram to the public profile", () => {
