@@ -31,8 +31,8 @@ import {
   IgBindMismatchChip,
 } from "../../components/admin/AdminPrimitives";
 import { formatCompactCount, formatElapsed } from "../../components/admin/labels";
-import { Button, SuccessBanner } from "../../components/forms/controls";
-import { Modal } from "../../components/ui/Modal";
+import { SuccessBanner } from "../../components/forms/controls";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 
 const FILTERS = [
   { value: null, label: "All" },
@@ -143,33 +143,17 @@ export default function AdminOrgsPage() {
       )}
 
       {confirmOpen && (
-        <Modal
-          onClose={() => setConfirmOpen(false)}
+        <ConfirmDialog
           title="Email organizations awaiting Instagram"
           description="Send the Connect Instagram email to every organization whose last step is connecting Instagram. This does not email organizations still verifying school email or awaiting approval."
-        >
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              size="compact"
-              data-testid="resend-connect-all-cancel"
-              onClick={() => setConfirmOpen(false)}
-              disabled={resendAll.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              size="compact"
-              data-testid="resend-connect-all-confirm"
-              onClick={() => void onConfirmResendAll()}
-              disabled={resendAll.isPending}
-            >
-              {resendAll.isPending ? "Sending…" : "Send emails"}
-            </Button>
-          </div>
-        </Modal>
+          confirmLabel="Send emails"
+          pendingLabel="Sending…"
+          pending={resendAll.isPending}
+          cancelTestId="resend-connect-all-cancel"
+          submitTestId="resend-connect-all-confirm"
+          onConfirm={() => void onConfirmResendAll()}
+          onClose={() => setConfirmOpen(false)}
+        />
       )}
 
       <FilterChips

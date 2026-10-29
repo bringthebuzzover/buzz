@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { ApiError } from "../../api/client";
-import { Button, TextArea, TextField } from "../forms/controls";
-import { Modal } from "../ui/Modal";
-import { STACK } from "../../theme/tokens";
+import { Button, ErrorBanner, TextArea, TextField } from "../forms/controls";
+import { Modal, ModalActions } from "../ui/Modal";
 import { composeDefaultBody, opsCcAddresses } from "../../utils/composeEmail";
-import { ErrorNote } from "./AdminPrimitives";
 
 type Props = {
   toEmail: string;
@@ -45,32 +43,31 @@ export default function ComposeEmailModal({
     <Modal
       onClose={onClose}
       title="Write email"
-      description="Sends via Buzz. Replies go to the contact address. Ops is CC'd."
-      size="wide"
+      description="Sends via BUZZ. Replies go to the contact address. Ops is CC'd."
     >
-      <div className={STACK.tight}>
-        {error && <ErrorNote>{error}</ErrorNote>}
-        <TextField
-          id="compose-email-to"
-          data-testid="compose-email-to"
-          label="To"
-          size="compact"
-          value={toEmail}
-          readOnly
-        />
-        <TextField
-          id="compose-email-cc"
-          data-testid="compose-email-cc"
-          label="CC"
-          size="compact"
-          value={cc.join(", ")}
-          readOnly
-        />
+      <div className="flex flex-col gap-4">
+        {error && <ErrorBanner>{error}</ErrorBanner>}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            id="compose-email-to"
+            data-testid="compose-email-to"
+            label="To"
+            value={toEmail}
+            readOnly
+          />
+          <TextField
+            id="compose-email-cc"
+            data-testid="compose-email-cc"
+            label="CC"
+            value={cc.join(", ")}
+            readOnly
+          />
+        </div>
         <TextField
           id="compose-email-subject"
           data-testid="compose-email-subject"
           label="Subject"
-          size="compact"
+          placeholder="e.g. Your BUZZ application"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
         />
@@ -78,34 +75,28 @@ export default function ComposeEmailModal({
           id="compose-email-body"
           data-testid="compose-email-body"
           label="Body"
-          size="compact"
-          rows={10}
+          rows={8}
           resizable
           value={body}
           onChange={(e) => setBody(e.target.value)}
         />
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="compact"
-            data-testid="compose-email-cancel"
-            disabled={sending}
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            size="compact"
-            data-testid="compose-email-send"
-            disabled={!canSend}
-            onClick={() => void handleSend()}
-          >
-            {sending ? "Sending…" : "Send"}
-          </Button>
-        </div>
       </div>
+      <ModalActions
+        onCancel={onClose}
+        cancelDisabled={sending}
+        cancelTestId="compose-email-cancel"
+      >
+        <Button
+          type="button"
+          data-testid="compose-email-send"
+          disabled={!canSend}
+          loading={sending}
+          loadingLabel="Sending…"
+          onClick={() => void handleSend()}
+        >
+          Send
+        </Button>
+      </ModalActions>
     </Modal>
   );
 }
