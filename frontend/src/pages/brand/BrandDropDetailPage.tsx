@@ -40,27 +40,6 @@ import CopyPublicDropUrl from "../../components/drop/CopyPublicDropUrl";
 
 const backLink = <BackLink to="/brand/dashboard">Back to dashboard</BackLink>;
 
-/** Map backend drop detail to the shape components expect. */
-function mapDropToView(d: BrandDropDetail) {
-  return {
-    id: d.id,
-    brandId: d.brandId,
-    brandName: d.brandName,
-    title: d.title,
-    description: d.description,
-    image: d.image,
-    location: d.location,
-    capacityTotal: d.capacityTotal,
-    applyOpenAt: d.applyOpenAt,
-    applyCloseAt: d.applyCloseAt,
-    manualReopen: d.manualReopen,
-    brandTrackerStage: d.brandTrackerStage,
-    totalProductUnits: d.totalProductUnits ?? undefined,
-    applicantSelectionFinalizedAt: d.applicantSelectionFinalizedAt ?? undefined,
-    createdAt: d.createdAt,
-  };
-}
-
 /** Editable applicant table — only while selection is open. */
 function ApiApplicantTable({
   applicants,
@@ -458,20 +437,18 @@ function ApiDropDetail() {
     );
   }
 
-  const drop = mapDropToView(detail);
+  const stage = detail.brandTrackerStage;
   const showResults =
-    drop.brandTrackerStage === "awaiting_products" ||
-    drop.brandTrackerStage === "drop_active" ||
-    drop.brandTrackerStage === "drop_finished";
+    stage === "awaiting_products" || stage === "drop_active" || stage === "drop_finished";
   const canEditSelection =
-    drop.applicantSelectionFinalizedAt == null &&
-    (drop.brandTrackerStage === "finalizing_agreements" ||
-      (drop.brandTrackerStage === "request_received" &&
-        !drop.manualReopen &&
-        Date.now() > drop.applyCloseAt));
+    detail.applicantSelectionFinalizedAt == null &&
+    (stage === "finalizing_agreements" ||
+      (stage === "request_received" &&
+        !detail.manualReopen &&
+        Date.now() > detail.applyCloseAt));
   const showFinalizedRoster =
-    drop.applicantSelectionFinalizedAt != null &&
-    drop.brandTrackerStage === "finalizing_agreements";
+    detail.applicantSelectionFinalizedAt != null &&
+    stage === "finalizing_agreements";
 
   const aggregateMetrics = {
     dropId: detail.id,
@@ -480,7 +457,6 @@ function ApiDropDetail() {
     totalComments: detail.totalComments ?? 0,
     totalEngagement: detail.totalEngagement ?? 0,
     totalReach: detail.totalReach ?? 0,
-    costPerEngagement: null as number | null,
   };
 
   return (
@@ -490,15 +466,13 @@ function ApiDropDetail() {
           back={backLink}
           title={detail.title}
           description={detail.description}
-          actions={<DropStageBadge stage={drop.brandTrackerStage} />}
+          actions={<DropStageBadge stage={stage} />}
           className="mb-0"
         />
         {detail.publishedAt != null ? <CopyPublicDropUrl dropId={detail.id} /> : null}
       </div>
 
-      <BrandDropTrackerStepper
-        currentStage={drop.brandTrackerStage as BrandDropTrackerStage}
-      />
+      <BrandDropTrackerStepper currentStage={stage as BrandDropTrackerStage} />
 
       {detail.brandCanEditCreative ? <BrandCampaignEditor detail={detail} /> : null}
 
