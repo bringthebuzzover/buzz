@@ -76,3 +76,8 @@ export function closedChipLabel(stage: DropStage): string {
   if (stage === "wrapped" || stage === "canceled") return dropStageLabel(stage);
   return "Applications closed";
 }
+
+/** "Nov 10": the day a brand-facing lifecycle date falls on. */
+export function shortDate(epochMs: number): string {
+  return new Date(epochMs).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
