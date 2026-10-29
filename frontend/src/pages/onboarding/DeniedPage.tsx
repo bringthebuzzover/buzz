@@ -4,7 +4,7 @@
  * failed refresh) so denial UX survives logout; Instagram callback also lands
  * here on ACCOUNT_DENIED.
  */
-import StatusHero from "../../components/auth/StatusHero";
+import StatusHero from "../../components/site/StatusHero";
 import { AnchorButton } from "../../components/forms/controls";
 import { siteIdentity } from "../../data/siteIdentity";
 

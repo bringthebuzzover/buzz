@@ -26,7 +26,7 @@ import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
 import { stripTokenFromUrl } from "../../utils/stripTokenFromUrl";
 import AuthPending from "../../components/auth/AuthPending";
-import StatusHero from "../../components/auth/StatusHero";
+import StatusHero from "../../components/site/StatusHero";
 import { Button, ErrorBanner, SuccessBanner } from "../../components/forms/controls";
 import type { components } from "../../api/generated/schema";
 

@@ -522,38 +522,3 @@ function FooterCol({
     </div>
   );
 }
-
-export function StatusHero({
-  kicker,
-  title,
-  support,
-}: {
-  kicker?: string;
-  title: string;
-  support?: string;
-}) {
-  return (
-    <div className="flex min-h-[640px] flex-col items-center justify-center px-4 py-16 text-center text-primary">
-      {kicker ? (
-        <h1 className="text-[48px] font-medium leading-none text-accent md:text-buzzDisplay">{kicker}</h1>
-      ) : (
-        <BeeMark className="mb-6 h-28 w-28 motion-safe:animate-buzz-float" />
-      )}
-      {kicker ? (
-        <BeeMark className="h-[120px] w-[120px] motion-safe:animate-buzz-float" />
-      ) : null}
-      {kicker ? (
-        <p className="mt-6 max-w-xl text-xl font-medium leading-tight">{title}</p>
-      ) : (
-        <h1 className="max-w-xl text-[36px] font-medium leading-tight md:text-buzzTitle">{title}</h1>
-      )}
-      {support ? <p className="mt-4 max-w-md text-base text-muted">{support}</p> : null}
-      <div className="mt-6 flex items-center gap-3">
-        <LinkButton to="/">Home</LinkButton>
-        <LinkButton to="/login" variant="outline" className="h-10">
-          Log in
-        </LinkButton>
-      </div>
-    </div>
-  );
-}
