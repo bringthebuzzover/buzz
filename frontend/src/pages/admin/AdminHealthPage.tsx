@@ -23,6 +23,7 @@ import {
   formatDateTime,
   humanizeKey,
 } from "../../components/admin/labels";
+import { cn } from "../../theme/cn";
 
 function CountBadge({ signal }: { signal: AdminSignal }) {
   return (
@@ -46,8 +47,8 @@ function SignalRow({
     <>
       <CountBadge signal={signal} />
       <span>
-        <span className="block text-sm font-bold text-buzz-ink">{label}</span>
-        <span className="mt-0.5 block text-xs font-medium text-buzz-inkMuted">
+        <span className="block text-sm font-medium text-primary">{label}</span>
+        <span className="mt-0.5 block text-xs font-medium text-muted">
           {note}
         </span>
       </span>
@@ -77,7 +78,7 @@ function SignalList({
   meta: Record<string, { label: string; note: string; to?: string }>;
 }) {
   return (
-    <ul className="divide-y divide-buzz-lineMid">
+    <ul className="divide-y divide-line px-6">
       {signals.map((signal) => {
         const entry = meta[signal.key];
         return (
@@ -113,10 +114,10 @@ export default function AdminHealthPage() {
       {health.data && (
         <>
           <Panel
-            title="Pipeline"
+            title="Background jobs"
             description="Inferred, not measured. Nothing records a job run, so each row watches for the absence of that job's effect — a zero means we found no evidence of failure, which is weaker than a success."
           >
-            <ul className="divide-y divide-buzz-lineMid">
+            <ul className="divide-y divide-line px-6">
               {health.data.pipeline.map((signal) => {
                 const meta = PIPELINE_META[signal.key];
                 return (
@@ -127,15 +128,15 @@ export default function AdminHealthPage() {
                   >
                     <CountBadge signal={signal} />
                     <div>
-                      <p className="flex flex-wrap items-center gap-2 text-sm font-bold text-buzz-ink">
+                      <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-primary">
                         {meta?.label ?? humanizeKey(signal.key)}
                         {meta && <Pill>{meta.schedule}</Pill>}
                       </p>
-                      <p className="mt-0.5 text-xs font-medium text-buzz-inkMuted">
+                      <p className="mt-0.5 text-xs font-medium text-muted">
                         {signal.detail ?? meta?.inference}
                       </p>
                       {meta && signal.detail && (
-                        <p className="mt-0.5 text-xs font-medium text-buzz-inkFaint">
+                        <p className="mt-0.5 text-xs font-medium text-quiet">
                           {meta.inference}
                         </p>
                       )}
@@ -147,13 +148,42 @@ export default function AdminHealthPage() {
           </Panel>
 
           <Panel
-            title="Instagram tokens"
+            title="Instagram connections"
             description="Organization accounts only. Authenticated requests with an expired Instagram token return INSTAGRAM_TOKEN_EXPIRED until the organization reconnects via OAuth (/reconnect-instagram). The refresh job never retries a token that has already lapsed."
           >
-            <SignalList
-              signals={health.data.instagramTokens}
-              meta={TOKEN_BUCKET_META}
-            />
+            <div className="grid gap-3 px-6 pb-6 sm:grid-cols-2 xl:grid-cols-3">
+              {health.data.instagramTokens.map((signal) => {
+                const meta = TOKEN_BUCKET_META[signal.key];
+                const hot = !signal.ok && signal.count > 0;
+                return (
+                  <div
+                    key={signal.key}
+                    data-testid={`signal-${signal.key}`}
+                    className={cn(
+                      "flex flex-col gap-2 rounded-buzzBoard border p-5",
+                      hot
+                        ? "border-buzz-yellowLine bg-accent-wash"
+                        : "border-line bg-surface-tile",
+                    )}
+                  >
+                    <p
+                      className={cn(
+                        "text-4xl font-medium tabular-nums",
+                        hot ? "text-accent" : "text-primary",
+                      )}
+                    >
+                      {signal.count}
+                    </p>
+                    <p className="text-sm font-medium text-primary">
+                      {meta?.label ?? humanizeKey(signal.key)}
+                    </p>
+                    {meta?.note ? (
+                      <p className="text-xs text-quiet">{meta.note}</p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
           </Panel>
 
           <Panel
@@ -170,7 +200,7 @@ export default function AdminHealthPage() {
             <SignalList signals={health.data.silent} meta={SIGNAL_META} />
           </Panel>
 
-          <p className="text-xs font-medium text-buzz-inkFaint">
+          <p className="text-xs font-medium text-quiet">
             Counted {formatDateTime(health.data.generatedAt)}.
           </p>
         </>

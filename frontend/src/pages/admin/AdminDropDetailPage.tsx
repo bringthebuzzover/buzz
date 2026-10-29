@@ -42,10 +42,13 @@ import {
   TextField,
 } from "../../components/forms/controls";
 import { Modal } from "../../components/ui/Modal";
+import { Tabs } from "../../components/ui/Tabs";
+import { Toggle } from "../../components/ui/Toggle";
 import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import {
   ActionButton,
+  AdminBackLink,
   AdminTable,
   Cell,
   ErrorNote,
@@ -56,6 +59,7 @@ import {
   Panel,
   Pill,
   QueryState,
+  StagePill,
   Row,
 } from "../../components/admin/AdminPrimitives";
 import {
@@ -85,38 +89,24 @@ function isDropTabId(value: string): value is DropTabId {
   return TABS.some((tab) => tab.id === value);
 }
 
-function DropTabs({
-  active,
-  onChange,
-}: {
-  active: DropTabId;
-  onChange: (id: DropTabId) => void;
-}) {
+function StageRail({ current }: { current: string }) {
+  const index = STAGE_ORDER.indexOf(current as (typeof STAGE_ORDER)[number]);
   return (
-    <div
-      role="tablist"
-      aria-label="Drop sections"
-      className="mb-4 inline-flex max-w-full flex-wrap gap-1 rounded-buzzControl border border-buzz-lineMid bg-buzz-cream p-1"
-    >
-      {TABS.map((tab) => {
-        const selected = tab.id === active;
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+      {STAGE_ORDER.map((stage, i) => {
+        const reached = index >= 0 && i <= index;
         return (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={selected}
-            data-testid={`tab-${tab.id}`}
-            onClick={() => onChange(tab.id)}
-            className={cn(
-              "rounded-buzzCheck px-3 py-1.5 text-sm font-semibold transition",
-              selected
-                ? "bg-buzz-paper text-buzz-ink"
-                : "text-buzz-inkMuted hover:bg-buzz-paper/70 hover:text-buzz-ink",
-            )}
-          >
-            {tab.label}
-          </button>
+          <div key={stage} className="flex min-w-0 flex-col gap-3">
+            <div
+              className={cn(
+                "h-1 rounded-full",
+                reached ? "bg-accent" : "bg-buzz-paper09",
+              )}
+            />
+            <p className={cn("text-xs", reached ? "text-primary" : "text-quiet")}>
+              {STAGE_LABELS[stage] ?? stage}
+            </p>
+          </div>
         );
       })}
     </div>
@@ -133,7 +123,7 @@ function ConfigSection({
   children: ReactNode;
 }) {
   return (
-    <section className={cn(STACK.tight, "border-t border-buzz-lineMid px-4 py-4")}>
+    <section className="mb-6 space-y-4 rounded-buzzBoard border border-line bg-surface-card p-6">
       <div>
         <h3 className={TEXT.h3}>{title}</h3>
         {description ? (
@@ -165,6 +155,7 @@ const APPLICANT_HEADERS = [
   "Applied",
   "Ship to",
   "Shipments",
+  "",
 ] as const;
 
 function DecisionPill({ decision }: { decision: string }) {
@@ -287,7 +278,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
           {previewSrc ? (
-            <div className="relative aspect-video min-h-48 w-full shrink-0 overflow-hidden rounded-buzzBoard border border-buzz-lineMid sm:w-auto">
+            <div className="relative aspect-video min-h-48 w-full shrink-0 overflow-hidden rounded-buzzBoard border border-line sm:w-auto">
               <img
                 src={previewSrc}
                 alt=""
@@ -360,7 +351,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
           <div>
             <TextField
               id="drop-config-units"
-              label="Unit budget"
+              label="Total units"
               size="compact"
               type="number"
               min={1}
@@ -375,7 +366,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
               disabled={logisticsLocked || patch.isPending}
               onChange={(e) => setClearUnits(e.target.checked)}
               label={
-                <span className="text-xs text-buzz-inkMuted">
+                <span className="text-xs text-muted">
                   Clear to spot-only
                 </span>
               }
@@ -419,35 +410,33 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
           disabled={patch.isPending}
           onChange={(e) => setClearHashtag(e.target.checked)}
           label={
-            <span className="text-xs text-buzz-inkMuted">Clear hashtag</span>
+            <span className="text-xs text-muted">Clear hashtag</span>
           }
         />
-        <Select
-          id="brand-can-edit-creative"
-          data-testid="brand-can-edit-creative"
-          label="Who can edit"
-          size="compact"
-          value={brandCanEditCreative ? "brand" : "admin"}
-          disabled={patch.isPending}
-          onChange={(e) => setBrandCanEditCreative(e.target.value === "brand")}
-          aria-describedby="brand-can-edit-creative-help"
-        >
-          <option value="admin">Admin only</option>
-          <option value="brand">
-            Brand can edit title, description, and image
-          </option>
-        </Select>
-        <p
-          id="brand-can-edit-creative-help"
-          className="mt-0.5 text-xs font-medium text-buzz-inkMuted"
-        >
-          Brand cannot change dates, capacity, or publish.
-        </p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-primary">Brand can edit details</p>
+            <p id="brand-can-edit-creative-help" className="mt-1 text-xs text-quiet">
+              Lets the brand change title, description and image. Dates, capacity
+              and publishing stay with BUZZ.
+            </p>
+          </div>
+          <Toggle
+            id="brand-can-edit-creative"
+            data-testid="brand-can-edit-creative"
+            checked={brandCanEditCreative}
+            disabled={patch.isPending}
+            onChange={setBrandCanEditCreative}
+            label="Brand can edit details"
+            aria-describedby="brand-can-edit-creative-help"
+          />
+        </div>
       </ConfigSection>
 
       <div className={cn(STACK.tight, "px-4 py-4")}>
         <div className="flex flex-wrap gap-2">
           <ActionButton
+            variant="primary"
             testId="save-drop-config"
             disabled={patch.isPending || publish.isPending}
             onClick={() => void onSave()}
@@ -554,11 +543,12 @@ function TrackerControls({
       title="Tracker"
       description="Stages only move forward. Tracking numbers are added on accepted applicants. Pre-live reopen clears finalize for a new selection round; once a live or finished drop is finalized, apply stays closed."
     >
-      <div className="space-y-4 px-4 py-4">
+      <div className="space-y-4 px-6 py-5">
+        <StageRail current={currentStage} />
         {error && <ErrorNote>{error}</ErrorNote>}
 
         {forwardStages.length === 0 ? (
-          <p className="text-sm font-medium text-buzz-inkMuted">
+          <p className="text-sm font-medium text-muted">
             This drop is at the final stage.
           </p>
         ) : (
@@ -592,11 +582,14 @@ function TrackerControls({
         )}
 
         {blockedByFinalize && (
-          <ErrorBanner>
+          <div
+            className="rounded-buzzField border border-buzz-dangerLine bg-buzz-dangerFaded px-4 py-4 text-sm text-primary"
+            role="alert"
+          >
             Applicant selection is not finalized. Finalize it on the Applicants
             tab before advancing, or every remaining applicant is left with no
             decision.
-          </ErrorBanner>
+          </div>
         )}
 
         {blockedBySkipAwaiting && (
@@ -606,7 +599,7 @@ function TrackerControls({
         )}
 
         {!canReopenApply && (
-          <p className="text-xs font-bold text-buzz-inkMuted">
+          <p className="text-xs font-medium text-muted">
             Apply cannot reopen while selection is finalized on a live or
             finished drop.
           </p>
@@ -700,7 +693,7 @@ function ApplicantShipmentEditor({
             <button
               type="button"
               data-testid={`remove-shipment-${s.id}`}
-              className="text-buzz-coral hover:underline"
+              className="text-accent hover:underline"
               disabled={remove.isPending}
               onClick={() => void remove.mutateAsync(s.id)}
             >
@@ -749,14 +742,10 @@ function SignupIntents({
   intents: AdminDropDetail["intents"];
 }) {
   return (
-    <div className="border-b border-buzz-lineMid">
-      <div className="px-4 py-3">
-        <h3 className={TEXT.h3}>Signup intents (not applicants)</h3>
-        <p className={cn(TEXT.meta, "mt-1")}>
-          Organizations that asked to apply before they were approved and connected.
-          Brands never see these rows.
-        </p>
-      </div>
+    <Panel
+      title="Signup intents (not applicants)"
+      description="Organizations that asked to apply before they were approved and connected. Brands never see these rows."
+    >
       <AdminTable
         headers={INTENT_HEADERS}
         isEmpty={intents.length === 0}
@@ -765,7 +754,7 @@ function SignupIntents({
         {intents.map((intent) => (
           <Row key={intent.id}>
             <Cell>
-              <span className="font-semibold text-buzz-ink">{intent.orgName}</span>
+              <span className="font-medium text-primary">{intent.orgName}</span>
             </Cell>
             <Cell>
               <Pill tone={intent.status === "expired" ? "warn" : "neutral"}>
@@ -777,7 +766,7 @@ function SignupIntents({
           </Row>
         ))}
       </AdminTable>
-    </div>
+    </Panel>
   );
 }
 
@@ -835,8 +824,8 @@ function FinalizeSelection({
   }
 
   return (
-    <div className="space-y-3 border-b border-buzz-lineMid px-4 py-4">
-      <p className="text-sm font-medium text-buzz-ink">
+    <div className="space-y-3 border-b border-line px-4 py-4">
+      <p className="text-sm font-medium text-primary">
         Same batch as the brand: checked organizations are accepted, every other
         pending applicant is denied.
         {pending.length === 0
@@ -876,14 +865,14 @@ function FinalizeSelection({
           )}
         </div>
       ))}
-      <p className="text-sm font-medium text-buzz-inkMuted">
+      <p className="text-sm font-medium text-muted">
         Accept {acceptedCount} · Deny {deniedCount}
       </p>
-      {notice && <p className="text-sm font-medium text-buzz-ink">{notice}</p>}
+      {notice && <p className="text-sm font-medium text-primary">{notice}</p>}
       {error && <ErrorNote>{error}</ErrorNote>}
       {confirmOpen ? (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-buzz-ink">
+          <p className="text-sm font-medium text-primary">
             Accept {acceptedCount}{" "}
             {acceptedCount === 1 ? "organization" : "organizations"} · Deny{" "}
             {deniedCount}{" "}
@@ -955,6 +944,7 @@ function RemoveParticipantButton({
   return (
     <>
       <ActionButton
+        quiet
         variant="secondary"
         testId={`remove-participant-${applicant.id}`}
         onClick={() => {
@@ -1022,16 +1012,16 @@ function Applicants({
       empty="Nobody has applied to this drop."
     >
       {applicants.map((applicant) => (
-        <Row key={applicant.id}>
+        <Row key={applicant.id} attention={applicant.decision === "applied"}>
           <Cell>
             <Link
               to={`/admin/orgs/${applicant.userId}`}
-              className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
+              className="block text-primary hover:text-accent"
             >
               {applicant.orgName}
             </Link>
             {applicant.university ? (
-              <span className="ml-2 text-xs font-medium text-buzz-inkMuted">
+              <span className="mt-0.5 block text-xs text-quiet">
                 {applicant.university}
               </span>
             ) : null}
@@ -1039,17 +1029,12 @@ function Applicants({
               <span className="mt-1 flex flex-wrap items-center gap-2">
                 <Pill tone="neutral">Metrics frozen</Pill>
                 {applicant.metricsFrozenAt != null ? (
-                  <span className="text-xs font-medium text-buzz-inkMuted">
+                  <span className="text-xs font-medium text-muted">
                     {formatDate(applicant.metricsFrozenAt)}
                   </span>
                 ) : null}
-                <RemoveParticipantButton dropId={dropId} applicant={applicant} />
               </span>
-            ) : (
-              <span className="mt-1 block">
-                <RemoveParticipantButton dropId={dropId} applicant={applicant} />
-              </span>
-            )}
+            ) : null}
           </Cell>
           <Cell muted>
             {formatCompactCount(applicant.followerCount)}
@@ -1073,8 +1058,11 @@ function Applicants({
             {applicant.decision === "accepted" ? (
               <ApplicantShipmentEditor dropId={dropId} applicant={applicant} />
             ) : (
-              <span className="text-xs font-medium text-buzz-inkMuted">—</span>
+              <span className="text-xs font-medium text-muted">—</span>
             )}
+          </Cell>
+          <Cell align="right">
+            <RemoveParticipantButton dropId={dropId} applicant={applicant} />
           </Cell>
         </Row>
       ))}
@@ -1259,7 +1247,7 @@ function AttributionPanel({ drop }: { drop: AdminDropDetail }) {
         </Field>
       </FieldGrid>
       {canRun && (
-        <div className={cn(STACK.tight, "border-t border-buzz-lineMid px-4 py-4")}>
+        <div className={cn(STACK.tight, "border-t border-line px-4 py-4")}>
           {error && <ErrorNote>{error}</ErrorNote>}
           {notice && <SuccessBanner>{notice}</SuccessBanner>}
           <p className={TEXT.meta}>
@@ -1295,12 +1283,7 @@ export default function AdminDropDetailPage() {
 
   return (
     <div>
-      <Link
-        to="/admin/drops"
-        className="mb-4 inline-block text-xs font-bold text-buzz-coral hover:underline"
-      >
-        &larr; All drops
-      </Link>
+      <AdminBackLink to="/admin/drops" />
 
       <QueryState
         isPending={drop.isPending}
@@ -1315,7 +1298,7 @@ export default function AdminDropDetailPage() {
             subtitle={`${data.brandName} · ${data.location}`}
             actions={
               <div className="flex flex-wrap items-center gap-2">
-                <Pill>{STAGE_LABELS[data.stage] ?? data.stage}</Pill>
+                <StagePill stage={data.stage} />
                 {data.publishedAt == null ? (
                   <Pill tone="warn">Draft</Pill>
                 ) : (
@@ -1337,9 +1320,12 @@ export default function AdminDropDetailPage() {
             </div>
           ) : null}
 
-          <DropTabs
-            active={activeTab}
+          <Tabs
+            label="Drop sections"
+            tabs={TABS}
+            value={activeTab}
             onChange={(id) => setSearchParams({ tab: id })}
+            className="mb-8 gap-8"
           />
 
           {activeTab === "tracker" && (
@@ -1352,51 +1338,57 @@ export default function AdminDropDetailPage() {
           )}
 
           {activeTab === "config" && (
-            <Panel>
-              <FieldGrid>
-                <Field label="Capacity">
-                  {acceptedCount} accepted of {data.capacityTotal}
-                </Field>
-                <Field label="Unit budget">
-                  {data.totalProductUnits === null
-                    ? "Spot-only (no units)"
-                    : `${data.allocatedUnits} of ${data.totalProductUnits} allocated`}
-                </Field>
-                <Field label="Selection finalized">
-                  {data.finalizedAt ? (
-                    formatDateTime(data.finalizedAt)
-                  ) : (
-                    <Pill tone="warn">Not yet</Pill>
-                  )}
-                </Field>
-                <Field label="Published">
-                  {data.publishedAt != null ? (
-                    formatDateTime(data.publishedAt)
-                  ) : (
-                    <Pill tone="warn">Draft</Pill>
-                  )}
-                </Field>
-                {data.dropRequestId && (
-                  <Field label="Drop request">
-                    <Link
-                      to={`/admin/requests/${data.dropRequestId}`}
-                      className="font-semibold text-buzz-coral hover:underline"
-                    >
-                      View ticket
-                    </Link>
-                  </Field>
-                )}
-              </FieldGrid>
+            <>
+              <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {(
+                  [
+                    ["Capacity", `${acceptedCount} accepted of ${data.capacityTotal}`],
+                    [
+                      "Total units",
+                      data.totalProductUnits === null
+                        ? "Spot-only (no units)"
+                        : `${data.allocatedUnits} of ${data.totalProductUnits} allocated`,
+                    ],
+                    [
+                      "Selection finalized",
+                      data.finalizedAt ? formatDateTime(data.finalizedAt) : "Not yet",
+                    ],
+                    [
+                      "Published",
+                      data.publishedAt != null ? formatDateTime(data.publishedAt) : "Draft",
+                    ],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-buzzCard border border-line bg-surface-tile p-4"
+                  >
+                    <p className="text-sm text-quiet">{label}</p>
+                    <p className="mt-3 text-xl font-medium text-primary">{value}</p>
+                  </div>
+                ))}
+              </div>
+              {data.dropRequestId && (
+                <p className="mb-6 text-sm text-muted">
+                  Drop request{" "}
+                  <Link
+                    to={`/admin/requests/${data.dropRequestId}`}
+                    className="text-primary hover:text-accent"
+                  >
+                    View ticket
+                  </Link>
+                </p>
+              )}
               <DropConfigEditors data={data} />
-            </Panel>
+            </>
           )}
           {activeTab === "applicants" && (
-            <Panel>
+            <>
               <SignupIntents intents={data.intents ?? []} />
+              <Panel title="Applicants">
               {canLateAdd(data) && (
-                <div className="flex justify-end border-b border-buzz-lineMid px-4 py-3">
+                <div className="flex justify-end px-6 pb-2">
                   <ActionButton
-                    variant="primary"
                     testId="add-org-open"
                     onClick={() => setAddOrgOpen(true)}
                   >
@@ -1417,23 +1409,24 @@ export default function AdminDropDetailPage() {
                   onClose={() => setAddOrgOpen(false)}
                 />
               )}
-            </Panel>
+              </Panel>
+            </>
           )}
 
           {activeTab === "timeline" && (
             <Panel description="Stage transitions, oldest first. Notes prefixed with 'auto:' were written by the auto-close job.">
               {data.trackerEvents.length === 0 ? (
-                <p className="px-4 py-6 text-sm font-medium text-buzz-inkMuted">
+                <p className="px-4 py-6 text-sm font-medium text-muted">
                   No tracker events recorded yet.
                 </p>
               ) : (
-                <ol className="divide-y divide-buzz-lineMid">
+                <ol className="divide-y divide-line">
                   {data.trackerEvents.map((event) => (
                     <li key={event.id} className="px-4 py-3">
-                      <p className="text-sm font-bold text-buzz-ink">
+                      <p className="text-sm font-medium text-primary">
                         {STAGE_LABELS[event.stage] ?? event.stage}
                       </p>
-                      <p className="text-xs font-medium text-buzz-inkMuted">
+                      <p className="text-xs font-medium text-muted">
                         {formatDateTime(event.occurredAt)}
                         {event.note ? ` · ${event.note}` : ""}
                       </p>

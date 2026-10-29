@@ -9,7 +9,6 @@
  * public link; guests are sent to admin login.
  */
 import { useState } from "react";
-import PageShell from "../../components/site/PageShell";
 import { Card, CardHeader } from "../../components/ui/Card";
 import { Badge, Chip } from "../../components/ui/Chip";
 import { StatePanel } from "../../components/ui/StatePanel";
@@ -61,7 +60,7 @@ export default function UiKitPage() {
   const [toast, setToast] = useState(false);
 
   return (
-    <PageShell width="reading" className={STACK.section}>
+    <div className={STACK.section}>
       <header>
         <h1 className={TEXT.h1}>UI kit</h1>
         <p className={cx(TEXT.meta, "mt-1")}>
@@ -346,6 +345,6 @@ export default function UiKitPage() {
           </Modal>
         )}
       </Section>
-    </PageShell>
+    </div>
   );
 }

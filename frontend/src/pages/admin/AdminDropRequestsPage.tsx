@@ -3,16 +3,15 @@
  */
 import { Link, useSearchParams } from "react-router-dom";
 import { useAdminDropRequests } from "../../api/hooks/useAdminHooks";
-import { LinkButton } from "../../components/forms/controls";
 import {
   AdminTable,
   Cell,
   FilterChips,
   PageHeading,
-  Panel,
   Pill,
   QueryState,
   Row,
+  rowActionClass,
 } from "../../components/admin/AdminPrimitives";
 import { formatDate } from "../../components/admin/labels";
 
@@ -23,7 +22,7 @@ const FILTERS = [
   { value: "closed", label: "Closed" },
 ] as const;
 
-const HEADERS = ["Brand", "Message", "Status", "Created", ""] as const;
+const HEADERS = ["Brand", "Request", "Status", "Created", ""] as const;
 
 function statusTone(status: string): "good" | "warn" | "neutral" {
   if (status === "converted") return "good";
@@ -52,49 +51,55 @@ export default function AdminDropRequestsPage() {
         param="status"
       />
 
-      <Panel>
-        <QueryState
-          isPending={requests.isPending}
-          isError={requests.isError}
-          label="drop requests"
-        />
-        {requests.data && (
-          <AdminTable
-            headers={HEADERS}
-            isEmpty={requests.data.length === 0}
-            empty="No drop requests match this filter."
-          >
-            {requests.data.map((ticket) => (
-              <Row key={ticket.id}>
+      <QueryState
+        isPending={requests.isPending}
+        isError={requests.isError}
+        label="drop requests"
+      />
+      {requests.data && (
+        <AdminTable
+          headers={HEADERS}
+          isEmpty={requests.data.length === 0}
+          empty="No drop requests match this filter."
+        >
+          {requests.data.map((ticket) => {
+            const title = ticket.title?.trim();
+            const primary = title || ticket.message;
+            return (
+              <Row key={ticket.id} attention={ticket.status === "received"}>
                 <Cell>
                   <Link
                     to={`/admin/brands/${ticket.brandId}`}
-                    className="font-semibold text-buzz-ink hover:text-buzz-coral hover:underline"
+                    className="text-primary hover:text-accent"
                   >
                     {ticket.brandName}
                   </Link>
                 </Cell>
-                <Cell muted>
-                  <span className="line-clamp-2">{ticket.message}</span>
+                <Cell>
+                  <span className="block">{primary}</span>
+                  {title && title !== ticket.message ? (
+                    <span className="mt-0.5 line-clamp-2 block text-xs text-quiet">
+                      {ticket.message}
+                    </span>
+                  ) : null}
                 </Cell>
                 <Cell>
                   <Pill tone={statusTone(ticket.status)}>{ticket.status}</Pill>
                 </Cell>
-                <Cell muted>{formatDate(ticket.createdAt)}</Cell>
+                <Cell>{formatDate(ticket.createdAt)}</Cell>
                 <Cell align="right">
-                  <LinkButton
+                  <Link
                     to={`/admin/requests/${ticket.id}`}
-                    size="compact"
-                    variant="outline"
+                    className={rowActionClass}
                   >
                     Open
-                  </LinkButton>
+                  </Link>
                 </Cell>
               </Row>
-            ))}
-          </AdminTable>
-        )}
-      </Panel>
+            );
+          })}
+        </AdminTable>
+      )}
     </div>
   );
 }

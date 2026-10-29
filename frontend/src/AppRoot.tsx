@@ -55,6 +55,7 @@ import AdminIgChangeRequestsPage from "./pages/admin/AdminIgChangeRequestsPage";
 import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import AdminNotFoundPage from "./pages/admin/AdminNotFoundPage";
 // META-REVIEWER-PATH: delete this import and the /meta-review route below.
 import MetaReviewerPage from "./meta-reviewer/MetaReviewerPage";
 import UiKitPage from "./pages/dev/UiKitPage";
@@ -332,7 +333,7 @@ export default function AppRoot(): ReactElement {
             production used to omit the route, so signed-in admins hit the
             public 404. */}
         <Route path="ui-kit" element={<UiKitPage />} />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<AdminNotFoundPage />} />
       </Route>
     </Routes>
   );
