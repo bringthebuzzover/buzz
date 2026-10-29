@@ -64,7 +64,7 @@ async function assertNoOverlapWithLogo(page: Page, target: Locator) {
   expect(box, "nav control should be laid out").toBeTruthy();
   expect(
     boxesOverlap(logoBox!, box!),
-    "nav control must not intersect the centered logo",
+    "nav control must not intersect the logo",
   ).toBe(false);
 }
 
@@ -72,10 +72,10 @@ test("org desktop nav does not overlap the logo at 1280px", async ({ page }) => 
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/org/browse");
   await waitForAuthSettled(page, "org");
-  const header = page.locator("header");
+  const header = page.getByRole("banner");
   await expect(header.getByRole("button", { name: /open menu/i })).toBeHidden();
 
-  const campaigns = header.getByRole("link", { name: "My Campaigns" });
+  const campaigns = header.getByRole("link", { name: "My campaigns" });
   const profile = header.getByRole("link", { name: "Profile" });
   await expect(campaigns).toBeVisible();
   await expect(profile).toBeVisible();
@@ -83,7 +83,7 @@ test("org desktop nav does not overlap the logo at 1280px", async ({ page }) => 
   await assertNoOverlapWithLogo(page, profile);
   await assertNoOverlapWithLogo(
     page,
-    header.getByRole("link", { name: "Browse Campaigns" }),
+    header.getByRole("link", { name: "Browse campaigns" }),
   );
   await assertNoOverlapWithLogo(page, header.getByRole("link", { name: "Home" }));
   await assertNoOverlapWithLogo(
@@ -106,9 +106,9 @@ test("org mid-width chrome uses the hamburger and keeps campaign links", async (
   await page.getByRole("button", { name: /open menu/i }).click();
 
   const panel = page.locator("#mobile-nav-menu");
-  await expect(panel.getByRole("link", { name: "My Campaigns" })).toBeVisible();
+  await expect(panel.getByRole("link", { name: "My campaigns" })).toBeVisible();
   await expect(panel.getByRole("link", { name: "Profile" })).toBeVisible();
-  await panel.getByRole("link", { name: "My Campaigns" }).click();
+  await panel.getByRole("link", { name: "My campaigns" }).click();
   await expect(page).toHaveURL(/\/org\/campaigns$/);
 });
 
@@ -119,7 +119,7 @@ test("org phone chrome lists portal links in the menu", async ({ page }) => {
   await expect(page.getByRole("button", { name: /open menu/i })).toBeVisible();
   await page.getByRole("button", { name: /open menu/i }).click();
   const panel = page.locator("#mobile-nav-menu");
-  await expect(panel.getByRole("link", { name: "My Campaigns" })).toBeVisible();
+  await expect(panel.getByRole("link", { name: "My campaigns" })).toBeVisible();
   await expect(panel.getByRole("link", { name: "Profile" })).toBeVisible();
 });
 
