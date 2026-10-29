@@ -4,12 +4,15 @@
  * Used on the active org profile and the pending-approval wait screen.
  */
 import { useState } from "react";
+import { Pencil } from "lucide-react";
 import { ApiError } from "../../api/client";
 import { userFacingApiError } from "../../api/userFacingError";
 import FieldError from "../forms/FieldError";
 import { Button, ErrorBanner, SuccessBanner, TextField } from "../forms/controls";
 import { Card } from "../ui/Card";
-import { fieldLabelClass } from "../../theme/controls";
+import { focusRingClass } from "../../theme/controls";
+import { TEXT } from "../../theme/tokens";
+import { cn } from "../../theme/cn";
 import {
   useCancelPendingEduEmail,
   useResendVerification,
@@ -90,27 +93,27 @@ export default function EduEmailRotatePanel({
       setNotice("Pending school email change canceled.");
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : "Could not cancel the pending change.",
+        err instanceof ApiError ? err.message : "Could not cancel the pending change.",
       );
     }
   };
 
   return (
-    <Card kind="inset" pad="tight" className="text-left">
-      <p className={fieldLabelClass}>School email</p>
-      <p className="mt-2 text-sm font-semibold text-buzz-ink">
-        {liveEmail || "No .edu email on file"}
-      </p>
+    <Card kind="panel" pad="card" className="flex flex-col gap-5 text-left">
+      <h2 className={TEXT.h3}>School email</h2>
+      <div>
+        <p className="text-xs text-quiet">Email</p>
+        <p className="mt-1 break-all text-sm text-primary">
+          {liveEmail || "No .edu email on file"}
+        </p>
+      </div>
 
       {pendingEmail ? (
-        <div className="mt-3 space-y-2">
-          <p className="text-sm font-medium text-buzz-inkMuted">
+        <div className="space-y-3">
+          <p className="text-sm text-muted">
             Pending change to{" "}
-            <span className="font-semibold text-buzz-ink">{pendingEmail}</span>.
-            Confirm via the link we sent — your current email stays active until
-            then.
+            <span className="font-medium text-primary">{pendingEmail}</span>. Confirm via
+            the link we sent — your current email stays active until then.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -137,12 +140,16 @@ export default function EduEmailRotatePanel({
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="mt-3 text-sm font-medium text-buzz-inkMuted underline-offset-2 hover:underline"
+          className={cn(
+            "inline-flex items-center gap-2 self-start text-sm text-muted transition hover:text-primary",
+            focusRingClass,
+          )}
         >
+          <Pencil size={14} aria-hidden />
           Change school email
         </button>
       ) : (
-        <form onSubmit={(e) => void onRotate(e)} className="mt-3 space-y-3">
+        <form onSubmit={(e) => void onRotate(e)} className="space-y-3">
           <div>
             <TextField
               id="edu-rotate-email"
@@ -176,16 +183,8 @@ export default function EduEmailRotatePanel({
         </form>
       )}
 
-      {notice ? (
-        <div className="mt-3">
-          <SuccessBanner>{notice}</SuccessBanner>
-        </div>
-      ) : null}
-      {error ? (
-        <div className="mt-3">
-          <ErrorBanner>{error}</ErrorBanner>
-        </div>
-      ) : null}
+      {notice ? <SuccessBanner>{notice}</SuccessBanner> : null}
+      {error ? <ErrorBanner>{error}</ErrorBanner> : null}
     </Card>
   );
 }
