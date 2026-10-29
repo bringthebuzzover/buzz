@@ -2,7 +2,7 @@
 
 Stage 5C adds the brand portal backend: profile, drop creation, drops list
 with per-drop aggregate, drop detail with applicants + attributed totals,
-finalize applicants, brand aggregate, and engagement time series.
+per-seat decisions + send decisions, brand aggregate, and engagement time series.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
 from app.models.drop import Drop
 from app.response import APIResponse, DataResponse, api_response
-from app.schemas.acks import BrandApplyResponse, FinalizeApplicantsResponse
+from app.schemas.acks import BrandApplyResponse, SendDecisionsResponse
 from app.schemas.brands import (
     BrandAggregateResponse,
     BrandApplyRequest,
@@ -33,7 +33,7 @@ from app.schemas.brands import (
     BrandProfilePatch,
     BrandProfileResponse,
     EngagementSeriesPoint,
-    FinalizeApplicantsRequest,
+    SeatDecisionRequest,
 )
 from app.schemas.drops import BrandDropRequestCreate, BrandDropRequestResponse
 from app.security.rate_limit import rate_limited
@@ -50,7 +50,6 @@ from app.services.brands import (
     build_brand_drop_list_item,
     compute_brand_aggregate,
     compute_engagement_series,
-    finalize_applicants,
     resolve_brand_drop,
     update_brand_drop_creative,
 )
@@ -59,6 +58,8 @@ from app.services.drop_requests import (
     create_brand_drop_request,
     list_brand_drop_requests,
 )
+from app.services.lifecycle import drop_stages
+from app.services.seats import lock_drop, send_decisions, set_seat_decision
 
 router = APIRouter(prefix="/brands", tags=["brands"])
 
@@ -202,7 +203,8 @@ async def list_brand_drops(
         )
     )
 
-    items = [await build_brand_drop_list_item(db, brand, drop) for drop in drops]
+    stages = await drop_stages(db, [drop.id for drop in drops])
+    items = [await build_brand_drop_list_item(db, brand, drop, stages[drop.id]) for drop in drops]
     return api_response(data=items)
 
 
@@ -230,20 +232,49 @@ async def patch_brand_drop_creative(
     return api_response(data=await build_brand_drop_detail(db, brand, drop))
 
 
-@router.post(
-    "/me/drops/{drop_id}/finalize-applicants",
-    response_model=DataResponse[FinalizeApplicantsResponse],
+@router.put(
+    "/me/drops/{drop_id}/applications/{application_id}/decision",
+    response_model=DataResponse[BrandDropDetailResponse],
 )
-async def finalize_drop_applicants(
+async def put_seat_decision(
     drop_id: uuid.UUID,
-    payload: FinalizeApplicantsRequest,
+    application_id: uuid.UUID,
+    payload: SeatDecisionRequest,
     user: CurrentBrand,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
+    """Draft one applicant's decision. Nothing reaches the org until Send decisions."""
+
     brand = await _require_brand(db, user)
-    allocations = [{"org_id": a.org_id, "units": a.units} for a in payload.allocations]
-    result = await finalize_applicants(db, brand, drop_id, allocations)
-    return api_response(data=FinalizeApplicantsResponse.model_validate(result))
+    await resolve_brand_drop(db, brand, drop_id)
+    drop = await lock_drop(db, drop_id)
+    await set_seat_decision(
+        db,
+        drop,
+        application_id,
+        decision=payload.decision,
+        allocated_units=payload.allocated_units,
+        actor="brand",
+    )
+    return api_response(data=await build_brand_drop_detail(db, brand, drop))
+
+
+@router.post(
+    "/me/drops/{drop_id}/send-decisions",
+    response_model=DataResponse[SendDecisionsResponse],
+)
+async def post_send_decisions(
+    drop_id: uuid.UUID,
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    """Send every drafted decision (repeatable; undecided applicants keep waiting)."""
+
+    brand = await _require_brand(db, user)
+    await resolve_brand_drop(db, brand, drop_id)
+    drop = await lock_drop(db, drop_id)
+    result = await send_decisions(db, drop, actor="brand")
+    return api_response(data=SendDecisionsResponse.model_validate(result))
 
 
 @router.get("/me/aggregate", response_model=DataResponse[BrandAggregateResponse])

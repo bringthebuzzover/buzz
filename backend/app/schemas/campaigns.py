@@ -3,9 +3,9 @@
 See buzz-ops engineering/architecture.md §7.2/§7.3.
 
 Each campaign is a ``drop_applications`` row joined with its parent ``drops``
-row. ``brand_tracker_stage`` is passed through **raw** (the frontend derives the
-org-facing ``OrgCampaignStatus`` from it in Stage 6); denied applications are
-never serialized here (filtered in the service).
+row. ``decision`` is what the org may see (an unsent decision still reads
+``applied``); ``stage`` is the drop's computed stage and ``links_open`` whether
+the org may still link/unlink posts. Sent denials are never serialized here.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from datetime import datetime
 
 from pydantic import field_serializer
 
+from app.models.enums import DropStage
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 from app.schemas.shipments import ShipmentItem
 
@@ -32,7 +33,8 @@ class CampaignListItem(CamelModel):
     decision_at: datetime | None
     title: str
     brand_name: str
-    brand_tracker_stage: str
+    stage: DropStage
+    links_open: bool
     image: str
 
     @field_serializer("applied_at")
@@ -60,7 +62,8 @@ class CampaignDetailResponse(CamelModel):
     description: str | None
     brand_name: str
     image: str
-    brand_tracker_stage: str
+    stage: DropStage
+    links_open: bool
     apply_open_at: datetime
     apply_close_at: datetime
     capacity_total: int

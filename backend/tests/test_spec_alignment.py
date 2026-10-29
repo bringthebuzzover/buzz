@@ -16,7 +16,6 @@ from sqlalchemy import select
 
 from app.models.enums import (
     ApplicationDecision,
-    BrandTrackerStage,
     OrgCategory,
     OrgUserStatus,
     PortalRole,
@@ -117,33 +116,11 @@ async def test_feed_notify_state_is_per_org(app_client: AsyncClient, db_session)
     assert item["reminderMinutes"] is None
 
 
-# --- Gap 3: tracking number on the drop at awaiting_products (§5.2) -----------
-
-
-async def test_advance_to_awaiting_does_not_require_tracking(
-    app_client: AsyncClient, db_session
-) -> None:
-    brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
-    drop.brand_tracker_stage = BrandTrackerStage.FINALIZING_AGREEMENTS.value
-    drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
-    await db_session.flush()
-
-    resp = await app_client.patch(
-        f"/api/admin/drops/{drop.id}/tracker",
-        json={"stage": "awaiting_products"},
-        headers=await admin_headers(db_session),
-    )
-    assert resp.status_code == 200, resp.text
-    await db_session.refresh(drop)
-    assert drop.tracking_number is None
-
-
 async def test_brand_drop_detail_exposes_per_org_shipments(
     app_client: AsyncClient, db_session
 ) -> None:
     _, brand, headers = await _brand_ctx(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+    drop = await make_drop(db_session, brand)
     org_user = await persist(db_session, make_user(instagram_user_id="ig_ship"))
     org = await make_org(db_session, org_user)
     application = await make_application(
@@ -167,7 +144,7 @@ async def test_brand_drop_detail_exposes_per_org_shipments(
 
 async def test_brand_drop_detail_includes_org_posts(app_client: AsyncClient, db_session) -> None:
     _, brand, headers = await _brand_ctx(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db_session, brand)
     org_user = await persist(db_session, make_user(instagram_user_id="ig_poster"))
     org = await make_org(db_session, org_user, org_name="Poster Org")
     application = await make_application(
@@ -189,7 +166,7 @@ async def test_brand_drop_detail_includes_org_posts(app_client: AsyncClient, db_
 
 async def test_brand_drop_detail_org_with_no_posts(app_client: AsyncClient, db_session) -> None:
     _, brand, headers = await _brand_ctx(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+    drop = await make_drop(db_session, brand)
     org_user = await persist(db_session, make_user(instagram_user_id="ig_noposts"))
     org = await make_org(db_session, org_user)
     await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
@@ -257,7 +234,7 @@ async def test_onboarding_rejects_invalid_category(app_client: AsyncClient, db_s
 
 async def test_brand_drop_detail_includes_org_category(app_client: AsyncClient, db_session) -> None:
     _, brand, headers = await _brand_ctx(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
+    drop = await make_drop(db_session, brand)
     org_user = await persist(db_session, make_user(instagram_user_id="ig_catorg"))
     org = await make_org(db_session, org_user)
     org.category = OrgCategory.SPORTS.value
@@ -290,123 +267,7 @@ async def test_org_profile_patch_updates_category(app_client: AsyncClient, db_se
     assert org.category == OrgCategory.SOCIAL.value
 
 
-# --- Stage 12: lifecycle fixes (reopen, tracker skip, reach) -----------------
-
-
-async def test_tracker_blocks_skip_past_selection_unfinalized(
-    app_client: AsyncClient, db_session
-) -> None:
-    """L10: advancing past finalizing_agreements while unfinalized is rejected."""
-    brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
-    resp = await app_client.patch(
-        f"/api/admin/drops/{drop.id}/tracker",
-        json={"stage": "drop_active"},
-        headers=await admin_headers(db_session),
-    )
-    assert resp.status_code == 400
-    assert resp.json()["error"]["code"] == "DROP_NOT_IN_SELECTION_STAGE"
-
-
-async def test_tracker_advance_allowed_after_finalized(app_client: AsyncClient, db_session) -> None:
-    brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
-    drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
-    await db_session.flush()
-    # Must enter awaiting_products with tracking — cannot jump past it.
-    resp = await app_client.patch(
-        f"/api/admin/drops/{drop.id}/tracker",
-        json={"stage": "awaiting_products"},
-        headers=await admin_headers(db_session),
-    )
-    assert resp.status_code == 200, resp.text
-    resp = await app_client.patch(
-        f"/api/admin/drops/{drop.id}/tracker",
-        json={"stage": "drop_active"},
-        headers=await admin_headers(db_session),
-    )
-    assert resp.status_code == 200, resp.text
-
-
-async def test_tracker_blocks_jump_past_awaiting_products(
-    app_client: AsyncClient, db_session
-) -> None:
-    brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
-    drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
-    await db_session.flush()
-    resp = await app_client.patch(
-        f"/api/admin/drops/{drop.id}/tracker",
-        json={"stage": "drop_active"},
-        headers=await admin_headers(db_session),
-    )
-    assert resp.status_code == 400
-    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
-
-
-async def test_reopen_finalized_drop_resets_selection(app_client: AsyncClient, db_session) -> None:
-    """L9: reopening a finalized pre-live drop re-enables a new selection round."""
-    brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
-    drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
-    await db_session.flush()
-
-    resp = await app_client.post(
-        f"/api/admin/drops/{drop.id}/reopen", headers=await admin_headers(db_session)
-    )
-    assert resp.status_code == 200, resp.text
-    await db_session.refresh(drop)
-    assert drop.manual_reopen is True
-    assert drop.applicant_selection_finalized_at is None
-    assert drop.brand_tracker_stage == BrandTrackerStage.FINALIZING_AGREEMENTS.value
-
-
-async def test_reopen_live_drop_finalized_is_rejected(app_client: AsyncClient, db_session) -> None:
-    """Live + finalized reopen is a no-op for apply — reject instead of lying."""
-    brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
-    drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
-    drop.manual_reopen = False
-    await db_session.flush()
-
-    resp = await app_client.post(
-        f"/api/admin/drops/{drop.id}/reopen", headers=await admin_headers(db_session)
-    )
-    assert resp.status_code == 409, resp.text
-    assert resp.json()["error"]["code"] == "ALREADY_FINALIZED"
-    await db_session.refresh(drop)
-    assert drop.manual_reopen is False
-    assert drop.applicant_selection_finalized_at is not None
-    assert drop.brand_tracker_stage == BrandTrackerStage.DROP_ACTIVE.value
-
-
-async def test_reopen_live_unfinalized_drop_sets_flag(app_client: AsyncClient, db_session) -> None:
-    """Live without finalize still gets the apply-window flag only."""
-    brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
-    drop.applicant_selection_finalized_at = None
-    await db_session.flush()
-
-    resp = await app_client.post(
-        f"/api/admin/drops/{drop.id}/reopen", headers=await admin_headers(db_session)
-    )
-    assert resp.status_code == 200, resp.text
-    await db_session.refresh(drop)
-    assert drop.manual_reopen is True
-    assert drop.applicant_selection_finalized_at is None
-    assert drop.brand_tracker_stage == BrandTrackerStage.DROP_ACTIVE.value
-
-
-async def test_reopen_unfinalized_drop_only_sets_flag(app_client: AsyncClient, db_session) -> None:
-    brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.REQUEST_RECEIVED)
-    resp = await app_client.post(
-        f"/api/admin/drops/{drop.id}/reopen", headers=await admin_headers(db_session)
-    )
-    assert resp.status_code == 200, resp.text
-    await db_session.refresh(drop)
-    assert drop.manual_reopen is True
-    assert drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value
+# --- Stage 12: reach -------------------------------------------------------
 
 
 async def test_brand_aggregate_reach_sums_linked_post_reach(

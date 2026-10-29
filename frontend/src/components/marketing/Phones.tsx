@@ -395,7 +395,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BrandFinalize({ animate }: { animate?: boolean }) {
+function BrandSelect({ animate }: { animate?: boolean }) {
   return (
     <div className="flex h-full flex-col bg-page">
       <div className="flex h-10 items-center px-3 text-xs text-muted">‹ Back to dashboard</div>
@@ -406,7 +406,7 @@ function BrandFinalize({ animate }: { animate?: boolean }) {
         <Scrim />
         <div className="absolute inset-0 flex flex-col justify-end p-2">
           <span className="w-fit rounded-full bg-accent px-2 py-0.5 text-[12px] text-on-accent">
-            Finalizing agreements
+            Selecting
           </span>
           <p className="text-sm font-medium text-primary">{SAMPLE.drop.title}</p>
           <p className="text-[12px] text-muted">
@@ -446,7 +446,7 @@ function BrandFinalize({ animate }: { animate?: boolean }) {
         />
         <p className="text-xs text-muted">Accept 1 · Deny 1</p>
         <div className="mt-auto">
-          <YellowPill>Finalize Selection</YellowPill>
+          <YellowPill>Send decisions</YellowPill>
         </div>
       </div>
     </div>
@@ -508,7 +508,7 @@ function BrandTrack({ animate }: { animate?: boolean }) {
         <Scrim />
         <div className="absolute inset-0 flex flex-col justify-end p-2">
           <span className="w-fit rounded-full bg-accent px-2 py-0.5 text-[12px] text-on-accent">
-            Drop finished
+            Wrapped
           </span>
           <p className="text-sm font-medium text-primary">{SAMPLE.drop.title}</p>
           <p className="text-[12px] text-muted">SAMPLE BRAND</p>
@@ -517,9 +517,9 @@ function BrandTrack({ animate }: { animate?: boolean }) {
       <div className="px-3 py-3">
         <p className="mb-2 text-sm font-medium text-primary">Drop status</p>
         <div className="grid grid-cols-3 gap-1 text-center text-[12px] text-muted">
-          <span>Awaiting Products</span>
-          <span>Drop Active</span>
-          <span className="text-primary">Drop Finished</span>
+          <span>Selecting</span>
+          <span>Live</span>
+          <span className="text-primary">Wrapped</span>
         </div>
         <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/10">
           <div
@@ -553,7 +553,7 @@ function BrandTrack({ animate }: { animate?: boolean }) {
 }
 
 const ORG_SCREENS = [OrgApply, OrgInstagram, OrgConnect, OrgDrop] as const;
-const BRAND_SCREENS = [BrandRequest, BrandBuilt, BrandFinalize, BrandTrack] as const;
+const BRAND_SCREENS = [BrandRequest, BrandBuilt, BrandSelect, BrandTrack] as const;
 
 export function MarketingPhone({
   kind,

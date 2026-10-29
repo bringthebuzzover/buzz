@@ -6,7 +6,7 @@ from typing import Any
 from urllib.parse import quote
 from uuid import UUID
 
-from sqlalchemy import exists, or_, select
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import ColumnElement
 
@@ -14,8 +14,9 @@ from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, BrandTrackerStage
+from app.models.enums import ApplicationDecision
 from app.models.shipment import CARRIERS, DropApplicationShipment
+from app.services.lifecycle import seat_is_live
 
 _UPS_TRACK = "https://www.ups.com/track?tracknum="
 _FEDEX_TRACK = "https://www.fedex.com/fedextrack/?trknbr="
@@ -70,15 +71,14 @@ async def shipments_by_application_ids(
     return out
 
 
-def awaiting_products_no_tracking_clause() -> tuple[ColumnElement[bool], ...]:
-    """Attention / KPI: awaiting products, and a seat is unshipped (or none)."""
-    accepted = ApplicationDecision.ACCEPTED.value
+def unshipped_live_seat_clause() -> tuple[ColumnElement[bool], ...]:
+    """Attention / KPI: an unwrapped drop with a live seat that has no shipment yet."""
     has_unshipped = exists(
         select(1)
         .select_from(DropApplication)
         .where(
             DropApplication.drop_id == Drop.id,
-            DropApplication.decision == accepted,
+            seat_is_live(),
             ~exists(
                 select(1)
                 .select_from(DropApplicationShipment)
@@ -86,18 +86,7 @@ def awaiting_products_no_tracking_clause() -> tuple[ColumnElement[bool], ...]:
             ),
         )
     )
-    no_accepted = ~exists(
-        select(1)
-        .select_from(DropApplication)
-        .where(
-            DropApplication.drop_id == Drop.id,
-            DropApplication.decision == accepted,
-        )
-    )
-    return (
-        Drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value,
-        or_(no_accepted, has_unshipped),
-    )
+    return (Drop.published_at.is_not(None), Drop.wrapped_at.is_(None), has_unshipped)
 
 
 async def add_shipment(
@@ -109,10 +98,13 @@ async def add_shipment(
     application = await db.get(DropApplication, application_id)
     if application is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
-    if application.decision != ApplicationDecision.ACCEPTED.value:
+    if (
+        application.decision != ApplicationDecision.ACCEPTED.value
+        or application.decision_sent_at is None
+    ):
         raise BuzzAPIException(
             errors.VALIDATION_ERROR,
-            "Tracking can only be added on an accepted organization.",
+            "Tracking can only be added once the acceptance is sent.",
             status_code=400,
         )
 

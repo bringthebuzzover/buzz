@@ -1,7 +1,8 @@
-"""``drop_tracker_events`` table — audit log for ``drops.brand_tracker_stage``.
+"""``drop_tracker_events`` table — the drop's lifecycle log.
 
-Each row records a stage transition (or an arbitrary note at the current
-stage). Admin UI replays these to render the fulfillment history.
+Each row records the computed stage at the time plus what happened
+(``published``, ``hidden``, ``decisions sent``, ``wrapped``…). Rows written
+before the lifecycle change carry the legacy tracker stage values.
 """
 
 from __future__ import annotations
@@ -13,7 +14,6 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
-from app.models.enums import BrandTrackerStageEnum
 
 
 class DropTrackerEvent(Base):
@@ -22,7 +22,7 @@ class DropTrackerEvent(Base):
     id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, primary_key=True, default=uuid.uuid4)
     drop_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("drops.id"), nullable=False)
 
-    stage: Mapped[str] = mapped_column(BrandTrackerStageEnum, nullable=False)
+    stage: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     note: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
 
     occurred_at: Mapped[datetime] = mapped_column(

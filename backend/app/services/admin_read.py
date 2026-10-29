@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy import Select, and_, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -36,6 +36,7 @@ from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
     BrandTrackerStage,
+    DropStage,
     OrgUserStatus,
     PortalRole,
     SocialMediaProductType,
@@ -55,9 +56,10 @@ from app.services.brand_ig_change_requests import pending_ig_change_for_brand
 from app.services.drop_apply_intents import list_intents_for_drop
 from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.instagram_token import REFRESH_WINDOW_DAYS
+from app.services.lifecycle import drop_stage, drop_stage_expr
 from app.services.shipments import (
-    awaiting_products_no_tracking_clause,
     shipments_by_application_ids,
+    unshipped_live_seat_clause,
 )
 from app.timeutils import utcnow
 
@@ -65,23 +67,14 @@ from app.timeutils import utcnow
 # one missed run plus clock skew before we call it stale.
 _METRIC_SYNC_STALE_HOURS = 20
 
-_ATTENTION_FILTERS = frozenset(
-    {
-        "awaiting_finalization",
-        "ready_to_advance",
-        "autoclose_overdue",
-        "reopened_stuck",
-        "no_tracking",
-    }
-)
+_ATTENTION_FILTERS = frozenset({"awaiting_decisions", "no_tracking"})
 
 # Signals worth interrupting an admin for on the overview. Ordered most to least
 # urgent; the page renders only the non-zero ones.
 _OVERVIEW_WARNING_KEYS = (
     "brand_invite_never_redeemed",
     "verification_blocked_by_ig",
-    "drop_reopened_stuck",
-    "awaiting_products_no_tracking",
+    "live_seats_no_tracking",
     "stranded_applicants",
     "denied_brand_orphan_user",
     "accepted_over_capacity",
@@ -100,8 +93,7 @@ _INTEGRITY_KEYS = (
     "denied_brand_orphan_user",
     "brand_invite_never_redeemed",
     "verification_blocked_by_ig",
-    "drop_reopened_stuck",
-    "awaiting_products_no_tracking",
+    "live_seats_no_tracking",
 )
 
 _SILENT_KEYS = (
@@ -135,8 +127,7 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
     accepted = ApplicationDecision.ACCEPTED.value
     applied = ApplicationDecision.APPLIED.value
 
-    # Drops whose accepted count exceeds capacity. Capacity is only checked per
-    # finalize call, so a reopen + second round can blow past it.
+    # Drops whose accepted count exceeds capacity (BUZZ may overbook on purpose).
     over_capacity_sq = (
         select(Drop.id)
         .join(
@@ -183,18 +174,10 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
                 User.status != OrgUserStatus.DENIED.value,
             ),
         ),
-        "drop_reopened_stuck": await _scalar_int(
+        "live_seats_no_tracking": await _scalar_int(
             db,
             select(func.count(Drop.id)).where(
-                Drop.manual_reopen.is_(True),
-                Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
-                Drop.hidden_at.is_(None),
-            ),
-        ),
-        "awaiting_products_no_tracking": await _scalar_int(
-            db,
-            select(func.count(Drop.id)).where(
-                *awaiting_products_no_tracking_clause(),
+                *unshipped_live_seat_clause(),
                 Drop.hidden_at.is_(None),
             ),
         ),
@@ -211,8 +194,9 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
             select(func.count(DropApplication.id))
             .join(Drop, Drop.id == DropApplication.drop_id)
             .where(
+                # Never decided, and the drop is already wrapped up.
                 DropApplication.decision == applied,
-                Drop.applicant_selection_finalized_at.is_not(None),
+                Drop.wrapped_at.is_not(None),
                 Drop.hidden_at.is_(None),
             ),
         ),
@@ -361,7 +345,6 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
     """
 
     now = utcnow()
-    finalizing = BrandTrackerStage.FINALIZING_AGREEMENTS.value
 
     orgs_pending = await _count_and_oldest(
         db,
@@ -376,25 +359,12 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
             Brand.status == BrandStatus.PENDING_REVIEW.value
         ),
     )
-    # Waiting on the *brand* to pick applicants. Ages from apply_close_at, which
-    # is when the ball entered their court.
-    awaiting_finalization = await _count_and_oldest(
+    # Applications closed and seats still undecided or unsent: waiting on the
+    # brand (or BUZZ). Ages from apply_close_at, when the ball entered their court.
+    awaiting_decisions = await _count_and_oldest(
         db,
         select(func.count(Drop.id), func.min(Drop.apply_close_at)).where(
-            Drop.brand_tracker_stage == finalizing,
-            Drop.applicant_selection_finalized_at.is_(None),
-            Drop.apply_close_at < now,
-            Drop.hidden_at.is_(None),
-        ),
-    )
-    # Selection is done and the tracker is behind drop_active, so an admin can
-    # move it forward.
-    ready_to_advance = await _count_and_oldest(
-        db,
-        select(func.count(Drop.id), func.min(Drop.applicant_selection_finalized_at)).where(
-            Drop.applicant_selection_finalized_at.is_not(None),
-            Drop.brand_tracker_stage.in_([finalizing, BrandTrackerStage.AWAITING_PRODUCTS.value]),
-            Drop.hidden_at.is_(None),
+            *_attention_clause("awaiting_decisions", now), Drop.hidden_at.is_(None)
         ),
     )
     ig_changes_pending = await _count_and_oldest(
@@ -505,8 +475,7 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
             {"key": "brands_ig_change_pending", **brand_ig_changes_pending},
             {"key": "orgs_ig_bind_mismatch", **ig_bind_mismatch},
             {"key": "brands_pending_review", **brands_pending},
-            {"key": "drops_awaiting_finalization", **awaiting_finalization},
-            {"key": "drops_ready_to_advance", **ready_to_advance},
+            {"key": "drops_awaiting_decisions", **awaiting_decisions},
         ],
         "warnings": [
             {"key": key, "count": counts[key]} for key in _OVERVIEW_WARNING_KEYS if counts[key] > 0
@@ -889,11 +858,11 @@ async def list_drops(
 
     stages = list(stage or [])
     attentions = list(attention or [])
-    known_stages = {member.value for member in BrandTrackerStage}
+    known_stages = {member.value for member in DropStage}
     for value in stages:
         if value not in known_stages:
             raise BuzzAPIException(
-                errors.VALIDATION_ERROR, f"Unknown tracker stage: {value}.", status_code=400
+                errors.VALIDATION_ERROR, f"Unknown drop stage: {value}.", status_code=400
             )
     for value in attentions:
         if value not in _ATTENTION_FILTERS:
@@ -920,6 +889,8 @@ async def list_drops(
         .subquery()
     )
 
+    now = utcnow()
+    stage_expr = drop_stage_expr(now)
     stmt = (
         select(
             Drop,
@@ -927,6 +898,7 @@ async def list_drops(
             Brand.status,
             func.coalesce(applied_sq.c.n, 0),
             func.coalesce(accepted_sq.c.n, 0),
+            stage_expr,
         )
         .join(Brand, Brand.id == Drop.brand_id)
         .outerjoin(applied_sq, applied_sq.c.drop_id == Drop.id)
@@ -934,7 +906,7 @@ async def list_drops(
         .order_by(Drop.created_at.desc())
     )
     if stages:
-        stmt = stmt.where(Drop.brand_tracker_stage.in_(stages))
+        stmt = stmt.where(stage_expr.in_(stages))
     if brand_id is not None:
         stmt = stmt.where(Drop.brand_id == brand_id)
     if published == "draft":
@@ -946,15 +918,9 @@ async def list_drops(
     elif not include_hidden:
         stmt = stmt.where(Drop.hidden_at.is_(None))
     if attentions:
-        now = utcnow()
         stmt = stmt.where(or_(*[and_(*_attention_clause(a, now)) for a in attentions]))
 
-    packed = [
-        (drop, brand_name, brand_status, applied_count, accepted_count)
-        for drop, brand_name, brand_status, applied_count, accepted_count in (
-            await db.execute(stmt)
-        ).all()
-    ]
+    packed = list((await db.execute(stmt)).tuples().all())
     drop_ids = [row[0].id for row in packed]
     needs_ids: set[UUID] = set()
     if drop_ids:
@@ -963,7 +929,7 @@ async def list_drops(
                 await db.scalars(
                     select(Drop.id).where(
                         Drop.id.in_(drop_ids),
-                        *awaiting_products_no_tracking_clause(),
+                        *unshipped_live_seat_clause(),
                     )
                 )
             ).all()
@@ -975,51 +941,40 @@ async def list_drops(
             "brand_name": brand_name,
             "brand_status": brand_status,
             "title": drop.title,
-            "stage": drop.brand_tracker_stage,
+            "stage": stage,
             "capacity_total": drop.capacity_total,
             "total_product_units": drop.total_product_units,
             "applied_count": int(applied_count),
             "accepted_count": int(accepted_count),
             "apply_open_at": drop.apply_open_at,
             "apply_close_at": drop.apply_close_at,
-            "manual_reopen": drop.manual_reopen,
             "needs_tracking": drop.id in needs_ids,
             "campaign_hashtag": drop.campaign_hashtag,
-            "finalized_at": drop.applicant_selection_finalized_at,
+            "wrapped_at": drop.wrapped_at,
             "published_at": drop.published_at,
             "hidden_at": drop.hidden_at,
             "drop_request_id": drop.drop_request_id,
             "created_at": drop.created_at,
         }
-        for drop, brand_name, brand_status, applied_count, accepted_count in packed
+        for drop, brand_name, brand_status, applied_count, accepted_count, stage in packed
     ]
 
 
 def _attention_clause(attention: str, now: datetime) -> tuple[Any, ...]:
-    finalizing = BrandTrackerStage.FINALIZING_AGREEMENTS.value
-    if attention == "awaiting_finalization":
+    if attention == "awaiting_decisions":
+        undecided_or_unsent = exists(
+            select(DropApplication.id).where(
+                DropApplication.drop_id == Drop.id,
+                DropApplication.decision_sent_at.is_(None),
+            )
+        )
         return (
-            Drop.brand_tracker_stage == finalizing,
-            Drop.applicant_selection_finalized_at.is_(None),
+            Drop.published_at.is_not(None),
+            Drop.wrapped_at.is_(None),
             Drop.apply_close_at < now,
+            undecided_or_unsent,
         )
-    if attention == "ready_to_advance":
-        return (
-            Drop.applicant_selection_finalized_at.is_not(None),
-            Drop.brand_tracker_stage.in_([finalizing, BrandTrackerStage.AWAITING_PRODUCTS.value]),
-        )
-    if attention == "autoclose_overdue":
-        return (
-            Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
-            Drop.manual_reopen.is_(False),
-            Drop.apply_close_at < now,
-        )
-    if attention == "reopened_stuck":
-        return (
-            Drop.manual_reopen.is_(True),
-            Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
-        )
-    return awaiting_products_no_tracking_clause()
+    return unshipped_live_seat_clause()
 
 
 async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
@@ -1096,6 +1051,7 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
                 "linked_post_count": int(linked or 0),
                 "applied_at": application.applied_at,
                 "decision_at": application.decision_at,
+                "decision_sent_at": application.decision_sent_at,
             }
         )
 
@@ -1165,26 +1121,21 @@ async def get_drop_detail(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
         "description": drop.description,
         "image": drop.image,
         "location": drop.location,
-        "stage": drop.brand_tracker_stage,
+        "stage": await drop_stage(db, drop),
         "capacity_total": drop.capacity_total,
         "total_product_units": drop.total_product_units,
         "allocated_units": allocated,
         "campaign_hashtag": drop.campaign_hashtag,
         "brand_can_edit_creative": drop.brand_can_edit_creative,
-        "needs_tracking": drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value
-        and (
+        "needs_tracking": (
             await db.scalar(
-                select(Drop.id).where(
-                    Drop.id == drop.id,
-                    *awaiting_products_no_tracking_clause(),
-                )
+                select(Drop.id).where(Drop.id == drop.id, *unshipped_live_seat_clause())
             )
         )
         is not None,
-        "manual_reopen": drop.manual_reopen,
         "apply_open_at": drop.apply_open_at,
         "apply_close_at": drop.apply_close_at,
-        "finalized_at": drop.applicant_selection_finalized_at,
+        "wrapped_at": drop.wrapped_at,
         "published_at": drop.published_at,
         "hidden_at": drop.hidden_at,
         "drop_request_id": drop.drop_request_id,

@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from httpx import AsyncClient
 from sqlalchemy import func, select
 
-from app.models.enums import ApplicationDecision, SocialMediaProductType
+from app.models.enums import ApplicationDecision, PortalRole, SocialMediaProductType
 from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
+from app.security import jwt
+from app.services.lifecycle import ORG_LINK_GRACE
+from app.timeutils import utcnow
 from tests.conftest import (
     make_application,
     make_brand,
@@ -259,19 +264,56 @@ async def test_link_then_unlink_rearms_own_suggestion(app_client: AsyncClient, d
     assert own.dismissed_at is None
 
 
-async def test_link_post_rejected_when_drop_finished(app_client: AsyncClient, db_session) -> None:
-    from app.models.enums import BrandTrackerStage
-
-    user, org, drop, application, headers = await _campaign_ctx(db_session)
-    drop.brand_tracker_stage = BrandTrackerStage.DROP_FINISHED.value
-    await db_session.flush()
-    post = await make_social_post(db_session, org)
-    resp = await app_client.post(
+async def _link(app_client, application, post, headers):
+    return await app_client.post(
         f"/api/campaigns/{application.id}/link-post",
         headers=headers,
         json={"postId": str(post.id)},
     )
+
+
+async def test_link_post_open_within_grace_after_wrap(app_client: AsyncClient, db_session) -> None:
+    _, org, drop, application, headers = await _campaign_ctx(db_session)
+    drop.wrapped_at = utcnow() - ORG_LINK_GRACE + timedelta(days=1)
+    await db_session.flush()
+    post = await make_social_post(db_session, org)
+    assert (await _link(app_client, application, post, headers)).status_code == 200
+
+
+async def test_link_post_rejected_past_grace(app_client: AsyncClient, db_session) -> None:
+    _, org, drop, application, headers = await _campaign_ctx(db_session)
+    drop.wrapped_at = utcnow() - ORG_LINK_GRACE - timedelta(days=1)
+    await db_session.flush()
+    post = await make_social_post(db_session, org)
+    resp = await _link(app_client, application, post, headers)
     assert resp.status_code == 400
+    unlink = await app_client.request(
+        "DELETE",
+        f"/api/campaigns/{application.id}/link-post",
+        headers=headers,
+        json={"postId": str(post.id)},
+    )
+    assert unlink.status_code == 400
+
+
+async def test_buzz_view_as_links_past_grace(app_client: AsyncClient, db_session) -> None:
+    """BUZZ (View as, writable) can always link a post, e.g. for a retro."""
+    user, org, drop, application, _ = await _campaign_ctx(db_session)
+    drop.wrapped_at = utcnow() - ORG_LINK_GRACE - timedelta(days=30)
+    await db_session.flush()
+    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
+    token = jwt.create_access_token(
+        user.id,
+        user.portal_role,
+        user.status,
+        token_version=user.token_version or 0,
+        impersonated_by=admin.id,
+        impersonator_token_version=admin.token_version or 0,
+        readonly=False,
+    )
+    post = await make_social_post(db_session, org)
+    resp = await _link(app_client, application, post, {"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200, resp.text
 
 
 async def test_link_post_rejects_story(app_client: AsyncClient, db_session) -> None:

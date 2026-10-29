@@ -1,13 +1,10 @@
 /**
- * Pure helpers that derive a drop's org-facing feed status (Upcoming / Open / Closed)
- * from its timing fields, current capacity fill, and the manual-reopen override.
+ * Pure helpers that derive a drop's org-facing feed chip (Upcoming / Open / Closed)
+ * from the API stage, the live clock, and capacity fill.
  *
- * Spec rules (buzz-ops product/PRODUCT.md §6.3 / §7.1–§7.2):
  * - Before `applyOpenAt`: Upcoming.
- * - After `applyCloseAt`: Closed (unless `manualReopen === true`).
- * - When `acceptedCount >= capacityTotal`: Closed (full) — post-selection or
- *   reopen leftovers; in a normal first Open window `acceptedCount` stays 0
- *   until batch finalize after close.
+ * - Wrapped, past `applyCloseAt`, or full: Closed. Reopening is just BUZZ
+ *   moving the close date, so the clock alone decides the window.
  * - Otherwise: Open.
  *
  * `getDropClosedReason` returns a tag for UI copy ("apply window ended" vs "all spots filled").
@@ -39,11 +36,10 @@ export function getDropFeedStatus(
   acceptedCount: number,
   now: number
 ): DropFeedStatus {
+  if (drop.stage === "wrapped") return "closed";
   if (now < drop.applyOpenAt) return "upcoming";
   if (isDropFull(drop, acceptedCount)) return "closed";
-  // Finalized selection closes new applies even if manual_reopen was left true.
-  if (drop.applicantSelectionFinalizedAt != null) return "closed";
-  if (now > drop.applyCloseAt && !drop.manualReopen) return "closed";
+  if (now > drop.applyCloseAt) return "closed";
   return "open";
 }
 
@@ -57,8 +53,8 @@ export function getDropClosedReason(
   now: number
 ): DropClosedReason | null {
   if (getDropFeedStatus(drop, acceptedCount, now) !== "closed") return null;
+  if (drop.stage === "wrapped") return "manual";
   if (isDropFull(drop, acceptedCount)) return "spots_filled";
-  if (drop.applicantSelectionFinalizedAt != null) return "manual";
   if (now > drop.applyCloseAt) return "apply_window_ended";
   return "manual";
 }

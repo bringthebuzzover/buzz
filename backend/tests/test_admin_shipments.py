@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from uuid import UUID
 
 from httpx import AsyncClient
 
-from app.models.enums import ApplicationDecision, BrandTrackerStage, PortalRole
+from app.models.enums import ApplicationDecision, PortalRole
 from app.models.shipment import DropApplicationShipment
 from app.services.shipments import infer_carrier
 from tests.conftest import (
@@ -24,7 +23,7 @@ from tests.conftest import (
 
 async def _accepted_seat(db_session):
     brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+    drop = await make_drop(db_session, brand)
     org_user = await persist(db_session, make_user(role=PortalRole.ORG))
     org = await make_org(db_session, org_user)
     app = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
@@ -97,6 +96,20 @@ class TestAdminShipments:
         assert override.status_code == 200
         assert override.json()["data"]["carrier"] == "fedex"
 
+    async def test_unsent_acceptance_has_no_tracking(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        org = await make_org(db_session, await persist(db_session, make_user(role=PortalRole.ORG)))
+        app = await make_application(
+            db_session, drop, org, decision=ApplicationDecision.ACCEPTED, sent=False
+        )
+        res = await app_client.post(
+            f"/api/admin/applications/{app.id}/shipments",
+            json={"trackingNumber": "1Z3V817W0392590700"},
+            headers=await admin_headers(db_session),
+        )
+        assert res.status_code == 400
+
     async def test_uniqueness(self, app_client: AsyncClient, db_session):
         _, _, app = await _accepted_seat(db_session)
         headers = await admin_headers(db_session)
@@ -141,21 +154,6 @@ class TestAdminShipments:
         )
         assert other.status_code == 404
 
-    async def test_advance_without_tn(self, app_client: AsyncClient, db_session):
-        brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
-        drop.applicant_selection_finalized_at = datetime.now(timezone.utc)
-        await db_session.flush()
-        res = await app_client.patch(
-            f"/api/admin/drops/{drop.id}/tracker",
-            json={"stage": "awaiting_products"},
-            headers=await admin_headers(db_session),
-        )
-        assert res.status_code == 200
-        await db_session.refresh(drop)
-        assert drop.tracking_number is None
-        assert drop.brand_tracker_stage == BrandTrackerStage.AWAITING_PRODUCTS.value
-
     async def test_applied_rejected(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand)
@@ -190,7 +188,7 @@ class TestAdminShipments:
 class TestBrandSeesPerOrg:
     async def test_brand_detail_lists_seat_shipments(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+        drop = await make_drop(db_session, brand)
         org_user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, org_user)
         app = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)

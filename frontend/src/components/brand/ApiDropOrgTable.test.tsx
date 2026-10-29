@@ -21,6 +21,7 @@ const erased: BrandDropApplicant = {
   pitch: null,
   decision: "accepted",
   decisionAt: Date.now(),
+  decisionSentAt: Date.now(),
   appliedAt: Date.now(),
   allocatedUnits: null,
   deliveryAddress: null,

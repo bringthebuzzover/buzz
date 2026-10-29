@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
-from pydantic import ConfigDict, field_serializer, field_validator
+from pydantic import ConfigDict, Field, field_serializer, field_validator
 from pydantic.alias_generators import to_camel
 
+from app.models.enums import DropStage
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 from app.schemas.posts import ReelsSkipRate
 from app.schemas.shipments import ShipmentItem
@@ -133,11 +135,9 @@ class BrandDropListItem(CamelModel):
     capacity_total: int
     apply_open_at: datetime
     apply_close_at: datetime
-    manual_reopen: bool
-    brand_tracker_stage: str
+    stage: DropStage
     total_product_units: int | None
     campaign_hashtag: str | None
-    applicant_selection_finalized_at: datetime | None
     created_at: datetime
     # Per-drop aggregate (from computeDropAggregate / metrics.ts)
     total_posts: int
@@ -149,10 +149,6 @@ class BrandDropListItem(CamelModel):
     @field_serializer("apply_open_at", "apply_close_at", "created_at")
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
-
-    @field_serializer("applicant_selection_finalized_at")
-    def _epoch_optional(self, value: datetime | None) -> int | None:
-        return to_epoch_ms(value)
 
 
 class BrandDropPostItem(CamelModel):
@@ -209,6 +205,8 @@ class BrandDropDetailApplicant(CamelModel):
     allocated_units: int | None
     applied_at: datetime
     decision_at: datetime | None
+    # Null until "Send decisions" (a drafted decision the org can't see yet).
+    decision_sent_at: datetime | None
     # Joined org profile
     org_name: str
     university: str
@@ -231,7 +229,7 @@ class BrandDropDetailApplicant(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("decision_at", "metrics_frozen_at")
+    @field_serializer("decision_at", "decision_sent_at", "metrics_frozen_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
@@ -249,12 +247,10 @@ class BrandDropDetailResponse(CamelModel):
     capacity_total: int
     apply_open_at: datetime
     apply_close_at: datetime
-    manual_reopen: bool
-    brand_tracker_stage: str
+    stage: DropStage
     total_product_units: int | None
     campaign_hashtag: str | None
     brand_can_edit_creative: bool
-    applicant_selection_finalized_at: datetime | None
     created_at: datetime
     published_at: datetime | None = None
     applications: list[BrandDropDetailApplicant]
@@ -269,7 +265,7 @@ class BrandDropDetailResponse(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("applicant_selection_finalized_at", "published_at")
+    @field_serializer("published_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
@@ -307,24 +303,11 @@ class BrandDropCreativePatch(CamelModel):
         return value
 
 
-class FinalizeAllocation(CamelModel):
-    """One (org, units) entry in a finalize-applicants request (§8.3)."""
+class SeatDecisionRequest(CamelModel):
+    """Draft one seat's decision (``applied`` = back to undecided)."""
 
-    org_id: uuid.UUID
-    units: int = 0
-
-    @field_validator("units")
-    @classmethod
-    def _non_negative(cls, value: int) -> int:
-        if value < 0:
-            raise ValueError("units must be >= 0")
-        return value
-
-
-class FinalizeApplicantsRequest(CamelModel):
-    """Body for ``POST /api/brands/me/drops/{id}/finalize-applicants`` (§8.3)."""
-
-    allocations: list[FinalizeAllocation]
+    decision: Literal["applied", "accepted", "denied"]
+    allocated_units: int | None = Field(default=None, ge=0)
 
 
 class BrandAggregateResponse(CamelModel):

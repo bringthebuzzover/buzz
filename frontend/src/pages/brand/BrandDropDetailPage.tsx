@@ -12,21 +12,25 @@ import DropKPISummary from "../../components/brand/DropKPISummary";
 import DropStageBadge from "../../components/brand/DropStageBadge";
 import {
   useBrandDropDetail,
-  useFinalizeApplicants,
   usePatchBrandDropCreative,
+  useSendDecisions,
+  useSetSeatDecision,
 } from "../../api/hooks/useBrandHooks";
 import type { BrandDropDetail, BrandDropApplicant } from "../../api/hooks/useBrandHooks";
 import { ApiError } from "../../api/errors";
 import { useMemo, useState } from "react";
 import { orgCategoryLabel } from "../../types/orgCategory";
-import type { BrandDropTrackerStage } from "../../types/brandPortal";
+import {
+  SeatDecisionSelect,
+  SendDecisionsBar,
+  type SeatDecision,
+} from "../../components/drop/SeatDecisions";
 import PageShell from "../../components/site/PageShell";
 import { Card, CardHeader } from "../../components/ui/Card";
 import { EmptyState, Loader } from "../../components/ui/EmptyState";
 import { BackLink, PageHeader } from "../../components/ui/PageHeader";
 import { StatePanel } from "../../components/ui/StatePanel";
 import { Table, TBody, THead, Td, Th, Tr } from "../../components/ui/Table";
-import { Toggle } from "../../components/ui/Toggle";
 import {
   Button,
   ErrorBanner,
@@ -42,7 +46,10 @@ import CopyPublicDropUrl from "../../components/drop/CopyPublicDropUrl";
 
 const backLink = <BackLink to="/brand/dashboard">Back to dashboard</BackLink>;
 
-/** Editable applicant table — only while selection is open. */
+/**
+ * Applicants still waiting on a sent decision. Each change saves a private
+ * draft; "Send decisions" emails the orgs and locks those seats.
+ */
 function ApiApplicantTable({
   applicants,
   dropId,
@@ -55,103 +62,75 @@ function ApiApplicantTable({
   totalProductUnits: number | null | undefined;
 }) {
   const mdUp = useMdUp();
-  const finalizeMutation = useFinalizeApplicants(dropId);
+  const decide = useSetSeatDecision(dropId);
+  const send = useSendDecisions(dropId);
   const showUnits = totalProductUnits != null;
-  // Explicit accept selection: finalize ACCEPTS the checked orgs and DENIES every
-  // other *pending* applicant (an irreversible, email-triggering action). Without
-  // explicit checkboxes an empty submit silently denied everyone (§7.1 footgun).
-  const [accepted, setAccepted] = useState<Record<string, boolean>>({});
-  const [allocations, setAllocations] = useState<Record<string, number>>({});
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [finalizeConfirmOpen, setFinalizeConfirmOpen] = useState(false);
 
-  // After reopen, prior accepted/denied rows remain — selection only mutates applied.
-  const pending = useMemo(
-    () => applicants.filter((a) => a.decision === "applied" && !a.accountErased),
+  const open = useMemo(
+    () => applicants.filter((a) => a.decisionSentAt == null && !a.accountErased),
     [applicants],
   );
-  const priorAccepted = useMemo(
-    () => applicants.filter((a) => a.decision === "accepted"),
-    [applicants],
-  );
-  const seatsTaken = priorAccepted.length;
-  const unitsTaken = priorAccepted.reduce((s, a) => s + (a.allocatedUnits ?? 0), 0);
-  const remainingCapacity = Math.max(0, capacityTotal - seatsTaken);
-  const remainingUnits =
-    totalProductUnits != null ? Math.max(0, totalProductUnits - unitsTaken) : null;
+  // Capacity counts every acceptance, sent or drafted.
+  const accepted = applicants.filter((a) => a.decision === "accepted");
+  const unitsTaken = accepted.reduce((s, a) => s + (a.allocatedUnits ?? 0), 0);
 
   const categories = useMemo(() => {
     const present = new Set<string>();
-    pending.forEach((a) => {
+    open.forEach((a) => {
       if (a.category) present.add(a.category);
     });
     return Array.from(present).sort();
-  }, [pending]);
+  }, [open]);
 
   const visible =
-    categoryFilter === "all"
-      ? pending
-      : pending.filter((a) => a.category === categoryFilter);
+    categoryFilter === "all" ? open : open.filter((a) => a.category === categoryFilter);
 
-  // Counts span ALL pending applicants, not just the filtered view — finalize
-  // denies every unaccepted pending applicant regardless of the category filter.
-  const acceptedCount = pending.filter((a) => accepted[a.orgId]).length;
-  const deniedCount = pending.length - acceptedCount;
-
-  const handleFinalize = () => {
-    const payload = pending
-      .filter((a) => accepted[a.orgId])
-      .map((a) => ({ orgId: a.orgId, units: allocations[a.orgId] ?? 0 }));
-    finalizeMutation.mutate(payload, {
-      onSuccess: () => setFinalizeConfirmOpen(false),
+  const setDecision = (app: BrandDropApplicant, decision: SeatDecision, units?: number) =>
+    decide.mutate({
+      applicationId: app.id,
+      decision,
+      allocatedUnits: decision === "accepted" && showUnits ? (units ?? app.allocatedUnits ?? 0) : null,
     });
-  };
 
-  const totalAllocated = pending
-    .filter((a) => accepted[a.orgId])
-    .reduce((s, a) => s + (allocations[a.orgId] ?? 0), 0);
-
-  const toggleAccept = (app: BrandDropApplicant) => (
-    <Toggle
-      aria-label={`Accept ${app.orgName}`}
-      checked={!!accepted[app.orgId]}
-      onChange={(next) => setAccepted((prev) => ({ ...prev, [app.orgId]: next }))}
+  const decisionField = (app: BrandDropApplicant) => (
+    <SeatDecisionSelect
+      id={app.id}
+      orgName={app.orgName}
+      value={app.decision}
+      disabled={decide.isPending}
+      onChange={(next) => setDecision(app, next)}
     />
   );
 
   const unitsField = (
     app: BrandDropApplicant,
     props: { label?: string; className: string },
-  ) => {
-    const isAccepted = !!accepted[app.orgId];
-    return (
-      <TextField
-        id={`units-${app.orgId}`}
-        type="number"
-        min={0}
-        size="compact"
-        disabled={!isAccepted}
-        value={isAccepted ? (allocations[app.orgId] ?? 0) : 0}
-        onChange={(e) =>
-          setAllocations((prev) => ({
-            ...prev,
-            [app.orgId]: Math.max(0, parseInt(e.target.value, 10) || 0),
-          }))
-        }
-        {...props}
-      />
-    );
-  };
+  ) => (
+    <TextField
+      key={`${app.id}-${app.allocatedUnits ?? 0}`}
+      id={`units-${app.orgId}`}
+      type="number"
+      min={0}
+      size="compact"
+      disabled={app.decision !== "accepted" || decide.isPending}
+      defaultValue={app.decision === "accepted" ? (app.allocatedUnits ?? 0) : 0}
+      onBlur={(e) => {
+        const units = Math.max(0, parseInt(e.target.value, 10) || 0);
+        if (units !== (app.allocatedUnits ?? 0)) setDecision(app, "accepted", units);
+      }}
+      {...props}
+    />
+  );
 
-  // Quiet paper falls just under AA on the yellow wash, so a selected row uses muted.
+  // Quiet paper falls just under AA on the yellow wash, so an accepted row uses muted.
   const subtle = (app: BrandDropApplicant) =>
-    accepted[app.orgId] ? "text-muted" : "text-quiet";
+    app.decision === "accepted" ? "text-muted" : "text-quiet";
 
   const shipToLine = (app: BrandDropApplicant) =>
     app.accountErased ? null : (
       <p className={cn("mt-1 text-xs", subtle(app))}>
-        Ship to:{" "}
-        {app.deliveryAddress || <AddressPending />}
+        Ship to: {app.deliveryAddress || <AddressPending />}
       </p>
     );
 
@@ -159,16 +138,7 @@ function ApiApplicantTable({
     <Card kind="panel" pad="card" className="flex flex-col gap-5">
       <CardHeader
         title="Applicants"
-        description={
-          <>
-            Capacity: {acceptedCount} of {remainingCapacity} remaining spots
-            {seatsTaken > 0 ? ` (${seatsTaken} already accepted)` : ""}
-            {showUnits && remainingUnits != null
-              ? ` · ${totalAllocated} of ${remainingUnits} remaining units`
-              : ""}
-            {showUnits && unitsTaken > 0 ? ` (${unitsTaken} already allocated)` : ""}
-          </>
-        }
+        description="Decisions stay private drafts until you send them."
         actions={
           categories.length > 0 ? (
             <Select
@@ -189,7 +159,7 @@ function ApiApplicantTable({
         className="mb-0"
       />
       {visible.length === 0 ? (
-        <EmptyState>No pending applicants.</EmptyState>
+        <EmptyState>No applicants waiting on a decision.</EmptyState>
       ) : !mdUp ? (
         <ul className="flex flex-col gap-3">
           {visible.map((app) => (
@@ -197,26 +167,24 @@ function ApiApplicantTable({
               key={app.id}
               className={cn(
                 SURFACE.inset,
-                "flex items-start gap-3 p-4",
-                accepted[app.orgId] && "bg-accent-wash",
+                "flex flex-col gap-3 p-4",
+                app.decision === "accepted" && "bg-accent-wash",
               )}
             >
-              {toggleAccept(app)}
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0">
                 <p className={cn(TEXT.body, "font-medium text-primary")}>{app.orgName}</p>
                 <p className={cn(TEXT.body, subtle(app))}>
                   {app.university}
                   {app.category ? ` · ${orgCategoryLabel(app.category)}` : ""}
                   {` · ${app.followerCount ?? "-"} followers`}
                 </p>
-                <p className={cn(TEXT.body, "mt-1", subtle(app))}>
-                  {app.instagramHandle}
-                </p>
+                <p className={cn(TEXT.body, "mt-1", subtle(app))}>{app.instagramHandle}</p>
                 <p className={cn(TEXT.body, "mt-2 text-primary")}>{app.pitch ?? "—"}</p>
                 {shipToLine(app)}
-                {showUnits
-                  ? unitsField(app, { label: "Units", className: "mt-2 w-24" })
-                  : null}
+              </div>
+              <div className="flex flex-wrap items-end gap-3">
+                {decisionField(app)}
+                {showUnits ? unitsField(app, { label: "Units", className: "w-24" }) : null}
               </div>
             </li>
           ))}
@@ -225,7 +193,7 @@ function ApiApplicantTable({
         <Table>
           <THead>
             <tr>
-              <Th className="w-20">Accept</Th>
+              <Th className="w-36">Decision</Th>
               <Th>Organization</Th>
               <Th className="w-48">University</Th>
               <Th className="w-28">Type</Th>
@@ -237,8 +205,8 @@ function ApiApplicantTable({
           </THead>
           <TBody>
             {visible.map((app) => (
-              <Tr key={app.id} className={cn(accepted[app.orgId] && "bg-accent-wash")}>
-                <Td>{toggleAccept(app)}</Td>
+              <Tr key={app.id} className={cn(app.decision === "accepted" && "bg-accent-wash")}>
+                <Td>{decisionField(app)}</Td>
                 <Td>
                   <div className="text-primary">{app.orgName}</div>
                   {shipToLine(app)}
@@ -257,72 +225,18 @@ function ApiApplicantTable({
         </Table>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
-        <span className={cn(TEXT.body, "text-muted")}>
-          Accept {acceptedCount} · Deny {deniedCount}
-          {showUnits ? ` · ${totalAllocated} units allocated` : ""}
-        </span>
-        {finalizeConfirmOpen ? null : (
-          <Button
-            type="button"
-            data-testid="finalize-selection"
-            onClick={() => setFinalizeConfirmOpen(true)}
-            disabled={finalizeMutation.isPending}
-          >
-            Finalize Selection
-          </Button>
-        )}
-      </div>
-      {finalizeConfirmOpen ? (
-        <div
-          className={cn(SURFACE.inset, "flex flex-col gap-3 p-4")}
-          role="region"
-          aria-label="Confirm finalize"
-        >
-          <p className={cn(TEXT.body, "text-primary")}>
-            Accept {acceptedCount}{" "}
-            {acceptedCount === 1 ? "organization" : "organizations"} · Deny {deniedCount}{" "}
-            {deniedCount === 1 ? "organization" : "organizations"}. Denied applicants are
-            emailed and this cannot be undone.
-          </p>
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              data-testid="finalize-cancel"
-              disabled={finalizeMutation.isPending}
-              onClick={() => setFinalizeConfirmOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              data-testid="finalize-confirm"
-              disabled={finalizeMutation.isPending}
-              onClick={handleFinalize}
-            >
-              {finalizeMutation.isPending ? "Finalizing..." : "Confirm finalize"}
-            </Button>
-          </div>
-        </div>
-      ) : null}
-      {finalizeMutation.isSuccess ? (
-        <SuccessBanner>Selection finalized.</SuccessBanner>
-      ) : null}
-      {finalizeMutation.error ? (
-        <ErrorBanner>
-          {finalizeMutation.error instanceof Error
-            ? finalizeMutation.error.message
-            : "Failed to finalize."}
-        </ErrorBanner>
-      ) : null}
+      <SendDecisionsBar
+        seats={applicants}
+        pending={send.isPending}
+        error={decide.error ? decide.error.message : null}
+        onSend={() => send.mutateAsync()}
+        note={
+          `${accepted.length} of ${capacityTotal} spots` +
+          (showUnits ? ` · ${unitsTaken} of ${totalProductUnits} units` : "")
+        }
+      />
     </Card>
   );
-}
-
-/** Read-only accepted roster after finalize (before live KPIs). */
-function FinalizedRoster({ applicants }: { applicants: BrandDropApplicant[] }) {
-  return <ApiDropOrgTable applicants={applicants} title="Selected organizations" />;
 }
 
 /** Campaign creative editor — only when admin sets brandCanEditCreative. */
@@ -446,18 +360,10 @@ function ApiDropDetail() {
     );
   }
 
-  const stage = detail.brandTrackerStage;
-  const showResults =
-    stage === "awaiting_products" || stage === "drop_active" || stage === "drop_finished";
-  const canEditSelection =
-    detail.applicantSelectionFinalizedAt == null &&
-    (stage === "finalizing_agreements" ||
-      (stage === "request_received" &&
-        !detail.manualReopen &&
-        Date.now() > detail.applyCloseAt));
-  const showFinalizedRoster =
-    detail.applicantSelectionFinalizedAt != null &&
-    stage === "finalizing_agreements";
+  const stage = detail.stage;
+  const showResults = stage === "live" || stage === "wrapped";
+  // Brands decide after applications close and until BUZZ wraps the drop.
+  const canDecide = stage === "selecting" || stage === "live";
 
   const aggregateMetrics = {
     dropId: detail.id,
@@ -481,11 +387,11 @@ function ApiDropDetail() {
         {detail.publishedAt != null ? <CopyPublicDropUrl dropId={detail.id} /> : null}
       </div>
 
-      <BrandDropTrackerStepper currentStage={stage as BrandDropTrackerStage} />
+      <BrandDropTrackerStepper currentStage={stage} />
 
       {detail.brandCanEditCreative ? <BrandCampaignEditor detail={detail} /> : null}
 
-      {canEditSelection ? (
+      {canDecide ? (
         <ApiApplicantTable
           applicants={detail.applications ?? []}
           dropId={detail.id}
@@ -494,16 +400,12 @@ function ApiDropDetail() {
         />
       ) : null}
 
-      {showFinalizedRoster && !showResults ? (
-        <FinalizedRoster applicants={detail.applications ?? []} />
-      ) : null}
-
       {showResults ? (
         <>
           <DropKPISummary metrics={aggregateMetrics} />
           <ApiDropOrgTable applicants={detail.applications ?? []} />
         </>
-      ) : !canEditSelection && !showFinalizedRoster ? (
+      ) : !canDecide ? (
         <StatePanel>Posts and KPIs will appear here once your drop goes live.</StatePanel>
       ) : null}
     </PageShell>

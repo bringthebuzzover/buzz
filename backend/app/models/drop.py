@@ -54,7 +54,8 @@ class Drop(Base):
         sa.Boolean, nullable=False, server_default=sa.text("false")
     )
 
-    brand_tracker_stage: Mapped[str] = mapped_column(BrandTrackerStageEnum, nullable=False)
+    # Legacy; unwritten. Stage is computed (``app.services.lifecycle``).
+    brand_tracker_stage: Mapped[str | None] = mapped_column(BrandTrackerStageEnum, nullable=True)
     tracking_number: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
 
     total_product_units: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
@@ -68,6 +69,9 @@ class Drop(Base):
     )
     published_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
     hidden_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    # BUZZ wrapped the drop up (reporting period over). Not a lock: BUZZ can
+    # still late-add, and orgs can link for ``ORG_LINK_GRACE`` after this.
+    wrapped_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
     drop_request_id: Mapped[uuid.UUID | None] = mapped_column(
         sa.Uuid,
         sa.ForeignKey("drop_requests.id", use_alter=True, name="fk_drops_drop_request_id"),

@@ -1,15 +1,13 @@
 """Post auto-link suggestion scan (buzz-ops engineering/architecture.md §10.4).
 
-For every accepted application whose drop is ``awaiting_products`` or
-``drop_active`` and whose brand has an Instagram handle, scan the org's recent
-posts for a mention of the brand handle (or the campaign hashtag) and write a
-``post_campaign_suggestions`` row the org can one-tap confirm (§7.4.1). Never
-auto-confirms — the org must accept.
+For every live seat (accepted and sent) whose brand has an Instagram handle,
+scan the org's recent posts for a mention of the brand handle (or the campaign
+hashtag) and write a ``post_campaign_suggestions`` row the org can one-tap
+confirm (§7.4.1). Never auto-confirms — the org must accept.
 
-Mint matches the org linker: it is on during Awaiting Products (an org may
-post before the campaign-wide stage moves) and while Active. ``drop_finished``
-is excluded: the org UI is read-only there, so new pending suggestions would
-sit forever. This tuple is independent of ``metric_sync._LIVE_STAGES``.
+The scan follows the org linker: it runs until the org's link grace after wrap
+ends (``lifecycle.autolink_open``), so no suggestion outlives the org's ability
+to confirm it.
 
 Idempotent via ``UNIQUE(post_id, application_id)`` (a re-insert is skipped), so
 this is safe to run on a cron. (An on-demand re-scan endpoint — e.g. when an org
@@ -34,8 +32,6 @@ from app.models.application import DropApplication
 from app.models.brand import Brand
 from app.models.drop import Drop
 from app.models.enums import (
-    ApplicationDecision,
-    BrandTrackerStage,
     OrgUserStatus,
     SocialMediaProductType,
     SuggestionMatchReason,
@@ -45,13 +41,8 @@ from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
 from app.models.social_post import SocialPost
 from app.models.user import User
+from app.services.lifecycle import autolink_open, seat_is_live
 
-# Stages where new suggestions are mintable and actionable in org UI.
-# Independent of metric_sync._LIVE_STAGES (which also includes drop_finished).
-_MINT_STAGES = (
-    BrandTrackerStage.AWAITING_PRODUCTS.value,
-    BrandTrackerStage.DROP_ACTIVE.value,
-)
 # We only auto-suggest FEED + REELS (not STORY/AD).
 _SUGGESTABLE = (SocialMediaProductType.FEED.value, SocialMediaProductType.REELS.value)
 _PRE_WINDOW = timedelta(days=7)  # teaser posts just before the drop opens
@@ -155,7 +146,7 @@ async def scan_autolink(
 ) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
 
-    # Accepted applications on live drops whose brand has a handle to match on.
+    # Live seats on drops the org can still link to, whose brand has a handle.
     stmt = (
         select(DropApplication, Drop, Brand)
         .join(Drop, Drop.id == DropApplication.drop_id)
@@ -163,9 +154,8 @@ async def scan_autolink(
         .join(Organization, Organization.id == DropApplication.org_id)
         .join(User, User.id == Organization.user_id)
         .where(
-            DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-            Drop.brand_tracker_stage.in_(_MINT_STAGES),
-            Drop.hidden_at.is_(None),
+            seat_is_live(),
+            autolink_open(),
             Brand.instagram_handle.isnot(None),
             User.status != OrgUserStatus.ERASED.value,
         )

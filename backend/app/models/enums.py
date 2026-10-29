@@ -86,11 +86,27 @@ class ApplicationDecision(StrEnum):
     DENIED = "denied"
 
 
+class DropStage(StrEnum):
+    """Computed drop stage (``app.services.lifecycle``; never stored).
+
+    ``draft`` → ``upcoming`` → ``applying`` → ``selecting`` → ``live`` →
+    ``wrapped``. Only draft (unpublished) and wrapped (``wrapped_at``) come
+    from a BUZZ click; the rest follow from the apply dates and the seats.
+    Hidden is a separate flag (``drops.hidden_at``), not a stage.
+    """
+
+    DRAFT = "draft"
+    UPCOMING = "upcoming"
+    APPLYING = "applying"
+    SELECTING = "selecting"
+    LIVE = "live"
+    WRAPPED = "wrapped"
+
+
 class BrandTrackerStage(StrEnum):
-    """Fulfillment tracker stages for a drop (``drops.brand_tracker_stage``,
-    ``drop_tracker_events.stage``). Order matches architecture §8.5 state machine:
-    ``request_received → finalizing_agreements → awaiting_products → drop_active →
-    drop_finished``."""
+    """Legacy tracker stages (``drops.brand_tracker_stage``, now nullable and
+    unwritten). Nothing reads them except the legacy ``request_received`` stub
+    cleanup; the column goes away with them. ``DropStage`` replaces them."""
 
     REQUEST_RECEIVED = "request_received"
     FINALIZING_AGREEMENTS = "finalizing_agreements"

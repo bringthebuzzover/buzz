@@ -20,6 +20,7 @@ from pydantic import (
 )
 from pydantic.alias_generators import to_camel
 
+from app.models.enums import DropStage
 from app.schemas.auth import UserResponse
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 from app.schemas.shipments import ShipmentItem
@@ -36,11 +37,6 @@ def _epoch_ms_to_aware(value: Any) -> Any:
     if not isinstance(value, int):
         raise ValueError("must be an epoch-ms integer")
     return datetime.fromtimestamp(value / 1000.0, tz=timezone.utc)
-
-
-class TrackerAdvanceRequest(CamelModel):
-    stage: str
-    note: str | None = None
 
 
 class AdminDropConfigPatch(CamelModel):
@@ -477,17 +473,16 @@ class AdminDropItem(CamelModel):
     brand_name: str
     brand_status: str
     title: str
-    stage: str
+    stage: DropStage
     capacity_total: int
     total_product_units: int | None
     applied_count: int
     accepted_count: int
     apply_open_at: datetime
     apply_close_at: datetime
-    manual_reopen: bool
     needs_tracking: bool
     campaign_hashtag: str | None
-    finalized_at: datetime | None
+    wrapped_at: datetime | None = None
     published_at: datetime | None = None
     hidden_at: datetime | None = None
     drop_request_id: uuid.UUID | None = None
@@ -497,7 +492,7 @@ class AdminDropItem(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("finalized_at", "published_at", "hidden_at")
+    @field_serializer("wrapped_at", "published_at", "hidden_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
@@ -588,12 +583,13 @@ class AdminApplicantItem(CamelModel):
     linked_post_count: int
     applied_at: datetime
     decision_at: datetime | None
+    decision_sent_at: datetime | None = None
 
     @field_serializer("applied_at")
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("decision_at", "metrics_frozen_at")
+    @field_serializer("decision_at", "decision_sent_at", "metrics_frozen_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
 
@@ -635,17 +631,16 @@ class AdminDropDetail(CamelModel):
     description: str
     image: str
     location: str
-    stage: str
+    stage: DropStage
     capacity_total: int
     total_product_units: int | None
     allocated_units: int
     campaign_hashtag: str | None
     brand_can_edit_creative: bool
     needs_tracking: bool
-    manual_reopen: bool
     apply_open_at: datetime
     apply_close_at: datetime
-    finalized_at: datetime | None
+    wrapped_at: datetime | None = None
     published_at: datetime | None = None
     hidden_at: datetime | None = None
     drop_request_id: uuid.UUID | None = None
@@ -660,6 +655,6 @@ class AdminDropDetail(CamelModel):
     def _epoch_required(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
 
-    @field_serializer("finalized_at", "published_at", "hidden_at")
+    @field_serializer("wrapped_at", "published_at", "hidden_at")
     def _epoch_optional(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)

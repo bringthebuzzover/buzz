@@ -35,10 +35,7 @@ const STAGE_OPTIONS = STAGE_ORDER.map((value) => ({
 }));
 
 const ATTENTION_OPTIONS = [
-  { value: "awaiting_finalization", label: "Awaiting selection" },
-  { value: "ready_to_advance", label: "Ready to advance" },
-  { value: "autoclose_overdue", label: "Auto-close overdue" },
-  { value: "reopened_stuck", label: "Reopened and stuck" },
+  { value: "awaiting_decisions", label: "Awaiting decisions" },
   { value: "no_tracking", label: "Missing tracking" },
 ] as const;
 
@@ -178,7 +175,7 @@ export default function AdminDropsPage() {
             return (
               <Row
                 key={drop.id}
-                attention={drop.stage === "finalizing_agreements"}
+                attention={drop.stage === "selecting"}
               >
                 <Cell>
                   <Link
@@ -213,8 +210,6 @@ export default function AdminDropsPage() {
                   <Cell>
                     <div className="flex flex-wrap gap-1">
                       {drop.hiddenAt != null && <Pill tone="bad">Hidden</Pill>}
-                      {!drop.publishedAt && <Pill tone="neutral">Draft</Pill>}
-                      {drop.manualReopen && <Pill tone="warn">Reopened</Pill>}
                       {drop.acceptedCount > drop.capacityTotal && (
                         <Pill tone="bad">Over capacity</Pill>
                       )}

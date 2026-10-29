@@ -6,7 +6,8 @@ import uuid
 
 from httpx import AsyncClient
 
-from app.models.enums import ApplicationDecision, BrandTrackerStage, OrgUserStatus, PortalRole
+from app.models.enums import ApplicationDecision, OrgUserStatus, PortalRole
+from app.timeutils import utcnow
 from tests.conftest import (
     make_application,
     make_brand,
@@ -37,11 +38,10 @@ async def test_detail_happy_path(app_client: AsyncClient, db_session) -> None:
     assert data["totalProductUnits"] == 200
     assert data["acceptedCount"] == 0
     assert data["alreadyApplied"] is False
-    assert data["applicantSelectionFinalizedAt"] is None
+    assert data["stage"] == "applying"
     # epoch-ms datetimes are ints.
     assert isinstance(data["applyOpenAt"], int)
     assert isinstance(data["createdAt"], int)
-    # org detail omits the brand tracker stage (D1 deferral).
     assert "brandTrackerStage" not in data
 
 
@@ -99,7 +99,7 @@ async def test_detail_brand_jwt_gets_public_fields(app_client: AsyncClient, db_s
 async def test_detail_rejects_finished_drop(app_client: AsyncClient, db_session) -> None:
     _, _, headers = await _org_ctx(db_session)
     brand = await make_brand(db_session)
-    drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
+    drop = await make_drop(db_session, brand, wrapped_at=utcnow())
     resp = await app_client.get(f"/api/drops/{drop.id}", headers=headers)
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "DROP_NOT_OPEN"

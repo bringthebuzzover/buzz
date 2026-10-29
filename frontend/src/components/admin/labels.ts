@@ -7,7 +7,7 @@
  * to know what admin routes exist.
  */
 
-import { BRAND_DROP_TRACKER_FULL_ORDER } from "../../types/brandPortal";
+import { DROP_STAGE_LABEL, DROP_STAGE_ORDER } from "../../utils/dropStage";
 
 export type QueueMeta = {
   label: string;
@@ -50,17 +50,11 @@ export const QUEUE_META: Record<string, QueueMeta> = {
     to: "/admin/brands?status=pending_review",
     owner: "us",
   },
-  drops_awaiting_finalization: {
-    label: "Drops awaiting selection",
-    note: "Apply window closed; the brand has not picked applicants yet",
-    to: "/admin/drops?attention=awaiting_finalization",
+  drops_awaiting_decisions: {
+    label: "Drops awaiting decisions",
+    note: "Apply window closed; some applicants are undecided or their decision is not sent",
+    to: "/admin/drops?attention=awaiting_decisions",
     owner: "brand",
-  },
-  drops_ready_to_advance: {
-    label: "Drops ready to advance",
-    note: "Selection is finalized; the tracker can move forward",
-    to: "/admin/drops?attention=ready_to_advance",
-    owner: "us",
   },
 };
 
@@ -88,14 +82,9 @@ export const SIGNAL_META: Record<string, SignalMeta> = {
     note: "Denying a brand does not update its user, which stays at pending_approval forever.",
     to: "/admin/brands?status=denied",
   },
-  drop_reopened_stuck: {
-    label: "Reopened drops that cannot auto-close",
-    note: "Auto-close skips manually reopened drops and the flag is never reset, so the tracker must be moved by hand.",
-    to: "/admin/drops?attention=reopened_stuck",
-  },
-  awaiting_products_no_tracking: {
-    label: "Shipping stage with no tracking number",
-    note: "Tracking is only writable on the transition into this stage, and the tracker is forward-only.",
+  live_seats_no_tracking: {
+    label: "Live seats with no tracking number",
+    note: "An accepted organization was told it is in, but nothing has shipped to it yet.",
     to: "/admin/drops?attention=no_tracking",
   },
   verification_blocked_by_ig: {
@@ -104,17 +93,17 @@ export const SIGNAL_META: Record<string, SignalMeta> = {
     to: "/admin/orgs?status=pending_email_verification",
   },
   stranded_applicants: {
-    label: "Applicants on a finalized drop",
-    note: "Selection closed without deciding them. Only a reopen can rescue these.",
+    label: "Undecided applicants on a wrapped drop",
+    note: "The drop wrapped without deciding them. Decide them from the drop page (BUZZ can still decide after wrap).",
   },
   // Invariants with no database constraint behind them.
   accepted_over_capacity: {
     label: "Drops accepted past capacity",
-    note: "Capacity is checked per selection round, not cumulatively, so a reopen can exceed it.",
+    note: "Brands are held to capacity, but BUZZ decisions and late-adds may exceed it on purpose.",
   },
   units_over_budget: {
     label: "Drops allocated past their unit budget",
-    note: "Same per-round check as capacity.",
+    note: "Same as capacity: BUZZ may overbook units on purpose.",
   },
   accepted_missing_units: {
     label: "Accepted organizations with no units",
@@ -192,16 +181,10 @@ export const TOKEN_BUCKET_META: Record<string, SignalMeta> = {
   },
 };
 
-export const STAGE_LABELS: Record<string, string> = {
-  request_received: "Request received",
-  finalizing_agreements: "Finalizing agreements",
-  awaiting_products: "Awaiting products",
-  drop_active: "Drop active",
-  drop_finished: "Drop finished",
-};
+/** Drop stage labels (shared with brand/org surfaces). */
+export const STAGE_LABELS: Record<string, string> = DROP_STAGE_LABEL;
 
-/** Full pipeline including legacy stages (admin filters / advance). */
-export const STAGE_ORDER = BRAND_DROP_TRACKER_FULL_ORDER;
+export const STAGE_ORDER = DROP_STAGE_ORDER;
 
 export const STATUS_LABELS: Record<string, string> = {
   pending_org_profile: "No profile yet",

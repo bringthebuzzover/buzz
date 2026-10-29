@@ -1,7 +1,7 @@
 """Admin routes — ``/api/admin`` (buzz-ops engineering/architecture.md §5.1, §8.5).
 
 Reads are all ``GET`` and back the admin panel's sidebar sections. Mutations cover
-account approve/deny/recovery, drop tracker/reopen, per-org shipments,
+account approve/deny/recovery, drop seat decisions + wrap-up, per-org shipments,
 allowlisted table inspect/patch, and impersonation. Remaining stuck states
 without a product path stay in buzz-ops ``engineering/gaps/``.
 """
@@ -42,10 +42,9 @@ from app.schemas.acks import (
     AdminResendConnectAllResponse,
     AdminSyncAutolinkResponse,
     ClearInstagramTokenResponse,
-    DropReopenResponse,
-    FinalizeApplicantsResponse,
+    DropStageResponse,
     OkResponse,
-    TrackerAdvanceResponse,
+    SendDecisionsResponse,
 )
 from app.schemas.admin import (
     AdminBrandDetail,
@@ -67,7 +66,6 @@ from app.schemas.admin import (
     AdminOverviewResponse,
     ImpersonateRequest,
     ImpersonateResponse,
-    TrackerAdvanceRequest,
     ViewAsResumeRequest,
 )
 from app.schemas.admin_tables import (
@@ -78,7 +76,7 @@ from app.schemas.admin_tables import (
     AdminTableRowResponse,
 )
 from app.schemas.auth import UserResponse
-from app.schemas.brands import FinalizeApplicantsRequest
+from app.schemas.brands import SeatDecisionRequest
 from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
 from app.security import jwt
 from app.security.view_as import clear_view_as_cookie, set_view_as_cookie
@@ -86,11 +84,9 @@ from app.services.address import AddressClient, get_address_client
 from app.services.admin import (
     ack_ig_bind_mismatch,
     add_org_to_drop,
-    advance_tracker,
     approve_brand,
     approve_org,
     cleanup_request_received_stubs,
-    clear_manual_reopen,
     clear_org_instagram_token,
     compose_brand_email,
     compose_org_email,
@@ -98,12 +94,10 @@ from app.services.admin import (
     create_brand,
     deny_brand,
     deny_org,
-    finalize_drop_applicants,
     hide_drop,
     list_brands,
     list_orgs,
     publish_drop,
-    reopen_drop,
     resend_all_pending_instagram_connect,
     resend_brand_invite,
     resend_org_connect,
@@ -111,7 +105,9 @@ from app.services.admin import (
     undeny_brand,
     undeny_org,
     unhide_drop,
+    unwrap_drop,
     update_drop_config,
+    wrap_drop,
 )
 from app.services.admin_auth import mint_impersonation_token
 from app.services.admin_erase import erase_brand, erase_org_user
@@ -153,6 +149,7 @@ from app.services.ig_change_requests import (
 )
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.remove_participant import remove_participant_from_drop
+from app.services.seats import lock_drop, send_decisions, set_seat_decision
 from app.services.shipments import add_shipment, delete_shipment
 
 logger = logging.getLogger(__name__)
@@ -737,31 +734,61 @@ async def patch_drop_config_endpoint(
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 
-@router.post(
-    "/drops/{drop_id}/finalize-applicants",
-    response_model=DataResponse[FinalizeApplicantsResponse],
+@router.put(
+    "/drops/{drop_id}/applications/{application_id}/decision",
+    response_model=DataResponse[AdminDropDetail],
 )
-async def finalize_drop_applicants_endpoint(
+async def put_seat_decision_endpoint(
     drop_id: uuid.UUID,
-    payload: FinalizeApplicantsRequest,
+    application_id: uuid.UUID,
+    payload: SeatDecisionRequest,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Same batch finalize as the brand portal: window closed, selection stage, deny the rest."""
-    allocations = [{"org_id": a.org_id, "units": a.units} for a in payload.allocations]
-    result = await finalize_drop_applicants(db, drop_id, allocations)
-    return api_response(data=FinalizeApplicantsResponse.model_validate(result))
+    """Draft one seat's decision (any stage, may overbook; goes out on the next send)."""
+    drop = await lock_drop(db, drop_id)
+    await set_seat_decision(
+        db,
+        drop,
+        application_id,
+        decision=payload.decision,
+        allocated_units=payload.allocated_units,
+        actor="admin",
+    )
+    return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 
-@router.patch("/drops/{drop_id}/tracker", response_model=DataResponse[TrackerAdvanceResponse])
-async def advance_tracker_endpoint(
+@router.post(
+    "/drops/{drop_id}/send-decisions",
+    response_model=DataResponse[SendDecisionsResponse],
+)
+async def send_decisions_endpoint(
     drop_id: uuid.UUID,
-    payload: TrackerAdvanceRequest,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await advance_tracker(db, drop_id, payload.stage, note=payload.note)
-    return api_response(data=TrackerAdvanceResponse.model_validate(result))
+    """Send every drafted decision on the drop (any stage)."""
+    drop = await lock_drop(db, drop_id)
+    result = await send_decisions(db, drop, actor="admin")
+    return api_response(data=SendDecisionsResponse.model_validate(result))
+
+
+@router.post("/drops/{drop_id}/wrap", response_model=DataResponse[DropStageResponse])
+async def wrap_drop_endpoint(
+    drop_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(data=DropStageResponse.model_validate(await wrap_drop(db, drop_id)))
+
+
+@router.post("/drops/{drop_id}/unwrap", response_model=DataResponse[DropStageResponse])
+async def unwrap_drop_endpoint(
+    drop_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(data=DropStageResponse.model_validate(await unwrap_drop(db, drop_id)))
 
 
 @router.post(
@@ -790,26 +817,6 @@ async def delete_application_shipment(
 ) -> APIResponse:
     result = await delete_shipment(db, application_id, shipment_id)
     return api_response(data=OkResponse.model_validate(result))
-
-
-@router.post("/drops/{drop_id}/reopen", response_model=DataResponse[DropReopenResponse])
-async def reopen_drop_endpoint(
-    drop_id: uuid.UUID,
-    _user: CurrentAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    result = await reopen_drop(db, drop_id)
-    return api_response(data=DropReopenResponse.model_validate(result))
-
-
-@router.post("/drops/{drop_id}/clear-reopen", response_model=DataResponse[DropReopenResponse])
-async def clear_reopen_endpoint(
-    drop_id: uuid.UUID,
-    _user: CurrentAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    result = await clear_manual_reopen(db, drop_id)
-    return api_response(data=DropReopenResponse.model_validate(result))
 
 
 @router.post(

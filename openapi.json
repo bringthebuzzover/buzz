@@ -261,6 +261,17 @@
             ],
             "title": "Decisionat"
           },
+          "decisionSentAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionsentat"
+          },
           "deliveryAddress": {
             "anyOf": [
               {
@@ -1331,17 +1342,6 @@
             ],
             "title": "Droprequestid"
           },
-          "finalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finalizedat"
-          },
           "hiddenAt": {
             "anyOf": [
               {
@@ -1378,10 +1378,6 @@
             "title": "Location",
             "type": "string"
           },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
-          },
           "needsTracking": {
             "title": "Needstracking",
             "type": "boolean"
@@ -1402,8 +1398,7 @@
             "title": "Publishedat"
           },
           "stage": {
-            "title": "Stage",
-            "type": "string"
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -1426,6 +1421,17 @@
             },
             "title": "Trackerevents",
             "type": "array"
+          },
+          "wrappedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wrappedat"
           }
         },
         "required": [
@@ -1445,10 +1451,8 @@
           "campaignHashtag",
           "brandCanEditCreative",
           "needsTracking",
-          "manualReopen",
           "applyOpenAt",
           "applyCloseAt",
-          "finalizedAt",
           "createdAt",
           "linkedPostCount",
           "pendingSuggestionCount",
@@ -1592,17 +1596,6 @@
             ],
             "title": "Droprequestid"
           },
-          "finalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finalizedat"
-          },
           "hiddenAt": {
             "anyOf": [
               {
@@ -1618,10 +1611,6 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
-          },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
           },
           "needsTracking": {
             "title": "Needstracking",
@@ -1639,8 +1628,7 @@
             "title": "Publishedat"
           },
           "stage": {
-            "title": "Stage",
-            "type": "string"
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -1656,6 +1644,17 @@
               }
             ],
             "title": "Totalproductunits"
+          },
+          "wrappedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wrappedat"
           }
         },
         "required": [
@@ -1671,10 +1670,8 @@
           "acceptedCount",
           "applyOpenAt",
           "applyCloseAt",
-          "manualReopen",
           "needsTracking",
           "campaignHashtag",
-          "finalizedAt",
           "createdAt"
         ],
         "title": "AdminDropItem",
@@ -3638,6 +3635,17 @@
             ],
             "title": "Decisionat"
           },
+          "decisionSentAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionsentat"
+          },
           "deliveryAddress": {
             "anyOf": [
               {
@@ -3745,6 +3753,7 @@
           "allocatedUnits",
           "appliedAt",
           "decisionAt",
+          "decisionSentAt",
           "orgName",
           "university",
           "instagramHandle",
@@ -3764,17 +3773,6 @@
       "BrandDropDetailResponse": {
         "description": "Full drop detail for the brand portal (\u00a78.2).",
         "properties": {
-          "applicantSelectionFinalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applicantselectionfinalizedat"
-          },
           "applications": {
             "items": {
               "$ref": "#/components/schemas/BrandDropDetailApplicant"
@@ -3803,10 +3801,6 @@
             "title": "Brandname",
             "type": "string"
           },
-          "brandTrackerStage": {
-            "title": "Brandtrackerstage",
-            "type": "string"
-          },
           "campaignHashtag": {
             "anyOf": [
               {
@@ -3843,10 +3837,6 @@
             "title": "Location",
             "type": "string"
           },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
-          },
           "publishedAt": {
             "anyOf": [
               {
@@ -3857,6 +3847,9 @@
               }
             ],
             "title": "Publishedat"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -3905,12 +3898,10 @@
           "capacityTotal",
           "applyOpenAt",
           "applyCloseAt",
-          "manualReopen",
-          "brandTrackerStage",
+          "stage",
           "totalProductUnits",
           "campaignHashtag",
           "brandCanEditCreative",
-          "applicantSelectionFinalizedAt",
           "createdAt",
           "applications",
           "totalPosts",
@@ -3925,17 +3916,6 @@
       "BrandDropListItem": {
         "description": "One drop in ``GET /api/brands/me/drops`` with per-drop aggregate fields.",
         "properties": {
-          "applicantSelectionFinalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applicantselectionfinalizedat"
-          },
           "applyCloseAt": {
             "title": "Applycloseat",
             "type": "integer"
@@ -3953,10 +3933,6 @@
             "title": "Brandname",
             "type": "string"
           },
-          "brandTrackerStage": {
-            "title": "Brandtrackerstage",
-            "type": "string"
-          },
           "campaignHashtag": {
             "anyOf": [
               {
@@ -3993,9 +3969,8 @@
             "title": "Location",
             "type": "string"
           },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -4044,11 +4019,9 @@
           "capacityTotal",
           "applyOpenAt",
           "applyCloseAt",
-          "manualReopen",
-          "brandTrackerStage",
+          "stage",
           "totalProductUnits",
           "campaignHashtag",
-          "applicantSelectionFinalizedAt",
           "createdAt",
           "totalPosts",
           "totalLikes",
@@ -4832,10 +4805,6 @@
             "title": "Brandname",
             "type": "string"
           },
-          "brandTrackerStage": {
-            "title": "Brandtrackerstage",
-            "type": "string"
-          },
           "capacityTotal": {
             "title": "Capacitytotal",
             "type": "integer"
@@ -4880,6 +4849,10 @@
             "title": "Image",
             "type": "string"
           },
+          "linksOpen": {
+            "title": "Linksopen",
+            "type": "boolean"
+          },
           "orgId": {
             "format": "uuid",
             "title": "Orgid",
@@ -4902,6 +4875,9 @@
             },
             "title": "Shipments",
             "type": "array"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -4933,7 +4909,8 @@
           "description",
           "brandName",
           "image",
-          "brandTrackerStage",
+          "stage",
+          "linksOpen",
           "applyOpenAt",
           "applyCloseAt",
           "capacityTotal",
@@ -4962,10 +4939,6 @@
           },
           "brandName": {
             "title": "Brandname",
-            "type": "string"
-          },
-          "brandTrackerStage": {
-            "title": "Brandtrackerstage",
             "type": "string"
           },
           "decision": {
@@ -4997,6 +4970,10 @@
             "title": "Image",
             "type": "string"
           },
+          "linksOpen": {
+            "title": "Linksopen",
+            "type": "boolean"
+          },
           "pitch": {
             "anyOf": [
               {
@@ -5015,6 +4992,9 @@
             "title": "Shipments",
             "type": "array"
           },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -5031,7 +5011,8 @@
           "decisionAt",
           "title",
           "brandName",
-          "brandTrackerStage",
+          "stage",
+          "linksOpen",
           "image"
         ],
         "title": "CampaignListItem",
@@ -6448,12 +6429,12 @@
         "title": "DataResponse[DropDetailResponse]",
         "type": "object"
       },
-      "DataResponse_DropReopenResponse_": {
+      "DataResponse_DropStageResponse_": {
         "properties": {
           "data": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/DropReopenResponse"
+                "$ref": "#/components/schemas/DropStageResponse"
               },
               {
                 "type": "null"
@@ -6483,45 +6464,7 @@
             "title": "Meta"
           }
         },
-        "title": "DataResponse[DropReopenResponse]",
-        "type": "object"
-      },
-      "DataResponse_FinalizeApplicantsResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/FinalizeApplicantsResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[FinalizeApplicantsResponse]",
+        "title": "DataResponse[DropStageResponse]",
         "type": "object"
       },
       "DataResponse_HealthStatusResponse_": {
@@ -7094,6 +7037,44 @@
         "title": "DataResponse[RotateEduEmailResponse]",
         "type": "object"
       },
+      "DataResponse_SendDecisionsResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SendDecisionsResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[SendDecisionsResponse]",
+        "type": "object"
+      },
       "DataResponse_ShipmentItem_": {
         "properties": {
           "data": {
@@ -7168,44 +7149,6 @@
           }
         },
         "title": "DataResponse[TokenResponse]",
-        "type": "object"
-      },
-      "DataResponse_TrackerAdvanceResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/TrackerAdvanceResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[TrackerAdvanceResponse]",
         "type": "object"
       },
       "DataResponse_UserResponse_": {
@@ -7921,7 +7864,7 @@
         "type": "object"
       },
       "DropDetailResponse": {
-        "description": "A single drop for the org-facing detail view (architecture \u00a77.1).\n\nSuperset of the feed item: adds ``brand_id``, ``total_product_units`` and\n``created_at``, plus the same notify-me fields as the feed so the detail\nsurface can show subscribed state without a second lookup. Still omits\n``brand_tracker_stage`` (org status is derived on the campaigns surface).",
+        "description": "A single drop for the org-facing detail view (architecture \u00a77.1).\n\nSuperset of the feed item: adds ``brand_id``, ``total_product_units`` and\n``created_at``, plus the same notify-me fields as the feed so the detail\nsurface can show subscribed state without a second lookup.",
         "properties": {
           "acceptedCount": {
             "title": "Acceptedcount",
@@ -7930,17 +7873,6 @@
           "alreadyApplied": {
             "title": "Alreadyapplied",
             "type": "boolean"
-          },
-          "applicantSelectionFinalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applicantselectionfinalizedat"
           },
           "applyCloseAt": {
             "title": "Applycloseat",
@@ -8006,10 +7938,6 @@
             "title": "Location",
             "type": "string"
           },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
-          },
           "notifyRequested": {
             "title": "Notifyrequested",
             "type": "boolean"
@@ -8024,6 +7952,9 @@
               }
             ],
             "title": "Reminderminutes"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -8052,8 +7983,7 @@
           "capacityTotal",
           "applyOpenAt",
           "applyCloseAt",
-          "manualReopen",
-          "applicantSelectionFinalizedAt",
+          "stage",
           "totalProductUnits",
           "createdAt",
           "acceptedCount",
@@ -8074,17 +8004,6 @@
           "alreadyApplied": {
             "title": "Alreadyapplied",
             "type": "boolean"
-          },
-          "applicantSelectionFinalizedAt": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applicantselectionfinalizedat"
           },
           "applyCloseAt": {
             "title": "Applycloseat",
@@ -8119,10 +8038,6 @@
             "title": "Location",
             "type": "string"
           },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
-          },
           "notifyRequested": {
             "title": "Notifyrequested",
             "type": "boolean"
@@ -8137,6 +8052,9 @@
               }
             ],
             "title": "Reminderminutes"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           },
           "title": {
             "title": "Title",
@@ -8153,8 +8071,7 @@
           "capacityTotal",
           "applyOpenAt",
           "applyCloseAt",
-          "manualReopen",
-          "applicantSelectionFinalizedAt",
+          "stage",
           "acceptedCount",
           "alreadyApplied",
           "notifyRequested",
@@ -8181,23 +8098,36 @@
         "title": "DropIntentPitchRequest",
         "type": "object"
       },
-      "DropReopenResponse": {
+      "DropStage": {
+        "description": "Computed drop stage (``app.services.lifecycle``; never stored).\n\n``draft`` \u2192 ``upcoming`` \u2192 ``applying`` \u2192 ``selecting`` \u2192 ``live`` \u2192\n``wrapped``. Only draft (unpublished) and wrapped (``wrapped_at``) come\nfrom a BUZZ click; the rest follow from the apply dates and the seats.\nHidden is a separate flag (``drops.hidden_at``), not a stage.",
+        "enum": [
+          "draft",
+          "upcoming",
+          "applying",
+          "selecting",
+          "live",
+          "wrapped"
+        ],
+        "title": "DropStage",
+        "type": "string"
+      },
+      "DropStageResponse": {
+        "description": "A drop's computed stage after a lifecycle action (wrap / unwrap).",
         "properties": {
           "dropId": {
             "format": "uuid",
             "title": "Dropid",
             "type": "string"
           },
-          "manualReopen": {
-            "title": "Manualreopen",
-            "type": "boolean"
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
           }
         },
         "required": [
           "dropId",
-          "manualReopen"
+          "stage"
         ],
-        "title": "DropReopenResponse",
+        "title": "DropStageResponse",
         "type": "object"
       },
       "EngagementSeriesPoint": {
@@ -8248,66 +8178,6 @@
           "message"
         ],
         "title": "ErrorDetail",
-        "type": "object"
-      },
-      "FinalizeAllocation": {
-        "description": "One (org, units) entry in a finalize-applicants request (\u00a78.3).",
-        "properties": {
-          "orgId": {
-            "format": "uuid",
-            "title": "Orgid",
-            "type": "string"
-          },
-          "units": {
-            "default": 0,
-            "title": "Units",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "orgId"
-        ],
-        "title": "FinalizeAllocation",
-        "type": "object"
-      },
-      "FinalizeApplicantsRequest": {
-        "description": "Body for ``POST /api/brands/me/drops/{id}/finalize-applicants`` (\u00a78.3).",
-        "properties": {
-          "allocations": {
-            "items": {
-              "$ref": "#/components/schemas/FinalizeAllocation"
-            },
-            "title": "Allocations",
-            "type": "array"
-          }
-        },
-        "required": [
-          "allocations"
-        ],
-        "title": "FinalizeApplicantsRequest",
-        "type": "object"
-      },
-      "FinalizeApplicantsResponse": {
-        "properties": {
-          "acceptedCount": {
-            "title": "Acceptedcount",
-            "type": "integer"
-          },
-          "deniedCount": {
-            "title": "Deniedcount",
-            "type": "integer"
-          },
-          "finalizedCount": {
-            "title": "Finalizedcount",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "finalizedCount",
-          "acceptedCount",
-          "deniedCount"
-        ],
-        "title": "FinalizeApplicantsResponse",
         "type": "object"
       },
       "ForgotPasswordRequest": {
@@ -9962,6 +9832,56 @@
         "title": "RotateEduEmailResponse",
         "type": "object"
       },
+      "SeatDecisionRequest": {
+        "description": "Draft one seat's decision (``applied`` = back to undecided).",
+        "properties": {
+          "allocatedUnits": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allocatedunits"
+          },
+          "decision": {
+            "enum": [
+              "applied",
+              "accepted",
+              "denied"
+            ],
+            "title": "Decision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "SeatDecisionRequest",
+        "type": "object"
+      },
+      "SendDecisionsResponse": {
+        "description": "How many drafted decisions just went out.",
+        "properties": {
+          "acceptedCount": {
+            "title": "Acceptedcount",
+            "type": "integer"
+          },
+          "deniedCount": {
+            "title": "Deniedcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "acceptedCount",
+          "deniedCount"
+        ],
+        "title": "SendDecisionsResponse",
+        "type": "object"
+      },
       "ShipmentItem": {
         "properties": {
           "carrier": {
@@ -10100,49 +10020,6 @@
           "user"
         ],
         "title": "TokenResponse",
-        "type": "object"
-      },
-      "TrackerAdvanceRequest": {
-        "properties": {
-          "note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
-          },
-          "stage": {
-            "title": "Stage",
-            "type": "string"
-          }
-        },
-        "required": [
-          "stage"
-        ],
-        "title": "TrackerAdvanceRequest",
-        "type": "object"
-      },
-      "TrackerAdvanceResponse": {
-        "properties": {
-          "dropId": {
-            "format": "uuid",
-            "title": "Dropid",
-            "type": "string"
-          },
-          "stage": {
-            "title": "Stage",
-            "type": "string"
-          }
-        },
-        "required": [
-          "dropId",
-          "stage"
-        ],
-        "title": "TrackerAdvanceResponse",
         "type": "object"
       },
       "UserResponse": {
@@ -11713,6 +11590,86 @@
         ]
       }
     },
+    "/api/admin/drops/{drop_id}/applications/{application_id}/decision": {
+      "put": {
+        "description": "Draft one seat's decision (any stage, may overbook; goes out on the next send).",
+        "operationId": "put_seat_decision_endpoint_api_admin_drops__drop_id__applications__application_id__decision_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminDropDetail_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Put Seat Decision Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/admin/drops/{drop_id}/applications/{application_id}/remove": {
       "post": {
         "description": "Remove one org from one drop. Deletes that seat, its shipments, and its linked metrics.",
@@ -11788,135 +11745,6 @@
           }
         },
         "summary": "Remove Participant Endpoint",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/admin/drops/{drop_id}/clear-reopen": {
-      "post": {
-        "operationId": "clear_reopen_endpoint_api_admin_drops__drop_id__clear_reopen_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "drop_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Drop Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_DropReopenResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Clear Reopen Endpoint",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/admin/drops/{drop_id}/finalize-applicants": {
-      "post": {
-        "description": "Same batch finalize as the brand portal: window closed, selection stage, deny the rest.",
-        "operationId": "finalize_drop_applicants_endpoint_api_admin_drops__drop_id__finalize_applicants_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "drop_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Drop Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FinalizeApplicantsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_FinalizeApplicantsResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Finalize Drop Applicants Endpoint",
         "tags": [
           "admin"
         ]
@@ -12050,9 +11878,10 @@
         ]
       }
     },
-    "/api/admin/drops/{drop_id}/reopen": {
+    "/api/admin/drops/{drop_id}/send-decisions": {
       "post": {
-        "operationId": "reopen_drop_endpoint_api_admin_drops__drop_id__reopen_post",
+        "description": "Send every drafted decision on the drop (any stage).",
+        "operationId": "send_decisions_endpoint_api_admin_drops__drop_id__send_decisions_post",
         "parameters": [
           {
             "in": "path",
@@ -12086,7 +11915,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataResponse_DropReopenResponse_"
+                  "$ref": "#/components/schemas/DataResponse_SendDecisionsResponse_"
                 }
               }
             },
@@ -12103,7 +11932,7 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Reopen Drop Endpoint",
+        "summary": "Send Decisions Endpoint",
         "tags": [
           "admin"
         ]
@@ -12169,75 +11998,6 @@
         ]
       }
     },
-    "/api/admin/drops/{drop_id}/tracker": {
-      "patch": {
-        "operationId": "advance_tracker_endpoint_api_admin_drops__drop_id__tracker_patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "drop_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Drop Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TrackerAdvanceRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_TrackerAdvanceResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Advance Tracker Endpoint",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
     "/api/admin/drops/{drop_id}/unhide": {
       "post": {
         "operationId": "unhide_drop_endpoint_api_admin_drops__drop_id__unhide_post",
@@ -12292,6 +12052,124 @@
           }
         },
         "summary": "Unhide Drop Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/drops/{drop_id}/unwrap": {
+      "post": {
+        "operationId": "unwrap_drop_endpoint_api_admin_drops__drop_id__unwrap_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_DropStageResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Unwrap Drop Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/drops/{drop_id}/wrap": {
+      "post": {
+        "operationId": "wrap_drop_endpoint_api_admin_drops__drop_id__wrap_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_DropStageResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Wrap Drop Endpoint",
         "tags": [
           "admin"
         ]
@@ -15361,9 +15239,90 @@
         ]
       }
     },
-    "/api/brands/me/drops/{drop_id}/finalize-applicants": {
+    "/api/brands/me/drops/{drop_id}/applications/{application_id}/decision": {
+      "put": {
+        "description": "Draft one applicant's decision. Nothing reaches the org until Send decisions.",
+        "operationId": "put_seat_decision_api_brands_me_drops__drop_id__applications__application_id__decision_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drop_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Drop Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Application Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SeatDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_BrandDropDetailResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Put Seat Decision",
+        "tags": [
+          "brands"
+        ]
+      }
+    },
+    "/api/brands/me/drops/{drop_id}/send-decisions": {
       "post": {
-        "operationId": "finalize_drop_applicants_api_brands_me_drops__drop_id__finalize_applicants_post",
+        "description": "Send every drafted decision (repeatable; undecided applicants keep waiting).",
+        "operationId": "post_send_decisions_api_brands_me_drops__drop_id__send_decisions_post",
         "parameters": [
           {
             "in": "path",
@@ -15392,22 +15351,12 @@
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FinalizeApplicantsRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataResponse_FinalizeApplicantsResponse_"
+                  "$ref": "#/components/schemas/DataResponse_SendDecisionsResponse_"
                 }
               }
             },
@@ -15424,7 +15373,7 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Finalize Drop Applicants",
+        "summary": "Post Send Decisions",
         "tags": [
           "brands"
         ]

@@ -6,9 +6,11 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
 from httpx import AsyncClient
+from sqlalchemy import select
 
 from app.models.application import DropApplication
-from app.models.enums import ApplicationDecision, BrandTrackerStage, OrgUserStatus, PortalRole
+from app.models.enums import ApplicationDecision, OrgUserStatus, PortalRole
+from app.timeutils import utcnow
 from tests.conftest import (
     admin_headers,
     make_application,
@@ -32,7 +34,7 @@ async def _org(db_session, *, name: str = "Late Org", status: str = OrgUserStatu
 class TestAdminLateAdd:
     async def test_never_applied_accepted(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+        drop = await make_drop(db_session, brand)
         _, org = await _org(db_session)
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/add-org",
@@ -90,6 +92,37 @@ class TestAdminLateAdd:
         assert res.status_code == 409
         assert res.json()["error"]["code"] == "ALREADY_ACCEPTED"
 
+    async def test_reuses_unsent_denial(self, app_client: AsyncClient, db_session, monkeypatch):
+        """An unsent denial is a draft: late-add turns it into the acceptance,
+        so the next send neither emails a denial nor leaves a phantom row."""
+        from app.services import seats
+
+        denials = AsyncMock(return_value=True)
+        monkeypatch.setattr(seats, "send_application_denied_email", denials)
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand)
+        _, org = await _org(db_session)
+        draft = await make_application(
+            db_session, drop, org, decision=ApplicationDecision.DENIED, sent=False
+        )
+        headers = await admin_headers(db_session)
+        res = await app_client.post(
+            f"/api/admin/drops/{drop.id}/add-org", json={"orgId": str(org.id)}, headers=headers
+        )
+        assert res.status_code == 200, res.text
+        assert res.json()["data"]["applicationId"] == str(draft.id)
+        rows = list(
+            await db_session.scalars(
+                select(DropApplication).where(DropApplication.drop_id == drop.id)
+            )
+        )
+        assert [(r.decision, r.decision_sent_at is not None) for r in rows] == [
+            (ApplicationDecision.ACCEPTED.value, True)
+        ]
+        res = await app_client.post(f"/api/admin/drops/{drop.id}/send-decisions", headers=headers)
+        assert res.json()["data"] == {"acceptedCount": 0, "deniedCount": 0}
+        denials.assert_not_awaited()
+
     async def test_refuse_erased_org(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand)
@@ -102,16 +135,15 @@ class TestAdminLateAdd:
         assert res.status_code == 409
         assert res.json()["error"]["code"] == "INVALID_ONBOARDING_STATE"
 
-    async def test_refuse_draft_hidden_finished(self, app_client: AsyncClient, db_session):
+    async def test_refuse_draft_and_hidden(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         draft = await make_drop(db_session, brand, published_at=None)
         hidden = await make_drop(db_session, brand)
         hidden.hidden_at = datetime.now(timezone.utc)
         await db_session.flush()
-        finished = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_FINISHED)
         _, org = await _org(db_session)
         headers = await admin_headers(db_session)
-        for drop in (draft, hidden, finished):
+        for drop in (draft, hidden):
             res = await app_client.post(
                 f"/api/admin/drops/{drop.id}/add-org",
                 json={"orgId": str(org.id)},
@@ -120,7 +152,23 @@ class TestAdminLateAdd:
             assert res.status_code == 409, drop.title
             assert res.json()["error"]["code"] == "DROP_NOT_ELIGIBLE"
 
-    async def test_overbook_units_and_empty_finalize(self, app_client: AsyncClient, db_session):
+    async def test_retro_add_to_wrapped_drop(self, app_client: AsyncClient, db_session):
+        """BUZZ can seat an org on a wrapped drop (retro); it is live and sent at once."""
+        brand = await make_brand(db_session)
+        drop = await make_drop(db_session, brand, wrapped_at=utcnow())
+        _, org = await _org(db_session)
+        res = await app_client.post(
+            f"/api/admin/drops/{drop.id}/add-org",
+            json={"orgId": str(org.id)},
+            headers=await admin_headers(db_session),
+        )
+        assert res.status_code == 200, res.text
+        row = await db_session.get(DropApplication, res.json()["data"]["applicationId"])
+        assert row is not None
+        assert row.decision == ApplicationDecision.ACCEPTED.value
+        assert row.decision_sent_at is not None
+
+    async def test_overbook_units_then_brand_sends(self, app_client: AsyncClient, db_session):
         brand_user = await persist(db_session, make_user(role=PortalRole.BRAND))
         brand = await make_brand(db_session, company_email="ops-brand@test.com")
         brand.user_id = brand_user.id
@@ -131,7 +179,6 @@ class TestAdminLateAdd:
             brand,
             capacity_total=1,
             total_product_units=10,
-            stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
             apply_open_at=now - timedelta(days=10),
             apply_close_at=now - timedelta(days=1),
         )
@@ -153,14 +200,22 @@ class TestAdminLateAdd:
         assert a.status_code == 200 and b.status_code == 200, (a.text, b.text)
         assert a.json()["data"]["neverApplied"] is True
 
-        finalize = await app_client.post(
-            f"/api/brands/me/drops/{drop.id}/finalize-applicants",
-            json={"allocations": []},
-            headers={"Authorization": f"Bearer {mint_access_token(brand_user)}"},
+        brand_headers = {"Authorization": f"Bearer {mint_access_token(brand_user)}"}
+        leftover_app = await db_session.scalar(
+            select(DropApplication).where(DropApplication.org_id == leftover.id)
         )
-        assert finalize.status_code == 200, finalize.text
-        assert finalize.json()["data"]["acceptedCount"] == 0
-        assert finalize.json()["data"]["deniedCount"] == 1
+        deny = await app_client.put(
+            f"/api/brands/me/drops/{drop.id}/applications/{leftover_app.id}/decision",
+            json={"decision": "denied"},
+            headers=brand_headers,
+        )
+        assert deny.status_code == 200, deny.text
+        sent = await app_client.post(
+            f"/api/brands/me/drops/{drop.id}/send-decisions", headers=brand_headers
+        )
+        assert sent.status_code == 200, sent.text
+        # BUZZ's late adds were already sent; only the brand's denial goes out.
+        assert sent.json()["data"] == {"acceptedCount": 0, "deniedCount": 1}
         first_row = await db_session.get(DropApplication, a.json()["data"]["applicationId"])
         extra_row = await db_session.get(DropApplication, b.json()["data"]["applicationId"])
         assert first_row is not None and extra_row is not None
@@ -197,7 +252,7 @@ class TestAdminLateAdd:
             AsyncMock(return_value=False),
         )
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
+        drop = await make_drop(db_session, brand)
         _, org = await _org(db_session, status=OrgUserStatus.PENDING_APPROVAL.value)
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/add-org",
@@ -219,7 +274,7 @@ class TestAdminLateAdd:
 
     async def test_new_org_has_empty_shipments(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
+        drop = await make_drop(db_session, brand)
         _, org = await _org(db_session)
         add = await app_client.post(
             f"/api/admin/drops/{drop.id}/add-org",
