@@ -60,6 +60,16 @@ KIND_PASSWORD_RESET = "password-reset"
 KIND_PASSWORD_CHANGED = "password-changed"
 KIND_LATE_ADD_ORG = "late-add-org"
 KIND_LATE_ADD_BRAND = "late-add-brand"
+# Drop lifecycle notices (app.services.drop_notices, plan §3.6).
+KIND_SEAT_ACCEPTED = "seat-accepted"
+KIND_SEAT_SHIPPED = "seat-shipped"
+KIND_SEAT_WITHDREW = "seat-withdrew"
+KIND_SEAT_WITHDREW_OPS = "seat-withdrew-ops"
+KIND_CHOOSE_ORGS = "choose-orgs"
+KIND_DROP_WRAPPED = "drop-wrapped"
+KIND_DROP_WRAPPED_ORG = "drop-wrapped-org"
+KIND_DROP_CANCELED = "drop-canceled"
+KIND_DROP_CANCELED_ORG = "drop-canceled-org"
 
 _KIND_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 _UUID_RE = re.compile(
@@ -1080,6 +1090,27 @@ async def send_late_add_brand_email(
         html=html,
         cc=cc or None,
         idempotency_key=idempotency_key,
+    )
+
+
+async def send_lifecycle_email(
+    to_email: str,
+    *,
+    subject: str,
+    paragraphs: list[str],
+    url: str,
+    button: str,
+    cc: list[str] | None = None,
+    idempotency_key: str | None = None,
+) -> bool:
+    """One drop-lifecycle notice: plain paragraphs and one button (plan §3.6)."""
+    text = "\n\n".join([*paragraphs, url]) + "\n"
+    html = _cta_html(url, subject=subject, button=button, paragraphs=paragraphs)
+    if settings.ENVIRONMENT == "development":
+        logger.info("DEV EMAIL — %s: to=%s url=%s", subject, to_email, url)
+        return True
+    return await _dispatch(
+        to_email, subject, text, html=html, cc=cc or None, idempotency_key=idempotency_key
     )
 
 

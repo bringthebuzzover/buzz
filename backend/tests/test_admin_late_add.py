@@ -95,10 +95,10 @@ class TestAdminLateAdd:
     async def test_reuses_unsent_denial(self, app_client: AsyncClient, db_session, monkeypatch):
         """An unsent denial is a draft: late-add turns it into the acceptance,
         so the next send neither emails a denial nor leaves a phantom row."""
-        from app.services import seats
+        from app.services import drop_notices
 
         denials = AsyncMock(return_value=True)
-        monkeypatch.setattr(seats, "send_application_denied_email", denials)
+        monkeypatch.setattr(drop_notices, "send_application_denied_email", denials)
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand)
         _, org = await _org(db_session)

@@ -75,6 +75,11 @@ class Drop(Base):
     # BUZZ canceled the drop (final; D-11). New seats, links and shipments
     # stop; what exists stays for the brand report.
     canceled_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
+    # How many "Choose your orgs" emails the brand got after close (0–3,
+    # ``drop_notices.CHOOSE_ORGS_AFTER_CLOSE``).
+    choose_orgs_emails_sent: Mapped[int] = mapped_column(
+        sa.SmallInteger, nullable=False, server_default=sa.text("0"), default=0
+    )
     drop_request_id: Mapped[uuid.UUID | None] = mapped_column(
         sa.Uuid,
         sa.ForeignKey("drop_requests.id", use_alter=True, name="fk_drops_drop_request_id"),
