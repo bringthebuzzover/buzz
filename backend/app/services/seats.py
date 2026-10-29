@@ -55,9 +55,15 @@ async def lock_drop(db: AsyncSession, drop_id: object) -> Drop:
     return drop
 
 
-def _require_brand_may_select(drop: Drop) -> None:
+def _require_visible(drop: Drop) -> None:
+    """Seats move only on a published, unhidden drop (any actor)."""
+
     if drop.published_at is None or drop.hidden_at is not None:
         raise BuzzAPIException(errors.DROP_NOT_OPEN, "This drop is not available.")
+
+
+def _require_brand_may_select(drop: Drop) -> None:
+    _require_visible(drop)
     if drop.wrapped_at is not None:
         raise BuzzAPIException(errors.DROP_WRAPPED, "This drop is wrapped up.")
     if not apply_window_closed(drop, utcnow()):
@@ -96,6 +102,7 @@ async def set_seat_decision(
     if application is None or application.drop_id != drop.id:
         raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
 
+    _require_visible(drop)
     if actor == "brand":
         _require_brand_may_select(drop)
         if application.decision_sent_at is not None:
@@ -169,6 +176,7 @@ async def send_decisions(db: AsyncSession, drop: Drop, *, actor: Actor) -> dict[
     the campaign in My Campaigns from now on.
     """
 
+    _require_visible(drop)
     if actor == "brand":
         _require_brand_may_select(drop)
 

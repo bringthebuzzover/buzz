@@ -296,3 +296,18 @@ async def test_sent_decision_only_moves_forward_to_accepted(
     await db_session.refresh(denied)
     assert denied.decision == ApplicationDecision.ACCEPTED.value
     assert denied.decision_sent_at is None
+
+
+async def test_no_decisions_or_sends_on_a_hidden_drop(app_client: AsyncClient, db_session) -> None:
+    drop, seat = await _closed_drop_with_live_seat(db_session)
+    drop.hidden_at = utcnow()
+    await db_session.flush()
+    admin = await admin_headers(db_session)
+    res = await app_client.put(
+        f"/api/admin/drops/{drop.id}/applications/{seat.id}/decision",
+        json={"decision": "accepted", "allocatedUnits": 3},
+        headers=admin,
+    )
+    assert res.json()["error"]["code"] == "DROP_NOT_OPEN"
+    res = await app_client.post(f"/api/admin/drops/{drop.id}/send-decisions", headers=admin)
+    assert res.json()["error"]["code"] == "DROP_NOT_OPEN"
