@@ -391,7 +391,9 @@ export default function OrgApplyForm({
         data-testid="org-apply-submit"
         type="submit"
         size="field"
-        disabled={!canSubmit}
+        disabled={!handleNorm}
+        loading={apply.isPending}
+        loadingLabel="Submitting…"
         fullWidth
         className="disabled:border-transparent disabled:bg-buzz-paper08 disabled:text-muted"
       >
@@ -399,7 +401,7 @@ export default function OrgApplyForm({
       </Button>
       {!handleNorm ? (
         <p className="text-center text-xs text-quiet">
-          Fill every required field to submit.
+          Enter an Instagram handle to submit.
         </p>
       ) : null}
 
