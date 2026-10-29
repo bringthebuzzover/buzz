@@ -4,7 +4,7 @@
 # This is the deterministic half of "does the UI look designed": taste is
 # argued from screenshots, but a page reaching past a token for a raw utility
 # is a fact a grep can settle. Every rule below maps to a defect class found in
-# the revamp audit (frontend/docs/ui-defect-map.md).
+# the revamp audit (ui-defect map (buzz-ops design/archive)).
 #
 # The design system itself is exempt: theme/ defines the tokens, and the
 # primitives under components/forms/ + components/ui/ are where raw utilities

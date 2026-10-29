@@ -41,6 +41,64 @@ class BrandApplyRequest(CamelModel):
         return v.strip()
 
 
+class BrandProfilePatch(CamelModel):
+    """``PATCH /api/brands/me``. Omitted fields stay. ``instagramHandle`` and
+    ``email`` are rejected (``extra=forbid``); handle changes are a request.
+    """
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    brand_name: str | None = None
+
+    @field_validator("brand_name")
+    @classmethod
+    def _brand_name(cls, value: object) -> str:
+        if value is None:
+            raise ValueError("must not be null")
+        if not isinstance(value, str):
+            raise ValueError("must be a string")
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("must not be blank")
+        if len(stripped) > 120:
+            raise ValueError("must be at most 120 characters")
+        return stripped
+
+
+class BrandIgChangeRequestCreate(CamelModel):
+    """Body for ``POST /api/brands/me/ig-change-requests``."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    requested_handle: str
+    reason: str
+
+
+class BrandIgChangeRequestResponse(CamelModel):
+    id: uuid.UUID
+    current_handle: str
+    requested_handle: str
+    reason: str
+    status: str
+    decided_at: datetime | None = None
+    created_at: datetime
+
+    @field_serializer("created_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+    @field_serializer("decided_at")
+    def _epoch_optional(self, value: datetime | None) -> int | None:
+        return to_epoch_ms(value)
+
+
+class BrandIgChangeRequestState(CamelModel):
+    """``GET /api/brands/me/ig-change-request``."""
+
+    pending: BrandIgChangeRequestResponse | None = None
+    latest: BrandIgChangeRequestResponse | None = None
+
+
 class BrandProfileResponse(CamelModel):
     """Brand profile returned by ``GET /api/brands/me`` (architecture §5.1)."""
 

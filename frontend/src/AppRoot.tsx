@@ -21,6 +21,7 @@ import OrgPortalProfilePage from "./pages/org/OrgPortalProfilePage";
 import BrandAggregateDashboardPage from "./pages/brand/BrandAggregateDashboardPage";
 import BrandDropDetailPage from "./pages/brand/BrandDropDetailPage";
 import BrandRequestDropPage from "./pages/brand/BrandRequestDropPage";
+import BrandSettingsPage from "./pages/brand/BrandSettingsPage";
 import LoginPage from "./pages/auth/LoginPage";
 import LogoutPage from "./pages/auth/LogoutPage";
 import InstagramCallbackPage from "./pages/auth/InstagramCallbackPage";
@@ -222,6 +223,14 @@ export default function AppRoot(): ReactElement {
           element={
             <PortalGuard role="brand">
               <BrandRequestDropPage />
+            </PortalGuard>
+          }
+        />
+        <Route
+          path="brand/settings"
+          element={
+            <PortalGuard role="brand">
+              <BrandSettingsPage />
             </PortalGuard>
           }
         />
