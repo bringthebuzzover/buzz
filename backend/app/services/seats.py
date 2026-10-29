@@ -10,9 +10,9 @@ Who may do what:
 
 * **brand** — after applications close, before wrap-up, on unsent seats only,
   within capacity and the unit budget;
-* **BUZZ** — any time, any seat, may overbook. Changing a sent decision makes
-  it unsent again, so the change goes out with the next send; changing only
-  the units of a sent acceptance keeps it sent (the seat stays live).
+* **BUZZ** — any time, any seat, may overbook. A sent denial can be reversed
+  to accepted (unsent again, so it goes out with the next send); a sent
+  acceptance keeps its decision and only its units change (it stays live).
 """
 
 from __future__ import annotations
@@ -103,6 +103,19 @@ async def set_seat_decision(
                 errors.DECISION_ALREADY_SENT,
                 "This decision was already sent. Ask BUZZ to change it.",
             )
+
+    if (
+        application.decision_sent_at is not None
+        and decision != application.decision
+        and decision != ApplicationDecision.ACCEPTED.value
+    ):
+        # A sent decision only moves forward to accepted (BUZZ reversing a
+        # denial). Taking back a live seat is a removal, not a re-decision.
+        raise BuzzAPIException(
+            errors.DECISION_ALREADY_SENT,
+            "This decision was already sent. A sent denial can only be reversed to"
+            " accepted; to take back a live seat, remove the organization from the drop.",
+        )
 
     units = allocated_units if drop.total_product_units is not None else None
     if decision == ApplicationDecision.ACCEPTED.value:

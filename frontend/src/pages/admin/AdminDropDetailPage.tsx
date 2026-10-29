@@ -775,6 +775,7 @@ function Applicants({
                   id={applicant.id}
                   orgName={applicant.orgName}
                   value={applicant.decision}
+                  sent={applicant.decisionSentAt != null}
                   disabled={decide.isPending}
                   onChange={(next) => void setDecision(applicant, next)}
                 />
