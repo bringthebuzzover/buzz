@@ -238,3 +238,34 @@ async def test_org_link_closes_after_grace_but_buzz_can_link(
     res = await app_client.post(url, json=body, headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200, res.text
 
+
+async def _closed_drop_with_live_seat(db_session):
+    brand = await make_brand(db_session)
+    now = utcnow()
+    drop = await make_drop(
+        db_session,
+        brand,
+        apply_open_at=now - timedelta(days=3),
+        apply_close_at=now - timedelta(days=1),
+        total_product_units=10,
+    )
+    _, org = await _org(db_session, "Live")
+    seat = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    seat.allocated_units = 2
+    await db_session.flush()
+    return drop, seat
+
+
+async def test_units_change_keeps_a_sent_seat_live(app_client: AsyncClient, db_session) -> None:
+    drop, seat = await _closed_drop_with_live_seat(db_session)
+    sent_at = seat.decision_sent_at
+    res = await app_client.put(
+        f"/api/admin/drops/{drop.id}/applications/{seat.id}/decision",
+        json={"decision": "accepted", "allocatedUnits": 4},
+        headers=await admin_headers(db_session),
+    )
+    assert res.status_code == 200, res.text
+    await db_session.refresh(seat)
+    assert seat.allocated_units == 4
+    assert seat.decision_sent_at == sent_at
+    assert await drop_stage(db_session, drop) == DropStage.LIVE
