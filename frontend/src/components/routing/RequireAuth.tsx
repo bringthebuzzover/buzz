@@ -5,6 +5,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import AuthPending from "../auth/AuthPending";
 import SessionRestorePanel from "./SessionRestorePanel";
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
@@ -12,13 +13,7 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
 
   if (status === "authenticating" || status === "idle") {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm font-medium text-buzz-inkMuted">
-          Restoring your session…
-        </p>
-      </div>
-    );
+    return <AuthPending label="Loading…" />;
   }
 
   if (status === "restore_failed") {

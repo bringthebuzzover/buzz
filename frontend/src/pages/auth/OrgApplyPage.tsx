@@ -8,10 +8,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useOrgApplyPrefill } from "../../api/hooks/useOnboardingHooks";
-import { WarningBanner } from "../../components/forms/controls";
-import PageShell from "../../components/site/PageShell";
-import { SURFACE, TEXT } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
+import { SuccessBanner, WarningBanner } from "../../components/forms/controls";
+import { AuthHeading, AuthSplit } from "../../components/auth/AuthFrame";
 import OrgApplyForm, {
   goToVerifyEmailWait,
 } from "../../components/org/OrgApplyForm";
@@ -39,25 +37,21 @@ export default function OrgApplyPage() {
   }, [prefill.isError, prefillToken]);
 
   return (
-    <PageShell width="form">
-      <h1 className={cn(TEXT.h1, "mb-2 text-center text-buzz-ink")}>
-        Apply as a <span className="text-buzz-coral">Student Organization</span>
-      </h1>
-      <p className="mb-4 text-center text-sm font-medium text-buzz-inkMuted">
+    <AuthSplit wide>
+      <AuthHeading kicker="Apply as a" title="Student Organization">
         Tell us about your organization. We&apos;ll verify your school email,
         review your application, then invite you to connect Instagram.
-      </p>
+      </AuthHeading>
       {prefillError && (
-        <div className="mb-4" data-testid="org-apply-prefill-error">
+        <div data-testid="org-apply-prefill-error">
           <WarningBanner>{prefillError}</WarningBanner>
         </div>
       )}
-      <p className={cn(SURFACE.inset, "mb-8 px-3 py-3 text-xs font-medium text-buzz-inkMuted")}>
-        Your Instagram must be the organization&apos;s{" "}
-        <span className="font-semibold text-buzz-ink">Business or Creator</span>{" "}
+      <SuccessBanner>
+        Your Instagram must be the organization&apos;s Business or Creator
         account — not a personal member profile. Personal accounts cannot be
-        used on Buzz.
-      </p>
+        used on BUZZ.
+      </SuccessBanner>
 
       <OrgApplyForm
         prefillToken={prefillToken}
@@ -67,6 +61,6 @@ export default function OrgApplyPage() {
           goToVerifyEmailWait(navigate, result, eduEmail);
         }}
       />
-    </PageShell>
+    </AuthSplit>
   );
 }

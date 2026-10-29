@@ -3,13 +3,16 @@
  * long-lived token is past expiry. Must not call authenticated APIs (anti-loop
  * with apiFetch hard-nav). Usable under idle / error / needs_instagram_reconnect.
  */
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import instagramIcon from "../../assets/insta-icon.png";
-import AuthShell from "../../components/site/AuthShell";
+import {
+  AuthArrowLink,
+  AuthBackLink,
+  AuthHeading,
+  AuthLinkRow,
+  AuthSplit,
+} from "../../components/auth/AuthFrame";
 import { Button } from "../../components/forms/controls";
-import { STACK, TEXT } from "../../theme/tokens";
-import { cn } from "../../theme/cn";
 import { allowlistedOAuthNext } from "../../utils/oauthNext";
 
 export default function ReconnectInstagramPage() {
@@ -18,43 +21,30 @@ export default function ReconnectInstagramPage() {
   const next = allowlistedOAuthNext(searchParams.get("next"));
 
   return (
-    <AuthShell align="center" className="items-center text-center">
-      <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-        Reconnect <span className="text-buzz-coral">Instagram</span>
-      </h1>
-      <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
-        Your organization&apos;s Instagram connection expired. Buzz can&apos;t
+    <AuthSplit>
+      <AuthHeading kicker="Instagram" title="Reconnect Instagram">
+        Your organization&apos;s Instagram connection expired. BUZZ can&apos;t
         refresh an already-expired token — reconnect with the organization&apos;s
         Instagram Business or Creator account to restore portal access.
-      </p>
+      </AuthHeading>
 
       <Button
         type="button"
-        variant="outline"
-        size="hero"
+        size="field"
+        fullWidth
         data-testid="reconnect-instagram-cta"
         onClick={() => login(next)}
         disabled={status === "authenticating"}
       >
-        <img src={instagramIcon} alt="" className="buzz-icon-on-ink h-5 w-5" />
-        {status === "authenticating"
-          ? "Connecting…"
-          : "Reconnect with Instagram"}
+        Reconnect with Instagram
       </Button>
 
-      <div className={cn("mt-8", STACK.default, "text-sm font-medium text-buzz-inkMuted")}>
-        <p>
-          <Link to="/" className="font-semibold text-buzz-coral hover:underline">
-            Back to home
-          </Link>
-        </p>
-        <p>
-          Are you a brand?{" "}
-          <Link to="/brand/login" className="font-semibold text-buzz-coral hover:underline">
-            Brand login
-          </Link>
-        </p>
+      <div className="space-y-3">
+        <AuthBackLink to="/">Back to home</AuthBackLink>
+        <AuthLinkRow quiet="Are you a brand?">
+          <AuthArrowLink to="/brand/login">Brand login</AuthArrowLink>
+        </AuthLinkRow>
       </div>
-    </AuthShell>
+    </AuthSplit>
   );
 }

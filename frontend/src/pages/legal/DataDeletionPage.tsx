@@ -14,13 +14,25 @@ export default function DataDeletionPage() {
   const { contact, brand, social } = siteIdentity;
   const mailtoHref = `mailto:${contact.email}?subject=${encodeURIComponent(DELETION_SUBJECT)}`;
   return (
-    <LegalLayout title="Data Deletion" lastUpdated="October 28, 2026">
+    <LegalLayout
+      title="Data Deletion"
+      lastUpdated="October 28, 2026"
+      toc={[
+        { id: "how-to-request", label: "How to request deletion" },
+        { id: "what-gets-deleted", label: "What gets deleted" },
+        {
+          id: "revoking-access",
+          label: "Revoking access without deleting your account",
+        },
+        { id: "contact", label: "Contact" },
+      ]}
+    >
       <p>
         You can ask {brand.displayName} (“Buzz”) to delete the personal data we
         hold about you at any time. This page explains how.
       </p>
 
-      <h2>How to request deletion</h2>
+      <h2 id="how-to-request">How to request deletion</h2>
       <ol>
         <li>
           Email <a href={mailtoHref}>{contact.email}</a> with the subject
@@ -37,7 +49,7 @@ export default function DataDeletionPage() {
         </li>
       </ol>
 
-      <h2>What gets deleted</h2>
+      <h2 id="what-gets-deleted">What gets deleted</h2>
       <ul>
         <li>
           Your Buzz login identity and profile contact details (including email
@@ -77,7 +89,7 @@ export default function DataDeletionPage() {
         confirmation email to that address after the wipe completes.
       </p>
 
-      <h2>Revoking access without deleting your account</h2>
+      <h2 id="revoking-access">Revoking access without deleting your account</h2>
       <p>
         If you only want to disconnect Instagram from Buzz (without deleting
         your account), remove the app from your Instagram settings:{" "}
@@ -91,7 +103,7 @@ export default function DataDeletionPage() {
         . Instagram will notify us and we’ll invalidate the stored token.
       </p>
 
-      <h2>Contact</h2>
+      <h2 id="contact">Contact</h2>
       <p>
         Questions about this process:{" "}
         <a href={`mailto:${contact.email}`}>{contact.email}</a>.

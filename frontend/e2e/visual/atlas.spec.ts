@@ -54,7 +54,7 @@ async function settle(page: Page, route: string): Promise<void> {
   // never arrive. Treat the timeout as "settled enough" rather than failing.
   await page.waitForLoadState("networkidle", { timeout: 4_000 }).catch(() => undefined);
   await page
-    .getByText(/restoring your session/i)
+    .getByTestId("auth-pending")
     .waitFor({ state: "hidden", timeout: 8_000 })
     .catch(() => undefined);
 }

@@ -16,9 +16,11 @@ import { authUserFromWire } from "../../api/auth";
 import { ApiError } from "../../api/client";
 import { pathForUser } from "../../utils/landing";
 import { allowlistedOAuthNext } from "../../utils/oauthNext";
-import instagramIcon from "../../assets/insta-icon.png";
-import AuthShell from "../../components/site/AuthShell";
+import AuthPending from "../../components/auth/AuthPending";
+import StatusHero from "../../components/auth/StatusHero";
 import { Button, ErrorBanner, LinkButton } from "../../components/forms/controls";
+import { focusRingClass } from "../../theme/controls";
+import { MOTION } from "../../theme/motion";
 import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import type { components } from "../../api/generated/schema";
@@ -66,27 +68,28 @@ export default function ConnectInstagramPage() {
 
   if (status === "idle" || status === "authenticating" || redeemState.kind === "redeeming") {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm font-medium text-buzz-inkMuted">
-          {redeemState.kind === "redeeming"
+      <AuthPending
+        label={
+          redeemState.kind === "redeeming"
             ? "Opening your connect session…"
-            : "Loading..."}
-        </p>
-      </div>
+            : "Loading…"
+        }
+      />
     );
   }
 
   if (redeemState.kind === "error") {
     return (
-      <AuthShell align="center" className="text-center">
-        <h1 className={cn(TEXT.h1, "mb-4 text-buzz-danger")}>
-          Connect Link Failed
-        </h1>
-        <p className="mb-6 text-sm font-medium text-buzz-inkMuted">
-          {redeemState.message}
-        </p>
-        <LinkButton to="/login">Organization login</LinkButton>
-      </AuthShell>
+      <StatusHero
+        title="Connect Link Failed"
+        action={
+          <LinkButton to="/login" size="field">
+            Organization login
+          </LinkButton>
+        }
+      >
+        {redeemState.message}
+      </StatusHero>
     );
   }
 
@@ -112,45 +115,46 @@ export default function ConnectInstagramPage() {
   };
 
   return (
-    <AuthShell align="center" className="items-center text-center">
-      <h1 className={cn(TEXT.h1, "mb-4 text-buzz-ink")}>
-        Connect <span className="text-buzz-coral">Instagram</span>
-      </h1>
-      <p className="mb-4 text-sm font-medium text-buzz-inkMuted">
-        Connect the organization&apos;s Instagram{" "}
-        <span className="font-semibold text-buzz-ink">Business or Creator</span>{" "}
-        account — not a personal member profile. This binds your Buzz account to
-        that Instagram identity.
-      </p>
-      <p className="mb-8 text-sm font-medium text-buzz-inkMuted">
-        First accept Buzz&apos;s Instagram Tester invite at{" "}
-        <a
-          href="https://www.instagram.com/accounts/manage_access/"
-          target="_blank"
-          rel="noreferrer"
-          className="font-bold text-buzz-coral hover:underline"
-        >
-          Instagram manage access
-        </a>
-        , then continue below.
-      </p>
-
-      <Button
-        type="button"
-        variant="outline"
-        size="hero"
-        onClick={() => void onConnect()}
-        disabled={bindStart.isPending}
-      >
-        <img src={instagramIcon} alt="" className="buzz-icon-on-ink h-5 w-5" />
-        {bindStart.isPending ? "Starting…" : "Connect with Instagram"}
-      </Button>
-
-      {connectError && (
-        <div className="mt-4 w-full">
-          <ErrorBanner>{connectError}</ErrorBanner>
-        </div>
+    <div
+      className={cn(
+        "mx-auto flex min-h-[560px] w-full max-w-[720px] flex-col items-center justify-center px-6 py-16 text-center",
+        MOTION.publicEnter,
       )}
-    </AuthShell>
+    >
+      <div className="flex w-full max-w-[520px] flex-col items-center gap-6">
+        <h1 className={cn(TEXT.title, "text-primary")}>Connect Instagram</h1>
+        <p className="text-base leading-relaxed text-muted">
+          Connect the organization&apos;s Instagram{" "}
+          <span className="font-medium text-primary">Business or Creator</span>{" "}
+          account — not a personal member profile. This binds your Buzz account to
+          that Instagram identity.
+        </p>
+        <p className="text-base leading-relaxed text-muted">
+          First accept Buzz&apos;s Instagram Tester invite at{" "}
+          <a
+            href="https://www.instagram.com/accounts/manage_access/"
+            target="_blank"
+            rel="noreferrer"
+            className={cn("font-medium text-accent underline", focusRingClass)}
+          >
+            Instagram manage access
+          </a>
+          , then continue below.
+        </p>
+        <Button
+          type="button"
+          size="field"
+          onClick={() => void onConnect()}
+          disabled={bindStart.isPending}
+        >
+          {bindStart.isPending ? "Starting…" : "Connect with Instagram"}
+        </Button>
+        {connectError ? (
+          <div className="w-full text-left">
+            <ErrorBanner>{connectError}</ErrorBanner>
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }
