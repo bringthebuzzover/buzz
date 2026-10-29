@@ -139,21 +139,19 @@ class TestCreateDropRequest:
             settings.RATE_LIMIT_ENABLED = prev
             rate_limit.reset()
 
-    async def test_list_and_get(self, app_client: AsyncClient, db_session):
+    async def test_list(self, app_client: AsyncClient, db_session):
         _, _, headers = await _brand_ctx(db_session)
         created = await app_client.post(
             "/api/brands/me/drop-requests",
             json=_ticket_body(message="Listed ticket"),
             headers=headers,
         )
-        ticket_id = created.json()["data"]["id"]
         listed = await app_client.get("/api/brands/me/drop-requests", headers=headers)
         assert listed.status_code == 200
-        assert len(listed.json()["data"]) == 1
-        one = await app_client.get(f"/api/brands/me/drop-requests/{ticket_id}", headers=headers)
-        assert one.status_code == 200
-        assert one.json()["data"]["message"] == "Listed ticket"
-        assert one.json()["data"]["product"] == "Cold brew cans"
+        rows = listed.json()["data"]
+        assert [r["id"] for r in rows] == [created.json()["data"]["id"]]
+        assert rows[0]["message"] == "Listed ticket"
+        assert rows[0]["product"] == "Cold brew cans"
 
     async def test_org_user_forbidden(self, app_client: AsyncClient, db_session):
         user = await persist(db_session, make_user(role=PortalRole.ORG))
@@ -196,25 +194,22 @@ class TestCreateDropRequest:
         assert data["campaignHashtag"] == "Fall_Brew"
         assert data["notes"] == "Assets link"
 
-        ticket_id = data["id"]
         listed = await app_client.get("/api/brands/me/drop-requests", headers=headers)
         assert listed.status_code == 200
         listed_row = listed.json()["data"][0]
         assert listed_row["title"] == "Fall Cold Brew"
         assert listed_row["campaignHashtag"] == "Fall_Brew"
-        one = await app_client.get(f"/api/brands/me/drop-requests/{ticket_id}", headers=headers)
-        assert one.status_code == 200
-        assert one.json()["data"]["orgCount"] == 8
-        assert one.json()["data"]["unitsPerOrg"] == 24
+        assert listed_row["orgCount"] == 8
+        assert listed_row["unitsPerOrg"] == 24
 
     async def test_legacy_ticket_structured_fields_are_null(
         self, app_client: AsyncClient, db_session
     ):
         _, brand, headers = await _brand_ctx(db_session)
-        ticket = await make_drop_request(db_session, brand, message="Old ticket", notes="n")
-        res = await app_client.get(f"/api/brands/me/drop-requests/{ticket.id}", headers=headers)
+        await make_drop_request(db_session, brand, message="Old ticket", notes="n")
+        res = await app_client.get("/api/brands/me/drop-requests", headers=headers)
         assert res.status_code == 200, res.text
-        data = res.json()["data"]
+        data = res.json()["data"][0]
         assert data["message"] == "Old ticket"
         assert data["notes"] == "n"
         assert data["product"] is None

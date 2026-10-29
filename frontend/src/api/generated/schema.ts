@@ -110,23 +110,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/brands/pending": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Pending Brands */
-        get: operations["get_pending_brands_api_admin_brands_pending_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/admin/brands/{brand_id}": {
         parameters: {
             query?: never;
@@ -686,23 +669,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/orgs/pending": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Pending Orgs */
-        get: operations["get_pending_orgs_api_admin_orgs_pending_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/admin/orgs/resend-connect-all": {
         parameters: {
             query?: never;
@@ -981,26 +947,6 @@ export interface paths {
          *     Blocked in production (run the script with ``--confirm`` after explicit ops OK).
          */
         post: operations["cleanup_request_received_endpoint_api_admin_tools_cleanup_request_received_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Users Endpoint
-         * @description Org + brand users for the admin impersonation picker.
-         */
-        get: operations["list_users_endpoint_api_admin_users_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1451,26 +1397,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/verify-email/change": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Change Edu Email Endpoint
-         * @description Correct a typo'd .edu while still awaiting verification.
-         */
-        post: operations["change_edu_email_endpoint_api_auth_verify_email_change_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/auth/verify-email/resend": {
         parameters: {
             query?: never;
@@ -1650,23 +1576,6 @@ export interface paths {
          * @description Plan your Campaign — create an intake ticket (LAUNCH.md Phase B).
          */
         post: operations["create_drop_request_api_brands_me_drop_requests_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/brands/me/drop-requests/{request_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Drop Request */
-        get: operations["get_drop_request_api_brands_me_drop_requests__request_id__get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3255,58 +3164,6 @@ export interface components {
             /** Warnings */
             warnings: components["schemas"]["AdminWarningItem"][];
         };
-        /** AdminPendingBrandItem */
-        AdminPendingBrandItem: {
-            /** Brandname */
-            brandName: string;
-            /** Companyemail */
-            companyEmail: string;
-            /** Createdat */
-            createdAt: number;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Instagramhandle */
-            instagramHandle: string | null;
-            /** Intentmessage */
-            intentMessage: string | null;
-            /** Status */
-            status: string;
-            /**
-             * Userid
-             * Format: uuid
-             */
-            userId: string;
-        };
-        /** AdminPendingOrgItem */
-        AdminPendingOrgItem: {
-            /** Createdat */
-            createdAt: number;
-            /** Followercount */
-            followerCount: number | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Instagramhandle */
-            instagramHandle: string | null;
-            /** Membercount */
-            memberCount: number | null;
-            /** Orgname */
-            orgName: string;
-            /** Status */
-            status: string;
-            /** University */
-            university: string;
-            /**
-             * Userid
-             * Format: uuid
-             */
-            userId: string;
-        };
         /**
          * AdminQueueItem
          * @description One action-required queue. ``oldest_at`` is what makes a count
@@ -3481,31 +3338,6 @@ export interface components {
             occurredAt: number;
             /** Stage */
             stage: string;
-        };
-        /**
-         * AdminUserItem
-         * @description A row in the ``/api/admin/users`` impersonation picker.
-         */
-        AdminUserItem: {
-            /** Createdat */
-            createdAt: number;
-            /** Displayname */
-            displayName: string | null;
-            /** Email */
-            email: string | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Impersonatable */
-            impersonatable: boolean;
-            /** Instagramhandle */
-            instagramHandle: string | null;
-            /** Portalrole */
-            portalRole: string;
-            /** Status */
-            status: string;
         };
         /** AdminVerificationState */
         AdminVerificationState: {
@@ -4156,21 +3988,6 @@ export interface components {
             /** Status */
             status: string;
         };
-        /**
-         * ChangeEduEmailRequest
-         * @description Correct a typo'd .edu while still awaiting verification.
-         */
-        ChangeEduEmailRequest: {
-            /** Eduemail */
-            eduEmail: string;
-        };
-        /** ChangeEduEmailResponse */
-        ChangeEduEmailResponse: {
-            /** Emailsentto */
-            emailSentTo: string;
-            /** Status */
-            status: string;
-        };
         /** ClearInstagramTokenResponse */
         ClearInstagramTokenResponse: {
             /** Instagramtokencleared */
@@ -4487,15 +4304,6 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /** DataResponse[ChangeEduEmailResponse] */
-        DataResponse_ChangeEduEmailResponse_: {
-            data?: components["schemas"]["ChangeEduEmailResponse"] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
         /** DataResponse[ClearInstagramTokenResponse] */
         DataResponse_ClearInstagramTokenResponse_: {
             data?: components["schemas"]["ClearInstagramTokenResponse"] | null;
@@ -4772,40 +4580,10 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /** DataResponse[list[AdminPendingBrandItem]] */
-        DataResponse_list_AdminPendingBrandItem__: {
-            /** Data */
-            data?: components["schemas"]["AdminPendingBrandItem"][] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** DataResponse[list[AdminPendingOrgItem]] */
-        DataResponse_list_AdminPendingOrgItem__: {
-            /** Data */
-            data?: components["schemas"]["AdminPendingOrgItem"][] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
         /** DataResponse[list[AdminTableInfo]] */
         DataResponse_list_AdminTableInfo__: {
             /** Data */
             data?: components["schemas"]["AdminTableInfo"][] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** DataResponse[list[AdminUserItem]] */
-        DataResponse_list_AdminUserItem__: {
-            /** Data */
-            data?: components["schemas"]["AdminUserItem"][] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -6021,37 +5799,6 @@ export interface operations {
             };
         };
     };
-    get_pending_brands_api_admin_brands_pending_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_list_AdminPendingBrandItem__"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
     get_brand_detail_endpoint_api_admin_brands__brand_id__get: {
         parameters: {
             query?: never;
@@ -7125,37 +6872,6 @@ export interface operations {
             };
         };
     };
-    get_pending_orgs_api_admin_orgs_pending_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_list_AdminPendingOrgItem__"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
     resend_all_pending_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post: {
         parameters: {
             query?: never;
@@ -7685,37 +7401,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminCleanupStubsResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    list_users_endpoint_api_admin_users_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_list_AdminUserItem__"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -8348,41 +8033,6 @@ export interface operations {
             };
         };
     };
-    change_edu_email_endpoint_api_auth_verify_email_change_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangeEduEmailRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_ChangeEduEmailResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
     resend_verification_endpoint_api_auth_verify_email_resend_post: {
         parameters: {
             query?: never;
@@ -8723,39 +8373,6 @@ export interface operations {
                 "application/json": components["schemas"]["BrandDropRequestCreate"];
             };
         };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_BrandDropRequestResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    get_drop_request_api_brands_me_drop_requests__request_id__get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path: {
-                request_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

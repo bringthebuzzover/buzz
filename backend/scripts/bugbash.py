@@ -364,7 +364,7 @@ async def scenario_authz(api: Api) -> None:
     if api.report.check(bool(org_tok), "dev-login (default active org)"):
         r = await api.req("GET", "/api/brands/me", token=org_tok)
         api.report.check(_ok(r, 403), "org -> brand/me 403", str(r.status_code))
-        r = await api.req("GET", "/api/admin/orgs/pending", token=org_tok)
+        r = await api.req("GET", "/api/admin/orgs", token=org_tok)
         api.report.check(_ok(r, 403), "org -> admin 403", str(r.status_code))
 
 
@@ -482,7 +482,7 @@ async def scenario_onboarding(api: Api) -> None:
     admin_id = await db_admin_id()
     admin_tok = await api.dev_login(user_id=str(admin_id)) if admin_id else None
     if api.report.check(bool(admin_tok), "dev-login admin"):
-        r = await api.req("GET", "/api/admin/orgs/pending", token=admin_tok)
+        r = await api.req("GET", "/api/admin/orgs?status=pending_approval", token=admin_tok)
         api.report.check(_ok(r, 200), "admin pending orgs 200", str(r.status_code))
         # approve takes the Organization id (not the user id)
         org_id = await db_org_id_for_user(uid)

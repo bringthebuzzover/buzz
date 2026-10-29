@@ -348,59 +348,6 @@ async def submit_org_onboarding(
     }
 
 
-async def change_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict[str, Any]:
-    """Correct the .edu address while still awaiting verification."""
-    if user.portal_role != PortalRole.ORG.value:
-        raise BuzzAPIException(
-            errors.INVALID_ONBOARDING_STATE,
-            "Only organization users verify a .edu email.",
-            status_code=400,
-        )
-    if user.status != OrgUserStatus.PENDING_EMAIL_VERIFICATION.value:
-        raise BuzzAPIException(
-            errors.INVALID_ONBOARDING_STATE,
-            "Account is not awaiting email verification.",
-            status_code=400,
-        )
-
-    if user.edu_email == edu_email:
-        # Same address — behave like a resend rather than a no-op conflict.
-        return await resend_verification_email(db, user)
-
-    await _release_unverified_edu_claim(db, claimant_id=user.id, edu_email=edu_email)
-
-    org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
-    if org is None:
-        raise BuzzAPIException(
-            errors.INVALID_ONBOARDING_STATE,
-            "Organization profile is missing.",
-            status_code=400,
-        )
-
-    user.edu_email = edu_email
-    await _invalidate_verification_tokens(db, user.id)
-
-    try:
-        await db.flush()
-    except IntegrityError as exc:
-        raise BuzzAPIException(
-            errors.EDU_EMAIL_TAKEN,
-            "This .edu email is already associated with another account.",
-            status_code=409,
-        ) from exc
-
-    ok = await _mint_and_send_verification(
-        db, user, edu_email, org_name=org.org_name, kind="signup"
-    )
-    if not ok:
-        raise BuzzAPIException(
-            errors.EMAIL_SEND_FAILED,
-            "We could not send the verification email. Please try again.",
-            status_code=502,
-        )
-    return {"email_sent_to": edu_email, "status": user.status}
-
-
 async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     """Redeem a one-time .edu verification token.
 

@@ -224,23 +224,6 @@ class ResendVerificationRequest(CamelModel):
     pass
 
 
-class ChangeEduEmailRequest(CamelModel):
-    """Correct a typo'd .edu while still awaiting verification."""
-
-    edu_email: str
-
-    @field_validator("edu_email")
-    @classmethod
-    def _validate_edu(cls, v: str) -> str:
-        v = v.strip().lower()
-        if len(v) > 320 or v.count("@") != 1:
-            raise ValueError("Invalid email address")
-        local, _, domain = v.partition("@")
-        if not local or not domain.endswith(".edu") or len(domain) <= len(".edu"):
-            raise ValueError("Must be a valid .edu email address")
-        return v
-
-
 class RotateEduEmailRequest(CamelModel):
     """Request a new .edu after first verify (pending-swap; PRODUCT §3.1)."""
 
