@@ -201,7 +201,7 @@ export default function BrandSettingsPage() {
                 type="button"
                 onClick={() => setIgOpen(true)}
                 data-testid="brand-ig-change-open"
-                className="mt-3 text-sm font-medium text-buzz-inkMuted underline-offset-2 hover:text-buzz-coral hover:underline"
+                className="mt-3 text-sm font-medium text-buzz-inkMuted underline-offset-2 hover:text-accent hover:underline"
               >
                 Request change
               </button>
