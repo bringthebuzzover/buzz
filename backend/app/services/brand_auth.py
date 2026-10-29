@@ -265,6 +265,9 @@ async def change_brand_password(
             status_code=403,
         )
     enforce_account_limit("brand_change_pw", str(user.id), limit=5, window=300)
+    # Serialize concurrent changes on this account and reload ``password_hash``
+    # so the second waiter verifies against the password the first one stored.
+    await db.refresh(user, with_for_update=True)
     stored = user.password_hash
     if not stored or not verify_password(current_password, stored):
         raise BuzzAPIException(

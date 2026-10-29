@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
@@ -19,6 +20,8 @@ from app.models.user import User
 from app.security import jwt, rate_limit
 from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password, verify_password
+from app.services.brand_auth import change_brand_password
+from app.services.brand_ig_change_requests import _load_pending
 from tests.conftest import make_brand, make_user, mint_access_token, persist
 
 
@@ -312,6 +315,37 @@ class TestChangeBrandPassword:
         assert statuses[5] == 429
         assert res.json()["error"]["code"] == errors.RATE_LIMITED
 
+    async def test_account_limit_follows_the_user_across_ips(
+        self, app_client: AsyncClient, db_session, _enable_rate_limit
+    ):
+        user, _brand_row = await _brand(db_session, email="acct-limit@example.test")
+        other, _other_brand = await _brand(db_session, email="other-limit@example.test")
+        body = {"currentPassword": "wrong-pass-xx", "newPassword": "next-pass-22"}
+
+        async def attempt(actor: User, ip: str):
+            return await app_client.post(
+                "/api/auth/brand/change-password",
+                json=body,
+                headers={**_headers(actor), "X-Real-IP": ip},
+            )
+
+        for _ in range(5):
+            res = await attempt(user, "203.0.113.10")
+            assert res.status_code == 400
+            assert res.json()["error"]["code"] == errors.WRONG_PASSWORD
+
+        blocked = await attempt(user, "203.0.113.20")
+        assert blocked.status_code == 429
+        assert blocked.json()["error"]["code"] == errors.RATE_LIMITED
+
+        other_ip = await attempt(other, "203.0.113.20")
+        assert other_ip.status_code == 400
+        assert other_ip.json()["error"]["code"] == errors.WRONG_PASSWORD
+
+    def test_locks_the_user_row_before_verifying_the_password(self):
+        source = inspect.getsource(change_brand_password)
+        assert source.index("with_for_update") < source.index("verify_password")
+
 
 class TestBrandIgChange:
     async def test_submit_normalizes_and_blocks_a_second_pending(
@@ -438,6 +472,16 @@ class TestBrandIgChange:
         )
         assert again.status_code == 400
         assert again.json()["error"]["code"] == errors.INVALID_ONBOARDING_STATE
+        assert "already been decided" in again.json()["error"]["message"]
+
+        deny_decided = await app_client.post(
+            f"/api/admin/brand-ig-change-requests/{request_id}/deny",
+            headers=admin,
+        )
+        assert deny_decided.status_code == 400
+        assert deny_decided.json()["error"]["code"] == errors.INVALID_ONBOARDING_STATE
+        await db_session.refresh(brand)
+        assert brand.instagram_handle == "acme.new"
 
         denied_res = await app_client.post(
             f"/api/admin/brand-ig-change-requests/{deny_id}/deny",
@@ -492,6 +536,20 @@ class TestBrandIgChange:
         )
         assert created.status_code == 200, created.text
         admin = await _admin_headers(db_session)
+        approved = await app_client.post(
+            f"/api/admin/brand-ig-change-requests/{created.json()['data']['id']}/approve",
+            headers=admin,
+        )
+        assert approved.status_code == 200, approved.text
+        pending = await app_client.post(
+            "/api/brands/me/ig-change-requests",
+            json={
+                "requestedHandle": "still.pending",
+                "reason": "A second request is also deleted.",
+            },
+            headers=_headers(user),
+        )
+        assert pending.status_code == 200, pending.text
         erased = await app_client.post(
             f"/api/admin/brands/{brand.id}/erase",
             json={"confirm": "erase-me@example.test"},
@@ -504,6 +562,34 @@ class TestBrandIgChange:
             .where(BrandIgChangeRequest.brand_id == brand.id)
         )
         assert remaining == 0
+
+    async def test_overview_counts_pending_brand_handle_requests(
+        self, app_client: AsyncClient, db_session
+    ):
+        user, brand = await _brand(db_session, email="overview-ig@example.test")
+        created = await app_client.post(
+            "/api/brands/me/ig-change-requests",
+            json={"requestedHandle": "overview.new", "reason": "Caption match should follow us."},
+            headers=_headers(user),
+        )
+        assert created.status_code == 200, created.text
+        request_id = created.json()["data"]["id"]
+        admin = await _admin_headers(db_session)
+        overview = await app_client.get("/api/admin/overview", headers=admin)
+        assert overview.status_code == 200, overview.text
+        data = overview.json()["data"]
+        queues = {row["key"]: row for row in data["queues"]}
+        assert queues["brands_ig_change_pending"]["count"] == 1
+        assert queues["orgs_ig_change_pending"]["count"] == 0
+        match = next(item for item in data["items"] if item["kind"] == "brand_ig_change_pending")
+        assert match["id"] == request_id
+        assert match["orgName"] == brand.brand_name
+        assert match["href"] == f"/admin/brands/{brand.id}"
+        assert "@acmecoffee → @overview.new" in match["subtitle"]
+
+    def test_decision_locks_the_pending_row(self):
+        source = inspect.getsource(_load_pending)
+        assert source.index("with_for_update") < source.index("already been decided")
 
     async def test_submit_rate_limited(
         self, app_client: AsyncClient, db_session, _enable_rate_limit

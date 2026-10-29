@@ -200,12 +200,15 @@ async def list_requests(db: AsyncSession, *, status: str | None = None) -> list[
 async def _load_pending(
     db: AsyncSession, request_id: UUID
 ) -> tuple[BrandIgChangeRequest, Brand, User]:
+    # Lock the ticket (and the brand row we may write) so two decisions cannot
+    # both observe ``pending`` and both apply.
     row = (
         await db.execute(
             select(BrandIgChangeRequest, Brand, User)
             .join(Brand, Brand.id == BrandIgChangeRequest.brand_id)
             .join(User, User.id == BrandIgChangeRequest.user_id)
             .where(BrandIgChangeRequest.id == request_id)
+            .with_for_update(of=(BrandIgChangeRequest, Brand))
         )
     ).first()
     if row is None:

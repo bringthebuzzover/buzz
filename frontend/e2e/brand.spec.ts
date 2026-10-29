@@ -109,13 +109,17 @@ test("brand settings shows name, locked email, and the handle request", async ({
   await page.getByTestId("brand-login-submit").click();
   await expect(page).toHaveURL(/\/brand\/dashboard/);
 
-  await page.getByRole("link", { name: "Settings" }).click();
+  await page.getByRole("link", { name: "Setup" }).click();
   await expect(page).toHaveURL(/\/brand\/settings/);
-  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Setup" })).toBeVisible();
   await expect(page.getByTestId("brand-email-locked")).toHaveText(
     "Contact BUZZ to change",
   );
-  await expect(page.getByTestId("brand-email")).toHaveValue(
+  await expect(page.getByTestId("brand-email-locked")).toHaveAttribute(
+    "href",
+    /^mailto:/,
+  );
+  await expect(page.getByTestId("brand-email")).toHaveText(
     "partnerships@acme.coffee",
   );
   const name = page.getByTestId("brand-name");
