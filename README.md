@@ -17,7 +17,7 @@ Product, architecture, deploy, Meta, gaps and ideas docs live in the private `br
 | Auth           | `/login` (returning org Instagram), `/org/apply` (new org), `/auth/instagram/callback`, `/brand/login`, `/brand/forgot-password`, `/brand/reset-password`, `/brand/setup`, `/brand/apply`, `/admin/login`, `/admin/forgot-password`, `/admin/reset-password` |
 | Org onboarding | `/org/apply`, `/onboarding/profile` (legacy drain), `/onboarding/verify-email`, `/onboarding/pending-approval`, `/onboarding/connect-instagram`, `/onboarding/denied` |
 | Org portal     | `/org/browse`, `/org/campaigns`, `/org/campaigns/:campaignId`                                           |
-| Brand portal   | `/brand/dashboard`, `/brand/drops/:dropId`, `/brand/requests/new`                                       |
+| Brand portal   | `/brand/dashboard`, `/brand/drops/:dropId`, `/brand/requests/new`, `/brand/settings`                     |
 | Admin          | `/admin` (overview, queues, drops, health, Invite brand, View as)                                       |
 
 Portals are gated by real auth (`RequireAuth` → `RequireStatus` → `RequireRole`), not a demo passcode. Public join intent: student orgs via **org apply** (`/org/apply`); brands via `/brand/apply`. Returning orgs sign in with Instagram at `/login`.
