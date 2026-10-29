@@ -84,7 +84,12 @@ function applyHeaders(res, blocks) {
 }
 
 function resolvePath(root, urlPath) {
-  const pathname = decodeURIComponent(urlPath.split("?")[0]);
+  let pathname;
+  try {
+    pathname = decodeURIComponent(urlPath.split("?")[0]);
+  } catch {
+    return null;
+  }
   const rel = pathname.replace(/^[/\\]+/, "");
   const full = path.resolve(root, rel);
   if (full !== root && !full.startsWith(root + path.sep)) return null;

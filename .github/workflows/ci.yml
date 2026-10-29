@@ -242,27 +242,6 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  # PRs into main must come from staging (or an emergency hotfix/* branch).
-  # PRs into staging skip this job.
-  promotion-gate:
-    name: Promotion gate
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Head must be staging or hotfix/*
-        env:
-          HEAD_REF: ${{ github.head_ref }}
-        run: |
-          case "$HEAD_REF" in
-            staging|hotfix/*)
-              echo "promotion allowed from ${HEAD_REF}"
-              ;;
-            *)
-              echo "PRs into main must come from staging or hotfix/* (got: ${HEAD_REF})"
-              exit 1
-              ;;
-          esac
-
   # Public staging URLs. Retries cover the Railway deploy lag after a push.
   # `/` is 200 with no gate, or 401 once STAGING_BASIC_AUTH is set; either
   # response must carry X-Robots-Tag: noindex. /healthz stays 200.

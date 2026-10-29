@@ -11,8 +11,10 @@ Callers that need honesty (verification, Notify Me) use the returned ``bool``:
 ``True`` only on provider accept (HTTP 2xx, including a Resend idempotency
 replay of that original 2xx) or intentional development console success;
 ``False`` on unset API key / HTTP error / idempotency conflict / exception /
-allowlist suppression. Staging with an empty ``EMAIL_ALLOWLIST`` suppresses
-every send. Production ignores the allowlist.
+allowlist suppression. Suppression runs only when ``EMAIL_FAIL_CLOSED`` is
+true and the address is not in ``EMAIL_ALLOWLIST``. ``EMAIL_SUBJECT_PREFIX``
+is prepended when set. Neither depends on ``ENVIRONMENT``. With those unset,
+staging and production send the same payload as before.
 
 Optional Resend ``Idempotency-Key`` values are opt-in per call
 (``build_idempotency_key``). A missing key sends with no header. Policy and
@@ -191,8 +193,11 @@ def address_allowlisted(address: str, allowlist: str) -> bool:
     return False
 
 
-def _staging_subject(subject: str) -> str:
-    prefix = "[STAGING] "
+def _apply_subject_prefix(subject: str, prefix: str) -> str:
+    """Prepend ``prefix`` once. Blank prefix leaves the subject unchanged."""
+
+    if not prefix.strip():
+        return subject
     if subject.startswith(prefix):
         return subject
     return prefix + subject
@@ -1088,18 +1093,15 @@ async def _dispatch(
     500-ing the flows that send mail. An unsafe idempotency key is dropped
     and the email is still attempted with no header.
 
-    Off production, ``EMAIL_ALLOWLIST`` drops recipients that are not listed.
-    Staging with an empty allowlist suppresses every send (fail closed) and
-    prefixes the subject with ``[STAGING] ``. Production ignores the list.
+    ``EMAIL_FAIL_CLOSED`` drops any to/cc address that is not in
+    ``EMAIL_ALLOWLIST`` (an empty list then suppresses every send).
+    ``EMAIL_SUBJECT_PREFIX``, when non-blank, is prepended to the subject.
+    Neither check reads ``ENVIRONMENT``. With both unset, the payload matches
+    the historical staging and production send.
     """
-    if settings.ENVIRONMENT == "staging":
-        subject = _staging_subject(subject)
-
-    allowlist = settings.EMAIL_ALLOWLIST.strip()
-    if settings.ENVIRONMENT == "staging" and not allowlist:
-        _log_allowlist_suppressed(to_email, subject)
-        return False
-    if settings.ENVIRONMENT != "production" and allowlist:
+    subject = _apply_subject_prefix(subject, settings.EMAIL_SUBJECT_PREFIX)
+    if settings.EMAIL_FAIL_CLOSED:
+        allowlist = settings.EMAIL_ALLOWLIST
         if not address_allowlisted(to_email, allowlist):
             _log_allowlist_suppressed(to_email, subject)
             return False

@@ -15,6 +15,8 @@ def _resend_key(monkeypatch):
     monkeypatch.setattr(settings, "RESEND_API_KEY", "re_test_key")
     monkeypatch.setattr(settings, "ENVIRONMENT", "production")
     monkeypatch.setattr(settings, "EMAIL_ALLOWLIST", "")
+    monkeypatch.setattr(settings, "EMAIL_FAIL_CLOSED", False)
+    monkeypatch.setattr(settings, "EMAIL_SUBJECT_PREFIX", "")
 
 
 def _stub_transport(monkeypatch, handler) -> None:

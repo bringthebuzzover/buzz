@@ -154,4 +154,11 @@ describe("start-static basic auth", () => {
     });
     expect(wrong.status).toBe(401);
   });
+
+  it("returns 400 when the path is not valid percent-encoding", async () => {
+    const token = Buffer.from("sample:sample-pass").toString("base64");
+    const bad = await httpGet(port, "/%ZZ", { Authorization: `Basic ${token}` });
+    expect(bad.status).toBe(400);
+    expect(bad.body).not.toContain("STAGING_PAGE");
+  });
 });
