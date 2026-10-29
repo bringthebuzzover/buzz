@@ -115,7 +115,8 @@ export default function BrandLoginPage() {
           type="submit"
           size="field"
           data-testid="brand-login-submit"
-          disabled={brandLogin.isPending}
+          loading={brandLogin.isPending}
+          loadingLabel="Signing in…"
           fullWidth
         >
           Sign in

@@ -79,7 +79,13 @@ export default function ForgotPasswordPage({
             autoComplete="username"
           />
           {error && <ErrorBanner>{error}</ErrorBanner>}
-          <Button type="submit" size="field" disabled={forgot.isPending} fullWidth>
+          <Button
+            type="submit"
+            size="field"
+            loading={forgot.isPending}
+            loadingLabel="Sending…"
+            fullWidth
+          >
             Send reset link
           </Button>
           <AuthBackLink to={loginPath}>Back to login</AuthBackLink>
