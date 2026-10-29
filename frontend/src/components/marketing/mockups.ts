@@ -1,0 +1,57 @@
+/**
+ * Sample story shared by the Home, For organizations, and For brands phones.
+ * Copy matches the pen (pass 8): Sample Org / Sample Brand / Fall Cold Brew Launch.
+ */
+const publicUrl = process.env.PUBLIC_URL ?? "";
+
+export const MOCKUP = {
+  cans: `${publicUrl}/images/mockups/cold-brew-cans.webp`,
+  bottle: `${publicUrl}/images/mockups/cold-brew-bottle.webp`,
+  table: `${publicUrl}/images/mockups/sampling-table.webp`,
+  event: `${publicUrl}/images/mockups/campus-event.webp`,
+  box: `${publicUrl}/images/mockups/shipment-box.webp`,
+  study: `${publicUrl}/images/mockups/study-night.webp`,
+} as const;
+
+export const MOCKUP_ALT = {
+  cans: "Plain black cold brew cans on a dark table",
+  bottle: "Unlabeled cold brew bottle",
+  table: "Outdoor campus sampling table with cans",
+  event: "Evening campus event with string lights, crowd seen from behind",
+  box: "Plain kraft shipping box",
+  study: "Library study table with drinks, no faces visible",
+} as const;
+
+export const SAMPLE = {
+  brand: "Sample Brand",
+  org: "Sample Org",
+  orgB: "Sample Org B",
+  university: "Sample University",
+  handle: "@sampleorg",
+  handleB: "@sampleorgb",
+  email: "org@sample.edu",
+  drop: {
+    title: "Fall Cold Brew Launch",
+    description:
+      "200 cans of cold brew + branded koozies for tailgates and study nights.",
+    spots: "Up to 8 spots",
+    status: "Open",
+  },
+  campaign:
+    "We're launching our cold brew this fall and want student orgs to sample it at tailgates and study nights.",
+  sending: "200 cans of cold brew + branded koozies",
+} as const;
+
+export const ORG_STEPS = [
+  { caption: "Apply with your campus .edu email.", side: "left" },
+  { caption: "Use the Business or Creator account.", side: "right" },
+  { caption: "Connect Instagram after approval.", side: "left" },
+  { caption: "Apply when a drop is Open.", side: "right" },
+] as const;
+
+export const BRAND_STEPS = [
+  { caption: "Tell us about the campaign.", side: "left" },
+  { caption: "BUZZ builds and publishes the drop.", side: "right" },
+  { caption: "Choose the organizations.", side: "left" },
+  { caption: "Follow every post.", side: "right" },
+] as const;

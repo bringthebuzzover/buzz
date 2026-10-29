@@ -1,34 +1,34 @@
 /**
  * College list for the home page marquee.
  *
- * Logos are committed files under `src/assets/unis` — the strip does not call
- * a logo CDN at runtime. Marks are public-domain seals and wordmarks from
- * Wikimedia Commons, except Babson (`File:Babson-logo.png`, CC BY-SA 4.0).
+ * Logos are the pen's full-colour marks, resized to the 48px strip
+ * (3× for retina) and committed under `src/assets/unis`. The strip does
+ * not call a logo CDN at runtime.
  */
 import type { CollegeMarqueeItem } from "../types/campaign";
-import babson from "../assets/unis/babson.png";
-import berkeley from "../assets/unis/berkeley.png";
-import brown from "../assets/unis/brown.png";
-import caltech from "../assets/unis/caltech.png";
-import columbia from "../assets/unis/columbia.png";
-import cornell from "../assets/unis/cornell.png";
-import dartmouth from "../assets/unis/dartmouth.png";
-import duke from "../assets/unis/duke.png";
-import harvard from "../assets/unis/harvard.png";
-import jhu from "../assets/unis/jhu.png";
-import michigan from "../assets/unis/michigan.png";
-import mit from "../assets/unis/mit.png";
-import northwestern from "../assets/unis/northwestern.png";
-import princeton from "../assets/unis/princeton.png";
-import rice from "../assets/unis/rice.png";
-import stanford from "../assets/unis/stanford.png";
-import uchicago from "../assets/unis/uchicago.png";
-import ucla from "../assets/unis/ucla.png";
-import unc from "../assets/unis/unc.png";
-import upenn from "../assets/unis/upenn.png";
-import usc from "../assets/unis/usc.png";
-import vanderbilt from "../assets/unis/vanderbilt.png";
-import yale from "../assets/unis/yale.png";
+import babson from "../assets/unis/babson.webp";
+import berkeley from "../assets/unis/berkeley.webp";
+import brown from "../assets/unis/brown.webp";
+import caltech from "../assets/unis/caltech.webp";
+import columbia from "../assets/unis/columbia.webp";
+import cornell from "../assets/unis/cornell.webp";
+import dartmouth from "../assets/unis/dartmouth.webp";
+import duke from "../assets/unis/duke.webp";
+import harvard from "../assets/unis/harvard.webp";
+import jhu from "../assets/unis/jhu.webp";
+import michigan from "../assets/unis/michigan.webp";
+import mit from "../assets/unis/mit.webp";
+import northwestern from "../assets/unis/northwestern.webp";
+import princeton from "../assets/unis/princeton.webp";
+import rice from "../assets/unis/rice.webp";
+import stanford from "../assets/unis/stanford.webp";
+import uchicago from "../assets/unis/uchicago.webp";
+import ucla from "../assets/unis/ucla.webp";
+import unc from "../assets/unis/unc.webp";
+import upenn from "../assets/unis/upenn.webp";
+import usc from "../assets/unis/usc.webp";
+import vanderbilt from "../assets/unis/vanderbilt.webp";
+import yale from "../assets/unis/yale.webp";
 
 /**
  * Max width of a wide wordmark as a fraction of the square logo box.
