@@ -57,18 +57,40 @@ async def test_full_lifecycle(app_client: AsyncClient, db_session) -> None:
     brand = await make_brand(db_session, company_email="lifecycle-brand@example.test")
     brand.user_id = brand_user.id
     now = utcnow()
-    drop = await make_drop(
-        db_session,
-        brand,
-        published_at=None,
-        apply_open_at=now - timedelta(days=1),
-        apply_close_at=now + timedelta(days=7),
-    )
     picked_user, picked = await _org(db_session, "Picked")
     passed_user, passed = await _org(db_session, "Passed")
     _, retro = await _org(db_session, "Retro")
     brand_h = _bearer(brand_user)
+
+    # Brand requests a campaign; BUZZ turns the ticket into a draft drop.
+    res = await app_client.post(
+        "/api/brands/me/drop-requests",
+        json={"message": "Sample our new snack", "product": "Snack box", "orgCount": 1},
+        headers=brand_h,
+    )
+    assert res.status_code == 200, res.text
+    ticket_id = res.json()["data"]["id"]
+    res = await app_client.post(
+        f"/api/admin/brands/{brand.id}/drops",
+        json={
+            "title": "Snack drop",
+            "description": "Try it, post it.",
+            "image": "https://example.test/snack.png",
+            "location": "Campus",
+            "capacityTotal": 1,
+            "applyOpenAt": _ms(now - timedelta(days=1)),
+            "applyCloseAt": _ms(now + timedelta(days=7)),
+            "dropRequestId": ticket_id,
+        },
+        headers=admin,
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["data"]["stage"] == "draft"
+    drop = await db_session.get(Drop, res.json()["data"]["id"])
+    assert drop is not None
     assert await drop_stage(db_session, drop) == DropStage.DRAFT
+    res = await app_client.get(f"/api/admin/drop-requests/{ticket_id}", headers=admin)
+    assert res.json()["data"]["convertedDropId"] == str(drop.id)
 
     # Draft → Applying (publish inside the window).
     res = await app_client.post(f"/api/admin/drops/{drop.id}/publish", headers=admin)
@@ -215,3 +237,4 @@ async def test_org_link_closes_after_grace_but_buzz_can_link(
     )
     res = await app_client.post(url, json=body, headers={"Authorization": f"Bearer {token}"})
     assert res.status_code == 200, res.text
+
