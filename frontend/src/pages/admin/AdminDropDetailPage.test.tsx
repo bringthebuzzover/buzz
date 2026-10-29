@@ -242,7 +242,7 @@ describe("AdminDropDetailPage", () => {
 
   it("defaults to Applicants for a published drop; Config holds the checkbox", () => {
     mockUseAdminDrop.mockReturnValue({
-      data: adminDrop({ publishedAt: now }),
+      data: adminDrop({ publishedAt: now, stage: "selecting" }),
       isPending: false,
       isError: false,
     });

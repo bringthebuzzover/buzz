@@ -10,7 +10,9 @@ Additive and backfilled; old columns stay (unread) until a later drop.
   today was already communicated (batch finalize or late-add), so it is
   backfilled from ``decision_at``.
 * ``drops.wrapped_at`` — finished drops get the time of their last
-  ``drop_finished`` tracker event (or now when there is none).
+  ``drop_finished`` tracker event, else their finalize or close time. Never
+  "now": that would reopen org linking and metric sync on long-finished
+  drops for the grace windows.
 * ``drops.brand_tracker_stage`` becomes nullable (no longer written).
 * ``manual_reopen`` stops existing as a behaviour: a reopened, unwrapped
   drop keeps accepting applications by moving its close date to at least
@@ -47,7 +49,8 @@ def upgrade() -> None:
         UPDATE drops SET wrapped_at = COALESCE(
             (SELECT max(e.occurred_at) FROM drop_tracker_events e
              WHERE e.drop_id = drops.id AND e.stage = 'drop_finished'),
-            now())
+            applicant_selection_finalized_at,
+            apply_close_at)
         WHERE brand_tracker_stage = 'drop_finished'
         """
     )

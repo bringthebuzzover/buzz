@@ -231,7 +231,13 @@ class TestApproveBrand:
 class TestWrapDrop:
     async def test_wrap_and_unwrap(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
-        drop = await make_drop(db_session, brand)
+        now = datetime.now(timezone.utc)
+        drop = await make_drop(
+            db_session,
+            brand,
+            apply_open_at=now - timedelta(days=3),
+            apply_close_at=now - timedelta(days=1),
+        )
         headers = await admin_headers(db_session)
 
         res = await app_client.post(f"/api/admin/drops/{drop.id}/wrap", headers=headers)
@@ -248,9 +254,34 @@ class TestWrapDrop:
 
         res = await app_client.post(f"/api/admin/drops/{drop.id}/unwrap", headers=headers)
         assert res.status_code == 200
-        assert res.json()["data"]["stage"] == "applying"
+        assert res.json()["data"]["stage"] == "selecting"
         await db_session.refresh(drop)
         assert drop.wrapped_at is None
+
+    async def test_wrap_refused_while_open_or_hidden(self, app_client: AsyncClient, db_session):
+        brand = await make_brand(db_session)
+        now = datetime.now(timezone.utc)
+        applying = await make_drop(db_session, brand)
+        upcoming = await make_drop(
+            db_session,
+            brand,
+            apply_open_at=now + timedelta(days=1),
+            apply_close_at=now + timedelta(days=2),
+        )
+        hidden = await make_drop(
+            db_session,
+            brand,
+            apply_open_at=now - timedelta(days=3),
+            apply_close_at=now - timedelta(days=1),
+        )
+        hidden.hidden_at = now
+        await db_session.flush()
+        headers = await admin_headers(db_session)
+        for drop in (applying, upcoming, hidden):
+            res = await app_client.post(f"/api/admin/drops/{drop.id}/wrap", headers=headers)
+            assert res.status_code == 409, res.text
+            await db_session.refresh(drop)
+            assert drop.wrapped_at is None
 
     async def test_wrap_draft_refused(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
