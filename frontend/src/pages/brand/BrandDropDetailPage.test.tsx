@@ -214,7 +214,7 @@ describe("BrandDropDetailPage", () => {
     renderPage();
 
     const accept = container.querySelectorAll(
-      'input[aria-label="Accept Campus Greeks"]',
+      '[role="switch"][aria-label="Accept Campus Greeks"]',
     );
     expect(accept).toHaveLength(1);
     expect(container.querySelector("table")).toBeNull();
