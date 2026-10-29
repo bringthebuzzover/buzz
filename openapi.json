@@ -376,6 +376,16 @@
             ],
             "title": "Pitch"
           },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeatProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "shipments": {
             "items": {
               "$ref": "#/components/schemas/ShipmentItem"
@@ -2951,6 +2961,14 @@
             "title": "Queues",
             "type": "array"
           },
+          "stages": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AdminStageCount"
+            },
+            "title": "Stages",
+            "type": "array"
+          },
           "warnings": {
             "items": {
               "$ref": "#/components/schemas/AdminWarningItem"
@@ -3105,6 +3123,24 @@
           "ok"
         ],
         "title": "AdminSignal",
+        "type": "object"
+      },
+      "AdminStageCount": {
+        "description": "Visible drops in one computed stage (Overview tiles).",
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
+          }
+        },
+        "required": [
+          "stage",
+          "count"
+        ],
+        "title": "AdminStageCount",
         "type": "object"
       },
       "AdminSyncAutolinkResponse": {
@@ -3842,6 +3878,16 @@
             },
             "title": "Posts",
             "type": "array"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeatProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "shipments": {
             "items": {
@@ -4992,6 +5038,16 @@
             ],
             "title": "Pitch"
           },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeatProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "shipments": {
             "items": {
               "$ref": "#/components/schemas/ShipmentItem"
@@ -5029,6 +5085,7 @@
           "appliedAt",
           "decisionAt",
           "deliveredAt",
+          "progress",
           "title",
           "description",
           "brandName",
@@ -5120,6 +5177,16 @@
             ],
             "title": "Pitch"
           },
+          "progress": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SeatProgress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "shipments": {
             "items": {
               "$ref": "#/components/schemas/ShipmentItem"
@@ -5145,6 +5212,7 @@
           "appliedAt",
           "decisionAt",
           "deliveredAt",
+          "progress",
           "title",
           "brandName",
           "stage",
@@ -10013,6 +10081,17 @@
         ],
         "title": "SeatDecisionRequest",
         "type": "object"
+      },
+      "SeatProgress": {
+        "description": "Where a live seat has got to: the furthest fact reached, never a gate.\n\nComputed (``app.services.lifecycle.seat_progress``), never stored. Only\naccepted seats whose decision went out have progress.",
+        "enum": [
+          "accepted",
+          "shipped",
+          "delivered",
+          "posted"
+        ],
+        "title": "SeatProgress",
+        "type": "string"
       },
       "SendDecisionsResponse": {
         "description": "How many drafted decisions just went out.",

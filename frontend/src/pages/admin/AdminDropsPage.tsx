@@ -29,7 +29,8 @@ import {
   formatElapsed,
 } from "../../components/admin/labels";
 
-const STAGE_OPTIONS = STAGE_ORDER.map((value) => ({
+// Canceled is off the linear path but still a filter.
+const STAGE_OPTIONS = [...STAGE_ORDER, "canceled" as const].map((value) => ({
   value,
   label: STAGE_LABELS[value] ?? value,
 }));

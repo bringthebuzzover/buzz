@@ -113,6 +113,19 @@ class DropStage(StrEnum):
     CANCELED = "canceled"
 
 
+class SeatProgress(StrEnum):
+    """Where a live seat has got to: the furthest fact reached, never a gate.
+
+    Computed (``app.services.lifecycle.seat_progress``), never stored. Only
+    accepted seats whose decision went out have progress.
+    """
+
+    ACCEPTED = "accepted"
+    SHIPPED = "shipped"
+    DELIVERED = "delivered"
+    POSTED = "posted"
+
+
 class BrandTrackerStage(StrEnum):
     """Legacy tracker stages (``drops.brand_tracker_stage``, now nullable and
     unwritten). Nothing reads them except the legacy ``request_received`` stub
