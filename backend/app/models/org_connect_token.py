@@ -2,7 +2,7 @@
 
 Issued when an admin approves an org into ``pending_instagram``. ``token_hash``
 is the SHA-256 hex of the raw link secret (unique); ``used_at`` flips on redeem.
-Mirrors ``brand_invite_tokens`` (LAUNCH.md Phase A).
+Mirrors ``brand_invite_tokens``.
 """
 
 from __future__ import annotations

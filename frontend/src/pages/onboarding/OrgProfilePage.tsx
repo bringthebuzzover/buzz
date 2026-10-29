@@ -14,7 +14,6 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useSubmitOnboarding } from "../../api/hooks/useOnboardingHooks";
 import { userFacingApiError } from "../../api/userFacingError";
 import { pathForUser } from "../../utils/landing";
-import FieldError from "../../components/forms/FieldError";
 import {
   Button,
   ErrorBanner,
@@ -152,75 +151,50 @@ export default function OrgProfilePage() {
           </div>
         )}
 
-        <div>
-          <TextField
-            label="Organization name"
-            value={orgName}
-            onChange={(e) => setOrgName(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldErrors.orgName)}
-            aria-describedby={fieldErrors.orgName ? "org-onboarding-org-name-error" : undefined}
-          />
-          <FieldError id="org-onboarding-org-name-error" message={fieldErrors.orgName} />
-        </div>
+        <TextField
+          id="org-onboarding-org-name"
+          label="Organization name"
+          value={orgName}
+          onChange={(e) => setOrgName(e.target.value)}
+          required
+          error={fieldErrors.orgName}
+        />
+
+        <TextField
+          id="org-onboarding-university"
+          label="University"
+          value={university}
+          onChange={(e) => setUniversity(e.target.value)}
+          required
+          error={fieldErrors.university}
+        />
 
         <div>
           <TextField
-            label="University"
-            value={university}
-            onChange={(e) => setUniversity(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldErrors.university)}
-            aria-describedby={
-              fieldErrors.university ? "org-onboarding-university-error" : undefined
-            }
-          />
-          <FieldError
-            id="org-onboarding-university-error"
-            message={fieldErrors.university}
-          />
-        </div>
-
-        <div>
-          <TextField
+            id="org-onboarding-edu-email"
             type="email"
             label="School (.edu) email"
             value={eduEmail}
             onChange={(e) => setEduEmail(e.target.value)}
             placeholder="you@university.edu"
             required
-            aria-invalid={Boolean(fieldErrors.eduEmail)}
-            aria-describedby={
-              fieldErrors.eduEmail ? "org-onboarding-edu-email-error" : undefined
-            }
-          />
-          <FieldError
-            id="org-onboarding-edu-email-error"
-            message={fieldErrors.eduEmail}
+            error={fieldErrors.eduEmail}
           />
           <p className="mt-1 text-xs text-buzz-inkMuted">
             We&apos;ll send a verification link here.
           </p>
         </div>
 
-        <div>
-          <TextField
-            type="number"
-            min="0"
-            label="Number of members"
-            value={memberCount}
-            onChange={(e) => setMemberCount(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldErrors.memberCount)}
-            aria-describedby={
-              fieldErrors.memberCount ? "org-onboarding-member-count-error" : undefined
-            }
-          />
-          <FieldError
-            id="org-onboarding-member-count-error"
-            message={fieldErrors.memberCount}
-          />
-        </div>
+        <TextField
+          id="org-onboarding-member-count"
+          type="number"
+          min="0"
+          label="Number of members"
+          value={memberCount}
+          onChange={(e) => setMemberCount(e.target.value)}
+          required
+          error={fieldErrors.memberCount}
+        />
 
         <Select
           label="Organization type"
@@ -236,22 +210,14 @@ export default function OrgProfilePage() {
           ))}
         </Select>
 
-        <div>
-          <TextField
-            label="Contact name"
-            value={contactName}
-            onChange={(e) => setContactName(e.target.value)}
-            required
-            aria-invalid={Boolean(fieldErrors.contactName)}
-            aria-describedby={
-              fieldErrors.contactName ? "org-onboarding-contact-name-error" : undefined
-            }
-          />
-          <FieldError
-            id="org-onboarding-contact-name-error"
-            message={fieldErrors.contactName}
-          />
-        </div>
+        <TextField
+          id="org-onboarding-contact-name"
+          label="Contact name"
+          value={contactName}
+          onChange={(e) => setContactName(e.target.value)}
+          required
+          error={fieldErrors.contactName}
+        />
 
         <ShippingAddressFields
           value={shipping}

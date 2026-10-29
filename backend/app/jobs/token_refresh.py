@@ -1,4 +1,4 @@
-"""Instagram token refresh safety-net cron (architecture.md §10.5.2).
+"""Instagram token refresh safety-net cron (buzz-ops engineering/architecture.md §10.5.2).
 
 Daily. Catches *inactive* orgs the on-login refresh (§10.5.1) misses: refreshes
 long-lived tokens in the safe window (still valid, expiring within 14 days).

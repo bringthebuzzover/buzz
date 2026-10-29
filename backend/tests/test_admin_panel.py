@@ -3,7 +3,7 @@
 Covers the role gate on every new route, the status/stage/attention filters, and
 the signal definitions on the overview and health payloads. The signal tests are
 the important ones: each asserts that a *specific* broken state from
-``gaps/`` is counted, so a refactor that silently drops one fails here.
+buzz-ops ``engineering/gaps/`` is counted, so a refactor that silently drops one fails here.
 """
 
 from __future__ import annotations
@@ -23,7 +23,9 @@ from app.models.enums import (
     SocialMediaProductType,
 )
 from app.security.one_shot_tokens import hash_token
+from app.timeutils import utcnow
 from tests.conftest import (
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
@@ -36,15 +38,6 @@ from tests.conftest import (
     mint_access_token,
     persist,
 )
-
-
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 def _signal(payload: dict, group: str, key: str) -> dict:
@@ -92,7 +85,7 @@ class TestOrgList:
             make_user(role=PortalRole.ORG, status=OrgUserStatus.PENDING_ORG_PROFILE),
         )
 
-        res = await app_client.get("/api/admin/orgs", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/orgs", headers=await admin_headers(db_session))
         assert res.status_code == 200
         rows = res.json()["data"]
         assert len(rows) == 1
@@ -111,7 +104,7 @@ class TestOrgList:
         )
         await make_org(db_session, pending, org_name="Pending Org")
 
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         res = await app_client.get("/api/admin/orgs?status=active", headers=headers)
         assert [r["orgName"] for r in res.json()["data"]] == ["Active Org"]
 
@@ -120,29 +113,10 @@ class TestOrgList:
 
     async def test_unknown_status_rejected(self, app_client: AsyncClient, db_session):
         res = await app_client.get(
-            "/api/admin/orgs?status=not_a_status", headers=await _admin_headers(db_session)
+            "/api/admin/orgs?status=not_a_status", headers=await admin_headers(db_session)
         )
         assert res.status_code == 400
         assert res.json()["error"]["code"] == "VALIDATION_ERROR"
-
-    async def test_pending_route_still_narrow(self, app_client: AsyncClient, db_session):
-        """``/orgs/pending`` shares the generalized query but keeps its own
-        schema, and must drop profileless rows rather than 500."""
-        await persist(
-            db_session,
-            make_user(role=PortalRole.ORG, status=OrgUserStatus.PENDING_APPROVAL),
-        )  # no profile
-        user = await persist(
-            db_session,
-            make_user(role=PortalRole.ORG, status=OrgUserStatus.PENDING_APPROVAL),
-        )
-        await make_org(db_session, user, org_name="Has Profile")
-
-        res = await app_client.get(
-            "/api/admin/orgs/pending", headers=await _admin_headers(db_session)
-        )
-        assert res.status_code == 200
-        assert [r["orgName"] for r in res.json()["data"]] == ["Has Profile"]
 
 
 class TestOrgDetail:
@@ -155,7 +129,7 @@ class TestOrgDetail:
         await make_social_post(db_session, org)
 
         res = await app_client.get(
-            f"/api/admin/orgs/{user.id}", headers=await _admin_headers(db_session)
+            f"/api/admin/orgs/{user.id}", headers=await admin_headers(db_session)
         )
         assert res.status_code == 200
         data = res.json()["data"]
@@ -168,13 +142,13 @@ class TestOrgDetail:
     async def test_brand_user_not_found_as_org(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         res = await app_client.get(
-            f"/api/admin/orgs/{brand.user_id}", headers=await _admin_headers(db_session)
+            f"/api/admin/orgs/{brand.user_id}", headers=await admin_headers(db_session)
         )
         assert res.status_code == 404
 
     async def test_unknown_org(self, app_client: AsyncClient, db_session):
         res = await app_client.get(
-            f"/api/admin/orgs/{uuid.uuid4()}", headers=await _admin_headers(db_session)
+            f"/api/admin/orgs/{uuid.uuid4()}", headers=await admin_headers(db_session)
         )
         assert res.status_code == 404
 
@@ -185,7 +159,7 @@ class TestBrandList:
         both to distinguish live / invite-pending / orphaned."""
         brand = await make_brand(db_session, brand_name="Split Brand")
 
-        res = await app_client.get("/api/admin/brands", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/brands", headers=await admin_headers(db_session))
         assert res.status_code == 200
         row = res.json()["data"][0]
         assert row["status"] == BrandStatus.APPROVED.value
@@ -200,13 +174,13 @@ class TestBrandList:
         await db_session.flush()
 
         res = await app_client.get(
-            "/api/admin/brands?status=pending_review", headers=await _admin_headers(db_session)
+            "/api/admin/brands?status=pending_review", headers=await admin_headers(db_session)
         )
         assert [r["brandName"] for r in res.json()["data"]] == ["Pending Brand"]
 
     async def test_unknown_status_rejected(self, app_client: AsyncClient, db_session):
         res = await app_client.get(
-            "/api/admin/brands?status=nope", headers=await _admin_headers(db_session)
+            "/api/admin/brands?status=nope", headers=await admin_headers(db_session)
         )
         assert res.status_code == 400
 
@@ -215,7 +189,7 @@ class TestBrandDetail:
     async def test_includes_invite_state_and_drops(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session, brand_name="Invited Brand")
         await make_drop(db_session, brand, title="Brand Drop")
-        expires = _now() + timedelta(days=7)
+        expires = utcnow() + timedelta(days=7)
         db_session.add(
             BrandInviteToken(
                 id=uuid.uuid4(),
@@ -229,7 +203,7 @@ class TestBrandDetail:
         await db_session.flush()
 
         res = await app_client.get(
-            f"/api/admin/brands/{brand.id}", headers=await _admin_headers(db_session)
+            f"/api/admin/brands/{brand.id}", headers=await admin_headers(db_session)
         )
         assert res.status_code == 200
         data = res.json()["data"]
@@ -239,7 +213,7 @@ class TestBrandDetail:
 
     async def test_unknown_brand(self, app_client: AsyncClient, db_session):
         res = await app_client.get(
-            f"/api/admin/brands/{uuid.uuid4()}", headers=await _admin_headers(db_session)
+            f"/api/admin/brands/{uuid.uuid4()}", headers=await admin_headers(db_session)
         )
         assert res.status_code == 404
 
@@ -257,7 +231,7 @@ class TestDropList:
             org = await make_org(db_session, user, org_name=name)
             await make_application(db_session, drop, org, decision=decision)
 
-        res = await app_client.get("/api/admin/drops", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/drops", headers=await admin_headers(db_session))
         assert res.status_code == 200
         row = res.json()["data"][0]
         assert row["title"] == "Counted Drop"
@@ -270,7 +244,7 @@ class TestDropList:
         await make_drop(db_session, brand, title="Late", stage=BrandTrackerStage.DROP_ACTIVE)
 
         res = await app_client.get(
-            "/api/admin/drops?stage=drop_active", headers=await _admin_headers(db_session)
+            "/api/admin/drops?stage=drop_active", headers=await admin_headers(db_session)
         )
         assert [r["title"] for r in res.json()["data"]] == ["Late"]
 
@@ -282,15 +256,15 @@ class TestDropList:
             db_session,
             brand,
             title="Overdue",
-            apply_open_at=_now() - timedelta(days=10),
-            apply_close_at=_now() - timedelta(days=1),
+            apply_open_at=utcnow() - timedelta(days=10),
+            apply_close_at=utcnow() - timedelta(days=1),
             stage=BrandTrackerStage.REQUEST_RECEIVED,
         )
         await make_drop(db_session, brand, title="Open")
 
         res = await app_client.get(
             "/api/admin/drops?attention=autoclose_overdue",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert [r["title"] for r in res.json()["data"]] == ["Overdue"]
 
@@ -305,7 +279,7 @@ class TestDropList:
         app = await make_application(
             db_session, tracked, org, decision=ApplicationDecision.ACCEPTED
         )
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         await app_client.post(
             f"/api/admin/applications/{app.id}/shipments",
             json={"trackingNumber": "1ZTRACKED"},
@@ -316,7 +290,7 @@ class TestDropList:
         assert [r["title"] for r in res.json()["data"]] == ["No TN"]
 
     async def test_unknown_filters_rejected(self, app_client: AsyncClient, db_session):
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         assert (
             await app_client.get("/api/admin/drops?stage=bogus", headers=headers)
         ).status_code == 400
@@ -340,7 +314,7 @@ class TestDropList:
 
         res = await app_client.get(
             "/api/admin/drops?stage=request_received&stage=drop_active",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert sorted(r["title"] for r in res.json()["data"]) == ["Active", "Early"]
 
@@ -350,8 +324,8 @@ class TestDropList:
             db_session,
             brand,
             title="Overdue",
-            apply_open_at=_now() - timedelta(days=10),
-            apply_close_at=_now() - timedelta(days=1),
+            apply_open_at=utcnow() - timedelta(days=10),
+            apply_close_at=utcnow() - timedelta(days=1),
             stage=BrandTrackerStage.REQUEST_RECEIVED,
         )
         await make_drop(db_session, brand, title="No TN", stage=BrandTrackerStage.AWAITING_PRODUCTS)
@@ -359,7 +333,7 @@ class TestDropList:
 
         res = await app_client.get(
             "/api/admin/drops?attention=autoclose_overdue&attention=no_tracking",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert sorted(r["title"] for r in res.json()["data"]) == ["No TN", "Overdue"]
 
@@ -375,7 +349,7 @@ class TestDropList:
             db_session, tracked, org, decision=ApplicationDecision.ACCEPTED
         )
         await make_drop(db_session, brand, title="Active", stage=BrandTrackerStage.DROP_ACTIVE)
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         await app_client.post(
             f"/api/admin/applications/{app.id}/shipments",
             json={"trackingNumber": "1ZTRACKED"},
@@ -409,7 +383,7 @@ class TestDropDetail:
         await db_session.flush()
 
         res = await app_client.get(
-            f"/api/admin/drops/{drop.id}", headers=await _admin_headers(db_session)
+            f"/api/admin/drops/{drop.id}", headers=await admin_headers(db_session)
         )
         assert res.status_code == 200
         data = res.json()["data"]
@@ -425,7 +399,7 @@ class TestDropDetail:
 
     async def test_unknown_drop(self, app_client: AsyncClient, db_session):
         res = await app_client.get(
-            f"/api/admin/drops/{uuid.uuid4()}", headers=await _admin_headers(db_session)
+            f"/api/admin/drops/{uuid.uuid4()}", headers=await admin_headers(db_session)
         )
         assert res.status_code == 404
 
@@ -441,7 +415,7 @@ class TestOverview:
         brand.status = BrandStatus.PENDING_REVIEW.value
         await db_session.flush()
 
-        res = await app_client.get("/api/admin/overview", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/overview", headers=await admin_headers(db_session))
         assert res.status_code == 200
         data = res.json()["data"]
         orgs = _queue(data, "orgs_pending_approval")
@@ -457,11 +431,11 @@ class TestOverview:
             db_session,
             brand,
             stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
-            apply_open_at=_now() - timedelta(days=10),
-            apply_close_at=_now() - timedelta(days=2),
+            apply_open_at=utcnow() - timedelta(days=10),
+            apply_close_at=utcnow() - timedelta(days=2),
         )
 
-        res = await app_client.get("/api/admin/overview", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/overview", headers=await admin_headers(db_session))
         queue = _queue(res.json()["data"], "drops_awaiting_finalization")
         assert queue["count"] == 1
         assert queue["oldestAt"] is not None
@@ -469,14 +443,14 @@ class TestOverview:
     async def test_ready_to_advance_queue(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand, stage=BrandTrackerStage.FINALIZING_AGREEMENTS)
-        drop.applicant_selection_finalized_at = _now()
+        drop.applicant_selection_finalized_at = utcnow()
         await db_session.flush()
 
-        res = await app_client.get("/api/admin/overview", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/overview", headers=await admin_headers(db_session))
         assert _queue(res.json()["data"], "drops_ready_to_advance")["count"] == 1
 
     async def test_warnings_omit_zero_counts(self, app_client: AsyncClient, db_session):
-        res = await app_client.get("/api/admin/overview", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/overview", headers=await admin_headers(db_session))
         assert res.json()["data"]["warnings"] == []
 
     async def test_warns_on_unredeemed_brand_invite(self, app_client: AsyncClient, db_session):
@@ -484,27 +458,27 @@ class TestOverview:
         only issued from ``approve_brand``, which requires ``pending_review``."""
         await make_brand(db_session, brand_name="Locked Out")
 
-        res = await app_client.get("/api/admin/overview", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/overview", headers=await admin_headers(db_session))
         warning = _warning(res.json()["data"], "brand_invite_never_redeemed")
         assert warning is not None and warning["count"] == 1
 
     async def test_warns_on_stranded_applicants(self, app_client: AsyncClient, db_session):
         brand = await make_brand(db_session)
         drop = await make_drop(db_session, brand)
-        drop.applicant_selection_finalized_at = _now()
+        drop.applicant_selection_finalized_at = utcnow()
         user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, user)
         await make_application(db_session, drop, org, decision=ApplicationDecision.APPLIED)
         await db_session.flush()
 
-        res = await app_client.get("/api/admin/overview", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/overview", headers=await admin_headers(db_session))
         warning = _warning(res.json()["data"], "stranded_applicants")
         assert warning is not None and warning["count"] == 1
 
 
 class TestHealth:
     async def test_groups_present(self, app_client: AsyncClient, db_session):
-        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         assert res.status_code == 200
         data = res.json()["data"]
         assert {"generatedAt", "pipeline", "instagramTokens", "integrity", "silent"} <= set(data)
@@ -520,12 +494,12 @@ class TestHealth:
         await make_drop(
             db_session,
             brand,
-            apply_open_at=_now() - timedelta(days=10),
-            apply_close_at=_now() - timedelta(days=1),
+            apply_open_at=utcnow() - timedelta(days=10),
+            apply_close_at=utcnow() - timedelta(days=1),
             stage=BrandTrackerStage.REQUEST_RECEIVED,
         )
 
-        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         signal = _signal(res.json()["data"], "pipeline", "drop_autoclose")
         assert signal["count"] == 1
         assert signal["ok"] is False
@@ -535,14 +509,14 @@ class TestHealth:
 
         expired = await persist(db_session, make_user(role=PortalRole.ORG))
         expired.instagram_access_token = encrypt_token("tok")
-        expired.instagram_token_expires_at = _now() - timedelta(days=1)
+        expired.instagram_token_expires_at = utcnow() - timedelta(days=1)
         healthy = await persist(db_session, make_user(role=PortalRole.ORG))
         healthy.instagram_access_token = encrypt_token("tok")
-        healthy.instagram_token_expires_at = _now() + timedelta(days=60)
+        healthy.instagram_token_expires_at = utcnow() + timedelta(days=60)
         await persist(db_session, make_user(role=PortalRole.ORG))  # no token at all
         await db_session.flush()
 
-        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         tokens = res.json()["data"]["instagramTokens"]
         assert _signal({"instagramTokens": tokens}, "instagramTokens", "expired")["count"] == 1
         assert _signal({"instagramTokens": tokens}, "instagramTokens", "healthy")["count"] == 1
@@ -564,7 +538,7 @@ class TestHealth:
         org = await make_org(db_session, user)
         await make_notify(db_session, org, drop)
 
-        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         signal = _signal(res.json()["data"], "silent", "notify_me_never_sent")
         assert signal["count"] == 1
         assert signal["ok"] is False
@@ -578,7 +552,7 @@ class TestHealth:
         notify.sent_at = datetime.now(timezone.utc)
         await db_session.flush()
 
-        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         signal = _signal(res.json()["data"], "silent", "notify_me_never_sent")
         assert signal["count"] == 0
         assert signal["ok"] is True
@@ -593,7 +567,7 @@ class TestHealth:
             org = await make_org(db_session, user, org_name=name)
             await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
 
-        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         assert _signal(res.json()["data"], "integrity", "accepted_over_capacity")["count"] == 1
 
     async def test_units_over_budget_detected(self, app_client: AsyncClient, db_session):
@@ -607,7 +581,7 @@ class TestHealth:
         application.allocated_units = 9
         await db_session.flush()
 
-        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         assert _signal(res.json()["data"], "integrity", "units_over_budget")["count"] == 1
 
     async def test_pending_suggestions_counted(self, app_client: AsyncClient, db_session):
@@ -621,7 +595,7 @@ class TestHealth:
         post = await make_social_post(db_session, org)
         await make_suggestion(db_session, post, application)
 
-        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         assert _signal(res.json()["data"], "silent", "pending_suggestions")["count"] == 1
 
     async def test_failed_job_run_does_not_count_as_heartbeat(
@@ -633,30 +607,30 @@ class TestHealth:
         failed = JobRun(
             id=uuid.uuid4(),
             job="drop_autoclose",
-            started_at=_now() - timedelta(minutes=30),
-            finished_at=_now() - timedelta(minutes=25),
+            started_at=utcnow() - timedelta(minutes=30),
+            finished_at=utcnow() - timedelta(minutes=25),
             ok=False,
             summary={"error": "boom"},
         )
         db_session.add(failed)
         await db_session.flush()
 
-        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         detail = _signal(res.json()["data"], "pipeline", "drop_autoclose")["detail"]
         assert "last run" not in detail
 
         ok_run = JobRun(
             id=uuid.uuid4(),
             job="drop_autoclose",
-            started_at=_now() - timedelta(minutes=10),
-            finished_at=_now() - timedelta(minutes=5),
+            started_at=utcnow() - timedelta(minutes=10),
+            finished_at=utcnow() - timedelta(minutes=5),
             ok=True,
             summary={"closed": 0},
         )
         db_session.add(ok_run)
         await db_session.flush()
 
-        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         detail = _signal(res.json()["data"], "pipeline", "drop_autoclose")["detail"]
         assert "last run" in detail
 
@@ -675,7 +649,7 @@ class TestHealth:
         story.metrics_updated_at = None
         await db_session.flush()
 
-        res = await app_client.get("/api/admin/health", headers=await _admin_headers(db_session))
+        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
         data = res.json()["data"]
         assert _signal(data, "silent", "posts_never_refreshed")["count"] == 1
         assert _signal(data, "pipeline", "metric_sync")["count"] == 1
@@ -688,8 +662,8 @@ class TestAdminFinalizeApplicants:
             db_session,
             brand,
             stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
-            apply_open_at=_now() - timedelta(days=30),
-            apply_close_at=_now() - timedelta(days=1),
+            apply_open_at=utcnow() - timedelta(days=30),
+            apply_close_at=utcnow() - timedelta(days=1),
             capacity_total=3,
         )
         user = await persist(db_session, make_user(role=PortalRole.ORG))
@@ -700,7 +674,7 @@ class TestAdminFinalizeApplicants:
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/finalize-applicants",
             json={"allocations": [{"orgId": str(org.id), "units": 0}]},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200
         body = res.json()["data"]
@@ -716,13 +690,13 @@ class TestAdminFinalizeApplicants:
             db_session,
             brand,
             stage=BrandTrackerStage.FINALIZING_AGREEMENTS,
-            apply_open_at=_now() - timedelta(days=1),
-            apply_close_at=_now() + timedelta(days=1),
+            apply_open_at=utcnow() - timedelta(days=1),
+            apply_close_at=utcnow() + timedelta(days=1),
         )
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/finalize-applicants",
             json={"allocations": []},
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 400
         assert res.json()["error"]["code"] == "APPLY_WINDOW_OPEN"

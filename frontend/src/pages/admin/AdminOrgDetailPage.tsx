@@ -10,7 +10,7 @@
  * Erase (PRODUCT §3.1.2) is confirm-by-IG-handle; confirmation email is
  * best-effort after wipe.
  *
- * Approve requires tester-invite confirmation (LAUNCH.md Phase A) and moves the
+ * Approve requires tester-invite confirmation (buzz-ops engineering/plans/archive/2026-seeded-launch.md Phase A) and moves the
  * org to pending_instagram until they Connect.
  */
 import { useState } from "react";

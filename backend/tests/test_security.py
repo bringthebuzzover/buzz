@@ -15,6 +15,7 @@ from app.security.token_crypto import (
     decrypt_token,
     encrypt_token,
 )
+from app.timeutils import utcnow
 
 
 def test_access_token_round_trip_carries_role_and_status() -> None:
@@ -99,7 +100,7 @@ def test_tampered_signature_rejected() -> None:
 
 
 def test_expired_token_raises_expired_error() -> None:
-    now = buzz_jwt._now()
+    now = utcnow()
     claims = {
         "sub": str(uuid.uuid4()),
         "type": "access",

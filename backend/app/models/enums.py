@@ -16,7 +16,7 @@ Naming conventions
   (uppercased only when the value itself is uppercase) so model code can
   use either ``PortalRole.ORG`` or ``"org"`` interchangeably.
 
-See ``architecture.md`` §3.2 for the canonical list.
+See buzz-ops ``engineering/architecture.md`` §3.2 for the canonical list.
 """
 
 from __future__ import annotations
@@ -65,7 +65,7 @@ class BrandStatus(StrEnum):
 class OrgCategory(StrEnum):
     """Classification of a student org (``organizations.category``).
 
-    Drives brand-side applicant filtering (PRODUCT.md §5.3.1). Nullable on the
+    Drives brand-side applicant filtering (buzz-ops product/PRODUCT.md §5.3.1). Nullable on the
     column — orgs onboarded before this field, or that decline to classify,
     have no category.
     """
@@ -224,24 +224,3 @@ DropApplyIntentStatusEnum = sa.Enum(
     native_enum=True,
     values_callable=_enum_values,
 )
-
-
-ALL_ENUM_TYPES: tuple[sa.Enum, ...] = (
-    PortalRoleEnum,
-    OrgUserStatusEnum,
-    BrandStatusEnum,
-    OrgCategoryEnum,
-    ApplicationDecisionEnum,
-    BrandTrackerStageEnum,
-    PlatformEnum,
-    SocialMediaTypeEnum,
-    SocialMediaProductTypeEnum,
-    PostLinkSourceEnum,
-    SuggestionMatchReasonEnum,
-    DropApplyIntentStatusEnum,
-)
-"""Ordered tuple of every native ENUM type, used by the initial migration's
-``downgrade()`` to drop the corresponding PG types after the tables are gone.
-SQLAlchemy creates these implicitly when a table that references them is
-created, but it does **not** issue ``DROP TYPE`` on table drop — that has to
-be explicit (see ``migrations/versions/<ts>_initial_schema.py``)."""

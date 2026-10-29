@@ -2,7 +2,7 @@
 
 A fixed-window counter keyed by ``bucket:identity`` (identity = client IP, or the
 submitted account for login). Process-local — it assumes a **single web replica**
-(see DEPLOYMENT.md); the moment a second replica runs, counters split. For an MVP
+(see buzz-ops engineering/infra.md); the moment a second replica runs, counters split. For an MVP
 on Railway that's an acceptable, documented limitation (Redis is the upgrade
 path). ``settings.RATE_LIMIT_ENABLED`` is read at request time so it can be
 toggled (the test suite disables it).
@@ -62,7 +62,7 @@ def _evict_stale(now: float) -> None:
 def _client_ip(request: Request) -> str:
     # Prefer Railway's ``X-Real-IP`` (edge-set). Do not trust client-supplied
     # ``X-Forwarded-For`` for rate-limit buckets — it is spoofable. Fall back to
-    # the direct peer (documented in DEPLOYMENT.md).
+    # the direct peer (documented in buzz-ops engineering/infra.md).
     real_ip = (request.headers.get("x-real-ip") or "").strip()
     if real_ip:
         return real_ip

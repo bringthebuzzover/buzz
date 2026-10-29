@@ -14,20 +14,15 @@ from app.security.token_crypto import encrypt_token
 from app.services.instagram import MediaFields, MediaRef
 from tests.conftest import (
     FakeInstagramClient,
+    admin_headers,
     make_application,
     make_brand,
     make_drop,
     make_org,
     make_social_post,
     make_user,
-    mint_access_token,
     persist,
 )
-
-
-async def _admin_headers(db_session) -> dict:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return {"Authorization": f"Bearer {mint_access_token(admin)}"}
 
 
 async def _active_seat(db_session, *, handle: str = "nike"):
@@ -74,7 +69,7 @@ class TestAdminSyncAutolink:
 
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/sync-and-autolink",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200, res.text
         data = res.json()["data"]
@@ -104,7 +99,7 @@ class TestAdminSyncAutolink:
         await make_social_post(db_session, org, caption="love @nike collab")
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/sync-and-autolink",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200, res.text
         data = res.json()["data"]
@@ -133,7 +128,7 @@ class TestAdminSyncAutolink:
 
         res = await app_client.post(
             f"/api/admin/drops/{drop_a.id}/sync-and-autolink",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200, res.text
         assert res.json()["data"]["suggestionsCreated"] == 0
@@ -153,7 +148,7 @@ class TestAdminSyncAutolink:
         await make_social_post(db_session, org, caption="early @nike post")
         res = await app_client.post(
             f"/api/admin/drops/{drop.id}/sync-and-autolink",
-            headers=await _admin_headers(db_session),
+            headers=await admin_headers(db_session),
         )
         assert res.status_code == 200, res.text
         data = res.json()["data"]
@@ -168,7 +163,7 @@ class TestAdminSyncAutolink:
         hidden = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
         hidden.hidden_at = datetime.now(timezone.utc)
         await db_session.flush()
-        headers = await _admin_headers(db_session)
+        headers = await admin_headers(db_session)
         for drop in (finished, draft, hidden):
             res = await app_client.post(
                 f"/api/admin/drops/{drop.id}/sync-and-autolink",

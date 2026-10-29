@@ -1,4 +1,4 @@
-"""Tests for the auth dependency gates (architecture.md §5.4).
+"""Tests for the auth dependency gates (buzz-ops engineering/architecture.md §5.4).
 
 Throwaway routes are mounted on the real app to exercise each gate; requests
 go through ``app_client`` (which shares the rolled-back ``db_session``).

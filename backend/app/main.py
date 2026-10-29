@@ -25,7 +25,6 @@ from app import errors
 from app.config import settings
 from app.deps.db import engine
 from app.exceptions import BuzzAPIException
-from app.meta_reviewer.routes import router as meta_reviewer_router  # META-REVIEWER-PATH
 from app.response import APIResponse, api_error_response
 from app.routes.admin import router as admin_router
 from app.routes.auth import router as auth_router
@@ -202,5 +201,3 @@ app.include_router(brands_router, prefix="/api")
 app.include_router(drops_router, prefix="/api")
 app.include_router(campaigns_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
-# META-REVIEWER-PATH: reviewer routes 404 from inside the module when the flag is off.
-app.include_router(meta_reviewer_router, prefix="/api")

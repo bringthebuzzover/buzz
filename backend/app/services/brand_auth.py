@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy import update as sa_update
@@ -25,15 +25,12 @@ from app.models.user import User
 from app.schemas.auth import UserResponse
 from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password, verify_password
+from app.timeutils import utcnow
 
 # A fixed valid bcrypt hash used only to burn the same CPU as a real verify
 # when the account doesn't exist, so login timing can't be used to enumerate
 # registered brand emails.
 _DUMMY_HASH = "$2b$12$BjsWQMEoE/Jrr8bmN2pUfO0P1IFZpAURUcSq7qQGTYUimfCYgUX6S"
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 async def apply_brand(
@@ -106,7 +103,7 @@ async def create_brand_invite(db: AsyncSession, brand: Brand, user: User) -> tup
     Any prior unused invite for this brand is invalidated first, so re-issuing
     leaves exactly one live setup link (no accumulation of valid tokens).
     """
-    now = _now()
+    now = utcnow()
     await db.execute(
         sa_update(BrandInviteToken)
         .where(
@@ -138,7 +135,7 @@ async def set_brand_password(
     On success the user is activated and ``(user, user_response)`` is returned so
     the route can mint a session immediately (no separate login step).
     """
-    now = _now()
+    now = utcnow()
 
     # FOR UPDATE locks the invite row so two concurrent set-password calls
     # serialize: the second sees used_at set and is rejected.
@@ -225,7 +222,7 @@ async def login_brand(db: AsyncSession, email: str, password: str) -> tuple[User
             status_code=401,
         )
 
-    user.last_login_at = _now()
+    user.last_login_at = utcnow()
     await db.flush()
 
     resp = UserResponse(
@@ -281,7 +278,7 @@ async def change_brand_password(
             "New password must be different from the current password.",
             status_code=400,
         )
-    now = _now()
+    now = utcnow()
     await db.execute(
         sa_update(PasswordResetToken)
         .where(

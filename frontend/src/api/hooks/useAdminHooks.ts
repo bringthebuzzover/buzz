@@ -892,8 +892,6 @@ export function useReopenDrop(dropId: string) {
 
 // ── Impersonation ───────────────────────────────────────────────────────────
 
-export type AdminUserRow = components["schemas"]["AdminUserItem"];
-
 export function useImpersonate(): AdminMutation<string> {
   return useMutation({
     mutationFn: async (userId: string) => {

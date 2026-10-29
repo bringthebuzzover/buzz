@@ -189,17 +189,6 @@ def test_org_apply_prefill_update_email_fields() -> None:
     assert "Hi!" in no_name_text
 
 
-def test_applied_on_from_source_row_key() -> None:
-    assert (
-        email.applied_on_from_source_row_key("8/30/2026 16:30:08|mp2282@cornell.edu") == "August 30"
-    )
-    assert email.applied_on_from_source_row_key("8/18/2026 1:19:20|mc3237@cornell.edu") == (
-        "August 18"
-    )
-    assert email.applied_on_from_source_row_key("not-a-date|x@y.edu") is None
-    assert email.applied_on_from_source_row_key(None) is None
-
-
 async def test_org_approved_email_links_tester_invite_tab(monkeypatch, _resend_key) -> None:
     seen: dict = {}
 

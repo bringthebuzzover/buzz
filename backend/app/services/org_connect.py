@@ -1,4 +1,4 @@
-"""Org Connect Instagram one-shot tokens (LAUNCH.md Phase A).
+"""Org Connect Instagram one-shot tokens.
 
 Mirrors brand invite mint/redeem: invalidate prior unused tokens, hash at rest,
 TTL from ``ORG_CONNECT_TOKEN_TTL_DAYS``.
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from sqlalchemy import select
 from sqlalchemy import update as sa_update
@@ -22,10 +22,7 @@ from app.models.org_connect_token import OrgConnectToken
 from app.models.organization import Organization
 from app.models.user import User
 from app.security.one_shot_tokens import hash_token
-
-
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
+from app.timeutils import utcnow
 
 
 async def create_org_connect_token(
@@ -36,7 +33,7 @@ async def create_org_connect_token(
     Returns the raw token and the row id. The id is safe to put on a Resend
     idempotency key; the raw token is not.
     """
-    now = _now()
+    now = utcnow()
     await db.execute(
         sa_update(OrgConnectToken)
         .where(
@@ -62,7 +59,7 @@ async def create_org_connect_token(
 
 async def redeem_org_connect_token(db: AsyncSession, token: str) -> User:
     """Consume a connect token; return the org user (must be pending_instagram)."""
-    now = _now()
+    now = utcnow()
     row = await db.scalar(
         select(OrgConnectToken)
         .where(OrgConnectToken.token_hash == hash_token(token))

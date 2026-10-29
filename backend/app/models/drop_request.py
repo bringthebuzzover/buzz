@@ -1,4 +1,4 @@
-"""``drop_requests`` table — brand intake tickets (LAUNCH.md Phase B).
+"""``drop_requests`` table — brand intake tickets.
 
 A ticket is not a live campaign. Brand "Plan your Campaign" creates one of these;
 admins convert a ticket into an unpublished ``drops`` row, then Publish.

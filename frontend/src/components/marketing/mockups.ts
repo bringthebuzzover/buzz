@@ -2,15 +2,16 @@
  * Sample story shared by the Home, For organizations, and For brands phones.
  * Copy matches the pen (pass 8): Sample Org / Sample Brand / Fall Cold Brew Launch.
  */
-const publicUrl = process.env.PUBLIC_URL ?? "";
+
+import { publicAsset } from "../../utils/publicAsset";
 
 export const MOCKUP = {
-  cans: `${publicUrl}/images/mockups/cold-brew-cans.webp`,
-  bottle: `${publicUrl}/images/mockups/cold-brew-bottle.webp`,
-  table: `${publicUrl}/images/mockups/sampling-table.webp`,
-  event: `${publicUrl}/images/mockups/campus-event.webp`,
-  box: `${publicUrl}/images/mockups/shipment-box.webp`,
-  study: `${publicUrl}/images/mockups/study-night.webp`,
+  cans: publicAsset("images/mockups/cold-brew-cans.webp"),
+  bottle: publicAsset("images/mockups/cold-brew-bottle.webp"),
+  table: publicAsset("images/mockups/sampling-table.webp"),
+  event: publicAsset("images/mockups/campus-event.webp"),
+  box: publicAsset("images/mockups/shipment-box.webp"),
+  study: publicAsset("images/mockups/study-night.webp"),
 } as const;
 
 export const MOCKUP_ALT = {

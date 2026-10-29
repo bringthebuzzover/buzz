@@ -1,4 +1,4 @@
-"""Public org apply (LAUNCH.md Phase A) — create account without Instagram OAuth."""
+"""Public org apply — create account without Instagram OAuth."""
 
 from __future__ import annotations
 

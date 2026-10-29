@@ -1160,7 +1160,7 @@
         "type": "object"
       },
       "AdminDropCreateRequest": {
-        "description": "Admin-minted unpublished draft drop (LAUNCH.md Phase B).",
+        "description": "Admin-minted unpublished draft drop.",
         "properties": {
           "applyCloseAt": {
             "format": "date-time",
@@ -2864,146 +2864,6 @@
         "title": "AdminOverviewResponse",
         "type": "object"
       },
-      "AdminPendingBrandItem": {
-        "properties": {
-          "brandName": {
-            "title": "Brandname",
-            "type": "string"
-          },
-          "companyEmail": {
-            "title": "Companyemail",
-            "type": "string"
-          },
-          "createdAt": {
-            "title": "Createdat",
-            "type": "integer"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "instagramHandle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Instagramhandle"
-          },
-          "intentMessage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Intentmessage"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          },
-          "userId": {
-            "format": "uuid",
-            "title": "Userid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "userId",
-          "brandName",
-          "companyEmail",
-          "intentMessage",
-          "instagramHandle",
-          "status",
-          "createdAt"
-        ],
-        "title": "AdminPendingBrandItem",
-        "type": "object"
-      },
-      "AdminPendingOrgItem": {
-        "properties": {
-          "createdAt": {
-            "title": "Createdat",
-            "type": "integer"
-          },
-          "followerCount": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Followercount"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "instagramHandle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Instagramhandle"
-          },
-          "memberCount": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Membercount"
-          },
-          "orgName": {
-            "title": "Orgname",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          },
-          "university": {
-            "title": "University",
-            "type": "string"
-          },
-          "userId": {
-            "format": "uuid",
-            "title": "Userid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "userId",
-          "orgName",
-          "university",
-          "instagramHandle",
-          "followerCount",
-          "memberCount",
-          "status",
-          "createdAt"
-        ],
-        "title": "AdminPendingOrgItem",
-        "type": "object"
-      },
       "AdminQueueItem": {
         "description": "One action-required queue. ``oldest_at`` is what makes a count\nactionable \u2014 three items sitting nine days is not three from this morning.",
         "properties": {
@@ -3387,77 +3247,6 @@
           "occurredAt"
         ],
         "title": "AdminTrackerEventItem",
-        "type": "object"
-      },
-      "AdminUserItem": {
-        "description": "A row in the ``/api/admin/users`` impersonation picker.",
-        "properties": {
-          "createdAt": {
-            "title": "Createdat",
-            "type": "integer"
-          },
-          "displayName": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Displayname"
-          },
-          "email": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Email"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "impersonatable": {
-            "title": "Impersonatable",
-            "type": "boolean"
-          },
-          "instagramHandle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Instagramhandle"
-          },
-          "portalRole": {
-            "title": "Portalrole",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "portalRole",
-          "status",
-          "displayName",
-          "email",
-          "instagramHandle",
-          "impersonatable",
-          "createdAt"
-        ],
-        "title": "AdminUserItem",
         "type": "object"
       },
       "AdminVerificationState": {
@@ -5272,38 +5061,6 @@
         "title": "CancelPendingEduEmailResponse",
         "type": "object"
       },
-      "ChangeEduEmailRequest": {
-        "description": "Correct a typo'd .edu while still awaiting verification.",
-        "properties": {
-          "eduEmail": {
-            "title": "Eduemail",
-            "type": "string"
-          }
-        },
-        "required": [
-          "eduEmail"
-        ],
-        "title": "ChangeEduEmailRequest",
-        "type": "object"
-      },
-      "ChangeEduEmailResponse": {
-        "properties": {
-          "emailSentTo": {
-            "title": "Emailsentto",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "emailSentTo",
-          "status"
-        ],
-        "title": "ChangeEduEmailResponse",
-        "type": "object"
-      },
       "ClearInstagramTokenResponse": {
         "properties": {
           "instagramTokenCleared": {
@@ -6615,44 +6372,6 @@
         "title": "DataResponse[CancelPendingEduEmailResponse]",
         "type": "object"
       },
-      "DataResponse_ChangeEduEmailResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ChangeEduEmailResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[ChangeEduEmailResponse]",
-        "type": "object"
-      },
       "DataResponse_ClearInstagramTokenResponse_": {
         "properties": {
           "data": {
@@ -6955,82 +6674,6 @@
           }
         },
         "title": "DataResponse[InstagramDeauthorizeResponse]",
-        "type": "object"
-      },
-      "DataResponse_MetaReviewerSeedResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/MetaReviewerSeedResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[MetaReviewerSeedResponse]",
-        "type": "object"
-      },
-      "DataResponse_MetaReviewerStatusResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/MetaReviewerStatusResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[MetaReviewerStatusResponse]",
         "type": "object"
       },
       "DataResponse_OkResponse_": {
@@ -7893,90 +7536,6 @@
         "title": "DataResponse[list[AdminOrgItem]]",
         "type": "object"
       },
-      "DataResponse_list_AdminPendingBrandItem__": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AdminPendingBrandItem"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Data"
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[list[AdminPendingBrandItem]]",
-        "type": "object"
-      },
-      "DataResponse_list_AdminPendingOrgItem__": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AdminPendingOrgItem"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Data"
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[list[AdminPendingOrgItem]]",
-        "type": "object"
-      },
       "DataResponse_list_AdminTableInfo__": {
         "properties": {
           "data": {
@@ -8017,48 +7576,6 @@
           }
         },
         "title": "DataResponse[list[AdminTableInfo]]",
-        "type": "object"
-      },
-      "DataResponse_list_AdminUserItem__": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AdminUserItem"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Data"
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[list[AdminUserItem]]",
         "type": "object"
       },
       "DataResponse_list_BrandDropListItem__": {
@@ -8948,99 +8465,6 @@
         "title": "LinkPostRequest",
         "type": "object"
       },
-      "MetaReviewerSeedResponse": {
-        "properties": {
-          "applicationId": {
-            "title": "Applicationid",
-            "type": "string"
-          },
-          "createdApplication": {
-            "title": "Createdapplication",
-            "type": "boolean"
-          },
-          "createdUser": {
-            "title": "Createduser",
-            "type": "boolean"
-          },
-          "dropId": {
-            "title": "Dropid",
-            "type": "string"
-          },
-          "orgId": {
-            "title": "Orgid",
-            "type": "string"
-          },
-          "userId": {
-            "title": "Userid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "userId",
-          "orgId",
-          "dropId",
-          "applicationId",
-          "createdUser",
-          "createdApplication"
-        ],
-        "title": "MetaReviewerSeedResponse",
-        "type": "object"
-      },
-      "MetaReviewerStatusResponse": {
-        "description": "Setup snapshot. ``user_id`` is the admin org-page key, not a secret.",
-        "properties": {
-          "dropId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Dropid"
-          },
-          "enabled": {
-            "title": "Enabled",
-            "type": "boolean"
-          },
-          "orgId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Orgid"
-          },
-          "seeded": {
-            "title": "Seeded",
-            "type": "boolean"
-          },
-          "userId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Userid"
-          }
-        },
-        "required": [
-          "enabled",
-          "seeded",
-          "orgId",
-          "userId",
-          "dropId"
-        ],
-        "title": "MetaReviewerStatusResponse",
-        "type": "object"
-      },
       "NotifyRequest": {
         "description": "Body for ``POST /api/drops/{id}/notify`` (architecture \u00a77.1).",
         "properties": {
@@ -9358,20 +8782,20 @@
           "orgName",
           "university",
           "eduEmail",
-          "instagramHandle",
           "memberCount",
           "category",
           "contactName",
           "shippingLine1",
           "shippingCity",
           "shippingState",
-          "shippingPostalCode"
+          "shippingPostalCode",
+          "instagramHandle"
         ],
         "title": "OrgApplyRequest",
         "type": "object"
       },
       "OrgCategory": {
-        "description": "Classification of a student org (``organizations.category``).\n\nDrives brand-side applicant filtering (PRODUCT.md \u00a75.3.1). Nullable on the\ncolumn \u2014 orgs onboarded before this field, or that decline to classify,\nhave no category.",
+        "description": "Classification of a student org (``organizations.category``).\n\nDrives brand-side applicant filtering (buzz-ops product/PRODUCT.md \u00a75.3.1). Nullable on the\ncolumn \u2014 orgs onboarded before this field, or that decline to classify,\nhave no category.",
         "enum": [
           "sorority",
           "fraternity",
@@ -10440,7 +9864,7 @@
         "type": "object"
       },
       "RefreshResponse": {
-        "description": "Result of a successful ``POST /api/auth/refresh``.\n\n``user`` mirrors the payload that ``GET /api/auth/me`` would return for the\nbearer we just minted. Serializing both from the same transaction lets the\nSPA bootstrap without a follow-up ``/me`` \u2014 closing the\n``token_version`` mint-then-read race\n(see ``gaps/auth.ci-session-restore-flake.md``).",
+        "description": "Result of a successful ``POST /api/auth/refresh``.\n\n``user`` mirrors the payload that ``GET /api/auth/me`` would return for the\nbearer we just minted. Serializing both from the same transaction lets the\nSPA bootstrap without a follow-up ``/me`` \u2014 closing the\n``token_version`` mint-then-read race\n(see buzz-ops ``engineering/gaps/archive/auth.ci-session-restore-flake.md``).",
         "properties": {
           "access_token": {
             "title": "Access Token",
@@ -11329,55 +10753,6 @@
           }
         },
         "summary": "Create Brand Endpoint",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/admin/brands/pending": {
-      "get": {
-        "operationId": "get_pending_brands_api_admin_brands_pending_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_list_AdminPendingBrandItem__"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Get Pending Brands",
         "tags": [
           "admin"
         ]
@@ -12924,7 +12299,7 @@
     },
     "/api/admin/health": {
       "get": {
-        "description": "Inferred pipeline freshness, Instagram token buckets, and standing\nintegrity / silent-loss counts. See ``gaps/`` for why the pipeline\nblock is inferred rather than measured.",
+        "description": "Inferred pipeline freshness, Instagram token buckets, and standing\nintegrity / silent-loss counts. See buzz-ops ``engineering/gaps/`` for why the pipeline\nblock is inferred rather than measured.",
         "operationId": "get_health_endpoint_api_admin_health_get",
         "parameters": [
           {
@@ -13437,55 +12812,6 @@
           }
         },
         "summary": "List Orgs Endpoint",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/admin/orgs/pending": {
-      "get": {
-        "operationId": "get_pending_orgs_api_admin_orgs_pending_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_list_AdminPendingOrgItem__"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Get Pending Orgs",
         "tags": [
           "admin"
         ]
@@ -14468,56 +13794,6 @@
         ]
       }
     },
-    "/api/admin/users": {
-      "get": {
-        "description": "Org + brand users for the admin impersonation picker.",
-        "operationId": "list_users_endpoint_api_admin_users_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_list_AdminUserItem__"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "List Users Endpoint",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
     "/api/auth/admin/forgot-password": {
       "post": {
         "description": "Enumerate-safe admin password-reset request.",
@@ -15369,66 +14645,6 @@
         ]
       }
     },
-    "/api/auth/verify-email/change": {
-      "post": {
-        "description": "Correct a typo'd .edu while still awaiting verification.",
-        "operationId": "change_edu_email_endpoint_api_auth_verify_email_change_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChangeEduEmailRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_ChangeEduEmailResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Change Edu Email Endpoint",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
     "/api/auth/verify-email/resend": {
       "post": {
         "description": "Re-send the .edu verification email (rate-limited, auth required).",
@@ -15912,7 +15128,7 @@
         ]
       },
       "post": {
-        "description": "Plan your Campaign \u2014 create an intake ticket (LAUNCH.md Phase B).",
+        "description": "Plan your Campaign \u2014 create an intake ticket.",
         "operationId": "create_drop_request_api_brands_me_drop_requests_post",
         "parameters": [
           {
@@ -15965,65 +15181,6 @@
           }
         },
         "summary": "Create Drop Request",
-        "tags": [
-          "brands"
-        ]
-      }
-    },
-    "/api/brands/me/drop-requests/{request_id}": {
-      "get": {
-        "operationId": "get_drop_request_api_brands_me_drop_requests__request_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "request_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Request Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_BrandDropRequestResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Get Drop Request",
         "tags": [
           "brands"
         ]
@@ -17424,159 +16581,6 @@
         "summary": "Get Health",
         "tags": [
           "health"
-        ]
-      }
-    },
-    "/api/meta-reviewer/seed": {
-      "post": {
-        "description": "Admin-only idempotent seed. 404 when the flag is off, before auth.",
-        "operationId": "meta_reviewer_seed_api_meta_reviewer_seed_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_MetaReviewerSeedResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Meta Reviewer Seed",
-        "tags": [
-          "meta-reviewer"
-        ]
-      }
-    },
-    "/api/meta-reviewer/start": {
-      "post": {
-        "description": "Verify the reusable link secret and mint a reviewer OAuth state.\n\nThe state cookie is the same CSRF binding as Connect. ``next`` is not\ntaken from the client (no open redirect).",
-        "operationId": "meta_reviewer_start_api_meta_reviewer_start_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "token": {
-                    "maxLength": 256,
-                    "minLength": 1,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "token"
-                ],
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_InstagramBindStartResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Meta Reviewer Start",
-        "tags": [
-          "meta-reviewer"
-        ]
-      }
-    },
-    "/api/meta-reviewer/status": {
-      "get": {
-        "description": "Admin-only setup status. 404 when the flag is off, before auth.\n\nReturns whether the reviewer org exists, its admin-page user id, and the\nconfigured drop id. Never returns the link secret, its hash, or the email.\nNot rate-limited: the admin overview reads it on each visit. Flag-off\nstill 404s before auth, so that probe never reaches the handler body.",
-        "operationId": "meta_reviewer_status_api_meta_reviewer_status_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_MetaReviewerStatusResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Meta Reviewer Status",
-        "tags": [
-          "meta-reviewer"
         ]
       }
     },

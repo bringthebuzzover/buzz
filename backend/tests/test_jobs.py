@@ -1,4 +1,4 @@
-"""Tests for the Stage 8 background jobs (architecture.md §10)."""
+"""Tests for the Stage 8 background jobs (buzz-ops engineering/architecture.md §10)."""
 
 from __future__ import annotations
 
@@ -35,10 +35,11 @@ from app.security.one_shot_tokens import hash_token
 from app.security.token_crypto import encrypt_token
 from app.services.instagram import MediaFields, MediaRef
 from app.services.instagram_token import (
-    days_until_expiry,
     maybe_refresh_on_login,
     refresh_instagram_token,
+    time_until_expiry,
 )
+from app.timeutils import utcnow
 from tests.conftest import (
     FakeInstagramClient,
     make_application,
@@ -80,10 +81,6 @@ class _FailingRefreshClient(FakeInstagramClient):
         raise RuntimeError("refresh failed")
 
 
-def _now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
 # --- 10.2 Drop auto-close ----------------------------------------------------
 
 
@@ -92,7 +89,7 @@ async def test_autoclose_freezes_unpublished_request_received(db_session) -> Non
     drop = await make_drop(
         db_session,
         brand,
-        apply_close_at=_now() - timedelta(hours=1),
+        apply_close_at=utcnow() - timedelta(hours=1),
         published_at=None,
     )  # unpublished stub, window passed
     result = await auto_close_drops(db_session)
@@ -106,13 +103,13 @@ async def test_autoclose_freezes_unpublished_request_received(db_session) -> Non
 async def test_autoclose_skips_manual_reopen_and_open_window(db_session) -> None:
     brand = await make_brand(db_session)
     reopened = await make_drop(
-        db_session, brand, apply_close_at=_now() - timedelta(hours=1), manual_reopen=True
+        db_session, brand, apply_close_at=utcnow() - timedelta(hours=1), manual_reopen=True
     )
-    still_open = await make_drop(db_session, brand, apply_close_at=_now() + timedelta(days=3))
+    still_open = await make_drop(db_session, brand, apply_close_at=utcnow() + timedelta(days=3))
     already = await make_drop(
         db_session,
         brand,
-        apply_close_at=_now() - timedelta(hours=1),
+        apply_close_at=utcnow() - timedelta(hours=1),
         stage=BrandTrackerStage.AWAITING_PRODUCTS,
     )
 
@@ -130,7 +127,7 @@ async def test_autoclose_skips_unpublished(db_session) -> None:
     unpublished = await make_drop(
         db_session,
         brand,
-        apply_close_at=_now() - timedelta(hours=1),
+        apply_close_at=utcnow() - timedelta(hours=1),
         stage=BrandTrackerStage.AWAITING_PRODUCTS,
         published_at=None,
     )
@@ -146,7 +143,7 @@ async def test_autoclose_skips_unpublished(db_session) -> None:
 
 async def test_cleanup_sweeps_old_used_and_expired_tokens(db_session) -> None:
     org_user = await persist(db_session, make_user(instagram_user_id="ig_cleanup"))
-    old = _now() - timedelta(days=30)
+    old = utcnow() - timedelta(days=30)
 
     # used long ago -> swept
     db_session.add(
@@ -155,7 +152,7 @@ async def test_cleanup_sweeps_old_used_and_expired_tokens(db_session) -> None:
             user_id=org_user.id,
             token_hash=hash_token("t-used"),
             email="a@x.edu",
-            expires_at=_now() + timedelta(days=1),
+            expires_at=utcnow() + timedelta(days=1),
             used_at=old,
         )
     )
@@ -176,7 +173,7 @@ async def test_cleanup_sweeps_old_used_and_expired_tokens(db_session) -> None:
             user_id=org_user.id,
             token_hash=hash_token("t-fresh"),
             email="c@x.edu",
-            expires_at=_now() + timedelta(days=1),
+            expires_at=utcnow() + timedelta(days=1),
         )
     )
     await db_session.flush()
@@ -196,8 +193,8 @@ async def test_cleanup_respects_grace_window(db_session) -> None:
             user_id=org_user.id,
             token_hash=hash_token("t-recent"),
             email="d@x.edu",
-            expires_at=_now() + timedelta(days=1),
-            used_at=_now() - timedelta(days=1),
+            expires_at=utcnow() + timedelta(days=1),
+            used_at=utcnow() - timedelta(days=1),
         )
     )
     await db_session.flush()
@@ -307,7 +304,7 @@ async def _never_called(to_email, **kwargs):
 async def _notify_ctx(db_session, *, reminder_minutes=15, opens_in=timedelta(minutes=10)):
     """An org subscribed to a drop that opens ``opens_in`` from now."""
 
-    now = _now()
+    now = utcnow()
     user = await persist(db_session, make_user(instagram_user_id=f"ig_n_{uuid.uuid4().hex[:8]}"))
     user.edu_email = f"{uuid.uuid4().hex[:10]}@school.edu"
     org = await make_org(db_session, user)
@@ -398,7 +395,7 @@ async def test_notify_reminder_skips_closed_window(db_session, monkeypatch) -> N
 
     # A drop whose window opened and closed before anyone got reminded: mailing
     # "apply now" would be worse than staying quiet.
-    now = _now()
+    now = utcnow()
     user = await persist(db_session, make_user(instagram_user_id="ig_n_closed"))
     user.edu_email = "closed@school.edu"
     org = await make_org(db_session, user)
@@ -499,7 +496,7 @@ async def test_notify_reminder_skips_hidden(db_session, monkeypatch) -> None:
 def _org_with_token(days_to_expiry: int) -> User:
     user = make_user(instagram_user_id="ig_tok")
     user.instagram_access_token = encrypt_token("old-long-lived")
-    user.instagram_token_expires_at = _now() + timedelta(days=days_to_expiry)
+    user.instagram_token_expires_at = utcnow() + timedelta(days=days_to_expiry)
     return user
 
 
@@ -511,7 +508,7 @@ async def test_token_refresh_cron_refreshes_due(db_session) -> None:
     await db_session.refresh(user)
     # token rotated + expiry pushed ~60d out
     assert user.instagram_token_refreshed_at is not None
-    assert user.instagram_token_expires_at > _now() + timedelta(days=30)
+    assert user.instagram_token_expires_at > utcnow() + timedelta(days=30)
 
 
 async def test_token_refresh_cron_skips_far_expiry(db_session) -> None:
@@ -530,7 +527,7 @@ async def test_on_login_enqueues_near_expiry() -> None:
 async def test_on_login_enqueues_last_day_not_expired() -> None:
     """Sub-day remaining must refresh, not raise INSTAGRAM_TOKEN_EXPIRED."""
     user = _org_with_token(days_to_expiry=0)
-    user.instagram_token_expires_at = _now() + timedelta(hours=12)
+    user.instagram_token_expires_at = utcnow() + timedelta(hours=12)
     bg = BackgroundTasks()
     await maybe_refresh_on_login(user, bg, FakeInstagramClient())
     assert len(bg.tasks) == 1
@@ -549,7 +546,7 @@ async def test_on_login_raises_when_expired_and_clears_token() -> None:
             status="active",
             instagram_user_id=f"ig_exp_{uid.hex[:8]}",
             instagram_access_token=encrypt_token("expired-ll"),
-            instagram_token_expires_at=_now() - timedelta(hours=1),
+            instagram_token_expires_at=utcnow() - timedelta(hours=1),
             token_version=3,
         )
         s.add(user)
@@ -582,7 +579,7 @@ async def test_on_login_raises_when_expired_and_clears_token() -> None:
 
 async def test_token_refresh_cron_includes_last_day(db_session) -> None:
     user = await persist(db_session, _org_with_token(days_to_expiry=0))
-    user.instagram_token_expires_at = _now() + timedelta(hours=12)
+    user.instagram_token_expires_at = utcnow() + timedelta(hours=12)
     await db_session.flush()
     result = await refresh_due_tokens(db_session, FakeInstagramClient())
     assert result["candidates"] == 1
@@ -592,7 +589,7 @@ async def test_token_refresh_cron_includes_last_day(db_session) -> None:
 async def test_on_login_noop_for_brand() -> None:
     brand_user = make_user()
     brand_user.portal_role = "brand"
-    assert days_until_expiry(brand_user) is None
+    assert time_until_expiry(brand_user) is None
     bg = BackgroundTasks()
     await maybe_refresh_on_login(brand_user, bg, FakeInstagramClient())
     assert len(bg.tasks) == 0
@@ -604,7 +601,7 @@ async def test_on_login_noop_for_brand() -> None:
 async def test_metric_sync_discovers_and_refreshes(db_session) -> None:
     org_user = await persist(db_session, make_user(instagram_user_id="ig_sync"))
     org_user.instagram_access_token = encrypt_token("long-lived")
-    org_user.instagram_token_expires_at = _now() + timedelta(days=50)
+    org_user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand, stage=BrandTrackerStage.DROP_ACTIVE)
@@ -644,7 +641,7 @@ async def test_metric_sync_stores_long_instagram_media_urls(db_session) -> None:
     """Signed CDN links exceed the old varchar(1024) and must still insert."""
     org_user = await persist(db_session, make_user(instagram_user_id="ig_long_url"))
     org_user.instagram_access_token = encrypt_token("long-lived")
-    org_user.instagram_token_expires_at = _now() + timedelta(days=50)
+    org_user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand, stage=BrandTrackerStage.AWAITING_PRODUCTS)
@@ -683,7 +680,7 @@ async def test_metric_sync_stores_long_instagram_media_urls(db_session) -> None:
 async def test_metric_sync_skips_orgs_without_live_campaign(db_session) -> None:
     org_user = await persist(db_session, make_user(instagram_user_id="ig_nolive"))
     org_user.instagram_access_token = encrypt_token("long-lived")
-    org_user.instagram_token_expires_at = _now() + timedelta(days=50)
+    org_user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     org = await make_org(db_session, org_user)
     brand = await make_brand(db_session)
     drop = await make_drop(db_session, brand, stage=BrandTrackerStage.REQUEST_RECEIVED)
@@ -759,7 +756,7 @@ def _media_fields(
 async def _eligible_sync_org(db, *, suffix, days=50):
     user = await persist(db, make_user(instagram_user_id=f"ig_{suffix}"))
     user.instagram_access_token = encrypt_token("long-lived")
-    user.instagram_token_expires_at = _now() + timedelta(days=days)
+    user.instagram_token_expires_at = utcnow() + timedelta(days=days)
     org = await make_org(db, user)
     brand = await make_brand(db)
     drop = await make_drop(db, brand, stage=BrandTrackerStage.DROP_ACTIVE)
@@ -918,11 +915,13 @@ async def test_autolink_does_not_remint_after_advance_to_drop_active(db_session)
 async def test_autolink_skips_out_of_window_and_ad(db_session) -> None:
     org, _, drop, _ = await _accepted_live_ctx(db_session)
     # 40 days before the window opens → out of range
-    db_session.add(_raw_post(org.id, caption="early @nike", posted_at=_now() - timedelta(days=40)))
+    db_session.add(
+        _raw_post(org.id, caption="early @nike", posted_at=utcnow() - timedelta(days=40))
+    )
     # AD product type → not suggestable
     db_session.add(
         _raw_post(
-            org.id, caption="@nike ad", posted_at=_now() - timedelta(hours=2), product_type="AD"
+            org.id, caption="@nike ad", posted_at=utcnow() - timedelta(hours=2), product_type="AD"
         )
     )
     await db_session.flush()
@@ -936,7 +935,7 @@ async def test_autolink_skips_out_of_window_and_ad(db_session) -> None:
 async def test_cleanup_sweeps_brand_invite_tokens(db_session) -> None:
     brand = await make_brand(db_session)
     user = await db_session.get(User, brand.user_id)
-    old = _now() - timedelta(days=30)
+    old = utcnow() - timedelta(days=30)
     db_session.add(
         BrandInviteToken(
             id=uuid.uuid4(),
@@ -944,7 +943,7 @@ async def test_cleanup_sweeps_brand_invite_tokens(db_session) -> None:
             brand_id=brand.id,
             token_hash=hash_token("bi-used"),
             email="b@x.com",
-            expires_at=_now() + timedelta(days=1),
+            expires_at=utcnow() + timedelta(days=1),
             used_at=old,
         )
     )
@@ -955,7 +954,7 @@ async def test_cleanup_sweeps_brand_invite_tokens(db_session) -> None:
             brand_id=brand.id,
             token_hash=hash_token("bi-fresh"),
             email="c@x.com",
-            expires_at=_now() + timedelta(days=3),
+            expires_at=utcnow() + timedelta(days=3),
         )
     )
     await db_session.flush()
@@ -980,7 +979,7 @@ async def test_token_refresh_cron_counts_failures_and_keeps_token(db_session) ->
 async def test_token_refresh_cron_skips_already_expired(db_session) -> None:
     user = make_user(instagram_user_id="ig_expired")
     user.instagram_access_token = encrypt_token("x")
-    user.instagram_token_expires_at = _now() - timedelta(hours=1)
+    user.instagram_token_expires_at = utcnow() - timedelta(hours=1)
     await persist(db_session, user)
     result = await refresh_due_tokens(db_session, FakeInstagramClient())
     assert result["candidates"] == 0
@@ -995,7 +994,7 @@ async def test_on_login_noop_for_fresh_token() -> None:
 
 async def test_on_login_noop_without_token() -> None:
     user = make_user(instagram_user_id="ig_notoken")  # org, no IG token
-    assert days_until_expiry(user) is None
+    assert time_until_expiry(user) is None
     bg = BackgroundTasks()
     await maybe_refresh_on_login(user, bg, FakeInstagramClient())
     assert len(bg.tasks) == 0
@@ -1022,7 +1021,7 @@ async def test_refresh_instagram_token_rotates(monkeypatch) -> None:
                 status="active",
                 instagram_user_id=f"ig_rot_{uid.hex[:8]}",
                 instagram_access_token=encrypt_token("old"),
-                instagram_token_expires_at=_now() + timedelta(days=10),
+                instagram_token_expires_at=utcnow() + timedelta(days=10),
             )
         )
         await s.commit()
@@ -1033,7 +1032,7 @@ async def test_refresh_instagram_token_rotates(monkeypatch) -> None:
         async with async_session_factory() as s:
             u = await s.get(User, uid)
             assert u.instagram_token_refreshed_at is not None
-            assert u.instagram_token_expires_at > _now() + timedelta(days=30)
+            assert u.instagram_token_expires_at > utcnow() + timedelta(days=30)
     finally:
         async with async_session_factory() as s:
             u = await s.get(User, uid)
@@ -1057,7 +1056,7 @@ async def test_refresh_instagram_token_skips_erased_org(monkeypatch) -> None:
                 status="erased",
                 instagram_user_id=f"ig_er_{uid.hex[:8]}",
                 instagram_access_token=original,
-                instagram_token_expires_at=_now() + timedelta(days=10),
+                instagram_token_expires_at=utcnow() + timedelta(days=10),
             )
         )
         await s.commit()
@@ -1096,7 +1095,7 @@ async def test_refresh_instagram_token_does_not_restore_token_after_erase(monkey
                 status="active",
                 instagram_user_id=f"ig_mid_{uid.hex[:8]}",
                 instagram_access_token=encrypt_token("old"),
-                instagram_token_expires_at=_now() + timedelta(days=10),
+                instagram_token_expires_at=utcnow() + timedelta(days=10),
             )
         )
         await s.commit()
@@ -1140,7 +1139,7 @@ async def test_token_refresh_cron_does_not_restore_token_after_erase() -> None:
                 status="active",
                 instagram_user_id=f"ig_cron_{uid.hex[:8]}",
                 instagram_access_token=encrypt_token("old"),
-                instagram_token_expires_at=_now() + timedelta(days=10),
+                instagram_token_expires_at=utcnow() + timedelta(days=10),
             )
         )
         await s.commit()
@@ -1178,7 +1177,7 @@ async def test_token_refresh_cron_does_not_restore_token_after_erase() -> None:
 
 async def test_metric_sync_skips_expired_token_org(db_session) -> None:
     user, org = await _eligible_sync_org(db_session, suffix="expired", days=50)
-    user.instagram_token_expires_at = _now() - timedelta(days=1)  # expired
+    user.instagram_token_expires_at = utcnow() - timedelta(days=1)  # expired
     await db_session.flush()
     fake = FakeInstagramClient()
     fake.media = [MediaRef(id="mx", timestamp="2030-01-01T00:00:00+0000")]
@@ -1201,7 +1200,7 @@ async def test_metric_sync_does_not_refresh_story(db_session) -> None:
     story = _raw_post(
         org.id,
         caption="story",
-        posted_at=_now() - timedelta(hours=2),
+        posted_at=utcnow() - timedelta(hours=2),
         product_type="STORY",
         likes=99,
     )
@@ -1246,7 +1245,7 @@ async def test_metric_sync_skips_story_discovery(db_session) -> None:
 async def test_metric_sync_applies_reel_insights(db_session) -> None:
     user, org = await _eligible_sync_org(db_session, suffix="reel")
     reel = _raw_post(
-        org.id, caption="reel", posted_at=_now() - timedelta(hours=2), product_type="REELS"
+        org.id, caption="reel", posted_at=utcnow() - timedelta(hours=2), product_type="REELS"
     )
     db_session.add(reel)
     await db_session.flush()
@@ -1262,7 +1261,7 @@ async def test_metric_sync_applies_reel_insights(db_session) -> None:
 async def test_metric_sync_keeps_basics_when_insights_fail(db_session) -> None:
     user, org = await _eligible_sync_org(db_session, suffix="insfail")
     post = _raw_post(
-        org.id, caption="x", posted_at=_now() - timedelta(hours=2), likes=99, ext="insfail1"
+        org.id, caption="x", posted_at=utcnow() - timedelta(hours=2), likes=99, ext="insfail1"
     )
     post.reach = 50
     db_session.add(post)
@@ -1311,7 +1310,7 @@ async def test_metric_sync_carries_likes_when_graph_omits_like_count(db_session)
     post = _raw_post(
         org.id,
         caption="old",
-        posted_at=_now() - timedelta(hours=2),
+        posted_at=utcnow() - timedelta(hours=2),
         likes=120,
         comments=4,
         ext="omitlikes1",
@@ -1338,7 +1337,7 @@ async def test_metric_sync_carries_comments_when_graph_omits_comments_count(
     post = _raw_post(
         org.id,
         caption="old",
-        posted_at=_now() - timedelta(hours=2),
+        posted_at=utcnow() - timedelta(hours=2),
         likes=11,
         comments=55,
         ext="omitcomments1",
@@ -1363,7 +1362,7 @@ async def test_metric_sync_carries_caption_when_graph_omits_caption(db_session) 
     post = _raw_post(
         org.id,
         caption="@nike x #NikeBuzz",
-        posted_at=_now() - timedelta(hours=2),
+        posted_at=utcnow() - timedelta(hours=2),
         likes=12,
         comments=3,
         ext="omitcap1",
@@ -1385,7 +1384,7 @@ async def test_metric_sync_applies_present_empty_caption(db_session) -> None:
     post = _raw_post(
         org.id,
         caption="@nike prior",
-        posted_at=_now() - timedelta(hours=2),
+        posted_at=utcnow() - timedelta(hours=2),
         likes=12,
         comments=3,
         ext="emptycap1",
@@ -1405,7 +1404,7 @@ async def test_metric_sync_carries_media_urls_when_graph_omits_them(db_session) 
     post = _raw_post(
         org.id,
         caption="old",
-        posted_at=_now() - timedelta(hours=2),
+        posted_at=utcnow() - timedelta(hours=2),
         likes=12,
         comments=3,
         ext="omiturls1",
@@ -1436,7 +1435,7 @@ async def test_metric_sync_clears_media_urls_when_graph_sends_null(db_session) -
     post = _raw_post(
         org.id,
         caption="old",
-        posted_at=_now() - timedelta(hours=2),
+        posted_at=utcnow() - timedelta(hours=2),
         likes=12,
         comments=3,
         ext="nullurls1",
@@ -1461,7 +1460,7 @@ async def test_metric_sync_refreshes_follower_count(db_session) -> None:
     """Follower refresh runs for any tokened org, not only live-stage campaigns."""
     user = await persist(db_session, make_user(instagram_user_id="ig_followers"))
     user.instagram_access_token = encrypt_token("long-lived")
-    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     org = await make_org(db_session, user)
     org.follower_count = 1000
     await db_session.flush()
@@ -1479,7 +1478,7 @@ async def test_metric_sync_refreshes_follower_count(db_session) -> None:
 async def test_metric_sync_follower_omit_keeps_prior(db_session) -> None:
     user = await persist(db_session, make_user(instagram_user_id="ig_follomit"))
     user.instagram_access_token = encrypt_token("long-lived")
-    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     org = await make_org(db_session, user)
     org.follower_count = 2222
     await db_session.flush()
@@ -1499,7 +1498,7 @@ async def test_metric_sync_follower_fail_keeps_prior(db_session) -> None:
 
     user = await persist(db_session, make_user(instagram_user_id="ig_follfail"))
     user.instagram_access_token = encrypt_token("long-lived")
-    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     org = await make_org(db_session, user)
     org.follower_count = 3333
     await db_session.flush()
@@ -1513,7 +1512,7 @@ async def test_metric_sync_follower_fail_keeps_prior(db_session) -> None:
 async def test_metric_sync_follower_zero_overwrites(db_session) -> None:
     user = await persist(db_session, make_user(instagram_user_id="ig_follzero"))
     user.instagram_access_token = encrypt_token("long-lived")
-    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     org = await make_org(db_session, user)
     org.follower_count = 999
     await db_session.flush()
@@ -1544,7 +1543,7 @@ async def test_metric_sync_refreshes_followers_when_posts_refresh(db_session) ->
     post = _raw_post(
         org.id,
         caption="old",
-        posted_at=_now() - timedelta(hours=2),
+        posted_at=utcnow() - timedelta(hours=2),
         ext="follposts1",
     )
     db_session.add(post)
@@ -1575,7 +1574,7 @@ async def test_metric_sync_refreshes_followers_when_candidate_query_misses_role(
         make_user(role=PortalRole.BRAND, instagram_user_id="ig_brandfoll"),
     )
     user.instagram_access_token = encrypt_token("long-lived")
-    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     org = await make_org(db_session, user, org_name="Brand Owned Org")
     org.follower_count = 80
     brand = await make_brand(db_session)
@@ -1584,7 +1583,7 @@ async def test_metric_sync_refreshes_followers_when_candidate_query_misses_role(
     post = _raw_post(
         org.id,
         caption="old",
-        posted_at=_now() - timedelta(hours=2),
+        posted_at=utcnow() - timedelta(hours=2),
         ext="brandfoll1",
     )
     db_session.add(post)
@@ -1610,7 +1609,7 @@ async def test_metric_sync_logs_expired_token_follower_skip(
 ) -> None:
     user = await persist(db_session, make_user(instagram_user_id="ig_follexp"))
     user.instagram_access_token = encrypt_token("long-lived")
-    user.instagram_token_expires_at = _now() - timedelta(hours=1)
+    user.instagram_token_expires_at = utcnow() - timedelta(hours=1)
     org = await make_org(db_session, user)
     org.follower_count = 77
     await db_session.flush()
@@ -1634,7 +1633,7 @@ async def test_metric_sync_logs_follower_skip_when_org_row_missing(
 ) -> None:
     user = await persist(db_session, make_user(instagram_user_id="ig_follnoorg"))
     user.instagram_access_token = encrypt_token("long-lived")
-    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     await db_session.flush()
     fake = FakeInstagramClient()
     calls = _count_profile_calls(fake)
@@ -1652,7 +1651,7 @@ async def test_metric_sync_skips_follower_refresh_for_erased(db_session) -> None
         make_user(instagram_user_id="ig_follerased", status=OrgUserStatus.ERASED),
     )
     user.instagram_access_token = encrypt_token("long-lived")
-    user.instagram_token_expires_at = _now() + timedelta(days=50)
+    user.instagram_token_expires_at = utcnow() + timedelta(days=50)
     org = await make_org(db_session, user)
     org.follower_count = 4444
     await db_session.flush()
@@ -1669,7 +1668,7 @@ async def test_metric_sync_applies_present_zero_engagement(db_session) -> None:
     post = _raw_post(
         org.id,
         caption="old",
-        posted_at=_now() - timedelta(hours=2),
+        posted_at=utcnow() - timedelta(hours=2),
         likes=120,
         comments=4,
         ext="zeroeng1",
@@ -1690,7 +1689,7 @@ async def test_metric_sync_discovery_skips_old_and_existing(db_session) -> None:
     user, org = await _eligible_sync_org(db_session, suffix="disc")
     # An existing post with external_id "dup" should not be re-inserted.
     db_session.add(
-        _raw_post(org.id, caption="existing", posted_at=_now() - timedelta(days=2), ext="dup")
+        _raw_post(org.id, caption="existing", posted_at=utcnow() - timedelta(days=2), ext="dup")
     )
     await db_session.flush()
     fake = FakeInstagramClient()
@@ -1794,7 +1793,7 @@ async def test_job_runner_rolls_back_then_persists_failure(db_session, monkeypat
         row = JobRun(
             job=name,
             started_at=started,
-            finished_at=_now(),
+            finished_at=utcnow(),
             ok=False,
             summary={"error": "job failed"},
         )

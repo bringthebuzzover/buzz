@@ -1,4 +1,4 @@
-"""Auth routes — ``/api/auth/*`` (architecture.md §5.1).
+"""Auth routes — ``/api/auth/*`` (buzz-ops engineering/architecture.md §5.1).
 
 Covers the org Instagram OAuth handshake plus the shared session surface
 (``/refresh``, ``/logout``, ``/me``). All JSON responses use the standard
@@ -25,7 +25,6 @@ from app.models.user import User
 from app.response import APIResponse, DataResponse, api_error_response, api_response
 from app.schemas.acks import (
     CancelPendingEduEmailResponse,
-    ChangeEduEmailResponse,
     InstagramBindStartResponse,
     InstagramDeauthorizeResponse,
     OkResponse,
@@ -46,7 +45,6 @@ from app.schemas.onboarding import (
     BrandLoginRequest,
     BrandSetPasswordRequest,
     CancelPendingEduEmailRequest,
-    ChangeEduEmailRequest,
     ForgotPasswordRequest,
     OrgConnectRedeemRequest,
     PublicResendVerificationRequest,
@@ -78,7 +76,6 @@ from app.services.email import (
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.onboarding import (
     cancel_pending_edu_email,
-    change_edu_email,
     resend_verification_email,
     resend_verification_from_token,
     resend_verification_public,
@@ -221,16 +218,7 @@ async def instagram_callback(
         )
     _clear_state_cookie(response)
 
-    # META-REVIEWER-PATH: reviewer states are handled only by the isolated module.
-    # Normal login and Connect leave ``reviewer`` unset and skip this branch.
-    if state_payload.reviewer:
-        from app.meta_reviewer.callback import complete_reviewer_instagram_callback
-
-        user = await complete_reviewer_instagram_callback(
-            db, ig, payload.code, bind_user_id=bind_user_id
-        )
-    else:
-        user = await handle_instagram_callback(db, ig, payload.code, bind_user_id=bind_user_id)
+    user = await handle_instagram_callback(db, ig, payload.code, bind_user_id=bind_user_id)
     # Don't mint fresh credentials for a terminally-denied account — symmetric
     # with the refresh boundary. New users are pending_org_profile, so signup
     # is unaffected. Distinct code so the SPA can land on /onboarding/denied.
@@ -408,7 +396,8 @@ async def refresh(
         )
     # Return user in the same response as the mint so the SPA bootstrap can
     # skip a follow-up /me. That /me was the mint-then-read race window in
-    # gaps/auth.ci-session-restore-flake.md — same UserResponse fields as
+    # buzz-ops engineering/gaps/archive/auth.ci-session-restore-flake.md — same
+    # UserResponse fields as
     # /me, same transaction, so token_version can't drift between them.
     return api_response(data=RefreshResponse(access_token=access, user=build_user_response(user)))
 
@@ -650,21 +639,6 @@ async def resend_verification_endpoint(
     """Re-send the .edu verification email (rate-limited, auth required)."""
     result = await resend_verification_email(db, user)
     return api_response(data=ResendVerificationResponse.model_validate(result))
-
-
-@router.post(
-    "/verify-email/change",
-    response_model=DataResponse[ChangeEduEmailResponse],
-    dependencies=[Depends(rate_limited("verify_change", limit=5, window=60))],
-)
-async def change_edu_email_endpoint(
-    payload: ChangeEduEmailRequest,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    """Correct a typo'd .edu while still awaiting verification."""
-    result = await change_edu_email(db, user, payload.edu_email)
-    return api_response(data=ChangeEduEmailResponse.model_validate(result))
 
 
 @router.post(

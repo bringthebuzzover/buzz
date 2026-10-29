@@ -1,4 +1,4 @@
-"""Pydantic models for the drops surface (architecture.md §5.5, §7.1).
+"""Pydantic models for the drops surface (buzz-ops engineering/architecture.md §5.5, §7.1).
 
 Responses are **camelCase** with **epoch-ms** datetimes (see ``schemas.common``)
 so they match the frontend ``Drop`` TypeScript type field-for-field. Only the
@@ -246,35 +246,3 @@ class BrandDropRequestResponse(CamelModel):
     @field_serializer("created_at", "updated_at")
     def _epoch(self, value: datetime) -> int:
         return to_epoch_ms_required(value)
-
-
-class BrandDropResponse(CamelModel):
-    """A drop as returned to the brand portal (architecture §8.4)."""
-
-    id: uuid.UUID
-    brand_id: uuid.UUID
-    brand_name: str
-    title: str
-    description: str
-    image: str
-    location: str
-    capacity_total: int
-    apply_open_at: datetime
-    apply_close_at: datetime
-    manual_reopen: bool
-    brand_tracker_stage: str
-    total_product_units: int | None
-    campaign_hashtag: str | None
-    applicant_selection_finalized_at: datetime | None
-    published_at: datetime | None = None
-    created_at: datetime
-
-    @field_serializer(
-        "apply_open_at",
-        "apply_close_at",
-        "applicant_selection_finalized_at",
-        "published_at",
-        "created_at",
-    )
-    def _epoch(self, value: datetime | None) -> int | None:
-        return to_epoch_ms(value)

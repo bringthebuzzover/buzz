@@ -22,7 +22,7 @@ from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password, verify_password
 from app.services.brand_auth import change_brand_password
 from app.services.brand_ig_change_requests import _load_pending
-from tests.conftest import make_brand, make_user, mint_access_token, persist
+from tests.conftest import admin_headers, make_brand, make_user, mint_access_token, persist
 
 
 def _headers(user: User) -> dict[str, str]:
@@ -45,11 +45,6 @@ async def _brand(
     user.token_version = 0
     await db_session.flush()
     return user, brand
-
-
-async def _admin_headers(db_session) -> dict[str, str]:
-    admin = await persist(db_session, make_user(role=PortalRole.ADMIN))
-    return _headers(admin)
 
 
 @pytest.fixture
@@ -420,7 +415,7 @@ class TestBrandIgChange:
         other_user, other = await _brand(
             db_session, email="deny-me@example.test", handle="otherbrand", name="Other"
         )
-        admin = await _admin_headers(db_session)
+        admin = await admin_headers(db_session)
         created = await app_client.post(
             "/api/brands/me/ig-change-requests",
             json={"requestedHandle": "acme.new", "reason": "We are rebranding the shop."},
@@ -509,7 +504,7 @@ class TestBrandIgChange:
             headers=_headers(user),
         )
         assert res.status_code == 403
-        admin = await _admin_headers(db_session)
+        admin = await admin_headers(db_session)
         bad = await app_client.get(
             "/api/admin/brand-ig-change-requests?status=nope",
             headers=admin,
@@ -535,7 +530,7 @@ class TestBrandIgChange:
             headers=_headers(user),
         )
         assert created.status_code == 200, created.text
-        admin = await _admin_headers(db_session)
+        admin = await admin_headers(db_session)
         approved = await app_client.post(
             f"/api/admin/brand-ig-change-requests/{created.json()['data']['id']}/approve",
             headers=admin,
@@ -574,7 +569,7 @@ class TestBrandIgChange:
         )
         assert created.status_code == 200, created.text
         request_id = created.json()["data"]["id"]
-        admin = await _admin_headers(db_session)
+        admin = await admin_headers(db_session)
         overview = await app_client.get("/api/admin/overview", headers=admin)
         assert overview.status_code == 200, overview.text
         data = overview.json()["data"]

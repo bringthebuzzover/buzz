@@ -1,5 +1,5 @@
 /**
- * `/org/browse` — Drop Feed (PRODUCT.md §6.3). Renders all drops with status-aware
+ * `/org/browse` — Drop Feed (buzz-ops product/PRODUCT.md §6.3). Renders all drops with status-aware
  * cards (Upcoming / Open / Closed / Full) plus a status filter chip group.
  * Pen: page head, filter chips, then the "Current drops" track with arrows.
  *
