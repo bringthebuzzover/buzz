@@ -26,35 +26,27 @@ async def _admin(db_session, *, email: str | None = None, password: str | None =
 
 
 class TestAdminLogin:
-    async def test_login_succeeds(self, app_client: AsyncClient, db_session):
+    @pytest.mark.parametrize(
+        ("email", "password", "status"),
+        [
+            ("boss@buzz.test", "supersecret1", 200),
+            ("BOSS@Buzz.Test", "supersecret1", 200),  # email is case-insensitive
+            ("boss@buzz.test", "nope", 401),
+        ],
+    )
+    async def test_login(
+        self, app_client: AsyncClient, db_session, email: str, password: str, status: int
+    ):
         await _admin(db_session, email="boss@buzz.test", password="supersecret1")
 
         res = await app_client.post(
-            "/api/auth/admin/login",
-            json={"email": "boss@buzz.test", "password": "supersecret1"},
+            "/api/auth/admin/login", json={"email": email, "password": password}
         )
-        assert res.status_code == 200
-        data = res.json()["data"]
-        assert data["access_token"]
-        assert data["user"]["portal_role"] == "admin"
-
-    async def test_login_is_case_insensitive(self, app_client: AsyncClient, db_session):
-        await _admin(db_session, email="boss2@buzz.test", password="supersecret1")
-
-        res = await app_client.post(
-            "/api/auth/admin/login",
-            json={"email": "BOSS2@Buzz.Test", "password": "supersecret1"},
-        )
-        assert res.status_code == 200
-
-    async def test_wrong_password_rejected(self, app_client: AsyncClient, db_session):
-        await _admin(db_session, email="boss3@buzz.test", password="supersecret1")
-
-        res = await app_client.post(
-            "/api/auth/admin/login",
-            json={"email": "boss3@buzz.test", "password": "nope"},
-        )
-        assert res.status_code == 401
+        assert res.status_code == status
+        if status == 200:
+            data = res.json()["data"]
+            assert data["access_token"]
+            assert data["user"]["portal_role"] == "admin"
 
     async def test_unknown_email_rejected(self, app_client: AsyncClient):
         res = await app_client.post(

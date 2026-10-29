@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 import jwt as pyjwt
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
@@ -499,15 +500,30 @@ async def test_bind_succeeds_when_followers_count_missing(
     assert user.instagram_user_id == "ig_bind_nofollowers"
 
 
-async def test_relogin_saves_follower_count(
-    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
+@pytest.mark.parametrize(
+    ("incoming", "expected"),
+    [
+        (8800, 8800),
+        (0, 0),  # a real zero overwrites
+        (None, 50),  # Graph omitted the field: keep the stored count
+        (False, 50),  # a bool is not a count
+        (3_000_000_000, 50),  # PostgreSQL cannot store it: keep, don't fail login
+    ],
+)
+async def test_relogin_follower_count(
+    app_client: AsyncClient,
+    fake_instagram: FakeInstagramClient,
+    db_session,
+    caplog,
+    incoming: int | None,
+    expected: int,
 ) -> None:
     from app.models.enums import OrgUserStatus
     from tests.conftest import make_org, make_user, persist
 
     fake_instagram.user_id = "ig_relogin_followers"
     fake_instagram.username = "chapter"
-    fake_instagram.followers_count = 8800
+    fake_instagram.followers_count = incoming
     user = await persist(
         db_session,
         make_user(
@@ -517,79 +533,22 @@ async def test_relogin_saves_follower_count(
         ),
     )
     org = await make_org(db_session, user)
-    org.follower_count = 10
-    await db_session.commit()
-
-    state = await _begin_login(app_client)
-    resp = await app_client.post(
-        "/api/auth/instagram/callback",
-        json={"code": "c", "state": state},
-    )
-    assert resp.status_code == 200
-    await db_session.refresh(org)
-    assert org.follower_count == 8800
-
-
-async def test_relogin_keeps_follower_count_when_graph_omits(
-    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
-) -> None:
-    from app.models.enums import OrgUserStatus
-    from tests.conftest import make_org, make_user, persist
-
-    fake_instagram.user_id = "ig_relogin_omit"
-    fake_instagram.username = "omitchapter"
-    fake_instagram.followers_count = None
-    user = await persist(
-        db_session,
-        make_user(
-            status=OrgUserStatus.ACTIVE,
-            instagram_user_id="ig_relogin_omit",
-            instagram_username="omitchapter",
-        ),
-    )
-    org = await make_org(db_session, user)
-    org.follower_count = 77
-    await db_session.commit()
-
-    state = await _begin_login(app_client)
-    resp = await app_client.post(
-        "/api/auth/instagram/callback",
-        json={"code": "c", "state": state},
-    )
-    assert resp.status_code == 200
-    await db_session.refresh(org)
-    assert org.follower_count == 77
-
-
-async def test_relogin_zero_followers_overwrites(
-    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
-) -> None:
-    from app.models.enums import OrgUserStatus
-    from tests.conftest import make_org, make_user, persist
-
-    fake_instagram.user_id = "ig_relogin_zero"
-    fake_instagram.username = "zerochapter"
-    fake_instagram.followers_count = 0
-    user = await persist(
-        db_session,
-        make_user(
-            status=OrgUserStatus.ACTIVE,
-            instagram_user_id="ig_relogin_zero",
-            instagram_username="zerochapter",
-        ),
-    )
-    org = await make_org(db_session, user)
     org.follower_count = 50
     await db_session.commit()
 
     state = await _begin_login(app_client)
-    resp = await app_client.post(
-        "/api/auth/instagram/callback",
-        json={"code": "c", "state": state},
-    )
+    with caplog.at_level("WARNING"):
+        resp = await app_client.post(
+            "/api/auth/instagram/callback",
+            json={"code": "c", "state": state},
+        )
     assert resp.status_code == 200
+    assert resp.json()["data"]["user"]["status"] == "active"
     await db_session.refresh(org)
-    assert org.follower_count == 0
+    assert org.follower_count == expected
+    if incoming == 3_000_000_000:
+        assert "3000000000" not in caplog.text
+        assert "reason=invalid" in caplog.text
 
 
 async def test_relogin_succeeds_when_follower_count_read_fails(
@@ -636,70 +595,3 @@ async def test_relogin_succeeds_when_follower_count_read_fails(
     assert org.follower_count == 321
     assert user.instagram_user_id == "ig_foll_boom"
     assert user.instagram_username == "boomorg"
-
-
-async def test_relogin_ignores_unstorable_follower_count(
-    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session, caplog
-) -> None:
-    """A count PostgreSQL cannot store must not fail login or clear the prior count."""
-    from app.models.enums import OrgUserStatus
-    from tests.conftest import make_org, make_user, persist
-
-    fake_instagram.user_id = "ig_relogin_huge"
-    fake_instagram.username = "hugechapter"
-    fake_instagram.followers_count = 3_000_000_000
-    user = await persist(
-        db_session,
-        make_user(
-            status=OrgUserStatus.ACTIVE,
-            instagram_user_id="ig_relogin_huge",
-            instagram_username="hugechapter",
-        ),
-    )
-    org = await make_org(db_session, user)
-    org.follower_count = 50
-    await db_session.commit()
-
-    state = await _begin_login(app_client)
-    with caplog.at_level("WARNING"):
-        resp = await app_client.post(
-            "/api/auth/instagram/callback",
-            json={"code": "c", "state": state},
-        )
-    assert resp.status_code == 200
-    assert resp.json()["data"]["user"]["status"] == "active"
-    await db_session.refresh(org)
-    assert org.follower_count == 50
-    assert "3000000000" not in caplog.text
-    assert "reason=invalid" in caplog.text
-
-
-async def test_relogin_bool_false_does_not_zero_follower_count(
-    app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
-) -> None:
-    from app.models.enums import OrgUserStatus
-    from tests.conftest import make_org, make_user, persist
-
-    fake_instagram.user_id = "ig_relogin_bool"
-    fake_instagram.username = "boolchapter"
-    fake_instagram.followers_count = False
-    user = await persist(
-        db_session,
-        make_user(
-            status=OrgUserStatus.ACTIVE,
-            instagram_user_id="ig_relogin_bool",
-            instagram_username="boolchapter",
-        ),
-    )
-    org = await make_org(db_session, user)
-    org.follower_count = 50
-    await db_session.commit()
-
-    state = await _begin_login(app_client)
-    resp = await app_client.post(
-        "/api/auth/instagram/callback",
-        json={"code": "c", "state": state},
-    )
-    assert resp.status_code == 200
-    await db_session.refresh(org)
-    assert org.follower_count == 50
