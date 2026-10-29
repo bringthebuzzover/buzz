@@ -13,7 +13,7 @@ import {
   type DropDetail,
 } from "../../api/hooks/useDropHooks";
 import { ApiError } from "../../api/errors";
-import { getDropFeedStatus } from "../../utils/dropStatus";
+import { closedChipLabel, getDropFeedStatus } from "../../utils/dropStatus";
 import { useWallClockNow } from "../../utils/wallClock";
 import { allowlistedOAuthNext, publicDropPath } from "../../utils/oauthNext";
 import OrgApplyForm, {
@@ -175,6 +175,20 @@ export default function PublicDropPage() {
   );
 }
 
+/** Spots line and status chip for the hero and the facts list. */
+function statusCopy(drop: DropDetail, feedStatus: "upcoming" | "open" | "closed") {
+  const remaining = Math.max(0, drop.capacityTotal - drop.acceptedCount);
+  if (feedStatus === "upcoming") return { spots: "Opens soon", tone: "Upcoming" };
+  if (feedStatus === "open") {
+    const spots =
+      drop.acceptedCount === 0
+        ? `Up to ${drop.capacityTotal} spots`
+        : `${remaining} of ${drop.capacityTotal} spots remaining`;
+    return { spots, tone: "Open" };
+  }
+  return { spots: "Applications closed", tone: closedChipLabel(drop.stage) };
+}
+
 function PublicDropHero({
   drop,
   feedStatus,
@@ -182,18 +196,7 @@ function PublicDropHero({
   drop: DropDetail;
   feedStatus: "upcoming" | "open" | "closed";
 }) {
-  const remaining = Math.max(0, drop.capacityTotal - drop.acceptedCount);
-  const spots =
-    feedStatus === "upcoming"
-      ? "Opens soon"
-      : feedStatus === "open"
-        ? drop.acceptedCount === 0
-          ? `Up to ${drop.capacityTotal} spots`
-          : `${remaining} of ${drop.capacityTotal} spots remaining`
-        : "Closed";
-
-  const tone =
-    feedStatus === "upcoming" ? "Upcoming" : feedStatus === "open" ? "Open" : "Closed";
+  const { spots, tone } = statusCopy(drop, feedStatus);
 
   return (
     <div className="relative aspect-square overflow-hidden rounded-buzzBoard bg-buzz-greyMedia">
@@ -228,17 +231,7 @@ function PublicDropLayout({
   feedStatus: "upcoming" | "open" | "closed";
   children: ReactNode;
 }) {
-  const remaining = Math.max(0, drop.capacityTotal - drop.acceptedCount);
-  const spots =
-    feedStatus === "upcoming"
-      ? "Opens soon"
-      : feedStatus === "open"
-        ? drop.acceptedCount === 0
-          ? `Up to ${drop.capacityTotal} spots`
-          : `${remaining} of ${drop.capacityTotal} spots remaining`
-        : "Closed";
-  const tone =
-    feedStatus === "upcoming" ? "Upcoming" : feedStatus === "open" ? "Open" : "Closed";
+  const { spots, tone } = statusCopy(drop, feedStatus);
 
   return (
     <div className="mx-auto grid max-w-[1440px] items-start gap-10 px-4 py-12 md:grid-cols-2 md:gap-14 md:px-12 md:py-16">

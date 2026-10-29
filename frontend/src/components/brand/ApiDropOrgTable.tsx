@@ -20,6 +20,30 @@ import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import ShipmentList from "../shipments/ShipmentList";
 import type { Shipment } from "../../utils/shipments";
+import { SEAT_PROGRESS_LABEL } from "../../utils/dropStage";
+
+/**
+ * Who took part: live seats, plus seats that ended after product went out or
+ * posts came in (their posts still count, D-8). A drafted acceptance is not a
+ * participant until sent.
+ */
+function participated(a: BrandDropApplicant): boolean {
+  if (a.decision === "accepted") return a.decisionSentAt != null;
+  const ended = a.decision === "withdrew" || a.decision === "removed";
+  return ended && ((a.shipments ?? []).length > 0 || a.attributedPostCount > 0);
+}
+
+/** Seat progress for live seats; Withdrew / Removed for ended ones. */
+function SeatChip({ applicant: a }: { applicant: BrandDropApplicant }) {
+  if (a.decision === "withdrew") return <Chip>Withdrew</Chip>;
+  if (a.decision === "removed") return <Chip>Removed by BUZZ</Chip>;
+  if (!a.progress) return null;
+  return (
+    <Chip dot tone={a.progress === "posted" ? "success" : "pending"}>
+      {SEAT_PROGRESS_LABEL[a.progress]}
+    </Chip>
+  );
+}
 
 function formatFrozenDate(epochMs: number): string {
   return new Date(epochMs).toLocaleDateString(undefined, {
@@ -39,11 +63,7 @@ export default function ApiDropOrgTable({
   applicants,
   title = "Posts by organization",
 }: Props) {
-  const accepted = useMemo(
-    // Live seats only: a drafted acceptance is not a participant until sent.
-    () => applicants.filter((a) => a.decision === "accepted" && a.decisionSentAt != null),
-    [applicants],
-  );
+  const accepted = useMemo(() => applicants.filter(participated), [applicants]);
   const [category, setCategory] = useState<string>("all");
 
   const categories = useMemo(() => {
@@ -93,7 +113,10 @@ export default function ApiDropOrgTable({
         >
           <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
             <div className="min-w-0">
-              <h4 className={TEXT.h3}>{a.orgName}</h4>
+              <div className="flex flex-wrap items-center gap-3">
+                <h4 className={TEXT.h3}>{a.orgName}</h4>
+                <SeatChip applicant={a} />
+              </div>
               {a.accountErased ? (
                 <p
                   className={cn(

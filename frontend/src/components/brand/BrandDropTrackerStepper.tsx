@@ -3,6 +3,7 @@
  * once the drop reaches it. Per-org tracking lists live on the org rows below.
  */
 import {
+  DRAFT_NOT_PUBLISHED,
   DROP_STAGE_LABEL,
   PUBLISHED_STAGES,
   type DropStage,
@@ -12,10 +13,19 @@ import { Card, CardHeader } from "../ui/Card";
 import { GAP, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
+/** D-2: BUZZ steps in when the brand hasn't sent decisions this long after close. */
+const BUZZ_STEPS_IN_DAYS = 5;
+
+function shortDate(epochMs: number): string {
+  return new Date(epochMs).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 export default function BrandDropTrackerStepper({
   currentStage,
+  applyCloseAt,
 }: {
   currentStage: DropStage;
+  applyCloseAt: number;
 }) {
   // Draft and canceled are not in the published order (-1), so nothing is lit.
   const currentIdx = PUBLISHED_STAGES.indexOf(currentStage);
@@ -47,6 +57,16 @@ export default function BrandDropTrackerStepper({
           );
         })}
       </ol>
+      {currentStage === "draft" ? (
+        <Notice>{DRAFT_NOT_PUBLISHED}. Orgs can&apos;t see it yet; BUZZ publishes it.</Notice>
+      ) : null}
+      {currentStage === "selecting" ? (
+        <Notice tone="accent">
+          Choose your orgs. Applications closed {shortDate(applyCloseAt)}. Decide below and
+          send by {shortDate(applyCloseAt + BUZZ_STEPS_IN_DAYS * 86_400_000)}, or BUZZ will
+          choose for you.
+        </Notice>
+      ) : null}
       {currentStage === "canceled" ? (
         <Notice>BUZZ canceled this drop. Nothing more happens on it.</Notice>
       ) : null}

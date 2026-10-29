@@ -361,7 +361,8 @@ function ApiDropDetail() {
   }
 
   const stage = detail.stage;
-  const showResults = stage === "live" || stage === "wrapped";
+  // A canceled drop keeps a frozen report of what happened.
+  const showResults = stage === "live" || stage === "wrapped" || stage === "canceled";
   // Brands decide after applications close and until BUZZ wraps the drop.
   const canDecide = stage === "selecting" || stage === "live";
 
@@ -387,7 +388,7 @@ function ApiDropDetail() {
         {detail.publishedAt != null ? <CopyPublicDropUrl dropId={detail.id} /> : null}
       </div>
 
-      <BrandDropTrackerStepper currentStage={stage} />
+      <BrandDropTrackerStepper currentStage={stage} applyCloseAt={detail.applyCloseAt} />
 
       {detail.brandCanEditCreative ? <BrandCampaignEditor detail={detail} /> : null}
 

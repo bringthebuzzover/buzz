@@ -2,7 +2,7 @@
  * `/org/campaigns` — My Campaigns (buzz-ops product/PRODUCT.md §6.4).
  *
  * Renders from the real backend (GET /api/campaigns). The status chips filter
- * the loaded rows on the client; Accepted covers accepted and active seats.
+ * the loaded rows on the client; Accepted covers every seat in progress.
  */
 import { useMemo, useState } from "react";
 import CampaignRow from "../../components/org/CampaignRow";
@@ -11,6 +11,7 @@ import type { CampaignItem } from "../../api/hooks/useOrgHooks";
 import {
   deriveOrgCampaignStatus,
   ORG_CAMPAIGN_STATUS_ORDER,
+  SEATED_STATUSES,
   type OrgCampaignStatus,
 } from "../../utils/orgCampaignStatus";
 import PageShell from "../../components/site/PageShell";
@@ -28,9 +29,9 @@ const FILTERS: {
   statuses: readonly OrgCampaignStatus[];
 }[] = [
   { id: "all", label: "All", statuses: ORG_CAMPAIGN_STATUS_ORDER },
-  { id: "accepted", label: "Accepted", statuses: ["accepted", "active"] },
-  { id: "applied", label: "Applied", statuses: ["applied"] },
-  { id: "finished", label: "Finished", statuses: ["finished", "canceled"] },
+  { id: "accepted", label: "Accepted", statuses: SEATED_STATUSES },
+  { id: "applied", label: "Applied", statuses: ["applied", "under_review"] },
+  { id: "finished", label: "Finished", statuses: ["wrapped", "canceled"] },
 ];
 
 function CampaignsHeader() {

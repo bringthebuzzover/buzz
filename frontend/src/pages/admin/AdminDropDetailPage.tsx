@@ -77,6 +77,7 @@ import {
 import AddOrgToDropModal from "../../components/admin/AddOrgToDropModal";
 import CopyPublicDropUrl from "../../components/drop/CopyPublicDropUrl";
 import { carrierLabel, type Shipment } from "../../utils/shipments";
+import { SEAT_PROGRESS_LABEL } from "../../utils/dropStage";
 import { SeatDecisionSelect, SendDecisionsBar } from "../../components/drop/SeatDecisions";
 
 const TABS = [
@@ -948,6 +949,13 @@ function Applicants({
                   />
                   {applicant.decision !== "applied" && applicant.decisionSentAt == null ? (
                     <span className="text-xs font-medium text-buzz-warn">Not sent</span>
+                  ) : null}
+                  {applicant.progress ? (
+                    <span data-testid={`seat-progress-${applicant.id}`}>
+                      <Pill tone={applicant.progress === "posted" ? "good" : "neutral"}>
+                        {SEAT_PROGRESS_LABEL[applicant.progress]}
+                      </Pill>
+                    </span>
                   ) : null}
                 </div>
               )}

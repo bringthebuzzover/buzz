@@ -34,7 +34,9 @@ from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision, DropStage
+from app.models.enums import ApplicationDecision, DropStage, SeatProgress
+from app.models.post_link import PostCampaignLink
+from app.models.shipment import DropApplicationShipment
 from app.timeutils import as_utc, utcnow
 
 # Orgs may link and unlink their own posts this long after wrap-up (D-4).
@@ -92,6 +94,50 @@ def seat_in_report() -> ColumnElement[bool]:
             ApplicationDecision.REMOVED.value,
         )
     )
+
+
+async def seat_progress(
+    db: AsyncSession, applications: Sequence[DropApplication]
+) -> dict[uuid.UUID, SeatProgress | None]:
+    """Per-seat progress (plan §3.3): Accepted → Shipped → Delivered → Posted.
+
+    The furthest fact reached wins, so a post before the package is marked
+    delivered still reads Posted. ``None`` for seats that are not live.
+    """
+
+    ids = [application.id for application in applications]
+    if not ids:
+        return {}
+    shipped = set(
+        await db.scalars(
+            select(DropApplicationShipment.application_id)
+            .where(DropApplicationShipment.application_id.in_(ids))
+            .distinct()
+        )
+    )
+    posted = set(
+        await db.scalars(
+            select(PostCampaignLink.application_id)
+            .where(PostCampaignLink.application_id.in_(ids))
+            .distinct()
+        )
+    )
+
+    def one(application: DropApplication) -> SeatProgress | None:
+        if (
+            application.decision != ApplicationDecision.ACCEPTED.value
+            or application.decision_sent_at is None
+        ):
+            return None
+        if application.id in posted:
+            return SeatProgress.POSTED
+        if application.delivered_at is not None:
+            return SeatProgress.DELIVERED
+        if application.id in shipped:
+            return SeatProgress.SHIPPED
+        return SeatProgress.ACCEPTED
+
+    return {application.id: one(application) for application in applications}
 
 
 def drop_stage_expr(now: datetime) -> ColumnElement[str]:

@@ -44,6 +44,24 @@ describe("deriveOrgCampaignStatus", () => {
     }
     expect(deriveOrgCampaignStatus({ decision: "accepted", stage: "canceled" })).toBe("canceled");
     expect(deriveOrgCampaignStatus({ decision: "applied", stage: "canceled" })).toBe("canceled");
-    expect(deriveOrgCampaignStatus({ decision: "accepted", stage: "live" })).toBe("active");
+    expect(deriveOrgCampaignStatus({ decision: "accepted", stage: "wrapped" })).toBe("wrapped");
+  });
+
+  it("reads Applied while the window is open, then Under review", () => {
+    expect(deriveOrgCampaignStatus({ decision: "applied", stage: "applying" })).toBe("applied");
+    expect(deriveOrgCampaignStatus({ decision: "applied", stage: "selecting" })).toBe(
+      "under_review",
+    );
+    expect(deriveOrgCampaignStatus({ decision: "applied", stage: "live" })).toBe("under_review");
+  });
+
+  it("shows a live seat's own progress from the API", () => {
+    for (const progress of ["accepted", "shipped", "delivered", "posted"] as const) {
+      expect(deriveOrgCampaignStatus({ decision: "accepted", stage: "live", progress })).toBe(
+        progress,
+      );
+    }
+    // Seated before the drop goes live (late add while applying).
+    expect(deriveOrgCampaignStatus({ decision: "accepted", stage: "applying" })).toBe("accepted");
   });
 });

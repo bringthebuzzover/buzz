@@ -33,6 +33,7 @@ from tests.conftest import (
     make_brand,
     make_drop,
     make_org,
+    make_post_link,
     make_social_post,
     make_user,
     mint_access_token,
@@ -430,3 +431,80 @@ async def test_shipped_no_delivery_signal(db_session) -> None:
     seat.delivered_at = utcnow()
     await db_session.flush()
     assert (await _signal_counts(db_session, utcnow()))["shipped_no_delivery"] == before
+
+
+async def test_seat_progress_on_every_surface(app_client: AsyncClient, db_session) -> None:
+    admin = await admin_headers(db_session)
+    brand_user = await persist(db_session, make_user(role=PortalRole.BRAND))
+    brand = await make_brand(db_session, company_email="progress-brand@example.test")
+    brand.user_id = brand_user.id
+    drop = await make_drop(db_session, brand)
+    user, org = await _org(db_session, "Progress")
+    seat = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    _, waiting = await _org(db_session, "Waiting")
+    await make_application(db_session, drop, waiting, decision=ApplicationDecision.APPLIED)
+
+    async def progress() -> tuple[object, object]:
+        admin_rows = (await app_client.get(f"/api/admin/drops/{drop.id}", headers=admin)).json()[
+            "data"
+        ]["applicants"]
+        brand_rows = (
+            await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=_bearer(brand_user))
+        ).json()["data"]["applications"]
+        org_row = (await app_client.get("/api/campaigns", headers=_bearer(user))).json()["data"][0]
+        by_id = {r["id"]: r["progress"] for r in admin_rows}
+        assert {r["id"]: r["progress"] for r in brand_rows} == by_id
+        assert None in by_id.values()  # the undecided applicant has no progress
+        return by_id[str(seat.id)], org_row["progress"]
+
+    assert await progress() == ("accepted", "accepted")
+    db_session.add(
+        DropApplicationShipment(application_id=seat.id, tracking_number="1Z", carrier="ups")
+    )
+    await db_session.flush()
+    assert await progress() == ("shipped", "shipped")
+    seat.delivered_at = utcnow()
+    await db_session.flush()
+    assert await progress() == ("delivered", "delivered")
+    await make_post_link(db_session, await make_social_post(db_session, org), seat)
+    assert await progress() == ("posted", "posted")
+
+
+async def test_brand_totals_skip_drafts_and_unsent_seats(
+    app_client: AsyncClient, db_session
+) -> None:
+    brand_user = await persist(db_session, make_user(role=PortalRole.BRAND))
+    brand = await make_brand(db_session, company_email="totals-brand@example.test")
+    brand.user_id = brand_user.id
+    live = await make_drop(db_session, brand)
+    draft = await make_drop(db_session, brand, published_at=None)
+    _, sent = await _org(db_session, "Sent")
+    _, drafted = await _org(db_session, "Drafted")
+    await make_application(db_session, live, sent, decision=ApplicationDecision.ACCEPTED)
+    await make_application(
+        db_session, live, drafted, decision=ApplicationDecision.ACCEPTED, sent=False
+    )
+    await make_application(db_session, draft, sent, decision=ApplicationDecision.ACCEPTED)
+
+    res = await app_client.get("/api/brands/me/aggregate", headers=_bearer(brand_user))
+    data = res.json()["data"]
+    assert data["totalDrops"] == 1
+    assert data["totalOrgs"] == 1
+
+
+async def test_overview_counts_drops_by_stage(app_client: AsyncClient, db_session) -> None:
+    admin = await admin_headers(db_session)
+    before = {
+        row["stage"]: row["count"]
+        for row in (await app_client.get("/api/admin/overview", headers=admin)).json()["data"][
+            "stages"
+        ]
+    }
+    brand = await make_brand(db_session)
+    await make_drop(db_session, brand, published_at=None)
+    await make_drop(db_session, brand)
+    res = await app_client.get("/api/admin/overview", headers=admin)
+    after = {row["stage"]: row["count"] for row in res.json()["data"]["stages"]}
+    assert list(after) == [stage.value for stage in DropStage]
+    assert after["draft"] == before["draft"] + 1
+    assert after["applying"] == before["applying"] + 1

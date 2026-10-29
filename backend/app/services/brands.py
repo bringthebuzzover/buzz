@@ -35,7 +35,13 @@ from app.schemas.brands import (
 )
 from app.services.drop_image import validate_https_image
 from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
-from app.services.lifecycle import drop_stage, reject_if_canceled, seat_in_report
+from app.services.lifecycle import (
+    drop_stage,
+    reject_if_canceled,
+    seat_in_report,
+    seat_is_live,
+    seat_progress,
+)
 from app.services.shipments import shipments_by_application_ids
 
 logger = logging.getLogger(__name__)
@@ -155,6 +161,7 @@ async def build_brand_drop_detail(
     )
 
     shipment_map = await shipments_by_application_ids(db, [app.id for app, _, _ in rows])
+    progress = await seat_progress(db, [app for app, _, _ in rows])
     applicants: list[BrandDropDetailApplicant] = []
     for app, org, org_user in rows:
         attr = await _org_attributed_totals(db, app.id)
@@ -173,6 +180,7 @@ async def build_brand_drop_detail(
                 decision_at=app.decision_at,
                 decision_sent_at=app.decision_sent_at,
                 delivered_at=app.delivered_at,
+                progress=progress[app.id],
                 org_name=TOMBSTONE_ORG_NAME if erased else org.org_name,
                 university="" if erased else org.university,
                 instagram_handle="" if erased else (org_user.instagram_username or ""),
@@ -351,11 +359,13 @@ async def _application_linked_posts(db: AsyncSession, application_id: UUID) -> l
 
 # --- Brand aggregate (port of computeBrandAggregate from metrics.ts) -----------
 
+# Drops that count in the brand's totals: published (a draft is a preview, M2)
+# and not hidden.
+_IN_REPORT = (Drop.published_at.is_not(None), Drop.hidden_at.is_(None))
+
 
 async def compute_brand_aggregate(db: AsyncSession, brand: Brand) -> dict[str, int]:
-    drop_ids = list(
-        await db.scalars(select(Drop.id).where(Drop.brand_id == brand.id, Drop.hidden_at.is_(None)))
-    )
+    drop_ids = list(await db.scalars(select(Drop.id).where(Drop.brand_id == brand.id, *_IN_REPORT)))
     if not drop_ids:
         return {
             "total_drops": 0,
@@ -383,15 +393,12 @@ async def compute_brand_aggregate(db: AsyncSession, brand: Brand) -> dict[str, i
         total_comments += agg["total_comments"]
         total_reach += agg["total_reach"]
 
-        # Accepted orgs for this drop
+        # Orgs with a live seat on this drop (drafted acceptances don't count)
         rows = list(
             await db.execute(
                 select(Organization.id, Organization.university)
                 .join(DropApplication, DropApplication.org_id == Organization.id)
-                .where(
-                    DropApplication.drop_id == drop_id,
-                    DropApplication.decision == ApplicationDecision.ACCEPTED.value,
-                )
+                .where(DropApplication.drop_id == drop_id, seat_is_live())
             )
         )
         for org_id, university in rows:
@@ -430,9 +437,7 @@ async def compute_engagement_series(
 
     window_ms = window_days * 24 * 60 * 60 * 1000
 
-    drop_ids = list(
-        await db.scalars(select(Drop.id).where(Drop.brand_id == brand.id, Drop.hidden_at.is_(None)))
-    )
+    drop_ids = list(await db.scalars(select(Drop.id).where(Drop.brand_id == brand.id, *_IN_REPORT)))
     if not drop_ids:
         return []
 
@@ -440,7 +445,7 @@ async def compute_engagement_series(
         await db.scalars(
             select(PostCampaignLink.post_id)
             .join(DropApplication, DropApplication.id == PostCampaignLink.application_id)
-            .where(DropApplication.drop_id.in_(drop_ids))
+            .where(DropApplication.drop_id.in_(drop_ids), seat_in_report())
         )
     )
     if not linked_post_ids:
