@@ -8,8 +8,8 @@
  *
  * Uses react-dom (no @testing-library/react in this package).
  */
-import { createRoot, type Root } from "react-dom/client";
-import { act } from "react-dom/test-utils";
+import { act } from "react";
+import { flushPromises, renderWithProviders } from "../testUtils";
 import {
   AuthProvider,
   useAuth,
@@ -130,7 +130,16 @@ function Probe() {
 
 describe("AuthProvider bootstrap resolution", () => {
   let container: HTMLDivElement;
-  let root: Root;
+
+  async function mountAuth() {
+    container = renderWithProviders(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+      { router: false },
+    ).container;
+    await flushPromises();
+  }
 
   beforeEach(() => {
     refreshMock.mockReset();
@@ -148,16 +157,9 @@ describe("AuthProvider bootstrap resolution", () => {
     setAccessToken(null);
     clearViewAsLatch();
     window.history.pushState({}, "", "/admin");
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
   });
 
   afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
     setAccessToken(null);
     clearViewAsLatch();
   });
@@ -171,13 +173,7 @@ describe("AuthProvider bootstrap resolution", () => {
     });
     fetchMeMock.mockResolvedValue({ kind: "error" });
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "restore_failed");
     expect(getAccessToken()).toBe("refreshed-token");
@@ -193,13 +189,7 @@ describe("AuthProvider bootstrap resolution", () => {
     fetchMeMock.mockResolvedValue({ kind: "error" });
     window.history.pushState({}, "", "/org/browse");
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "restore_failed");
     expect(getAccessToken()).toBe("dev-token");
@@ -220,13 +210,7 @@ describe("AuthProvider bootstrap resolution", () => {
       status: "active",
     });
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "authenticated");
     expect(userText(container)).toBe("admin-1");
@@ -246,13 +230,7 @@ describe("AuthProvider bootstrap resolution", () => {
       user: { id: "admin-1", portalRole: "admin", status: "active" },
     });
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "authenticated");
     expect(fetchMeMock).toHaveBeenCalledTimes(1);
@@ -276,13 +254,7 @@ describe("AuthProvider bootstrap resolution", () => {
     });
     window.history.pushState({}, "", "/org/browse");
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "authenticated");
     expect(userText(container)).toBe("seed-org");
@@ -307,13 +279,7 @@ describe("AuthProvider bootstrap resolution", () => {
     });
     window.history.pushState({}, "", "/org/browse");
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "authenticated");
     expect(devLoginMock).toHaveBeenCalledTimes(1);
@@ -339,13 +305,7 @@ describe("AuthProvider bootstrap resolution", () => {
       };
     });
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
     await waitForStatus(container, "restore_failed");
 
     await act(async () => {
@@ -367,13 +327,7 @@ describe("AuthProvider bootstrap resolution", () => {
     );
     fetchMeMock.mockResolvedValue({ kind: "unauthenticated" });
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     expect(statusText(container)).toBe("authenticating");
 
@@ -403,13 +357,7 @@ describe("AuthProvider bootstrap resolution", () => {
       },
     });
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "authenticated");
     expect(userText(container)).toBe("cookie-user");
@@ -417,13 +365,7 @@ describe("AuthProvider bootstrap resolution", () => {
 
   it("restoreAdminFromCookie superseded by acceptSession does not hang or clobber", async () => {
     refreshMock.mockResolvedValue(false);
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
     await waitForStatus(container, "error");
 
     let finishRestore!: (ok: boolean) => void;
@@ -455,13 +397,7 @@ describe("AuthProvider bootstrap resolution", () => {
 
   it("restoreAdminFromCookie soft-fails when gen is stolen without a terminal status", async () => {
     refreshMock.mockResolvedValue(false);
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
     await waitForStatus(container, "error");
 
     let finishRestore!: (ok: boolean) => void;
@@ -526,13 +462,7 @@ describe("AuthProvider bootstrap resolution", () => {
     });
     resumeMock.mockResolvedValue(true);
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "authenticated");
     expect(resumeMock).toHaveBeenCalledWith("org-target", expect.any(Number));
@@ -562,13 +492,7 @@ describe("AuthProvider bootstrap resolution", () => {
       impersonatedBy: "admin-1",
     });
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "authenticated");
     expect(resumeViewAsMock).toHaveBeenCalledWith("org");
@@ -604,13 +528,7 @@ describe("AuthProvider bootstrap resolution", () => {
       impersonatedBy: "admin-1",
     });
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "authenticated");
     expect(peekViewAsLatch()?.setAt).toBe(setAt);
@@ -621,13 +539,7 @@ describe("AuthProvider bootstrap resolution", () => {
     refreshMock.mockResolvedValue(false);
     devLoginMock.mockResolvedValue(null);
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "error");
     expect(endViewAsMock).not.toHaveBeenCalled();
@@ -649,13 +561,7 @@ describe("AuthProvider bootstrap resolution", () => {
       },
     });
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "authenticated");
     expect(resumeMock).not.toHaveBeenCalled();
@@ -681,13 +587,7 @@ describe("AuthProvider bootstrap resolution", () => {
     });
     resumeMock.mockResolvedValue(false);
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
 
     await waitForStatus(container, "authenticated");
     expect(resumeMock).toHaveBeenCalledTimes(1);
@@ -707,13 +607,7 @@ describe("AuthProvider bootstrap resolution", () => {
       status: "active",
     });
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
     await waitForStatus(container, "authenticated");
 
     setAccessToken(null);
@@ -727,13 +621,7 @@ describe("AuthProvider bootstrap resolution", () => {
   it("ignores session-lost while bootstrap is still authenticating", async () => {
     refreshMock.mockImplementation(() => new Promise(() => {}));
 
-    await act(async () => {
-      root.render(
-        <AuthProvider>
-          <Probe />
-        </AuthProvider>,
-      );
-    });
+    await mountAuth();
     expect(statusText(container)).toBe("authenticating");
 
     act(() => {

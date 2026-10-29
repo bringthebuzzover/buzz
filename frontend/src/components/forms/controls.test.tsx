@@ -1,30 +1,8 @@
 /**
  * Busy submit labels, generated field ids, and hint + aria-describedby merge.
  */
-import { act, type ReactNode } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { renderWithProviders as mount } from "../../testUtils";
 import { Button, Select, TextArea, TextField } from "./controls";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
-
-function mount(node: ReactNode) {
-  const container = document.createElement("div");
-  document.body.appendChild(container);
-  const root: Root = createRoot(container);
-  act(() => {
-    root.render(node);
-  });
-  return {
-    container,
-    unmount() {
-      act(() => {
-        root.unmount();
-      });
-      container.remove();
-    },
-  };
-}
 
 describe("Button loading", () => {
   it("swaps in the busy label and stays disabled", () => {
@@ -38,7 +16,6 @@ describe("Button loading", () => {
     expect(button!.disabled).toBe(true);
     expect(button!.getAttribute("aria-busy")).toBe("true");
     expect(button!.textContent).toBe("Signing in…");
-    view.unmount();
   });
 
   it("keeps the idle label when a separate disabled reason is set", () => {
@@ -47,7 +24,6 @@ describe("Button loading", () => {
     expect(button.disabled).toBe(true);
     expect(button.getAttribute("aria-busy")).toBeNull();
     expect(button.textContent).toBe("Submit application");
-    view.unmount();
   });
 });
 
@@ -63,7 +39,6 @@ describe("field ids and hints", () => {
     expect(label.htmlFor).toBe(input.id);
     expect(hint.id).toBe(`${input.id}-hint`);
     expect(input.getAttribute("aria-describedby")).toBe(hint.id);
-    view.unmount();
   });
 
   it("merges a caller aria-describedby with the hint", () => {
@@ -79,7 +54,6 @@ describe("field ids and hints", () => {
     expect(input.getAttribute("aria-describedby")).toBe(
       `${hint.id} org-apply-edu-email-error`,
     );
-    view.unmount();
   });
 
   it("generates ids for Select and TextArea", () => {
@@ -98,6 +72,5 @@ describe("field ids and hints", () => {
     expect(labels[1].htmlFor).toBe(textarea.id);
     expect(select.getAttribute("aria-describedby")).toBe(`${select.id}-hint`);
     expect(textarea.getAttribute("aria-describedby")).toBe(`${textarea.id}-hint`);
-    view.unmount();
   });
 });

@@ -2,12 +2,7 @@
  * AdminDropRequestDetailPage — Publish stays disabled until required fields.
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import { renderWithProviders } from "../../testUtils";
 
 const mockUseAdminDropRequest = jest.fn();
 const mockUseAdminDrop = jest.fn();
@@ -79,7 +74,6 @@ function linkedDrop(publishedAt: number | null) {
 
 describe("AdminDropRequestDetailPage", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockCreateDrop.mockReset();
@@ -97,36 +91,13 @@ describe("AdminDropRequestDetailPage", () => {
       isPending: false,
       isError: false,
     });
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   it("disables Publish until a draft exists with required fields", () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/admin/requests/req-1"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/admin/requests/:requestId"
-                element={<AdminDropRequestDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<AdminDropRequestDetailPage />, {
+      route: "/admin/requests/req-1",
+      path: "/admin/requests/:requestId",
+    }).container;
 
     expect(container.querySelector('[data-testid="publish-drop"]')).toBeNull();
     const stub = Array.from(container.querySelectorAll("button")).find(
@@ -173,23 +144,10 @@ describe("AdminDropRequestDetailPage", () => {
   }
 
   it("keeps Save draft disabled for http and placehold.co images", () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/admin/requests/req-1"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/admin/requests/:requestId"
-                element={<AdminDropRequestDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<AdminDropRequestDetailPage />, {
+      route: "/admin/requests/req-1",
+      path: "/admin/requests/:requestId",
+    }).container;
 
     const save = () =>
       container.querySelector('[data-testid="save-draft"]') as HTMLButtonElement;
@@ -211,23 +169,10 @@ describe("AdminDropRequestDetailPage", () => {
   });
 
   it("enables Publish after Save draft returns a drop", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/admin/requests/req-1"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/admin/requests/:requestId"
-                element={<AdminDropRequestDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<AdminDropRequestDetailPage />, {
+      route: "/admin/requests/req-1",
+      path: "/admin/requests/:requestId",
+    }).container;
 
     act(() => {
       fillRequired(container, "https://cdn.example.test/hero.png");
@@ -264,23 +209,10 @@ describe("AdminDropRequestDetailPage", () => {
       isError: false,
     });
 
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/admin/requests/req-1"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/admin/requests/:requestId"
-                element={<AdminDropRequestDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<AdminDropRequestDetailPage />, {
+      route: "/admin/requests/req-1",
+      path: "/admin/requests/:requestId",
+    }).container;
 
     expect(container.querySelector('[data-testid="draft-title"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="save-draft"]')).toBeTruthy();
@@ -303,23 +235,10 @@ describe("AdminDropRequestDetailPage", () => {
       isError: false,
     });
 
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/admin/requests/req-1"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/admin/requests/:requestId"
-                element={<AdminDropRequestDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<AdminDropRequestDetailPage />, {
+      route: "/admin/requests/req-1",
+      path: "/admin/requests/:requestId",
+    }).container;
 
     expect(container.querySelector('[data-testid="draft-title"]')).toBeNull();
     expect(container.querySelector('[data-testid="save-draft"]')).toBeNull();
@@ -332,23 +251,10 @@ describe("AdminDropRequestDetailPage", () => {
   });
 
   function renderOpenTicket() {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/admin/requests/req-1"]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/admin/requests/:requestId"
-                element={<AdminDropRequestDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<AdminDropRequestDetailPage />, {
+      route: "/admin/requests/req-1",
+      path: "/admin/requests/:requestId",
+    }).container;
   }
 
   it("prefills the draft from the request and does not save", () => {

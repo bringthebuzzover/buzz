@@ -2,12 +2,7 @@
  * AdminDropDetailPage — Config is default for drafts; applicants for published.
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
+import { renderWithProviders } from "../../testUtils";
 
 const idleMutation = () => ({
   mutate: jest.fn(),
@@ -77,40 +72,16 @@ function adminDrop(overrides: Record<string, unknown> = {}) {
 
 describe("AdminDropDetailPage", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockUseAdminDrop.mockReset();
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   function renderAt(path: string) {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={[path]}>
-          <QueryClientProvider client={queryClient}>
-            <Routes>
-              <Route
-                path="/admin/drops/:dropId"
-                element={<AdminDropDetailPage />}
-              />
-            </Routes>
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<AdminDropDetailPage />, {
+      route: path,
+      path: "/admin/drops/:dropId",
+    }).container;
   }
 
   it("defaults to Config for an unpublished draft and shows who-can-edit", () => {

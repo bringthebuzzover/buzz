@@ -7,13 +7,8 @@
  * Uses react-dom (no @testing-library/react in this package).
  */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { MemoryRouter } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { renderWithProviders } from "../../testUtils";
 import { ApiError } from "../../api/errors";
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
-  true;
 
 const mockMutateAsync = jest.fn();
 const mockPublicResend = jest.fn();
@@ -71,7 +66,6 @@ import VerifyEmailPage from "./VerifyEmailPage";
 
 describe("VerifyEmailPage confirm-before-verify", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockMutateAsync.mockReset();
@@ -84,33 +78,12 @@ describe("VerifyEmailPage confirm-before-verify", () => {
     mockAuthValue.status = "idle";
     mockAuthValue.user = null;
     sessionStorage.clear();
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   function renderWithToken(token: string) {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter
-          initialEntries={[`/onboarding/verify-email?token=${token}`]}
-        >
-          <QueryClientProvider client={queryClient}>
-            <VerifyEmailPage />
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<VerifyEmailPage />, {
+      route: `/onboarding/verify-email?token=${token}`,
+    }).container;
   }
 
   async function clickVerify() {
@@ -236,7 +209,6 @@ describe("VerifyEmailPage confirm-before-verify", () => {
 
 describe("VerifyEmailPage public wait", () => {
   let container: HTMLDivElement;
-  let root: Root;
 
   beforeEach(() => {
     mockPublicResend.mockReset();
@@ -244,31 +216,12 @@ describe("VerifyEmailPage public wait", () => {
     mockAuthValue.status = "error";
     mockAuthValue.user = null;
     sessionStorage.clear();
-    container = document.createElement("div");
-    document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => {
-      root.unmount();
-    });
-    container.remove();
   });
 
   function renderPublicWait() {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    act(() => {
-      root.render(
-        <MemoryRouter initialEntries={["/onboarding/verify-email"]}>
-          <QueryClientProvider client={queryClient}>
-            <VerifyEmailPage />
-          </QueryClientProvider>
-        </MemoryRouter>,
-      );
-    });
+    container = renderWithProviders(<VerifyEmailPage />, {
+      route: "/onboarding/verify-email",
+    }).container;
   }
 
   it("lists the apply email as copy with no email field", () => {
