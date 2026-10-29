@@ -3,7 +3,8 @@
  *
  * Marketing routes keep the overlay header and the mobile join dock.
  * Bare auth routes draw their own frame: admin auth gets `AuthAdminHeader`,
- * the rest show no header or footer.
+ * the rest show no header or footer. Signed-in orgs off the marketing pages,
+ * and `/onboarding/denied`, get the org portal top bar.
  */
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { SiteChromeProvider } from "../contexts/SiteChromeContext";
@@ -11,6 +12,8 @@ import SiteHeader from "../components/site/SiteHeader";
 import SiteFooter from "../components/site/SiteFooter";
 import ImpersonationBanner from "../components/site/ImpersonationBanner";
 import AuthAdminHeader from "../components/auth/AuthAdminHeader";
+import OrgPortalHeader from "../components/org/OrgPortalHeader";
+import { useAuth } from "../contexts/AuthContext";
 import { isAdminAuthPath, isBareAuthPath } from "../components/auth/authPaths";
 import { focusRingClass } from "../theme/controls";
 import { cn } from "../theme/cn";
@@ -23,13 +26,21 @@ export default function SiteLayout() {
   const { pathname } = useLocation();
   const marketing = isMarketingPath(pathname);
   const bare = isBareAuthPath(pathname);
+  const { user, status } = useAuth();
+  const orgPortal =
+    pathname === "/onboarding/denied" ||
+    (!marketing && status === "authenticated" && user?.portalRole === "org");
 
   return (
     <SiteChromeProvider>
       <div className="flex min-h-screen flex-col bg-page">
         <ImpersonationBanner />
         {bare ? (
-          isAdminAuthPath(pathname) ? <AuthAdminHeader /> : null
+          isAdminAuthPath(pathname) ? (
+            <AuthAdminHeader />
+          ) : null
+        ) : orgPortal ? (
+          <OrgPortalHeader />
         ) : (
           <SiteHeader />
         )}

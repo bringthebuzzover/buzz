@@ -23,6 +23,7 @@ import { Card, CardHeader } from "../ui/Card";
 import { EmptyState } from "../ui/EmptyState";
 import { PageHeader, BackLink } from "../ui/PageHeader";
 import { tableHeadClass } from "../ui/Table";
+import { filterChipClass } from "../ui/navItem";
 import { StatePanel } from "../ui/StatePanel";
 import { TEXT } from "../../theme/tokens";
 import { focusRingClass } from "../../theme/controls";
@@ -89,17 +90,6 @@ const TONE_KIND: Record<Tone, BadgeKind> = {
   warn: "live",
   bad: "danger",
 };
-
-/** Filter chips. Selected is the paper pill; the rest are hairline. */
-export function filterChipClass(selected: boolean) {
-  return cn(
-    "inline-flex items-center whitespace-nowrap rounded-full border px-3 py-2 text-sm font-normal transition",
-    focusRingClass,
-    selected
-      ? "border-transparent bg-primary text-on-accent"
-      : "border-line bg-transparent text-muted hover:border-primary hover:text-primary",
-  );
-}
 
 function AdminBadge({
   kind,
