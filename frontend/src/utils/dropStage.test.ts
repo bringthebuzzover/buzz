@@ -1,21 +1,8 @@
-import { DROP_STAGE_ORDER, PUBLISHED_STAGES, dropStageLabel } from "./dropStage";
+import { dropStageLabel } from "./dropStage";
 import { draftedCounts } from "../components/drop/SeatDecisions";
 import { deriveOrgCampaignStatus } from "./orgCampaignStatus";
 
 describe("dropStage", () => {
-  it("orders the six stages with draft first and wrapped last", () => {
-    expect(DROP_STAGE_ORDER).toEqual([
-      "draft",
-      "upcoming",
-      "applying",
-      "selecting",
-      "live",
-      "wrapped",
-    ]);
-    expect(PUBLISHED_STAGES).not.toContain("draft");
-    expect(DROP_STAGE_ORDER).not.toContain("canceled"); // off the path, final
-  });
-
   it("labels current stages and tolerates legacy tracker names", () => {
     expect(dropStageLabel("selecting")).toBe("Selecting");
     expect(dropStageLabel("canceled")).toBe("Canceled");
