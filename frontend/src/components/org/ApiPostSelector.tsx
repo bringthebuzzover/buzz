@@ -22,13 +22,13 @@ import {
   type Suggestion,
 } from "../../api/hooks/useOrgHooks";
 import { Button, ErrorBanner } from "../forms/controls";
-import PostInsights from "../posts/PostInsights";
+import PostCard from "../posts/PostCard";
 import { formatInsightCount } from "../posts/postInsights";
 import { Card, CardHeader } from "../ui/Card";
 import { Chip } from "../ui/Chip";
 import { Loader, EmptyState } from "../ui/EmptyState";
 import { RemoteImage } from "../ui/RemoteImage";
-import { PAD, SURFACE, TEXT } from "../../theme/tokens";
+import { TEXT } from "../../theme/tokens";
 import { quietLinkClass } from "../ui/navItem";
 import { cn } from "../../theme/cn";
 
@@ -156,53 +156,41 @@ export default function ApiPostSelector({ applicationId, readOnly = false }: Pro
               const linkedHere = post.linkedApplicationId === applicationId;
               const conflict = post.linkedApplicationId != null && !linkedHere;
               return (
-                <li
+                <PostCard
                   key={post.id}
-                  className={cn(
-                    SURFACE.tile,
-                    PAD.default,
-                    "flex flex-wrap items-start gap-4",
-                  )}
-                >
-                  <RemoteImage
-                    src={post.thumbnailUrl ?? post.mediaUrl}
-                    label={post.caption || "Post"}
-                    alt=""
-                    fallback="placeholder"
-                    className="h-[120px] w-24 shrink-0 rounded-buzzCard object-cover"
-                  />
-                  <div className="min-w-0 flex-1 basis-56">
-                    <p className={cn(TEXT.body, "line-clamp-2 font-medium text-primary")}>
-                      {post.caption || "(no caption)"}
-                    </p>
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-quiet">
+                  post={post}
+                  thumb={post.thumbnailUrl ?? post.mediaUrl}
+                  caption={post.caption || "(no caption)"}
+                  meta={
+                    <>
                       <PlatformIcon platform={post.platform} />
                       {`${formatInsightCount(post.likes)} likes · ${formatInsightCount(post.comments)} comments`}
-                    </p>
-                    <PostInsights post={post} />
-                  </div>
-                  {readOnly ? (
-                    linkedHere ? (
-                      <Chip dot className="shrink-0 text-primary">
-                        Linked
-                      </Chip>
-                    ) : null
-                  ) : conflict ? (
-                    <Chip>Linked to another campaign</Chip>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className={pillClass}
-                      disabled={busy}
-                      onClick={() =>
-                        linkedHere ? unlink.mutate(post.id) : link.mutate(post.id)
-                      }
-                    >
-                      {linkedHere ? "Unlink" : "Link"}
-                    </Button>
-                  )}
-                </li>
+                    </>
+                  }
+                  aside={
+                    readOnly ? (
+                      linkedHere ? (
+                        <Chip dot className="shrink-0 text-primary">
+                          Linked
+                        </Chip>
+                      ) : null
+                    ) : conflict ? (
+                      <Chip>Linked to another campaign</Chip>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={pillClass}
+                        disabled={busy}
+                        onClick={() =>
+                          linkedHere ? unlink.mutate(post.id) : link.mutate(post.id)
+                        }
+                      >
+                        {linkedHere ? "Unlink" : "Link"}
+                      </Button>
+                    )
+                  }
+                />
               );
             })}
           </ul>
