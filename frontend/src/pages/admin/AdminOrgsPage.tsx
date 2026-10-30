@@ -7,7 +7,6 @@
  */
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ApiError } from "../../api/client";
 import {
   useAdminOrgs,
   useDenyOrg,
@@ -75,38 +74,6 @@ export default function AdminOrgsPage() {
   const busy = deny.isPending || resendAll.isPending;
   const actionError = deny.isError;
 
-  const onConfirmResendAll = async () => {
-    setBulkError(null);
-    setBulkNotice(null);
-    try {
-      const result = (await resendAll.mutateAsync(
-        undefined,
-      )) as ResendConnectAllResult;
-      setConfirmOpen(false);
-      if (result.targeted === 0) {
-        setBulkNotice("No organizations are waiting to connect Instagram.");
-        return;
-      }
-      const parts = [`Sent ${result.sent} of ${result.targeted}.`];
-      if (result.failed) parts.push(`${result.failed} failed to send.`);
-      if (result.skipped) {
-        parts.push(`${result.skipped} skipped (no school email).`);
-      }
-      setBulkNotice(parts.join(" "));
-      if (result.failed) {
-        setBulkError(
-          "Some Connect emails did not send. Open those organizations and use Resend connect email.",
-        );
-      }
-    } catch (err) {
-      setBulkError(
-        err instanceof ApiError
-          ? err.message
-          : "Could not send Connect emails.",
-      );
-    }
-  };
-
   const decidable = (row: AdminOrgRow) =>
     row.status === "pending_approval" && row.id !== null;
 
@@ -151,7 +118,29 @@ export default function AdminOrgsPage() {
           pending={resendAll.isPending}
           cancelTestId="resend-connect-all-cancel"
           submitTestId="resend-connect-all-confirm"
-          onConfirm={() => void onConfirmResendAll()}
+          fallbackError="Could not send Connect emails."
+          onConfirm={async () => {
+            setBulkError(null);
+            setBulkNotice(null);
+            const result = (await resendAll.mutateAsync(
+              undefined,
+            )) as ResendConnectAllResult;
+            if (result.targeted === 0) {
+              setBulkNotice("No organizations are waiting to connect Instagram.");
+              return;
+            }
+            const parts = [`Sent ${result.sent} of ${result.targeted}.`];
+            if (result.failed) parts.push(`${result.failed} failed to send.`);
+            if (result.skipped) {
+              parts.push(`${result.skipped} skipped (no school email).`);
+            }
+            setBulkNotice(parts.join(" "));
+            if (result.failed) {
+              setBulkError(
+                "Some Connect emails did not send. Open those organizations and use Resend connect email.",
+              );
+            }
+          }}
           onClose={() => setConfirmOpen(false)}
         />
       )}
