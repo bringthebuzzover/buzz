@@ -468,8 +468,7 @@ function DeleteSeatButton({
   return (
     <>
       <ActionButton
-        quiet
-        variant="secondary"
+        variant="danger"
         testId={`delete-seat-${applicant.id}`}
         onClick={() => setOpen(true)}
       >
