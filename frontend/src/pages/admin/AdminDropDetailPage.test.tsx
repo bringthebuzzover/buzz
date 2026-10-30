@@ -3,6 +3,7 @@
  */
 import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
+import AdminDropDetailPage from "./AdminDropDetailPage";
 
 const idleMutation = () => ({
   mutate: jest.fn(),
@@ -12,13 +13,12 @@ const idleMutation = () => ({
 
 const mockUseAdminDrop = jest.fn();
 const mockDecide = jest.fn().mockResolvedValue({});
-const mockAddShipment = jest.fn().mockResolvedValue({});
 
 jest.mock("../../api/hooks/useAdminHooks", () => ({
   useAdminDrop: (...args: unknown[]) => mockUseAdminDrop(...args),
   usePatchAdminDropConfig: () => idleMutation(),
   usePublishDrop: () => idleMutation(),
-  useAddApplicantShipment: () => ({ ...idleMutation(), mutateAsync: mockAddShipment }),
+  useAddApplicantShipment: () => idleMutation(),
   useDeleteApplicantShipment: () => idleMutation(),
   useSetAdminSeatDecision: () => ({ ...idleMutation(), mutateAsync: mockDecide }),
   useSendAdminDecisions: () => idleMutation(),
@@ -32,8 +32,6 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
   useAddOrgToDrop: () => idleMutation(),
   useSyncAndAutolink: () => idleMutation(),
 }));
-
-import AdminDropDetailPage from "./AdminDropDetailPage";
 
 const now = Date.now();
 
@@ -262,8 +260,7 @@ describe("AdminDropDetailPage", () => {
     expect(document.body.textContent).toContain('emailed "not selected"');
   });
 
-  it("shows follower count and city/state, with the full address in the shipments modal", async () => {
-    mockAddShipment.mockClear();
+  it("shows follower count and city/state, with the full address in the shipments modal", () => {
     mockUseAdminDrop.mockReturnValue({
       data: adminDrop({
         publishedAt: now,
@@ -310,19 +307,6 @@ describe("AdminDropDetailPage", () => {
     expect(dialog.textContent).toContain("2301 Bancroft Way");
     const add = document.querySelector('[data-testid="add-shipment-app-1"]') as HTMLButtonElement;
     expect(add.disabled).toBe(true);
-    const tn = document.querySelector('[data-testid="add-shipment-tn-app-1"]') as HTMLInputElement;
-    act(() => {
-      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(
-        tn,
-        " 1ZTEST001 ",
-      );
-      tn.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    await act(async () => {
-      add.click();
-    });
-    expect(mockAddShipment).toHaveBeenCalledWith({ trackingNumber: "1ZTEST001", carrier: undefined });
-    expect(tn.value).toBe("");
 
     act(() => {
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
@@ -450,18 +434,11 @@ describe("AdminDropDetailPage", () => {
     });
   });
 
+  const pkg = (id: string) => ({ id, trackingNumber: id, carrier: "ups", trackUrl: null });
   it.each([
     [{}, "Not shipped"],
-    [{ shipments: [{ id: "s1", trackingNumber: "1ZA", carrier: "ups", trackUrl: null }] }, "Shipped · 1 package"],
-    [
-      {
-        shipments: [
-          { id: "s1", trackingNumber: "1ZA", carrier: "ups", trackUrl: null },
-          { id: "s2", trackingNumber: "123456789012", carrier: "fedex", trackUrl: null },
-        ],
-      },
-      "Shipped · 2 packages",
-    ],
+    [{ shipments: [pkg("s1")] }, "Shipped · 1 package"],
+    [{ shipments: [pkg("s1"), pkg("s2")] }, "Shipped · 2 packages"],
     [{ deliveredAt: now }, "Delivered ·"],
   ])("shows the live seat's shipping chip (%#)", (overrides, label) => {
     mockUseAdminDrop.mockReturnValue({

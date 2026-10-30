@@ -36,13 +36,8 @@ const BOTTOM_SHEET = cn(
 );
 const ADDRESS_PENDING = <span className="text-xs font-medium text-buzz-warn">Address pending</span>;
 
-function shippingStatus({ deliveredAt, shipments }: AdminApplicant): {
-  label: string;
-  tone: Tone;
-} {
-  if (deliveredAt != null) {
-    return { label: `Delivered · ${formatDate(deliveredAt)}`, tone: "neutral" };
-  }
+function shippingStatus({ deliveredAt, shipments }: AdminApplicant): { label: string; tone: Tone } {
+  if (deliveredAt != null) return { label: `Delivered · ${formatDate(deliveredAt)}`, tone: "neutral" };
   const n = shipments.length;
   if (n === 0) return { label: "Not shipped", tone: "warn" };
   return { label: `Shipped · ${n} ${n === 1 ? "package" : "packages"}`, tone: "pending" };
@@ -87,7 +82,6 @@ function ShipmentsModal({ dropId, applicant, onClose }: Props & { onClose: () =>
   const [error, setError] = useState<string | null>(null);
   const fail = (fallback: string) => (err: unknown) =>
     setError(err instanceof ApiError ? err.message : fallback);
-  const units = applicant.allocatedUnits != null ? `${applicant.allocatedUnits} units` : null;
 
   async function onAdd(event: FormEvent) {
     event.preventDefault();
@@ -110,23 +104,16 @@ function ShipmentsModal({ dropId, applicant, onClose }: Props & { onClose: () =>
   return (
     <Modal
       title={`Shipments · ${applicant.orgName}`}
-      description={["Accepted", units].filter(Boolean).join(" · ")}
+      description={
+        applicant.allocatedUnits != null ? `Accepted · ${applicant.allocatedUnits} units` : "Accepted"
+      }
       className={BOTTOM_SHEET}
       onClose={onClose}
     >
       {error && <ErrorNote>{error}</ErrorNote>}
       <section className="flex flex-col gap-1">
         <h3 className={headingClass}>Ship to</h3>
-        {applicant.deliveryAddress ? (
-          <p className={cn(TEXT.body, "text-primary")}>{applicant.deliveryAddress}</p>
-        ) : (
-          <>
-            {ADDRESS_PENDING}
-            <p className="text-xs text-quiet">
-              The org hasn&apos;t added an address yet. You can still add tracking.
-            </p>
-          </>
-        )}
+        <p className={cn(TEXT.body, "text-primary")}>{applicant.deliveryAddress || ADDRESS_PENDING}</p>
       </section>
       <section className="flex flex-col gap-3">
         <h3 className={headingClass}>Tracking</h3>
@@ -183,7 +170,7 @@ function ShipmentsModal({ dropId, applicant, onClose }: Props & { onClose: () =>
             value={carrier}
             onChange={(e) => setCarrier(e.target.value)}
           >
-            <option value="">Auto</option>
+            <option value="">Auto-detect</option>
             <option value="ups">UPS</option>
             <option value="fedex">FedEx</option>
             <option value="unknown">Unknown</option>
@@ -198,10 +185,6 @@ function ShipmentsModal({ dropId, applicant, onClose }: Props & { onClose: () =>
             Add
           </Button>
         </form>
-        <p className="text-xs text-quiet">
-          Carrier is read from the number (1Z… = UPS, 12–22 digits = FedEx). Pick one only if it
-          can&apos;t tell.
-        </p>
       </section>
       <Checkbox
         data-testid={`delivered-${applicant.id}`}
@@ -212,14 +195,9 @@ function ShipmentsModal({ dropId, applicant, onClose }: Props & { onClose: () =>
           setDelivered.mutateAsync(e.target.checked).catch(fail("Could not save delivery."));
         }}
         label={
-          <span className="flex flex-col">
-            {applicant.deliveredAt != null
-              ? `Delivered ${formatDate(applicant.deliveredAt)}`
-              : "Mark delivered"}
-            <span className="text-xs text-quiet">
-              The org can also confirm it. Never blocks posting.
-            </span>
-          </span>
+          applicant.deliveredAt != null
+            ? `Delivered ${formatDate(applicant.deliveredAt)}`
+            : "Mark delivered"
         }
       />
       <ModalActions onCancel={onClose} cancelLabel="Done" />
