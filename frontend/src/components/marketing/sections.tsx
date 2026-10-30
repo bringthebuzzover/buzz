@@ -4,6 +4,7 @@
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { ChevronRight } from "lucide-react";
 import { BeeMark } from "../ui/BrandMark";
 import { LinkButton } from "../forms/controls";
 import { focusRingClass } from "../../theme/controls";
@@ -193,9 +194,12 @@ export function CurrentDrops() {
                       alt={item.title}
                       className="h-full w-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-page/85 via-transparent to-page/20" />
-                    <p className="absolute bottom-8 left-8 text-2xl font-medium text-primary md:text-buzzH2">
-                      {item.title}
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute left-0 top-0 h-[30%] w-full bg-gradient-to-b from-black/45 to-transparent"
+                    />
+                    <p className="absolute left-5 top-5 text-[28px] font-medium text-white md:text-[32px]">
+                      {item.brand ?? item.title}
                     </p>
                   </div>
                 </div>
@@ -204,7 +208,7 @@ export function CurrentDrops() {
           </div>
           <div className="mt-4 flex w-[min(1076px,80cqw)] items-center justify-between gap-4">
             <p className="text-base">{collab.subtitle}</p>
-            <span className="inline-flex h-9 shrink-0 items-center rounded-full border border-on-accent/20 px-3.5 text-xs">
+            <span className="inline-flex h-9 shrink-0 items-center rounded-full bg-page px-3.5 text-xs text-primary">
               View drop
             </span>
           </div>
@@ -272,13 +276,14 @@ function HalfBlock({ kicker, title, support, action, quiet, divided }: Half & { 
         {title}
       </h2>
       <p className="mt-5 max-w-sm text-base leading-relaxed text-on-accent/65">{support}</p>
-      <div className="mt-auto flex items-center justify-between gap-4 pt-10">
+      <div className="mt-auto flex flex-col items-start gap-4 pt-10 md:flex-row md:items-center md:justify-between">
         <LinkButton
           to={action.to}
           variant="secondary"
-          className="h-11 border-on-accent/20 bg-page px-4 text-primary"
+          className="h-11 gap-2 border-on-accent/20 bg-page px-4 text-primary"
         >
           {action.label}
+          <ChevronRight size={16} aria-hidden />
         </LinkButton>
         {quiet ? (
           <Link to={quiet.to} className={cn("text-sm text-on-accent/70", focusRingClass)}>
@@ -437,13 +442,13 @@ export function MarketingFooter() {
       <a
         href={`mailto:${contact.email}`}
         className={cn(
-          "mt-8 text-[32px] font-medium leading-none md:text-buzzStatement",
+          "mt-8 text-[20px] font-medium leading-none md:text-buzzStatement",
           focusRingClass,
         )}
       >
         {contact.email}
       </a>
-      <div className="mt-auto grid gap-8 pt-16 sm:grid-cols-2 md:grid-cols-4">
+      <div className="mt-auto grid grid-cols-2 gap-8 pt-16 md:grid-cols-4">
         <FooterCol
           title="Organizations"
           links={[
@@ -486,7 +491,7 @@ export function MarketingFooter() {
           ]}
         />
       </div>
-      <div className="mt-10 flex items-center justify-between gap-4 text-xs text-muted">
+      <div className="mt-10 flex flex-col items-center gap-4 text-center text-xs text-muted md:flex-row md:justify-between md:text-left">
         <BeeMark className="h-7 w-7" />
         <p>Connecting brands with campus communities for authentic college marketing, at scale.</p>
         <p>2026</p>
