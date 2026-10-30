@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
+import { ApiError } from "../../api/errors";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 function Harness({ onConfirm }: { onConfirm: (typed: string) => void }) {
@@ -67,6 +68,28 @@ describe("ConfirmDialog", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
     expect(document.activeElement).toBe(trigger);
+  });
+
+  it.each([
+    [new ApiError("FAILED", "API failure", 400), "API failure"],
+    [new Error("Internal failure"), "Could not save."],
+  ])("keeps async failures open and closes after a successful retry (%s)", async (error, message) => {
+    const onClose = jest.fn();
+    const onConfirm = jest.fn().mockRejectedValueOnce(error).mockResolvedValueOnce(undefined);
+    renderWithProviders(
+      <ConfirmDialog
+        title="Save"
+        fallbackError="Could not save."
+        onConfirm={onConfirm}
+        onClose={onClose}
+      />,
+    );
+    await act(async () => q<HTMLButtonElement>('[data-testid="confirm-submit"]')!.click());
+    expect(q('[role="alert"]')?.textContent).toBe(message);
+    expect(onClose).not.toHaveBeenCalled();
+    await act(async () => q<HTMLButtonElement>('[data-testid="confirm-submit"]')!.click());
+    expect(q('[role="alert"]')).toBeNull();
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the submit disabled until the phrase matches", () => {
