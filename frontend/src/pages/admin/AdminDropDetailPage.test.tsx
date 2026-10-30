@@ -12,12 +12,13 @@ const idleMutation = () => ({
 
 const mockUseAdminDrop = jest.fn();
 const mockDecide = jest.fn().mockResolvedValue({});
+const mockAddShipment = jest.fn().mockResolvedValue({});
 
 jest.mock("../../api/hooks/useAdminHooks", () => ({
   useAdminDrop: (...args: unknown[]) => mockUseAdminDrop(...args),
   usePatchAdminDropConfig: () => idleMutation(),
   usePublishDrop: () => idleMutation(),
-  useAddApplicantShipment: () => idleMutation(),
+  useAddApplicantShipment: () => ({ ...idleMutation(), mutateAsync: mockAddShipment }),
   useDeleteApplicantShipment: () => idleMutation(),
   useSetAdminSeatDecision: () => ({ ...idleMutation(), mutateAsync: mockDecide }),
   useSendAdminDecisions: () => idleMutation(),
@@ -204,7 +205,8 @@ describe("AdminDropDetailPage", () => {
     renderAt("/admin/drops/drop-1");
     expect(container.textContent).toContain("Not sent");
     expect(container.textContent).toContain("Ready to send: accept 1 · deny 0");
-    expect(container.querySelector('[data-testid="add-shipment-app-1"]')).toBeNull();
+    expect(container.textContent).toContain("Address pending");
+    expect(container.querySelector('[data-testid="shipping-app-1"]')).toBeNull();
     expect(
       (container.querySelector('[data-testid="send-decisions"]') as HTMLButtonElement)
         .disabled,
@@ -260,7 +262,8 @@ describe("AdminDropDetailPage", () => {
     expect(document.body.textContent).toContain('emailed "not selected"');
   });
 
-  it("shows follower count and city/state ship-to on Applicants", () => {
+  it("shows follower count and city/state, with the full address in the shipments modal", async () => {
+    mockAddShipment.mockClear();
     mockUseAdminDrop.mockReturnValue({
       data: adminDrop({
         publishedAt: now,
@@ -297,11 +300,34 @@ describe("AdminDropDetailPage", () => {
     expect(container.textContent).toContain("1.3K");
     expect(container.textContent).toContain("Berkeley, CA");
     expect(container.textContent).not.toContain("2301 Bancroft Way");
-    const addTracking = container.querySelector(
-      '[data-testid="add-shipment-app-1"]',
-    ) as HTMLButtonElement;
-    expect(addTracking).toBeTruthy();
-    expect(addTracking.disabled).toBe(true);
+    expect(container.querySelector('[data-testid="add-shipment-app-1"]')).toBeNull();
+
+    act(() => {
+      (container.querySelector('[data-testid="shipping-app-1"]') as HTMLButtonElement).click();
+    });
+    const dialog = document.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog.textContent).toContain("Shipments · Theta");
+    expect(dialog.textContent).toContain("2301 Bancroft Way");
+    const add = document.querySelector('[data-testid="add-shipment-app-1"]') as HTMLButtonElement;
+    expect(add.disabled).toBe(true);
+    const tn = document.querySelector('[data-testid="add-shipment-tn-app-1"]') as HTMLInputElement;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(
+        tn,
+        " 1ZTEST001 ",
+      );
+      tn.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      add.click();
+    });
+    expect(mockAddShipment).toHaveBeenCalledWith({ trackingNumber: "1ZTEST001", carrier: undefined });
+    expect(tn.value).toBe("");
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
   });
 
   it("shows an erased org as a frozen participant with delete only", () => {
@@ -394,7 +420,8 @@ describe("AdminDropDetailPage", () => {
     expect(container.querySelector('[data-testid="decision-app-4"]')).toBeNull();
     expect(container.textContent).toContain("No posts");
     expect(container.querySelector('[data-testid="end-seat-app-4"]')).toBeNull();
-    expect(container.querySelector('[data-testid="delivered-app-3"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="shipping-app-3"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="shipping-app-4"]')).toBeNull();
 
     act(() => {
       (container.querySelector('[data-testid="end-seat-app-3"]') as HTMLButtonElement).click();
@@ -421,6 +448,31 @@ describe("AdminDropDetailPage", () => {
       allocatedUnits: null,
       reason: "Missed the deadline",
     });
+  });
+
+  it.each([
+    [{}, "Not shipped"],
+    [{ shipments: [{ id: "s1", trackingNumber: "1ZA", carrier: "ups", trackUrl: null }] }, "Shipped · 1 package"],
+    [
+      {
+        shipments: [
+          { id: "s1", trackingNumber: "1ZA", carrier: "ups", trackUrl: null },
+          { id: "s2", trackingNumber: "123456789012", carrier: "fedex", trackUrl: null },
+        ],
+      },
+      "Shipped · 2 packages",
+    ],
+    [{ deliveredAt: now }, "Delivered ·"],
+  ])("shows the live seat's shipping chip (%#)", (overrides, label) => {
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({ publishedAt: now, stage: "live", applicants: [seat(overrides)] }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1");
+    const chip = container.querySelector('[data-testid="shipping-app-3"]') as HTMLButtonElement;
+    expect(chip.textContent).toContain(label);
+    expect(chip.getAttribute("aria-label")).toContain("Shipments for Kappa");
   });
 
   it("offers cancel on a running drop and shows a canceled drop as final", () => {

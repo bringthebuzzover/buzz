@@ -1,5 +1,5 @@
 import {
-  adminApplicantShipTo,
+  shipToCity,
   formatCompactCount,
   toDatetimeLocalValue,
 } from "./labels";
@@ -26,22 +26,14 @@ describe("toDatetimeLocalValue", () => {
   });
 });
 
-describe("adminApplicantShipTo", () => {
-  it("shows city, state for applied and accepted", () => {
-    expect(adminApplicantShipTo("applied", "Berkeley", "CA")).toBe(
-      "Berkeley, CA",
-    );
-    expect(adminApplicantShipTo("accepted", "Ithaca", "NY")).toBe("Ithaca, NY");
-  });
-
-  it("shows Not set when city and state are missing for applied/accepted", () => {
-    expect(adminApplicantShipTo("applied", null, null)).toBe("Not set");
-    expect(adminApplicantShipTo("accepted", "  ", "  ")).toBe("Not set");
-  });
-
-  it("shows em dash for other decisions", () => {
-    expect(adminApplicantShipTo("denied", "Berkeley", "CA")).toBe("—");
-    expect(adminApplicantShipTo("withdrawn", null, null)).toBe("—");
+describe("shipToCity", () => {
+  it.each([
+    ["Berkeley", "CA", "Berkeley, CA"],
+    ["Ithaca", null, "Ithaca"],
+    [null, null, ""],
+    ["  ", "  ", ""],
+  ])("%p, %p -> %p", (city, state, expected) => {
+    expect(shipToCity(city, state)).toBe(expected);
   });
 });
 
