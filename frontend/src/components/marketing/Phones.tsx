@@ -67,10 +67,12 @@ function MockField({
   label,
   value,
   hint,
+  hideHintOnMobile = false,
 }: {
   label: string;
   value: string;
   hint?: string;
+  hideHintOnMobile?: boolean;
 }) {
   return (
     <div>
@@ -78,7 +80,11 @@ function MockField({
       <div className="flex h-9 items-center rounded-buzzField border border-line bg-surface-tile px-3 text-xs text-primary">
         {value}
       </div>
-      {hint ? <div className="mt-1 text-xs text-quiet">{hint}</div> : null}
+      {hint ? (
+        <div className={cn("mt-1 text-xs text-quiet", hideHintOnMobile && "hidden md:block")}>
+          {hint}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -125,11 +131,14 @@ function OrgApply(_props: { animate?: boolean }) {
           <p className="text-base font-medium text-primary">Student Organization</p>
         </div>
         <MockField label="Organization name" value={SAMPLE.org} />
-        <MockField label="University" value={SAMPLE.university} />
+        <div className="hidden md:block">
+          <MockField label="University" value={SAMPLE.university} />
+        </div>
         <MockField
           label="School (.edu) email"
           value={SAMPLE.email}
           hint="We'll email a verification link."
+          hideHintOnMobile
         />
         <div className="mt-auto pt-2">
           <YellowPill>Submit application</YellowPill>
