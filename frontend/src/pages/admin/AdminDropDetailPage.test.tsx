@@ -13,10 +13,11 @@ const idleMutation = () => ({
 
 const mockUseAdminDrop = jest.fn();
 const mockDecide = jest.fn().mockResolvedValue({});
+const mockPatch = jest.fn().mockResolvedValue({});
 
 jest.mock("../../api/hooks/useAdminHooks", () => ({
   useAdminDrop: (...args: unknown[]) => mockUseAdminDrop(...args),
-  usePatchAdminDropConfig: () => idleMutation(),
+  usePatchAdminDropConfig: () => ({ ...idleMutation(), mutateAsync: mockPatch }),
   usePublishDrop: () => idleMutation(),
   useAddApplicantShipment: () => idleMutation(),
   useDeleteApplicantShipment: () => idleMutation(),
@@ -616,5 +617,54 @@ describe("AdminDropDetailPage", () => {
     expect(disabled("drop-config-capacity")).toBe(true);
     expect(disabled("drop-config-hashtag")).toBe(true);
     expect(disabled("drop-config-close-at")).toBe(true);
+  });
+
+  const typeInto = (input: HTMLInputElement, value: string) => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+
+  it.each([
+    ["only the changed field", {}, ["drop-config-title", "New title"], { title: "New title" }],
+    [
+      "only the edited date",
+      {},
+      ["drop-config-close-at", "2030-01-02T10:00"],
+      { applyCloseAt: new Date("2030-01-02T10:00").getTime() },
+    ],
+    ["null when units are cleared", { totalProductUnits: 40 }, null, { totalProductUnits: null }],
+  ] as const)("Config save sends %s", async (_name, overrides, edit, expected) => {
+    mockPatch.mockClear();
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({ publishedAt: now, ...overrides }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1?tab=config");
+    act(() => {
+      if (edit) {
+        typeInto(container.querySelector(`#${edit[0]}`) as HTMLInputElement, edit[1]);
+      } else {
+        const clear = [...container.querySelectorAll("label")].find((l) =>
+          l.textContent?.includes("Clear to spot-only"),
+        );
+        clear?.querySelector("input")?.click();
+      }
+    });
+    await act(async () =>
+      (container.querySelector('[data-testid="save-drop-config"]') as HTMLButtonElement).click(),
+    );
+    expect(mockPatch).toHaveBeenCalledWith(expected);
+  });
+
+  it("does not patch when nothing changed", async () => {
+    mockPatch.mockClear();
+    mockUseAdminDrop.mockReturnValue({ data: adminDrop(), isPending: false, isError: false });
+    renderAt("/admin/drops/drop-1?tab=config");
+    await act(async () =>
+      (container.querySelector('[data-testid="save-drop-config"]') as HTMLButtonElement).click(),
+    );
+    expect(mockPatch).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("No changes to save.");
   });
 });
