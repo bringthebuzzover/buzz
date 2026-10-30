@@ -423,7 +423,7 @@ export default function AdminDropRequestDetailPage() {
 
   return (
     <div>
-      <AdminBackLink to="/admin/requests" />
+      <AdminBackLink to="/admin/requests">All requests</AdminBackLink>
 
       <QueryState
         isPending={ticket.isPending}

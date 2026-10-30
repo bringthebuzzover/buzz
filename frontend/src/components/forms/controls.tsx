@@ -445,9 +445,11 @@ export function ErrorBanner({ children }: { children: ReactNode }) {
 export function Notice({
   tone = "neutral",
   children,
+  icon,
 }: {
   tone?: "neutral" | "accent";
   children: ReactNode;
+  icon?: ReactNode;
 }) {
   if (!children) return null;
   const accent = tone === "accent";
@@ -461,13 +463,15 @@ export function Notice({
       )}
       role="status"
     >
-      <span
-        className={cn(
-          "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
-          accent ? "bg-accent" : "bg-quiet",
-        )}
-        aria-hidden
-      />
+      {icon ?? (
+        <span
+          className={cn(
+            "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
+            accent ? "bg-accent" : "bg-quiet",
+          )}
+          aria-hidden
+        />
+      )}
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   );

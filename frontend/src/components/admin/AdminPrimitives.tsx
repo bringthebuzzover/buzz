@@ -16,6 +16,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
+import { ChevronDown } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { STAGE_LABELS, STATUS_LABELS } from "./labels";
 import { Button, Checkbox, ErrorBanner } from "../forms/controls";
@@ -209,10 +210,10 @@ export function PageHeading({
 }
 
 /** Pen `Link / Back`. Arrow leads the label. */
-export function AdminBackLink({ to }: { to: string }) {
+export function AdminBackLink({ to, children }: { to: string; children: ReactNode }) {
   return (
     <BackLink to={to} className="mb-5">
-      Back
+      {children}
     </BackLink>
   );
 }
@@ -477,6 +478,7 @@ export function FilterMultiSelect({
         className={filterChipClass(selected.length > 0)}
       >
         {summary}
+        <ChevronDown size={12} className="ml-1" aria-hidden />
       </button>
       {open && (
         <div
@@ -536,13 +538,14 @@ export function FieldGrid({
   columns = 3,
 }: {
   children: ReactNode;
-  columns?: 2 | 3;
+  columns?: 2 | 3 | 5;
 }) {
   return (
     <dl
       className={cn(
         "grid grid-cols-1 gap-5 px-6 py-5 sm:grid-cols-2",
         columns === 3 && "lg:grid-cols-3",
+        columns === 5 && "lg:grid-cols-5",
       )}
     >
       {children}
