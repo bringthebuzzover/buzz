@@ -77,7 +77,6 @@ export default function AdminOrgDetailPage() {
   const sendEmail = useSendOrgEmail();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
   const [eraseNotice, setEraseNotice] = useState<string | null>(null);
-  const [eraseError, setEraseError] = useState<string | null>(null);
   const [eraseConfirmOpen, setEraseConfirmOpen] = useState(false);
   const [testerInviteConfirmed, setTesterInviteConfirmed] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
@@ -183,43 +182,27 @@ export default function AdminOrgDetailPage() {
   }
 
   function openEraseConfirm() {
-    setEraseError(null);
     setEraseNotice(null);
     setEraseConfirmOpen(true);
   }
 
-  function cancelEraseConfirm() {
-    setEraseConfirmOpen(false);
-    setEraseError(null);
-  }
-
   async function onErase(typed: string) {
     if (!data?.instagramHandle) return;
-    setEraseError(null);
     setEraseNotice(null);
-    try {
-      const result = await erase.mutateAsync({
-        userId: data.userId,
-        confirm: typed,
-      });
-      setEraseConfirmOpen(false);
-      if (result.emailSent) {
-        setEraseNotice(
-          result.emailToDomain
-            ? `Account erased. Confirmation email sent (…@${result.emailToDomain}).`
-            : "Account erased. Confirmation email sent.",
-        );
-      } else {
-        setEraseNotice(
-          "Account erased. No confirmation email was sent — notify the requester manually if needed.",
-        );
-      }
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setEraseError(err.message);
-      } else {
-        setEraseError("Erase failed. Reload and try again.");
-      }
+    const result = await erase.mutateAsync({
+      userId: data.userId,
+      confirm: typed,
+    });
+    if (result.emailSent) {
+      setEraseNotice(
+        result.emailToDomain
+          ? `Account erased. Confirmation email sent (…@${result.emailToDomain}).`
+          : "Account erased. Confirmation email sent.",
+      );
+    } else {
+      setEraseNotice(
+        "Account erased. No confirmation email was sent — notify the requester manually if needed.",
+      );
     }
   }
 
@@ -350,7 +333,7 @@ export default function AdminOrgDetailPage() {
               matches={(typed) =>
                 confirmHandleMatches(typed, data.instagramHandle ?? "")
               }
-              error={eraseError}
+              fallbackError="Erase failed. Reload and try again."
               destructive
               confirmLabel="Erase account"
               pendingLabel="Erasing…"
@@ -358,8 +341,8 @@ export default function AdminOrgDetailPage() {
               inputTestId="erase-org-confirm"
               cancelTestId="erase-org-cancel"
               submitTestId="erase-org-submit"
-              onConfirm={(typed) => void onErase(typed)}
-              onClose={cancelEraseConfirm}
+              onConfirm={onErase}
+              onClose={() => setEraseConfirmOpen(false)}
             />
           )}
 

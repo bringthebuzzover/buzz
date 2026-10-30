@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode } from "react";
+import { ApiError } from "../../api/errors";
 import { Button, ErrorBanner, TextField } from "../forms/controls";
 import { Modal, ModalActions } from "./Modal";
 
@@ -25,6 +26,7 @@ export function ConfirmDialog({
   destructive = false,
   pending = false,
   error,
+  fallbackError = "Could not confirm.",
   children,
   inputTestId = "confirm-phrase",
   submitTestId = "confirm-submit",
@@ -47,15 +49,19 @@ export function ConfirmDialog({
   destructive?: boolean;
   pending?: boolean;
   error?: ReactNode;
+  /** Async confirms close on success; failures show the API message or this fallback. */
+  fallbackError?: string;
   children?: ReactNode;
   inputTestId?: string;
   submitTestId?: string;
   cancelTestId?: string;
-  onConfirm: (typed: string) => void;
+  onConfirm: (typed: string) => void | Promise<unknown>;
   onClose: () => void;
 }) {
   const inputId = useId();
   const [typed, setTyped] = useState("");
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const displayedError = error || confirmError;
   const ok =
     expected == null
       ? true
@@ -67,15 +73,24 @@ export function ConfirmDialog({
     <Modal onClose={onClose} title={title} description={description}>
       <form
         className="flex flex-col gap-6"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
           if (!ok || pending) return;
-          onConfirm(typed);
+          setConfirmError(null);
+          try {
+            const result = onConfirm(typed);
+            if (result) {
+              await result;
+              onClose();
+            }
+          } catch (err) {
+            setConfirmError(err instanceof ApiError ? err.message : fallbackError);
+          }
         }}
       >
-        {error || expected != null || children ? (
+        {displayedError || expected != null || children ? (
           <div className="flex flex-col gap-4">
-            {error ? <ErrorBanner>{error}</ErrorBanner> : null}
+            {displayedError ? <ErrorBanner>{displayedError}</ErrorBanner> : null}
             {expected != null ? (
               <TextField
                 id={inputId}
