@@ -3,6 +3,8 @@
  */
 import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
+import { ApiError } from "../../api/errors";
+import BrandDropDetailPage from "./BrandDropDetailPage";
 
 const mockUseBrandDropDetail = jest.fn();
 const mockDecide = jest.fn();
@@ -17,8 +19,6 @@ jest.mock("../../api/hooks/useBrandHooks", () => ({
     isPending: false,
   }),
 }));
-
-import BrandDropDetailPage from "./BrandDropDetailPage";
 
 const now = Date.now();
 
@@ -321,6 +321,29 @@ describe("BrandDropDetailPage", () => {
     expect(mockSend).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Decisions sent.");
     confirmSpy.mockRestore();
+  });
+
+  it("keeps a failed send open with the error in the dialog and no success banner", async () => {
+    mockSend.mockRejectedValueOnce(new ApiError("FAILED", "Send failed.", 500));
+    mockUseBrandDropDetail.mockReturnValue({
+      data: {
+        ...brandDrop(false),
+        stage: "selecting",
+        applyCloseAt: now - 1000,
+        applications: [{ id: "app-1", orgName: "Test Org", decision: "denied", decisionSentAt: null }],
+      },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    act(() => (container.querySelector('[data-testid="send-decisions"]') as HTMLButtonElement).click());
+    await act(async () => {
+      (document.querySelector('[data-testid="send-decisions-confirm"]') as HTMLButtonElement).click();
+    });
+    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('[role="dialog"] [role="alert"]')?.textContent)
+      .toBe("Send failed.");
+    expect(container.textContent).not.toContain("Decisions sent");
   });
 
   it("omits an erased org from the applicant list", () => {
