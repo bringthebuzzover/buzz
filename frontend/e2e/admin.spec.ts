@@ -306,6 +306,14 @@ test("admin list tables fit 375px as hybrid cards", async ({ page }) => {
   ).toBeLessThanOrEqual(1);
 });
 
+test("admin drop detail tabs fit 390px", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await loginAsAdmin(page);
+  await page.goto("/admin/drops/00000000-0000-0000-0000-000000000063");
+  await expect(page.getByTestId("tab-attribution")).toBeVisible();
+  expect(await horizontalOverflowPx(page)).toBeLessThanOrEqual(1);
+});
+
 test("unauthenticated /admin redirects to the admin login", async ({ page }) => {
   await page.goto("/admin");
   await waitForAuthSettled(page);
