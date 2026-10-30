@@ -4,6 +4,7 @@
 export type FeaturedCollab = {
   id: number;
   title: string;
+  brand?: string;
   subtitle: string;
   image: string;
 };
