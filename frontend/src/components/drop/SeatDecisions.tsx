@@ -82,18 +82,6 @@ export function SendDecisionsBar({
   const counts = draftedCounts(seats);
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
-
-  async function confirm() {
-    setSendError(null);
-    try {
-      await onSend();
-      setSent(true);
-    } catch (err) {
-      setSendError(err instanceof Error ? err.message : "Could not send decisions.");
-    }
-    setOpen(false);
-  }
 
   return (
     <div className="flex flex-col gap-3 border-t border-line pt-5">
@@ -117,7 +105,7 @@ export function SendDecisionsBar({
         </Button>
       </div>
       {sent ? <SuccessBanner>Decisions sent. Each organization was emailed.</SuccessBanner> : null}
-      {error || sendError ? <ErrorBanner>{error ?? sendError}</ErrorBanner> : null}
+      {error ? <ErrorBanner>{error}</ErrorBanner> : null}
       {open ? (
         <ConfirmDialog
           title="Send decisions"
@@ -126,7 +114,11 @@ export function SendDecisionsBar({
           pendingLabel="Sending…"
           pending={pending}
           submitTestId="send-decisions-confirm"
-          onConfirm={() => void confirm()}
+          fallbackError="Could not send decisions."
+          onConfirm={async () => {
+            await onSend();
+            setSent(true);
+          }}
           onClose={() => setOpen(false)}
         />
       ) : null}
