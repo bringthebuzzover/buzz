@@ -11,7 +11,7 @@
  * a reason); hard delete is only for test data. Tracking and delivery live on
  * accepted, sent seats.
  */
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import {
@@ -34,7 +34,6 @@ import {
 import { ApiError } from "../../api/client";
 import {
   Checkbox,
-  DateTimeField,
   Select,
   SuccessBanner,
   TextArea,
@@ -42,7 +41,13 @@ import {
 } from "../../components/forms/controls";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { Tabs } from "../../components/ui/Tabs";
-import { Toggle } from "../../components/ui/Toggle";
+import {
+  DropFormFields,
+  dropToForm,
+  parseDropForm,
+  dropFormError,
+  type DropFormState,
+} from "../../components/admin/DropForm";
 import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 import {
@@ -68,7 +73,6 @@ import {
   formatCompactCount,
   formatDate,
   formatDateTime,
-  toDatetimeLocalValue,
 } from "../../components/admin/labels";
 import AddOrgToDropModal from "../../components/admin/AddOrgToDropModal";
 import CopyPublicDropUrl from "../../components/drop/CopyPublicDropUrl";
@@ -114,37 +118,6 @@ function StageRail({ current }: { current: string }) {
   );
 }
 
-function ConfigSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="mb-6 space-y-4 rounded-buzzBoard border border-line bg-surface-card p-6">
-      <div>
-        <h3 className={TEXT.h3}>{title}</h3>
-        {description ? (
-          <p className={cn(TEXT.meta, "mt-1")}>{description}</p>
-        ) : null}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function httpsImageSrc(value: string): string | null {
-  try {
-    const url = new URL(value.trim());
-    return url.protocol === "https:" ? value.trim() : null;
-  } catch {
-    return null;
-  }
-}
-
 const INTENT_HEADERS = ["Organization", "Status", "Pitch", "Created"] as const;
 
 const APPLICANT_HEADERS = [
@@ -175,74 +148,45 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
   const publish = usePublishDrop(data.id);
   // After wrap-up only the copy (title, story, image, location) can change.
   const copyOnly = data.stage === "wrapped";
-  const logisticsLocked = copyOnly || patch.isPending;
   const unpublished = data.publishedAt == null;
-  const [title, setTitle] = useState(data.title);
-  const [description, setDescription] = useState(data.description);
-  const [image, setImage] = useState(data.image);
-  const [location, setLocation] = useState(data.location);
-  const [capacity, setCapacity] = useState(String(data.capacityTotal));
-  const [units, setUnits] = useState(
-    data.totalProductUnits === null ? "" : String(data.totalProductUnits),
-  );
+  const [form, setForm] = useState(() => dropToForm(data));
+  const setField = <K extends keyof DropFormState>(key: K, value: DropFormState[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
   const [clearUnits, setClearUnits] = useState(false);
-  const [openAt, setOpenAt] = useState(toDatetimeLocalValue(data.applyOpenAt));
-  const [closeAt, setCloseAt] = useState(
-    toDatetimeLocalValue(data.applyCloseAt),
-  );
-  const [hashtag, setHashtag] = useState(data.campaignHashtag ?? "");
   const [clearHashtag, setClearHashtag] = useState(false);
-  const [brandCanEditCreative, setBrandCanEditCreative] = useState(
-    Boolean(data.brandCanEditCreative),
-  );
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const onSave = async () => {
     setError(null);
     setNotice(null);
-    const body: AdminDropConfigPatch = {};
-    if (title.trim() !== data.title) body.title = title.trim();
-    if (description.trim() !== data.description) {
-      body.description = description.trim();
-    }
-    if (image.trim() !== data.image) body.image = image.trim();
-    if (location.trim() !== data.location) body.location = location.trim();
-    if (brandCanEditCreative !== Boolean(data.brandCanEditCreative)) {
-      body.brandCanEditCreative = brandCanEditCreative;
-    }
-    const cap = Number(capacity);
-    if (!Number.isInteger(cap) || cap < 1) {
-      setError("Capacity must be an integer ≥ 1.");
+    let parsed;
+    try {
+      parsed = parseDropForm(form, { config: true, copyOnly, clearUnits, clearHashtag });
+    } catch (err) {
+      setError(dropFormError(err, "Could not save configuration."));
       return;
     }
-    if (cap !== data.capacityTotal) body.capacityTotal = cap;
-    if (!copyOnly) {
-      const openMs = new Date(openAt).getTime();
-      const closeMs = new Date(closeAt).getTime();
-      if (!Number.isFinite(openMs) || !Number.isFinite(closeMs)) {
-        setError("Apply window times are invalid.");
-        return;
-      }
-      if (openMs !== data.applyOpenAt) body.applyOpenAt = openMs;
-      if (closeMs !== data.applyCloseAt) body.applyCloseAt = closeMs;
-    }
-    if (clearUnits) {
-      if (data.totalProductUnits !== null) body.totalProductUnits = null;
-    } else if (units.trim() !== "") {
-      const u = Number(units);
-      if (!Number.isInteger(u) || u < 1) {
-        setError("Unit budget must be an integer ≥ 1, or clear to spot-only.");
-        return;
-      }
-      if (u !== data.totalProductUnits) body.totalProductUnits = u;
-    }
-    if (clearHashtag) {
-      if (data.campaignHashtag !== null) body.campaignHashtag = null;
-    } else if (hashtag.trim() !== (data.campaignHashtag ?? "")) {
-      body.campaignHashtag = hashtag.trim() || null;
-    }
-
+    // Send only what changed. Blank units are left alone; wrapped drops never send dates.
+    const { applyOpenAt, applyCloseAt, totalProductUnits, campaignHashtag, ...rest } = parsed;
+    const candidates: AdminDropConfigPatch = {
+      ...rest,
+      ...(!copyOnly && { applyOpenAt, applyCloseAt }),
+      ...((clearUnits || form.units.trim() !== "") && { totalProductUnits }),
+      ...((clearHashtag || form.hashtag.trim() !== (data.campaignHashtag ?? "")) && {
+        campaignHashtag,
+      }),
+    };
+    const current: AdminDropConfigPatch = {
+      ...data,
+      brandCanEditCreative: Boolean(data.brandCanEditCreative),
+    };
+    const body = Object.fromEntries(
+      Object.entries(candidates).filter(
+        ([key, value]) => value !== current[key as keyof AdminDropConfigPatch],
+      ),
+    );
     if (Object.keys(body).length === 0) {
       setNotice("No changes to save.");
       return;
@@ -272,170 +216,14 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
     }
   };
 
-  const previewSrc = httpsImageSrc(image);
-
   return (
     <div>
-      <ConfigSection
-        title="Campaign"
-        description="What organizations see on the drop: title, story, and hero image."
-      >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-          {previewSrc ? (
-            <div className="relative aspect-video min-h-48 w-full shrink-0 overflow-hidden rounded-buzzBoard border border-line sm:w-auto">
-              <img
-                src={previewSrc}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            </div>
-          ) : null}
-          <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <TextField
-              id="drop-config-title"
-              label="Title"
-              size="compact"
-              value={title}
-              disabled={patch.isPending}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            <TextArea
-              id="drop-config-description"
-              label="Description"
-              size="compact"
-              rows={5}
-              value={description}
-              disabled={patch.isPending}
-              wrapperClassName="flex min-h-0 flex-1 flex-col"
-              className="min-h-[7.5rem] flex-1"
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-        </div>
-        <TextField
-          id="drop-config-image"
-          label="Image (https)"
-          size="compact"
-          type="url"
-          value={image}
-          disabled={patch.isPending}
-          onChange={(e) => setImage(e.target.value)}
-        />
-      </ConfigSection>
-
-      <ConfigSection
-        title="Logistics"
-        description={
-          copyOnly
-            ? "Wrapped up: only the copy and location can change. Unwrap the drop to change seats, units, dates or the hashtag."
-            : "Where it runs, how many seats, and the apply window. To reopen applications, move the close date later."
-        }
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <TextField
-              id="drop-config-location"
-              label="Location"
-              size="compact"
-              value={location}
-              disabled={patch.isPending}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
-          <TextField
-            id="drop-config-capacity"
-            label="Capacity"
-            size="compact"
-            type="number"
-            min={1}
-            value={capacity}
-            disabled={logisticsLocked}
-            onChange={(e) => setCapacity(e.target.value)}
-          />
-          <div>
-            <TextField
-              id="drop-config-units"
-              label="Total units"
-              size="compact"
-              type="number"
-              min={1}
-              value={units}
-              disabled={clearUnits || logisticsLocked}
-              placeholder="Leave empty, then clear for spot-only"
-              onChange={(e) => setUnits(e.target.value)}
-            />
-            <Checkbox
-              wrapperClassName="mt-1"
-              checked={clearUnits}
-              disabled={logisticsLocked}
-              onChange={(e) => setClearUnits(e.target.checked)}
-              label={
-                <span className="text-xs text-muted">
-                  Clear to spot-only
-                </span>
-              }
-            />
-          </div>
-          <DateTimeField
-            id="drop-config-open-at"
-            label="Apply opens"
-            size="compact"
-            value={openAt}
-            disabled={logisticsLocked}
-            onChange={(e) => setOpenAt(e.target.value)}
-          />
-          <DateTimeField
-            id="drop-config-close-at"
-            label="Apply closes"
-            size="compact"
-            value={closeAt}
-            disabled={logisticsLocked}
-            onChange={(e) => setCloseAt(e.target.value)}
-          />
-        </div>
-      </ConfigSection>
-
-      <ConfigSection
-        title="Settings"
-        description="Hashtag matching and who may edit creative after publish."
-      >
-        <TextField
-          id="drop-config-hashtag"
-          label="Campaign hashtag"
-          size="compact"
-          value={hashtag}
-          disabled={clearHashtag || logisticsLocked}
-          placeholder="e.g. springdrop (no # required)"
-          onChange={(e) => setHashtag(e.target.value)}
-        />
-        <Checkbox
-          wrapperClassName="mt-1"
-          checked={clearHashtag}
-          disabled={logisticsLocked}
-          onChange={(e) => setClearHashtag(e.target.checked)}
-          label={
-            <span className="text-xs text-muted">Clear hashtag</span>
-          }
-        />
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-primary">Brand can edit details</p>
-            <p id="brand-can-edit-creative-help" className="mt-1 text-xs text-quiet">
-              Lets the brand change title, description and image. Dates, capacity
-              and publishing stay with BUZZ.
-            </p>
-          </div>
-          <Toggle
-            id="brand-can-edit-creative"
-            data-testid="brand-can-edit-creative"
-            checked={brandCanEditCreative}
-            disabled={logisticsLocked}
-            onChange={setBrandCanEditCreative}
-            label="Brand can edit details"
-            aria-describedby="brand-can-edit-creative-help"
-          />
-        </div>
-      </ConfigSection>
+      <DropFormFields
+        form={form} setField={setField} prefix="drop-config"
+        disabled={patch.isPending} copyOnly={copyOnly}
+        clearUnits={clearUnits} setClearUnits={setClearUnits}
+        clearHashtag={clearHashtag} setClearHashtag={setClearHashtag}
+      />
 
       <div className={cn(STACK.tight, "px-4 py-4")}>
         <div className="flex flex-wrap gap-2">
