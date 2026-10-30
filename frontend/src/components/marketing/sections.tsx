@@ -194,6 +194,10 @@ export function CurrentDrops() {
                       alt={item.title}
                       className="h-full w-full object-cover"
                     />
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute left-0 top-0 h-[30%] w-full bg-gradient-to-b from-black/45 to-transparent"
+                    />
                     <p className="absolute left-5 top-5 text-[28px] font-medium text-white md:text-[32px]">
                       {item.brand ?? item.title}
                     </p>
