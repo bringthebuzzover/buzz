@@ -508,7 +508,7 @@ export default function AdminOrgDetailPage() {
                 ) : (
                   data.deliveryAddress ?? (
                     <span className="text-buzz-warn">
-                      Not set — nowhere to ship product
+                      Address pending — nowhere to ship product
                     </span>
                   )
                 )}

@@ -16,16 +16,13 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import {
   useAdminDrop,
-  useAddApplicantShipment,
   useCancelDrop,
-  useDeleteApplicantShipment,
   useDeleteSeat,
   useHideDrop,
   usePatchAdminDropConfig,
   usePublishDrop,
   useSendAdminDecisions,
   useSetAdminSeatDecision,
-  useSetApplicantDelivered,
   useSetDropWrapped,
   useSyncAndAutolink,
   useUnhideDrop,
@@ -68,7 +65,6 @@ import {
 import {
   STAGE_LABELS,
   STAGE_ORDER,
-  adminApplicantShipTo,
   formatCompactCount,
   formatDate,
   formatDateTime,
@@ -76,8 +72,8 @@ import {
 } from "../../components/admin/labels";
 import AddOrgToDropModal from "../../components/admin/AddOrgToDropModal";
 import CopyPublicDropUrl from "../../components/drop/CopyPublicDropUrl";
-import { carrierLabel, type Shipment } from "../../utils/shipments";
-import { ENDED_DECISIONS, SEAT_PROGRESS_LABEL } from "../../utils/dropStage";
+import { ApplicantShipping } from "../../components/admin/ApplicantShipping";
+import { ENDED_DECISIONS } from "../../utils/dropStage";
 import { SeatDecisionSelect, SendDecisionsBar } from "../../components/drop/SeatDecisions";
 
 const TABS = [
@@ -158,8 +154,7 @@ const APPLICANT_HEADERS = [
   "Units",
   "Posts",
   "Applied",
-  "Ship to",
-  "Shipments",
+  "Shipping",
   "",
 ] as const;
 
@@ -594,122 +589,6 @@ function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
   );
 }
 
-function ApplicantShipmentEditor({
-  dropId,
-  applicant,
-}: {
-  dropId: string;
-  applicant: AdminApplicant;
-}) {
-  const add = useAddApplicantShipment(dropId, applicant.id);
-  const remove = useDeleteApplicantShipment(dropId, applicant.id);
-  const setDelivered = useSetApplicantDelivered(applicant.id);
-  const [tn, setTn] = useState("");
-  const [carrier, setCarrier] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const shipments = (applicant.shipments ?? []) as Shipment[];
-
-  const onAdd = async () => {
-    const trackingNumber = tn.trim();
-    if (!trackingNumber) return;
-    const pickedCarrier = carrier;
-    setError(null);
-    setTn("");
-    setCarrier("");
-    try {
-      await add.mutateAsync({
-        trackingNumber,
-        carrier: pickedCarrier || undefined,
-      });
-    } catch (err) {
-      setTn(trackingNumber);
-      setCarrier(pickedCarrier);
-      setError(
-        err instanceof ApiError ? err.message : "Could not add tracking.",
-      );
-    }
-  };
-
-  return (
-    <div
-      className="min-w-[14rem] space-y-2"
-      data-testid={`applicant-shipments-${applicant.id}`}
-    >
-      {error && <ErrorNote>{error}</ErrorNote>}
-      <ul className="space-y-1">
-        {shipments.map((s) => (
-          <li
-            key={s.id}
-            className="flex items-center justify-between gap-2 text-xs font-semibold"
-          >
-            <span>
-              {carrierLabel(s.carrier)} #{s.trackingNumber}
-            </span>
-            <button
-              type="button"
-              data-testid={`remove-shipment-${s.id}`}
-              className="text-accent hover:underline"
-              disabled={remove.isPending}
-              onClick={() => void remove.mutateAsync(s.id)}
-            >
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
-      <div className="flex flex-col gap-2">
-        <TextField
-          id={`add-tn-${applicant.id}`}
-          data-testid={`add-shipment-tn-${applicant.id}`}
-          label="Tracking number"
-          size="compact"
-          value={tn}
-          onChange={(e) => setTn(e.target.value)}
-        />
-        <Select
-          id={`add-carrier-${applicant.id}`}
-          data-testid={`add-shipment-carrier-${applicant.id}`}
-          size="compact"
-          label="Carrier (if not 1Z / FedEx digits)"
-          value={carrier}
-          onChange={(e) => setCarrier(e.target.value)}
-        >
-          <option value="">Infer</option>
-          <option value="ups">UPS</option>
-          <option value="fedex">FedEx</option>
-          <option value="unknown">Unknown</option>
-        </Select>
-        <ActionButton
-          testId={`add-shipment-${applicant.id}`}
-          disabled={add.isPending || !tn.trim()}
-          onClick={() => void onAdd()}
-        >
-          {add.isPending ? "Adding…" : "Add tracking"}
-        </ActionButton>
-        <Checkbox
-          data-testid={`delivered-${applicant.id}`}
-          checked={applicant.deliveredAt != null}
-          disabled={setDelivered.isPending}
-          onChange={(e) => {
-            setError(null);
-            setDelivered
-              .mutateAsync(e.target.checked)
-              .catch((err: unknown) =>
-                setError(err instanceof ApiError ? err.message : "Could not save delivery."),
-              );
-          }}
-          label={
-            <span className="text-xs text-muted">
-              Delivered
-              {applicant.deliveredAt != null ? ` ${formatDate(applicant.deliveredAt)}` : ""}
-            </span>
-          }
-        />
-      </div>
-    </div>
-  );
-}
-
 function SignupIntents({
   intents,
 }: {
@@ -977,13 +856,6 @@ function Applicants({
                   {applicant.decision !== "applied" && applicant.decisionSentAt == null ? (
                     <span className="text-xs font-medium text-buzz-warn">Not sent</span>
                   ) : null}
-                  {applicant.progress ? (
-                    <span data-testid={`seat-progress-${applicant.id}`}>
-                      <Pill tone={applicant.progress === "posted" ? "good" : "neutral"}>
-                        {SEAT_PROGRESS_LABEL[applicant.progress]}
-                      </Pill>
-                    </span>
-                  ) : null}
                 </div>
               )}
             </Cell>
@@ -1012,20 +884,12 @@ function Applicants({
             </Cell>
             <Cell muted>{applicant.linkedPostCount}</Cell>
             <Cell muted>{formatDate(applicant.appliedAt)}</Cell>
-            <Cell muted>
-              {applicant.accountErased
-                ? "—"
-                : adminApplicantShipTo(
-                    applicant.decision,
-                    applicant.shippingCity,
-                    applicant.shippingState,
-                  )}
-            </Cell>
             <Cell>
-              {live ? (
-                <ApplicantShipmentEditor dropId={dropId} applicant={applicant} />
-              ) : (
+              {applicant.accountErased ||
+              (applicant.decision !== "applied" && applicant.decision !== "accepted") ? (
                 <span className="text-xs font-medium text-muted">—</span>
+              ) : (
+                <ApplicantShipping dropId={dropId} applicant={applicant} live={live} />
               )}
             </Cell>
             <Cell align="right">

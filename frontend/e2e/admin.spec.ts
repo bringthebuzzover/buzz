@@ -407,8 +407,11 @@ test("admin can add two tracking numbers on an accepted applicant", async ({
   await page.getByTestId("tab-applicants").click();
   const row = page.getByRole("row", { name: /Berkeley Rowing Club/ });
   await expect(row).toBeVisible();
-  const tn = row.getByLabel("Tracking number");
-  const add = row.getByRole("button", { name: "Add tracking" });
+  const chip = row.getByRole("button", { name: /shipments for Berkeley Rowing Club$/ });
+  await chip.click();
+  const dialog = page.getByRole("dialog", { name: /Shipments · Berkeley Rowing Club/ });
+  const tn = dialog.getByLabel("Tracking number");
+  const add = dialog.getByRole("button", { name: "Add", exact: true });
 
   await tn.fill("1ZE2EADD001");
   await expect(tn).toHaveValue("1ZE2EADD001");
@@ -422,8 +425,8 @@ test("admin can add two tracking numbers on an accepted applicant", async ({
   await add.click();
   const first = await firstAdd;
   expect(first.ok(), await first.text()).toBeTruthy();
-  await expect(row.getByText("#1ZE2EADD001")).toBeVisible();
-  // Add tracking disables on empty input; wait until the first POST cleared
+  await expect(dialog.getByText("#1ZE2EADD001")).toBeVisible();
+  // Add disables on empty input; wait until the first POST cleared
   // the field so a late setState cannot wipe the second number.
   await expect(tn).toHaveValue("");
   await expect(add).toBeDisabled();
@@ -440,7 +443,11 @@ test("admin can add two tracking numbers on an accepted applicant", async ({
   await add.click();
   const second = await secondAdd;
   expect(second.ok(), await second.text()).toBeTruthy();
-  await expect(row.getByText("#999999999999")).toBeVisible();
+  await expect(dialog.getByText("#999999999999")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  // Focus goes back to the chip that opened the modal.
+  await expect(chip).toBeFocused();
 });
 
 test("admin can late-add an org that never applied", async ({ page }) => {
