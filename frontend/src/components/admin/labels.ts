@@ -180,7 +180,7 @@ export const TOKEN_BUCKET_META: Record<string, SignalMeta> = {
     note: "Revoked via Meta or never connected; no post data will arrive",
   },
   undecryptable: {
-    label: "Undecryptable",
+    label: "Unreadable",
     note: "Ciphertext cannot be read (e.g. encryption key rotated); the organization must reconnect",
   },
 };
