@@ -30,7 +30,12 @@ export function Tabs<T extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className={cn("flex gap-6 border-b border-line", className)}
+      // Scrolls inside itself on narrow screens. The hairline is an inset
+      // shadow, not a border, so the active tab's bar still covers it.
+      className={cn(
+        "flex gap-6 overflow-x-auto shadow-[inset_0_-1px_0_theme(colors.line)]",
+        className,
+      )}
       onKeyDown={(event) => {
         const index = tabs.findIndex((tab) => tab.id === value);
         if (event.key === "ArrowRight") {
@@ -62,8 +67,10 @@ export function Tabs<T extends string>({
             data-testid={`tab-${tab.id}`}
             tabIndex={selected ? 0 : -1}
             className={cn(
-              "-mb-px border-b-2 pb-3 text-sm transition",
+              "shrink-0 whitespace-nowrap border-b-2 pb-3 text-sm transition",
+              // Inset ring: an outer one would be clipped by the scroll box.
               focusRingClass,
+              "focus-visible:ring-inset focus-visible:ring-offset-0",
               selected
                 ? "border-accent text-primary"
                 : "border-transparent text-muted hover:text-primary",
