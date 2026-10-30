@@ -240,21 +240,23 @@ export function DropFormFields({
           ? "Wrapped up: only the copy and location can change. Unwrap the drop to change seats, units, dates or the hashtag."
           : "Where it runs, how many seats, and the apply window. To reopen applications, move the close date later."
         : "Where it runs, how many seats, and the apply window."}>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="sm:col-span-2">
+        <div className={config ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-6" : "grid gap-3 sm:grid-cols-2"}>
+          <div className={config ? "sm:col-span-2 lg:col-span-2" : "sm:col-span-2"}>
             <TextField
               {...fieldProps("location")} label="Location" size="compact"
               value={form.location} disabled={disabled}
               onChange={(e) => setField("location", e.target.value)}
             />
           </div>
-          <TextField
-            {...fieldProps("capacity")} label="Capacity" size="compact" type="number" min={1}
-            value={form.capacity} disabled={logisticsLocked}
-            onChange={(e) => setField("capacity", e.target.value)}
-          />
+          <div className={config ? "lg:col-span-2" : undefined}>
+            <TextField
+              {...fieldProps("capacity")} label="Capacity" size="compact" type="number" min={1}
+              value={form.capacity} disabled={logisticsLocked}
+              onChange={(e) => setField("capacity", e.target.value)}
+            />
+          </div>
           {config ? (
-            <div>
+            <div className="lg:col-span-2">
               {unitsField}
               <Checkbox
                 wrapperClassName="mt-1" checked={clearUnits} disabled={logisticsLocked}
@@ -263,16 +265,20 @@ export function DropFormFields({
               />
             </div>
           ) : unitsField}
-          <DateTimeField
-            {...fieldProps("open-at")} label="Apply opens" size="compact"
-            value={form.openAt} disabled={logisticsLocked}
-            onChange={(e) => setField("openAt", e.target.value)}
-          />
-          <DateTimeField
-            {...fieldProps("close-at")} label="Apply closes" size="compact"
-            value={form.closeAt} disabled={logisticsLocked}
-            onChange={(e) => setField("closeAt", e.target.value)}
-          />
+          <div className={config ? "lg:col-span-3" : undefined}>
+            <DateTimeField
+              {...fieldProps("open-at")} label="Apply opens" size="compact"
+              value={form.openAt} disabled={logisticsLocked}
+              onChange={(e) => setField("openAt", e.target.value)}
+            />
+          </div>
+          <div className={config ? "lg:col-span-3" : undefined}>
+            <DateTimeField
+              {...fieldProps("close-at")} label="Apply closes" size="compact"
+              value={form.closeAt} disabled={logisticsLocked}
+              onChange={(e) => setField("closeAt", e.target.value)}
+            />
+          </div>
         </div>
       </DropFormSection>
       <DropFormSection config={config} title="Settings"

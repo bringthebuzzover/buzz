@@ -39,9 +39,9 @@ import {
   QueryState,
   Row,
   StatusPill,
+  StagePill,
 } from "../../components/admin/AdminPrimitives";
 import {
-  STAGE_LABELS,
   formatDate,
   formatDateTime,
 } from "../../components/admin/labels";
@@ -124,7 +124,7 @@ export default function AdminBrandDetailPage() {
 
   return (
     <div>
-      <AdminBackLink to="/admin/brands" />
+      <AdminBackLink to="/admin/brands">All brands</AdminBackLink>
 
       <QueryState
         isPending={brand.isPending}
@@ -434,7 +434,7 @@ export default function AdminBrandDetailPage() {
                     </Link>
                   </Cell>
                   <Cell muted>
-                    {STAGE_LABELS[drop.stage] ?? drop.stage}
+                    <StagePill stage={drop.stage} />
                   </Cell>
                   <Cell muted>{drop.appliedCount}</Cell>
                   <Cell muted>

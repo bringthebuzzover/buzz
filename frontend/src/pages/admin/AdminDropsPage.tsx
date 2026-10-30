@@ -7,6 +7,7 @@
  * touched are both sitting still for unrelated reasons. Selections combine via
  * repeated URL keys (OR within a dimension, AND across).
  */
+import { Info } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Notice } from "../../components/forms/controls";
 import { useAdminDrops } from "../../api/hooks/useAdminHooks";
@@ -151,7 +152,10 @@ export default function AdminDropsPage() {
       </div>
 
       <div className="mb-6">
-        <Notice>
+        <Notice
+          tone="accent"
+          icon={<Info size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden />}
+        >
           Intake tickets live under{" "}
           <Link to="/admin/requests" className="underline">
             Drop requests
