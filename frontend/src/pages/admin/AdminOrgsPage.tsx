@@ -209,7 +209,7 @@ export default function AdminOrgsPage() {
                 <Cell muted>{row.eduEmail ?? "—"}</Cell>
                 <Cell muted>{formatElapsed(row.createdAt)}</Cell>
                 <Cell align="right">
-                  <div className="flex flex-wrap justify-end gap-2">
+                  <div className="flex flex-wrap justify-end gap-2 md:flex-nowrap md:gap-4 md:whitespace-nowrap">
                     {decidable(row) && (
                       <ActionButton
                         quiet

@@ -230,7 +230,7 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
       />
 
       <div className={cn(STACK.tight, "px-4 py-4")}>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <ActionButton
             variant="primary"
             testId="save-drop-config"
@@ -813,7 +813,7 @@ export default function AdminDropDetailPage() {
 
   return (
     <div>
-      <AdminBackLink to="/admin/drops" />
+      <AdminBackLink to="/admin/drops">All drops</AdminBackLink>
 
       <QueryState
         isPending={drop.isPending}
