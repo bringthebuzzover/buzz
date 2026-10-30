@@ -48,7 +48,7 @@ export function PinnedHow({
         <div className="mx-auto flex max-w-3xl flex-col gap-16 px-4 py-16">
           {steps.map((item, index) => (
             <div key={item.caption} className="flex flex-col items-center gap-6">
-              <p className="max-w-md text-xl font-medium leading-snug">{item.caption}</p>
+              <p className="order-last max-w-md text-xl font-medium leading-snug md:order-none">{item.caption}</p>
               <MarketingPhone kind={kind} step={index} animate={false} />
             </div>
           ))}
@@ -71,7 +71,7 @@ export function PinnedHow({
           <p
             className={cn(
               "text-xl font-medium leading-snug text-on-accent transition-opacity duration-300 md:max-w-sm md:text-left",
-              "text-center md:col-start-1",
+              "row-start-2 text-center md:col-start-1 md:row-start-1",
               active.side === "right" && "md:col-start-3",
             )}
           >

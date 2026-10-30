@@ -123,9 +123,7 @@ export default function SiteHeader() {
   const join =
     pathname.startsWith("/for-brands")
       ? { label: "Apply", onClick: () => navigate("/brand/apply") }
-      : pathname === "/" || pathname === "/for-orgs"
-        ? { label: "Join", onClick: () => goToHomeJoin(pathname, navigate) }
-        : { label: "Join Us!", onClick: () => goToHomeJoin(pathname, navigate) };
+      : { label: "Join Us!", onClick: () => goToHomeJoin(pathname, navigate) };
 
   const linkClass = (active: boolean) =>
     cn(
@@ -164,7 +162,7 @@ export default function SiteHeader() {
               onClick={() => navigate("/")}
               className={cn("flex h-10 max-w-[9rem] shrink-0 items-center", focusRingClass)}
             >
-              <Logo surface={paperTone ? "paper" : "ink"} className="h-8" />
+              <Logo surface={paperTone ? "paper" : "ink"} className="h-[54px] min-[650px]:h-8" />
             </button>
             {isApiAuth && (user.portalRole === "org" || user.portalRole === "brand") ? (
               <span
@@ -241,7 +239,7 @@ export default function SiteHeader() {
             type="button"
             onClick={() => setMobileNavOpen((open) => !open)}
             className={cn(
-              "flex h-11 w-11 items-center justify-center rounded-full border border-line",
+              "flex h-11 items-center justify-center px-2 text-sm min-[650px]:w-11 min-[650px]:rounded-full min-[650px]:border min-[650px]:border-line min-[650px]:px-0",
               mobileOnly,
               focusRingClass,
             )}
@@ -249,7 +247,8 @@ export default function SiteHeader() {
             aria-controls="mobile-nav-menu"
             aria-label={mobileNavOpen ? "Close menu" : "Open menu"}
           >
-            <Menu size={22} />
+            <span className="min-[650px]:hidden">Menu</span>
+            <Menu size={22} className="hidden min-[650px]:block" />
           </button>
         </nav>
       </div>
