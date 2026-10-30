@@ -63,17 +63,6 @@ function WithdrawButton({ applicationId }: { applicationId: string }) {
   const withdraw = useWithdrawCampaign(applicationId);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function confirm() {
-    setError(null);
-    try {
-      await withdraw.mutateAsync(undefined);
-      navigate("/org/campaigns", { replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not withdraw.");
-    }
-  }
 
   return (
     <>
@@ -94,9 +83,12 @@ function WithdrawButton({ applicationId }: { applicationId: string }) {
           pendingLabel="Withdrawing…"
           destructive
           pending={withdraw.isPending}
-          error={error}
+          fallbackError="Could not withdraw."
           submitTestId="campaign-withdraw-confirm"
-          onConfirm={() => void confirm()}
+          onConfirm={async () => {
+            await withdraw.mutateAsync(undefined);
+            navigate("/org/campaigns", { replace: true });
+          }}
           onClose={() => setOpen(false)}
         />
       ) : null}

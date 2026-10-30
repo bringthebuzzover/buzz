@@ -13,6 +13,7 @@ const idleMutation = () => ({
 
 const mockUseAdminDrop = jest.fn();
 const mockDecide = jest.fn().mockResolvedValue({});
+const mockSetWrapped = jest.fn();
 const mockPatch = jest.fn().mockResolvedValue({});
 
 jest.mock("../../api/hooks/useAdminHooks", () => ({
@@ -23,7 +24,7 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
   useDeleteApplicantShipment: () => idleMutation(),
   useSetAdminSeatDecision: () => ({ ...idleMutation(), mutateAsync: mockDecide }),
   useSendAdminDecisions: () => idleMutation(),
-  useSetDropWrapped: () => idleMutation(),
+  useSetDropWrapped: () => ({ ...idleMutation(), mutateAsync: mockSetWrapped }),
   useHideDrop: () => idleMutation(),
   useDeleteSeat: () => idleMutation(),
   useCancelDrop: () => idleMutation(),
@@ -259,6 +260,27 @@ describe("AdminDropDetailPage", () => {
       (container.querySelector('[data-testid="drop-wrap"]') as HTMLButtonElement).click();
     });
     expect(document.body.textContent).toContain('emailed "not selected"');
+  });
+
+  it("keeps a failed wrap in the dialog and closes after retry", async () => {
+    mockSetWrapped.mockRejectedValueOnce(new Error("Internal failure")).mockResolvedValueOnce({});
+    mockUseAdminDrop.mockReturnValue({
+      data: adminDrop({ publishedAt: now, stage: "live" }),
+      isPending: false,
+      isError: false,
+    });
+    renderAt("/admin/drops/drop-1?tab=tracker");
+    act(() => (container.querySelector('[data-testid="drop-wrap"]') as HTMLButtonElement).click());
+    await act(async () => {
+      (document.querySelector('[data-testid="drop-wrap-confirm"]') as HTMLButtonElement).click();
+    });
+    expect(document.querySelector('[role="dialog"] [role="alert"]')?.textContent)
+      .toBe("Could not update the drop.");
+    await act(async () => {
+      (document.querySelector('[data-testid="drop-wrap-confirm"]') as HTMLButtonElement).click();
+    });
+    expect(mockSetWrapped).toHaveBeenLastCalledWith(true);
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
   });
 
   it("shows follower count and city/state, with the full address in the shipments modal", () => {
