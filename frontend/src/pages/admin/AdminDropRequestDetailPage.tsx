@@ -5,7 +5,7 @@
  * sit in the page header. Right: the brand request, read-only.
  * Prefill copies title, location, capacity, total units, and hashtag only.
  */
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   useAdminDrop,
@@ -16,7 +16,6 @@ import {
   type AdminDropDetail,
   type AdminDropRequest,
 } from "../../api/hooks/useAdminHooks";
-import { ApiError } from "../../api/client";
 import {
   ActionButton,
   AdminBackLink,
@@ -29,86 +28,20 @@ import {
   Pill,
   QueryState,
 } from "../../components/admin/AdminPrimitives";
+import { formatDate, formatDateTime } from "../../components/admin/labels";
+import { Notice, SuccessBanner } from "../../components/forms/controls";
+import { TEXT } from "../../theme/tokens";
 import {
-  formatDate,
-  formatDateTime,
-  toDatetimeLocalValue,
-} from "../../components/admin/labels";
-import {
-  DateTimeField,
-  Notice,
-  SuccessBanner,
-  TextArea,
-  TextField,
-} from "../../components/forms/controls";
-import { Toggle } from "../../components/ui/Toggle";
-import { STACK, TEXT } from "../../theme/tokens";
+  DropFormFields,
+  DropFormSection,
+  dropToForm,
+  emptyForm,
+  isValidHeroImage,
+  parseDropForm,
+  dropFormError,
+  type DropFormState,
+} from "../../components/admin/DropForm";
 import { cn } from "../../theme/cn";
-
-function isValidHeroImage(url: string): boolean {
-  const trimmed = url.trim();
-  if (trimmed.toLowerCase().includes("placehold.co")) return false;
-  try {
-    const parsed = new URL(trimmed);
-    return parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function defaultWindow() {
-  const open = Date.now() + 24 * 60 * 60 * 1000;
-  const close = open + 7 * 24 * 60 * 60 * 1000;
-  return {
-    openAt: toDatetimeLocalValue(open),
-    closeAt: toDatetimeLocalValue(close),
-  };
-}
-
-type DraftFormState = {
-  title: string;
-  description: string;
-  image: string;
-  location: string;
-  capacity: string;
-  units: string;
-  openAt: string;
-  closeAt: string;
-  hashtag: string;
-  brandCanEditCreative: boolean;
-};
-
-function emptyForm(): DraftFormState {
-  const win = defaultWindow();
-  return {
-    title: "",
-    description: "",
-    image: "",
-    location: "",
-    capacity: "10",
-    units: "",
-    openAt: win.openAt,
-    closeAt: win.closeAt,
-    hashtag: "",
-    brandCanEditCreative: false,
-  };
-}
-
-function formFromDrop(drop: AdminDropDetail): DraftFormState {
-  return {
-    title: drop.title,
-    description: drop.description,
-    image: drop.image,
-    location: drop.location,
-    capacity: String(drop.capacityTotal),
-    units:
-      drop.totalProductUnits === null ? "" : String(drop.totalProductUnits),
-    openAt: toDatetimeLocalValue(drop.applyOpenAt),
-    closeAt: toDatetimeLocalValue(drop.applyCloseAt),
-    hashtag: drop.campaignHashtag ?? "",
-    brandCanEditCreative: Boolean(drop.brandCanEditCreative),
-  };
-}
 
 /**
  * Copy logistics the brand already named. The org-facing description is left
@@ -117,7 +50,7 @@ function formFromDrop(drop: AdminDropDetail): DraftFormState {
  * units are set only when both organization count and units per org exist.
  */
 function applyRequestPrefill(
-  form: DraftFormState,
+  form: DropFormState,
   ticket: {
     title?: string | null;
     location?: string | null;
@@ -125,7 +58,7 @@ function applyRequestPrefill(
     orgCount?: number | null;
     unitsPerOrg?: number | null;
   },
-): DraftFormState {
+): DropFormState {
   const next = { ...form };
   const title = ticket.title?.trim();
   if (title) next.title = title;
@@ -138,28 +71,6 @@ function applyRequestPrefill(
     next.units = String(ticket.orgCount * ticket.unitsPerOrg);
   }
   return next;
-}
-
-function EditorSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className={cn(STACK.tight, "border-t border-line px-4 py-4")}>
-      <div>
-        <h3 className={TEXT.h3}>{title}</h3>
-        {description ? (
-          <p className={cn(TEXT.meta, "mt-1")}>{description}</p>
-        ) : null}
-      </div>
-      {children}
-    </section>
-  );
 }
 
 function display(value: string | number | null | undefined): string {
@@ -182,7 +93,7 @@ function formatTargetDate(iso: string | null | undefined): string {
   });
 }
 
-function requiredReady(form: DraftFormState): boolean {
+function requiredReady(form: DropFormState): boolean {
   return (
     form.title.trim().length > 0 &&
     form.description.trim().length > 0 &&
@@ -334,13 +245,13 @@ function DraftEditor({
   const dropId = drop?.id ?? "";
   const patch = usePatchAdminDropConfig(dropId);
   const publish = usePublishDrop(dropId);
-  const [form, setForm] = useState<DraftFormState>(emptyForm);
+  const [form, setForm] = useState<DropFormState>(emptyForm);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (linkedDrop) {
-      setForm(formFromDrop(linkedDrop));
+      setForm(dropToForm(linkedDrop));
     }
   }, [linkedDrop]);
 
@@ -349,58 +260,18 @@ function DraftEditor({
   const ready = requiredReady(form);
   const busy = create.isPending || patch.isPending || publish.isPending;
 
-  const setField = <K extends keyof DraftFormState>(
+  const setField = <K extends keyof DropFormState>(
     key: K,
-    value: DraftFormState[K],
+    value: DropFormState[K],
   ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const parseBody = () => {
-    const capacity = Number(form.capacity);
-    if (!Number.isInteger(capacity) || capacity < 1) {
-      throw new Error("Capacity must be an integer ≥ 1.");
-    }
-    const openMs = new Date(form.openAt).getTime();
-    const closeMs = new Date(form.closeAt).getTime();
-    if (!Number.isFinite(openMs) || !Number.isFinite(closeMs)) {
-      throw new Error("Apply window times are invalid.");
-    }
-    if (openMs >= closeMs) {
-      throw new Error("Apply opens must be before apply closes.");
-    }
-    if (!isValidHeroImage(form.image.trim())) {
-      throw new Error("Image must be an https:// URL (not a placeholder).");
-    }
-    let units: number | null | undefined;
-    if (form.units.trim() !== "") {
-      const u = Number(form.units);
-      if (!Number.isInteger(u) || u < 1) {
-        throw new Error("Total units must be an integer ≥ 1, or leave empty.");
-      }
-      units = u;
-    } else {
-      units = null;
-    }
-    return {
-      title: form.title.trim(),
-      description: form.description.trim(),
-      image: form.image.trim(),
-      location: form.location.trim(),
-      capacityTotal: capacity,
-      applyOpenAt: openMs,
-      applyCloseAt: closeMs,
-      totalProductUnits: units,
-      campaignHashtag: form.hashtag.trim() || null,
-      brandCanEditCreative: form.brandCanEditCreative,
-    };
   };
 
   const onSaveDraft = async () => {
     setError(null);
     setNotice(null);
     try {
-      const body = parseBody();
+      const body = parseDropForm(form);
       if (drop) {
         await patch.mutateAsync(body);
         setNotice("Draft updated.");
@@ -415,11 +286,7 @@ function DraftEditor({
       }
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Could not save draft.",
+        dropFormError(err, "Could not save draft."),
       );
     }
   };
@@ -436,17 +303,13 @@ function DraftEditor({
       return;
     }
     try {
-      await patch.mutateAsync(parseBody());
+      await patch.mutateAsync(parseDropForm(form));
       await publish.mutateAsync(undefined);
       setMinted({ ...drop, publishedAt: Date.now() });
       setNotice("Drop published. Brand was emailed the monitor link.");
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Could not publish.",
+        dropFormError(err, "Could not publish."),
       );
     }
   };
@@ -495,142 +358,9 @@ function DraftEditor({
         title="Draft drop"
         description="You write the org-facing description. Prefill does not copy the brand message or product."
       >
-        <EditorSection
-          title="Campaign"
-          description="What organizations see: title, story, and hero image."
-        >
-          <TextField
-            id="draft-title"
-            label="Title"
-            size="compact"
-            data-testid="draft-title"
-            value={form.title}
-            disabled={busy}
-            onChange={(e) => setField("title", e.target.value)}
-          />
-          <TextArea
-            id="draft-description"
-            label="Description"
-            size="compact"
-            data-testid="draft-description"
-            rows={4}
-            value={form.description}
-            disabled={busy}
-            placeholder="Org-facing copy. Write this yourself."
-            onChange={(e) => setField("description", e.target.value)}
-          />
-          <TextField
-            id="draft-image"
-            label="Image (https)"
-            size="compact"
-            data-testid="draft-image"
-            value={form.image}
-            disabled={busy}
-            placeholder="https://…"
-            onChange={(e) => setField("image", e.target.value)}
-          />
-          {isValidHeroImage(form.image) ? (
-            <img
-              src={form.image.trim()}
-              alt=""
-              className="max-h-40 rounded-buzzBoard border border-line object-cover"
-            />
-          ) : null}
-        </EditorSection>
+        <DropFormFields form={form} setField={setField} prefix="draft" disabled={busy} />
 
-        <EditorSection
-          title="Logistics"
-          description="Where it runs, how many seats, and the apply window."
-        >
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <TextField
-                id="draft-location"
-                label="Location"
-                size="compact"
-                data-testid="draft-location"
-                value={form.location}
-                disabled={busy}
-                onChange={(e) => setField("location", e.target.value)}
-              />
-            </div>
-            <TextField
-              id="draft-capacity"
-              label="Capacity"
-              size="compact"
-              type="number"
-              min={1}
-              data-testid="draft-capacity"
-              value={form.capacity}
-              disabled={busy}
-              onChange={(e) => setField("capacity", e.target.value)}
-            />
-            <TextField
-              id="draft-units"
-              label="Total units"
-              size="compact"
-              type="number"
-              min={1}
-              data-testid="draft-units"
-              value={form.units}
-              disabled={busy}
-              placeholder="Optional — organizations × units per org"
-              onChange={(e) => setField("units", e.target.value)}
-            />
-            <DateTimeField
-              id="draft-open-at"
-              label="Apply opens"
-              size="compact"
-              data-testid="draft-open-at"
-              value={form.openAt}
-              disabled={busy}
-              onChange={(e) => setField("openAt", e.target.value)}
-            />
-            <DateTimeField
-              id="draft-close-at"
-              label="Apply closes"
-              size="compact"
-              data-testid="draft-close-at"
-              value={form.closeAt}
-              disabled={busy}
-              onChange={(e) => setField("closeAt", e.target.value)}
-            />
-          </div>
-        </EditorSection>
-
-        <EditorSection
-          title="Settings"
-          description="Hashtag matching and who may edit creative after publish."
-        >
-          <TextField
-            id="draft-hashtag"
-            label="Campaign hashtag"
-            size="compact"
-            data-testid="draft-hashtag"
-            value={form.hashtag}
-            disabled={busy}
-            placeholder="optional"
-            onChange={(e) => setField("hashtag", e.target.value)}
-          />
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-primary">Brand can edit details</p>
-              <p className="mt-1 text-xs text-quiet">
-                Lets the brand change title, description and image. Dates, capacity
-                and publishing stay with BUZZ.
-              </p>
-            </div>
-            <Toggle
-              data-testid="draft-brand-can-edit"
-              checked={form.brandCanEditCreative}
-              disabled={busy}
-              onChange={(next) => setField("brandCanEditCreative", next)}
-              label="Brand can edit details"
-            />
-          </div>
-        </EditorSection>
-
-        <EditorSection
+        <DropFormSection
           title="Drop"
           description="Unpublished until you publish. Organizations cannot see it yet."
         >
@@ -641,7 +371,7 @@ function DraftEditor({
               apply window to enable Save and Publish.
             </p>
           )}
-        </EditorSection>
+        </DropFormSection>
       </Panel>
     );
 
