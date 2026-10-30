@@ -208,7 +208,7 @@ export default function AdminOrgDetailPage() {
 
   return (
     <div>
-      <AdminBackLink to="/admin/orgs" />
+      <AdminBackLink to="/admin/orgs">All organizations</AdminBackLink>
 
       <QueryState
         isPending={org.isPending}
@@ -542,7 +542,7 @@ export default function AdminOrgDetailPage() {
           </Panel>
 
           <Panel title="Activity">
-            <FieldGrid>
+            <FieldGrid columns={5}>
               <Field label="Applied">{data.applications.applied}</Field>
               <Field label="Accepted">{data.applications.accepted}</Field>
               <Field label="Denied">{data.applications.denied}</Field>

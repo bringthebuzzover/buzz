@@ -96,10 +96,11 @@ function InviteBrandForm() {
     >
       <div className="space-y-3 px-4 py-4">
         {error && <ErrorNote>{error}</ErrorNote>}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <TextField
             id="invite-brand-name"
             label="Brand name"
+            placeholder="e.g. Sample Brand"
             size="compact"
             data-testid="invite-brand-name"
             value={brandName}
@@ -108,6 +109,7 @@ function InviteBrandForm() {
           <TextField
             id="invite-brand-email"
             label="Company email"
+            placeholder="e.g. you@brand.com"
             size="compact"
             type="email"
             data-testid="invite-brand-email"
@@ -117,6 +119,7 @@ function InviteBrandForm() {
           <TextField
             id="invite-brand-instagram"
             label="Instagram (optional)"
+            placeholder="e.g. @yourbrand"
             size="compact"
             data-testid="invite-brand-instagram"
             value={instagramHandle}
@@ -134,16 +137,18 @@ function InviteBrandForm() {
             <option value="pending">Create pending — invite later</option>
           </Select>
         </div>
-        <ActionButton
-          variant="primary"
-          testId="invite-brand-submit"
-          disabled={
-            create.isPending || !brandName.trim() || !companyEmail.trim()
-          }
-          onClick={() => void submit()}
-        >
-          {create.isPending ? "Creating…" : "Create brand"}
-        </ActionButton>
+        <div className="flex justify-end">
+          <ActionButton
+            variant="primary"
+            testId="invite-brand-submit"
+            disabled={
+              create.isPending || !brandName.trim() || !companyEmail.trim()
+            }
+            onClick={() => void submit()}
+          >
+            {create.isPending ? "Creating…" : "Create brand"}
+          </ActionButton>
+        </div>
       </div>
     </Panel>
   );
