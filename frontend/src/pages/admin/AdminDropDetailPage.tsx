@@ -294,23 +294,12 @@ function CancelDropButton({ drop }: { drop: AdminDropDetail }) {
 
 function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
   const setWrapped = useSetDropWrapped(drop.id);
-  const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const wrapped = drop.stage === "wrapped";
   const canceled = drop.stage === "canceled";
   // Wrap-up follows Selecting or Live (the matrix); unwrap undoes it.
   const canWrap =
     drop.hiddenAt == null && (drop.stage === "selecting" || drop.stage === "live");
-
-  async function toggle() {
-    setError(null);
-    try {
-      await setWrapped.mutateAsync(!wrapped);
-      setConfirming(false);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not update the drop.");
-    }
-  }
 
   return (
     <Panel
@@ -326,7 +315,6 @@ function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
         ) : (
           <StageRail current={drop.stage} />
         )}
-        {error && !confirming && <ErrorNote>{error}</ErrorNote>}
         {drop.publishedAt != null && !canceled && (
           <div className="flex flex-wrap gap-2">
             {(wrapped || canWrap) && (
@@ -334,10 +322,7 @@ function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
                 variant={wrapped ? "secondary" : "primary"}
                 testId={wrapped ? "drop-unwrap" : "drop-wrap"}
                 disabled={setWrapped.isPending}
-                onClick={() => {
-                  setError(null);
-                  setConfirming(true);
-                }}
+                onClick={() => setConfirming(true)}
               >
                 {wrapped ? "Unwrap drop" : "Wrap up drop"}
               </ActionButton>
@@ -354,12 +339,12 @@ function LifecycleControls({ drop }: { drop: AdminDropDetail }) {
               ? "The drop goes back to the stage its dates and seats give it. Organizations can link posts again."
               : "Ends the campaign. Organizations still waiting on a decision are emailed \"not selected\", orgs taking part get a thank-you, and the brand gets a recap. Send drafted acceptances first. Organizations can still link posts for 30 days."
           }
-          error={error}
+          fallbackError="Could not update the drop."
           confirmLabel={wrapped ? "Unwrap" : "Wrap up"}
           pendingLabel={wrapped ? "Unwrapping…" : "Wrapping up…"}
           pending={setWrapped.isPending}
           submitTestId={wrapped ? "drop-unwrap-confirm" : "drop-wrap-confirm"}
-          onConfirm={() => void toggle()}
+          onConfirm={() => setWrapped.mutateAsync(!wrapped)}
           onClose={() => setConfirming(false)}
         />
       )}
