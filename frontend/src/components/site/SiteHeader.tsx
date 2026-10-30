@@ -162,7 +162,7 @@ export default function SiteHeader() {
               onClick={() => navigate("/")}
               className={cn("flex h-10 max-w-[9rem] shrink-0 items-center", focusRingClass)}
             >
-              <Logo surface={paperTone ? "paper" : "ink"} className="h-[54px] min-[650px]:h-8" />
+              <Logo surface={paperTone ? "paper" : "ink"} className="h-[54px]" />
             </button>
             {isApiAuth && (user.portalRole === "org" || user.portalRole === "brand") ? (
               <span
