@@ -1,4 +1,5 @@
 import {
+  TOKEN_BUCKET_META,
   shipToCity,
   formatCompactCount,
   toDatetimeLocalValue,
@@ -51,5 +52,12 @@ describe("formatCompactCount", () => {
   it("shows an em dash when the count is missing", () => {
     expect(formatCompactCount(null)).toBe("—");
     expect(formatCompactCount(undefined)).toBe("—");
+  });
+});
+
+describe("TOKEN_BUCKET_META", () => {
+  it("labels unreadable tokens with the pen copy and keeps the API key", () => {
+    expect(TOKEN_BUCKET_META.undecryptable.label).toBe("Unreadable");
+    expect(Object.values(TOKEN_BUCKET_META).map((m) => m.label)).not.toContain("Undecryptable");
   });
 });
