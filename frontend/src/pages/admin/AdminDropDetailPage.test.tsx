@@ -472,7 +472,8 @@ describe("AdminDropDetailPage", () => {
     renderAt("/admin/drops/drop-1");
     const chip = container.querySelector('[data-testid="shipping-app-3"]') as HTMLButtonElement;
     expect(chip.textContent).toContain(label);
-    expect(chip.getAttribute("aria-label")).toContain("Shipments for Kappa");
+    // The accessible name starts with the visible label (label-in-name).
+    expect(chip.getAttribute("aria-label")).toMatch(new RegExp(`^${label}.* – shipments for Kappa$`));
   });
 
   it("offers cancel on a running drop and shows a canceled drop as final", () => {

@@ -407,7 +407,7 @@ test("admin can add two tracking numbers on an accepted applicant", async ({
   await page.getByTestId("tab-applicants").click();
   const row = page.getByRole("row", { name: /Berkeley Rowing Club/ });
   await expect(row).toBeVisible();
-  const chip = row.getByRole("button", { name: /^Shipments for Berkeley Rowing Club/ });
+  const chip = row.getByRole("button", { name: /shipments for Berkeley Rowing Club$/ });
   await chip.click();
   const dialog = page.getByRole("dialog", { name: /Shipments · Berkeley Rowing Club/ });
   const tn = dialog.getByLabel("Tracking number");
