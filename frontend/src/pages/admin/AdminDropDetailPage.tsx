@@ -260,27 +260,13 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
 function CancelDropButton({ drop }: { drop: AdminDropDetail }) {
   const cancel = useCancelDrop(drop.id);
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit(typed: string) {
-    setError(null);
-    try {
-      await cancel.mutateAsync(typed.trim());
-      setOpen(false);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not cancel this drop.");
-    }
-  }
 
   return (
     <>
       <ActionButton
         variant="danger"
         testId="drop-cancel"
-        onClick={() => {
-          setError(null);
-          setOpen(true);
-        }}
+        onClick={() => setOpen(true)}
       >
         Cancel drop
       </ActionButton>
@@ -290,7 +276,7 @@ function CancelDropButton({ drop }: { drop: AdminDropDetail }) {
           description="Final: there is no undo. Decisions, tracking, delivery, post links and metric syncs stop. Seats and posts stay on record, and you can still end a seat with a reason. Organizations still in the running and the brand are emailed."
           expected={drop.title}
           inputLabel="Type the drop title"
-          error={error}
+          fallbackError="Could not cancel this drop."
           destructive
           confirmLabel="Cancel drop"
           cancelLabel="Keep drop"
@@ -298,7 +284,7 @@ function CancelDropButton({ drop }: { drop: AdminDropDetail }) {
           pending={cancel.isPending}
           inputTestId="drop-cancel-confirm"
           submitTestId="drop-cancel-submit"
-          onConfirm={(typed) => void submit(typed)}
+          onConfirm={(typed) => cancel.mutateAsync(typed.trim())}
           onClose={() => setOpen(false)}
         />
       )}
@@ -493,17 +479,6 @@ function DeleteSeatButton({
 }) {
   const remove = useDeleteSeat(dropId);
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function submit(typed: string) {
-    setError(null);
-    try {
-      await remove.mutateAsync({ applicationId: applicant.id, confirm: typed.trim() });
-      setOpen(false);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not delete this seat.");
-    }
-  }
 
   return (
     <>
@@ -511,10 +486,7 @@ function DeleteSeatButton({
         quiet
         variant="secondary"
         testId={`delete-seat-${applicant.id}`}
-        onClick={() => {
-          setError(null);
-          setOpen(true);
-        }}
+        onClick={() => setOpen(true)}
       >
         Delete
       </ActionButton>
@@ -525,14 +497,16 @@ function DeleteSeatButton({
           expected="delete"
           inputLabel="Type delete"
           matches={(typed) => typed.trim().toLowerCase() === "delete"}
-          error={error}
+          fallbackError="Could not delete this seat."
           destructive
           confirmLabel="Delete seat"
           pendingLabel="Deleting…"
           pending={remove.isPending}
           inputTestId={`delete-confirm-${applicant.id}`}
           submitTestId={`delete-confirm-submit-${applicant.id}`}
-          onConfirm={(typed) => void submit(typed)}
+          onConfirm={(typed) =>
+            remove.mutateAsync({ applicationId: applicant.id, confirm: typed.trim() })
+          }
           onClose={() => setOpen(false)}
         />
       )}
@@ -712,7 +686,6 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
   const unhide = useUnhideDrop(drop.id);
   const [open, setOpen] = useState(false);
   const [notifyBrand, setNotifyBrand] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   if (drop.publishedAt == null) {
     return null;
@@ -721,31 +694,6 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
   function closeDialog() {
     setOpen(false);
     setNotifyBrand(false);
-    setError(null);
-  }
-
-  async function doHide() {
-    setError(null);
-    try {
-      await hide.mutateAsync({ confirm: drop.title, notifyBrand });
-      closeDialog();
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Could not hide this drop.",
-      );
-    }
-  }
-
-  async function doUnhide() {
-    setError(null);
-    try {
-      await unhide.mutateAsync(undefined);
-      closeDialog();
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Could not unhide this drop.",
-      );
-    }
   }
 
   const hidden = drop.hiddenAt != null;
@@ -765,12 +713,12 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
           <ConfirmDialog
             title="Unhide campaign"
             description="Organization and brand portals will see this drop again at the same URLs."
-            error={error}
+            fallbackError="Could not unhide this drop."
             confirmLabel="Unhide"
             pendingLabel="Unhiding…"
             pending={unhide.isPending}
             submitTestId="drop-unhide-submit"
-            onConfirm={() => void doUnhide()}
+            onConfirm={() => unhide.mutateAsync(undefined)}
             onClose={closeDialog}
           />
         ) : (
@@ -779,14 +727,14 @@ function HideCampaignButton({ drop }: { drop: AdminDropDetail }) {
             description="Removes this published drop from every organization and brand portal. Type the drop title to confirm. No email unless you opt in."
             expected={drop.title}
             inputLabel="Type the drop title to confirm"
-            error={error}
+            fallbackError="Could not hide this drop."
             destructive
             confirmLabel="Hide campaign"
             pendingLabel="Hiding…"
             pending={hide.isPending}
             inputTestId="hide-drop-confirm"
             submitTestId="hide-drop-submit"
-            onConfirm={() => void doHide()}
+            onConfirm={() => hide.mutateAsync({ confirm: drop.title, notifyBrand })}
             onClose={closeDialog}
           >
             <Checkbox

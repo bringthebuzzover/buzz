@@ -69,7 +69,6 @@ export default function AdminBrandDetailPage() {
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeNotice, setComposeNotice] = useState<string | null>(null);
   const [eraseOpen, setEraseOpen] = useState(false);
-  const [eraseError, setEraseError] = useState<string | null>(null);
   const [eraseNotice, setEraseNotice] = useState<string | null>(null);
   const [igDecisionError, setIgDecisionError] = useState<string | null>(null);
 
@@ -224,10 +223,7 @@ export default function AdminBrandDetailPage() {
                     testId="erase-brand"
                     aria-label="Erase brand"
                     disabled={busy || erase.isPending}
-                    onClick={() => {
-                      setEraseError(null);
-                      setEraseOpen(true);
-                    }}
+                    onClick={() => setEraseOpen(true)}
                   >
                     <Trash2 size={16} aria-hidden />
                   </HeadingIconButton>
@@ -246,7 +242,7 @@ export default function AdminBrandDetailPage() {
                 typed.trim().toLowerCase() ===
                 (data.companyEmail ?? "").trim().toLowerCase()
               }
-              error={eraseError}
+              fallbackError="Erase failed. Reload and try again."
               destructive
               confirmLabel="Erase account"
               pendingLabel="Erasing…"
@@ -254,32 +250,17 @@ export default function AdminBrandDetailPage() {
               inputTestId="erase-brand-confirm"
               cancelTestId="erase-brand-cancel"
               submitTestId="erase-brand-submit"
-              onClose={() => {
-                setEraseOpen(false);
-                setEraseError(null);
-              }}
-              onConfirm={(typed) => {
-                void (async () => {
-                  setEraseError(null);
-                  try {
-                    const result = await erase.mutateAsync({
-                      brandId: data.id,
-                      confirm: typed,
-                    });
-                    setEraseOpen(false);
-                    setEraseNotice(
-                      result.emailSent
-                        ? `Account erased. Confirmation email sent (…@${result.emailToDomain}).`
-                        : "Account erased. No confirmation email was sent — notify the requester manually if needed.",
-                    );
-                  } catch (err) {
-                    setEraseError(
-                      err instanceof ApiError
-                        ? err.message
-                        : "Erase failed. Reload and try again.",
-                    );
-                  }
-                })();
+              onClose={() => setEraseOpen(false)}
+              onConfirm={async (typed) => {
+                const result = await erase.mutateAsync({
+                  brandId: data.id,
+                  confirm: typed,
+                });
+                setEraseNotice(
+                  result.emailSent
+                    ? `Account erased. Confirmation email sent (…@${result.emailToDomain}).`
+                    : "Account erased. No confirmation email was sent — notify the requester manually if needed.",
+                );
               }}
             />
           )}
