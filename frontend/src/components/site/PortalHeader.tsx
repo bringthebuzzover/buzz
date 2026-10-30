@@ -13,6 +13,7 @@ import { Menu, X } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
 import { useSignOut } from "../../api/hooks/useSignOut";
+import { useBrandProfile } from "../../api/hooks/useBrandHooks";
 import { Logo } from "../ui/BrandMark";
 import { appNavItemClass, quietLinkClass } from "../ui/navItem";
 import { imageInitials } from "../ui/RemoteImage";
@@ -67,7 +68,7 @@ export default function PortalHeader({ portal }: { portal: Portal }) {
           data-testid="site-header-logo"
           className={cn("flex shrink-0 items-center", focusRingClass)}
         >
-          <Logo className="h-6 w-[79px]" />
+          <Logo className={signedIn ? "h-10 w-[88px]" : "h-6 w-[79px]"} />
         </Link>
         <span className="truncate text-xs text-quiet">{config.label}</span>
 
@@ -97,14 +98,11 @@ export default function PortalHeader({ portal }: { portal: Portal }) {
           </button>
           {signedIn ? (
             <>
-              {initials ? (
-                <span
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-medium text-on-accent"
-                  aria-hidden
-                >
-                  {initials}
-                </span>
-              ) : null}
+              {portal === "brand" ? (
+                <BrandAvatar email={user?.email} />
+              ) : (
+                <PortalAvatar initials={initials} />
+              )}
               <button type="button" onClick={signOut} className={quietLinkClass}>
                 Log out
               </button>
@@ -174,4 +172,22 @@ export default function PortalHeader({ portal }: { portal: Portal }) {
       ) : null}
     </header>
   );
+}
+
+function PortalAvatar({ initials }: { initials: string }) {
+  return initials ? (
+    <span
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-medium text-on-accent"
+      aria-hidden
+    >
+      {initials}
+    </span>
+  ) : null;
+}
+
+function BrandAvatar({ email }: { email?: string }) {
+  const { data: profile } = useBrandProfile();
+  const initials =
+    imageInitials(profile?.brandName ?? "") || email?.trim().slice(0, 1).toUpperCase() || "";
+  return <PortalAvatar initials={initials} />;
 }
