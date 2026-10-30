@@ -24,7 +24,10 @@ import { cn } from "../../theme/cn";
 
 type Props = { dropId: string; applicant: AdminApplicant };
 
-const iconButtonClass = cn("rounded-full p-1 text-quiet hover:text-primary", focusRingClass);
+const iconButtonClass = cn(
+  "rounded-full p-1 text-quiet hover:text-primary disabled:opacity-50",
+  focusRingClass,
+);
 const headingClass = cn(TEXT.micro, "text-quiet");
 // The Modal animation pins a centring transform, so the sheet turns it off.
 const BOTTOM_SHEET = cn(
@@ -58,7 +61,7 @@ export function ApplicantShipping({ dropId, applicant, live }: Props & { live: b
         type="button"
         data-testid={`shipping-${applicant.id}`}
         aria-haspopup="dialog"
-        aria-label={`Shipments for ${applicant.orgName}: ${status.label}`}
+        aria-label={`${status.label} – shipments for ${applicant.orgName}`}
         className={cn("max-w-full rounded-full text-left", focusRingClass)}
         onClick={() => setOpen(true)}
       >
