@@ -66,18 +66,20 @@ export default function SiteLayout() {
   );
 }
 
-/** Pen mobile dock: yellow org-apply pill, fixed, under 768px. */
+/** Pen mobile dock: yellow apply pill, fixed, under 768px. */
 function MobileJoinDock() {
+  const { pathname } = useLocation();
+  const forBrands = pathname === "/for-brands";
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-3 md:hidden">
       <Link
-        to="/org/apply"
+        to={forBrands ? "/brand/apply" : "/org/apply"}
         className={cn(
           "pointer-events-auto mx-auto flex h-11 max-w-md items-center justify-center rounded-full bg-accent px-5 text-sm text-on-accent shadow-buzz",
           focusRingClass,
         )}
       >
-        Join as a student organization
+        {forBrands ? "Apply as a brand" : "Join as a student organization"}
       </Link>
     </div>
   );
