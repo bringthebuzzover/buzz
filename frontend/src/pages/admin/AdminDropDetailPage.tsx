@@ -168,11 +168,15 @@ function DropConfigEditors({ data }: { data: AdminDropDetail }) {
       setError(dropFormError(err, "Could not save configuration."));
       return;
     }
-    // Send only what changed. Blank units are left alone; wrapped drops never send dates.
+    // Send only what changed. Blank units are left alone; wrapped drops never
+    // send dates, and dates are compared as shown (whole minutes), so an
+    // untouched date with seconds is not rewritten.
     const { applyOpenAt, applyCloseAt, totalProductUnits, campaignHashtag, ...rest } = parsed;
+    const shown = dropToForm(data);
     const candidates: AdminDropConfigPatch = {
       ...rest,
-      ...(!copyOnly && { applyOpenAt, applyCloseAt }),
+      ...(!copyOnly && form.openAt !== shown.openAt && { applyOpenAt }),
+      ...(!copyOnly && form.closeAt !== shown.closeAt && { applyCloseAt }),
       ...((clearUnits || form.units.trim() !== "") && { totalProductUnits }),
       ...((clearHashtag || form.hashtag.trim() !== (data.campaignHashtag ?? "")) && {
         campaignHashtag,
