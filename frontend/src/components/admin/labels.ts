@@ -259,13 +259,10 @@ export function toDatetimeLocalValue(epochMs: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/** Applicants "Ship to" cell: city, state for applied/accepted; else em dash. */
-export function adminApplicantShipTo(
-  decision: string,
+/** Applicants Shipping cell: "City, ST", or "" when the org has no address yet. */
+export function shipToCity(
   city: string | null | undefined,
   state: string | null | undefined,
 ): string {
-  if (decision !== "applied" && decision !== "accepted") return "—";
-  const line = [city?.trim(), state?.trim()].filter(Boolean).join(", ");
-  return line || "Not set";
+  return [city?.trim(), state?.trim()].filter(Boolean).join(", ");
 }

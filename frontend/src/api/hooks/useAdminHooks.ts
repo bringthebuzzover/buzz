@@ -414,7 +414,7 @@ function useAdminMutation<TInput>(
       // Fire-and-forget. `mutateAsync` awaits onSuccess; awaiting this would
       // block until every active ["admin"] query refetches (sidebar overview
       // plus the page). That kept Publish disabled after Save draft and
-      // wiped a second tracking number after Add tracking once the drop
+      // wiped a second tracking number after Add once the drop
       // detail refetch landed first. Same pattern as useCreateAdminDrop.
       void invalidateAdmin(queryClient);
     },
