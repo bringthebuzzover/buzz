@@ -579,17 +579,19 @@ export function MarketingPhone({
       aria-hidden
       className="relative h-[444px] w-[250px] overflow-hidden rounded-buzzPhone border border-on-accent/10 bg-page shadow-buzz md:h-[563px] md:w-[317px]"
     >
-      {screens.map((Screen, index) => (
-        <div
-          key={index}
-          className={cn(
-            "absolute inset-0 transition-opacity duration-300 ease-out motion-reduce:transition-none",
-            index === step ? "opacity-100" : "pointer-events-none opacity-0",
-          )}
-        >
-          <Screen animate={animate && index === step} />
-        </div>
-      ))}
+      {screens.map((Screen, index) =>
+        animate || index === step ? (
+          <div
+            key={index}
+            className={cn(
+              "absolute inset-0 transition-opacity duration-300 ease-out motion-reduce:transition-none",
+              index === step ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          >
+            <Screen animate={animate && index === step} />
+          </div>
+        ) : null,
+      )}
     </div>
   );
 }

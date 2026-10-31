@@ -50,9 +50,39 @@ export const ORG_STEPS = [
   { caption: "Apply when a drop is Open.", side: "right" },
 ] as const;
 
-export const BRAND_STEPS = [
-  { caption: "Tell us about the campaign.", side: "left" },
-  { caption: "BUZZ builds and publishes the drop.", side: "right" },
-  { caption: "Choose the organizations.", side: "left" },
-  { caption: "Follow every post.", side: "right" },
-] as const;
+export const PORTAL_STEPS = {
+  org: [
+    {
+      title: "Apply with your .edu email",
+      body: "Tell BUZZ about your organization and campus.",
+      screen: 0,
+    },
+    {
+      title: "Connect Instagram",
+      body: "After approval, connect your Business or Creator account.",
+      screen: 2,
+    },
+    {
+      title: "Apply to open drops",
+      body: "Browse current drops and apply for your organization.",
+      screen: 3,
+    },
+  ],
+  brand: [
+    {
+      title: "Tell us about your campaign",
+      body: "Share your goals and the products you want to send.",
+      screen: 0,
+    },
+    {
+      title: "BUZZ publishes your drop",
+      body: "See your published drop and available spots in the portal.",
+      screen: 1,
+    },
+    {
+      title: "Follow every post",
+      body: "Track organization posts and see the finished drop.",
+      screen: 3,
+    },
+  ],
+} as const;
