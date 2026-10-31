@@ -76,7 +76,9 @@ class TestAdminComposeEmail:
         )
         assert res.status_code == 404
 
-    async def test_org_send_failed_502(self, app_client: AsyncClient, db_session, monkeypatch):
+    async def test_org_send_acknowledges_queued_send(
+        self, app_client: AsyncClient, db_session, monkeypatch
+    ):
         monkeypatch.setattr(
             "app.services.admin.send_admin_compose_email",
             AsyncMock(return_value=False),
@@ -89,8 +91,8 @@ class TestAdminComposeEmail:
             json={"subject": "Hi", "body": "Hello"},
             headers=await admin_headers(db_session),
         )
-        assert res.status_code == 502
-        assert res.json()["error"]["code"] == "EMAIL_SEND_FAILED"
+        assert res.status_code == 200
+        assert res.json()["data"]["ok"] is True
 
     async def test_brand_send_happy(self, app_client: AsyncClient, db_session, monkeypatch):
         async def _send(to_email, subject, body):

@@ -2387,10 +2387,10 @@ export interface components {
              * Format: uuid
              */
             applicationId: string;
-            /** Emailbrandsent */
-            emailBrandSent?: boolean | null;
-            /** Emailorgsent */
-            emailOrgSent?: boolean | null;
+            /** Emailbrandqueued */
+            emailBrandQueued?: boolean | null;
+            /** Emailorgqueued */
+            emailOrgQueued?: boolean | null;
             /** Neverapplied */
             neverApplied: boolean;
             /**
@@ -2563,8 +2563,8 @@ export interface components {
              * Format: uuid
              */
             brandId: string;
-            /** Emailsent */
-            emailSent: boolean;
+            /** Emailqueued */
+            emailQueued: boolean;
             /** Emailtodomain */
             emailToDomain?: string | null;
             /** Status */
@@ -2606,7 +2606,7 @@ export interface components {
         };
         /**
          * AdminBrandInviteResponse
-         * @description Approve / create-with-approve / resend-invite (may include email_sent).
+         * @description Approve / create-with-approve / resend-invite (may include email_queued).
          */
         AdminBrandInviteResponse: {
             /**
@@ -2614,8 +2614,8 @@ export interface components {
              * Format: uuid
              */
             brandId: string;
-            /** Emailsent */
-            emailSent?: boolean | null;
+            /** Emailqueued */
+            emailQueued?: boolean | null;
             /** Status */
             status: string;
         };
@@ -3075,8 +3075,8 @@ export interface components {
             decidedKind?: string | null;
             /** Eduemail */
             eduEmail?: string | null;
-            /** Emailsent */
-            emailSent?: boolean | null;
+            /** Emailqueued */
+            emailQueued?: boolean | null;
             /** Finisheddropcount */
             finishedDropCount?: number | null;
             /**
@@ -3230,8 +3230,8 @@ export interface components {
         };
         /** AdminOrgEraseResponse */
         AdminOrgEraseResponse: {
-            /** Emailsent */
-            emailSent: boolean;
+            /** Emailqueued */
+            emailQueued: boolean;
             /** Emailtodomain */
             emailToDomain?: string | null;
             /** Status */
@@ -3301,8 +3301,8 @@ export interface components {
         };
         /** AdminOrgStatusResponse */
         AdminOrgStatusResponse: {
-            /** Emailsent */
-            emailSent?: boolean | null;
+            /** Emailqueued */
+            emailQueued?: boolean | null;
             /**
              * Orgid
              * Format: uuid
@@ -3345,13 +3345,13 @@ export interface components {
         };
         /**
          * AdminResendConnectAllResponse
-         * @description Bulk Connect email for ``pending_instagram`` orgs only.
+         * @description Bulk Connect scheduling counts; delivery failures are logged after the response.
          */
         AdminResendConnectAllResponse: {
             /** Failed */
             failed: number;
-            /** Sent */
-            sent: number;
+            /** Queued */
+            queued: number;
             /** Skipped */
             skipped: number;
             /** Targeted */
@@ -5217,8 +5217,8 @@ export interface components {
             decidedAt?: number | null;
             /** Decidedkind */
             decidedKind?: string | null;
-            /** Emailsent */
-            emailSent?: boolean | null;
+            /** Emailqueued */
+            emailQueued?: boolean | null;
             /**
              * Id
              * Format: uuid
@@ -5291,8 +5291,8 @@ export interface components {
         };
         /** OrgOnboardingResponse */
         OrgOnboardingResponse: {
-            /** Emailsent */
-            emailSent: boolean;
+            /** Emailqueued */
+            emailQueued: boolean;
             /** Emailsentto */
             emailSentTo: string;
             /**

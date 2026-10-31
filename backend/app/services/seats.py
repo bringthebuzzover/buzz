@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from typing import Literal
 
+from fastapi import BackgroundTasks
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -200,7 +201,13 @@ async def end_seat(
     return application
 
 
-async def send_decisions(db: AsyncSession, drop: Drop, *, actor: Actor) -> dict[str, int]:
+async def send_decisions(
+    db: AsyncSession,
+    drop: Drop,
+    *,
+    actor: Actor,
+    background_tasks: BackgroundTasks | None = None,
+) -> dict[str, int]:
     """Send every decided, unsent seat. *drop* must already be locked.
 
     Each org gets its email: good news for an acceptance, "not selected" for a
@@ -233,5 +240,5 @@ async def send_decisions(db: AsyncSession, drop: Drop, *, actor: Actor) -> dict[
         )
     await db.flush()
 
-    await notify_decisions(db, drop, pending)
+    await notify_decisions(db, drop, pending, background_tasks=background_tasks)
     return {"accepted_count": accepted, "denied_count": len(denied)}

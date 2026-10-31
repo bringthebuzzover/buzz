@@ -401,7 +401,7 @@ class AdminIgChangeRequestItem(CamelModel):
     linked_post_count: int | None = None
     live_drop_count: int | None = None
     finished_drop_count: int | None = None
-    email_sent: bool | None = None
+    email_queued: bool | None = None
 
     @field_serializer("decided_at", "created_at")
     def _epoch(self, value: datetime | None) -> int | None:

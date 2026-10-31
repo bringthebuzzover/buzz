@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from fastapi import BackgroundTasks
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -86,7 +87,10 @@ async def assert_handle_available(
 
 
 async def apply_org(
-    db: AsyncSession, payload: OrgApplyRequest, addresses: AddressClient
+    db: AsyncSession,
+    payload: OrgApplyRequest,
+    addresses: AddressClient,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Create User + Organization without IG token; mint .edu verify email."""
     handle = normalize_claimed_handle(payload.instagram_handle)
@@ -150,12 +154,13 @@ async def apply_org(
             ) from exc
         raise
 
-    email_sent = await _mint_and_send_verification(
+    email_queued = await _mint_and_send_verification(
         db,
         user,
         payload.edu_email,
         org_name=payload.org_name,
         kind="signup",
+        background_tasks=background_tasks,
     )
     await mark_prefill_used(db, payload.prefill_token, user.id)
 
@@ -163,5 +168,5 @@ async def apply_org(
         "org_id": str(org.id),
         "status": user.status,
         "email_sent_to": payload.edu_email,
-        "email_sent": email_sent,
+        "email_queued": email_queued,
     }

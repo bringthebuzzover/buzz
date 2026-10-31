@@ -155,7 +155,7 @@ export default function AdminOrgDetailPage() {
     setActionNotice(null);
     try {
       await resendConnect.mutateAsync(data.orgId);
-      setActionNotice("Connect Instagram email re-sent.");
+      setActionNotice("Connect Instagram email queued.");
     } catch (err) {
       setActionError(
         err instanceof ApiError
@@ -193,15 +193,15 @@ export default function AdminOrgDetailPage() {
       userId: data.userId,
       confirm: typed,
     });
-    if (result.emailSent) {
+    if (result.emailQueued) {
       setEraseNotice(
         result.emailToDomain
-          ? `Account erased. Confirmation email sent (…@${result.emailToDomain}).`
-          : "Account erased. Confirmation email sent.",
+          ? `Account erased. Confirmation email queued (…@${result.emailToDomain}).`
+          : "Account erased. Confirmation email queued.",
       );
     } else {
       setEraseNotice(
-        "Account erased. No confirmation email was sent — notify the requester manually if needed.",
+        "Account erased. No confirmation email was queued — notify the requester manually if needed.",
       );
     }
   }
@@ -358,7 +358,7 @@ export default function AdminOrgDetailPage() {
                   subject,
                   body,
                 });
-                setActionNotice("Email sent.");
+                setActionNotice("Email queued.");
               }}
             />
           )}

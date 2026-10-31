@@ -68,7 +68,7 @@ class OrgIgChangeRequestResponse(CamelModel):
     decided_kind: str | None = None
     decided_at: datetime | None = None
     created_at: datetime
-    email_sent: bool | None = None
+    email_queued: bool | None = None
     user_status: str | None = None
 
     @field_serializer("decided_at", "created_at")

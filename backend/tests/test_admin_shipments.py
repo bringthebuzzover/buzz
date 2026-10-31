@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
@@ -11,6 +12,7 @@ from app.models.brand import Brand
 from app.models.enums import ApplicationDecision, PortalRole
 from app.models.shipment import DropApplicationShipment
 from app.models.user import User
+from app.services import drop_notices
 from app.services.shipments import infer_carrier
 from app.timeutils import utcnow
 from tests.conftest import (
@@ -335,3 +337,32 @@ class TestBrandShipmentEditing:
 async def _brand_user(db_session, drop):
     brand = await db_session.get(Brand, drop.brand_id)
     return await db_session.get(User, brand.user_id)
+
+
+@pytest.mark.parametrize("portal", ["admin", "brand"])
+async def test_shipment_email_is_deferred(app_client: AsyncClient, db_session, monkeypatch, portal):
+    drop, org_user, seat = await _accepted_seat(db_session)
+    org_user.edu_email = "org1@example.edu"
+    await db_session.flush()
+    if portal == "admin":
+        headers = await admin_headers(db_session)
+        url = f"/api/admin/applications/{seat.id}/shipments"
+    else:
+        user = await _brand_user(db_session, drop)
+        headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+        url = f"/api/brands/me/drops/{drop.id}/applications/{seat.id}/shipments"
+
+    sender = AsyncMock(return_value=True)
+    monkeypatch.setattr(drop_notices, "_send", sender)
+    schedule = drop_notices.schedule_email
+
+    async def assert_deferred(tasks, *args, **kwargs):
+        assert tasks is not None
+        result = await schedule(tasks, *args, **kwargs)
+        sender.assert_not_awaited()
+        return result
+
+    monkeypatch.setattr(drop_notices, "schedule_email", assert_deferred)
+    result = await app_client.post(url, json={"trackingNumber": "1ZDEFERRED"}, headers=headers)
+    assert result.status_code == 200, result.text
+    sender.assert_awaited_once()

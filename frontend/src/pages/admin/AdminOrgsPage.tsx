@@ -129,15 +129,15 @@ export default function AdminOrgsPage() {
               setBulkNotice("No organizations are waiting to connect Instagram.");
               return;
             }
-            const parts = [`Sent ${result.sent} of ${result.targeted}.`];
-            if (result.failed) parts.push(`${result.failed} failed to send.`);
+            const parts = [`Queued ${result.queued} of ${result.targeted}.`];
+            if (result.failed) parts.push(`${result.failed} failed to queue.`);
             if (result.skipped) {
               parts.push(`${result.skipped} skipped (no school email).`);
             }
             setBulkNotice(parts.join(" "));
             if (result.failed) {
               setBulkError(
-                "Some Connect emails did not send. Open those organizations and use Resend connect email.",
+                "Some Connect emails could not be queued. Open those organizations and use Resend connect email.",
               );
             }
           }}

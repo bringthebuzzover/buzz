@@ -76,7 +76,7 @@ async def test_resend_connect_all_only_pending_instagram(
     assert resp.status_code == 200, resp.text
     data = resp.json()["data"]
     assert data["targeted"] == 2
-    assert data["sent"] == 1
+    assert data["queued"] == 1
     assert data["failed"] == 0
     assert data["skipped"] == 1
 
@@ -86,7 +86,7 @@ async def test_resend_connect_all_only_pending_instagram(
     switch_mail.assert_not_awaited()
 
 
-async def test_resend_connect_all_counts_send_failure(
+async def test_resend_connect_all_acknowledges_queued_send(
     app_client: AsyncClient, db_session, monkeypatch
 ) -> None:
     monkeypatch.setattr(
@@ -103,7 +103,7 @@ async def test_resend_connect_all_counts_send_failure(
     resp = await app_client.post("/api/admin/orgs/resend-connect-all", headers=headers)
     assert resp.status_code == 200, resp.text
     data = resp.json()["data"]
-    assert data == {"targeted": 1, "sent": 0, "failed": 1, "skipped": 0}
+    assert data == {"targeted": 1, "queued": 1, "failed": 0, "skipped": 0}
 
 
 async def test_resend_connect_all_empty(app_client: AsyncClient, db_session) -> None:
@@ -112,7 +112,7 @@ async def test_resend_connect_all_empty(app_client: AsyncClient, db_session) -> 
     assert resp.status_code == 200, resp.text
     assert resp.json()["data"] == {
         "targeted": 0,
-        "sent": 0,
+        "queued": 0,
         "failed": 0,
         "skipped": 0,
     }
