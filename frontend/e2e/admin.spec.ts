@@ -254,6 +254,13 @@ test("view as a brand survives /brand/setup", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: /activate account/i }),
   ).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Settings", exact: true }).click();
+  await expect(page).toHaveURL(/\/brand\/settings$/);
+  await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Change password", exact: true })).toBeDisabled();
+  await expect(page.getByText("Password changes are unavailable while viewing as this brand.")).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
 async function horizontalOverflowPx(page: Page): Promise<number> {

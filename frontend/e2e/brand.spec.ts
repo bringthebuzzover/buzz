@@ -108,9 +108,9 @@ test("brand settings shows name, locked email, and the handle request", async ({
   await page.getByTestId("brand-login-submit").click();
   await expect(page).toHaveURL(/\/brand\/dashboard/);
 
-  await page.getByRole("link", { name: "Setup" }).click();
+  await page.getByRole("link", { name: "Settings" }).click();
   await expect(page).toHaveURL(/\/brand\/settings/);
-  await expect(page.getByRole("heading", { name: "Setup" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   await expect(page.getByTestId("brand-email-locked")).toHaveText(
     "Contact BUZZ to change",
   );
@@ -134,6 +134,46 @@ test("brand settings shows name, locked email, and the handle request", async ({
   const saved = await saveResp;
   expect(saved.ok(), await saved.text()).toBeTruthy();
   await expect(page.getByTestId("brand-name-saved")).toBeVisible();
+
+  await expect(page.getByTestId("brand-current-password")).toHaveCount(0);
+  const changePassword = page.getByRole("button", { name: "Change password", exact: true });
+  await changePassword.click();
+  const passwordDialog = page.getByRole("dialog", { name: "Change password" });
+  await expect(passwordDialog).toBeVisible();
+  const passwordSave = passwordDialog.getByTestId("brand-password-save");
+  await expect(passwordSave).toBeDisabled();
+  await passwordDialog.getByLabel("Current password").fill("incorrect-password");
+  await passwordDialog.getByLabel("New password", { exact: true }).fill("short");
+  await expect(passwordDialog.getByLabel("Confirm password")).toHaveValue("");
+  await expect(passwordDialog.getByText("Passwords do not match.")).toBeVisible();
+  await expect(passwordSave).toBeDisabled();
+  await passwordDialog.getByLabel("Confirm password").fill("short");
+  await expect(passwordSave).toBeDisabled();
+  await passwordDialog.getByLabel("New password", { exact: true }).fill("test-password-123");
+  await expect(passwordDialog.getByText("Passwords do not match.")).toBeVisible();
+  await expect(passwordSave).toBeDisabled();
+  await passwordDialog.getByLabel("Confirm password").fill("test-password-123");
+  await expect(passwordSave).toBeEnabled();
+  const passwordResponse = page.waitForResponse(
+    (r) => r.url().includes("/api/auth/brand/change-password") &&
+      r.request().method() === "POST",
+  );
+  await passwordSave.click();
+  const rejectedPassword = await passwordResponse;
+  expect(rejectedPassword.status()).toBe(400);
+  expect(rejectedPassword.request().postDataJSON()).toEqual({
+    currentPassword: "incorrect-password",
+    newPassword: "test-password-123",
+  });
+  await expect(passwordDialog.getByText("Current password is incorrect.")).toBeVisible();
+  await passwordDialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(passwordDialog).toHaveCount(0);
+  await expect(changePassword).toBeFocused();
+  await changePassword.click();
+  await expect(passwordDialog.getByLabel("Current password")).toHaveValue("");
+  await expect(passwordDialog.getByLabel("New password", { exact: true })).toHaveValue("");
+  await expect(passwordDialog.getByLabel("Confirm password")).toHaveValue("");
+  await passwordDialog.getByRole("button", { name: "Close", exact: true }).click();
 
   const requestChange = page.getByTestId("brand-ig-change-open");
   if (await requestChange.isVisible()) {
