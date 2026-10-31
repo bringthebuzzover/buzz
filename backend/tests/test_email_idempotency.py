@@ -291,7 +291,7 @@ async def test_password_reset_rerequest_uses_a_new_key(db_session, monkeypatch) 
     await db_session.flush()
     captured: list[tuple[str, str | None]] = []
 
-    async def _fake(to_email, token, *, portal, idempotency_key=None):
+    async def _fake(to_email, token, *, idempotency_key=None):
         captured.append((token, idempotency_key))
         return True
 
