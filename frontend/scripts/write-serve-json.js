@@ -6,7 +6,7 @@
  * connect-src from REACT_APP_API_URL (origin only). When that variable is
  * unset, the committed production origin is left alone so CI builds stay
  * valid. REACT_APP_ENV=staging adds X-Robots-Tag: noindex, nofollow and a
- * robots meta tag on build/index.html.
+ * robots meta tag on build/index.html to keep staging out of search results.
  *
  * Overrides (tests): SERVE_JSON_TEMPLATE, SERVE_JSON_BUILD_DIR.
  */

@@ -9,7 +9,7 @@ import path from "path";
 const frontendRoot = path.join(__dirname, "..");
 
 describe("write-serve-json", () => {
-  it("sets connect-src from REACT_APP_API_URL and noindex on staging", () => {
+  it("sets connect-src from REACT_APP_API_URL and preserves the staging noindex header and meta tag", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "buzz-serve-"));
     fs.writeFileSync(path.join(dir, "index.html"), "<html><head></head><body></body></html>");
     const result = spawnSync("node", ["scripts/write-serve-json.js"], {
