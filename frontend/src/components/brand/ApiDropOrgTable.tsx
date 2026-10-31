@@ -6,10 +6,15 @@
  * grouped by org"). A category filter (§5.3.1) narrows the org list client-side.
  */
 import { useMemo, useState } from "react";
-import type { BrandDropApplicant } from "../../api/hooks/useBrandHooks";
+import {
+  useAddBrandShipment,
+  useUpdateBrandShipment,
+  useDeleteBrandShipment,
+  type BrandDropApplicant,
+} from "../../api/hooks/useBrandHooks";
 import { orgCategoryLabel } from "../../types/orgCategory";
 import { safeHttpUrl } from "../../utils/safeHttpUrl";
-import { Select } from "../forms/controls";
+import { Button, Select } from "../forms/controls";
 import PostCard from "../posts/PostCard";
 import { formatInsightCount } from "../posts/postInsights";
 import { Card, CardHeader } from "../ui/Card";
@@ -18,6 +23,7 @@ import { entityLinkClass } from "../ui/navItem";
 import { StatePanel } from "../ui/StatePanel";
 import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+import { ShipmentsModal } from "../shipments/ShipmentsModal";
 import ShipmentList from "../shipments/ShipmentList";
 import type { Shipment } from "../../utils/shipments";
 import { SEAT_PROGRESS_LABEL } from "../../utils/dropStage";
@@ -57,11 +63,13 @@ type Props = {
   applicants: BrandDropApplicant[];
   /** Override the section heading (e.g. roster-only before live). */
   title?: string;
+  canEditShipments?: boolean;
 };
 
 export default function ApiDropOrgTable({
   applicants,
   title = "Posts by organization",
+  canEditShipments = true,
 }: Props) {
   const accepted = useMemo(() => applicants.filter(participated), [applicants]);
   const [category, setCategory] = useState<string>("all");
@@ -160,6 +168,8 @@ export default function ApiDropOrgTable({
                   empty="None yet"
                   testId={`brand-org-shipments-${a.id}`}
                 />
+                {canEditShipments && !a.accountErased && a.decision === "accepted" &&
+                  a.decisionSentAt != null && <BrandShipmentControl applicant={a} />}
               </dd>
             </div>
           </dl>
@@ -211,5 +221,35 @@ export function AddressPending() {
     <span data-testid="address-pending" className="font-medium text-accent">
       Address pending
     </span>
+  );
+}
+
+function BrandShipmentControl({ applicant }: { applicant: BrandDropApplicant }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button size="compact" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+        Manage shipments
+      </Button>
+      {open && <BrandShipmentsModal applicant={applicant} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function BrandShipmentsModal({ applicant, onClose }: {
+  applicant: BrandDropApplicant;
+  onClose: () => void;
+}) {
+  const add = useAddBrandShipment(applicant.dropId, applicant.id);
+  const update = useUpdateBrandShipment(applicant.dropId, applicant.id);
+  const remove = useDeleteBrandShipment(applicant.dropId, applicant.id);
+  return (
+    <ShipmentsModal
+      applicant={{ ...applicant, shipments: applicant.shipments ?? [] }}
+      add={add}
+      update={update}
+      remove={remove}
+      onClose={onClose}
+    />
   );
 }

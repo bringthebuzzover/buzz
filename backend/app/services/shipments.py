@@ -124,16 +124,13 @@ async def set_delivered(db: AsyncSession, application_id: UUID, delivered: bool)
     await db.flush()
 
 
-async def add_shipment(
+async def _shipment_fields(
     db: AsyncSession,
     application_id: UUID,
     tracking_number: str,
     carrier: str | None,
-    *,
-    background_tasks: BackgroundTasks | None = None,
-) -> dict[str, Any]:
-    application = await _live_seat(db, application_id, "Tracking can be added")
-
+    shipment_id: UUID | None = None,
+) -> tuple[str, str]:
     cleaned = tracking_number.strip()
     if not cleaned:
         raise BuzzAPIException(
@@ -165,6 +162,7 @@ async def add_shipment(
         select(DropApplicationShipment.id).where(
             DropApplicationShipment.application_id == application_id,
             DropApplicationShipment.tracking_number == cleaned,
+            DropApplicationShipment.id != shipment_id,
         )
     )
     if existing is not None:
@@ -173,6 +171,21 @@ async def add_shipment(
             "That tracking number is already on this organization.",
             status_code=409,
         )
+
+    return cleaned, resolved
+
+
+async def add_shipment(
+    db: AsyncSession,
+    application_id: UUID,
+    tracking_number: str,
+    carrier: str | None,
+    *,
+    background_tasks: BackgroundTasks | None = None,
+) -> dict[str, Any]:
+    application = await _live_seat(db, application_id, "Tracking can be added")
+
+    cleaned, resolved = await _shipment_fields(db, application_id, tracking_number, carrier)
 
     row = DropApplicationShipment(
         application_id=application_id,
@@ -184,6 +197,24 @@ async def add_shipment(
     shipment = serialize_shipment(row)
     await notify_shipped(db, application, shipment, background_tasks=background_tasks)
     return shipment
+
+
+async def update_shipment(
+    db: AsyncSession,
+    application_id: UUID,
+    shipment_id: UUID,
+    tracking_number: str,
+    carrier: str | None,
+) -> dict[str, Any]:
+    await _live_seat(db, application_id, "Tracking can be edited")
+    row = await db.get(DropApplicationShipment, shipment_id)
+    if row is None or row.application_id != application_id:
+        raise BuzzAPIException(errors.NOT_FOUND, "Shipment not found.", status_code=404)
+    row.tracking_number, row.carrier = await _shipment_fields(
+        db, application_id, tracking_number, carrier, shipment_id
+    )
+    await db.flush()
+    return serialize_shipment(row)
 
 
 async def delete_shipment(

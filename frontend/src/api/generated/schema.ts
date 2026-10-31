@@ -1659,6 +1659,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/brands/me/drops/{drop_id}/applications/{application_id}/shipments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Brand Shipments */
+        get: operations["list_brand_shipments_api_brands_me_drops__drop_id__applications__application_id__shipments_get"];
+        put?: never;
+        /** Add Brand Shipment */
+        post: operations["add_brand_shipment_api_brands_me_drops__drop_id__applications__application_id__shipments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/brands/me/drops/{drop_id}/applications/{application_id}/shipments/{shipment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Brand Shipment */
+        delete: operations["delete_brand_shipment_api_brands_me_drops__drop_id__applications__application_id__shipments__shipment_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Brand Shipment */
+        patch: operations["update_brand_shipment_api_brands_me_drops__drop_id__applications__application_id__shipments__shipment_id__patch"];
+        trace?: never;
+    };
     "/api/brands/me/drops/{drop_id}/send-decisions": {
         parameters: {
             query?: never;
@@ -4754,6 +4790,16 @@ export interface components {
         DataResponse_list_PostResponse__: {
             /** Data */
             data?: components["schemas"]["PostResponse"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[ShipmentItem]] */
+        DataResponse_list_ShipmentItem__: {
+            /** Data */
+            data?: components["schemas"]["ShipmentItem"][] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -8668,6 +8714,152 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_BrandDropDetailResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    list_brand_shipments_api_brands_me_drops__drop_id__applications__application_id__shipments_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_list_ShipmentItem__"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    add_brand_shipment_api_brands_me_drops__drop_id__applications__application_id__shipments_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+                application_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminAddShipmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_ShipmentItem_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    delete_brand_shipment_api_brands_me_drops__drop_id__applications__application_id__shipments__shipment_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+                application_id: string;
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    update_brand_shipment_api_brands_me_drops__drop_id__applications__application_id__shipments__shipment_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                drop_id: string;
+                application_id: string;
+                shipment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminAddShipmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_ShipmentItem_"];
                 };
             };
             /** @description Unprocessable Entity */

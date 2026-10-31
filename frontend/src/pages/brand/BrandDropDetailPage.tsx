@@ -433,7 +433,10 @@ function ApiDropDetail() {
       {showResults ? (
         <>
           <DropKPISummary metrics={aggregateMetrics} />
-          <ApiDropOrgTable applicants={detail.applications ?? []} />
+          <ApiDropOrgTable
+            applicants={detail.applications ?? []}
+            canEditShipments={stage !== "canceled"}
+          />
         </>
       ) : !canDecide ? (
         <StatePanel>Posts and KPIs will appear here once your drop goes live.</StatePanel>
