@@ -3,29 +3,30 @@
  */
 import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
+import AdminDropRequestDetailPage from "./AdminDropRequestDetailPage";
 
 const mockUseAdminDropRequest = jest.fn();
 const mockUseAdminDrop = jest.fn();
 const mockCreateDrop = jest.fn();
+const mockPatchDrop = jest.fn();
+let mockPending = false;
 
 jest.mock("../../api/hooks/useAdminHooks", () => ({
   useAdminDropRequest: (...args: unknown[]) => mockUseAdminDropRequest(...args),
   useAdminDrop: (...args: unknown[]) => mockUseAdminDrop(...args),
   useCreateAdminDrop: () => ({
     mutateAsync: (...args: unknown[]) => mockCreateDrop(...args),
-    isPending: false,
+    isPending: mockPending,
   }),
   usePatchAdminDropConfig: () => ({
-    mutateAsync: jest.fn(),
-    isPending: false,
+    mutateAsync: (...args: unknown[]) => mockPatchDrop(...args),
+    isPending: mockPending,
   }),
   usePublishDrop: () => ({
     mutateAsync: jest.fn(),
     isPending: false,
   }),
 }));
-
-import AdminDropRequestDetailPage from "./AdminDropRequestDetailPage";
 
 const now = Date.now();
 
@@ -76,6 +77,8 @@ describe("AdminDropRequestDetailPage", () => {
   let container: HTMLDivElement;
 
   beforeEach(() => {
+    mockPending = false;
+    mockPatchDrop.mockReset();
     mockCreateDrop.mockReset();
     mockCreateDrop.mockResolvedValue({
       id: "drop-1",
@@ -92,6 +95,8 @@ describe("AdminDropRequestDetailPage", () => {
       isError: false,
     });
   });
+
+  afterEach(() => jest.restoreAllMocks());
 
   it("disables Publish until a draft exists with required fields", () => {
     container = renderWithProviders(<AdminDropRequestDetailPage />, {
@@ -248,6 +253,123 @@ describe("AdminDropRequestDetailPage", () => {
       (el.getAttribute("href") ?? "").includes("tab=config"),
     );
     expect(configLink).toBeTruthy();
+  });
+
+  const field = (name: string) =>
+    container.querySelector(`[data-testid="draft-${name}"]`) as HTMLInputElement | HTMLTextAreaElement;
+  const saveButton = () =>
+    container.querySelector('[data-testid="save-draft"]') as HTMLButtonElement;
+  const fieldTime = (name: string) => new Date(field(name).value).getTime();
+
+  it.each(["title", "description", "image", "location", "capacity", "open-at", "close-at"])(
+    "blocks saving when required %s is empty",
+    (name) => {
+      renderOpenTicket();
+      act(() => fillRequired(container, "https://cdn.example.test/hero.png"));
+      expect(saveButton().disabled).toBe(false);
+      const blank = name === "capacity" || name.endsWith("-at") ? "" : "   ";
+      act(() => setInput(field(name), blank));
+      expect(saveButton().disabled).toBe(true);
+      act(() => saveButton().click());
+      expect(mockCreateDrop).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([false, true])("prefills and submits the shared form (edit=%s)", async (edit) => {
+    jest.spyOn(Date, "now").mockReturnValue(now);
+    const drop = {
+      ...linkedDrop(null), totalProductUnits: 96, campaignHashtag: "testdrop",
+      brandCanEditCreative: true,
+    };
+    if (edit) {
+      mockUseAdminDrop.mockReturnValue({ data: drop, isPending: false, isError: false });
+    }
+    renderOpenTicket();
+    const expectedValues = edit
+      ? [drop.title, drop.description, drop.image, drop.location, "8", "96", "testdrop"]
+      : ["", "", "", "", "10", "", ""];
+    ["title", "description", "image", "location", "capacity", "units", "hashtag"].forEach(
+      (name, index) => expect(field(name).value).toBe(expectedValues[index]),
+    );
+    const toggle = container.querySelector('[data-testid="draft-brand-can-edit"]')!;
+    expect(toggle.getAttribute("aria-checked")).toBe(String(edit));
+    expect(fieldTime("open-at")).toBe(Math.floor(drop.applyOpenAt / 60000) * 60000);
+    expect(fieldTime("close-at")).toBe(Math.floor(drop.applyCloseAt / 60000) * 60000);
+    expect(fieldTime("open-at")).toBeGreaterThan(Date.now());
+    expect(fieldTime("close-at")).toBeGreaterThan(fieldTime("open-at"));
+    act(() => {
+      fillRequired(container, "https://cdn.example.test/hero.png");
+      setInput(field("title"), "  Test Drop  ");
+      setInput(field("capacity"), "12");
+    });
+    const expected = {
+      title: "Test Drop", description: "Real campaign",
+      image: "https://cdn.example.test/hero.png", location: "Bay Area", capacityTotal: 12,
+      applyOpenAt: fieldTime("open-at"), applyCloseAt: fieldTime("close-at"),
+      totalProductUnits: edit ? 96 : null, campaignHashtag: edit ? "testdrop" : null,
+      brandCanEditCreative: edit,
+    };
+    await act(async () => { saveButton().click(); });
+    expect(edit ? mockPatchDrop : mockCreateDrop).toHaveBeenCalledTimes(1);
+    expect(edit ? mockPatchDrop : mockCreateDrop).toHaveBeenCalledWith(edit ? expected : {
+      brandId: "brand-1", dropRequestId: "req-1", ...expected,
+    });
+    expect(edit ? mockCreateDrop : mockPatchDrop).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { error: new Error("Save failed. Try again."), message: "Save failed. Try again." },
+    { error: "unstructured failure", message: "Could not save draft." },
+  ])("displays a save failure and allows retry: $message", async ({ error, message }) => {
+    mockCreateDrop.mockRejectedValueOnce(error);
+    renderOpenTicket();
+    act(() => fillRequired(container, "https://cdn.example.test/hero.png"));
+    await act(async () => { saveButton().click(); });
+    expect(container.textContent).toContain(message);
+    expect(saveButton().disabled).toBe(false);
+    await act(async () => { saveButton().click(); });
+    expect(mockCreateDrop).toHaveBeenCalledTimes(2);
+    expect(container.textContent).not.toContain(message);
+  });
+
+  it("displays shared parser errors without sending a request", async () => {
+    renderOpenTicket();
+    act(() => {
+      fillRequired(container, "https://cdn.example.test/hero.png");
+      setInput(field("close-at"), field("open-at").value);
+    });
+    await act(async () => { saveButton().click(); });
+    expect(container.textContent).toContain("Apply opens must be before apply closes.");
+    expect(mockCreateDrop).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])("disables fields and actions while saving (edit=%s)", (edit) => {
+    if (edit) {
+      mockUseAdminDrop.mockReturnValue({
+        data: linkedDrop(null), isPending: false, isError: false,
+      });
+    }
+    const view = renderWithProviders(<AdminDropRequestDetailPage />, {
+      route: "/admin/requests/req-1", path: "/admin/requests/:requestId",
+    });
+    container = view.container;
+    act(() => fillRequired(container, "https://cdn.example.test/hero.png"));
+    expect(saveButton().disabled).toBe(false);
+    mockPending = true;
+    view.rerender(<AdminDropRequestDetailPage />);
+    expect(saveButton().textContent).toBe("Saving…");
+    const controls = container.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLTextAreaElement>(
+      "input, textarea, button",
+    );
+    controls.forEach((control) => expect(control.disabled).toBe(true));
+    act(() => saveButton().click());
+    expect(mockCreateDrop).not.toHaveBeenCalled();
+    expect(mockPatchDrop).not.toHaveBeenCalled();
+    mockPending = false;
+    view.rerender(<AdminDropRequestDetailPage />);
+    expect(saveButton().textContent).toBe("Save draft");
+    expect(saveButton().disabled).toBe(false);
+    expect(field("title").value).toBe("Spring Drop");
   });
 
   function renderOpenTicket() {
