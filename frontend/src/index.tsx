@@ -8,7 +8,6 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./contexts/AuthContext";
 import AppRoot from "./AppRoot";
-import StagingRibbon from "./components/site/StagingRibbon";
 
 const rootEl = document.getElementById("root");
 if (!rootEl) {
@@ -24,14 +23,11 @@ const queryClient = new QueryClient({
 const root = ReactDOM.createRoot(rootEl);
 
 root.render(
-  <>
-    <StagingRibbon />
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <AppRoot />
-        </AuthProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
-  </>,
+  <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <AppRoot />
+      </AuthProvider>
+    </QueryClientProvider>
+  </BrowserRouter>,
 );
