@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock
 
 import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
+from app.deps import db as db_dependency
+from app.main import app
 from app.models.enums import BrandStatus, OrgUserStatus, PortalRole
 from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User
@@ -40,6 +45,59 @@ async def _active_admin(db_session, *, email: str = "admin-reset@test.edu"):
     user.token_version = 0
     await db_session.flush()
     return user
+
+
+@pytest.mark.parametrize("commit_fails", [False, True])
+async def test_forgot_password_sends_only_after_commit(db_session, monkeypatch, commit_fails):
+    email = "admin-reset@example.edu"
+    user = await _active_admin(db_session, email=email)
+    user_id = user.id
+    events = []
+    session = AsyncSession(
+        bind=await db_session.connection(), join_transaction_mode="create_savepoint"
+    )
+    original_commit = session.commit
+
+    async def commit():
+        if commit_fails:
+            raise RuntimeError("commit failed")
+        await original_commit()
+        events.append("commit")
+
+    async def send(*args, **kwargs):
+        assert events == ["commit"]
+        events.append("email")
+        return True
+
+    @asynccontextmanager
+    async def session_factory():
+        async with session:
+            yield session
+
+    sender = AsyncMock(side_effect=send)
+    rollback = AsyncMock(wraps=session.rollback)
+    monkeypatch.setattr(db_dependency, "async_session_factory", session_factory)
+    monkeypatch.setattr(session, "commit", commit)
+    monkeypatch.setattr(session, "rollback", rollback)
+    monkeypatch.setattr("app.services.password_reset.send_password_reset_email", sender)
+    async with AsyncClient(
+        transport=ASGITransport(app=app, raise_app_exceptions=False), base_url="https://test"
+    ) as client:
+        response = await client.post("/api/auth/admin/forgot-password", json={"email": email})
+
+    token = await db_session.scalar(
+        select(PasswordResetToken).where(PasswordResetToken.user_id == user_id)
+    )
+    if commit_fails:
+        assert response.status_code == 500
+        rollback.assert_awaited_once()
+        sender.assert_not_awaited()
+        assert token is None
+    else:
+        assert response.status_code == 200
+        assert events == ["commit", "email"]
+        sender.assert_awaited_once()
+        assert token is not None
 
 
 async def test_brand_forgot_unknown_email_same_shape(app_client: AsyncClient) -> None:
