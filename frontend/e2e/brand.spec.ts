@@ -1,42 +1,45 @@
 import { test, expect } from "@playwright/test";
 
 /** Brand password login → dashboard (seed creds from scripts/seed_dev.py). */
-for (const width of [1280, 900, 375]) {
-  test(`brand login and navigation stay in the portal at ${width}px`, async ({ page }) => {
+test("brand can log in and reach the dashboard", async ({ page }) => {
+  await page.goto("/brand/login");
+  await page.getByTestId("brand-email").fill("partnerships@acme.coffee");
+  await page.getByTestId("brand-password").fill("buzzdev123");
+  await expect(page.getByTestId("brand-email")).toHaveValue(
+    "partnerships@acme.coffee",
+  );
+  await expect(page.getByTestId("brand-password")).toHaveValue("buzzdev123");
+
+  const loginResp = page.waitForResponse(
+    (r) =>
+      r.url().includes("/api/auth/brand/login") &&
+      r.request().method() === "POST",
+  );
+  await page.getByTestId("brand-login-submit").click();
+  const resp = await loginResp;
+  expect(resp.ok(), await resp.text()).toBeTruthy();
+
+  await expect(page).toHaveURL(/\/brand\/dashboard/);
+  await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
+  const header = page.getByRole("banner");
+  for (const width of [1280, 900, 375]) {
     await page.setViewportSize({ width, height: 812 });
-    await page.goto("/brand/login");
-    await page.getByTestId("brand-email").fill("partnerships@acme.coffee");
-    await page.getByTestId("brand-password").fill("buzzdev123");
-    await expect(page.getByTestId("brand-email")).toHaveValue(
-      "partnerships@acme.coffee",
-    );
-    await expect(page.getByTestId("brand-password")).toHaveValue("buzzdev123");
-
-    const loginResp = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/auth/brand/login") &&
-        r.request().method() === "POST",
-    );
-    await page.getByTestId("brand-login-submit").click();
-    const resp = await loginResp;
-    expect(resp.ok(), await resp.text()).toBeTruthy();
-
-    await expect(page).toHaveURL(/\/brand\/dashboard/);
-    await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
-    const header = page.getByRole("banner");
-    if (width < 1024) {
-      await header.getByRole("button", { name: "Open menu" }).click();
-    }
+    const menu = header.getByRole("button", { name: "Open menu" });
+    await expect(menu).toBeVisible({ visible: width < 1024 });
+    await expect(header.getByRole("navigation", { name: "Primary" })).toBeVisible({
+      visible: width >= 1024,
+    });
+    if (width < 1024) await menu.click();
     await expect(header.getByRole("link", { name: "Home" })).toHaveCount(0);
     await expect(
-      header.getByRole("link", { name: "Dashboard", exact: true }).locator("visible=true"),
+      header.getByRole("link", { name: "Dashboard", exact: true }).filter({ visible: true }),
     ).toBeVisible();
-    await header.getByRole("link", { name: "Settings" }).locator("visible=true").click();
+    await header.getByRole("link", { name: "Settings" }).filter({ visible: true }).click();
     await expect(page).toHaveURL(/\/brand\/settings$/);
     await page.getByTestId("site-header-logo").click();
     await expect(page).toHaveURL(/\/brand\/dashboard$/);
-  });
-}
+  }
+});
 
 test("brand dashboard compare-drops fits 375px", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
