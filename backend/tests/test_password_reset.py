@@ -1,4 +1,4 @@
-"""Password reset for brand and admin portals."""
+"""Password reset for brand portal."""
 
 from __future__ import annotations
 
@@ -49,8 +49,8 @@ async def _active_admin(db_session, *, email: str = "admin-reset@test.edu"):
 
 @pytest.mark.parametrize("commit_fails", [False, True])
 async def test_forgot_password_sends_only_after_commit(db_session, monkeypatch, commit_fails):
-    email = "admin-reset@example.edu"
-    user = await _active_admin(db_session, email=email)
+    email = "reset@example.test"
+    _, user = await _active_brand(db_session, email=email)
     user_id = user.id
     events = []
     session = AsyncSession(
@@ -83,7 +83,7 @@ async def test_forgot_password_sends_only_after_commit(db_session, monkeypatch, 
     async with AsyncClient(
         transport=ASGITransport(app=app, raise_app_exceptions=False), base_url="https://test"
     ) as client:
-        response = await client.post("/api/auth/admin/forgot-password", json={"email": email})
+        response = await client.post("/api/auth/brand/forgot-password", json={"email": email})
 
     token = await db_session.scalar(
         select(PasswordResetToken).where(PasswordResetToken.user_id == user_id)
@@ -221,40 +221,58 @@ async def test_post_reset_old_refresh_fails(app_client: AsyncClient, db_session)
     assert resp.status_code == 401
 
 
-async def test_admin_reset_happy_path(app_client: AsyncClient, db_session) -> None:
-    user = await _active_admin(db_session)
-    raw = "admin-reset-token"
-    db_session.add(
-        PasswordResetToken(
-            id=uuid.uuid4(),
-            user_id=user.id,
-            token_hash=hash_token(raw),
-            email=user.edu_email or "",
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+@pytest.mark.parametrize("has_brand", [False, True])
+async def test_brand_forgot_refuses_admin(
+    app_client: AsyncClient, db_session, monkeypatch, has_brand: bool
+) -> None:
+    email = "admin-reset@example.edu"
+    if has_brand:
+        _, user = await _active_brand(db_session, email=email)
+        user.portal_role = PortalRole.ADMIN.value
+        await db_session.flush()
+    else:
+        user = await _active_admin(db_session, email=email)
+    sender = AsyncMock()
+    monkeypatch.setattr("app.services.password_reset.send_password_reset_email", sender)
+
+    responses = [
+        await app_client.post("/api/auth/brand/forgot-password", json={"email": address})
+        for address in (email, "unknown@example.edu")
+    ]
+    assert [response.status_code for response in responses] == [200, 200]
+    assert [response.json()["data"] for response in responses] == [{"ok": True}] * 2
+    assert (
+        await db_session.scalar(
+            select(PasswordResetToken).where(PasswordResetToken.user_id == user.id)
         )
+        is None
     )
+    sender.assert_not_awaited()
+
+
+async def test_brand_reset_refuses_existing_admin_token(
+    app_client: AsyncClient, db_session
+) -> None:
+    user = await _active_admin(db_session)
+    old_hash = user.password_hash
+    raw = "old-admin-token"
+    row = PasswordResetToken(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        token_hash=hash_token(raw),
+        email=user.edu_email or "",
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+    )
+    db_session.add(row)
     await db_session.flush()
-    resp = await app_client.post(
-        "/api/auth/admin/reset-password",
-        json={"token": raw, "password": "admin-new-pass"},
-    )
-    assert resp.status_code == 200, resp.text
-    login = await app_client.post(
-        "/api/auth/admin/login",
-        json={"email": user.edu_email, "password": "admin-new-pass"},
-    )
-    assert login.status_code == 200
 
-
-async def test_admin_forgot_ok(app_client: AsyncClient, db_session) -> None:
-    user = await _active_admin(db_session, email="forgot-admin@test.edu")
-    resp = await app_client.post(
-        "/api/auth/admin/forgot-password",
-        json={"email": user.edu_email},
+    response = await app_client.post(
+        "/api/auth/brand/reset-password", json={"token": raw, "password": "new-password-9"}
     )
-    assert resp.status_code == 200
-    assert resp.json()["data"] == {"ok": True}
-    row = await db_session.scalar(
-        select(PasswordResetToken).where(PasswordResetToken.user_id == user.id)
-    )
-    assert row is not None
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "PASSWORD_RESET_TOKEN_INVALID"
+    await db_session.refresh(user)
+    await db_session.refresh(row)
+    assert user.password_hash == old_hash
+    assert user.token_version == 0
+    assert row.used_at is None

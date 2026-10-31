@@ -11,16 +11,16 @@ describe("COLLEGES", () => {
       expect(college.logoSrc).toBeTruthy();
       expect(college.logoSrc).not.toMatch(/clearbit|icon\.horse/i);
     }
-    const html = renderToString(
+    const view = renderToString(
       <Marquee items={COLLEGES} title="Our College Network" />,
     );
-    expect(html).not.toMatch(/clearbit|icon\.horse/i);
-    expect(html).toContain("Stanford");
-    expect(html).toContain("Johns Hopkins");
-    expect(html).toContain("max-w-[160%]");
-    expect(html).toContain("max-w-[130%]");
-    expect(html).toContain("max-w-[90%]");
-    expect(html).not.toContain("w-[320%]");
-    expect(html).not.toContain("max-w-none");
+    expect(view).not.toMatch(/clearbit|icon\.horse/i);
+    expect(view).toContain("Stanford");
+    expect(view).toContain("Johns Hopkins");
+    expect(view.match(/max-w-\[120px\]/g)).toHaveLength(COLLEGES.length * 2);
+    expect(view).toContain("grayscale");
+    expect(view).toContain("group-hover:grayscale-0");
+    expect(view).not.toContain("w-[320%]");
+    expect(view).not.toContain("max-w-none");
   });
 });

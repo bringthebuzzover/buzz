@@ -2,6 +2,8 @@
 /**
  * /for-orgs tour: apply-first copy, Instagram after approval, apply CTA.
  */
+import { act } from "react";
+import { Route, Routes } from "react-router-dom";
 import { renderWithProviders } from "../../testUtils";
 
 import ForOrgsPage from "./ForOrgsPage";
@@ -40,4 +42,24 @@ describe("ForOrgsPage", () => {
       "Browse current drops and apply for your organization.",
     ]);
   });
+  it("keeps the partner section before the approved tour and current drops", () => {
+    const { container } = renderWithProviders(<ForOrgsPage />);
+    expect(Array.from(container.querySelectorAll("h2"), (heading) => heading.textContent).slice(0, 3)).toEqual([
+      "Partner with brands", "How it works", "Current drops",
+    ]);
+  });
+
+  it.each([
+    ["Join Us!", "/org/apply"],
+    ["Already connected? Log in", "/login"],
+  ])("routes %s to %s", (label, destination) => {
+    const { container } = renderWithProviders(<Routes>
+      <Route path="/" element={<ForOrgsPage />} />
+      <Route path={destination} element={<p>Destination page</p>} />
+    </Routes>);
+    const link = Array.from(container.querySelectorAll("a")).find((item) => item.textContent === label);
+    act(() => link?.click());
+    expect(container.textContent).toBe("Destination page");
+  });
+
 });

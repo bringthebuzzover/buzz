@@ -1,13 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { apiFetch } from "../client";
 
-type Portal = "brand" | "admin";
-
-export function useForgotPassword(portal: Portal) {
+export function useForgotPassword() {
   return useMutation({
     mutationFn: async (email: string) => {
       const { data } = await apiFetch<{ ok: boolean }>(
-        `/api/auth/${portal}/forgot-password`,
+        "/api/auth/brand/forgot-password",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -19,11 +17,11 @@ export function useForgotPassword(portal: Portal) {
   });
 }
 
-export function useResetPassword(portal: Portal) {
+export function useResetPassword() {
   return useMutation({
     mutationFn: async (input: { token: string; password: string }) => {
       const { data } = await apiFetch<{ ok: boolean }>(
-        `/api/auth/${portal}/reset-password`,
+        "/api/auth/brand/reset-password",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

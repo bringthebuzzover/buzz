@@ -490,7 +490,7 @@ async def test_reset_password_commits_the_bump(db_session, monkeypatch) -> None:
     )
     await db_session.flush()
     commits = _spy_commits(db_session, monkeypatch)
-    result = await reset_password(db_session, portal="brand", token=raw, password="new-password-9")
+    result = await reset_password(db_session, token=raw, password="new-password-9")
     assert result["ok"] is True
     assert commits, "reset_password must commit the token_version bump itself"
 

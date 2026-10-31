@@ -77,9 +77,7 @@ export const SURFACES: Surface[] = [
   },
   { id: "brand-apply", route: "/brand/apply", persona: "public", area: "auth" },
   { id: "brand-forgot-password", route: "/brand/forgot-password", persona: "public", area: "auth" },
-  { id: "admin-forgot-password", route: "/admin/forgot-password", persona: "public", area: "auth" },
   { id: "brand-reset-password", route: "/brand/reset-password", persona: "public", area: "auth" },
-  { id: "admin-reset-password", route: "/admin/reset-password", persona: "public", area: "auth" },
   { id: "reconnect-instagram", route: "/reconnect-instagram", persona: "public", area: "auth" },
 
   // Onboarding (public entry points + their failure states)
