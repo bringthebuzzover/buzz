@@ -53,11 +53,7 @@ export function MarketingPage({ children }: { children: ReactNode }) {
     const cards = Array.from(
       root.querySelectorAll<HTMLElement>(".marketing-stack"),
     );
-    const footer = root.querySelector<HTMLElement>("footer");
     const shade = root.querySelector<HTMLElement>(".marketing-hero-shade");
-    const surfaces = Array.from(
-      root.querySelectorAll<HTMLElement>("[data-nav-surface]"),
-    );
     let frame = 0;
     const paint = () => {
       frame = 0;
@@ -73,19 +69,6 @@ export function MarketingPage({ children }: { children: ReactNode }) {
         card.style.setProperty("--stack-scale", String(1 - progress * 0.15));
         card.style.setProperty("--stack-rotate", `${-progress * 3}deg`);
       });
-      if (footer) {
-        const progress = clamp(
-          (height - footer.getBoundingClientRect().top) / (height * 0.7),
-        );
-        footer.style.clipPath = `inset(${50 * (1 - progress)}% 0 0 0)`;
-        footer.style.setProperty("--footer-y", `${-20 * (1 - progress)}%`);
-      }
-      const surface = surfaces.find((section) => {
-        const rect = section.getBoundingClientRect();
-        return rect.top <= height / 2 && rect.bottom > height / 2;
-      });
-      root.style.backgroundColor =
-        surface?.dataset.navSurface === "paper" ? "#f0f0f0" : "#0b0b0b";
     };
     const onScroll = () => {
       if (!frame) frame = window.requestAnimationFrame(paint);
@@ -99,9 +82,6 @@ export function MarketingPage({ children }: { children: ReactNode }) {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
-      root.style.removeProperty("background-color");
-      footer?.style.removeProperty("clip-path");
-      footer?.style.removeProperty("--footer-y");
       shade?.style.removeProperty("opacity");
       cards.forEach((card) => {
         card.style.removeProperty("--stack-scale");

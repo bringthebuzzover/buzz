@@ -125,12 +125,10 @@
 }
 
 /* Motion stays scoped to the public marketing pages; Lab has its own styles. */
-.marketing-page { transition: background-color 1s ease-out; }
 .marketing-stack-media, .marketing-stack-copy {
   transform: scale(var(--stack-scale, 1)) rotate(var(--stack-rotate, 0deg));
   transform-origin: center top;
 }
-.marketing-footer-inner { transform: translateY(var(--footer-y, 0%)); }
 @keyframes marketing-enter {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
@@ -159,8 +157,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .marketing-page, .marketing-page * { animation: none !important; transition: none !important; }
-  .marketing-stack-media, .marketing-stack-copy, .marketing-footer-inner { transform: none; }
-  .marketing-page footer { clip-path: none !important; }
+  .marketing-stack-media, .marketing-stack-copy { transform: none; }
   .marketing-pin[data-visiting="true"]::after { display: none; }
 }
 @media (prefers-reduced-motion: no-preference) {

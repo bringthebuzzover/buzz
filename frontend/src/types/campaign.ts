@@ -15,9 +15,4 @@ export type CollegeMarqueeItem = {
   domain: string;
   /** Committed logo asset. The marquee does not fetch a remote logo. */
   logoSrc: string;
-  /**
-   * Max-width classes for a wide wordmark. Caps the mark inside its tile so
-   * the letters sit near half a seal instead of filling the square.
-   */
-  logoClassName?: string;
 };

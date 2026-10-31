@@ -498,109 +498,105 @@ export function MarketingFooter({
   return (
     <footer
       id="home-join"
+      data-reveal-group
       role="contentinfo"
       data-nav-surface="ink"
       className="flex min-h-[844px] flex-col bg-page px-4 pb-28 pt-24 text-primary md:min-h-[900px] md:px-12 md:pb-16 md:pt-[135px]"
     >
-      <div
-        data-reveal-group
-        className="marketing-footer-inner flex flex-1 flex-col"
+      <h2
+        data-reveal-line
+        className="text-[48px] font-medium leading-none tracking-tight md:text-buzzDisplay"
       >
-        <h2
-          data-reveal-line
-          className="text-[48px] font-medium leading-none tracking-tight md:text-buzzDisplay"
-        >
-          {brandOnly ? "Request a campaign" : "Want to join?"}
-        </h2>
-        {brandOnly ? (
-          <p className="mt-5 text-base text-muted">
-            You request a call. BUZZ builds and publishes the drop.
-          </p>
-        ) : null}
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          {brandOnly ? null : (
-            <Link
-              to="/org/apply"
-              className={cn(
-                "inline-flex h-11 items-center rounded-full border border-primary px-5 text-sm text-primary",
-                focusRingClass,
-              )}
-            >
-              Join as a student organization
-            </Link>
-          )}
+        {brandOnly ? "Request a campaign" : "Want to join?"}
+      </h2>
+      {brandOnly ? (
+        <p className="mt-5 text-base text-muted">
+          You request a call. BUZZ builds and publishes the drop.
+        </p>
+      ) : null}
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        {brandOnly ? null : (
           <Link
-            to="/brand/apply"
+            to="/org/apply"
             className={cn(
-              brandOnly
-                ? "inline-flex h-11 items-center rounded-full bg-accent px-5 text-sm text-on-accent"
-                : "text-base text-primary",
+              "inline-flex h-11 items-center rounded-full border border-primary px-5 text-sm text-primary",
               focusRingClass,
             )}
           >
-            Apply as a brand
+            Join as a student organization
           </Link>
-        </div>
-        <a
-          href={`mailto:${contact.email}`}
+        )}
+        <Link
+          to="/brand/apply"
           className={cn(
-            "mt-8 text-[20px] font-medium leading-none md:text-buzzStatement",
+            brandOnly
+              ? "inline-flex h-11 items-center rounded-full bg-accent px-5 text-sm text-on-accent"
+              : "text-base text-primary",
             focusRingClass,
           )}
         >
-          {contact.email}
-        </a>
-        <div className="mt-auto grid grid-cols-2 gap-8 pt-16 md:grid-cols-4">
-          <FooterCol
-            title="Organizations"
-            links={[
-              ["/for-orgs", "How it works"],
-              ["/org/apply", "Apply"],
-              ["/login", "Login"],
-            ]}
-          />
-          <FooterCol
-            title="Brands"
-            links={[
-              ["/for-brands", "How it works"],
-              ["/brand/apply", "Apply"],
-              ["/brand/login", "Login"],
-            ]}
-          />
-          <div>
-            <h3 className="mb-3 text-sm font-medium">Social</h3>
-            <ul className="space-y-2">
-              {SOCIAL_LINKS.map(({ label, href }) => (
-                <li key={label}>
-                  <a href={href} className={footerLinkClass}>
-                    {label}
-                  </a>
-                </li>
-              ))}
-              <li>
-                <a href={`mailto:${contact.email}`} className={footerLinkClass}>
-                  Email
+          Apply as a brand
+        </Link>
+      </div>
+      <a
+        href={`mailto:${contact.email}`}
+        className={cn(
+          "mt-8 text-[20px] font-medium leading-none md:text-buzzStatement",
+          focusRingClass,
+        )}
+      >
+        {contact.email}
+      </a>
+      <div className="mt-auto grid grid-cols-2 gap-8 pt-16 md:grid-cols-4">
+        <FooterCol
+          title="Organizations"
+          links={[
+            ["/for-orgs", "How it works"],
+            ["/org/apply", "Apply"],
+            ["/login", "Login"],
+          ]}
+        />
+        <FooterCol
+          title="Brands"
+          links={[
+            ["/for-brands", "How it works"],
+            ["/brand/apply", "Apply"],
+            ["/brand/login", "Login"],
+          ]}
+        />
+        <div>
+          <h3 className="mb-3 text-sm font-medium">Social</h3>
+          <ul className="space-y-2">
+            {SOCIAL_LINKS.map(({ label, href }) => (
+              <li key={label}>
+                <a href={href} className={footerLinkClass}>
+                  {label}
                 </a>
               </li>
-            </ul>
-          </div>
-          <FooterCol
-            title="Legal"
-            links={[
-              ["/privacy", "Privacy"],
-              ["/terms", "Terms"],
-              ["/data-deletion", "Data deletion"],
-            ]}
-          />
+            ))}
+            <li>
+              <a href={`mailto:${contact.email}`} className={footerLinkClass}>
+                Email
+              </a>
+            </li>
+          </ul>
         </div>
-        <div className="mt-10 flex flex-col items-center gap-4 text-center text-xs text-muted md:flex-row md:justify-between md:text-left">
-          <BeeMark className="h-7 w-7" />
-          <p>
-            Connecting brands with campus communities for authentic college
-            marketing, at scale.
-          </p>
-          <p>2026</p>
-        </div>
+        <FooterCol
+          title="Legal"
+          links={[
+            ["/privacy", "Privacy"],
+            ["/terms", "Terms"],
+            ["/data-deletion", "Data deletion"],
+          ]}
+        />
+      </div>
+      <div className="mt-10 flex flex-col items-center gap-4 text-center text-xs text-muted md:flex-row md:justify-between md:text-left">
+        <BeeMark className="h-7 w-7" />
+        <p>
+          Connecting brands with campus communities for authentic college
+          marketing, at scale.
+        </p>
+        <p>2026</p>
       </div>
     </footer>
   );
