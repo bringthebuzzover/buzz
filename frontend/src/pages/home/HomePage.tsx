@@ -1,6 +1,7 @@
 /**
  * Home: Pulse Black public lead-in. Routes and the join-scroll handoff are unchanged.
  */
+import { MarketingPage } from "../../components/marketing/MarketingPage";
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CollegeNetwork } from "../../components/marketing/CollegeNetwork";
@@ -35,7 +36,7 @@ export default function HomePage() {
   }, [location.state, navigate]);
 
   return (
-    <div className="w-full overflow-x-clip bg-page">
+    <MarketingPage>
       <MarketingHero
         media="video"
         title={"Campus marketing,\npowered by\nstudent communities."}
@@ -68,6 +69,6 @@ export default function HomePage() {
         }}
       />
       <MarketingFooter />
-    </div>
+    </MarketingPage>
   );
 }

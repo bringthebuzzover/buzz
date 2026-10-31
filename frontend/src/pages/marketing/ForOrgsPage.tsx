@@ -1,6 +1,7 @@
 /**
  * /for-orgs — how student organizations join. Apply-first; Instagram after approval.
  */
+import { MarketingPage } from "../../components/marketing/MarketingPage";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
 import { SideBySideHow } from "../../components/marketing/SideBySideHow";
 import {
@@ -52,7 +53,7 @@ export default function ForOrgsPage() {
   const yerba = FEATURED_COLLABS[0];
   const update = FEATURED_COLLABS[1];
   return (
-    <div className="w-full overflow-x-clip bg-page">
+    <MarketingPage>
       <MarketingHero
         media={{ src: yerba.image, alt: yerba.title }}
         title={"Brand drops\nfor student\norganizations."}
@@ -109,6 +110,6 @@ export default function ForOrgsPage() {
         }}
       />
       <MarketingFooter />
-    </div>
+    </MarketingPage>
   );
 }
