@@ -159,7 +159,7 @@ def test_prefill_resend_generation_changes_the_key() -> None:
         (email.send_drop_hidden_email, {"to_email": "a@brand.test"}),
         (
             email.send_password_reset_email,
-            {"to_email": "a@brand.test", "token": "reset-secret", "portal": "brand"},
+            {"to_email": "a@brand.test", "token": "reset-secret"},
         ),
         (
             email.send_admin_compose_email,
@@ -191,7 +191,7 @@ async def test_header_absent_without_key(monkeypatch, _resend_key, sender, kwarg
             "a@brand.test", "invite-secret", idempotency_key=key
         ),
         lambda key: email.send_password_reset_email(
-            "a@brand.test", "reset-secret", portal="brand", idempotency_key=key
+            "a@brand.test", "reset-secret", idempotency_key=key
         ),
         lambda key: email.send_drop_opening_reminder_email("a@school.edu", idempotency_key=key),
         lambda key: email.send_application_denied_email("a@school.edu", idempotency_key=key),
@@ -296,8 +296,8 @@ async def test_password_reset_rerequest_uses_a_new_key(db_session, monkeypatch) 
         return True
 
     monkeypatch.setattr("app.services.password_reset.send_password_reset_email", _fake)
-    await request_password_reset(db_session, portal="brand", email=brand.company_email)
-    await request_password_reset(db_session, portal="brand", email=brand.company_email)
+    await request_password_reset(db_session, email=brand.company_email)
+    await request_password_reset(db_session, email=brand.company_email)
     assert captured[0][0] != captured[1][0]
     assert captured[0][1] != captured[1][1]
     for raw, key in captured:

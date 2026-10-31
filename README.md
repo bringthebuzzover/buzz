@@ -14,7 +14,7 @@ Product, architecture, deploy, Meta, gaps and ideas docs live in the private `br
 | -------------- | ------------------------------------------------------------------------------------------------------- |
 | Marketing      | `/` (Join Us → `/org/apply` or `/brand/apply`) |
 | Legal          | `/privacy`, `/terms`, `/data-deletion`                                                                  |
-| Auth           | `/login` (returning org Instagram), `/org/apply` (new org), `/auth/instagram/callback`, `/brand/login`, `/brand/forgot-password`, `/brand/reset-password`, `/brand/setup`, `/brand/apply`, `/admin/login`, `/admin/forgot-password`, `/admin/reset-password` |
+| Auth           | `/login` (returning org Instagram), `/org/apply` (new org), `/auth/instagram/callback`, `/brand/login`, `/brand/forgot-password`, `/brand/reset-password`, `/brand/setup`, `/brand/apply`, `/admin/login` |
 | Org onboarding | `/org/apply`, `/onboarding/profile` (legacy drain), `/onboarding/verify-email`, `/onboarding/pending-approval`, `/onboarding/connect-instagram`, `/onboarding/denied` |
 | Org portal     | `/org/browse`, `/org/campaigns`, `/org/campaigns/:campaignId`                                           |
 | Brand portal   | `/brand/dashboard`, `/brand/drops/:dropId`, `/brand/requests/new`, `/brand/settings`                     |

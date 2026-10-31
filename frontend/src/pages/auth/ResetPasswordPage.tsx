@@ -1,5 +1,5 @@
 /**
- * Shared reset-password form (token from query string).
+ * Brand reset-password form (token from query string).
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -7,7 +7,6 @@ import { ApiError } from "../../api/client";
 import { useResetPassword } from "../../api/hooks/usePasswordResetHooks";
 import {
   AuthBackLink,
-  AuthCenter,
   AuthHeading,
   AuthSplit,
 } from "../../components/auth/AuthFrame";
@@ -19,24 +18,20 @@ import {
 import { stripTokenFromUrl } from "../../utils/stripTokenFromUrl";
 
 type Props = {
-  portal: "brand" | "admin";
   loginPath: string;
   title: string;
   kicker: string;
-  frame: "aside" | "admin";
 };
 
 export default function ResetPasswordPage({
-  portal,
   loginPath,
   title,
   kicker,
-  frame,
 }: Props) {
   const [searchParams] = useSearchParams();
   const [token] = useState(() => searchParams.get("token") ?? "");
   const navigate = useNavigate();
-  const reset = useResetPassword(portal);
+  const reset = useResetPassword();
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -113,8 +108,5 @@ export default function ResetPasswordPage({
     </>
   );
 
-  if (frame === "admin") {
-    return <AuthCenter>{body}</AuthCenter>;
-  }
   return <AuthSplit>{body}</AuthSplit>;
 }

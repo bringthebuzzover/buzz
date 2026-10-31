@@ -975,26 +975,6 @@ export interface paths {
         patch: operations["patch_admin_table_row_api_admin_tables__table___row_id__patch"];
         trace?: never;
     };
-    "/api/auth/admin/forgot-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Admin Forgot Password
-         * @description Enumerate-safe admin password-reset request.
-         */
-        post: operations["admin_forgot_password_api_auth_admin_forgot_password_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/auth/admin/login": {
         parameters: {
             query?: never;
@@ -1013,26 +993,6 @@ export interface paths {
          *     Rate-limited per-IP and per-account like the brand path.
          */
         post: operations["admin_login_api_auth_admin_login_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/admin/reset-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Admin Reset Password
-         * @description Consume an admin password-reset token and set a new password.
-         */
-        post: operations["admin_reset_password_api_auth_admin_reset_password_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4997,7 +4957,7 @@ export interface components {
         };
         /**
          * ForgotPasswordRequest
-         * @description Enumerate-safe password-reset request (brand or admin).
+         * @description Enumerate-safe password-reset request (brand only).
          */
         ForgotPasswordRequest: {
             /** Email */
@@ -7608,39 +7568,6 @@ export interface operations {
             };
         };
     };
-    admin_forgot_password_api_auth_admin_forgot_password_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ForgotPasswordRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
     admin_login_api_auth_admin_login_post: {
         parameters: {
             query?: never;
@@ -7661,39 +7588,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_TokenResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    admin_reset_password_api_auth_admin_reset_password_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ResetPasswordRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_OkResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

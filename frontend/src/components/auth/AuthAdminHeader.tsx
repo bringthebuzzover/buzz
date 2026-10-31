@@ -1,5 +1,5 @@
 /**
- * Minimal header for admin login, forgot-password, and reset-password.
+ * Minimal header for admin login.
  * The public SiteHeader stays untouched; this is a separate component.
  */
 import { ArrowRight } from "lucide-react";

@@ -737,7 +737,7 @@ async def brand_forgot_password(
     """Enumerate-safe brand password-reset request."""
     enforce_account_limit("brand_forgot", payload.email.strip().lower(), limit=5, window=300)
     result = await request_password_reset(
-        db, portal="brand", email=payload.email, background_tasks=background_tasks
+        db, email=payload.email, background_tasks=background_tasks
     )
     return api_response(data=OkResponse.model_validate(result))
 
@@ -752,9 +752,7 @@ async def brand_reset_password(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Consume a brand password-reset token and set a new password."""
-    result = await reset_password(
-        db, portal="brand", token=payload.token, password=payload.password
-    )
+    result = await reset_password(db, token=payload.token, password=payload.password)
     return api_response(data=OkResponse.model_validate(result))
 
 
@@ -833,37 +831,3 @@ async def admin_login(
     access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
     return api_response(data=TokenResponse(access_token=access, user=user_resp))
-
-
-@router.post(
-    "/admin/forgot-password",
-    response_model=DataResponse[OkResponse],
-    dependencies=[Depends(rate_limited("admin_forgot", limit=5, window=60))],
-)
-async def admin_forgot_password(
-    background_tasks: BackgroundTasks,
-    payload: ForgotPasswordRequest,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    """Enumerate-safe admin password-reset request."""
-    enforce_account_limit("admin_forgot", payload.email.strip().lower(), limit=5, window=300)
-    result = await request_password_reset(
-        db, portal="admin", email=payload.email, background_tasks=background_tasks
-    )
-    return api_response(data=OkResponse.model_validate(result))
-
-
-@router.post(
-    "/admin/reset-password",
-    response_model=DataResponse[OkResponse],
-    dependencies=[Depends(rate_limited("admin_reset", limit=10, window=60))],
-)
-async def admin_reset_password(
-    payload: ResetPasswordRequest,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    """Consume an admin password-reset token and set a new password."""
-    result = await reset_password(
-        db, portal="admin", token=payload.token, password=payload.password
-    )
-    return api_response(data=OkResponse.model_validate(result))
