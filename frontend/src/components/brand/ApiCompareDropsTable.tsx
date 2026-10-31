@@ -1,10 +1,11 @@
 /**
  * "Compare drops" panel on the brand dashboard (buzz-ops product/PRODUCT.md
  * §5.3.2). Renders from the per-drop totals already returned by
- * `GET /api/brands/me/drops`, highest engagement first, so no extra fetch.
+ * `GET /api/brands/me/drops`, highest engagement first by default, so no extra fetch.
  * Callers pass published drops only: a draft is a preview, not a result.
  * Below `md` each drop is a stacked tile instead of a table row.
  */
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { BrandDropItem } from "../../api/hooks/useBrandHooks";
 import { Card, CardHeader } from "../ui/Card";
@@ -15,11 +16,23 @@ import { cn } from "../../theme/cn";
 import { useMdUp } from "../../hooks/useMdUp";
 import DropStageBadge from "./DropStageBadge";
 
+const metrics = [
+  ["totalPosts", "Posts", "w-24"],
+  ["totalEngagement", "Engagement", "w-36"],
+  ["totalReach", "Reach", "w-36"],
+] as const;
+
 export default function ApiCompareDropsTable({ drops }: { drops: BrandDropItem[] }) {
   const mdUp = useMdUp();
+  const [sort, setSort] = useState<{
+    key: typeof metrics[number][0];
+    direction: "descending" | "ascending";
+  }>({ key: "totalEngagement", direction: "descending" });
   if (drops.length === 0) return null;
 
-  const rows = [...drops].sort((a, b) => b.totalEngagement - a.totalEngagement);
+  const rows = [...drops].sort((a, b) =>
+    sort.direction === "descending" ? b[sort.key] - a[sort.key] : a[sort.key] - b[sort.key],
+  );
 
   return (
     <Card kind="panel" pad="card">
@@ -30,15 +43,29 @@ export default function ApiCompareDropsTable({ drops }: { drops: BrandDropItem[]
             <tr>
               <Th>Drop</Th>
               <Th className="w-48">Stage</Th>
-              <Th className="w-24 text-right">Posts</Th>
-              <Th className="w-36 text-right">Engagement</Th>
-              <Th className="w-36 text-right">Reach</Th>
+              {metrics.map(([key, label, width]) => (
+                <Th
+                  key={key}
+                  className={`${width} text-right`}
+                  aria-sort={sort.key === key ? sort.direction : "none"}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSort((current) => ({
+                      key,
+                      direction: current.key === key && current.direction === "descending"
+                        ? "ascending" : "descending",
+                    }))}
+                  >
+                    {label}
+                  </button>
+                </Th>
+              ))}
             </tr>
           </THead>
           <TBody>
-            {rows.map((d, i) => (
-              // Pen: the top drop by engagement sits on the yellow wash.
-              <Tr key={d.id} className={cn("h-16", i === 0 && "bg-accent-wash")}>
+            {rows.map((d) => (
+              <Tr key={d.id} className="h-16">
                 <Td>
                   <Link to={`/brand/drops/${d.id}`} className={entityLinkClass}>
                     {d.title}
