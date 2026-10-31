@@ -34,6 +34,7 @@ export default function SiteHeader() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [paperTone, setPaperTone] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
+  const glowRef = useRef<HTMLSpanElement>(null);
   const [mobilePanelTopPx, setMobilePanelTopPx] = useState(0);
 
   const marketing =
@@ -71,6 +72,10 @@ export default function SiteHeader() {
       const under = document.elementFromPoint(window.innerWidth / 2, bottom + 12);
       const surface = under?.closest("[data-nav-surface]")?.getAttribute("data-nav-surface");
       setPaperTone(surface === "paper");
+      const progress = Math.min(1, Math.max(0, window.scrollY / 480));
+      if (glowRef.current) {
+        glowRef.current.style.opacity = String(progress * progress * (3 - 2 * progress));
+      }
     };
     read();
     window.addEventListener("scroll", read, { passive: true });
@@ -129,9 +134,9 @@ export default function SiteHeader() {
 
   const linkClass = (active: boolean) =>
     cn(
-      "whitespace-nowrap text-sm",
+      "relative whitespace-nowrap text-sm after:absolute after:inset-x-0 after:-bottom-2 after:h-px after:origin-left after:bg-current after:content-[''] hover:after:scale-x-100 focus-visible:after:scale-x-100 motion-safe:after:transition-transform motion-safe:after:duration-[180ms]",
       paperTone ? "text-on-accent" : "text-primary",
-      active && "underline decoration-1 underline-offset-8",
+      active ? "after:scale-x-100" : "after:scale-x-0",
       focusRingClass,
     );
 
@@ -143,20 +148,27 @@ export default function SiteHeader() {
     <header
       ref={headerRef}
       className={cn(
-        marketing ? "pointer-events-none absolute inset-x-0 top-0 z-50" : "relative z-50",
+        marketing ? "pointer-events-none fixed inset-x-0 top-0 z-50" : "relative z-50",
         mobileNavOpen && "z-buzzBanner",
       )}
     >
       <div className={cn("pointer-events-auto px-3 pt-2 md:px-6", !marketing && "px-3 py-3 md:px-6")}>
         <nav
           className={cn(
-            "mx-auto flex h-[66px] max-w-[1152px] items-center justify-between rounded-buzzCard border px-5 backdrop-blur-md",
+            "relative mx-auto flex h-[66px] max-w-[1152px] items-center justify-between rounded-buzzCard border px-5 backdrop-blur-md motion-safe:transition-colors motion-safe:duration-[240ms]",
             paperTone
               ? "border-on-accent/10 bg-white/70 text-on-accent"
               : "border-white/10 bg-page/70 text-primary",
           )}
           aria-label="Primary"
         >
+          {marketing ? (
+            <span
+              ref={glowRef}
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-0 shadow-[0_4px_32px_4px_rgb(0_0_0/0.07),0_12px_72px_10px_rgb(0_0_0/0.035)]"
+            />
+          ) : null}
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
@@ -202,7 +214,7 @@ export default function SiteHeader() {
             <button
               type="button"
               onClick={openContactModal}
-              className={cn("text-sm", paperTone ? "text-on-accent" : "text-primary", focusRingClass)}
+              className={linkClass(false)}
             >
               Contact
             </button>
@@ -225,7 +237,7 @@ export default function SiteHeader() {
                 <button
                   type="button"
                   onClick={() => navigate("/login")}
-                  className={cn("text-sm", paperTone ? "text-on-accent" : "text-primary", focusRingClass)}
+                  className={linkClass(false)}
                   aria-label="Log in"
                 >
                   Login
@@ -257,7 +269,7 @@ export default function SiteHeader() {
 
       <div
         className={cn(
-          "fixed inset-x-0 bottom-0 z-buzzDrawer transition-opacity duration-300",
+          "fixed inset-x-0 bottom-0 z-buzzDrawer motion-safe:transition-opacity motion-safe:duration-300",
           mobileOnly,
           mobileNavOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
         )}
@@ -274,7 +286,7 @@ export default function SiteHeader() {
         <div
           id="mobile-nav-menu"
           className={cn(
-            "absolute bottom-0 left-0 right-8 top-0 flex flex-col border border-line bg-page text-primary shadow-buzzLg transition-transform duration-300",
+            "absolute bottom-0 left-0 right-8 top-0 flex flex-col border border-line bg-page text-primary shadow-buzzLg motion-safe:transition-transform motion-safe:duration-300",
             mobileNavOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >

@@ -1,8 +1,9 @@
 /**
- * College logo strip. Full-colour marks at the pen's 48px height, 56px gap,
+ * College logo strip. Grayscale marks at the pen's 48px height, 56px gap,
  * and 100s drift, on the paper band. Reduced motion wraps the row into a
  * centered grid and does not duplicate it.
  */
+import { useEffect, useRef } from "react";
 import { useReducedMotion } from "../marketing/useReducedMotion";
 import type { CollegeMarqueeItem } from "../../types/campaign";
 import { RemoteImage } from "../ui/RemoteImage";
@@ -28,6 +29,16 @@ export default function Marquee({
   embedded = false,
 }: MarqueeProps) {
   const reduce = useReducedMotion();
+  const trackRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || reduce) return;
+    const measure = () => { track.style.animationDuration = `${track.scrollWidth / 2 / 32}s`; };
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(track);
+    return () => observer?.disconnect();
+  }, [reduce, items]);
   const shown = reduce ? items : [...items, ...items];
 
   const strip = (
@@ -38,6 +49,7 @@ export default function Marquee({
       )}
     >
       <div
+        ref={trackRef}
         className={cn(
           "flex items-center",
           reduce
@@ -50,14 +62,13 @@ export default function Marquee({
         style={reduce ? undefined : { animationDuration: "100s" }}
       >
         {shown.map((item, i) => (
-          <div key={`${item.domain}-${i}`} className="flex h-12 items-center justify-center">
+          <div key={`${item.domain}-${i}`} className="group flex h-12 shrink-0 items-center justify-center">
             <RemoteImage
               src={item.logoSrc}
               label={item.name}
               alt={item.name}
               className={cn(
-                "h-12 w-auto max-h-12 object-contain",
-                item.logoClassName,
+                "h-12 w-auto max-h-12 max-w-[120px] object-contain grayscale opacity-[0.78] transition-[filter,opacity] duration-300 group-hover:grayscale-0 group-hover:opacity-100 motion-reduce:transition-none",
               )}
             />
           </div>

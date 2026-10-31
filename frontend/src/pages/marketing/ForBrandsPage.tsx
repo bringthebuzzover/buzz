@@ -1,6 +1,7 @@
 /**
  * /for-brands — brands request a campaign. BUZZ builds and publishes the drop.
  */
+import { MarketingPage } from "../../components/marketing/MarketingPage";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
 import { CollegeNetwork } from "../../components/marketing/CollegeNetwork";
 import { PinnedHow } from "../../components/marketing/PinnedHow";
@@ -8,7 +9,6 @@ import { BRAND_STEPS } from "../../components/marketing/mockups";
 import {
   FaqList,
   GoalChips,
-  JoinSplit,
   MarketingFooter,
   MarketingHero,
   NumberedCards,
@@ -46,7 +46,7 @@ export default function ForBrandsPage() {
   const yerba = FEATURED_COLLABS[0];
   const update = FEATURED_COLLABS[1];
   return (
-    <div className="w-full overflow-x-clip bg-page">
+    <MarketingPage>
       <MarketingHero
         media={{ src: update.image, alt: update.title }}
         title={"Authentic college\nmarketing,\nat scale."}
@@ -85,25 +85,10 @@ export default function ForBrandsPage() {
         ]}
       />
       <PinnedHow kind="brand" steps={BRAND_STEPS} />
-      <GoalChips />
       <CollegeNetwork />
+      <GoalChips />
       <FaqList items={BRAND_FAQ} />
-      <JoinSplit
-        left={{
-          kicker: "For brands",
-          title: "Request a campaign.",
-          support: "You request a call. BUZZ builds and publishes the drop.",
-          action: { label: "Apply as a brand", to: "/brand/apply" },
-          quiet: { label: "Already have an account? Log in", to: "/brand/login" },
-        }}
-        right={{
-          kicker: "For organizations",
-          title: "Apply with your\ncampus .edu.",
-          support: "You apply on the website first.",
-          action: { label: "See BUZZ for organizations", to: "/for-orgs" },
-        }}
-      />
-      <MarketingFooter />
-    </div>
+      <MarketingFooter brandOnly />
+    </MarketingPage>
   );
 }

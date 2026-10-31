@@ -108,35 +108,63 @@
     .animate-buzz-modal,
     .animate-marquee,
     .animate-marquee-reverse,
-    .bee-route,
     .bee-flap {
       animation: none !important;
     }
   }
 }
 
-/**
- * College-network bee. The path is set inline (`offset-path`) so the same
- * class drives the mark and its trail. 10s is one loop of the six-stop route.
- */
-@keyframes bee-route {
-  to {
-    offset-distance: 100%;
-  }
-}
-
 @keyframes bee-flap {
   50% {
-    transform: scaleX(0.82);
+    transform: scaleY(0.93);
   }
-}
-
-.bee-route {
-  offset-anchor: center;
-  offset-rotate: auto;
-  animation: bee-route 10s linear infinite;
 }
 
 .bee-flap {
-  animation: bee-flap 0.28s ease-in-out infinite;
+  animation: bee-flap 0.22s ease-in-out infinite;
 }
+
+/* Motion stays scoped to the public marketing pages; Lab has its own styles. */
+.marketing-page { transition: background-color 1s ease-out; }
+.marketing-stack-media, .marketing-stack-copy {
+  transform: scale(var(--stack-scale, 1)) rotate(var(--stack-rotate, 0deg));
+  transform-origin: center top;
+}
+.marketing-footer-inner { transform: translateY(var(--footer-y, 0%)); }
+@keyframes marketing-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes marketing-bee-drift {
+  50% { transform: translate(-28px, 18px); }
+}
+.marketing-hero-actions { animation: marketing-enter 1.2s 0.15s both; }
+.marketing-hero-bee { animation: marketing-bee-drift 14s ease-in-out infinite; }
+.marketing-how-link span { transition: transform 300ms ease; }
+.marketing-how-link:hover span { transform: translateX(4px); }
+.marketing-pin-label { opacity: 0; transition: opacity 160ms ease; }
+.marketing-pin:hover .marketing-pin-label,
+.marketing-pin:focus-visible .marketing-pin-label,
+.marketing-pin[data-visiting="true"] .marketing-pin-label { opacity: 1; }
+.marketing-pin[data-visiting="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 1px solid #0b0b0b;
+  border-radius: 50%;
+  animation: marketing-ring 400ms ease-out both;
+}
+@keyframes marketing-ring {
+  from { transform: scale(0.7); opacity: 0.9; }
+  to { transform: scale(1.8); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing-page, .marketing-page * { animation: none !important; transition: none !important; }
+  .marketing-stack-media, .marketing-stack-copy, .marketing-footer-inner { transform: none; }
+  .marketing-page footer { clip-path: none !important; }
+  .marketing-pin[data-visiting="true"]::after { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.marketing-page) { scroll-behavior: smooth; }
+}
+.marketing-page #how-it-works { scroll-margin-top: 96px; }
