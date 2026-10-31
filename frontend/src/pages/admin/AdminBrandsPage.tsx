@@ -92,7 +92,7 @@ function InviteBrandForm() {
   return (
     <Panel
       title="Invite brand"
-      description="Works even when public self-registration is off. Choose whether to approve and email the setup invite immediately, or leave the brand pending for later."
+      description="Choose whether to approve and email the setup invite immediately, or leave pending to send later."
     >
       <div className="space-y-3 px-4 py-4">
         {error && <ErrorNote>{error}</ErrorNote>}
