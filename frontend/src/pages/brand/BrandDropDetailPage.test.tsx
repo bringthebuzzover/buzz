@@ -140,7 +140,7 @@ describe("BrandDropDetailPage", () => {
     expect(mockShipment).toHaveBeenCalledWith({
       shipmentId: "shipment-1", trackingNumber: "1ZTEST", carrier: "ups",
     });
-    expect(dialog.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(dialog.querySelector('[data-testid="delivered-app-1"]')).toBeNull();
   });
 
   it("hides the public URL until the drop is published", () => {
