@@ -9,8 +9,12 @@ import BrandDropDetailPage from "./BrandDropDetailPage";
 const mockUseBrandDropDetail = jest.fn();
 const mockDecide = jest.fn();
 const mockSend = jest.fn();
+const mockShipment = jest.fn();
 
 jest.mock("../../api/hooks/useBrandHooks", () => ({
+  useAddBrandShipment: () => ({ mutateAsync: mockShipment, isPending: false }),
+  useUpdateBrandShipment: () => ({ mutateAsync: mockShipment, isPending: false }),
+  useDeleteBrandShipment: () => ({ mutateAsync: mockShipment, isPending: false }),
   useBrandDropDetail: (...args: unknown[]) => mockUseBrandDropDetail(...args),
   useSetSeatDecision: () => ({ mutate: mockDecide, isPending: false, error: null }),
   useSendDecisions: () => ({ mutateAsync: mockSend, isPending: false, error: null }),
@@ -56,6 +60,7 @@ describe("BrandDropDetailPage", () => {
   beforeEach(() => {
     mockUseBrandDropDetail.mockReset();
     mockDecide.mockReset();
+    mockShipment.mockReset().mockResolvedValue(undefined);
     mockSend.mockReset().mockResolvedValue(undefined);
   });
 
@@ -102,6 +107,40 @@ describe("BrandDropDetailPage", () => {
     });
     renderPage();
     expect(container.textContent).toContain("Total engagement");
+  });
+
+  it("opens editable shipments for a live brand seat", async () => {
+    mockUseBrandDropDetail.mockReturnValue({
+      data: {
+        ...brandDrop(false), stage: "live",
+        applications: [{
+          id: "app-1", dropId: "drop-1", orgName: "Test Org",
+          decision: "accepted", decisionSentAt: now, accountErased: false,
+          attributedPostCount: 0, attributedLikes: 0, attributedComments: 0,
+          attributedEngagement: 0, posts: [],
+          shipments: [{ id: "shipment-1", trackingNumber: "1ZTEST", carrier: "ups", trackUrl: null }],
+        }],
+      },
+      isLoading: false, error: null,
+    });
+    renderPage();
+    const manage = Array.from(container.querySelectorAll("button"))
+      .find((button) => button.textContent === "Manage shipments") as HTMLButtonElement;
+    act(() => manage.click());
+    const dialog = document.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog.textContent).toContain("Shipments · Test Org");
+    expect(dialog.querySelector('[data-testid="add-shipment-app-1"]')?.textContent).toBe("Add");
+    expect((dialog.querySelector('[aria-label="Remove #1ZTEST"]') as HTMLButtonElement).disabled).toBe(false);
+    act(() => (dialog.querySelector('[aria-label="Edit #1ZTEST"]') as HTMLButtonElement).click());
+    expect((dialog.querySelector('[aria-label="Tracking number"]') as HTMLInputElement).value).toBe("1ZTEST");
+    expect(dialog.querySelector('[data-testid="add-shipment-app-1"]')?.textContent).toBe("Save");
+    await act(async () => {
+      (dialog.querySelector('[data-testid="add-shipment-app-1"]') as HTMLButtonElement).click();
+    });
+    expect(mockShipment).toHaveBeenCalledWith({
+      shipmentId: "shipment-1", trackingNumber: "1ZTEST", carrier: "ups",
+    });
+    expect(dialog.querySelector('input[type="checkbox"]')).toBeNull();
   });
 
   it("hides the public URL until the drop is published", () => {

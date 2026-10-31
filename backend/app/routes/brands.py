@@ -18,9 +18,10 @@ from app.config import settings
 from app.deps.auth import CurrentBrand
 from app.deps.db import get_db
 from app.exceptions import BuzzAPIException
+from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.response import APIResponse, DataResponse, api_response
-from app.schemas.acks import BrandApplyResponse, SendDecisionsResponse
+from app.schemas.acks import BrandApplyResponse, OkResponse, SendDecisionsResponse
 from app.schemas.brands import (
     BrandAggregateResponse,
     BrandApplyRequest,
@@ -36,6 +37,7 @@ from app.schemas.brands import (
     SeatDecisionRequest,
 )
 from app.schemas.drops import BrandDropRequestCreate, BrandDropRequestResponse
+from app.schemas.shipments import AdminAddShipmentRequest, ShipmentItem
 from app.security.rate_limit import rate_limited
 from app.services.brand_auth import apply_brand
 from app.services.brand_ig_change_requests import (
@@ -58,8 +60,14 @@ from app.services.drop_requests import (
     create_brand_drop_request,
     list_brand_drop_requests,
 )
-from app.services.lifecycle import drop_stages
+from app.services.lifecycle import drop_stages, require_drop
 from app.services.seats import lock_drop, send_decisions, set_seat_decision
+from app.services.shipments import (
+    add_shipment,
+    delete_shipment,
+    shipments_by_application_ids,
+    update_shipment,
+)
 
 router = APIRouter(prefix="/brands", tags=["brands"])
 
@@ -299,3 +307,81 @@ async def get_engagement_series(
         db, brand, bucket_count=bucket_count, window_days=window_days
     )
     return api_response(data=[EngagementSeriesPoint(**p) for p in series])
+
+
+async def _require_shipment_seat(
+    db: AsyncSession, user: CurrentBrand, drop_id: uuid.UUID, application_id: uuid.UUID
+) -> Drop:
+    brand = await _require_brand(db, user)
+    drop = await resolve_brand_drop(db, brand, drop_id)
+    application = await db.get(DropApplication, application_id)
+    if application is None or application.drop_id != drop_id:
+        raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
+    return drop
+
+
+@router.get(
+    "/me/drops/{drop_id}/applications/{application_id}/shipments",
+    response_model=DataResponse[list[ShipmentItem]],
+)
+async def list_brand_shipments(
+    drop_id: uuid.UUID,
+    application_id: uuid.UUID,
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    await _require_shipment_seat(db, user, drop_id, application_id)
+    shipments = await shipments_by_application_ids(db, [application_id])
+    return api_response(data=shipments[application_id])
+
+
+@router.post(
+    "/me/drops/{drop_id}/applications/{application_id}/shipments",
+    response_model=DataResponse[ShipmentItem],
+)
+async def add_brand_shipment(
+    drop_id: uuid.UUID,
+    application_id: uuid.UUID,
+    payload: AdminAddShipmentRequest,
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    await _require_shipment_seat(db, user, drop_id, application_id)
+    result = await add_shipment(db, application_id, payload.tracking_number, payload.carrier)
+    return api_response(data=ShipmentItem.model_validate(result))
+
+
+@router.patch(
+    "/me/drops/{drop_id}/applications/{application_id}/shipments/{shipment_id}",
+    response_model=DataResponse[ShipmentItem],
+)
+async def update_brand_shipment(
+    drop_id: uuid.UUID,
+    application_id: uuid.UUID,
+    shipment_id: uuid.UUID,
+    payload: AdminAddShipmentRequest,
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    await _require_shipment_seat(db, user, drop_id, application_id)
+    result = await update_shipment(
+        db, application_id, shipment_id, payload.tracking_number, payload.carrier
+    )
+    return api_response(data=ShipmentItem.model_validate(result))
+
+
+@router.delete(
+    "/me/drops/{drop_id}/applications/{application_id}/shipments/{shipment_id}",
+    response_model=DataResponse[OkResponse],
+)
+async def delete_brand_shipment(
+    drop_id: uuid.UUID,
+    application_id: uuid.UUID,
+    shipment_id: uuid.UUID,
+    user: CurrentBrand,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    drop = await _require_shipment_seat(db, user, drop_id, application_id)
+    require_drop(drop)
+    result = await delete_shipment(db, application_id, shipment_id)
+    return api_response(data=OkResponse.model_validate(result))

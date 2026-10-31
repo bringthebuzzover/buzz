@@ -4,6 +4,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../client";
 import { useAuth } from "../../contexts/AuthContext";
+import { mergeShipment, omitShipment } from "../../utils/shipments";
 import type { components } from "../generated/schema";
 
 // Sourced from OpenAPI (`npm run gen:api`) via DataResponse[T] payloads.
@@ -263,4 +264,74 @@ export function useSendDecisions(dropId: string) {
     );
     return data;
   });
+}
+
+/** Keep the open modal and drop roster in sync after shipment changes. */
+function useBrandShipmentMutation<T>(
+  dropId: string,
+  applicationId: string,
+  method: "POST" | "PATCH" | "DELETE",
+  shipmentId: (input: T) => string,
+  body?: (input: T) => unknown,
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: T) => {
+      const { data } = await apiFetch<components["schemas"]["ShipmentItem"]>(
+        `/api/brands/me/drops/${dropId}/applications/${applicationId}/shipments${method === "POST" ? "" : `/${shipmentId(input)}`}`,
+        {
+          method,
+          ...(body ? {
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body(input)),
+          } : {}),
+        },
+      );
+      return data;
+    },
+    onSuccess: (shipment, input) => {
+      queryClient.setQueryData(
+        ["brand-drop-detail", dropId],
+        (old: BrandDropDetail | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            applications: old.applications.map((applicant) => {
+              if (applicant.id !== applicationId) return applicant;
+              const shipments = applicant.shipments ?? [];
+              return {
+                ...applicant,
+                shipments: method === "DELETE"
+                  ? omitShipment(shipments, shipmentId(input))
+                  : method === "POST"
+                    ? mergeShipment(shipments, shipment)
+                    : shipments.map((row) => row.id === shipment.id ? shipment : row),
+              };
+            }),
+          };
+        },
+      );
+      void queryClient.invalidateQueries({ queryKey: ["brand-drop-detail", dropId] });
+      void queryClient.invalidateQueries({ queryKey: ["brand-drops"] });
+    },
+  });
+}
+
+type ShipmentInput = { trackingNumber: string; carrier?: string };
+const shipmentBody = ({ trackingNumber, carrier }: ShipmentInput) => ({
+  trackingNumber, carrier: carrier || null,
+});
+
+export function useAddBrandShipment(dropId: string, applicationId: string) {
+  return useBrandShipmentMutation<ShipmentInput>(dropId, applicationId, "POST", () => "", shipmentBody);
+}
+
+export function useUpdateBrandShipment(dropId: string, applicationId: string) {
+  return useBrandShipmentMutation<ShipmentInput & { shipmentId: string }>(
+    dropId, applicationId, "PATCH", (input) => input.shipmentId, shipmentBody,
+  );
+}
+
+export function useDeleteBrandShipment(dropId: string, applicationId: string) {
+  return useBrandShipmentMutation<string>(dropId, applicationId, "DELETE", (id) => id);
 }
