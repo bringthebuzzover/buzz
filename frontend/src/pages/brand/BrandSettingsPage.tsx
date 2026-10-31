@@ -32,7 +32,7 @@ import { Chip } from "../../components/ui/Chip";
 import { Modal, ModalActions } from "../../components/ui/Modal";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { quietLinkClass } from "../../components/ui/navItem";
-import { GAP, STACK, TEXT } from "../../theme/tokens";
+import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 function atHandle(raw: string | null | undefined): string {
@@ -75,6 +75,8 @@ export default function BrandSettingsPage() {
   const [requestedHandle, setRequestedHandle] = useState("");
   const [reason, setReason] = useState("");
   const [igError, setIgError] = useState<string | null>(null);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passwordSaved, setPasswordSaved] = useState(false);
@@ -133,13 +135,21 @@ export default function BrandSettingsPage() {
       });
   };
 
+  const closePassword = () => {
+    setPasswordOpen(false);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+
   const savePassword = (event: FormEvent) => {
     event.preventDefault();
     if (
       viewingAs ||
       changePassword.isPending ||
       !currentPassword ||
-      newPassword.length < 8
+      newPassword.length < 8 ||
+      newPassword !== confirmPassword
     ) {
       return;
     }
@@ -151,8 +161,7 @@ export default function BrandSettingsPage() {
           throw new Error("Password changed, but the new session was missing.");
         }
         acceptSession(authUserFromWire(result.user), result.access_token);
-        setCurrentPassword("");
-        setNewPassword("");
+        closePassword();
         setPasswordSaved(true);
       })
       .catch(() => undefined);
@@ -162,7 +171,7 @@ export default function BrandSettingsPage() {
     <PageShell width="form">
       <PageHeader
         kicker="Brand Portal"
-        title="Setup"
+        title="Settings"
         description="Your brand details and how you sign in."
       />
 
@@ -266,12 +275,38 @@ export default function BrandSettingsPage() {
             }
           />
 
-          <form
-            className={cn("border-t border-line pt-5", STACK.default)}
-            onSubmit={savePassword}
-          >
-            <h4 className={cn(TEXT.body, "font-medium text-primary")}>Change password</h4>
-            <div className={cn("grid grid-cols-1 sm:grid-cols-2", GAP.default)}>
+          <div className={cn("border-t border-line pt-5", STACK.default)}>
+            {viewingAs ? (
+              <p className={cn(TEXT.body, "text-quiet")}>
+                Password changes are unavailable while viewing as this brand.
+              </p>
+            ) : null}
+            {passwordSaved ? (
+              <SuccessBanner>
+                <span data-testid="brand-password-saved">Password updated.</span>
+              </SuccessBanner>
+            ) : null}
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                disabled={viewingAs || changePassword.isPending}
+                onClick={() => {
+                  changePassword.reset();
+                  setPasswordSaved(false);
+                  setPasswordOpen(true);
+                }}
+              >
+                Change password
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {passwordOpen ? (
+        <Modal onClose={closePassword} title="Change password">
+          <form className="flex flex-col gap-6" onSubmit={savePassword}>
+            <div className={STACK.default}>
               <TextField
                 id="brand-current-password"
                 label="Current password"
@@ -305,37 +340,44 @@ export default function BrandSettingsPage() {
                 data-testid="brand-new-password"
                 error={passwordMapped?.fields.newPassword}
               />
+              <TextField
+                id="brand-confirm-password"
+                label="Confirm password"
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                disabled={viewingAs}
+                data-testid="brand-confirm-password"
+                error={
+                  confirmPassword && confirmPassword !== newPassword
+                    ? "Passwords do not match."
+                    : undefined
+                }
+              />
             </div>
-            {viewingAs ? (
-              <p className={cn(TEXT.body, "text-quiet")}>
-                Password changes are unavailable while viewing as this brand.
-              </p>
-            ) : null}
             {passwordMapped?.banner ? (
               <ErrorBanner>{passwordMapped.banner}</ErrorBanner>
             ) : null}
-            {passwordSaved ? (
-              <SuccessBanner>
-                <span data-testid="brand-password-saved">Password updated.</span>
-              </SuccessBanner>
-            ) : null}
-            <div className="flex justify-end">
+            <ModalActions onCancel={closePassword}>
               <Button
                 type="submit"
                 disabled={
                   viewingAs ||
                   changePassword.isPending ||
                   !currentPassword ||
-                  newPassword.length < 8
+                  newPassword.length < 8 ||
+                  newPassword !== confirmPassword
                 }
                 data-testid="brand-password-save"
               >
                 {changePassword.isPending ? "Saving…" : "Change password"}
               </Button>
-            </div>
+            </ModalActions>
           </form>
-        </Card>
-      </div>
+        </Modal>
+      ) : null}
 
       {igOpen ? (
         <Modal

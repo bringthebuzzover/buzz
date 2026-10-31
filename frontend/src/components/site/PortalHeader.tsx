@@ -30,7 +30,7 @@ export const ORG_PORTAL_LINKS = [
 export const BRAND_PORTAL_LINKS = [
   { to: "/brand/dashboard", label: "Dashboard" },
   { to: "/brand/requests/new", label: "New request" },
-  { to: "/brand/settings", label: "Setup" },
+  { to: "/brand/settings", label: "Settings" },
 ] as const;
 
 const PORTALS = {
