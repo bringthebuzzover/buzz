@@ -202,7 +202,7 @@ class TestAdminOrgErase:
         assert res.status_code == 200
         body = res.json()["data"]
         assert body["status"] == "erased"
-        assert body["emailSent"] is True
+        assert body["emailQueued"] is True
         assert body["emailToDomain"] == "school.edu"
         send.assert_awaited_once()
 
@@ -427,14 +427,14 @@ class TestAdminOrgErase:
             json={"confirm": "campusgreeks"},
         )
         assert first.status_code == 200
-        assert first.json()["data"]["emailSent"] is True
+        assert first.json()["data"]["emailQueued"] is True
         second = await app_client.post(
             f"/api/admin/orgs/{user.id}/erase",
             headers=headers,
             json={"confirm": "campusgreeks"},
         )
         assert second.status_code == 200
-        assert second.json()["data"]["emailSent"] is False
+        assert second.json()["data"]["emailQueued"] is False
         assert send.await_count == 1
 
     async def test_no_email_on_file(self, app_client: AsyncClient, db_session, monkeypatch):
@@ -448,7 +448,7 @@ class TestAdminOrgErase:
             json={"confirm": "CampusGreeks"},
         )
         assert res.status_code == 200
-        assert res.json()["data"]["emailSent"] is False
+        assert res.json()["data"]["emailQueued"] is False
         send.assert_not_called()
 
     async def test_email_helper_false_keeps_erase(
@@ -464,7 +464,7 @@ class TestAdminOrgErase:
             json={"confirm": "CampusGreeks"},
         )
         assert res.status_code == 200
-        assert res.json()["data"]["emailSent"] is False
+        assert res.json()["data"]["emailQueued"] is True
         await db_session.refresh(user)
         assert user.status == OrgUserStatus.ERASED.value
 

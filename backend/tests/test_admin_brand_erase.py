@@ -64,7 +64,7 @@ class TestAdminBrandErase:
         assert res.status_code == 200, res.text
         data = res.json()["data"]
         assert data["status"] == "erased"
-        assert data["emailSent"] is True
+        assert data["emailQueued"] is True
 
         await db_session.refresh(brand)
         user = await db_session.get(User, brand.user_id)
@@ -149,7 +149,7 @@ class TestAdminBrandErase:
             headers=headers,
         )
         assert again.status_code == 200
-        assert again.json()["data"]["emailSent"] is False
+        assert again.json()["data"]["emailQueued"] is False
         assert await db_session.get(Brand, brand.id)
         assert await db_session.get(Drop, _drop.id)
 

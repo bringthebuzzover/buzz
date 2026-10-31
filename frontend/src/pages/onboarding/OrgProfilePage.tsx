@@ -111,11 +111,11 @@ export default function OrgProfilePage() {
       // Durable across hard refresh of the verify-await screen.
       sessionStorage.setItem(
         "buzz.verifyEmailSent",
-        result.emailSent === false ? "0" : "1",
+        result.emailQueued === false ? "0" : "1",
       );
       navigate("/onboarding/verify-email", {
         replace: true,
-        state: { emailSent: result.emailSent !== false },
+        state: { emailQueued: result.emailQueued !== false },
       });
     } catch (err) {
       const mapped = userFacingApiError(

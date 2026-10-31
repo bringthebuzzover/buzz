@@ -56,7 +56,7 @@ async def test_onboarding_submit_advances_status(app_client: AsyncClient, db_ses
     data = resp.json()["data"]
     assert data["status"] == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value
     assert data["emailSentTo"] == "club@test.edu"
-    assert data["emailSent"] is True
+    assert data["emailQueued"] is True
 
     # Org row + verification token created; identity lives on the user.
     org = await db_session.scalar(select(Organization).where(Organization.user_id == user.id))
@@ -469,7 +469,7 @@ async def test_resend_rate_limited(app_client: AsyncClient, db_session) -> None:
 
 
 async def test_resend_email_send_failed_does_not_burn_token(
-    app_client: AsyncClient, db_session, monkeypatch
+    app_client: AsyncClient, db_session, monkeypatch, email_cleanup_session
 ) -> None:
     user, _evt, _raw = await _seed_pending_verification(db_session, suffix="rs_fail")
 
@@ -489,8 +489,8 @@ async def test_resend_email_send_failed_does_not_burn_token(
         json={},
         headers={"Authorization": f"Bearer {mint_access_token(user)}"},
     )
-    assert resp.status_code == 502
-    assert resp.json()["error"]["code"] == "EMAIL_SEND_FAILED"
+    # Delivery occurs after the response; failure is logged and the token removed.
+    assert resp.status_code == 200
 
     await db_session.refresh(user)
     after = list(
@@ -498,13 +498,13 @@ async def test_resend_email_send_failed_does_not_burn_token(
             select(EmailVerificationToken).where(EmailVerificationToken.user_id == user.id)
         )
     )
-    # Raise rolls back the mint; original token remains the only live one.
+    # Background cleanup removes the mint; the original token remains live.
     assert len(after) == 1
     assert after[0].id == before[0].id
 
 
-async def test_onboarding_submit_email_sent_false_keeps_profile(
-    app_client: AsyncClient, db_session, monkeypatch
+async def test_onboarding_submit_email_failure_keeps_profile(
+    app_client: AsyncClient, db_session, monkeypatch, email_cleanup_session
 ) -> None:
     user = await persist(
         db_session,
@@ -522,7 +522,7 @@ async def test_onboarding_submit_email_sent_false_keeps_profile(
     )
     assert resp.status_code == 200, resp.text
     data = resp.json()["data"]
-    assert data["emailSent"] is False
+    assert data["emailQueued"] is True  # Accepted for delivery after commit.
     assert data["status"] == OrgUserStatus.PENDING_EMAIL_VERIFICATION.value
 
     await db_session.refresh(user)

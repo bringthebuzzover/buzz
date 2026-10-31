@@ -36,13 +36,13 @@ export default function AdminIgChangeRequestDetailPage() {
   const busy = approve.isPending || deny.isPending;
 
   const run = (
-    fn: () => Promise<{ emailSent?: boolean | null }>,
+    fn: () => Promise<{ emailQueued?: boolean | null }>,
     mailFailed: string,
   ) => {
     setError(null);
     void fn()
       .then((result) => {
-        if (result.emailSent === false) {
+        if (result.emailQueued === false) {
           setError(mailFailed);
         }
       })
@@ -116,7 +116,7 @@ export default function AdminIgChangeRequestDetailPage() {
                             requestId: data.id,
                             kind: "rename",
                           }),
-                        "Approved, but the email telling them to log in with Instagram again failed to send.",
+                        "Approved, but the email telling them to log in with Instagram again could not be queued.",
                       )
                     }
                   >
@@ -133,7 +133,7 @@ export default function AdminIgChangeRequestDetailPage() {
                             kind: "account_switch",
                             testerInviteConfirmed: true,
                           }),
-                        "Approved, but the Connect email failed to send. Open the organization and use Resend connect email.",
+                        "Approved, but the Connect email could not be queued. Open the organization and use Resend connect email.",
                       )
                     }
                   >
@@ -145,7 +145,7 @@ export default function AdminIgChangeRequestDetailPage() {
                     onClick={() =>
                       run(
                         () => deny.mutateAsync(data.id),
-                        "Denied, but the notification email failed to send.",
+                        "Denied, but the notification email could not be queued.",
                       )
                     }
                   >

@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, Form, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, Query, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -73,6 +73,7 @@ from app.services.email import (
     build_idempotency_key,
     send_brand_password_changed_email,
 )
+from app.services.email_tasks import schedule_email
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.onboarding import (
     cancel_pending_edu_email,
@@ -585,11 +586,14 @@ async def verify_email_endpoint(
     dependencies=[Depends(rate_limited("verify_resend_public", limit=3, window=60))],
 )
 async def resend_verification_public_endpoint(
+    background_tasks: BackgroundTasks,
     payload: PublicResendVerificationRequest,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Public resend after apply (no session). Enumerate-safe: always 200-shaped."""
-    result = await resend_verification_public(db, payload.edu_email)
+    result = await resend_verification_public(
+        db, payload.edu_email, background_tasks=background_tasks
+    )
     return api_response(data=ResendVerificationResponse.model_validate(result))
 
 
@@ -599,11 +603,14 @@ async def resend_verification_public_endpoint(
     dependencies=[Depends(rate_limited("verify_resend_from_token", limit=3, window=60))],
 )
 async def resend_verification_from_token_endpoint(
+    background_tasks: BackgroundTasks,
     payload: VerifyEmailRequest,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Sessionless resend using the unused/expired token from the email link."""
-    result = await resend_verification_from_token(db, payload.token)
+    result = await resend_verification_from_token(
+        db, payload.token, background_tasks=background_tasks
+    )
     return api_response(data=ResendVerificationResponse.model_validate(result))
 
 
@@ -632,12 +639,13 @@ async def redeem_org_connect_endpoint(
     dependencies=[Depends(rate_limited("verify_resend", limit=3, window=60))],
 )
 async def resend_verification_endpoint(
+    background_tasks: BackgroundTasks,
     _payload: ResendVerificationRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Re-send the .edu verification email (rate-limited, auth required)."""
-    result = await resend_verification_email(db, user)
+    result = await resend_verification_email(db, user, background_tasks=background_tasks)
     return api_response(data=ResendVerificationResponse.model_validate(result))
 
 
@@ -647,12 +655,13 @@ async def resend_verification_endpoint(
     dependencies=[Depends(rate_limited("verify_rotate", limit=5, window=60))],
 )
 async def rotate_edu_email_endpoint(
+    background_tasks: BackgroundTasks,
     payload: RotateEduEmailRequest,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Start a pending-swap .edu rotate (active / pending_approval orgs)."""
-    result = await rotate_edu_email(db, user, payload.edu_email)
+    result = await rotate_edu_email(db, user, payload.edu_email, background_tasks=background_tasks)
     return api_response(data=RotateEduEmailResponse.model_validate(result))
 
 
@@ -721,12 +730,15 @@ async def brand_login(
     dependencies=[Depends(rate_limited("brand_forgot", limit=5, window=60))],
 )
 async def brand_forgot_password(
+    background_tasks: BackgroundTasks,
     payload: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Enumerate-safe brand password-reset request."""
     enforce_account_limit("brand_forgot", payload.email.strip().lower(), limit=5, window=300)
-    result = await request_password_reset(db, portal="brand", email=payload.email)
+    result = await request_password_reset(
+        db, portal="brand", email=payload.email, background_tasks=background_tasks
+    )
     return api_response(data=OkResponse.model_validate(result))
 
 
@@ -752,6 +764,7 @@ async def brand_reset_password(
     dependencies=[Depends(rate_limited("brand_change_pw", limit=5, window=60))],
 )
 async def brand_change_password(
+    background_tasks: BackgroundTasks,
     payload: BrandChangePasswordRequest,
     response: Response,
     user: CurrentBrand,
@@ -773,16 +786,18 @@ async def brand_change_password(
     )
     access, refresh = await issue_token_pair(db, user)
     _set_refresh_cookie(response, refresh)
-    email_sent = await send_brand_password_changed_email(
+    email_queued = await schedule_email(
+        background_tasks,
+        send_brand_password_changed_email,
         brand.company_email,
         idempotency_key=build_idempotency_key(
             KIND_PASSWORD_CHANGED, user.id, user.token_version or 0
         ),
     )
     logger.info(
-        "brand_password_changed user_id=%s email_sent=%s",
+        "brand_password_changed user_id=%s email_queued=%s",
         user.id,
-        email_sent,
+        email_queued,
     )
     user_resp = UserResponse(
         id=user.id,
@@ -826,12 +841,15 @@ async def admin_login(
     dependencies=[Depends(rate_limited("admin_forgot", limit=5, window=60))],
 )
 async def admin_forgot_password(
+    background_tasks: BackgroundTasks,
     payload: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Enumerate-safe admin password-reset request."""
     enforce_account_limit("admin_forgot", payload.email.strip().lower(), limit=5, window=300)
-    result = await request_password_reset(db, portal="admin", email=payload.email)
+    result = await request_password_reset(
+        db, portal="admin", email=payload.email, background_tasks=background_tasks
+    )
     return api_response(data=OkResponse.model_validate(result))
 
 

@@ -138,7 +138,7 @@ class TestOrgIgChangeRequest:
             headers=admin,
         )
         assert res.status_code == 200, res.text
-        assert res.json()["data"]["emailSent"] is True
+        assert res.json()["data"]["emailQueued"] is True
         rename_mail.assert_awaited_once()
         assert rename_mail.await_args.args[0] == "officer@school.edu"
         await db_session.refresh(user)
@@ -198,7 +198,7 @@ class TestOrgIgChangeRequest:
             headers=admin,
         )
         assert approved.status_code == 200, approved.text
-        assert approved.json()["data"]["emailSent"] is True
+        assert approved.json()["data"]["emailQueued"] is True
         switch_mail.assert_awaited_once()
         assert switch_mail.await_args.args[0] == "officer@school.edu"
         await db_session.refresh(user)
@@ -318,7 +318,7 @@ class TestOrgIgChangeRequest:
             headers=admin,
         )
         assert denied.status_code == 200
-        assert denied.json()["data"]["emailSent"] is True
+        assert denied.json()["data"]["emailQueued"] is True
         deny_mail.assert_awaited_once()
         assert deny_mail.await_args.args[0] == "officer@school.edu"
         await db_session.refresh(user)

@@ -10,6 +10,8 @@ import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
 import { ApiError } from "../../api/errors";
 
+import VerifyEmailPage from "./VerifyEmailPage";
+
 const mockMutateAsync = jest.fn();
 const mockPublicResend = jest.fn();
 const mockResendFromToken = jest.fn();
@@ -61,8 +63,6 @@ jest.mock("../../api/hooks/useOnboardingHooks", () => ({
 jest.mock("../../contexts/AuthContext", () => ({
   useAuth: () => mockAuthValue,
 }));
-
-import VerifyEmailPage from "./VerifyEmailPage";
 
 describe("VerifyEmailPage confirm-before-verify", () => {
   let container: HTMLDivElement;
@@ -175,8 +175,7 @@ describe("VerifyEmailPage confirm-before-verify", () => {
     expect(mockResendFromToken).toHaveBeenCalledWith("expired-tok");
     expect(sessionStorage.getItem("buzz.verifyEduEmail")).toBe("club@test.edu");
     expect(sessionStorage.getItem("buzz.verifyEmailSent")).toBe("1");
-    expect(container.textContent).toContain("New Link");
-    expect(container.textContent).toContain("Sent");
+    expect(container.textContent).toContain("New Link Queued");
     expect(container.textContent).toContain("club@test.edu");
   });
 

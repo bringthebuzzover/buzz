@@ -8,11 +8,13 @@ import uuid
 from datetime import timedelta
 from typing import Any, Literal
 
+from fastapi import BackgroundTasks
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.config import settings
+from app.deps.db import async_session_factory
 from app.exceptions import BuzzAPIException
 from app.models.brand import Brand
 from app.models.enums import OrgUserStatus, PortalRole
@@ -22,6 +24,7 @@ from app.security.one_shot_tokens import hash_token
 from app.security.password import hash_password
 from app.security.session import bump_token_version, commit_revocation
 from app.services.email import KIND_PASSWORD_RESET, build_idempotency_key, send_password_reset_email
+from app.services.email_tasks import schedule_email
 from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
@@ -60,11 +63,35 @@ async def _find_user_for_reset(db: AsyncSession, portal: Portal, email: str) -> 
     return user
 
 
+async def _send_reset_after_commit(
+    token_id: uuid.UUID, email: str, raw: str, *, portal: Portal
+) -> bool:
+    ok = await send_password_reset_email(
+        email,
+        raw,
+        portal=portal,
+        idempotency_key=build_idempotency_key(KIND_PASSWORD_RESET, token_id),
+    )
+    if not ok:
+        async with async_session_factory() as db:
+            await db.execute(
+                update(PasswordResetToken)
+                .where(PasswordResetToken.id == token_id)
+                .values(used_at=utcnow())
+            )
+            await db.commit()
+        logger.warning(
+            "Password reset email failed; token invalidated: portal=%s to=%s", portal, email
+        )
+    return ok
+
+
 async def request_password_reset(
     db: AsyncSession,
     *,
     portal: Portal,
     email: str,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Enumerate-safe forgot-password: always returns the same success shape."""
     normalized = email.strip().lower()
@@ -93,6 +120,11 @@ async def request_password_reset(
     db.add(row)
     await db.flush()
 
+    if background_tasks is not None:
+        await schedule_email(
+            background_tasks, _send_reset_after_commit, row.id, normalized, raw, portal=portal
+        )
+        return {"ok": True}
     ok = await send_password_reset_email(
         normalized,
         raw,

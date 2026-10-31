@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -155,6 +156,18 @@ async def db_session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
         await session.close()
         await outer_txn.rollback()
         await connection.close()
+
+
+@pytest.fixture
+def email_cleanup_session(db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep background email cleanup inside the test's rolled-back transaction."""
+
+    @asynccontextmanager
+    async def factory() -> AsyncIterator[AsyncSession]:
+        yield db_session
+
+    for module in ("onboarding", "password_reset"):
+        monkeypatch.setattr(f"app.services.{module}.async_session_factory", factory)
 
 
 # --- Auth test helpers -------------------------------------------------------

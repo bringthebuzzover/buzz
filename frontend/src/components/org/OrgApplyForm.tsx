@@ -78,7 +78,7 @@ export default function OrgApplyForm({
   /** Public drop card pairs the pen's three rows at every width. */
   paired?: boolean;
   className?: string;
-  onSuccess: (result: { emailSent?: boolean }, eduEmail: string) => void;
+  onSuccess: (result: { emailQueued?: boolean }, eduEmail: string) => void;
 }) {
   const apply = useOrgApply();
   const hydrated = useRef(false);
@@ -367,13 +367,13 @@ export default function OrgApplyForm({
 }
 
 export function persistVerifyEmailHandoff(
-  result: { emailSent?: boolean },
+  result: { emailQueued?: boolean },
   eduEmail: string,
   extraState?: Record<string, unknown>,
 ) {
   sessionStorage.setItem(
     VERIFY_EMAIL_SENT_KEY,
-    result.emailSent === false ? "0" : "1",
+    result.emailQueued === false ? "0" : "1",
   );
   sessionStorage.setItem(VERIFY_EDU_EMAIL_KEY, eduEmail);
   if (extraState?.dropIntent) {
@@ -383,7 +383,7 @@ export function persistVerifyEmailHandoff(
 
 export function goToVerifyEmailWait(
   navigate: ReturnType<typeof useNavigate>,
-  result: { emailSent?: boolean },
+  result: { emailQueued?: boolean },
   eduEmail: string,
   extraState?: Record<string, unknown>,
 ) {
@@ -391,7 +391,7 @@ export function goToVerifyEmailWait(
   navigate("/onboarding/verify-email", {
     replace: true,
     state: {
-      emailSent: result.emailSent !== false,
+      emailQueued: result.emailQueued !== false,
       eduEmail,
       ...extraState,
     },

@@ -57,7 +57,7 @@ export default function EduEmailRotatePanel({
       await onChanged();
       setShowForm(false);
       setNextEmail("");
-      setNotice(`Verification email sent to ${result.emailSentTo}.`);
+      setNotice(`Verification email queued for ${result.emailSentTo}.`);
     } catch (err) {
       const mapped = userFacingApiError(
         err,
@@ -73,7 +73,7 @@ export default function EduEmailRotatePanel({
     setError(null);
     try {
       await resend.mutateAsync();
-      setNotice("Verification email re-sent. Check your inbox.");
+      setNotice("Verification email queued. Check your inbox.");
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -112,7 +112,7 @@ export default function EduEmailRotatePanel({
           <p className="text-sm text-muted">
             Pending change to{" "}
             <span className="font-medium text-primary">{pendingEmail}</span>. Confirm via
-            the link we sent — your current email stays active until then.
+            the link in the verification email — your current email stays active until then.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button

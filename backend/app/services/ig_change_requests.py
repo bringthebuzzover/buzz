@@ -11,6 +11,7 @@ import logging
 from typing import Any
 from uuid import UUID, uuid4
 
+from fastapi import BackgroundTasks
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,6 +35,7 @@ from app.services.email import (
     send_org_ig_rename_approved_email,
     send_org_ig_switch_connect_email,
 )
+from app.services.email_tasks import schedule_email
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.lifecycle import seat_is_live
 from app.services.org_apply import (
@@ -283,6 +285,7 @@ async def approve_request(
     *,
     kind: str,
     tester_invite_confirmed: bool = False,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     if kind not in _KINDS:
         raise BuzzAPIException(
@@ -328,11 +331,13 @@ async def approve_request(
     req.status = "approved"
     req.decided_kind = kind
     req.decided_at = now
-    email_sent = False
+    email_queued = False
 
     if kind == "rename":
         await db.flush()
-        email_sent = await send_org_ig_rename_approved_email(
+        email_queued = await schedule_email(
+            background_tasks,
+            send_org_ig_rename_approved_email,
             user.edu_email or "",
             org_name=org.org_name,
             requested_handle=req.requested_handle,
@@ -351,7 +356,9 @@ async def approve_request(
         connect_token, connect_token_id = await create_org_connect_token(db, org, user)
         await db.flush()
         await commit_revocation(db)
-        email_sent = await send_org_ig_switch_connect_email(
+        email_queued = await schedule_email(
+            background_tasks,
+            send_org_ig_switch_connect_email,
             user.edu_email or "",
             org_name=org.org_name,
             connect_token=connect_token,
@@ -360,15 +367,17 @@ async def approve_request(
         )
 
     logger.info(
-        "ig_change_request_approved request_id=%s kind=%s email_sent=%s",
+        "ig_change_request_approved request_id=%s kind=%s email_queued=%s",
         req.id,
         kind,
-        email_sent,
+        email_queued,
     )
-    return {**_serialize(req), "email_sent": email_sent, "user_status": user.status}
+    return {**_serialize(req), "email_queued": email_queued, "user_status": user.status}
 
 
-async def deny_request(db: AsyncSession, request_id: UUID) -> dict[str, Any]:
+async def deny_request(
+    db: AsyncSession, request_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     req = await db.get(OrgIgChangeRequest, request_id)
     if req is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Request not found.", status_code=404)
@@ -385,10 +394,12 @@ async def deny_request(db: AsyncSession, request_id: UUID) -> dict[str, Any]:
     req.status = "denied"
     req.decided_at = utcnow()
     await db.flush()
-    email_sent = await send_org_ig_change_denied_email(
+    email_queued = await schedule_email(
+        background_tasks,
+        send_org_ig_change_denied_email,
         user.edu_email or "",
         org_name=org.org_name,
         idempotency_key=build_idempotency_key(KIND_IG_CHANGE_DENIED, req.id),
     )
     logger.info("ig_change_request_denied request_id=%s", req.id)
-    return {**_serialize(req), "email_sent": email_sent}
+    return {**_serialize(req), "email_queued": email_queued}

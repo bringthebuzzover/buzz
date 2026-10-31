@@ -70,7 +70,7 @@ class OrgOnboardingResponse(CamelModel):
     org_id: uuid.UUID
     status: str
     email_sent_to: str
-    email_sent: bool
+    email_queued: bool
 
 
 class BrandApplyResponse(CamelModel):
@@ -120,7 +120,7 @@ class AdminOrgEraseRequest(CamelModel):
 class AdminOrgEraseResponse(CamelModel):
     user_id: uuid.UUID
     status: str
-    email_sent: bool
+    email_queued: bool
     email_to_domain: str | None = None
 
 
@@ -133,21 +133,21 @@ class AdminBrandEraseRequest(CamelModel):
 class AdminBrandEraseResponse(CamelModel):
     brand_id: uuid.UUID
     status: str
-    email_sent: bool
+    email_queued: bool
     email_to_domain: str | None = None
 
 
 class AdminOrgStatusResponse(CamelModel):
     org_id: uuid.UUID
     status: str
-    email_sent: bool | None = None
+    email_queued: bool | None = None
 
 
 class AdminResendConnectAllResponse(CamelModel):
-    """Bulk Connect email for ``pending_instagram`` orgs only."""
+    """Bulk Connect scheduling counts; delivery failures are logged after the response."""
 
     targeted: int
-    sent: int
+    queued: int
     failed: int
     skipped: int
 
@@ -158,11 +158,11 @@ class AdminBrandStatusResponse(CamelModel):
 
 
 class AdminBrandInviteResponse(CamelModel):
-    """Approve / create-with-approve / resend-invite (may include email_sent)."""
+    """Approve / create-with-approve / resend-invite (may include email_queued)."""
 
     brand_id: uuid.UUID
     status: str
-    email_sent: bool | None = None
+    email_queued: bool | None = None
 
 
 class DropStageResponse(CamelModel):
@@ -211,8 +211,8 @@ class AdminAddOrgResponse(CamelModel):
     org_id: uuid.UUID
     never_applied: bool
     portal_ready: bool
-    email_org_sent: bool | None = None
-    email_brand_sent: bool | None = None
+    email_org_queued: bool | None = None
+    email_brand_queued: bool | None = None
 
 
 class AdminSyncAutolinkResponse(CamelModel):

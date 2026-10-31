@@ -4,6 +4,8 @@
 import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
 
+import AdminBrandDetailPage from "./AdminBrandDetailPage";
+
 const idleMutation = () => ({
   mutate: jest.fn(),
   mutateAsync: jest.fn().mockResolvedValue({}),
@@ -35,8 +37,6 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
   useApproveBrandIgChangeRequest: () => idleMutation(),
   useDenyBrandIgChangeRequest: () => idleMutation(),
 }));
-
-import AdminBrandDetailPage from "./AdminBrandDetailPage";
 
 function setInputValue(el: HTMLInputElement, value: string) {
   const setter = Object.getOwnPropertyDescriptor(
@@ -103,7 +103,7 @@ describe("AdminBrandDetailPage", () => {
     mockEraseMutateAsync.mockResolvedValue({
       brandId: "brand-1",
       status: "erased",
-      emailSent: true,
+      emailQueued: true,
       emailToDomain: "example.test",
     });
     mockUseAdminBrand.mockReturnValue({
@@ -139,6 +139,7 @@ describe("AdminBrandDetailPage", () => {
       brandId: "brand-1",
       confirm: "acme@example.test",
     });
+    expect(document.body.textContent).toContain("Confirmation email queued");
   });
 
   it("shows approve and deny for a pending Instagram handle change", () => {

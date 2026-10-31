@@ -456,7 +456,7 @@ class TestAdminCreateBrand:
         )
         assert res.status_code == 200, res.text
         assert res.json()["data"]["status"] == BrandStatus.APPROVED.value
-        assert res.json()["data"]["emailSent"] is True
+        assert res.json()["data"]["emailQueued"] is True
         invite = await db_session.scalar(
             select(BrandInviteToken).where(BrandInviteToken.email == "approve-now@brand.test")
         )
@@ -482,7 +482,7 @@ class TestAdminCreateBrand:
         assert res.status_code == 200, res.text
         data = res.json()["data"]
         assert data["status"] == BrandStatus.APPROVED.value
-        assert data["emailSent"] is False
+        assert data["emailQueued"] is True
         invite = await db_session.scalar(
             select(BrandInviteToken).where(BrandInviteToken.email == "mail-fail@brand.test")
         )
@@ -506,7 +506,7 @@ class TestAdminCreateBrand:
         assert res.status_code == 200, res.text
         data = res.json()["data"]
         assert data["status"] == BrandStatus.APPROVED.value
-        assert data["emailSent"] is False
+        assert data["emailQueued"] is True
 
     async def test_resend_invite_email_failed(
         self, app_client: AsyncClient, db_session, monkeypatch
@@ -527,8 +527,8 @@ class TestAdminCreateBrand:
             f"/api/admin/brands/{brand.id}/resend-invite",
             headers=headers,
         )
-        assert res.status_code == 502, res.text
-        assert res.json()["error"]["code"] == "EMAIL_SEND_FAILED"
+        assert res.status_code == 200, res.text
+        assert res.json()["data"]["emailQueued"] is True
 
     async def test_admin_create_duplicate_email(self, app_client: AsyncClient, db_session):
         await make_brand(db_session, company_email="dup@brand.test")

@@ -1,6 +1,6 @@
 """Org onboarding orchestration (architecture §3.3, §3.4).
 
-Pure service functions (no FastAPI types) the route layer calls.
+Service functions the route layer calls.
 """
 
 from __future__ import annotations
@@ -11,12 +11,14 @@ import uuid
 from datetime import timedelta, timezone
 from typing import Any
 
-from sqlalchemy import select, update
+from fastapi import BackgroundTasks
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.config import settings
+from app.deps.db import async_session_factory
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.organization import Organization
@@ -27,6 +29,7 @@ from app.security.one_shot_tokens import hash_token
 from app.security.token_crypto import TokenDecryptionError, decrypt_token
 from app.services.address import AddressClient, apply_to_org
 from app.services.email import KIND_VERIFICATION, build_idempotency_key, send_verification_email
+from app.services.email_tasks import schedule_email
 from app.services.instagram import (
     InstagramClient,
     canonical_instagram_handle,
@@ -144,6 +147,26 @@ async def _invalidate_verification_tokens(db: AsyncSession, user_id: uuid.UUID) 
     )
 
 
+async def _send_verification_after_commit(
+    token_id: uuid.UUID, email: str, raw: str, *, org_name: str, kind: str
+) -> bool:
+    ok = await send_verification_email(
+        email,
+        raw,
+        org_name=org_name,
+        kind=kind,
+        idempotency_key=build_idempotency_key(KIND_VERIFICATION, token_id),
+    )
+    if not ok:
+        # Failed delivery must not consume one of the user's three live slots.
+        async with async_session_factory() as db:
+            await db.execute(
+                delete(EmailVerificationToken).where(EmailVerificationToken.id == token_id)
+            )
+            await db.commit()
+    return ok
+
+
 async def _mint_and_send_verification(
     db: AsyncSession,
     user: User,
@@ -151,11 +174,12 @@ async def _mint_and_send_verification(
     *,
     org_name: str = "",
     kind: str = "signup",
+    background_tasks: BackgroundTasks | None = None,
 ) -> bool:
     """Mint a live verification token and attempt delivery.
 
-    Returns whether the provider accepted the send (or development console
-    success). On failure the just-minted token is deleted so it does not burn
+    Returns whether delivery was queued, or accepted for a direct send.
+    Failed delivery deletes the just-minted token so it does not burn
     a max-3 slot.
     """
     raw = secrets.token_urlsafe(48)
@@ -168,6 +192,16 @@ async def _mint_and_send_verification(
     )
     db.add(evt)
     await db.flush()
+    if background_tasks is not None:
+        return await schedule_email(
+            background_tasks,
+            _send_verification_after_commit,
+            evt.id,
+            edu_email,
+            raw,
+            org_name=org_name,
+            kind=kind,
+        )
     ok = await send_verification_email(
         edu_email,
         raw,
@@ -249,6 +283,7 @@ async def submit_org_onboarding(
     payload: OrgOnboardingRequest,
     ig: InstagramClient,
     addresses: AddressClient,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Phase 2: create org profile, advance to email verification.
 
@@ -327,15 +362,15 @@ async def submit_org_onboarding(
     await _seed_follower_count_from_graph(org, user, ig)
     await db.flush()
 
-    email_sent = await _mint_and_send_verification(
-        db, user, payload.edu_email, org_name=payload.org_name
+    email_queued = await _mint_and_send_verification(
+        db, user, payload.edu_email, org_name=payload.org_name, background_tasks=background_tasks
     )
 
     return {
         "org_id": str(org.id),
         "status": user.status,
         "email_sent_to": payload.edu_email,
-        "email_sent": email_sent,
+        "email_queued": email_queued,
     }
 
 
@@ -415,7 +450,9 @@ async def verify_email(db: AsyncSession, token: str) -> dict[str, Any]:
     return {"status": user.status, "session_minted": True, "user": user}
 
 
-async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, Any]:
+async def resend_verification_email(
+    db: AsyncSession, user: User, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Re-send verification (onboarding inbox or pending-swap latch)."""
     if user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(
@@ -458,7 +495,9 @@ async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, A
             status_code=429,
         )
 
-    ok = await _mint_and_send_verification(db, user, target, org_name=org_name, kind=kind)
+    ok = await _mint_and_send_verification(
+        db, user, target, org_name=org_name, kind=kind, background_tasks=background_tasks
+    )
     if not ok:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,
@@ -469,7 +508,9 @@ async def resend_verification_email(db: AsyncSession, user: User) -> dict[str, A
     return {"email_sent_to": target}
 
 
-async def rotate_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict[str, Any]:
+async def rotate_edu_email(
+    db: AsyncSession, user: User, edu_email: str, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Start a pending-swap rotate for an active or pending_approval org.
 
     Keeps the live ``edu_email`` until the new address is verified. Does not
@@ -504,7 +545,7 @@ async def rotate_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict
     if user.pending_edu_email == edu_email:
         # Same pending address — behave like a resend.
         return {
-            **(await resend_verification_email(db, user)),
+            **(await resend_verification_email(db, user, background_tasks=background_tasks)),
             "pending_edu_email": edu_email,
             "status": user.status,
         }
@@ -532,7 +573,7 @@ async def rotate_edu_email(db: AsyncSession, user: User, edu_email: str) -> dict
         ) from exc
 
     ok = await _mint_and_send_verification(
-        db, user, edu_email, org_name=org.org_name, kind="rotate"
+        db, user, edu_email, org_name=org.org_name, kind="rotate", background_tasks=background_tasks
     )
     if not ok:
         raise BuzzAPIException(
@@ -575,7 +616,9 @@ async def cancel_pending_edu_email(db: AsyncSession, user: User) -> dict[str, An
     return {"ok": True, "status": user.status}
 
 
-async def resend_verification_public(db: AsyncSession, edu_email: str) -> dict[str, Any]:
+async def resend_verification_public(
+    db: AsyncSession, edu_email: str, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Public resend by .edu address (no session). Always returns a benign ack.
 
     Does not reveal whether the email exists. Only resends when the user is in
@@ -597,11 +640,15 @@ async def resend_verification_public(db: AsyncSession, edu_email: str) -> dict[s
     if await _count_active_verification_tokens(db, user.id) >= 3:
         return {"email_sent_to": edu_email}
 
-    await _mint_and_send_verification(db, user, edu_email, org_name=org_name, kind="signup")
+    await _mint_and_send_verification(
+        db, user, edu_email, org_name=org_name, kind="signup", background_tasks=background_tasks
+    )
     return {"email_sent_to": edu_email}
 
 
-async def resend_verification_from_token(db: AsyncSession, token: str) -> dict[str, Any]:
+async def resend_verification_from_token(
+    db: AsyncSession, token: str, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Mint a new .edu verify mail from an unused (usually expired) token.
 
     The caller already proved they received the original link (same raw token
@@ -667,7 +714,9 @@ async def resend_verification_from_token(db: AsyncSession, token: str) -> dict[s
 
     org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
     org_name = org.org_name if org is not None else ""
-    ok = await _mint_and_send_verification(db, user, target, org_name=org_name, kind=kind)
+    ok = await _mint_and_send_verification(
+        db, user, target, org_name=org_name, kind=kind, background_tasks=background_tasks
+    )
     if not ok:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,

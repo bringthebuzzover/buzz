@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
@@ -64,13 +64,14 @@ router = APIRouter(prefix="/orgs", tags=["orgs"])
 )
 async def org_apply(
     payload: OrgApplyRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     addresses: AddressClient = Depends(get_address_client),
 ) -> APIResponse:
     """Public apply-first signup (no Instagram OAuth)."""
     if payload.drop_id is not None:
         await assert_intent_drop_public(db, payload.drop_id)
-    result = await apply_org(db, payload, addresses)
+    result = await apply_org(db, payload, addresses, background_tasks=background_tasks)
     if payload.drop_id is not None:
         await record_drop_apply_intent(
             db,
@@ -146,6 +147,7 @@ async def org_address_preview(
 @router.post("/onboarding", response_model=DataResponse[OrgOnboardingResponse])
 async def org_onboarding(
     payload: OrgOnboardingRequest,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     ig: InstagramClient = Depends(get_instagram_client),
@@ -156,7 +158,9 @@ async def org_onboarding(
     Uses the bare authenticated user (not ``CurrentOrg``) because the caller is
     ``pending_org_profile``, not yet active — the active-status gate would 403.
     """
-    result = await submit_org_onboarding(db, user, payload, ig=ig, addresses=addresses)
+    result = await submit_org_onboarding(
+        db, user, payload, ig=ig, addresses=addresses, background_tasks=background_tasks
+    )
     return api_response(data=OrgOnboardingResponse.model_validate(result))
 
 

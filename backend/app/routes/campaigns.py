@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps.auth import CurrentOrg
@@ -67,13 +67,14 @@ async def campaign_detail(
 
 @router.post("/{application_id}/withdraw", response_model=DataResponse[OkResponse])
 async def withdraw_campaign(
+    background_tasks: BackgroundTasks,
     application_id: uuid.UUID,
     user: CurrentOrg,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Withdraw: while applied, or accepted before shipping (409 after)."""
 
-    await withdraw_my_campaign(db, user, application_id)
+    await withdraw_my_campaign(db, user, application_id, background_tasks=background_tasks)
     return api_response(data=OkResponse())
 
 
