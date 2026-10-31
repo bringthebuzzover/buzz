@@ -33,7 +33,7 @@ timestamps, publish/hide/finalize latches. Use named admin actions.
 | `users` | hash, IG token, Graph user ids, `token_version` | role, status, emails, handle, token *timestamps*, login/created | `edu_email`, `instagram_username` | `status` (approve/deny/erase/clear-token) |
 | `organizations` | — | all | name, university, tiktok, members, category, contact, campus city/state, shipping_* (recomputes `delivery_address`) | `approved_at`, `user_id`, `follower_count`, `instagram_handle_confirmed`, claimed IG / bind-mismatch timestamps (ack is named action) |
 | `brands` | — | all | `brand_name`, `company_email`, `instagram_handle`, `intent_message` | `status`, `approved_at`, `user_id` |
-| `drops` | — | all | same as `AdminDropConfigPatch` (title/desc/image/location/capacity/window/units/hashtag/`brand_can_edit_creative`) | tracker, publish, hide, reopen, finalize, FKs, leftover `tracking_number` |
+| `drops` | — | all | same as `AdminDropConfigPatch` (title/desc/image/location/capacity/window/units/hashtag/`brand_can_edit_creative`) | tracker, publish, hide, reopen, finalize, FKs |
 | `drop_requests` | — | all | `message`, `notes` | `status`, `converted_drop_id`, `brand_id` |
 | `drop_applications` | — | all | `pitch`, `allocated_units` | `decision`, `decision_at`, FKs |
 | `drop_application_shipments` | — | all | `tracking_number`, `carrier` | `application_id` (add/delete tools also exist) |

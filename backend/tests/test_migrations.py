@@ -159,7 +159,8 @@ async def _assert_legacy_lifecycle_round_trip(parity_url: str) -> None:
             columns = {
                 row["column_name"]: row
                 for row in await conn.fetch(
-                    "SELECT column_name, is_nullable, udt_name, character_maximum_length "
+                    "SELECT column_name, is_nullable, udt_name, character_maximum_length, "
+                    "column_default "
                     "FROM information_schema.columns "
                     "WHERE table_schema = 'public' AND table_name = 'drops'"
                 )
@@ -172,6 +173,7 @@ async def _assert_legacy_lifecycle_round_trip(parity_url: str) -> None:
                 for name in legacy_columns - {"manual_reopen"}:
                     assert columns[name]["is_nullable"] == "YES"
                 assert columns["manual_reopen"]["is_nullable"] == "NO"
+                assert columns["manual_reopen"]["column_default"] == "false"
                 row = await conn.fetchrow(
                     "SELECT manual_reopen, brand_tracker_stage, "
                     "applicant_selection_finalized_at, tracking_number FROM drops WHERE id = $1",
