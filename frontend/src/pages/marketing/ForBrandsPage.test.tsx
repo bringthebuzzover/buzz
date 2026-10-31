@@ -1,3 +1,4 @@
+/* eslint-disable testing-library/no-container -- The shared harness uses React DOM; Testing Library is not installed. */
 /**
  * /for-brands tour: ticket ≠ campaign, Publish, no self-serve mint.
  */
@@ -19,5 +20,23 @@ describe("ForBrandsPage", () => {
 
     const apply = container.querySelector('a[href="/brand/apply"]');
     expect(apply?.textContent).toMatch(/apply as a brand/i);
+  });
+
+  it("presents three numbered portal steps with their captions", () => {
+    const { container } = renderWithProviders(<ForBrandsPage />);
+    const steps = container.querySelectorAll("#how-it-works ol > li");
+    expect(steps).toHaveLength(3);
+    expect(Array.from(steps, (step) => step.querySelector("h3")?.textContent)).toEqual([
+      "1 Tell us about your campaign",
+      "2 Choose the organizations",
+      "3 Follow every post",
+    ]);
+    expect(Array.from(steps, (step) => step.querySelector("h3 + p")?.textContent)).toEqual([
+      "Share your goals and the products you want to send.",
+      "BUZZ builds and publishes your drop. Review applicants and send your decisions.",
+      "Track organization posts and see the finished drop.",
+    ]);
+    expect(steps[1].textContent).toMatch(/Applicants/);
+    expect(steps[1].textContent).toMatch(/Send decisions/);
   });
 });
