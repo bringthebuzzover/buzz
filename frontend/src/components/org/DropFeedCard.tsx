@@ -148,10 +148,6 @@ export default function DropFeedCard({
           className="pointer-events-none absolute inset-0 bg-gradient-to-t from-page/95 via-page/70 via-30% to-transparent to-75%"
           aria-hidden
         />
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-page/80 to-transparent"
-          aria-hidden
-        />
         {feedStatus === "upcoming" ? (
           <HeroCountdownOverlay targetMs={drop.applyOpenAt} />
         ) : null}
