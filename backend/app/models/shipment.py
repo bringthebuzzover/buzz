@@ -1,7 +1,6 @@
 """``drop_application_shipments`` — 0–N tracking numbers per accepted seat.
 
-PRODUCT §3.1.1: SOT is this table, not ``drops.tracking_number`` (kept but
-unread/unwritten on product paths after backfill).
+PRODUCT §3.1.1: this table is the source of truth for shipment tracking.
 """
 
 from __future__ import annotations

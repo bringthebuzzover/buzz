@@ -975,28 +975,6 @@ export interface paths {
         patch: operations["patch_admin_table_row_api_admin_tables__table___row_id__patch"];
         trace?: never;
     };
-    "/api/admin/tools/cleanup-request-received": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cleanup Request Received Endpoint
-         * @description One-shot B6b: convert unpublished request_received stubs into tickets.
-         *
-         *     Blocked in production (run the script with ``--confirm`` after explicit ops OK).
-         */
-        post: operations["cleanup_request_received_endpoint_api_admin_tools_cleanup_request_received_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/auth/admin/forgot-password": {
         parameters: {
             query?: never;
@@ -2688,13 +2666,6 @@ export interface components {
             /** Confirm */
             confirm: string;
         };
-        /** AdminCleanupStubsResponse */
-        AdminCleanupStubsResponse: {
-            /** Convertedcount */
-            convertedCount: number;
-            /** Deleteddropids */
-            deletedDropIds: string[];
-        };
         /**
          * AdminComposeEmailRequest
          * @description Subject + body only — To is the profile email, never client-supplied.
@@ -4221,15 +4192,6 @@ export interface components {
         /** DataResponse[AdminBrandStatusResponse] */
         DataResponse_AdminBrandStatusResponse_: {
             data?: components["schemas"]["AdminBrandStatusResponse"] | null;
-            error?: components["schemas"]["ErrorDetail"] | null;
-            /** Meta */
-            meta?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /** DataResponse[AdminCleanupStubsResponse] */
-        DataResponse_AdminCleanupStubsResponse_: {
-            data?: components["schemas"]["AdminCleanupStubsResponse"] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -7587,37 +7549,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminTableRowResponse_"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIResponse"];
-                };
-            };
-        };
-    };
-    cleanup_request_received_endpoint_api_admin_tools_cleanup_request_received_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DataResponse_AdminCleanupStubsResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

@@ -52,7 +52,6 @@ from app.schemas.admin import (
     AdminBrandDetail,
     AdminBrandIgChangeRequestItem,
     AdminBrandItem,
-    AdminCleanupStubsResponse,
     AdminCreateBrandRequest,
     AdminDropConfigPatch,
     AdminDropCreateRequest,
@@ -89,7 +88,6 @@ from app.services.admin import (
     approve_brand,
     approve_org,
     cancel_drop,
-    cleanup_request_received_stubs,
     clear_org_instagram_token,
     compose_brand_email,
     compose_org_email,
@@ -904,22 +902,6 @@ async def delete_application_shipment(
 ) -> APIResponse:
     result = await delete_shipment(db, application_id, shipment_id)
     return api_response(data=OkResponse.model_validate(result))
-
-
-@router.post(
-    "/tools/cleanup-request-received",
-    response_model=DataResponse[AdminCleanupStubsResponse],
-)
-async def cleanup_request_received_endpoint(
-    _user: CurrentAdmin,
-    db: AsyncSession = Depends(get_db),
-) -> APIResponse:
-    """One-shot B6b: convert unpublished request_received stubs into tickets.
-
-    Blocked in production (run the script with ``--confirm`` after explicit ops OK).
-    """
-    result = await cleanup_request_received_stubs(db)
-    return api_response(data=AdminCleanupStubsResponse(**result))
 
 
 # ── Table inspect (MCP / ops) ───────────────────────────────────────────────

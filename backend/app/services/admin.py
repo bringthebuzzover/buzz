@@ -26,12 +26,10 @@ from app.models.drop_request import DropRequest
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
     DropStage,
     OrgUserStatus,
     PortalRole,
 )
-from app.models.notify_me import NotifyMe
 from app.models.organization import Organization
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
@@ -1229,92 +1227,6 @@ async def unhide_drop(db: AsyncSession, drop_id: UUID) -> Drop:
     )
     await db.flush()
     return drop
-
-
-async def _unpublished_request_received_stubs(db: AsyncSession) -> list[Drop]:
-    """Unpublished drops still in the legacy request_received stage."""
-    return list(
-        await db.scalars(
-            select(Drop).where(
-                Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
-                Drop.published_at.is_(None),
-            )
-        )
-    )
-
-
-async def cleanup_request_received_stubs(
-    db: AsyncSession, *, force: bool = False, dry_run: bool = False
-) -> dict[str, Any]:
-    """Convert unpublished request_received stubs into closed tickets and delete them.
-
-    Idempotent. ``dry_run`` lists matching ids with no writes (allowed in
-    production). Writes refuse production unless ``force=True`` (script
-    ``--confirm``).
-    """
-
-    stubs = await _unpublished_request_received_stubs(db)
-    stub_ids = [drop.id for drop in stubs]
-    if dry_run:
-        logger.info("cleanup_request_received dry-run: %s stubs", len(stub_ids))
-        return {
-            "converted_count": len(stub_ids),
-            "deleted_drop_ids": stub_ids,
-            "dry_run": True,
-        }
-
-    if settings.ENVIRONMENT == "production" and not force:
-        raise BuzzAPIException(
-            errors.FORBIDDEN,
-            "Refusing stub cleanup in production. Re-run with --confirm after explicit ops OK.",
-            status_code=403,
-        )
-
-    deleted_ids: list[UUID] = []
-    for drop in stubs:
-        ticket = DropRequest(
-            id=uuid4(),
-            brand_id=drop.brand_id,
-            message=drop.description or drop.title,
-            notes=None,
-            status="closed",
-        )
-        db.add(ticket)
-        await db.flush()
-
-        prior_tickets = list(
-            await db.scalars(select(DropRequest).where(DropRequest.converted_drop_id == drop.id))
-        )
-        for prior in prior_tickets:
-            prior.converted_drop_id = None
-        drop.drop_request_id = None
-        await db.flush()
-
-        apps = list(
-            await db.scalars(select(DropApplication).where(DropApplication.drop_id == drop.id))
-        )
-        for app in apps:
-            await db.delete(app)
-        notifies = list(await db.scalars(select(NotifyMe).where(NotifyMe.drop_id == drop.id)))
-        for n in notifies:
-            await db.delete(n)
-        events = list(
-            await db.scalars(select(DropTrackerEvent).where(DropTrackerEvent.drop_id == drop.id))
-        )
-        for evt in events:
-            await db.delete(evt)
-
-        deleted_ids.append(drop.id)
-        logger.info(
-            "cleanup_request_received: drop %s → closed ticket %s",
-            drop.id,
-            ticket.id,
-        )
-        await db.delete(drop)
-        await db.flush()
-
-    logger.info("cleanup_request_received: converted %s stubs", len(deleted_ids))
-    return {"converted_count": len(deleted_ids), "deleted_drop_ids": deleted_ids}
 
 
 async def update_drop_config(
