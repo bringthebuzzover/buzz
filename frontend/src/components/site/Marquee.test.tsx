@@ -29,7 +29,7 @@ afterEach(() => {
 
 it.each([false, true])("keeps the marquee at 32px/s after resizing with reverse %s", (reverse) => {
   const width = jest.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockReturnValue(640);
-  const { container, unmount } = renderWithProviders(<Marquee items={COLLEGES} title="College network" reverse={reverse} />);
+  const { container, unmount } = renderWithProviders(<Marquee items={COLLEGES} reverse={reverse} />);
   const track = container.querySelector<HTMLElement>('[style*="animation-duration"]');
   expect(track?.style.animationDuration).toBe("10s");
   expect(observer.observe).toHaveBeenCalledWith(track);
@@ -43,7 +43,7 @@ it.each([false, true])("keeps the marquee at 32px/s after resizing with reverse 
 it("shows one static set of logos without measuring under reduced motion", () => {
   reduced = true;
   const width = jest.spyOn(HTMLElement.prototype, "scrollWidth", "get");
-  const { container } = renderWithProviders(<Marquee items={COLLEGES} title="College network" />);
+  const { container } = renderWithProviders(<Marquee items={COLLEGES} />);
   expect(container.querySelectorAll("img")).toHaveLength(COLLEGES.length);
   expect(container.querySelector('[style*="animation-duration"]')).toBeNull();
   expect(width).not.toHaveBeenCalled();

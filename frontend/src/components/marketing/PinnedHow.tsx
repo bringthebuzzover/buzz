@@ -5,19 +5,10 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../../theme/cn";
 import { MarketingPhone } from "./Phones";
+import { ORG_STEPS as steps } from "./mockups";
 import { useReducedMotion } from "./useReducedMotion";
 
-type Step = { caption: string; side: "left" | "right" };
-
-export function PinnedHow({
-  id = "how-it-works",
-  kind,
-  steps,
-}: {
-  id?: string;
-  kind: "org" | "brand";
-  steps: readonly Step[];
-}) {
+export function PinnedHow() {
   const reduce = useReducedMotion();
   const trackRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(0);
@@ -46,16 +37,16 @@ export function PinnedHow({
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [reduce, steps.length]);
+  }, [reduce]);
 
   if (reduce) {
     return (
-      <section id={id} data-nav-surface="paper" className="bg-[#f0f0f0] text-on-accent">
+      <section id="how-it-works" data-nav-surface="paper" className="bg-[#f0f0f0] text-on-accent">
         <div className="mx-auto flex max-w-3xl flex-col gap-16 px-4 py-16">
           {steps.map((item, index) => (
             <div key={item.caption} className="flex flex-col items-center gap-6">
               <p className="order-last max-w-md text-xl font-medium leading-snug md:order-none">{item.caption}</p>
-              <MarketingPhone kind={kind} step={index} animate={false} />
+              <MarketingPhone kind="org" step={index} animate={false} />
             </div>
           ))}
         </div>
@@ -66,7 +57,7 @@ export function PinnedHow({
   return (
     <div
       ref={trackRef}
-      id={id}
+      id="how-it-works"
       data-nav-surface="paper"
       className="relative h-[3376px] bg-[#f0f0f0] md:h-[3600px]"
     >
@@ -89,7 +80,7 @@ export function PinnedHow({
             </p>
           ))}
           <div className="flex justify-center md:col-start-2 md:row-start-1">
-            <MarketingPhone kind={kind} step={step} animate />
+            <MarketingPhone kind="org" step={step} animate />
           </div>
         </div>
       </div>

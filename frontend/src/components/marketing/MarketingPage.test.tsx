@@ -8,6 +8,15 @@ import { MarketingHero, StackCards, Statement } from "./sections";
 let changeMotion: () => void;
 let reduced = false;
 const originalObserver = window.IntersectionObserver;
+const hero = (title = "Campus") => <MarketingHero title={title} sub="Test copy" media="video" primary={{ label: "Join" }} />;
+const statement = <Statement line1="First line" line2="Second line" />;
+const renderPage = (children: React.ReactNode) => renderWithProviders(<MarketingPage>{children}</MarketingPage>);
+const mockAnimations = () => {
+  const cancel = jest.fn();
+  const animate = jest.fn(() => ({ cancel }));
+  Object.defineProperty(HTMLElement.prototype, "animate", { configurable: true, value: animate });
+  return { animate, cancel };
+};
 
 beforeEach(() => {
   reduced = false;
@@ -41,24 +50,18 @@ it.each([false, true])("keeps campus labels noninteractive with reduced motion %
 });
 
 it("keeps the fading trail behind the bee on the first eastbound flight", () => {
-  const request = jest
-    .spyOn(window, "requestAnimationFrame")
-    .mockReturnValue(1);
+  const request = jest.spyOn(window, "requestAnimationFrame").mockReturnValue(1);
   const { container } = renderWithProviders(<CollegeNetwork />);
   const tick = request.mock.calls[0][0];
   act(() => {
     tick(1000);
     tick(2000);
   });
-  const flyers = Array.from(
-    container.querySelectorAll<HTMLElement>("[data-flyer]"),
-  );
+  const flyers = Array.from(container.querySelectorAll<HTMLElement>("[data-flyer]"));
   const positions = flyers.map((flyer) => parseFloat(flyer.style.left));
   expect(positions[0]).toBeGreaterThan(positions[1]);
   expect(positions[1]).toBeGreaterThan(positions[9]);
-  expect(Number(flyers[1].style.opacity)).toBeGreaterThan(
-    Number(flyers[9].style.opacity),
-  );
+  expect(Number(flyers[1].style.opacity)).toBeGreaterThan(Number(flyers[9].style.opacity));
 });
 
 it("parks at Cornell without a trail or animation loop under reduced motion", () => {
@@ -66,11 +69,7 @@ it("parks at Cornell without a trail or animation loop under reduced motion", ()
   const request = jest.spyOn(window, "requestAnimationFrame");
   const { container } = renderWithProviders(<CollegeNetwork />);
   expect(container.querySelectorAll("[data-flyer]")).toHaveLength(1);
-  expect(
-    container
-      .querySelector('[data-campus="Cornell"]')
-      ?.getAttribute("data-visiting"),
-  ).toBe("true");
+  expect(container.querySelector('[data-campus="Cornell"]')?.getAttribute("data-visiting")).toBe("true");
   expect(request).not.toHaveBeenCalled();
 });
 
@@ -90,22 +89,8 @@ it("cancels flight when the motion preference changes", () => {
 });
 
 it("reveals hero lines and cancels their animations on unmount", () => {
-  const cancel = jest.fn();
-  const animate = jest.fn(() => ({ cancel }));
-  Object.defineProperty(HTMLElement.prototype, "animate", {
-    configurable: true,
-    value: animate,
-  });
-  const { unmount } = renderWithProviders(
-    <MarketingPage>
-      <MarketingHero
-        title={"Campus\ncommunities"}
-        sub="Test copy"
-        media="video"
-        primary={{ label: "Join" }}
-      />
-    </MarketingPage>,
-  );
+  const { animate, cancel } = mockAnimations();
+  const { unmount } = renderPage(hero("Campus\ncommunities"));
   expect(animate).toHaveBeenCalledTimes(3);
   unmount();
   expect(cancel).toHaveBeenCalledTimes(3);
@@ -116,22 +101,16 @@ it("leaves reduced-motion text visible without scroll observers", () => {
   reduced = true;
   const observer = jest.fn();
   Object.defineProperty(window, "IntersectionObserver", { configurable: true, value: observer });
-  const { container } = renderWithProviders(
-    <MarketingPage>
-      <Statement line1="First line" line2="Second line" />
-    </MarketingPage>,
-  );
+  const { container } = renderPage(statement);
   expect(container.textContent).toBe("First lineSecond line");
   expect(observer).not.toHaveBeenCalled();
-  expect(
-    container.querySelector("[data-reveal-line]")?.getAttribute("style"),
-  ).toBeNull();
+  expect(container.querySelector("[data-reveal-line]")?.getAttribute("style")).toBeNull();
 });
 
 it("pauses the hero video when reduced motion is enabled", () => {
   jest.spyOn(HTMLMediaElement.prototype, "paused", "get").mockReturnValue(false);
   const pause = jest.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
-  renderWithProviders(<MarketingHero title="Campus" sub="Test copy" media="video" primary={{ label: "Join" }} />);
+  renderWithProviders(hero());
   act(() => { reduced = true; changeMotion(); });
   expect(pause).toHaveBeenCalledTimes(1);
 });
@@ -148,13 +127,10 @@ it.each([
     paint = () => callback(0);
     return 42;
   });
-  const { container, unmount } = renderWithProviders(<MarketingPage>
-    <MarketingHero title="Campus" sub="Test copy" media="video" primary={{ label: "Join" }} />
-    <StackCards />
-  </MarketingPage>);
-  const hero = container.querySelector<HTMLElement>(".marketing-hero")!;
+  const { container, unmount } = renderPage(<>{hero()}<StackCards /></>);
+  const heroElement = container.querySelector<HTMLElement>(".marketing-hero")!;
   const shade = container.querySelector<HTMLElement>(".marketing-hero-shade")!;
-  jest.spyOn(hero, "getBoundingClientRect").mockReturnValue({
+  jest.spyOn(heroElement, "getBoundingClientRect").mockReturnValue({
     top: (top - 1) * window.innerHeight, height: window.innerHeight,
   } as DOMRect);
   const cards = container.querySelectorAll<HTMLElement>(".marketing-stack");
@@ -177,10 +153,8 @@ it("reveals section lines on entry with a stagger, then stops observing and clea
     configurable: true,
     value: jest.fn((callback) => { notify = (entries) => callback(entries); return observer; }),
   });
-  const cancel = jest.fn();
-  const animate = jest.fn(() => ({ cancel }));
-  Object.defineProperty(HTMLElement.prototype, "animate", { configurable: true, value: animate });
-  const { container, unmount } = renderWithProviders(<MarketingPage><Statement line1="First line" line2="Second line" /></MarketingPage>);
+  const { animate, cancel } = mockAnimations();
+  const { container, unmount } = renderPage(statement);
   const group = container.querySelector("[data-reveal-group]");
   expect(observer.observe).toHaveBeenCalledWith(group);
   expect(animate).not.toHaveBeenCalled();

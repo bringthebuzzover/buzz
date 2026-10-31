@@ -7,27 +7,14 @@ import { useEffect, useRef } from "react";
 import { useReducedMotion } from "../marketing/useReducedMotion";
 import type { CollegeMarqueeItem } from "../../types/campaign";
 import { RemoteImage } from "../ui/RemoteImage";
-import { SECTION_Y, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
 
 type MarqueeProps = {
   items: CollegeMarqueeItem[];
   reverse?: boolean;
-  title: string;
-  subtitle?: string;
-  hideBottomBorder?: boolean;
-  /** Logo strip only, sitting inside a paper section that already has a title. */
-  embedded?: boolean;
 };
 
-export default function Marquee({
-  items,
-  reverse = false,
-  title,
-  subtitle,
-  hideBottomBorder = false,
-  embedded = false,
-}: MarqueeProps) {
+export default function Marquee({ items, reverse = false }: MarqueeProps) {
   const reduce = useReducedMotion();
   const trackRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -41,7 +28,7 @@ export default function Marquee({
   }, [reduce, items]);
   const shown = reduce ? items : [...items, ...items];
 
-  const strip = (
+  return (
     <div
       className={cn(
         "relative w-full",
@@ -67,35 +54,11 @@ export default function Marquee({
               src={item.logoSrc}
               label={item.name}
               alt={item.name}
-              className={cn(
-                "h-12 w-auto max-h-12 max-w-[120px] object-contain grayscale opacity-[0.78] transition-[filter,opacity] duration-300 group-hover:grayscale-0 group-hover:opacity-100 motion-reduce:transition-none",
-              )}
+              className="h-12 w-auto max-h-12 max-w-[120px] object-contain grayscale opacity-[0.78] transition-[filter,opacity] duration-300 group-hover:grayscale-0 group-hover:opacity-100 motion-reduce:transition-none"
             />
           </div>
         ))}
       </div>
-    </div>
-  );
-
-  if (embedded) {
-    return strip;
-  }
-
-  return (
-    <div
-      className={cn(
-        "w-full overflow-hidden bg-[#f0f0f0] text-on-accent",
-        SECTION_Y,
-        !hideBottomBorder && "border-b border-on-accent/10",
-      )}
-    >
-      <div className="mb-8 text-center">
-        <h2 className={cn(TEXT.h2, "text-on-accent")}>{title}</h2>
-        {subtitle ? (
-          <p className={cn(TEXT.body, "mt-1 text-on-accent/55")}>{subtitle}</p>
-        ) : null}
-      </div>
-      {strip}
     </div>
   );
 }

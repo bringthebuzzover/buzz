@@ -195,24 +195,27 @@ export function CurrentDrops() {
             Current drops
           </h2>
           <div className="flex gap-2">
-            <CarouselButton
-              label="Previous drop"
-              disabled={index === 0}
-              onClick={() => setIndex((value) => Math.max(0, value - 1))}
-            >
-              ←
-            </CarouselButton>
-            <CarouselButton
-              label="Next drop"
-              disabled={index >= FEATURED_COLLABS.length - 1}
-              onClick={() =>
-                setIndex((value) =>
-                  Math.min(FEATURED_COLLABS.length - 1, value + 1),
-                )
-              }
-            >
-              →
-            </CarouselButton>
+            {([-1, 1] as const).map((direction) => {
+              const disabled = direction < 0 ? index === 0 : index >= FEATURED_COLLABS.length - 1;
+              return (
+                <button
+                  key={direction}
+                  type="button"
+                  aria-label={direction < 0 ? "Previous drop" : "Next drop"}
+                  disabled={disabled}
+                  onClick={() => setIndex((value) => direction < 0
+                    ? Math.max(0, value - 1)
+                    : Math.min(FEATURED_COLLABS.length - 1, value + 1))}
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-full border border-on-accent text-on-accent",
+                    disabled && "opacity-30",
+                    focusRingClass,
+                  )}
+                >
+                  {direction < 0 ? "←" : "→"}
+                </button>
+              );
+            })}
           </div>
         </div>
         {/* Lab scroller: cards fill 80% of the track with a 16px gap. */}
@@ -264,34 +267,6 @@ export function CurrentDrops() {
   );
 }
 
-function CarouselButton({
-  label,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  disabled: boolean;
-  onClick: () => void;
-  children: string;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "flex h-10 w-10 items-center justify-center rounded-full border border-on-accent text-on-accent",
-        disabled && "opacity-30",
-        focusRingClass,
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
 type Half = {
   kicker: string;
   title: string;
@@ -309,14 +284,7 @@ export function JoinSplit({ left, right }: { left: Half; right: Half }) {
   );
 }
 
-function HalfBlock({
-  kicker,
-  title,
-  support,
-  action,
-  quiet,
-  divided,
-}: Half & { divided?: boolean }) {
+function HalfBlock({ kicker, title, support, action, quiet, divided }: Half & { divided?: boolean }) {
   return (
     <div
       className={cn(
@@ -489,11 +457,7 @@ export function GoalChips() {
   );
 }
 
-export function MarketingFooter({
-  brandOnly = false,
-}: {
-  brandOnly?: boolean;
-}) {
+export function MarketingFooter({ brandOnly = false }: { brandOnly?: boolean }) {
   const { contact } = siteIdentity;
   return (
     <footer
@@ -548,22 +512,12 @@ export function MarketingFooter({
         {contact.email}
       </a>
       <div className="mt-auto grid grid-cols-2 gap-8 pt-16 md:grid-cols-4">
-        <FooterCol
-          title="Organizations"
-          links={[
-            ["/for-orgs", "How it works"],
-            ["/org/apply", "Apply"],
-            ["/login", "Login"],
-          ]}
-        />
-        <FooterCol
-          title="Brands"
-          links={[
-            ["/for-brands", "How it works"],
-            ["/brand/apply", "Apply"],
-            ["/brand/login", "Login"],
-          ]}
-        />
+        {[
+          { title: "Organizations", tour: "/for-orgs", apply: "/org/apply", login: "/login" },
+          { title: "Brands", tour: "/for-brands", apply: "/brand/apply", login: "/brand/login" },
+        ].map(({ title, tour, apply, login }) => (
+          <FooterCol key={title} title={title} links={[[tour, "How it works"], [apply, "Apply"], [login, "Login"]]} />
+        ))}
         <div>
           <h3 className="mb-3 text-sm font-medium">Social</h3>
           <ul className="space-y-2">
@@ -602,13 +556,7 @@ export function MarketingFooter({
   );
 }
 
-function FooterCol({
-  title,
-  links,
-}: {
-  title: string;
-  links: [string, string][];
-}) {
+function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
   return (
     <div>
       <h3 className="mb-3 text-sm font-medium">{title}</h3>

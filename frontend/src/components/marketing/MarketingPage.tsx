@@ -13,25 +13,13 @@ export function MarketingPage({ children }: { children: ReactNode }) {
     if (!root || reduce) return;
     const animations: Animation[] = [];
     const reveal = (group: Element) => {
-      group
-        .querySelectorAll<HTMLElement>("[data-reveal-line]")
-        .forEach((line, index) => {
-          if (typeof line.animate !== "function") return;
-          animations.push(
-            line.animate(
-              [
-                { transform: "translateY(50%)", opacity: 0 },
-                { transform: "translateY(0)", opacity: 1 },
-              ],
-              {
-                duration: 1400,
-                delay: index * 100,
-                easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-                fill: "backwards",
-              },
-            ),
-          );
-        });
+      group.querySelectorAll<HTMLElement>("[data-reveal-line]").forEach((line, index) => {
+        if (typeof line.animate !== "function") return;
+        animations.push(line.animate(
+          [{ transform: "translateY(50%)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }],
+          { duration: 1400, delay: index * 100, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "backwards" },
+        ));
+      });
     };
     const observer =
       typeof IntersectionObserver === "undefined"
@@ -45,14 +33,10 @@ export function MarketingPage({ children }: { children: ReactNode }) {
               }),
             { rootMargin: "0px 0px -15% 0px" },
           );
-    root
-      .querySelectorAll("[data-reveal-group]")
-      .forEach((group) => observer?.observe(group));
+    root.querySelectorAll("[data-reveal-group]").forEach((group) => observer?.observe(group));
     const hero = root.querySelector<HTMLElement>(".marketing-hero");
     if (hero) reveal(hero);
-    const cards = Array.from(
-      root.querySelectorAll<HTMLElement>(".marketing-stack"),
-    );
+    const cards = Array.from(root.querySelectorAll<HTMLElement>(".marketing-stack"));
     const shade = root.querySelector<HTMLElement>(".marketing-hero-shade");
     let frame = 0;
     const paint = () => {
@@ -90,9 +74,5 @@ export function MarketingPage({ children }: { children: ReactNode }) {
     };
   }, [reduce]);
 
-  return (
-    <div ref={ref} className="marketing-page w-full overflow-x-clip bg-page">
-      {children}
-    </div>
-  );
+  return <div ref={ref} className="marketing-page w-full overflow-x-clip bg-page">{children}</div>;
 }
