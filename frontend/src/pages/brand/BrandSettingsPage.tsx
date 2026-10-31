@@ -351,7 +351,7 @@ export default function BrandSettingsPage() {
                 disabled={viewingAs}
                 data-testid="brand-confirm-password"
                 error={
-                  confirmPassword && confirmPassword !== newPassword
+                  confirmPassword !== newPassword
                     ? "Passwords do not match."
                     : undefined
                 }

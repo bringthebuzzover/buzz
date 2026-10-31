@@ -144,6 +144,9 @@ test("brand settings shows name, locked email, and the handle request", async ({
   await expect(passwordSave).toBeDisabled();
   await passwordDialog.getByLabel("Current password").fill("incorrect-password");
   await passwordDialog.getByLabel("New password", { exact: true }).fill("short");
+  await expect(passwordDialog.getByLabel("Confirm password")).toHaveValue("");
+  await expect(passwordDialog.getByText("Passwords do not match.")).toBeVisible();
+  await expect(passwordSave).toBeDisabled();
   await passwordDialog.getByLabel("Confirm password").fill("short");
   await expect(passwordSave).toBeDisabled();
   await passwordDialog.getByLabel("New password", { exact: true }).fill("test-password-123");
