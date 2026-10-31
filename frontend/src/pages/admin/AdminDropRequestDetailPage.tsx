@@ -354,11 +354,10 @@ function DraftEditor({
     published && drop ? (
       <PublishedDropSummary drop={drop} />
     ) : (
-      <Panel
-        title="Draft drop"
-        description="You write the org-facing description. Prefill does not copy the brand message or product."
-      >
-        <DropFormFields form={form} setField={setField} prefix="draft" disabled={busy} />
+      <Panel title="Draft drop">
+        <div className="pt-6">
+          <DropFormFields form={form} setField={setField} prefix="draft" disabled={busy} />
+        </div>
 
         <DropFormSection
           title="Drop"
@@ -404,7 +403,11 @@ function DraftEditor({
         </div>
       )}
 
-      {notice && <SuccessBanner>{notice}</SuccessBanner>}
+      {notice && (
+        <div className="mb-6">
+          <SuccessBanner>{notice}</SuccessBanner>
+        </div>
+      )}
       {error && <ErrorNote>{error}</ErrorNote>}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(16rem,0.8fr)]">

@@ -40,10 +40,7 @@ export default function AdminDropRequestsPage() {
 
   return (
     <div>
-      <PageHeading
-        title="Drop requests"
-        subtitle="Brand intake tickets. Open one to draft and publish a campaign beside the message."
-      />
+      <PageHeading title="Drop requests" />
 
       <FilterChips
         options={[...FILTERS]}
