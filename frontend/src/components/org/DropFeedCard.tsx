@@ -145,7 +145,11 @@ export default function DropFeedCard({
           className="absolute inset-0 h-full w-full rounded-buzzBoard object-cover"
         />
         <div
-          className="absolute inset-0 bg-gradient-to-b from-transparent from-45% to-page/85"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-page/95 via-page/70 via-30% to-transparent to-75%"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-page/80 to-transparent"
           aria-hidden
         />
         {feedStatus === "upcoming" ? (
