@@ -19,8 +19,6 @@ const ASIDE_AUTH_PATHS = new Set([
 
 const ADMIN_AUTH_PATHS = new Set([
   "/admin/login",
-  "/admin/forgot-password",
-  "/admin/reset-password",
 ]);
 
 export function isAdminAuthPath(pathname: string): boolean {

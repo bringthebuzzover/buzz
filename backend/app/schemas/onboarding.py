@@ -177,7 +177,7 @@ class AdminLoginRequest(CamelModel):
 
 
 class ForgotPasswordRequest(CamelModel):
-    """Enumerate-safe password-reset request (brand or admin)."""
+    """Enumerate-safe password-reset request (brand only)."""
 
     email: str
 

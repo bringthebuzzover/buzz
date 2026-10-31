@@ -1,12 +1,11 @@
 /**
- * Shared forgot-password form for brand and admin portals.
+ * Brand forgot-password form.
  */
 import { useState } from "react";
 import { ApiError } from "../../api/client";
 import { useForgotPassword } from "../../api/hooks/usePasswordResetHooks";
 import {
   AuthBackLink,
-  AuthCenter,
   AuthHeading,
   AuthSplit,
 } from "../../components/auth/AuthFrame";
@@ -18,22 +17,17 @@ import {
 } from "../../components/forms/controls";
 
 type Props = {
-  portal: "brand" | "admin";
   loginPath: string;
   title: string;
   kicker: string;
-  /** Brand keeps the photo aside. Admin uses the minimal header shell. */
-  frame: "aside" | "admin";
 };
 
 export default function ForgotPasswordPage({
-  portal,
   loginPath,
   title,
   kicker,
-  frame,
 }: Props) {
-  const forgot = useForgotPassword(portal);
+  const forgot = useForgotPassword();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -94,8 +88,5 @@ export default function ForgotPasswordPage({
     </>
   );
 
-  if (frame === "admin") {
-    return <AuthCenter>{body}</AuthCenter>;
-  }
   return <AuthSplit>{body}</AuthSplit>;
 }
