@@ -13,7 +13,6 @@ from sqlalchemy import select
 from app.exceptions import BuzzAPIException
 from app.jobs import notify_reminders
 from app.jobs.autolink_scan import scan_autolink
-from app.jobs.drop_autoclose import auto_close_drops
 from app.jobs.metric_sync import sync_metrics
 from app.jobs.notify_reminders import send_due_reminders
 from app.jobs.token_cleanup import cleanup_tokens
@@ -79,19 +78,6 @@ class _FailingRefreshClient(FakeInstagramClient):
 
     async def refresh_long_lived(self, long_token):  # type: ignore[override]
         raise RuntimeError("refresh failed")
-
-
-# --- 10.2 Drop auto-close ----------------------------------------------------
-
-
-async def test_autoclose_is_a_noop(db_session) -> None:
-    """Stages are computed from dates now; the job only reports (removed in PR5)."""
-    brand = await make_brand(db_session)
-    closed = await make_drop(db_session, brand, apply_close_at=utcnow() - timedelta(hours=1))
-    result = await auto_close_drops(db_session)
-    assert result["advanced"] == 0
-    await db_session.refresh(closed)
-    assert closed.wrapped_at is None
 
 
 # --- 10.3 Token cleanup ------------------------------------------------------

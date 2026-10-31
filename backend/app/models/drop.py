@@ -1,8 +1,7 @@
 """``drops`` table — a single brand campaign offered to student orgs.
 
 Brand display name lives on ``brands.brand_name`` (join via ``brand_id``).
-``tracking_number`` is a leftover column — product paths read/write
-``drop_application_shipments`` instead (PRODUCT §3.1.1).
+Shipping is tracked per seat in ``drop_application_shipments`` (PRODUCT §3.1.1).
 
 ``total_product_units`` is nullable to distinguish two campaign modes
 (architecture §3.2 + buzz-ops product/PRODUCT.md §4.1):
@@ -21,7 +20,6 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
-from app.models.enums import BrandTrackerStageEnum
 
 
 class Drop(Base):
@@ -50,23 +48,12 @@ class Drop(Base):
     capacity_total: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     apply_open_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False)
     apply_close_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), nullable=False)
-    manual_reopen: Mapped[bool] = mapped_column(
-        sa.Boolean, nullable=False, server_default=sa.text("false")
-    )
-
-    # Legacy; unwritten. Stage is computed (``app.services.lifecycle``).
-    brand_tracker_stage: Mapped[str | None] = mapped_column(BrandTrackerStageEnum, nullable=True)
-    tracking_number: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
-
     total_product_units: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
     campaign_hashtag: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     brand_can_edit_creative: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=False, server_default=sa.text("false")
     )
 
-    applicant_selection_finalized_at: Mapped[datetime | None] = mapped_column(
-        sa.DateTime(timezone=True), nullable=True
-    )
     published_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
     hidden_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)
     # BUZZ wrapped the drop up (reporting period over). Not a lock: BUZZ can

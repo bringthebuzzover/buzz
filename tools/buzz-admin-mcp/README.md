@@ -50,7 +50,7 @@ timestamps, publish/hide/finalize latches. Use named admin actions.
 | `org_ig_change_requests` | — | all | — | approve/deny (named tools) |
 | `org_apply_prefills` | `token_hash` | rest (incl. invite/edu/shipping) | draft profile/shipping/extras/source | `used_at`, `used_by_user_id` |
 
-Not in v1: impersonate, raw SQL, `cleanup-request-received`.
+Not in v1: impersonate, raw SQL.
 
 ## Setup
 

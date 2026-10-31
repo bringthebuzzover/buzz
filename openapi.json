@@ -990,28 +990,6 @@
         "title": "AdminCancelDropRequest",
         "type": "object"
       },
-      "AdminCleanupStubsResponse": {
-        "properties": {
-          "convertedCount": {
-            "title": "Convertedcount",
-            "type": "integer"
-          },
-          "deletedDropIds": {
-            "items": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "title": "Deleteddropids",
-            "type": "array"
-          }
-        },
-        "required": [
-          "convertedCount",
-          "deletedDropIds"
-        ],
-        "title": "AdminCleanupStubsResponse",
-        "type": "object"
-      },
       "AdminComposeEmailRequest": {
         "description": "Subject + body only \u2014 To is the profile email, never client-supplied.",
         "properties": {
@@ -5567,44 +5545,6 @@
           }
         },
         "title": "DataResponse[AdminBrandStatusResponse]",
-        "type": "object"
-      },
-      "DataResponse_AdminCleanupStubsResponse_": {
-        "properties": {
-          "data": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AdminCleanupStubsResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "error": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ErrorDetail"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "meta": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Meta"
-          }
-        },
-        "title": "DataResponse[AdminCleanupStubsResponse]",
         "type": "object"
       },
       "DataResponse_AdminComposeEmailResponse_": {
@@ -13987,56 +13927,6 @@
           }
         },
         "summary": "Patch Admin Table Row",
-        "tags": [
-          "admin"
-        ]
-      }
-    },
-    "/api/admin/tools/cleanup-request-received": {
-      "post": {
-        "description": "One-shot B6b: convert unpublished request_received stubs into tickets.\n\nBlocked in production (run the script with ``--confirm`` after explicit ops OK).",
-        "operationId": "cleanup_request_received_endpoint_api_admin_tools_cleanup_request_received_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_AdminCleanupStubsResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Cleanup Request Received Endpoint",
         "tags": [
           "admin"
         ]

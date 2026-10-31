@@ -146,11 +146,6 @@ class AdminDropRequestItem(CamelModel):
         return to_epoch_ms_required(value)
 
 
-class AdminCleanupStubsResponse(CamelModel):
-    converted_count: int
-    deleted_drop_ids: list[uuid.UUID]
-
-
 class AdminCreateBrandRequest(CamelModel):
     """Admin-provisioned brand (works when public self-reg is off)."""
 

@@ -126,18 +126,6 @@ class SeatProgress(StrEnum):
     POSTED = "posted"
 
 
-class BrandTrackerStage(StrEnum):
-    """Legacy tracker stages (``drops.brand_tracker_stage``, now nullable and
-    unwritten). Nothing reads them except the legacy ``request_received`` stub
-    cleanup; the column goes away with them. ``DropStage`` replaces them."""
-
-    REQUEST_RECEIVED = "request_received"
-    FINALIZING_AGREEMENTS = "finalizing_agreements"
-    AWAITING_PRODUCTS = "awaiting_products"
-    DROP_ACTIVE = "drop_active"
-    DROP_FINISHED = "drop_finished"
-
-
 class Platform(StrEnum):
     """Source social platform for a ``social_posts`` row."""
 
@@ -197,9 +185,8 @@ class DropApplyIntentStatus(StrEnum):
 #
 # Declared once at module level so the same Python object is referenced by
 # every ``mapped_column`` that uses the type. That dedupes the ``CREATE TYPE``
-# emitted by Alembic — critical for enums used in more than one table
-# (e.g. ``brand_tracker_stage`` lives on both ``drops`` and
-# ``drop_tracker_events``). All are native PG enums (``native_enum=True``).
+# emitted by Alembic for enums used in more than one table.
+# All are native PG enums (``native_enum=True``).
 #
 # ``values_callable=_enum_values`` tells SQLAlchemy to persist the StrEnum
 # ``.value`` (lowercase ``"org"``) rather than the Python member name
@@ -226,12 +213,6 @@ OrgCategoryEnum = sa.Enum(
 ApplicationDecisionEnum = sa.Enum(
     ApplicationDecision,
     name="application_decision",
-    native_enum=True,
-    values_callable=_enum_values,
-)
-BrandTrackerStageEnum = sa.Enum(
-    BrandTrackerStage,
-    name="brand_tracker_stage",
     native_enum=True,
     values_callable=_enum_values,
 )

@@ -131,7 +131,7 @@ test("sidebar reaches every section", async ({ page }) => {
   await sidebar(page).getByRole("link", { name: /health/i }).click();
   await expect(page).toHaveURL(/\/admin\/health$/);
   // Pipeline freshness is inferred from domain data; this is the sharpest canary.
-  await expect(page.getByTestId("signal-drop_autoclose")).toBeVisible();
+  await expect(page.getByTestId("signal-metric_sync")).toBeVisible();
 });
 
 test("queue cards deep-link into a filtered list", async ({ page }) => {

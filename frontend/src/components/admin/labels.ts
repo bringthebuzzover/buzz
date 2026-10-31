@@ -141,11 +141,6 @@ export const PIPELINE_META: Record<
   string,
   { label: string; schedule: string; inference: string }
 > = {
-  drop_autoclose: {
-    label: "Drop auto-close",
-    schedule: "every 5 minutes",
-    inference: "Counts drops whose apply window closed but never advanced.",
-  },
   metric_sync: {
     label: "Metric sync",
     schedule: "every 8h (03:00, 11:00, 19:00 UTC)",

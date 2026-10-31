@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from typing import Final
 
-JOB_DROP_AUTOCLOSE: Final = "drop_autoclose"
 JOB_NOTIFY_REMINDERS: Final = "notify_reminders"
 JOB_TOKEN_CLEANUP: Final = "token_cleanup"
 JOB_AUTOLINK_SCAN: Final = "autolink_scan"
