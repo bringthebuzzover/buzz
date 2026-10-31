@@ -43,6 +43,7 @@ export const SAMPLE = {
   sending: "200 cans of cold brew + branded koozies",
 } as const;
 
+// Home shows four onboarding screens; portal pages use condensed three-step tours from the pen.
 export const ORG_STEPS = [
   { caption: "Apply with your campus .edu email.", side: "left" },
   { caption: "Use the Business or Creator account.", side: "right" },
@@ -50,9 +51,39 @@ export const ORG_STEPS = [
   { caption: "Apply when a drop is Open.", side: "right" },
 ] as const;
 
-export const BRAND_STEPS = [
-  { caption: "Tell us about the campaign.", side: "left" },
-  { caption: "BUZZ builds and publishes the drop.", side: "right" },
-  { caption: "Choose the organizations.", side: "left" },
-  { caption: "Follow every post.", side: "right" },
-] as const;
+export const PORTAL_STEPS = {
+  org: [
+    {
+      title: "Apply with your .edu email",
+      body: "Tell BUZZ about your organization and campus.",
+      screen: 0,
+    },
+    {
+      title: "Connect Instagram",
+      body: "After approval, connect your Business or Creator account.",
+      screen: 2,
+    },
+    {
+      title: "Apply to open drops",
+      body: "Browse current drops and apply for your organization.",
+      screen: 3,
+    },
+  ],
+  brand: [
+    {
+      title: "Tell us about your campaign",
+      body: "Share your goals and the products you want to send.",
+      screen: 0,
+    },
+    {
+      title: "Choose the organizations",
+      body: "BUZZ builds and publishes your drop. Review applicants and send your decisions.",
+      screen: 2,
+    },
+    {
+      title: "Follow every post",
+      body: "Track organization posts and see the finished drop.",
+      screen: 3,
+    },
+  ],
+} as const;

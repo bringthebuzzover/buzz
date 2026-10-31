@@ -2,8 +2,7 @@
  * /for-orgs — how student organizations join. Apply-first; Instagram after approval.
  */
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
-import { PinnedHow } from "../../components/marketing/PinnedHow";
-import { ORG_STEPS } from "../../components/marketing/mockups";
+import { SideBySideHow } from "../../components/marketing/SideBySideHow";
 import {
   CurrentDrops,
   FaqList,
@@ -91,7 +90,7 @@ export default function ForOrgsPage() {
           },
         ]}
       />
-      <PinnedHow kind="org" steps={ORG_STEPS} />
+      <SideBySideHow kind="org" />
       <CurrentDrops />
       <FaqList items={ORG_FAQ} />
       <JoinSplit
