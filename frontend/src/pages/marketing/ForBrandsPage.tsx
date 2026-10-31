@@ -4,8 +4,7 @@
 import { MarketingPage } from "../../components/marketing/MarketingPage";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
 import { CollegeNetwork } from "../../components/marketing/CollegeNetwork";
-import { PinnedHow } from "../../components/marketing/PinnedHow";
-import { BRAND_STEPS } from "../../components/marketing/mockups";
+import { SideBySideHow } from "../../components/marketing/SideBySideHow";
 import {
   FaqList,
   GoalChips,
@@ -84,7 +83,7 @@ export default function ForBrandsPage() {
           },
         ]}
       />
-      <PinnedHow kind="brand" steps={BRAND_STEPS} />
+      <SideBySideHow kind="brand" />
       <CollegeNetwork />
       <GoalChips />
       <FaqList items={BRAND_FAQ} />
