@@ -14,6 +14,7 @@ import { ChevronRight, LogOut, Menu } from "lucide-react";
 import { useSiteChrome } from "../../contexts/SiteChromeContext";
 import { useSignOut } from "../../api/hooks/useSignOut";
 import { useAuth } from "../../contexts/AuthContext";
+import { pathForUser } from "../../utils/landing";
 import { goToHomeJoin } from "../../utils/scrollHomeJoin";
 import { Logo } from "../ui/BrandMark";
 import { BRAND_PORTAL_LINKS, ORG_PORTAL_LINKS } from "./PortalHeader";
@@ -81,6 +82,7 @@ export default function SiteHeader() {
   }, [marketing, pathname]);
 
   const isApiAuth = authStatus === "authenticated" && user;
+  const showHome = !isApiAuth || user.portalRole === "admin";
   const isOrgNav = authStatus === "authenticated" && user?.portalRole === "org";
   const desktopMinPx = isOrgNav ? ORG_DESKTOP_MIN_PX : COMPACT_DESKTOP_MIN_PX;
 
@@ -159,7 +161,7 @@ export default function SiteHeader() {
             <button
               type="button"
               data-testid="site-header-logo"
-              onClick={() => navigate("/")}
+              onClick={() => navigate(isApiAuth && !showHome ? pathForUser(user) : "/")}
               className={cn("flex h-10 max-w-[9rem] shrink-0 items-center", focusRingClass)}
             >
               <Logo surface={paperTone ? "paper" : "ink"} className="h-[54px]" />
@@ -177,7 +179,7 @@ export default function SiteHeader() {
           </div>
 
           <div className={cn("hidden items-center gap-6", desktopHidden, desktopOnly)}>
-            {isApiAuth ? (
+            {isApiAuth && showHome ? (
               <Link to="/" className={linkClass(isNavActive("/"))}>
                 Home
               </Link>
@@ -277,9 +279,11 @@ export default function SiteHeader() {
           )}
         >
           <nav className="flex flex-1 flex-col overflow-y-auto px-5 py-6">
-            <Link to="/" className={cn("border-b border-line py-4 text-sm", focusRingClass)} onClick={() => setMobileNavOpen(false)}>
-              Home
-            </Link>
+            {showHome ? (
+              <Link to="/" className={cn("border-b border-line py-4 text-sm", focusRingClass)} onClick={() => setMobileNavOpen(false)}>
+                Home
+              </Link>
+            ) : null}
             {navLinks.map((link) => (
               <Link
                 key={link.label}

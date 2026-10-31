@@ -21,6 +21,24 @@ test("brand can log in and reach the dashboard", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/brand\/dashboard/);
   await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
+  const header = page.getByRole("banner");
+  for (const width of [1280, 900, 375]) {
+    await page.setViewportSize({ width, height: 812 });
+    const menu = header.getByRole("button", { name: "Open menu" });
+    await expect(menu).toBeVisible({ visible: width < 1024 });
+    await expect(header.getByRole("navigation", { name: "Primary" })).toBeVisible({
+      visible: width >= 1024,
+    });
+    if (width < 1024) await menu.click();
+    await expect(header.getByRole("link", { name: "Home" })).toHaveCount(0);
+    await expect(
+      header.getByRole("link", { name: "Dashboard", exact: true }).filter({ visible: true }),
+    ).toBeVisible();
+    await header.getByRole("link", { name: "Settings" }).filter({ visible: true }).click();
+    await expect(page).toHaveURL(/\/brand\/settings$/);
+    await page.getByTestId("site-header-logo").click();
+    await expect(page).toHaveURL(/\/brand\/dashboard$/);
+  }
 });
 
 test("brand dashboard compare-drops fits 375px", async ({ page }) => {

@@ -19,6 +19,7 @@ import { appNavItemClass, quietLinkClass } from "../ui/navItem";
 import { imageInitials } from "../ui/RemoteImage";
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
+import { pathForUser } from "../../utils/landing";
 
 /** Portal links. The marketing header shows the same ones to signed-in users. */
 export const ORG_PORTAL_LINKS = [
@@ -58,13 +59,13 @@ export default function PortalHeader({ portal }: { portal: Portal }) {
   const isActive = (to: string) =>
     to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
 
-  const navLinks = signedIn ? [{ to: "/", label: "Home" }, ...config.links] : [];
+  const navLinks = signedIn ? config.links : [];
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-page/80 backdrop-blur-lg">
       <div className="flex h-16 items-center gap-5 px-6 xl:px-12">
         <Link
-          to="/"
+          to={signedIn ? pathForUser(user) : "/"}
           data-testid="site-header-logo"
           className={cn("flex shrink-0 items-center", focusRingClass)}
         >

@@ -14,6 +14,8 @@ test("org drop feed renders cards", async ({ page }) => {
   // Seed has 4 drops + the E2E open drop.
   await expect(page.getByTestId("drop-card").first()).toBeVisible();
   expect(await page.getByTestId("drop-card").count()).toBeGreaterThan(0);
+  await page.goto("/login");
+  await expect(page).toHaveURL(/\/org\/browse$/);
 });
 
 test("org can apply to an open drop", async ({ page }) => {
@@ -85,7 +87,7 @@ test("org desktop nav does not overlap the logo at 1280px", async ({ page }) => 
     page,
     header.getByRole("link", { name: "Browse campaigns" }),
   );
-  await assertNoOverlapWithLogo(page, header.getByRole("link", { name: "Home" }));
+  await expect(header.getByRole("link", { name: "Home" })).toHaveCount(0);
   await assertNoOverlapWithLogo(
     page,
     header.getByRole("button", { name: "Contact" }),
@@ -93,6 +95,8 @@ test("org desktop nav does not overlap the logo at 1280px", async ({ page }) => 
 
   await campaigns.click();
   await expect(page).toHaveURL(/\/org\/campaigns$/);
+  await visibleHeaderLogo(page).click();
+  await expect(page).toHaveURL(/\/org\/browse$/);
 });
 
 test("org mid-width chrome uses the hamburger and keeps campaign links", async ({
@@ -106,10 +110,14 @@ test("org mid-width chrome uses the hamburger and keeps campaign links", async (
   await page.getByRole("button", { name: /open menu/i }).click();
 
   const panel = page.locator("#mobile-nav-menu");
+  await expect(panel.getByRole("link", { name: "Home" })).toHaveCount(0);
+  await expect(panel.getByRole("link", { name: "Browse campaigns" })).toBeVisible();
   await expect(panel.getByRole("link", { name: "My campaigns" })).toBeVisible();
   await expect(panel.getByRole("link", { name: "Profile" })).toBeVisible();
   await panel.getByRole("link", { name: "My campaigns" }).click();
   await expect(page).toHaveURL(/\/org\/campaigns$/);
+  await visibleHeaderLogo(page).click();
+  await expect(page).toHaveURL(/\/org\/browse$/);
 });
 
 test("org phone chrome lists portal links in the menu", async ({ page }) => {
@@ -119,8 +127,13 @@ test("org phone chrome lists portal links in the menu", async ({ page }) => {
   await expect(page.getByRole("button", { name: /open menu/i })).toBeVisible();
   await page.getByRole("button", { name: /open menu/i }).click();
   const panel = page.locator("#mobile-nav-menu");
+  await expect(panel.getByRole("link", { name: "Home" })).toHaveCount(0);
+  await expect(panel.getByRole("link", { name: "Browse campaigns" })).toBeVisible();
   await expect(panel.getByRole("link", { name: "My campaigns" })).toBeVisible();
   await expect(panel.getByRole("link", { name: "Profile" })).toBeVisible();
+  await panel.getByRole("link", { name: "Profile" }).click();
+  await visibleHeaderLogo(page).click();
+  await expect(page).toHaveURL(/\/org\/browse$/);
 });
 
 test("org campaign detail shows per-org tracking links", async ({ page }) => {
