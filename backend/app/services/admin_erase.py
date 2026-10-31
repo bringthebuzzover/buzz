@@ -11,6 +11,7 @@ import logging
 from datetime import datetime, timezone
 from uuid import UUID
 
+from fastapi import BackgroundTasks
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,6 +35,7 @@ from app.services.email import (
     send_brand_erased_email,
     send_org_erased_email,
 )
+from app.services.email_tasks import schedule_email
 from app.services.erased_org_participation import (
     TOMBSTONE_ORG_NAME,
     freeze_org_campaign_metrics,
@@ -54,7 +56,13 @@ def _email_domain(email: str | None) -> str | None:
     return email.rsplit("@", 1)[-1].lower()
 
 
-async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[str, object]:
+async def erase_org_user(
+    db: AsyncSession,
+    user_id: UUID,
+    confirm: str,
+    *,
+    background_tasks: BackgroundTasks | None = None,
+) -> dict[str, object]:
     """Erase an org account after IG-handle confirm. Idempotent when already erased."""
 
     user = await db.get(User, user_id)
@@ -73,7 +81,7 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
         return {
             "user_id": str(user.id),
             "status": OrgUserStatus.ERASED.value,
-            "email_sent": False,
+            "email_queued": False,
             "email_to_domain": None,
         }
 
@@ -107,24 +115,26 @@ async def erase_org_user(db: AsyncSession, user_id: UUID, confirm: str) -> dict[
     await db.flush()
     await commit_revocation(db)
 
-    email_sent = False
+    email_queued = False
     if notify_email:
-        email_sent = await send_org_erased_email(
+        email_queued = await schedule_email(
+            background_tasks,
+            send_org_erased_email,
             notify_email,
             org_name=display_name,
             idempotency_key=build_idempotency_key(KIND_ORG_ERASED, user.id),
         )
 
     logger.info(
-        "org_erase_completed user_id=%s email_sent=%s",
+        "org_erase_completed user_id=%s email_queued=%s",
         user.id,
-        email_sent,
+        email_queued,
     )
     return {
         "user_id": str(user.id),
         "status": OrgUserStatus.ERASED.value,
-        "email_sent": email_sent,
-        "email_to_domain": email_to_domain if email_sent or notify_email else None,
+        "email_queued": email_queued,
+        "email_to_domain": email_to_domain if email_queued or notify_email else None,
     }
 
 
@@ -187,7 +197,13 @@ async def _auto_deny_applied(db: AsyncSession, org_id: UUID, now: datetime) -> N
     )
 
 
-async def erase_brand(db: AsyncSession, brand_id: UUID, confirm: str) -> dict[str, object]:
+async def erase_brand(
+    db: AsyncSession,
+    brand_id: UUID,
+    confirm: str,
+    *,
+    background_tasks: BackgroundTasks | None = None,
+) -> dict[str, object]:
     """Erase a brand after company-email confirm. Does not hide drops."""
 
     brand = await db.get(Brand, brand_id)
@@ -198,7 +214,7 @@ async def erase_brand(db: AsyncSession, brand_id: UUID, confirm: str) -> dict[st
         return {
             "brand_id": str(brand.id),
             "status": BrandStatus.ERASED.value,
-            "email_sent": False,
+            "email_queued": False,
             "email_to_domain": None,
         }
 
@@ -241,20 +257,22 @@ async def erase_brand(db: AsyncSession, brand_id: UUID, confirm: str) -> dict[st
     await db.flush()
     await commit_revocation(db)
 
-    email_sent = await send_brand_erased_email(
+    email_queued = await schedule_email(
+        background_tasks,
+        send_brand_erased_email,
         notify_email,
         brand_name=display_name,
         idempotency_key=build_idempotency_key(KIND_BRAND_ERASED, brand.id),
     )
     logger.info(
-        "brand_erase_completed brand_id=%s email_sent=%s",
+        "brand_erase_completed brand_id=%s email_queued=%s",
         brand.id,
-        email_sent,
+        email_queued,
     )
     return {
         "brand_id": str(brand.id),
         "status": BrandStatus.ERASED.value,
-        "email_sent": email_sent,
+        "email_queued": email_queued,
         "email_to_domain": email_to_domain,
     }
 

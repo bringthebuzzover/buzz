@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import quote
 from uuid import UUID
 
+from fastapi import BackgroundTasks
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import ColumnElement
@@ -128,6 +129,8 @@ async def add_shipment(
     application_id: UUID,
     tracking_number: str,
     carrier: str | None,
+    *,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     application = await _live_seat(db, application_id, "Tracking can be added")
 
@@ -179,7 +182,7 @@ async def add_shipment(
     db.add(row)
     await db.flush()
     shipment = serialize_shipment(row)
-    await notify_shipped(db, application, shipment)
+    await notify_shipped(db, application, shipment, background_tasks=background_tasks)
     return shipment
 
 

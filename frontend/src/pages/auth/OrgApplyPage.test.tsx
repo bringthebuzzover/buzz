@@ -8,6 +8,8 @@
 import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
 
+import OrgApplyPage from "./OrgApplyPage";
+
 const mockApply = jest.fn();
 const mockPrefill = {
   data: undefined as
@@ -49,8 +51,6 @@ jest.mock("../../api/hooks/useOnboardingHooks", () => ({
     isPending: false,
   }),
 }));
-
-import OrgApplyPage from "./OrgApplyPage";
 
 describe("OrgApplyPage typed Instagram handle", () => {
   let container: HTMLDivElement;
@@ -135,7 +135,7 @@ describe("OrgApplyPage typed Instagram handle", () => {
   }
 
   it("keeps submit disabled until a handle is typed, then allows submit unconfirmed", async () => {
-    mockApply.mockResolvedValue({ emailSent: true });
+    mockApply.mockResolvedValue({ emailQueued: true });
     renderPage();
     fillRequiredFieldsExceptHandle();
 
@@ -200,7 +200,7 @@ describe("OrgApplyPage typed Instagram handle", () => {
   });
 
   it("does not submit a Gmail address", async () => {
-    mockApply.mockResolvedValue({ emailSent: true });
+    mockApply.mockResolvedValue({ emailQueued: true });
     renderPage();
     fillRequiredFieldsExceptHandle();
     setHandle("campusgreeks");

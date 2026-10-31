@@ -98,7 +98,7 @@ export default function AdminBrandDetailPage() {
       const result = (await approve.mutateAsync(
         data.id,
       )) as BrandInviteActionResult;
-      if (result.emailSent === false) {
+      if (result.emailQueued === false) {
         setInviteNotice(INVITE_EMAIL_FAILED_COPY);
       }
     } catch {
@@ -114,7 +114,7 @@ export default function AdminBrandDetailPage() {
     } catch (err) {
       if (err instanceof ApiError && err.code === "EMAIL_SEND_FAILED") {
         setInviteNotice(
-          "Could not send the invite email. The brand is still approved — try Resend invite again.",
+          "Could not queue the invite email. The brand is still approved — try Resend invite again.",
         );
         return;
       }
@@ -257,9 +257,9 @@ export default function AdminBrandDetailPage() {
                   confirm: typed,
                 });
                 setEraseNotice(
-                  result.emailSent
-                    ? `Account erased. Confirmation email sent (…@${result.emailToDomain}).`
-                    : "Account erased. No confirmation email was sent — notify the requester manually if needed.",
+                  result.emailQueued
+                    ? `Account erased. Confirmation email queued (…@${result.emailToDomain}).`
+                    : "Account erased. No confirmation email was queued — notify the requester manually if needed.",
                 );
               }}
             />
@@ -277,7 +277,7 @@ export default function AdminBrandDetailPage() {
                   subject,
                   body,
                 });
-                setComposeNotice("Email sent.");
+                setComposeNotice("Email queued.");
               }}
             />
           )}

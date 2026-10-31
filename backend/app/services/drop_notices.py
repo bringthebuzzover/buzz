@@ -23,6 +23,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
 
+from fastapi import BackgroundTasks
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -50,6 +51,7 @@ from app.services.email import (
     send_application_denied_email,
     send_lifecycle_email,
 )
+from app.services.email_tasks import schedule_email
 from app.services.lifecycle import (
     ORG_LINK_GRACE,
     drop_running,
@@ -105,7 +107,13 @@ async def _orgs(
     ]
 
 
-async def notify_decisions(db: AsyncSession, drop: Drop, sent: Sequence[DropApplication]) -> None:
+async def notify_decisions(
+    db: AsyncSession,
+    drop: Drop,
+    sent: Sequence[DropApplication],
+    *,
+    background_tasks: BackgroundTasks | None = None,
+) -> None:
     """Accepted orgs get the good news, denied orgs the "not selected" email."""
 
     brand = await db.get(Brand, drop.brand_id)
@@ -115,7 +123,9 @@ async def notify_decisions(db: AsyncSession, drop: Drop, sent: Sequence[DropAppl
     for application, to, org_name in await _orgs(db, sent):
         if application.decision == ApplicationDecision.ACCEPTED.value:
             units = application.allocated_units
-            await _send(
+            await schedule_email(
+                background_tasks,
+                _send,
                 KIND_SEAT_ACCEPTED,
                 (application.id,),
                 to,
@@ -129,7 +139,9 @@ async def notify_decisions(db: AsyncSession, drop: Drop, sent: Sequence[DropAppl
                 button="Open campaign",
             )
         elif application.decision == ApplicationDecision.DENIED.value:
-            ok = await send_application_denied_email(
+            ok = await schedule_email(
+                background_tasks,
+                send_application_denied_email,
                 to,
                 org_name=org_name,
                 drop_title=drop.title,
@@ -141,7 +153,11 @@ async def notify_decisions(db: AsyncSession, drop: Drop, sent: Sequence[DropAppl
 
 
 async def notify_shipped(
-    db: AsyncSession, application: DropApplication, shipment: dict[str, Any]
+    db: AsyncSession,
+    application: DropApplication,
+    shipment: dict[str, Any],
+    *,
+    background_tasks: BackgroundTasks | None = None,
 ) -> None:
     """Tell the org its package is on the way. Silent once the drop is wrapped up."""
 
@@ -150,7 +166,9 @@ async def notify_shipped(
         return
     for _, to, org_name in await _orgs(db, [application]):
         tracking = f"{str(shipment['carrier']).upper()} {shipment['tracking_number']}"
-        await _send(
+        await schedule_email(
+            background_tasks,
+            _send,
             KIND_SEAT_SHIPPED,
             (shipment["id"],),
             to,
@@ -165,7 +183,11 @@ async def notify_shipped(
 
 
 async def notify_withdrew(
-    db: AsyncSession, application: DropApplication, *, was_live: bool
+    db: AsyncSession,
+    application: DropApplication,
+    *,
+    was_live: bool,
+    background_tasks: BackgroundTasks | None = None,
 ) -> None:
     """Confirm to the org; if it held a live seat, tell BUZZ ops to find a substitute."""
 
@@ -173,7 +195,9 @@ async def notify_withdrew(
     if drop is None:
         return
     for _, to, org_name in await _orgs(db, [application]):
-        await _send(
+        await schedule_email(
+            background_tasks,
+            _send,
             KIND_SEAT_WITHDREW,
             (application.id,),
             to,
@@ -187,7 +211,9 @@ async def notify_withdrew(
         )
         if not was_live:
             continue
-        await _send(
+        await schedule_email(
+            background_tasks,
+            _send,
             KIND_SEAT_WITHDREW_OPS,
             (application.id,),
             CONTACT_EMAIL,
@@ -200,11 +226,15 @@ async def notify_withdrew(
 
 
 async def notify_wrapped(
-    db: AsyncSession, drop: Drop, not_selected: Sequence[DropApplication]
+    db: AsyncSession,
+    drop: Drop,
+    not_selected: Sequence[DropApplication],
+    *,
+    background_tasks: BackgroundTasks | None = None,
 ) -> None:
     """Leftover applicants hear "not selected", live orgs get thanks, the brand a recap."""
 
-    await notify_decisions(db, drop, not_selected)
+    await notify_decisions(db, drop, not_selected, background_tasks=background_tasks)
     if drop.wrapped_at is None:
         return
     live = list(
@@ -214,7 +244,9 @@ async def notify_wrapped(
     )
     links_until = (as_utc(drop.wrapped_at) + ORG_LINK_GRACE).strftime("%b %-d")
     for application, to, org_name in await _orgs(db, live):
-        await _send(
+        await schedule_email(
+            background_tasks,
+            _send,
             KIND_DROP_WRAPPED_ORG,
             (application.id,),
             to,
@@ -228,7 +260,9 @@ async def notify_wrapped(
         )
     brand = await _brand(db, drop)
     if brand is not None:
-        await _send(
+        await schedule_email(
+            background_tasks,
+            _send,
             KIND_DROP_WRAPPED,
             (drop.id,),
             brand.company_email.strip(),
@@ -242,7 +276,9 @@ async def notify_wrapped(
         )
 
 
-async def notify_canceled(db: AsyncSession, drop: Drop) -> None:
+async def notify_canceled(
+    db: AsyncSession, drop: Drop, *, background_tasks: BackgroundTasks | None = None
+) -> None:
     """Every org still in the running as it sees it (any seat not ended or sent a
     denial, drafts included) and the brand, once each."""
 
@@ -254,7 +290,9 @@ async def notify_canceled(db: AsyncSession, drop: Drop) -> None:
         )
     )
     for application, to, org_name in await _orgs(db, seats):
-        await _send(
+        await schedule_email(
+            background_tasks,
+            _send,
             KIND_DROP_CANCELED_ORG,
             (application.id,),
             to,
@@ -268,7 +306,9 @@ async def notify_canceled(db: AsyncSession, drop: Drop) -> None:
         )
     brand = await _brand(db, drop)
     if brand is not None:
-        await _send(
+        await schedule_email(
+            background_tasks,
+            _send,
             KIND_DROP_CANCELED,
             (drop.id,),
             brand.company_email.strip(),

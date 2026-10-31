@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy import select as sa_select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -264,6 +264,7 @@ async def put_seat_decision(
     response_model=DataResponse[SendDecisionsResponse],
 )
 async def post_send_decisions(
+    background_tasks: BackgroundTasks,
     drop_id: uuid.UUID,
     user: CurrentBrand,
     db: AsyncSession = Depends(get_db),
@@ -273,7 +274,7 @@ async def post_send_decisions(
     brand = await _require_brand(db, user)
     await resolve_brand_drop(db, brand, drop_id)
     drop = await lock_drop(db, drop_id)
-    result = await send_decisions(db, drop, actor="brand")
+    result = await send_decisions(db, drop, actor="brand", background_tasks=background_tasks)
     return api_response(data=SendDecisionsResponse.model_validate(result))
 
 

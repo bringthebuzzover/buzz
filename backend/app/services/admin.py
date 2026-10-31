@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
+from fastapi import BackgroundTasks
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -67,6 +68,7 @@ from app.services.email import (
     send_org_ig_switch_connect_email,
     send_org_undenied_email,
 )
+from app.services.email_tasks import schedule_email
 from app.services.erased_org_participation import TOMBSTONE_ORG_NAME
 from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import InstagramClient
@@ -220,6 +222,7 @@ async def approve_org(
     org_id: UUID,
     *,
     tester_invite_confirmed: bool = False,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Approve a pending org → pending_instagram (or active if IG already bound)."""
     org = await db.get(Organization, org_id)
@@ -255,7 +258,9 @@ async def approve_org(
         user.status = OrgUserStatus.ACTIVE.value
         await db.flush()
         await promote_drop_apply_intents(db, user)
-        await send_org_approved_email(
+        await schedule_email(
+            background_tasks,
+            send_org_approved_email,
             user.edu_email or "",
             org_name=org.org_name,
             idempotency_key=build_idempotency_key(KIND_ORG_APPROVED_BOUND, org.id),
@@ -264,7 +269,9 @@ async def approve_org(
         user.status = OrgUserStatus.PENDING_INSTAGRAM.value
         connect_token, connect_token_id = await create_org_connect_token(db, org, user)
         await db.flush()
-        await send_org_approved_email(
+        await schedule_email(
+            background_tasks,
+            send_org_approved_email,
             user.edu_email or "",
             org_name=org.org_name,
             connect_token=connect_token,
@@ -274,7 +281,9 @@ async def approve_org(
     return {"org_id": str(org.id), "status": user.status}
 
 
-async def resend_org_connect(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
+async def resend_org_connect(
+    db: AsyncSession, org_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Mint a fresh connect token and email it (pending_instagram only)."""
     org = await db.get(Organization, org_id)
     if org is None:
@@ -296,7 +305,9 @@ async def resend_org_connect(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     await db.flush()
     switch = await latest_approved_switch(db, org.id)
     if switch is not None:
-        email_sent = await send_org_ig_switch_connect_email(
+        email_queued = await schedule_email(
+            background_tasks,
+            send_org_ig_switch_connect_email,
             user.edu_email or "",
             org_name=org.org_name,
             connect_token=raw,
@@ -304,16 +315,20 @@ async def resend_org_connect(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
             idempotency_key=build_idempotency_key(KIND_IG_SWITCH_CONNECT, connect_token_id),
         )
     else:
-        email_sent = await send_org_approved_email(
+        email_queued = await schedule_email(
+            background_tasks,
+            send_org_approved_email,
             user.edu_email or "",
             org_name=org.org_name,
             connect_token=raw,
             idempotency_key=build_idempotency_key(KIND_ORG_APPROVED, connect_token_id),
         )
-    return {"org_id": str(org.id), "status": user.status, "email_sent": email_sent}
+    return {"org_id": str(org.id), "status": user.status, "email_queued": email_queued}
 
 
-async def resend_all_pending_instagram_connect(db: AsyncSession) -> dict[str, Any]:
+async def resend_all_pending_instagram_connect(
+    db: AsyncSession, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Email Connect Instagram to every org whose last step is that bind.
 
     Selects ``pending_instagram`` only — not unverified, awaiting-approval,
@@ -330,7 +345,7 @@ async def resend_all_pending_instagram_connect(db: AsyncSession) -> dict[str, An
         )
     )
     targeted = 0
-    sent = 0
+    queued = 0
     failed = 0
     skipped = 0
     for org_id, edu_email in rows.all():
@@ -339,24 +354,26 @@ async def resend_all_pending_instagram_connect(db: AsyncSession) -> dict[str, An
             skipped += 1
             continue
         try:
-            out = await resend_org_connect(db, org_id)
+            out = await resend_org_connect(db, org_id, background_tasks=background_tasks)
         except BuzzAPIException:
             logger.warning("Bulk connect email skipped failed org %s", org_id)
             failed += 1
             continue
-        if out.get("email_sent"):
-            sent += 1
+        if out.get("email_queued"):
+            queued += 1
         else:
             failed += 1
     return {
         "targeted": targeted,
-        "sent": sent,
+        "queued": queued,
         "failed": failed,
         "skipped": skipped,
     }
 
 
-async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
+async def deny_org(
+    db: AsyncSession, org_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Deny a pending org: set user.status=denied."""
     org = await db.get(Organization, org_id)
     if org is None:
@@ -380,7 +397,9 @@ async def deny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
     await db.flush()
     await commit_revocation(db)
 
-    await send_org_denied_email(user.edu_email or "", org_name=org.org_name)
+    await schedule_email(
+        background_tasks, send_org_denied_email, user.edu_email or "", org_name=org.org_name
+    )
 
     return {"org_id": str(org.id), "status": user.status}
 
@@ -439,6 +458,7 @@ async def create_brand(
     instagram_handle: str | None,
     intent_message: str | None,
     approve_now: bool = False,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Admin-provision a brand account; optionally approve and send the invite."""
     from app.services.brand_auth import apply_brand
@@ -452,11 +472,13 @@ async def create_brand(
     )
     brand_id = UUID(created["brand_id"])
     if approve_now:
-        return await approve_brand(db, brand_id)
+        return await approve_brand(db, brand_id, background_tasks=background_tasks)
     return created
 
 
-async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
+async def approve_brand(
+    db: AsyncSession, brand_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Approve a pending brand, create an invite token, and send the setup email."""
     brand = await db.get(Brand, brand_id)
     if brand is None:
@@ -482,7 +504,9 @@ async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     from app.services.brand_auth import create_brand_invite
 
     token, invite_id = await create_brand_invite(db, brand, user)
-    email_sent = await send_brand_invite_email(
+    email_queued = await schedule_email(
+        background_tasks,
+        send_brand_invite_email,
         brand.company_email,
         token,
         brand_name=brand.brand_name,
@@ -492,11 +516,13 @@ async def approve_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     return {
         "brand_id": str(brand.id),
         "status": brand.status,
-        "email_sent": email_sent,
+        "email_queued": email_queued,
     }
 
 
-async def deny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
+async def deny_brand(
+    db: AsyncSession, brand_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Deny a pending brand: set brand + user to denied, then email the brand."""
     brand = await db.get(Brand, brand_id)
     if brand is None:
@@ -517,12 +543,16 @@ async def deny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     await db.flush()
     await commit_revocation(db)
 
-    await send_brand_denied_email(brand.company_email, brand_name=brand.brand_name)
+    await schedule_email(
+        background_tasks, send_brand_denied_email, brand.company_email, brand_name=brand.brand_name
+    )
 
     return {"brand_id": str(brand.id), "status": brand.status}
 
 
-async def undeny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
+async def undeny_org(
+    db: AsyncSession, org_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Return a denied org to pending_approval so approve_org can run again."""
     org = await db.get(Organization, org_id)
     if org is None:
@@ -542,11 +572,15 @@ async def undeny_org(db: AsyncSession, org_id: UUID) -> dict[str, Any]:
 
     user.status = OrgUserStatus.PENDING_APPROVAL.value
     await db.flush()
-    await send_org_undenied_email(user.edu_email or "", org_name=org.org_name)
+    await schedule_email(
+        background_tasks, send_org_undenied_email, user.edu_email or "", org_name=org.org_name
+    )
     return {"org_id": str(org.id), "status": user.status}
 
 
-async def undeny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
+async def undeny_brand(
+    db: AsyncSession, brand_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Return a denied brand to pending_review so approve_brand can run again."""
     brand = await db.get(Brand, brand_id)
     if brand is None:
@@ -564,11 +598,18 @@ async def undeny_brand(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
     if user is not None:
         user.status = OrgUserStatus.PENDING_APPROVAL.value
     await db.flush()
-    await send_brand_undenied_email(brand.company_email, brand_name=brand.brand_name)
+    await schedule_email(
+        background_tasks,
+        send_brand_undenied_email,
+        brand.company_email,
+        brand_name=brand.brand_name,
+    )
     return {"brand_id": str(brand.id), "status": brand.status}
 
 
-async def resend_brand_invite(db: AsyncSession, brand_id: UUID) -> dict[str, Any]:
+async def resend_brand_invite(
+    db: AsyncSession, brand_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Re-issue a setup invite for an approved brand that never set a password."""
     brand = await db.get(Brand, brand_id)
     if brand is None:
@@ -595,13 +636,15 @@ async def resend_brand_invite(db: AsyncSession, brand_id: UUID) -> dict[str, Any
     from app.services.brand_auth import create_brand_invite
 
     token, invite_id = await create_brand_invite(db, brand, user)
-    email_sent = await send_brand_invite_email(
+    email_queued = await schedule_email(
+        background_tasks,
+        send_brand_invite_email,
         brand.company_email,
         token,
         brand_name=brand.brand_name,
         idempotency_key=build_idempotency_key(KIND_BRAND_INVITE, invite_id),
     )
-    if not email_sent:
+    if not email_queued:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,
             "We could not send the invite email. Please try again.",
@@ -610,7 +653,7 @@ async def resend_brand_invite(db: AsyncSession, brand_id: UUID) -> dict[str, Any
     return {
         "brand_id": str(brand.id),
         "status": brand.status,
-        "email_sent": True,
+        "email_queued": True,
     }
 
 
@@ -627,7 +670,12 @@ def _require_compose_fields(subject: str, body: str) -> tuple[str, str]:
 
 
 async def compose_org_email(
-    db: AsyncSession, user_id: UUID, subject: str, body: str
+    db: AsyncSession,
+    user_id: UUID,
+    subject: str,
+    body: str,
+    *,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Send a freeform email to an org's .edu (PRODUCT admin compose)."""
     subj, text = _require_compose_fields(subject, body)
@@ -641,7 +689,7 @@ async def compose_org_email(
             "This organization has no email on file.",
             status_code=400,
         )
-    sent = await send_admin_compose_email(to_email, subj, text)
+    sent = await schedule_email(background_tasks, send_admin_compose_email, to_email, subj, text)
     if not sent:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,
@@ -652,7 +700,12 @@ async def compose_org_email(
 
 
 async def compose_brand_email(
-    db: AsyncSession, brand_id: UUID, subject: str, body: str
+    db: AsyncSession,
+    brand_id: UUID,
+    subject: str,
+    body: str,
+    *,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Send a freeform email to a brand's company email (PRODUCT admin compose)."""
     subj, text = _require_compose_fields(subject, body)
@@ -667,7 +720,7 @@ async def compose_brand_email(
             "This brand has no email on file.",
             status_code=400,
         )
-    sent = await send_admin_compose_email(to_email, subj, text)
+    sent = await schedule_email(background_tasks, send_admin_compose_email, to_email, subj, text)
     if not sent:
         raise BuzzAPIException(
             errors.EMAIL_SEND_FAILED,
@@ -685,6 +738,7 @@ async def add_org_to_drop(
     allocated_units: int | None,
     email_org: bool,
     email_brand: bool,
+    background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     """Write an accepted, already-sent seat without reopening apply or bumping capacity.
 
@@ -778,13 +832,15 @@ async def add_org_to_drop(
 
     portal_ready = org_user.status == OrgUserStatus.ACTIVE.value
     org_name = org.org_name or "an organization"
-    email_org_sent: bool | None = None
-    email_brand_sent: bool | None = None
+    email_org_queued: bool | None = None
+    email_brand_queued: bool | None = None
     if email_org:
         to_org = (org_user.edu_email or "").strip()
-        email_org_sent = bool(
+        email_org_queued = bool(
             to_org
-            and await send_late_add_org_email(
+            and await schedule_email(
+                background_tasks,
+                send_late_add_org_email,
                 to_org,
                 org_name=org_name,
                 drop_title=drop.title,
@@ -795,9 +851,11 @@ async def add_org_to_drop(
         )
     if email_brand:
         to_brand = (brand.company_email or "").strip()
-        email_brand_sent = bool(
+        email_brand_queued = bool(
             to_brand
-            and await send_late_add_brand_email(
+            and await schedule_email(
+                background_tasks,
+                send_late_add_brand_email,
                 to_brand,
                 org_name=org_name,
                 drop_title=drop.title,
@@ -812,8 +870,8 @@ async def add_org_to_drop(
         "org_id": org.id,
         "never_applied": never_applied,
         "portal_ready": portal_ready,
-        "email_org_sent": email_org_sent,
-        "email_brand_sent": email_brand_sent,
+        "email_org_queued": email_org_queued,
+        "email_brand_queued": email_brand_queued,
     }
 
 
@@ -872,7 +930,9 @@ async def clear_org_instagram_token(db: AsyncSession, user_id: UUID) -> dict[str
     return {"user_id": str(user.id), "instagram_token_cleared": True}
 
 
-async def wrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
+async def wrap_drop(
+    db: AsyncSession, drop_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> dict[str, Any]:
     """Wrap a published drop up: off the feed, reporting period over.
 
     Not a lock: BUZZ can still late-add and link, orgs keep linking for
@@ -919,7 +979,7 @@ async def wrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
         note = f"wrapped up; {len(not_selected)} not selected" if not_selected else "wrapped up"
         db.add(DropTrackerEvent(drop_id=drop.id, stage="wrapped", note=note))
         await db.flush()
-        await notify_wrapped(db, drop, not_selected)
+        await notify_wrapped(db, drop, not_selected, background_tasks=background_tasks)
     stage = await drop_stage(db, drop)
     return {"drop_id": drop.id, "stage": stage}
 
@@ -937,7 +997,13 @@ async def unwrap_drop(db: AsyncSession, drop_id: UUID) -> dict[str, Any]:
     return {"drop_id": drop.id, "stage": stage}
 
 
-async def cancel_drop(db: AsyncSession, drop_id: UUID, *, confirm: str) -> dict[str, Any]:
+async def cancel_drop(
+    db: AsyncSession,
+    drop_id: UUID,
+    *,
+    confirm: str,
+    background_tasks: BackgroundTasks | None = None,
+) -> dict[str, Any]:
     """Cancel a published, unwrapped drop. Final (D-11): duplicate it instead.
 
     Off the feed and frozen: no new seats, decisions, shipments or links, and
@@ -954,7 +1020,7 @@ async def cancel_drop(db: AsyncSession, drop_id: UUID, *, confirm: str) -> dict[
     drop.canceled_at = datetime.now(timezone.utc)
     db.add(DropTrackerEvent(drop_id=drop.id, stage=DropStage.CANCELED.value, note="canceled"))
     await db.flush()
-    await notify_canceled(db, drop)
+    await notify_canceled(db, drop, background_tasks=background_tasks)
     return {"drop_id": drop.id, "stage": await drop_stage(db, drop)}
 
 
@@ -1038,7 +1104,9 @@ async def create_admin_drop(
     return drop
 
 
-async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
+async def publish_drop(
+    db: AsyncSession, drop_id: UUID, *, background_tasks: BackgroundTasks | None = None
+) -> Drop:
     """Set published_at, log it, email the brand."""
 
     drop = await db.get(Drop, drop_id)
@@ -1079,7 +1147,9 @@ async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
     brand = await db.get(Brand, drop.brand_id)
     if brand is not None and brand.company_email:
         drop_url = f"{settings.FRONTEND_URL}/brand/drops/{drop.id}"
-        await send_drop_published_email(
+        await schedule_email(
+            background_tasks,
+            send_drop_published_email,
             brand.company_email,
             brand_name=brand.brand_name,
             drop_title=drop.title,
@@ -1090,7 +1160,12 @@ async def publish_drop(db: AsyncSession, drop_id: UUID) -> Drop:
 
 
 async def hide_drop(
-    db: AsyncSession, drop_id: UUID, *, confirm: str, notify_brand: bool = False
+    db: AsyncSession,
+    drop_id: UUID,
+    *,
+    confirm: str,
+    notify_brand: bool = False,
+    background_tasks: BackgroundTasks | None = None,
 ) -> Drop:
     """Hide a published drop from consumer portals (PRODUCT §5.2.2)."""
 
@@ -1125,7 +1200,9 @@ async def hide_drop(
     if notify_brand:
         brand = await db.get(Brand, drop.brand_id)
         if brand is not None and brand.company_email:
-            await send_drop_hidden_email(
+            await schedule_email(
+                background_tasks,
+                send_drop_hidden_email,
                 brand.company_email,
                 brand_name=brand.brand_name,
                 drop_title=drop.title,

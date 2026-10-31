@@ -474,7 +474,7 @@ export type BrandInviteActionResult =
 
 /** Admin copy when approve/create succeeded but the invite mail did not. */
 export const INVITE_EMAIL_FAILED_COPY =
-  "Brand approved, but the invite email failed to send. Open the brand and use Resend invite.";
+  "Brand approved, but the invite email could not be queued. Open the brand and use Resend invite.";
 
 export function useApproveBrand() {
   return useAdminMutation(async (brandId: string) => {

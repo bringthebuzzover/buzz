@@ -46,12 +46,12 @@ function ListedEduEmail({ email }: { email: string }) {
   );
 }
 
-function readEmailSentFlag(locationState: unknown): boolean {
+function readEmailQueuedFlag(locationState: unknown): boolean {
   const fromState =
     locationState &&
     typeof locationState === "object" &&
-    "emailSent" in locationState
-      ? (locationState as { emailSent?: boolean }).emailSent
+    "emailQueued" in locationState
+      ? (locationState as { emailQueued?: boolean }).emailQueued
       : undefined;
   if (typeof fromState === "boolean") {
     return fromState;
@@ -72,7 +72,7 @@ function readEduEmail(locationState: unknown): string {
   return (sessionStorage.getItem(VERIFY_EDU_EMAIL_KEY) ?? "").trim().toLowerCase();
 }
 
-function markEmailSent(ok: boolean) {
+function markEmailQueued(ok: boolean) {
   sessionStorage.setItem(VERIFY_EMAIL_SENT_KEY, ok ? "1" : "0");
 }
 
@@ -198,7 +198,7 @@ function VerifyWithToken({ token }: { token: string }) {
       if (sentTo) {
         markEduEmail(sentTo);
       }
-      markEmailSent(true);
+      markEmailQueued(true);
       stripTokenFromUrl();
       setState({ kind: "resent", email: sentTo });
     } catch (err) {
@@ -254,7 +254,7 @@ function VerifyWithToken({ token }: { token: string }) {
   if (state.kind === "resent") {
     return (
       <StatusHero
-        title="New Link Sent"
+        title="New Link Queued"
         notice={<SuccessBanner>{JUNK_HINT}</SuccessBanner>}
       >
         <p>Check this school inbox (and Junk) for a fresh verification link.</p>
@@ -324,12 +324,12 @@ function AwaitVerification() {
   const location = useLocation();
   const resend = useResendVerification();
   const listedEmail = (user?.email ?? "").trim().toLowerCase();
-  const [emailSent, setEmailSent] = useState(() =>
-    readEmailSentFlag(location.state),
+  const [emailQueued, setEmailQueued] = useState(() =>
+    readEmailQueuedFlag(location.state),
   );
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(
-    emailSent
+    emailQueued
       ? null
       : "We could not send the verification email. Use Resend below to try again.",
   );
@@ -349,12 +349,12 @@ function AwaitVerification() {
     setError(null);
     try {
       await resend.mutateAsync();
-      markEmailSent(true);
-      setEmailSent(true);
-      setNotice("Verification email re-sent. Check your inbox.");
+      markEmailQueued(true);
+      setEmailQueued(true);
+      setNotice("Verification email queued. Check your inbox.");
     } catch (err) {
-      markEmailSent(false);
-      setEmailSent(false);
+      markEmailQueued(false);
+      setEmailQueued(false);
       setError(
         err instanceof ApiError
           ? err.message
@@ -391,10 +391,10 @@ function AwaitVerification() {
       }
     >
       <p>
-        {emailSent
+        {emailQueued
           ? listedEmail
-            ? "We sent a verification link to this school email. Click it to continue."
-            : "We sent a verification link to your school email. Click it to continue."
+            ? "We queued a verification email for this school email. Click it to continue."
+            : "We queued a verification email for your school email. Click it to continue."
           : "Your profile is saved, but we could not send the verification email yet. Use Resend below when you are ready."}
       </p>
       {listedEmail ? <ListedEduEmail email={listedEmail} /> : null}
@@ -407,13 +407,13 @@ function PublicAwaitVerification() {
   const location = useLocation();
   const publicResend = usePublicResendVerification();
   const dropIntent = readDropIntent(location.state);
-  const [emailSent, setEmailSent] = useState(() =>
-    readEmailSentFlag(location.state),
+  const [emailQueued, setEmailQueued] = useState(() =>
+    readEmailQueuedFlag(location.state),
   );
   const [eduEmail] = useState(() => readEduEmail(location.state));
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(
-    emailSent
+    emailQueued
       ? null
       : "We could not send the verification email. Use Resend below to try again.",
   );
@@ -431,12 +431,12 @@ function PublicAwaitVerification() {
     try {
       await publicResend.mutateAsync(trimmed);
       markEduEmail(trimmed);
-      markEmailSent(true);
-      setEmailSent(true);
-      setNotice("Verification email re-sent. Check your inbox (and Junk).");
+      markEmailQueued(true);
+      setEmailQueued(true);
+      setNotice("Verification email queued. Check your inbox (and Junk).");
     } catch (err) {
-      markEmailSent(false);
-      setEmailSent(false);
+      markEmailQueued(false);
+      setEmailQueued(false);
       setError(
         err instanceof ApiError
           ? err.message
@@ -485,10 +485,10 @@ function PublicAwaitVerification() {
     >
       <p>
         {eduEmail
-          ? emailSent
-            ? "We sent a verification link to this school email. Click it to continue."
+          ? emailQueued
+            ? "We queued a verification email for this school email. Click it to continue."
             : "Use Resend below to send the verification link to this school email."
-          : "We sent a verification link to the school email on your application. Click it to continue."}
+          : "We queued a verification email for the school email on your application. Click it to continue."}
       </p>
       {eduEmail ? <ListedEduEmail email={eduEmail} /> : null}
     </StatusHero>

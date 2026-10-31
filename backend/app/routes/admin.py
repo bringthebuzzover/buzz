@@ -12,7 +12,7 @@ import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -228,10 +228,11 @@ async def erase_org_endpoint(
     user_id: uuid.UUID,
     body: AdminOrgEraseRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Erase an org: scrub identity and freeze its campaign metrics."""
-    result = await erase_org_user(db, user_id, body.confirm)
+    result = await erase_org_user(db, user_id, body.confirm, background_tasks=background_tasks)
     return api_response(data=AdminOrgEraseResponse.model_validate(result))
 
 
@@ -243,10 +244,13 @@ async def compose_org_email_endpoint(
     user_id: uuid.UUID,
     body: AdminComposeEmailRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Freeform Resend to the org .edu. To is the profile email, not the body."""
-    result = await compose_org_email(db, user_id, body.subject, body.body)
+    result = await compose_org_email(
+        db, user_id, body.subject, body.body, background_tasks=background_tasks
+    )
     return api_response(data=AdminComposeEmailResponse.model_validate(result))
 
 
@@ -269,9 +273,15 @@ async def approve_org_endpoint(
     org_id: uuid.UUID,
     payload: AdminOrgApproveRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await approve_org(db, org_id, tester_invite_confirmed=payload.tester_invite_confirmed)
+    result = await approve_org(
+        db,
+        org_id,
+        tester_invite_confirmed=payload.tester_invite_confirmed,
+        background_tasks=background_tasks,
+    )
     return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 
@@ -281,13 +291,14 @@ async def approve_org_endpoint(
 )
 async def resend_all_pending_instagram_connect_endpoint(
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Email Connect Instagram to every ``pending_instagram`` org.
 
     Does not email orgs still verifying school email or awaiting approval.
     """
-    result = await resend_all_pending_instagram_connect(db)
+    result = await resend_all_pending_instagram_connect(db, background_tasks=background_tasks)
     return api_response(data=AdminResendConnectAllResponse.model_validate(result))
 
 
@@ -298,9 +309,10 @@ async def resend_all_pending_instagram_connect_endpoint(
 async def resend_org_connect_endpoint(
     org_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await resend_org_connect(db, org_id)
+    result = await resend_org_connect(db, org_id, background_tasks=background_tasks)
     return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 
@@ -308,9 +320,10 @@ async def resend_org_connect_endpoint(
 async def deny_org_endpoint(
     org_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await deny_org(db, org_id)
+    result = await deny_org(db, org_id, background_tasks=background_tasks)
     return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 
@@ -318,9 +331,10 @@ async def deny_org_endpoint(
 async def undeny_org_endpoint(
     org_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await undeny_org(db, org_id)
+    result = await undeny_org(db, org_id, background_tasks=background_tasks)
     return api_response(data=AdminOrgStatusResponse.model_validate(result))
 
 
@@ -359,6 +373,7 @@ async def approve_ig_change_request_endpoint(
     request_id: uuid.UUID,
     body: AdminIgChangeApproveRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     result = await approve_ig_change_request(
@@ -366,6 +381,7 @@ async def approve_ig_change_request_endpoint(
         request_id,
         kind=body.kind,
         tester_invite_confirmed=body.tester_invite_confirmed,
+        background_tasks=background_tasks,
     )
     return api_response(data=AdminIgChangeRequestItem.model_validate(result))
 
@@ -377,10 +393,13 @@ async def approve_ig_change_request_endpoint(
 async def deny_ig_change_request_endpoint(
     request_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     return api_response(
-        data=AdminIgChangeRequestItem.model_validate(await deny_ig_change_request(db, request_id))
+        data=AdminIgChangeRequestItem.model_validate(
+            await deny_ig_change_request(db, request_id, background_tasks=background_tasks)
+        )
     )
 
 
@@ -449,6 +468,7 @@ async def get_brand_detail_endpoint(
 async def create_brand_endpoint(
     payload: AdminCreateBrandRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Provision a brand (and optionally approve + invite) when self-reg is off."""
@@ -459,6 +479,7 @@ async def create_brand_endpoint(
         instagram_handle=payload.instagram_handle,
         intent_message=payload.intent_message,
         approve_now=payload.approve_now,
+        background_tasks=background_tasks,
     )
     return api_response(data=AdminBrandInviteResponse.model_validate(result))
 
@@ -467,9 +488,10 @@ async def create_brand_endpoint(
 async def approve_brand_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await approve_brand(db, brand_id)
+    result = await approve_brand(db, brand_id, background_tasks=background_tasks)
     return api_response(data=AdminBrandInviteResponse.model_validate(result))
 
 
@@ -477,9 +499,10 @@ async def approve_brand_endpoint(
 async def deny_brand_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await deny_brand(db, brand_id)
+    result = await deny_brand(db, brand_id, background_tasks=background_tasks)
     return api_response(data=AdminBrandStatusResponse.model_validate(result))
 
 
@@ -487,9 +510,10 @@ async def deny_brand_endpoint(
 async def undeny_brand_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await undeny_brand(db, brand_id)
+    result = await undeny_brand(db, brand_id, background_tasks=background_tasks)
     return api_response(data=AdminBrandStatusResponse.model_validate(result))
 
 
@@ -499,9 +523,10 @@ async def undeny_brand_endpoint(
 async def resend_brand_invite_endpoint(
     brand_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await resend_brand_invite(db, brand_id)
+    result = await resend_brand_invite(db, brand_id, background_tasks=background_tasks)
     return api_response(data=AdminBrandInviteResponse.model_validate(result))
 
 
@@ -513,10 +538,11 @@ async def erase_brand_endpoint(
     brand_id: uuid.UUID,
     body: AdminBrandEraseRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Hybrid erase: scrub brand login/PII; keep drops and org campaign history."""
-    result = await erase_brand(db, brand_id, body.confirm)
+    result = await erase_brand(db, brand_id, body.confirm, background_tasks=background_tasks)
     return api_response(data=AdminBrandEraseResponse.model_validate(result))
 
 
@@ -528,10 +554,13 @@ async def compose_brand_email_endpoint(
     brand_id: uuid.UUID,
     body: AdminComposeEmailRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Freeform Resend to the brand company email. To is not client-supplied."""
-    result = await compose_brand_email(db, brand_id, body.subject, body.body)
+    result = await compose_brand_email(
+        db, brand_id, body.subject, body.body, background_tasks=background_tasks
+    )
     return api_response(data=AdminComposeEmailResponse.model_validate(result))
 
 
@@ -634,9 +663,10 @@ async def create_admin_drop_endpoint(
 async def publish_drop_endpoint(
     drop_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    await publish_drop(db, drop_id)
+    await publish_drop(db, drop_id, background_tasks=background_tasks)
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 
@@ -648,9 +678,16 @@ async def hide_drop_endpoint(
     drop_id: uuid.UUID,
     payload: AdminDropHideRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    await hide_drop(db, drop_id, confirm=payload.confirm, notify_brand=payload.notify_brand)
+    await hide_drop(
+        db,
+        drop_id,
+        confirm=payload.confirm,
+        notify_brand=payload.notify_brand,
+        background_tasks=background_tasks,
+    )
     return api_response(data=AdminDropDetail(**await get_drop_detail(db, drop_id)))
 
 
@@ -697,6 +734,7 @@ async def add_org_to_drop_endpoint(
     drop_id: uuid.UUID,
     payload: AdminAddOrgRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Accept an org onto a published drop without reopening apply."""
@@ -707,6 +745,7 @@ async def add_org_to_drop_endpoint(
         allocated_units=payload.allocated_units,
         email_org=payload.email_org,
         email_brand=payload.email_brand,
+        background_tasks=background_tasks,
     )
     return api_response(data=AdminAddOrgResponse.model_validate(result))
 
@@ -770,11 +809,12 @@ async def put_seat_decision_endpoint(
 async def send_decisions_endpoint(
     drop_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Send every drafted decision on the drop (any stage)."""
     drop = await lock_drop(db, drop_id)
-    result = await send_decisions(db, drop, actor="admin")
+    result = await send_decisions(db, drop, actor="admin", background_tasks=background_tasks)
     return api_response(data=SendDecisionsResponse.model_validate(result))
 
 
@@ -782,9 +822,14 @@ async def send_decisions_endpoint(
 async def wrap_drop_endpoint(
     drop_id: uuid.UUID,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    return api_response(data=DropStageResponse.model_validate(await wrap_drop(db, drop_id)))
+    return api_response(
+        data=DropStageResponse.model_validate(
+            await wrap_drop(db, drop_id, background_tasks=background_tasks)
+        )
+    )
 
 
 @router.post("/drops/{drop_id}/cancel", response_model=DataResponse[DropStageResponse])
@@ -792,10 +837,13 @@ async def cancel_drop_endpoint(
     drop_id: uuid.UUID,
     payload: AdminCancelDropRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Cancel a published drop (typed title; final)."""
-    result = await cancel_drop(db, drop_id, confirm=payload.confirm)
+    result = await cancel_drop(
+        db, drop_id, confirm=payload.confirm, background_tasks=background_tasks
+    )
     return api_response(data=DropStageResponse.model_validate(result))
 
 
@@ -816,9 +864,16 @@ async def add_application_shipment(
     application_id: uuid.UUID,
     payload: AdminAddShipmentRequest,
     _user: CurrentAdmin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    result = await add_shipment(db, application_id, payload.tracking_number, payload.carrier)
+    result = await add_shipment(
+        db,
+        application_id,
+        payload.tracking_number,
+        payload.carrier,
+        background_tasks=background_tasks,
+    )
     return api_response(data=ShipmentItem.model_validate(result))
 
 

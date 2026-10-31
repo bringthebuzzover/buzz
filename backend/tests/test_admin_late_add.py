@@ -45,8 +45,8 @@ class TestAdminLateAdd:
         data = res.json()["data"]
         assert data["neverApplied"] is True
         assert data["portalReady"] is True
-        assert data["emailOrgSent"] is None
-        assert data["emailBrandSent"] is None
+        assert data["emailOrgQueued"] is None
+        assert data["emailBrandQueued"] is None
         row = await db_session.get(DropApplication, data["applicationId"])
         assert row is not None
         assert row.decision == ApplicationDecision.ACCEPTED.value
@@ -266,8 +266,8 @@ class TestAdminLateAdd:
         assert res.status_code == 200, res.text
         data = res.json()["data"]
         assert data["portalReady"] is False
-        assert data["emailOrgSent"] is False
-        assert data["emailBrandSent"] is False
+        assert data["emailOrgQueued"] is True
+        assert data["emailBrandQueued"] is True
         row = await db_session.get(DropApplication, data["applicationId"])
         assert row is not None
         assert row.decision == ApplicationDecision.ACCEPTED.value

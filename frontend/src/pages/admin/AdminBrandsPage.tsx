@@ -81,7 +81,7 @@ function InviteBrandForm() {
       setBrandName("");
       setCompanyEmail("");
       setInstagramHandle("");
-      if (approveNow && data.emailSent === false) {
+      if (approveNow && data.emailQueued === false) {
         setError(INVITE_EMAIL_FAILED_COPY);
       }
     } catch (err) {
@@ -172,7 +172,7 @@ export default function AdminBrandsPage() {
       const data = (await approve.mutateAsync(
         brandId,
       )) as BrandInviteActionResult;
-      if (data.emailSent === false) {
+      if (data.emailQueued === false) {
         setInviteNotice(INVITE_EMAIL_FAILED_COPY);
       }
     } catch {

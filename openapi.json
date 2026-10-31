@@ -155,7 +155,7 @@
             "title": "Applicationid",
             "type": "string"
           },
-          "emailBrandSent": {
+          "emailBrandQueued": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -164,9 +164,9 @@
                 "type": "null"
               }
             ],
-            "title": "Emailbrandsent"
+            "title": "Emailbrandqueued"
           },
-          "emailOrgSent": {
+          "emailOrgQueued": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -175,7 +175,7 @@
                 "type": "null"
               }
             ],
-            "title": "Emailorgsent"
+            "title": "Emailorgqueued"
           },
           "neverApplied": {
             "title": "Neverapplied",
@@ -675,8 +675,8 @@
             "title": "Brandid",
             "type": "string"
           },
-          "emailSent": {
-            "title": "Emailsent",
+          "emailQueued": {
+            "title": "Emailqueued",
             "type": "boolean"
           },
           "emailToDomain": {
@@ -698,7 +698,7 @@
         "required": [
           "brandId",
           "status",
-          "emailSent"
+          "emailQueued"
         ],
         "title": "AdminBrandEraseResponse",
         "type": "object"
@@ -776,14 +776,14 @@
         "type": "object"
       },
       "AdminBrandInviteResponse": {
-        "description": "Approve / create-with-approve / resend-invite (may include email_sent).",
+        "description": "Approve / create-with-approve / resend-invite (may include email_queued).",
         "properties": {
           "brandId": {
             "format": "uuid",
             "title": "Brandid",
             "type": "string"
           },
-          "emailSent": {
+          "emailQueued": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -792,7 +792,7 @@
                 "type": "null"
               }
             ],
-            "title": "Emailsent"
+            "title": "Emailqueued"
           },
           "status": {
             "title": "Status",
@@ -2080,7 +2080,7 @@
             ],
             "title": "Eduemail"
           },
-          "emailSent": {
+          "emailQueued": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -2089,7 +2089,7 @@
                 "type": "null"
               }
             ],
-            "title": "Emailsent"
+            "title": "Emailqueued"
           },
           "finishedDropCount": {
             "anyOf": [
@@ -2639,8 +2639,8 @@
       },
       "AdminOrgEraseResponse": {
         "properties": {
-          "emailSent": {
-            "title": "Emailsent",
+          "emailQueued": {
+            "title": "Emailqueued",
             "type": "boolean"
           },
           "emailToDomain": {
@@ -2667,7 +2667,7 @@
         "required": [
           "userId",
           "status",
-          "emailSent"
+          "emailQueued"
         ],
         "title": "AdminOrgEraseResponse",
         "type": "object"
@@ -2905,7 +2905,7 @@
       },
       "AdminOrgStatusResponse": {
         "properties": {
-          "emailSent": {
+          "emailQueued": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -2914,7 +2914,7 @@
                 "type": "null"
               }
             ],
-            "title": "Emailsent"
+            "title": "Emailqueued"
           },
           "orgId": {
             "format": "uuid",
@@ -3017,14 +3017,14 @@
         "type": "object"
       },
       "AdminResendConnectAllResponse": {
-        "description": "Bulk Connect email for ``pending_instagram`` orgs only.",
+        "description": "Bulk Connect scheduling counts; delivery failures are logged after the response.",
         "properties": {
           "failed": {
             "title": "Failed",
             "type": "integer"
           },
-          "sent": {
-            "title": "Sent",
+          "queued": {
+            "title": "Queued",
             "type": "integer"
           },
           "skipped": {
@@ -3038,7 +3038,7 @@
         },
         "required": [
           "targeted",
-          "sent",
+          "queued",
           "failed",
           "skipped"
         ],
@@ -8972,7 +8972,7 @@
             ],
             "title": "Decidedkind"
           },
-          "emailSent": {
+          "emailQueued": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -8981,7 +8981,7 @@
                 "type": "null"
               }
             ],
-            "title": "Emailsent"
+            "title": "Emailqueued"
           },
           "id": {
             "format": "uuid",
@@ -9204,8 +9204,8 @@
       },
       "OrgOnboardingResponse": {
         "properties": {
-          "emailSent": {
-            "title": "Emailsent",
+          "emailQueued": {
+            "title": "Emailqueued",
             "type": "boolean"
           },
           "emailSentTo": {
@@ -9226,7 +9226,7 @@
           "orgId",
           "status",
           "emailSentTo",
-          "emailSent"
+          "emailQueued"
         ],
         "title": "OrgOnboardingResponse",
         "type": "object"

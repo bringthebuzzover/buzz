@@ -4,6 +4,8 @@
 import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
 
+import AdminOrgDetailPage from "./AdminOrgDetailPage";
+
 const idleMutation = () => ({
   mutate: jest.fn(),
   mutateAsync: jest.fn().mockResolvedValue({}),
@@ -47,8 +49,6 @@ jest.mock("../../api/hooks/useAdminHooks", () => ({
     isPending: false,
   }),
 }));
-
-import AdminOrgDetailPage from "./AdminOrgDetailPage";
 
 function orgDetail() {
   return {
@@ -115,7 +115,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
       cc: ["ae101@example.edu"],
     });
     mockEraseMutateAsync.mockResolvedValue({
-      emailSent: true,
+      emailQueued: true,
       emailToDomain: "cornell.edu",
     });
   });
@@ -286,6 +286,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
       userId: "11111111-1111-1111-1111-111111111111",
       confirm: "@test_org_admin",
     });
+    expect(document.body.textContent).toContain("Confirmation email queued");
     promptSpy.mockRestore();
   });
 

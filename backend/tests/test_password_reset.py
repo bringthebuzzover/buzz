@@ -52,7 +52,7 @@ async def test_brand_forgot_unknown_email_same_shape(app_client: AsyncClient) ->
 
 
 async def test_brand_forgot_send_failed_invalidates_token(
-    app_client: AsyncClient, db_session, monkeypatch
+    app_client: AsyncClient, db_session, monkeypatch, email_cleanup_session
 ) -> None:
     brand, user = await _active_brand(db_session, email="send-fail@brand.test")
 

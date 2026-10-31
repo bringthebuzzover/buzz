@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import uuid
 
+from fastapi import BackgroundTasks
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -214,7 +215,13 @@ async def get_my_campaign(
     )
 
 
-async def withdraw_my_campaign(db: AsyncSession, org_user: User, application_id: uuid.UUID) -> None:
+async def withdraw_my_campaign(
+    db: AsyncSession,
+    org_user: User,
+    application_id: uuid.UUID,
+    *,
+    background_tasks: BackgroundTasks | None = None,
+) -> None:
     """The org pulls out: any time while applied, or accepted before it ships.
 
     After shipping the product may need to come back, so BUZZ handles it.
@@ -234,7 +241,7 @@ async def withdraw_my_campaign(db: AsyncSession, org_user: User, application_id:
             status_code=409,
         )
     await end_seat(db, application, decision=ApplicationDecision.WITHDREW.value, reason=None)
-    await notify_withdrew(db, application, was_live=was_live)
+    await notify_withdrew(db, application, was_live=was_live, background_tasks=background_tasks)
 
 
 async def set_my_campaign_delivered(
