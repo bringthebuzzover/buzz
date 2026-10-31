@@ -495,27 +495,10 @@ class TestHealth:
         data = res.json()["data"]
         assert {"generatedAt", "pipeline", "instagramTokens", "integrity", "silent"} <= set(data)
         assert [s["key"] for s in data["pipeline"]] == [
-            "drop_autoclose",
             "metric_sync",
             "token_cleanup",
             "token_refresh",
         ]
-
-    async def test_autoclose_signal_flips(self, app_client: AsyncClient, db_session):
-        brand = await make_brand(db_session)
-        stub = await make_drop(
-            db_session,
-            brand,
-            apply_open_at=utcnow() - timedelta(days=10),
-            apply_close_at=utcnow() - timedelta(days=1),
-        )
-        stub.brand_tracker_stage = "request_received"  # legacy stub (signal removed in PR5)
-        await db_session.flush()
-
-        res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
-        signal = _signal(res.json()["data"], "pipeline", "drop_autoclose")
-        assert signal["count"] == 1
-        assert signal["ok"] is False
 
     async def test_instagram_token_buckets(self, app_client: AsyncClient, db_session):
         from app.security.token_crypto import encrypt_token
@@ -619,7 +602,7 @@ class TestHealth:
 
         failed = JobRun(
             id=uuid.uuid4(),
-            job="drop_autoclose",
+            job="token_cleanup",
             started_at=utcnow() - timedelta(minutes=30),
             finished_at=utcnow() - timedelta(minutes=25),
             ok=False,
@@ -629,22 +612,22 @@ class TestHealth:
         await db_session.flush()
 
         res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
-        detail = _signal(res.json()["data"], "pipeline", "drop_autoclose")["detail"]
+        detail = _signal(res.json()["data"], "pipeline", "token_cleanup")["detail"]
         assert "last run" not in detail
 
         ok_run = JobRun(
             id=uuid.uuid4(),
-            job="drop_autoclose",
+            job="token_cleanup",
             started_at=utcnow() - timedelta(minutes=10),
             finished_at=utcnow() - timedelta(minutes=5),
             ok=True,
-            summary={"closed": 0},
+            summary={"verification_tokens_deleted": 0},
         )
         db_session.add(ok_run)
         await db_session.flush()
 
         res = await app_client.get("/api/admin/health", headers=await admin_headers(db_session))
-        detail = _signal(res.json()["data"], "pipeline", "drop_autoclose")["detail"]
+        detail = _signal(res.json()["data"], "pipeline", "token_cleanup")["detail"]
         assert "last run" in detail
 
     async def test_story_posts_excluded_from_refresh_counters(

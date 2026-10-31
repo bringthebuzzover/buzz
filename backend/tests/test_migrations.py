@@ -127,8 +127,66 @@ async def test_alembic_matches_models() -> None:
             f"STDOUT:\n{check.stdout}\nSTDERR:\n{check.stderr}"
         )
         await _assert_drop_request_columns_nullable(parity_url)
+        await _assert_legacy_lifecycle_round_trip(parity_url)
     finally:
         await _drop_db(admin_url, parity_db)
+
+
+async def _assert_legacy_lifecycle_round_trip(parity_url: str) -> None:
+    """Rollback restores the old schema on a populated drop; re-upgrade preserves it."""
+    conn = await asyncpg.connect(parity_url.replace("postgresql+asyncpg://", "postgresql://", 1))
+    try:
+        drop_id = uuid.uuid4()
+        await conn.execute(
+            """
+            INSERT INTO drops (id, brand_id, title, description, image, location,
+                               capacity_total, apply_open_at, apply_close_at)
+            SELECT $1, id, 'Test drop', 'Test description', 'test.png', 'Test campus',
+                   1, now(), now() + interval '1 day'
+            FROM brands LIMIT 1
+            """,
+            drop_id,
+        )
+        legacy_columns = {
+            "brand_tracker_stage",
+            "manual_reopen",
+            "applicant_selection_finalized_at",
+            "tracking_number",
+        }
+        for direction, revision in (("downgrade", "c3e5a7b9d1f2"), ("upgrade", "head")):
+            result = _run_alembic([direction, revision], parity_url)
+            assert result.returncode == 0, result.stderr
+            columns = {
+                row["column_name"]: row
+                for row in await conn.fetch(
+                    "SELECT column_name, is_nullable, udt_name, character_maximum_length, "
+                    "column_default "
+                    "FROM information_schema.columns "
+                    "WHERE table_schema = 'public' AND table_name = 'drops'"
+                )
+            }
+            if direction == "downgrade":
+                assert legacy_columns <= columns.keys()
+                assert columns["brand_tracker_stage"]["udt_name"] == "brand_tracker_stage"
+                assert columns["applicant_selection_finalized_at"]["udt_name"] == "timestamptz"
+                assert columns["tracking_number"]["character_maximum_length"] == 255
+                for name in legacy_columns - {"manual_reopen"}:
+                    assert columns[name]["is_nullable"] == "YES"
+                assert columns["manual_reopen"]["is_nullable"] == "NO"
+                assert columns["manual_reopen"]["column_default"] == "false"
+                row = await conn.fetchrow(
+                    "SELECT manual_reopen, brand_tracker_stage, "
+                    "applicant_selection_finalized_at, tracking_number FROM drops WHERE id = $1",
+                    drop_id,
+                )
+                assert tuple(row) == (False, None, None, None)
+            else:
+                assert legacy_columns.isdisjoint(columns)
+            assert (
+                await conn.fetchval("SELECT title FROM drops WHERE id = $1", drop_id) == "Test drop"
+            )
+    finally:
+        await conn.close()
 
 
 _STRUCTURED_DROP_REQUEST_COLUMNS = (

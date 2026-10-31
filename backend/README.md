@@ -135,7 +135,6 @@ Scheduled work runs as one-shot scripts a scheduler such as Railway Cron invokes
 extra runtime/worker. Each job is idempotent and prints a JSON summary.
 
 ```bash
-poetry run python scripts/run_job.py drop_autoclose   # §10.2 — every ~5 min
 poetry run python scripts/run_job.py notify_reminders # §10.6 — every ~5 min
 poetry run python scripts/run_job.py metric_sync      # §10.1 — every 8h (Instagram)
 poetry run python scripts/run_job.py autolink_scan    # §10.4 — daily, after metric_sync
@@ -144,8 +143,7 @@ poetry run python scripts/run_job.py token_cleanup    # §10.3 — daily
 ```
 
 Suggested cron (UTC): `metric_sync` 03:00 / 11:00 / 19:00 → `autolink_scan` 03:30 →
-`token_refresh` 04:00; `token_cleanup` 03:00; `drop_autoclose` and
-`notify_reminders` every 5 min. The
+`token_refresh` 04:00; `token_cleanup` 03:00; `notify_reminders` every 5 min. The
 primary Instagram token refresh is **on-login** (`get_current_user`, §10.5.1);
 `token_refresh` only catches inactive orgs and is optional for a tight MVP.
 
@@ -198,7 +196,6 @@ backend/
       posts.py     # Post library + link/unlink + aggregate + suggestions
       brands.py    # Brand aggregate, engagement series, finalize (7 rules + atomic txn)
     jobs/          # Stage 8 background jobs (architecture §10), run by scripts/run_job.py
-      drop_autoclose.py # §10.2
       token_cleanup.py  # §10.3
       autolink_scan.py  # §10.4
       token_refresh.py  # §10.5.2 safety-net cron

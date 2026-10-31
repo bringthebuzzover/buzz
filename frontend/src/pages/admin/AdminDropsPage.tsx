@@ -1,11 +1,10 @@
 /**
- * /admin/drops — every drop, filterable by tracker stage or by attention state.
+ * /admin/drops — every drop, filterable by stage or by attention state.
  *
  * Two filter dimensions because they answer different questions. Stage is "where
  * is this in the pipeline"; attention is "who is blocked and why", and those cut
- * across stages — a drop awaiting selection and a drop the auto-close cron never
- * touched are both sitting still for unrelated reasons. Selections combine via
- * repeated URL keys (OR within a dimension, AND across).
+ * across stages. Selections combine via repeated URL keys (OR within a dimension,
+ * AND across).
  */
 import { Info } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";

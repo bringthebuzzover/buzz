@@ -9,7 +9,6 @@ from sqlalchemy import select
 
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.drop import Drop
-from app.models.drop_request import DropRequest
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
@@ -945,86 +944,3 @@ class TestAdminDropRequestFields:
         assert row["product"] == "Cans"
         assert row["orgCount"] == 8
         assert row["unitsPerOrg"] == 24
-
-
-class TestCleanupRequestReceived:
-    async def test_cleanup_migrates_stubs_to_tickets(self, app_client: AsyncClient, db_session):
-        brand = await make_brand(db_session)
-        stub = await make_drop(
-            db_session,
-            brand,
-            title="Stub request",
-            published_at=None,
-        )
-        stub.brand_tracker_stage = "request_received"  # legacy stub (cleared in PR5)
-        await db_session.flush()
-        live = await make_drop(
-            db_session,
-            brand,
-            title="Live campaign",
-        )
-        headers = await admin_headers(db_session)
-        stub_id = stub.id
-        live_id = live.id
-        brand_id = brand.id
-        stub_description = stub.description
-        res = await app_client.post(
-            "/api/admin/tools/cleanup-request-received",
-            headers=headers,
-        )
-        assert res.status_code == 200, res.text
-        body = res.json()["data"]
-        assert body["convertedCount"] == 1
-        assert str(stub_id) in body["deletedDropIds"]
-
-        db_session.expire_all()
-        remaining = await db_session.get(Drop, live_id)
-        assert remaining is not None
-        gone = await db_session.get(Drop, stub_id)
-        assert gone is None
-        tickets = list(
-            await db_session.scalars(select(DropRequest).where(DropRequest.brand_id == brand_id))
-        )
-        assert len(tickets) == 1
-        assert tickets[0].status == "closed"
-        assert tickets[0].message == stub_description
-
-        again = await app_client.post(
-            "/api/admin/tools/cleanup-request-received",
-            headers=headers,
-        )
-        assert again.status_code == 200
-        assert again.json()["data"]["convertedCount"] == 0
-
-    async def test_cleanup_dry_run_does_not_delete(self, app_client: AsyncClient, db_session):
-        from app.services.admin import cleanup_request_received_stubs
-
-        brand = await make_brand(db_session)
-        stub = await make_drop(
-            db_session,
-            brand,
-            title="Stub request",
-            published_at=None,
-        )
-        stub.brand_tracker_stage = "request_received"  # legacy stub (cleared in PR5)
-        await db_session.flush()
-        stub_id = stub.id
-        result = await cleanup_request_received_stubs(db_session, dry_run=True)
-        assert result["dry_run"] is True
-        assert result["converted_count"] == 1
-        assert stub_id in result["deleted_drop_ids"]
-        db_session.expire_all()
-        still = await db_session.get(Drop, stub_id)
-        assert still is not None
-
-    async def test_cleanup_blocked_in_production(
-        self, app_client: AsyncClient, db_session, monkeypatch
-    ):
-        from app.config import settings
-
-        monkeypatch.setattr(settings, "ENVIRONMENT", "production")
-        res = await app_client.post(
-            "/api/admin/tools/cleanup-request-received",
-            headers=await admin_headers(db_session),
-        )
-        assert res.status_code == 403

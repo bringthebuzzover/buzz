@@ -2,10 +2,9 @@
 health signals. Every function here is a SELECT; mutations live in
 :mod:`app.services.admin`.
 
-Pipeline signals still watch for the *absence* of a job's effect (e.g. a drop
-past its apply window still in ``request_received``). When ``job_runs`` rows
-exist, each pipeline signal's ``detail`` also includes the last recorded run
-age so ops can tell whether the cron fired recently.
+Pipeline signals watch for the *absence* of a job's effect (e.g. stale post
+metrics). When ``job_runs`` rows exist, each pipeline signal's ``detail`` also
+includes the last recorded run age so ops can tell whether the cron fired recently.
 """
 
 from __future__ import annotations
@@ -21,7 +20,6 @@ from app import errors
 from app.exceptions import BuzzAPIException
 from app.jobs.metric_sync import METRIC_WINDOW_DAYS
 from app.jobs.names import (
-    JOB_DROP_AUTOCLOSE,
     JOB_METRIC_SYNC,
     JOB_TOKEN_CLEANUP,
     JOB_TOKEN_REFRESH,
@@ -35,7 +33,6 @@ from app.models.drop import Drop
 from app.models.enums import (
     ApplicationDecision,
     BrandStatus,
-    BrandTrackerStage,
     DropStage,
     OrgUserStatus,
     PortalRole,
@@ -302,15 +299,6 @@ async def _signal_counts(db: AsyncSession, now: datetime) -> dict[str, int]:
             ),
         ),
         # --- Inferred pipeline health ---
-        "autoclose_overdue": await _scalar_int(
-            db,
-            select(func.count(Drop.id)).where(
-                Drop.brand_tracker_stage == BrandTrackerStage.REQUEST_RECEIVED.value,
-                Drop.manual_reopen.is_(False),
-                Drop.apply_close_at < now,
-                Drop.hidden_at.is_(None),
-            ),
-        ),
         "metric_sync_stale": await _scalar_int(
             db,
             select(func.count(SocialPost.id)).where(
@@ -568,14 +556,6 @@ async def get_health(db: AsyncSession) -> dict[str, Any]:
     last_metric_sync = await db.scalar(select(func.max(SocialPost.metrics_updated_at)))
     metric_detail = _describe_age(last_metric_sync, now)
     pipeline = [
-        _signal(
-            JOB_DROP_AUTOCLOSE,
-            counts["autoclose_overdue"],
-            detail=_with_run_age(
-                JOB_DROP_AUTOCLOSE,
-                "drops past their apply window still awaiting auto-close",
-            ),
-        ),
         _signal(
             JOB_METRIC_SYNC,
             counts["metric_sync_stale"],

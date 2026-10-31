@@ -2,7 +2,6 @@
 
 A scheduler (Railway Cron) invokes one job per command, e.g.::
 
-    poetry run python scripts/run_job.py drop_autoclose
     poetry run python scripts/run_job.py token_cleanup
     poetry run python scripts/run_job.py autolink_scan
     poetry run python scripts/run_job.py token_refresh
@@ -30,11 +29,9 @@ if str(_BACKEND_ROOT) not in sys.path:
 
 from app.deps.db import async_session_factory  # noqa: E402
 from app.jobs.autolink_scan import scan_autolink  # noqa: E402
-from app.jobs.drop_autoclose import auto_close_drops  # noqa: E402
 from app.jobs.metric_sync import sync_metrics  # noqa: E402
 from app.jobs.names import (  # noqa: E402
     JOB_AUTOLINK_SCAN,
-    JOB_DROP_AUTOCLOSE,
     JOB_METRIC_SYNC,
     JOB_NOTIFY_REMINDERS,
     JOB_TOKEN_CLEANUP,
@@ -48,7 +45,6 @@ from app.services.instagram import close_instagram_client, get_instagram_client 
 
 # job name -> (callable, needs_instagram_client)
 _JOBS = {
-    JOB_DROP_AUTOCLOSE: (auto_close_drops, False),
     JOB_NOTIFY_REMINDERS: (send_due_reminders, False),
     JOB_TOKEN_CLEANUP: (cleanup_tokens, False),
     JOB_AUTOLINK_SCAN: (scan_autolink, False),
