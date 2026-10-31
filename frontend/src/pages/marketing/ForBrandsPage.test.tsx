@@ -28,13 +28,15 @@ describe("ForBrandsPage", () => {
     expect(steps).toHaveLength(3);
     expect(Array.from(steps, (step) => step.querySelector("h3")?.textContent)).toEqual([
       "1 Tell us about your campaign",
-      "2 BUZZ publishes your drop",
+      "2 Choose the organizations",
       "3 Follow every post",
     ]);
     expect(Array.from(steps, (step) => step.querySelector("h3 + p")?.textContent)).toEqual([
       "Share your goals and the products you want to send.",
-      "See your published drop and available spots in the portal.",
+      "BUZZ builds and publishes your drop. Review applicants and send your decisions.",
       "Track organization posts and see the finished drop.",
     ]);
+    expect(steps[1].textContent).toMatch(/Applicants/);
+    expect(steps[1].textContent).toMatch(/Send decisions/);
   });
 });

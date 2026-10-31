@@ -43,6 +43,7 @@ export const SAMPLE = {
   sending: "200 cans of cold brew + branded koozies",
 } as const;
 
+// Home shows four onboarding screens; portal pages use condensed three-step tours from the pen.
 export const ORG_STEPS = [
   { caption: "Apply with your campus .edu email.", side: "left" },
   { caption: "Use the Business or Creator account.", side: "right" },
@@ -75,9 +76,9 @@ export const PORTAL_STEPS = {
       screen: 0,
     },
     {
-      title: "BUZZ publishes your drop",
-      body: "See your published drop and available spots in the portal.",
-      screen: 1,
+      title: "Choose the organizations",
+      body: "BUZZ builds and publishes your drop. Review applicants and send your decisions.",
+      screen: 2,
     },
     {
       title: "Follow every post",
