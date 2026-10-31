@@ -1,9 +1,12 @@
 /* eslint-disable testing-library/no-container -- The shared harness uses React DOM; Testing Library is not installed. */
+import { act } from "react";
+import { Route, Routes } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 import { renderWithProviders } from "../../testUtils";
 import SiteHeader from "./SiteHeader";
 
 jest.mock("../../contexts/AuthContext", () => ({
-  useAuth: () => ({ user: null, status: "anonymous" }),
+  useAuth: jest.fn(),
 }));
 
 jest.mock("../../contexts/SiteChromeContext", () => ({
@@ -29,6 +32,10 @@ beforeAll(() => {
   });
 });
 
+beforeEach(() => {
+  (useAuth as jest.Mock).mockReturnValue({ user: null, status: "anonymous" });
+});
+
 describe("SiteHeader", () => {
   it.each([
     ["/", "Join Us!"],
@@ -49,4 +56,32 @@ describe("SiteHeader", () => {
     expect(trigger?.getAttribute("aria-label")).toBe("Open menu");
     expect(trigger?.getAttribute("aria-expanded")).toBe("false");
   });
+});
+
+it.each([
+  ["brand", "/brand/dashboard", "Dashboard"],
+  ["org", "/org/browse", "Browse campaigns"],
+] as const)("keeps signed-in %s navigation and logo in the portal", (portalRole, destination, label) => {
+  (useAuth as jest.Mock).mockReturnValue({
+    status: "authenticated",
+    user: { portalRole, status: "active" },
+  });
+  const { container } = renderWithProviders(<>
+    <SiteHeader />
+    <Routes>
+      <Route path={destination} element={<p>Portal landing</p>} />
+      <Route path="*" element={null} />
+    </Routes>
+  </>, { route: "/for-orgs" });
+  const menuButton = container.querySelector<HTMLButtonElement>('button[aria-controls="mobile-nav-menu"]');
+  act(() => menuButton?.click());
+
+  const links = Array.from(container.querySelectorAll("nav a"));
+  expect(links.map((link) => link.textContent)).not.toContain("Home");
+  expect(links.filter((link) => link.textContent === label)).toHaveLength(2);
+  expect(links.filter((link) => link.getAttribute("href") === destination)).toHaveLength(2);
+
+  const logo = container.querySelector<HTMLButtonElement>('[data-testid="site-header-logo"]');
+  act(() => logo?.click());
+  expect(container.textContent).toContain("Portal landing");
 });
