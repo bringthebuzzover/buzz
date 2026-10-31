@@ -8382,7 +8382,7 @@
         "type": "object"
       },
       "ForgotPasswordRequest": {
-        "description": "Enumerate-safe password-reset request (brand or admin).",
+        "description": "Enumerate-safe password-reset request (brand only).",
         "properties": {
           "email": {
             "title": "Email",
@@ -13974,48 +13974,6 @@
         ]
       }
     },
-    "/api/auth/admin/forgot-password": {
-      "post": {
-        "description": "Enumerate-safe admin password-reset request.",
-        "operationId": "admin_forgot_password_api_auth_admin_forgot_password_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ForgotPasswordRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Admin Forgot Password",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
     "/api/auth/admin/login": {
       "post": {
         "description": "Admin email + password login \u2014 the only admin session entry point.\n\nAdmins have neither an Instagram identity nor an invite flow, so without\nthis they are unreachable outside local dev (``dev-login`` 404s off-dev).\nRate-limited per-IP and per-account like the brand path.",
@@ -14053,48 +14011,6 @@
           }
         },
         "summary": "Admin Login",
-        "tags": [
-          "auth"
-        ]
-      }
-    },
-    "/api/auth/admin/reset-password": {
-      "post": {
-        "description": "Consume an admin password-reset token and set a new password.",
-        "operationId": "admin_reset_password_api_auth_admin_reset_password_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResetPasswordRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DataResponse_OkResponse_"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/APIResponse"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          }
-        },
-        "summary": "Admin Reset Password",
         "tags": [
           "auth"
         ]

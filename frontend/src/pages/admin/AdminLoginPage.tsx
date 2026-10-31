@@ -11,7 +11,6 @@ import { useAdminLogin } from "../../api/hooks/useAdminHooks";
 import { ApiError } from "../../api/client";
 import SessionRestorePanel from "../../components/routing/SessionRestorePanel";
 import {
-  AuthArrowLink,
   AuthCenter,
   AuthHeading,
 } from "../../components/auth/AuthFrame";
@@ -121,12 +120,6 @@ export default function AdminLoginPage() {
         >
           Sign in
         </Button>
-
-        <p>
-          <AuthArrowLink to="/admin/forgot-password">
-            Forgot password?
-          </AuthArrowLink>
-        </p>
       </form>
     </AuthCenter>
   );

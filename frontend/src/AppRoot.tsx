@@ -99,11 +99,9 @@ export default function AppRoot(): ReactElement {
           path="brand/forgot-password"
           element={
             <ForgotPasswordPage
-              portal="brand"
               loginPath="/brand/login"
               title="Forgot password"
               kicker="Brand"
-              frame="aside"
             />
           }
         />
@@ -111,11 +109,9 @@ export default function AppRoot(): ReactElement {
           path="brand/reset-password"
           element={
             <ResetPasswordPage
-              portal="brand"
               loginPath="/brand/login"
               title="Reset password"
               kicker="Brand"
-              frame="aside"
             />
           }
         />
@@ -227,30 +223,6 @@ export default function AppRoot(): ReactElement {
         {/* Admin login is public. SiteLayout swaps in AuthAdminHeader so the
             public "Join Us" header does not show. */}
         <Route path="admin/login" element={<AdminLoginPage />} />
-        <Route
-          path="admin/forgot-password"
-          element={
-            <ForgotPasswordPage
-              portal="admin"
-              loginPath="/admin/login"
-              title="Forgot password"
-              kicker="Admin"
-              frame="admin"
-            />
-          }
-        />
-        <Route
-          path="admin/reset-password"
-          element={
-            <ResetPasswordPage
-              portal="admin"
-              loginPath="/admin/login"
-              title="Reset password"
-              kicker="Admin"
-              frame="admin"
-            />
-          }
-        />
 
         <Route path="privacy" element={<PrivacyPolicyPage />} />
         <Route path="terms" element={<TermsPage />} />

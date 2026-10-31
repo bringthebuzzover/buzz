@@ -893,12 +893,10 @@ async def send_password_reset_email(
     to_email: str,
     token: str,
     *,
-    portal: str,
     idempotency_key: str | None = None,
 ) -> bool:
-    """Send a brand or admin password-reset link."""
-    path = "/brand/reset-password" if portal == "brand" else "/admin/reset-password"
-    reset_url = f"{settings.FRONTEND_URL}{path}?token={token}"
+    """Send a brand password-reset link."""
+    reset_url = f"{settings.FRONTEND_URL}/brand/reset-password?token={token}"
     subject = "Reset your Buzz password"
     body = (
         "We received a request to reset your Buzz password.\n\n"
