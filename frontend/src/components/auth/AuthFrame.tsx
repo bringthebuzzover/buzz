@@ -63,11 +63,17 @@ function AuthAside() {
       data-testid="auth-aside"
       className="relative flex min-h-[420px] w-full shrink-0 flex-col overflow-hidden lg:min-h-screen lg:w-[620px]"
     >
-      <img
-        src={publicAsset("auth-campus.jpg")}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+      <picture>
+        <source
+          type="image/webp"
+          srcSet={publicAsset("auth-update-sky.webp")}
+        />
+        <img
+          src={publicAsset("auth-update-sky.jpg")}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-[50%_30%]"
+        />
+      </picture>
       <div className="absolute inset-0 bg-[linear-gradient(180deg,#0b0b0b33,#0b0b0bf2)]" />
       <div className="relative flex flex-1 flex-col gap-5 p-8 lg:p-12">
         <Logo className="h-10 w-32" />
