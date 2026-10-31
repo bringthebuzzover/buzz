@@ -144,7 +144,6 @@
 .marketing-how-link:hover span { transform: translateX(4px); }
 .marketing-pin-label { opacity: 0; transition: opacity 160ms ease; }
 .marketing-pin:hover .marketing-pin-label,
-.marketing-pin:focus-visible .marketing-pin-label,
 .marketing-pin[data-visiting="true"] .marketing-pin-label { opacity: 1; }
 .marketing-pin[data-visiting="true"]::after {
   content: "";

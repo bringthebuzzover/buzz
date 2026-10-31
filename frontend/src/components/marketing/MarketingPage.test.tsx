@@ -29,6 +29,15 @@ afterEach(() => {
   delete (HTMLElement.prototype as Partial<HTMLElement>).animate;
 });
 
+it.each([false, true])("keeps campus labels noninteractive with reduced motion %s", (preference) => {
+  reduced = preference;
+  const { container } = renderWithProviders(<CollegeNetwork />);
+  const pins = Array.from(container.querySelectorAll<HTMLElement>("[data-campus]"));
+  expect(pins.map((pin) => pin.textContent)).toContain("Cornell");
+  expect(pins.some((pin) => pin.matches('button, [role="button"], a[href], [tabindex]'))).toBe(false);
+  expect(pins.every((pin) => pin.tabIndex === -1)).toBe(true);
+});
+
 it("keeps the fading trail behind the bee on the first eastbound flight", () => {
   const request = jest
     .spyOn(window, "requestAnimationFrame")

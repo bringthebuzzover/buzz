@@ -202,9 +202,7 @@ export function CollegeNetwork() {
             ))}
           </svg>
           {PINS.map((pin) => (
-            <button
-              type="button"
-              aria-label={pin.name}
+            <span
               data-campus={pin.name}
               data-visiting={
                 reduce && pin.name === "Cornell" ? "true" : undefined
@@ -225,7 +223,7 @@ export function CollegeNetwork() {
               >
                 {pin.name}
               </span>
-            </button>
+            </span>
           ))}
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <span
