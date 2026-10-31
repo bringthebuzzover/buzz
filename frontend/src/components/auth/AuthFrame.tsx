@@ -66,12 +66,12 @@ function AuthAside() {
       <picture>
         <source
           type="image/webp"
-          srcSet={publicAsset("auth-update-sky.webp")}
+          srcSet={publicAsset("auth-update-toast.webp")}
         />
         <img
-          src={publicAsset("auth-update-sky.jpg")}
+          src={publicAsset("auth-update-toast.jpg")}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover object-[50%_30%]"
+          className="absolute inset-0 h-full w-full object-cover object-[50%_40%]"
         />
       </picture>
       <div className="absolute inset-0 bg-[linear-gradient(180deg,#0b0b0b33,#0b0b0bf2)]" />
