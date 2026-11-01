@@ -12,7 +12,7 @@ describe("COLLEGES", () => {
       expect(college.logoSrc).not.toMatch(/clearbit|icon\.horse/i);
     }
     const view = renderToString(
-      <Marquee items={COLLEGES} title="Our College Network" />,
+      <Marquee items={COLLEGES} />,
     );
     expect(view).not.toMatch(/clearbit|icon\.horse/i);
     expect(view).toContain("Stanford");

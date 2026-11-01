@@ -6,7 +6,6 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CollegeNetwork } from "../../components/marketing/CollegeNetwork";
 import { PinnedHow } from "../../components/marketing/PinnedHow";
-import { ORG_STEPS } from "../../components/marketing/mockups";
 import {
   CurrentDrops,
   JoinSplit,
@@ -49,7 +48,7 @@ export default function HomePage() {
         line2="for brands to connect with student organizations."
       />
       <CollegeNetwork />
-      <PinnedHow kind="org" steps={ORG_STEPS} />
+      <PinnedHow />
       <StackCards />
       <CurrentDrops />
       <JoinSplit

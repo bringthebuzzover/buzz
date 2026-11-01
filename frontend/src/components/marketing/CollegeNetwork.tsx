@@ -41,21 +41,12 @@ const MAP_W = 880;
 const MAP_H = 550;
 
 /** Stanford → Rice → Duke → UPenn → Cornell → UChicago → Stanford. */
-const ROUTE = [
-  "Stanford",
-  "Rice",
-  "Duke",
-  "UPenn",
-  "Cornell",
-  "UChicago",
-  "Stanford",
-];
-
-function pinByName(name: string) {
-  const pin = PINS.find((item) => item.name === name);
-  if (!pin) return { x: 0, y: 0 };
-  return pin;
-}
+const ROUTE = ["Stanford", "Rice", "Duke", "UPenn", "Cornell", "UChicago", "Stanford"];
+const pinByName = (name: string) => PINS.find((pin) => pin.name === name)!;
+const position = ({ x, y }: { x: number; y: number }) => ({
+  left: `${(x / MAP_W) * 100}%`,
+  top: `${(y / MAP_H) * 100}%`,
+});
 
 // Sample Lab's lifted quadratic arcs once; cumulative lengths keep the flight paced.
 const HOPS = ROUTE.slice(0, -1).map((name, index) => {
@@ -73,21 +64,15 @@ const HOPS = ROUTE.slice(0, -1).map((name, index) => {
     cy = (from.y + to.y) / 2 - lift;
   }
   let distance = 0;
+  let previous: { x: number; y: number } = from;
   const points = Array.from({ length: 33 }, (_, i) => {
     const t = i / 32;
-    return {
-      x: (1 - t) ** 2 * from.x + 2 * (1 - t) * t * cx + t * t * to.x,
-      y: (1 - t) ** 2 * from.y + 2 * (1 - t) * t * cy + t * t * to.y,
-      distance: 0,
-    };
-  });
-  points.forEach((point, i) => {
-    if (i)
-      distance += Math.hypot(
-        point.x - points[i - 1].x,
-        point.y - points[i - 1].y,
-      );
-    point.distance = distance;
+    const x = (1 - t) ** 2 * from.x + 2 * (1 - t) * t * cx + t * t * to.x;
+    const y = (1 - t) ** 2 * from.y + 2 * (1 - t) * t * cy + t * t * to.y;
+    if (i) distance += Math.hypot(x - previous.x, y - previous.y);
+    const point = { x, y, distance };
+    previous = point;
+    return point;
   });
   return { name, points, length: distance };
 });
@@ -99,9 +84,7 @@ export function CollegeNetwork() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || reduce) return;
-    const flyers = Array.from(
-      map.querySelectorAll<HTMLElement>("[data-flyer]"),
-    );
+    const flyers = Array.from(map.querySelectorAll<HTMLElement>("[data-flyer]"));
     const pins = Array.from(map.querySelectorAll<HTMLElement>("[data-campus]"));
     let frame = 0;
     let elapsed = 0;
@@ -204,16 +187,11 @@ export function CollegeNetwork() {
           {PINS.map((pin) => (
             <span
               data-campus={pin.name}
-              data-visiting={
-                reduce && pin.name === "Cornell" ? "true" : undefined
-              }
+              data-visiting={reduce && pin.name === "Cornell" ? "true" : undefined}
               key={pin.name}
               title={pin.name}
               className="marketing-pin absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2"
-              style={{
-                left: `${(pin.x / MAP_W) * 100}%`,
-                top: `${(pin.y / MAP_H) * 100}%`,
-              }}
+              style={position(pin)}
             >
               <span className="absolute inset-0 rounded-full bg-on-accent" />
               <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent" />
@@ -230,8 +208,7 @@ export function CollegeNetwork() {
               data-flyer
               className="absolute"
               style={{
-                left: `${(pinByName("Cornell").x / MAP_W) * 100}%`,
-                top: `${(pinByName("Cornell").y / MAP_H) * 100}%`,
+                ...position(pinByName("Cornell")),
                 transform: "translate(-50%, -50%)",
               }}
             >
@@ -257,7 +234,7 @@ export function CollegeNetwork() {
         </div>
       </div>
       <div className="mt-16">
-        <Marquee items={COLLEGES} title="College network" embedded />
+        <Marquee items={COLLEGES} />
       </div>
     </section>
   );
