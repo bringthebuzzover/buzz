@@ -10,7 +10,7 @@ const dest = path.join(frontendRoot, "build/__lab/assets");
 const files = [
   ["src/pages/pulse/fonts/switzer-400.woff2", "switzer-400.woff2"],
   ["src/pages/pulse/fonts/switzer-500.woff2", "switzer-500.woff2"],
-  ["public/logos/buzz-logo.svg", "buzz-logo.svg"],
+  ["public/logos/buzz-logo-on-ink.svg", "buzz-logo.svg"],
   ["public/logos/bee.svg", "bee.svg"],
 ];
 
