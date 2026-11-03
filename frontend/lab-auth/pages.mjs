@@ -21,8 +21,8 @@ html,body{margin:0;height:100%}
 body{background:var(--ink);color:var(--paper);font-family:Switzer,ui-sans-serif,system-ui,sans-serif;font-weight:400;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100svh;display:flex;flex-direction:column}
 a{color:inherit}
 .top{display:flex;align-items:center;justify-content:space-between;padding:20px var(--side)}
-.brand{display:block;width:124px;height:32px;overflow:hidden;line-height:0}
-.brand img{height:58px;width:auto;margin-top:-6px;margin-left:-2px}
+.brand{display:flex;align-items:center;width:128px;height:36px;line-height:0}
+.brand img{width:100%;height:100%;object-fit:contain;object-position:left center;display:block}
 .tag{font-size:13px;color:var(--paper-60);border:1px solid var(--paper-16);border-radius:999px;padding:4px 12px}
 main{flex:1;display:flex;align-items:center;justify-content:center;padding:32px var(--side) 64px;position:relative;overflow:hidden}
 .glow{position:absolute;width:min(720px,140vw);aspect-ratio:1;border-radius:50%;background:radial-gradient(closest-side,var(--yellow-14),transparent);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
