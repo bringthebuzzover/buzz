@@ -1952,6 +1952,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/drops/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Public Drops
+         * @description Anonymous allowlisted catalog of Upcoming and Applying drops.
+         */
+        get: operations["list_public_drops_api_drops_public_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/drops/{drop_id}": {
         parameters: {
             query?: never;
@@ -4756,6 +4776,16 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[list[PublicDropCatalogItem]] */
+        DataResponse_list_PublicDropCatalogItem__: {
+            /** Data */
+            data?: components["schemas"]["PublicDropCatalogItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[list[ShipmentItem]] */
         DataResponse_list_ShipmentItem__: {
             /** Data */
@@ -5443,6 +5473,34 @@ export interface components {
         PublicConfigResponse: {
             /** Brandselfregistrationenabled */
             brandSelfRegistrationEnabled: boolean;
+        };
+        /**
+         * PublicDropCatalogItem
+         * @description Allowlisted public campaign card; deliberately has no org or admin state.
+         */
+        PublicDropCatalogItem: {
+            /** Applycloseat */
+            applyCloseAt: number;
+            /** Applyopenat */
+            applyOpenAt: number;
+            /** Brandname */
+            brandName: string;
+            /** Capacitytotal */
+            capacityTotal: number;
+            /** Description */
+            description: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Image */
+            image: string;
+            /** Location */
+            location: string;
+            stage: components["schemas"]["DropStage"];
+            /** Title */
+            title: string;
         };
         /**
          * PublicResendVerificationRequest
@@ -9276,6 +9334,7 @@ export interface operations {
             query?: {
                 page?: number;
                 per_page?: number;
+                status?: "all" | "upcoming" | "open";
             };
             header?: {
                 authorization?: string | null;
@@ -9292,6 +9351,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_list_DropFeedItem__"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    list_public_drops_api_drops_public_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_list_PublicDropCatalogItem__"];
                 };
             };
             /** @description Unprocessable Entity */

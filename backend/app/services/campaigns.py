@@ -32,6 +32,7 @@ from app.services.lifecycle import (
     drop_stages,
     org_link_open,
     org_visible_decision,
+    require_drop,
     seat_hidden_from_org,
     seat_progress,
 )
@@ -222,13 +223,27 @@ async def withdraw_my_campaign(
     *,
     background_tasks: BackgroundTasks | None = None,
 ) -> None:
-    """The org pulls out: any time while applied, or accepted before it ships.
+    """The org pulls out before wrap/cancel while applied, or accepted before it ships.
 
     After shipping the product may need to come back, so BUZZ handles it.
     """
 
     application = await resolve_owned_application(db, org_user, application_id)
-    await lock_drop(db, application.drop_id)
+    drop = await lock_drop(db, application.drop_id)
+    # The seat may have changed while this request waited for the drop lock.
+    locked_application = await db.scalar(
+        select(DropApplication)
+        .where(DropApplication.id == application_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
+    if locked_application is None or locked_application.org_id != org_id:
+        raise BuzzAPIException(errors.NOT_FOUND, "Campaign not found.", status_code=404)
+    application = locked_application
+    if org_visible_decision(application) in ORG_HIDDEN_DECISIONS:
+        raise BuzzAPIException(errors.NOT_FOUND, "Campaign not found.", status_code=404)
+    require_drop(drop, unwrapped=True)
     was_live = org_visible_decision(application) == ApplicationDecision.ACCEPTED.value
     if was_live and (
         await db.scalar(

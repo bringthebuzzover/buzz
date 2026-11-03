@@ -243,23 +243,32 @@ export function useDismissSuggestion(applicationId: string) {
 }
 
 /** A change to the caller's own seat: refresh My Campaigns and that campaign. */
-function useSeatMutation<T>(applicationId: string, send: (input: T) => Promise<unknown>) {
+function useSeatMutation<T>(
+  applicationId: string,
+  send: (input: T) => Promise<unknown>,
+  affectedDropId?: string,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: T) => {
       await send(input);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
-      queryClient.invalidateQueries({ queryKey: ["campaign-detail", applicationId] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      await queryClient.invalidateQueries({ queryKey: ["campaign-detail", applicationId] });
+      if (affectedDropId) {
+        await queryClient.invalidateQueries({ queryKey: ["org-drop-feed"] });
+        await queryClient.invalidateQueries({ queryKey: ["drop-detail", affectedDropId] });
+      }
     },
   });
 }
 
 /** Leave a drop: free before anything ships; after that only BUZZ can end the seat. */
-export const useWithdrawCampaign = (applicationId: string) =>
+export const useWithdrawCampaign = (applicationId: string, dropId?: string) =>
   useSeatMutation<void>(applicationId, () =>
     apiFetch(`/api/campaigns/${applicationId}/withdraw`, { method: "POST" }),
+    dropId,
   );
 
 /** "I got it" (or undo): the org confirms its package arrived. */

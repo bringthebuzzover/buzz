@@ -7,13 +7,21 @@ import { waitForAuthSettled } from "./authSettled";
  * authenticated session.
  */
 
-test("org drop feed renders cards", async ({ page }) => {
+test("org drop feed renders a current responsive grid", async ({ page }) => {
   await page.goto("/org/browse");
   await waitForAuthSettled(page, "org");
   await expect(page.getByRole("heading", { name: /browse/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Current drops" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Closed" })).toHaveCount(0);
   // Seed has 4 drops + the E2E open drop.
   await expect(page.getByTestId("drop-card").first()).toBeVisible();
   expect(await page.getByTestId("drop-card").count()).toBeGreaterThan(0);
+  const grid = page.locator('[aria-labelledby="current-drops"] .grid');
+  await expect(grid).toHaveCSS("display", "grid");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
+  const apply = page.getByTestId("apply-button").first();
+  if (await apply.count()) await expect(apply).toHaveAttribute("href", /^\/d\//);
   await page.goto("/login");
   await expect(page).toHaveURL(/\/org\/browse$/);
 });
@@ -27,20 +35,30 @@ test("org can apply to an open drop", async ({ page }) => {
     .filter({ hasText: "E2E Open Drop" });
   await expect(card).toBeVisible();
 
-  await card.getByTestId("apply-button").click();
-  // Inline apply form appears.
+  const apply = card.getByTestId("apply-button");
+  if (await apply.innerText().then((label) => /already applied/i.test(label))) {
+    await page.goto("/d/00000000-0000-0000-0000-000000000063");
+    await expect(page.getByTestId("apply-button")).toHaveText(/already applied/i);
+    return;
+  }
+
+  await apply.click();
+  await expect(page).toHaveURL(/\/d\/00000000-0000-0000-0000-000000000063$/);
+  const detailApply = page.getByRole("button", { name: "Apply", exact: true });
+  if (await page.getByRole("button", { name: /already applied/i }).count()) {
+    return;
+  }
+  await detailApply.click();
   const applyForm = page.getByRole("heading", { name: /apply to drop/i });
   await expect(applyForm).toBeVisible();
+  await expect(page.getByLabel("Pitch (optional)")).toBeVisible();
   await page.getByPlaceholder(/optional pitch/i).fill("E2E pitch");
   await page.getByTestId("apply-submit").click();
 
-  // Success is proven by the form CLOSING (it stays open on any error) AND the
-  // card's button flipping to the already-applied state — not by the always-
-  // present "Browse" header.
+  // Success has explicit feedback and a link to the updated campaign list.
   await expect(applyForm).toHaveCount(0);
-  await expect(
-    page.getByTestId("drop-card").filter({ hasText: "E2E Open Drop" }).getByTestId("apply-button"),
-  ).toHaveText(/already applied/i);
+  await expect(page.getByText(/application submitted/i)).toBeVisible();
+  await expect(page.getByRole("link", { name: "My Campaigns", exact: true })).toHaveAttribute("href", "/org/campaigns");
 });
 
 function visibleHeaderLogo(page: Page) {

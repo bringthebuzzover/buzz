@@ -17,7 +17,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
@@ -84,6 +84,7 @@ async def list_org_drop_feed(
     *,
     page: int,
     per_page: int,
+    feed_filter: str = "all",
 ) -> tuple[list[DropFeedItem], int]:
     """Return one page of the org drop feed plus the count of *visible* drops.
 
@@ -100,12 +101,29 @@ async def list_org_drop_feed(
 
     org_id = await db.scalar(select(Organization.id).where(Organization.user_id == org_user.id))
 
+    now = utcnow()
+    stage_expr = drop_stage_expr(now)
+    accepted_count_expr = (
+        select(func.count(DropApplication.id))
+        .where(DropApplication.drop_id == Drop.id, seat_is_live())
+        .correlate(Drop)
+        .scalar_subquery()
+    )
+    current_filters: list[ColumnElement[bool]] = [
+        stage_expr.in_(("upcoming", "applying")),
+        (stage_expr != "applying") | (accepted_count_expr < Drop.capacity_total),
+    ]
+    if feed_filter == "upcoming":
+        current_filters.append(stage_expr == "upcoming")
+    elif feed_filter == "open":
+        current_filters.append(stage_expr == "applying")
+
     total = (
         await db.scalar(
             select(func.count())
             .select_from(Drop)
             .join(Brand, Brand.id == Drop.brand_id)
-            .where(*_browsable_drop_filters())
+            .where(*_browsable_drop_filters(), *current_filters)
         )
         or 0
     )
@@ -116,10 +134,14 @@ async def list_org_drop_feed(
     rows = list(
         (
             await db.execute(
-                select(Drop, Brand, drop_stage_expr(utcnow()))
+                select(Drop, Brand, stage_expr)
                 .join(Brand, Brand.id == Drop.brand_id)
-                .where(*_browsable_drop_filters())
-                .order_by(Drop.created_at.desc(), Drop.id.desc())
+                .where(*_browsable_drop_filters(), *current_filters)
+                .order_by(
+                    case((stage_expr == "applying", 0), else_=1),
+                    Drop.created_at.desc(),
+                    Drop.id.desc(),
+                )
                 .limit(per_page)
                 .offset((page - 1) * per_page)
             )
@@ -151,6 +173,53 @@ async def list_org_drop_feed(
         for drop, brand, stage in rows
     ]
     return items, total
+
+
+async def list_public_drop_catalog(
+    db: AsyncSession, *, page: int, per_page: int
+) -> tuple[list[dict[str, object]], int]:
+    """Return only public card fields for visible Upcoming/Applying drops."""
+
+    now = utcnow()
+    stage_expr = drop_stage_expr(now)
+    filters = (
+        *_browsable_drop_filters(),
+        stage_expr.in_(("upcoming", "applying")),
+    )
+    total = (
+        await db.scalar(
+            select(func.count())
+            .select_from(Drop)
+            .join(Brand, Brand.id == Drop.brand_id)
+            .where(*filters)
+        )
+        or 0
+    )
+    rows = (
+        await db.execute(
+            select(Drop, Brand, stage_expr)
+            .join(Brand, Brand.id == Drop.brand_id)
+            .where(*filters)
+            .order_by(Drop.created_at.desc(), Drop.id.desc())
+            .limit(per_page)
+            .offset((page - 1) * per_page)
+        )
+    ).all()
+    return [
+        {
+            "id": drop.id,
+            "brand_name": brand.brand_name,
+            "title": drop.title,
+            "description": drop.description,
+            "image": drop.image,
+            "location": drop.location,
+            "capacity_total": drop.capacity_total,
+            "apply_open_at": drop.apply_open_at,
+            "apply_close_at": drop.apply_close_at,
+            "stage": stage,
+        }
+        for drop, brand, stage in rows
+    ], int(total)
 
 
 async def _accepted_counts(db: AsyncSession, drop_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:

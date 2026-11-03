@@ -59,8 +59,8 @@ function CampaignMetrics({
 }
 
 /** Leave the drop. The API refuses once a package has shipped (BUZZ handles that). */
-function WithdrawButton({ applicationId }: { applicationId: string }) {
-  const withdraw = useWithdrawCampaign(applicationId);
+function WithdrawButton({ applicationId, dropId }: { applicationId: string; dropId: string }) {
+  const withdraw = useWithdrawCampaign(applicationId, dropId);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -191,9 +191,11 @@ function ApiCampaignDetail() {
   const shipments = detail.shipments ?? [];
   const onTheWay = shipments.length > 0;
   const seated = SEATED_STATUSES.includes(status);
-  // Before anything ships the org may leave on its own; after, BUZZ ends the seat.
+  // Self-withdrawal ends when the drop ends or anything ships.
   const canWithdraw =
-    status === "applied" || status === "under_review" || (seated && !onTheWay);
+    detail.stage !== "wrapped" &&
+    detail.stage !== "canceled" &&
+    (status === "applied" || status === "under_review" || (seated && !onTheWay));
   const seatCopy = seated ? SEAT_COPY[status as SeatProgress] : null;
 
   return (
@@ -210,7 +212,7 @@ function ApiCampaignDetail() {
         description={detail.description ?? ""}
         actions={
           <div className="flex items-center gap-3">
-            {canWithdraw ? <WithdrawButton applicationId={detail.id} /> : null}
+            {canWithdraw ? <WithdrawButton applicationId={detail.id} dropId={detail.dropId} /> : null}
             <CampaignStatusBadge status={status} />
           </div>
         }

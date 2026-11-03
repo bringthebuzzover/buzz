@@ -54,10 +54,11 @@ describe("API provider-tree smoke", () => {
             acceptedCount={0}
             feedStatus="open"
             alreadyApplied={false}
-            onApply={() => {}}
           />
         </MemoryRouter>,
       );
-    expect(render).not.toThrow();
+    const view = render();
+    expect(view).toContain('href="/d/d1"');
+    expect(view).toContain(">Apply</a>");
   });
 });

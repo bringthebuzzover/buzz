@@ -33,16 +33,15 @@ import { REMINDER_CHOICES, useDropNotify } from "../../api/hooks/useDropHooks";
 import { Chip } from "../ui/Chip";
 import { Toggle } from "../ui/Toggle";
 import { RemoteImage } from "../ui/RemoteImage";
-import { Button, ErrorBanner, buttonVariants } from "../forms/controls";
+import { Button, ErrorBanner, LinkButton, buttonVariants } from "../forms/controls";
 import { STACK, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
+import { publicDropPath } from "../../utils/oauthNext";
 
 type DropFeedCardProps = {
   drop: DropCardData;
   acceptedCount: number;
   feedStatus: DropFeedStatus;
-  /** Called when the user clicks Apply on an open drop with spots remaining. */
-  onApply: () => void;
   /** True when the org already has an application row for this drop. */
   alreadyApplied: boolean;
   /**
@@ -83,7 +82,6 @@ export default function DropFeedCard({
   drop,
   acceptedCount,
   feedStatus,
-  onApply,
   alreadyApplied,
   campaignTo,
   disableApply = false,
@@ -108,14 +106,16 @@ export default function DropFeedCard({
     >
       View campaign
     </span>
-  ) : feedStatus === "upcoming" ? null : feedStatus === "open" && !full ? (
-    <Button
-      type="button"
+  ) : feedStatus === "upcoming" ? null : feedStatus === "open" && !full && !alreadyApplied && !disableApply ? (
+    <LinkButton
+      to={publicDropPath(drop.id)}
       className={ctaClass}
       data-testid="apply-button"
-      onClick={onApply}
-      disabled={alreadyApplied || disableApply}
     >
+      Apply
+    </LinkButton>
+  ) : feedStatus === "open" && !full && (alreadyApplied || disableApply) ? (
+    <Button type="button" className={ctaClass} data-testid="apply-button" disabled>
       {alreadyApplied ? "Already applied" : "Apply"}
     </Button>
   ) : feedStatus === "open" && full ? (

@@ -99,6 +99,51 @@ describe("BrandDropDetailPage", () => {
     ).toBeTruthy();
   });
 
+  it.each([
+    ["upcoming", true, "Available"],
+    ["applying", true, "Available"],
+    ["selecting", true, "Available"],
+    ["live", false, "Not allowed"],
+    ["wrapped", true, "Allowed by setup; locked for this ended drop"],
+    ["canceled", true, "Allowed by setup; locked for this ended drop"],
+  ] as const)("shows configuration for %s drops and respects creative access", (stage, canEdit, expected) => {
+    mockUseBrandDropDetail.mockReturnValue({
+      data: { ...brandDrop(canEdit), stage, totalProductUnits: null },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    const summary = container.querySelector('[data-testid="brand-drop-configuration"]');
+    expect(summary?.textContent).toContain("Bay Area");
+    expect(summary?.textContent).toContain("Spot-only");
+    expect(summary?.textContent).toContain("Not set");
+    expect(summary?.textContent).toContain(expected);
+    expect(summary?.querySelector('img[alt="Spring Drop campaign"]')).not.toBeNull();
+    expect(summary?.textContent).not.toMatch(/Ship to:|shipping address/i);
+    expect(container.querySelector('[data-testid="brand-campaign-editor"]') !== null).toBe(
+      canEdit && stage !== "wrapped" && stage !== "canceled",
+    );
+  });
+
+  it("shows configured units, hashtag, and localized full application times", () => {
+    mockUseBrandDropDetail.mockReturnValue({
+      data: {
+        ...brandDrop(false),
+        totalProductUnits: 24,
+        campaignHashtag: "#BuzzSpring",
+      },
+      isLoading: false,
+      error: null,
+    });
+    renderPage();
+    const summary = container.querySelector('[data-testid="brand-drop-configuration"]');
+    expect(summary?.textContent).toContain("24");
+    expect(summary?.textContent).toContain("#BuzzSpring");
+    expect(summary?.textContent).toContain("Applications open");
+    expect(summary?.textContent).toContain("Applications close");
+    expect(summary?.textContent).toContain(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  });
+
   it("shows drop KPIs once the drop is live", () => {
     mockUseBrandDropDetail.mockReturnValue({
       data: { ...brandDrop(false), stage: "live" },
