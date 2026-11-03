@@ -1,8 +1,11 @@
+/* eslint-disable testing-library/no-container -- The shared harness uses React DOM; Testing Library is not installed. */
 /**
  * Compact footer (pen Site / Footer): tours, apply, and both logins.
  */
 import { renderWithProviders } from "../../testUtils";
 import SiteFooter from "./SiteFooter";
+import { SOCIAL_LINKS } from "./footerLinks";
+import { siteIdentity } from "../../data/siteIdentity";
 
 jest.mock("../../contexts/SiteChromeContext", () => ({
   useSiteChrome: () => ({ openContactModal: jest.fn() }),
@@ -48,11 +51,15 @@ describe("SiteFooter", () => {
 
   it("opens external and mail destinations safely", () => {
     const { container } = renderWithProviders(<SiteFooter />);
-    for (const anchor of container.querySelectorAll('a[target="_blank"]')) {
-      expect(anchor.getAttribute("rel")?.split(" ")).toEqual(
-        expect.arrayContaining(["noopener", "noreferrer"]),
-      );
+    for (const { href } of [...SOCIAL_LINKS, { href: `mailto:${siteIdentity.contact.email}` }]) {
+      const anchors = container.querySelectorAll(`a[href="${href}"]`);
+      expect(anchors).toHaveLength(href.startsWith("mailto:") ? 2 : 1);
+      for (const anchor of anchors) {
+        expect(anchor.getAttribute("target")).toBe("_blank");
+        expect(anchor.getAttribute("rel")?.split(" ")).toEqual(
+          expect.arrayContaining(["noopener", "noreferrer"]),
+        );
+      }
     }
-    expect(container.querySelectorAll('a[href^="mailto:"][target="_blank"]')).toHaveLength(2);
   });
 });

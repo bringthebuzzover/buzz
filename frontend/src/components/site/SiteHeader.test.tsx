@@ -1,4 +1,6 @@
 /* eslint-disable testing-library/no-container -- The shared harness uses React DOM; Testing Library is not installed. */
+import fs from "fs";
+import path from "path";
 import { act } from "react";
 import { Route, Routes } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -126,15 +128,23 @@ describe("SiteHeader", () => {
       const logo = container.querySelector<HTMLImageElement>(
         '[data-testid="site-header-logo"] img',
       );
+      const wordmarkFills = () => {
+        const assetPath = new URL(logo!.src).pathname;
+        const svg = new DOMParser().parseFromString(
+          fs.readFileSync(path.join(__dirname, "../../../public", assetPath), "utf8"),
+          "image/svg+xml",
+        );
+        return Array.from(svg.querySelectorAll("g[fill]"), (group) => group.getAttribute("fill"));
+      };
       expect(pointSpy).toHaveBeenCalledWith(196, 86);
-      expect(logo?.src).toContain("buzz-logo.svg");
+      expect(wordmarkFills()).toEqual(Array(5).fill("#0b0b0b"));
       expect(
         container.querySelector('nav[aria-label="Primary"]')?.className,
       ).toContain("border-on-accent/10");
 
       hasPaperSurface = false;
       act(() => window.dispatchEvent(new Event("resize")));
-      expect(logo?.src).toContain("buzz-logo-on-ink.svg");
+      expect(wordmarkFills()).toEqual(Array(5).fill("#ffffff"));
     } finally {
       boundsSpy.mockRestore();
       Object.defineProperty(document, "elementFromPoint", {

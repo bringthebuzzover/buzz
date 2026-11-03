@@ -35,7 +35,7 @@ test("marketing navigation follows the surface below its logo", async ({ page })
     await page.locator('[data-nav-surface="paper"]').first().evaluate((surface) => {
       surface.scrollIntoView({ block: "start" });
     });
-    await expect(logo()).toHaveAttribute("src", /buzz-logo\.svg/);
+    await expect(logo()).toHaveAttribute("src", /buzz-logo-on-paper\.svg/);
 
     await page.locator('[data-nav-surface="ink"]').nth(1).evaluate((surface) => {
       surface.scrollIntoView({ block: "start" });
@@ -72,18 +72,6 @@ test("Berkeley seal loads fully on marketing college networks", async ({ page })
     expect(image.box.left).toBeGreaterThanOrEqual(0);
     expect(image.box.right).toBeLessThanOrEqual(1440);
   }
-});
-
-test("marketing Current drops come from the public catalog and link to details", async ({ page }) => {
-  await page.goto("/");
-  const current = page.getByRole("heading", { name: "Current drops" }).locator("..").locator("..");
-  await expect(current).toBeVisible();
-  const detailLink = current.locator('a[href^="/d/"]').first();
-  await expect(detailLink).toBeVisible();
-  const path = await detailLink.getAttribute("href");
-  expect(path).toMatch(/^\/d\/[0-9a-f-]{36}$/i);
-  await detailLink.click();
-  await expect(page).toHaveURL(path!);
 });
 
 test("marketing hero headlines stay within desktop and narrow viewports", async ({

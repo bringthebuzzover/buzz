@@ -73,7 +73,8 @@ function MobileJoinDock() {
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-3 md:hidden">
       <LinkButton
         to={forBrands ? "/brand/apply" : "/org/apply"}
-        className="pointer-events-auto mx-auto h-11 max-w-md px-5 shadow-buzz"
+        fullWidth
+        className="pointer-events-auto mx-auto flex h-11 max-w-md px-5 shadow-buzz"
       >
         {forBrands ? "Apply as a brand" : "Join as a student organization"}
       </LinkButton>

@@ -63,7 +63,7 @@ export function MarketingHero({
       <div className="marketing-hero-shade absolute inset-0 bg-page/60 opacity-0" />
       <BeeMark className="marketing-hero-bee absolute right-12 top-[198px] hidden h-[42px] w-[42px] md:block" />
       <div className="absolute inset-x-0 bottom-24 px-4 md:bottom-28 md:px-12">
-        <h1 className="max-w-3xl whitespace-pre-line text-[36px] font-medium leading-[1] tracking-tight md:text-buzzTitle">
+        <h1 className="max-w-3xl whitespace-pre-line text-[36px] font-medium leading-[1] tracking-tight md:text-buzzTitle md:leading-[1]">
           {title.split("\n").map((line) => (
             <span
               key={line}
