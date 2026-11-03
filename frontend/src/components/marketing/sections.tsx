@@ -186,7 +186,9 @@ export function CurrentDrops() {
   const [index, setIndex] = useState(0);
   const { items, isLoading, error, hasNextPage, fetchNextPage, refetch } =
     usePublicDropCatalog();
-  const collab = items[index];
+  const displayedIndex = Math.min(index, Math.max(0, items.length - 1));
+  if (index !== displayedIndex) setIndex(displayedIndex);
+  const collab = items[displayedIndex];
 
   const move = async (direction: -1 | 1) => {
     if (direction < 0) {
@@ -261,7 +263,7 @@ export function CurrentDrops() {
             <div
               className="flex gap-4 transition-transform duration-500 motion-reduce:transition-none"
               style={{
-                transform: `translateX(calc(${-index} * (80cqw + 1rem)))`,
+                transform: `translateX(calc(${-displayedIndex} * (80cqw + 1rem)))`,
               }}
             >
               {items.map((item) => (

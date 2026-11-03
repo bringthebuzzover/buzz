@@ -286,9 +286,14 @@ function ActiveOrgActions({
 
   if (alreadyApplied) {
     return (
-      <Button type="button" fullWidth disabled data-testid="apply-button">
-        Already applied
-      </Button>
+      <div className={cn(STACK.default, "w-full")}>
+        <Button type="button" fullWidth disabled data-testid="apply-button">
+          Already applied
+        </Button>
+        <LinkButton to="/org/campaigns" fullWidth>
+          My Campaigns
+        </LinkButton>
+      </div>
     );
   }
 

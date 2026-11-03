@@ -11,10 +11,6 @@ export type OrgIgChangeRequest =
   components["schemas"]["OrgIgChangeRequestResponse"];
 export type OrgIgChangeRequestState =
   components["schemas"]["OrgIgChangeRequestState"];
-export type OrgShippingChangeRequest =
-  components["schemas"]["OrgShippingChangeRequestResponse"];
-export type OrgShippingChangeRequestState =
-  components["schemas"]["OrgShippingChangeRequestState"];
 /** Editable PATCH body for `PATCH /api/orgs/me` (omit unchanged fields). */
 export type OrgProfileUpdate = components["schemas"]["OrgProfileUpdate"];
 export type PostItem = components["schemas"]["PostResponse"];
@@ -71,41 +67,6 @@ export function useSubmitIgChangeRequest() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["org-ig-change"] });
       void queryClient.invalidateQueries({ queryKey: ["org-profile"] });
-    },
-  });
-}
-
-export function useOrgShippingChangeRequestState() {
-  const { status } = useAuth();
-  return useQuery({
-    queryKey: ["org-shipping-change"],
-    queryFn: async () => {
-      const { data } = await apiFetch<OrgShippingChangeRequestState>(
-        "/api/orgs/me/shipping-change-request",
-      );
-      return data;
-    },
-    enabled: status === "authenticated",
-  });
-}
-
-export function useSubmitOrgShippingChangeRequest() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (payload: components["schemas"]["OrgShippingChangeRequestCreate"]) => {
-      const { data } = await apiFetch<OrgShippingChangeRequest>(
-        "/api/orgs/me/shipping-change-requests",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      );
-      return data;
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["org-shipping-change"] });
-      await queryClient.invalidateQueries({ queryKey: ["org-profile"] });
     },
   });
 }

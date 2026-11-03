@@ -3,6 +3,7 @@
  */
 import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
+import PublicDropPage from "./PublicDropPage";
 
 const mockUseAuth = jest.fn();
 const mockUseDropDetail = jest.fn();
@@ -17,8 +18,6 @@ jest.mock("../../api/hooks/useDropHooks", () => ({
   usePatchDropIntent: () => ({ mutateAsync: jest.fn(), isPending: false }),
   useApplyToDrop: () => ({ mutateAsync: mockApply, isPending: false, error: null }),
 }));
-
-import PublicDropPage from "./PublicDropPage";
 
 const now = Date.now();
 const DROP_ID = "00000000-0000-0000-0000-000000000063";
@@ -97,6 +96,23 @@ describe("PublicDropPage", () => {
     expect(container.textContent).not.toContain("SB");
     expect(container.querySelector("[data-testid=image-fallback]")).toBeNull();
     expect(container.querySelector(".bg-buzz-greyMedia")).not.toBeNull();
+  });
+
+  it("links already-applied organizations to My Campaigns", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: { portalRole: "org", status: "active" },
+      login: jest.fn(),
+    });
+    mockUseDropDetail.mockReturnValue({
+      isLoading: false, isError: false, error: null,
+      data: { ...openDrop(), alreadyApplied: true },
+    });
+    container = renderWithProviders(<PublicDropPage />, {
+      route: `/d/${DROP_ID}`, path: "/d/:dropId",
+    }).container;
+    expect(container.textContent).toContain("Already applied");
+    expect(container.querySelector('a[href="/org/campaigns"]')?.textContent).toContain("My Campaigns");
   });
 
   it("labels the optional pitch and confirms application with a My Campaigns link", async () => {

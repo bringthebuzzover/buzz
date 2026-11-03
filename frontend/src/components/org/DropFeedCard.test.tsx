@@ -45,7 +45,7 @@ describe("DropFeedCard accepted campaign", () => {
   };
 
   it("links an accepted seat to My Campaigns instead of a dead Closed action", () => {
-    const html = renderToString(
+    const view = renderToString(
       <MemoryRouter>
         <DropFeedCard
           drop={closedDrop}
@@ -56,10 +56,10 @@ describe("DropFeedCard accepted campaign", () => {
         />
       </MemoryRouter>,
     );
-    expect(html).toContain('href="/org/campaigns/app-1"');
-    expect(html).toContain("View campaign");
-    expect(html).not.toContain(">Applied<");
-    expect(html).not.toContain(">Closed</button>");
+    expect(view).toContain('href="/org/campaigns/app-1"');
+    expect(view).toContain("View campaign");
+    expect(view).not.toContain(">Applied<");
+    expect(view).not.toContain(">Closed</button>");
   });
 });
 
@@ -68,14 +68,14 @@ describe("DropFeedCard Open spots copy", () => {
     expect(renderOpen(0)).toContain('href="/d/d1"');
   });
   it("shows Up to N when acceptedCount is 0", () => {
-    const html = renderOpen(0);
-    expect(html).toContain("Up to 10 spots");
-    expect(html).not.toContain("spots remaining");
+    const view = renderOpen(0);
+    expect(view).toContain("Up to 10 spots");
+    expect(view).not.toContain("spots remaining");
   });
 
   it("shows M of N remaining when acceptedCount > 0", () => {
-    const html = renderOpen(3);
-    expect(html).toContain("7 of 10 spots remaining");
-    expect(html).not.toContain("Up to 10 spots");
+    const view = renderOpen(3);
+    expect(view).toContain("7 of 10 spots remaining");
+    expect(view).not.toContain("Up to 10 spots");
   });
 });

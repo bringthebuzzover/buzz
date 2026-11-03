@@ -57,6 +57,8 @@ describe("API provider-tree smoke", () => {
           />
         </MemoryRouter>,
       );
-    expect(render).not.toThrow();
+    const view = render();
+    expect(view).toContain('href="/d/d1"');
+    expect(view).toContain(">Apply</a>");
   });
 });

@@ -8,17 +8,24 @@ seats end (withdraw / remove), delivery is per seat, and cancel freezes a drop.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 
+import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
+from app.models.brand import Brand
 from app.models.drop import Drop
 from app.models.enums import ApplicationDecision, DropStage, PortalRole
 from app.models.shipment import DropApplicationShipment
+from app.models.user import User
 from app.security import jwt
 from app.services.admin_read import _signal_counts
+from app.services.campaigns import withdraw_my_campaign
 from app.services.lifecycle import (
     METRIC_SYNC_AFTER_WRAP,
     ORG_LINK_GRACE,
@@ -26,6 +33,8 @@ from app.services.lifecycle import (
     drop_stage,
     metrics_sync_open,
 )
+from app.services.seats import lock_drop
+from app.services.shipments import add_shipment
 from app.timeutils import utcnow
 from tests.conftest import (
     admin_headers,
@@ -291,18 +300,98 @@ async def test_org_withdraws_until_shipped(app_client: AsyncClient, db_session) 
     assert res.status_code == 409
 
 
-async def test_org_cannot_withdraw_from_wrapped_drop(app_client: AsyncClient, db_session) -> None:
+@pytest.mark.parametrize("terminal", ["wrapped_at", "canceled_at"])
+@pytest.mark.parametrize("decision", [ApplicationDecision.APPLIED, ApplicationDecision.ACCEPTED])
+async def test_org_can_withdraw_from_terminal_drop(
+    app_client: AsyncClient, db_session, terminal, decision
+) -> None:
     brand = await make_brand(db_session)
-    org_user, org = await _org(db_session, "Wrapped leaver")
-    drop = await make_drop(db_session, brand, wrapped_at=utcnow())
-    seat = await make_application(db_session, drop, org)
+    org_user, org = await _org(db_session, "Test leaver")
+    drop = await make_drop(db_session, brand)
+    setattr(drop, terminal, utcnow())
+    seat = await make_application(db_session, drop, org, decision=decision)
 
     result = await app_client.post(f"/api/campaigns/{seat.id}/withdraw", headers=_bearer(org_user))
 
-    assert result.status_code == 409
-    assert result.json()["error"]["code"] == "DROP_WRAPPED"
+    assert result.status_code == 200, result.text
     await db_session.refresh(seat)
-    assert seat.decision == ApplicationDecision.APPLIED.value
+    assert seat.decision == ApplicationDecision.WITHDREW.value
+
+
+@pytest.mark.parametrize("ship_first", [True, False])
+async def test_shipment_and_withdrawal_serialize(engine, monkeypatch, ship_first) -> None:
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with factory() as setup:
+        user, org = await _org(setup, "Test racing org")
+        brand = await make_brand(setup)
+        drop = await make_drop(setup, brand)
+        seat = await make_application(setup, drop, org, decision=ApplicationDecision.ACCEPTED)
+        await setup.commit()
+
+    # Both requests cache the accepted seat before the winning transaction changes it.
+    async with factory() as first, factory() as second:
+        await first.get(DropApplication, seat.id)
+        stale_seat = await second.get(DropApplication, seat.id)
+        waiting = asyncio.Event()
+
+        async def waiting_lock(db, drop_id):
+            waiting.set()
+            return await lock_drop(db, drop_id)
+
+        module = "campaigns" if ship_first else "shipments"
+        monkeypatch.setattr(f"app.services.{module}.lock_drop", waiting_lock)
+        loser = None
+        try:
+            if ship_first:
+                await add_shipment(first, seat.id, "1ZTEST999", None)
+                loser = asyncio.create_task(withdraw_my_campaign(second, user, seat.id))
+            else:
+                await withdraw_my_campaign(first, user, seat.id)
+                loser = asyncio.create_task(add_shipment(second, seat.id, "1ZTEST999", None))
+            await asyncio.wait_for(waiting.wait(), timeout=5)
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(asyncio.shield(loser), timeout=0.1)
+            await first.commit()
+            with pytest.raises(BuzzAPIException) as error:
+                await asyncio.wait_for(loser, timeout=5)
+            assert error.value.status_code == (409 if ship_first else 400)
+            assert error.value.message == (
+                "Your product has already shipped. Contact BUZZ to withdraw."
+                if ship_first
+                else "Tracking can be added only once the acceptance is sent."
+            )
+            await second.rollback()
+            await second.refresh(stale_seat)
+            shipments = (
+                await second.scalars(
+                    select(DropApplicationShipment).where(
+                        DropApplicationShipment.application_id == seat.id
+                    )
+                )
+            ).all()
+            assert len(shipments) == int(ship_first)
+            assert stale_seat.decision == (
+                ApplicationDecision.ACCEPTED.value
+                if ship_first
+                else ApplicationDecision.WITHDREW.value
+            )
+        finally:
+            if loser is not None and not loser.done():
+                loser.cancel()
+                await asyncio.gather(loser, return_exceptions=True)
+            await first.rollback()
+            await second.rollback()
+            async with factory() as cleanup:
+                await cleanup.execute(
+                    delete(DropApplicationShipment).where(
+                        DropApplicationShipment.application_id == seat.id
+                    )
+                )
+                await cleanup.execute(delete(DropApplication).where(DropApplication.id == seat.id))
+                await cleanup.execute(delete(Drop).where(Drop.id == drop.id))
+                await cleanup.execute(delete(Brand).where(Brand.id == brand.id))
+                await cleanup.execute(delete(User).where(User.id.in_([user.id, brand.user_id])))
+                await cleanup.commit()
 
 
 async def test_buzz_removes_with_reason_and_blocks_reapply(

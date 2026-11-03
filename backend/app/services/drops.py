@@ -17,7 +17,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
@@ -137,7 +137,11 @@ async def list_org_drop_feed(
                 select(Drop, Brand, stage_expr)
                 .join(Brand, Brand.id == Drop.brand_id)
                 .where(*_browsable_drop_filters(), *current_filters)
-                .order_by(Drop.created_at.desc(), Drop.id.desc())
+                .order_by(
+                    case((stage_expr == "applying", 0), else_=1),
+                    Drop.created_at.desc(),
+                    Drop.id.desc(),
+                )
                 .limit(per_page)
                 .offset((page - 1) * per_page)
             )
