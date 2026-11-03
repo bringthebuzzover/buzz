@@ -157,8 +157,8 @@ export function useApplyToDrop(dropId: string) {
             ),
           })),
         };
-      queryClient.setQueryData<InfiniteData<DropFeedPage>>(
-        DROP_FEED_KEY,
+      queryClient.setQueriesData<InfiniteData<DropFeedPage>>(
+        { queryKey: DROP_FEED_KEY },
         markApplied,
       );
       queryClient.setQueryData<DropDetail>(
@@ -169,8 +169,8 @@ export function useApplyToDrop(dropId: string) {
       await queryClient.invalidateQueries({ queryKey: DROP_FEED_KEY });
       // Re-assert after refetch: a stale/incorrect alreadyApplied=false from the
       // server must not wipe the successful apply state in the UI.
-      queryClient.setQueryData<InfiniteData<DropFeedPage>>(
-        DROP_FEED_KEY,
+      queryClient.setQueriesData<InfiniteData<DropFeedPage>>(
+        { queryKey: DROP_FEED_KEY },
         markApplied,
       );
       await queryClient.invalidateQueries({ queryKey: ["drop-detail", dropId] });

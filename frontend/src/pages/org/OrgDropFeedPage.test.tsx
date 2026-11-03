@@ -1,6 +1,7 @@
 /* eslint-disable testing-library/no-container -- direct React DOM harness. */
 import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
+import OrgDropFeedPage from "./OrgDropFeedPage";
 
 const mockFeed = jest.fn();
 const mockCampaigns = jest.fn();
@@ -10,8 +11,6 @@ jest.mock("../../api/hooks/useOrgDropFeed", () => ({
 jest.mock("../../api/hooks/useOrgHooks", () => ({
   useCampaigns: (...args: unknown[]) => mockCampaigns(...args),
 }));
-
-import OrgDropFeedPage from "./OrgDropFeedPage";
 
 const drop = {
   id: "00000000-0000-0000-0000-000000000063",

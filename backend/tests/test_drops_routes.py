@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from uuid import UUID
 
+import pytest
 from httpx import AsyncClient
 
 from app.models.enums import (
@@ -164,24 +166,38 @@ async def test_feed_keeps_upcoming_and_excludes_closed(app_client: AsyncClient, 
     assert {d["title"] for d in resp.json()["data"]} == {"Upcoming"}
 
 
-async def test_feed_pagination_is_stable(app_client: AsyncClient, db_session) -> None:
+async def test_feed_pagination_orders_open_before_upcoming(
+    app_client: AsyncClient, db_session
+) -> None:
     user = await persist(db_session, make_user())
     await make_org(db_session, user)
     brand = await make_brand(db_session)
-    for i in range(3):
-        await make_drop(db_session, brand, title=f"Drop {i}")
+    now = utcnow()
+    drops = []
+    for i, upcoming in enumerate([True, False, True, False]):
+        drop = await make_drop(
+            db_session,
+            brand,
+            title=f"Drop {i}",
+            apply_open_at=now + timedelta(days=1) if upcoming else now - timedelta(days=1),
+        )
+        drop.created_at = now + timedelta(minutes=i // 2)
+        drop.id = UUID(int=i + 1)
+        drops.append(drop)
+    await db_session.flush()
     headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
 
-    p1 = await app_client.get("/api/drops?page=1&per_page=2", headers=headers)
-    p2 = await app_client.get("/api/drops?page=2&per_page=2", headers=headers)
-    assert p1.status_code == 200 and p2.status_code == 200
-    assert p1.json()["meta"] == {"page": 1, "per_page": 2, "total": 3}
-    ids1 = [d["id"] for d in p1.json()["data"]]
-    ids2 = [d["id"] for d in p2.json()["data"]]
-    assert len(ids1) == 2 and len(ids2) == 1
-    # Stable order: pages are disjoint and together cover all 3 drops.
-    assert set(ids1).isdisjoint(ids2)
-    assert len(set(ids1) | set(ids2)) == 3
+    pages = [
+        await app_client.get(f"/api/drops?page={page}&per_page=2", headers=headers)
+        for page in (1, 2)
+    ]
+    for page, response in enumerate(pages, 1):
+        assert response.status_code == 200
+        assert response.json()["meta"] == {"page": page, "per_page": 2, "total": 4}
+    assert [[item["id"] for item in response.json()["data"]] for response in pages] == [
+        [str(drops[3].id), str(drops[1].id)],
+        [str(drops[2].id), str(drops[0].id)],
+    ]
 
 
 async def test_feed_per_page_clamped(app_client: AsyncClient, db_session) -> None:
@@ -243,35 +259,40 @@ async def test_feed_status_filters_apply_before_count_and_pagination(
     assert [item["id"] for item in open_page.json()["data"]] == [str(open_drop.id)]
 
 
-async def test_public_catalog_is_anonymous_and_field_allowlisted(
-    app_client: AsyncClient, db_session
+@pytest.mark.parametrize(
+    "excluded", ["hidden", "wrapped", "canceled", "draft", "expired", "unapproved"]
+)
+async def test_public_catalog_exclusions_and_privacy(
+    app_client: AsyncClient, db_session, excluded
 ) -> None:
-    brand = await make_brand(db_session)
+    brand = await make_brand(db_session, company_email="private-brand@example.test")
     now = utcnow()
-    upcoming = await make_drop(
-        db_session,
-        brand,
-        title="Public upcoming",
-        apply_open_at=now + timedelta(days=1),
-        apply_close_at=now + timedelta(days=8),
-    )
-    open_drop = await make_drop(db_session, brand, title="Public open")
-    await make_drop(
-        db_session,
-        brand,
-        title="Expired",
-        apply_open_at=now - timedelta(days=8),
-        apply_close_at=now - timedelta(days=1),
-    )
-    await make_drop(db_session, brand, title="Draft", published_at=None)
+    public = await make_drop(db_session, brand)
+    user = await persist(db_session, make_user())
+    user.edu_email = "private-org@example.edu"
+    org = await make_org(db_session, user)
+    org.contact_name = "Private Contact Canary"
+    org.delivery_address = "123 Test Address Canary"
+    await make_application(db_session, public, org)
+    private_brand = await make_brand(db_session, company_email="private-other@example.test")
+    private = await make_drop(db_session, private_brand)
+    if excluded in {"hidden", "wrapped", "canceled"}:
+        setattr(private, f"{excluded}_at", now)
+    elif excluded == "draft":
+        private.published_at = None
+    elif excluded == "expired":
+        private.apply_open_at = now - timedelta(days=2)
+        private.apply_close_at = now - timedelta(days=1)
+    else:
+        private_brand.status = BrandStatus.PENDING_REVIEW.value
+    await db_session.flush()
 
-    response = await app_client.get("/api/drops/public?per_page=1")
+    response = await app_client.get("/api/drops/public")
 
     assert response.status_code == 200
     body = response.json()
-    assert body["meta"]["total"] == 2
-    assert len(body["data"]) == 1
-    assert body["data"][0]["id"] in {str(upcoming.id), str(open_drop.id)}
+    assert body["meta"]["total"] == 1
+    assert [item["id"] for item in body["data"]] == [str(public.id)]
     assert set(body["data"][0]) == {
         "id",
         "brandName",
@@ -284,6 +305,61 @@ async def test_public_catalog_is_anonymous_and_field_allowlisted(
         "applyCloseAt",
         "stage",
     }
+    for private_field in (
+        "address",
+        "email",
+        "contact",
+        "private-brand",
+        "private-other",
+        "canary",
+        "private-org",
+    ):
+        assert private_field not in response.text.lower()
+
+
+@pytest.mark.parametrize(
+    ("open_delta", "close_delta", "stage"),
+    [(1, 2, "upcoming"), (0, 1, "applying"), (-1, 0, "applying"), (-2, -1, None)],
+)
+async def test_public_catalog_date_boundaries(
+    app_client: AsyncClient, db_session, monkeypatch, open_delta, close_delta, stage
+) -> None:
+    now = utcnow()
+    monkeypatch.setattr("app.services.drops.utcnow", lambda: now)
+    brand = await make_brand(db_session)
+    await make_drop(
+        db_session,
+        brand,
+        apply_open_at=now + timedelta(microseconds=open_delta),
+        apply_close_at=now + timedelta(microseconds=close_delta),
+    )
+
+    response = await app_client.get("/api/drops/public")
+
+    assert response.status_code == 200
+    assert response.json()["meta"]["total"] == int(stage is not None)
+    assert [item["stage"] for item in response.json()["data"]] == ([] if stage is None else [stage])
+
+
+async def test_public_catalog_page_two_order_and_count(app_client: AsyncClient, db_session) -> None:
+    brand = await make_brand(db_session)
+    now = utcnow()
+    drops = []
+    for i in range(4):
+        drop = await make_drop(db_session, brand)
+        drop.created_at = now + timedelta(minutes=i // 2)
+        drop.id = UUID(int=i + 1)
+        drops.append(drop)
+    await make_drop(db_session, brand, published_at=None)
+    await db_session.flush()
+
+    for page, expected in ((1, drops[2:][::-1]), (2, drops[:2][::-1])):
+        response = await app_client.get(f"/api/drops/public?page={page}&per_page=2")
+        assert response.status_code == 200
+        assert response.json()["meta"] == {"page": page, "per_page": 2, "total": 4}
+        assert [item["id"] for item in response.json()["data"]] == [
+            str(drop.id) for drop in expected
+        ]
 
 
 async def test_feed_expired_token(app_client: AsyncClient, db_session) -> None:

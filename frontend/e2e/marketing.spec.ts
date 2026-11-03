@@ -75,13 +75,21 @@ test("Berkeley seal loads fully on marketing college networks", async ({ page })
 });
 
 test("marketing Current drops come from the public catalog and link to details", async ({ page }) => {
+  const catalogResponse = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === "/api/drops/public" && response.ok(),
+  );
   await page.goto("/");
+  const catalog = await (await catalogResponse).json();
+  // seed_e2e.py guarantees this published, open drop is in the catalog.
+  expect(catalog.data).toEqual(expect.arrayContaining([
+    expect.objectContaining({ id: "00000000-0000-0000-0000-000000000063" }),
+  ]));
   const current = page.getByRole("heading", { name: "Current drops" }).locator("..").locator("..");
   await expect(current).toBeVisible();
   const detailLink = current.locator('a[href^="/d/"]').first();
   await expect(detailLink).toBeVisible();
   const path = await detailLink.getAttribute("href");
-  expect(path).toMatch(/^\/d\/[0-9a-f-]{36}$/i);
+  expect(path).toBe(`/d/${catalog.data[0].id}`);
   await detailLink.click();
   await expect(page).toHaveURL(path!);
 });

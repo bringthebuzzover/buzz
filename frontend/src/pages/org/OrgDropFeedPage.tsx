@@ -9,7 +9,6 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { filterChipClass } from "../../components/ui/navItem";
 import { Button } from "../../components/forms/controls";
-import { cn } from "../../theme/cn";
 
 type FeedFilter = "all" | "upcoming" | "open";
 const FILTERS: { id: FeedFilter; label: string }[] = [
@@ -87,7 +86,7 @@ export default function OrgDropFeedPage() {
         ) : items.length === 0 ? (
           <EmptyState title="No current drops" />
         ) : (
-          <div className={cn("grid grid-cols-1 gap-x-6 gap-y-10 md:grid-cols-2 xl:grid-cols-3")}>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-10 md:grid-cols-2 xl:grid-cols-3">
             {items.map((drop) => (
               <DropFeedCard
                 key={drop.id}
@@ -96,7 +95,6 @@ export default function OrgDropFeedPage() {
                 feedStatus={drop.stage === "upcoming" ? "upcoming" : "open"}
                 alreadyApplied={drop.alreadyApplied}
                 campaignTo={acceptedCampaignPath(campaigns, drop.id)}
-                disableApply={false}
               />
             ))}
           </div>
