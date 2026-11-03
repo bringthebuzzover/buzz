@@ -19,7 +19,7 @@ export const siteIdentity = {
     /** Paper wordmark + yellow bee, for ink surfaces. */
     logo: publicLogo("buzz-logo-on-ink.svg"),
     /** Black wordmark + yellow bee, for a light band. */
-    logoOnPaper: publicLogo("buzz-logo.svg"),
+    logoOnPaper: publicLogo("buzz-logo-on-paper.svg"),
     logoAlt: "BUZZ",
     socialInstagramIcon: instaIcon,
     socialLinkedinIcon: linkedinIcon,

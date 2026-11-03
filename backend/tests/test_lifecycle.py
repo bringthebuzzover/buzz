@@ -13,7 +13,7 @@ from datetime import timedelta
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.exceptions import BuzzAPIException
@@ -32,6 +32,7 @@ from app.services.lifecycle import (
     autolink_open,
     drop_stage,
     metrics_sync_open,
+    seat_is_live,
 )
 from app.services.seats import lock_drop
 from app.services.shipments import add_shipment
@@ -302,7 +303,7 @@ async def test_org_withdraws_until_shipped(app_client: AsyncClient, db_session) 
 
 @pytest.mark.parametrize("terminal", ["wrapped_at", "canceled_at"])
 @pytest.mark.parametrize("decision", [ApplicationDecision.APPLIED, ApplicationDecision.ACCEPTED])
-async def test_org_can_withdraw_from_terminal_drop(
+async def test_org_cannot_withdraw_from_terminal_drop(
     app_client: AsyncClient, db_session, terminal, decision
 ) -> None:
     brand = await make_brand(db_session)
@@ -310,12 +311,80 @@ async def test_org_can_withdraw_from_terminal_drop(
     drop = await make_drop(db_session, brand)
     setattr(drop, terminal, utcnow())
     seat = await make_application(db_session, drop, org, decision=decision)
+    seat.allocated_units = 3 if decision == ApplicationDecision.ACCEPTED else None
+    await db_session.flush()
+    sent_at = seat.decision_sent_at
 
     result = await app_client.post(f"/api/campaigns/{seat.id}/withdraw", headers=_bearer(org_user))
 
-    assert result.status_code == 200, result.text
+    assert result.status_code == 409, result.text
+    assert result.json()["error"]["code"] == (
+        "DROP_WRAPPED" if terminal == "wrapped_at" else "DROP_CANCELED"
+    )
     await db_session.refresh(seat)
-    assert seat.decision == ApplicationDecision.WITHDREW.value
+    assert seat.decision == decision.value
+    assert seat.decision_sent_at == sent_at
+    assert seat.allocated_units == (3 if decision == ApplicationDecision.ACCEPTED else None)
+
+
+@pytest.mark.parametrize("terminal", ["wrapped_at", "canceled_at"])
+@pytest.mark.parametrize("shipped", [False, True])
+async def test_admin_can_withdraw_terminal_seat_preserving_history(
+    app_client: AsyncClient, db_session, terminal, shipped
+) -> None:
+    admin = await admin_headers(db_session)
+    brand = await make_brand(db_session)
+    _, org = await _org(db_session, "Test terminal org")
+    drop = await make_drop(db_session, brand, capacity_total=1, total_product_units=3)
+    seat = await make_application(db_session, drop, org, decision=ApplicationDecision.ACCEPTED)
+    seat.allocated_units = 3
+    post = await make_social_post(db_session, org)
+    link = await make_post_link(db_session, post, seat)
+    shipment = DropApplicationShipment(
+        application_id=seat.id, tracking_number="1ZTEST999", carrier="ups"
+    )
+    if shipped:
+        db_session.add(shipment)
+    setattr(drop, terminal, utcnow())
+    await db_session.flush()
+    applied_at = seat.applied_at
+    assert (
+        await db_session.scalar(
+            select(func.count())
+            .select_from(DropApplication)
+            .where(DropApplication.drop_id == drop.id, seat_is_live())
+        )
+        == 1
+    )
+
+    result = await app_client.put(
+        f"/api/admin/drops/{drop.id}/applications/{seat.id}/decision",
+        json={"decision": "withdrew"},
+        headers=admin,
+    )
+
+    assert result.status_code == 200, result.text
+    detail = result.json()["data"]
+    assert detail["allocatedUnits"] == 0
+    assert detail["linkedPostCount"] == 1
+    applicant = next(item for item in detail["applicants"] if item["id"] == str(seat.id))
+    assert applicant["decision"] == "withdrew"
+    assert applicant["linkedPostCount"] == 1
+    assert [row["id"] for row in applicant["shipments"]] == ([str(shipment.id)] if shipped else [])
+    await db_session.refresh(seat)
+    await db_session.refresh(link)
+    assert seat.allocated_units is None
+    assert seat.applied_at == applied_at
+    assert seat.decision_at is not None and seat.decision_sent_at is not None
+    assert link.application_id == seat.id
+    assert (
+        await db_session.scalar(
+            select(func.count())
+            .select_from(DropApplication)
+            .where(DropApplication.drop_id == drop.id, seat_is_live())
+        )
+        == 0
+    )
 
 
 @pytest.mark.parametrize("ship_first", [True, False])

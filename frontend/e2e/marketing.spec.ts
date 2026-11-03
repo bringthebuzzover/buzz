@@ -35,7 +35,7 @@ test("marketing navigation follows the surface below its logo", async ({ page })
     await page.locator('[data-nav-surface="paper"]').first().evaluate((surface) => {
       surface.scrollIntoView({ block: "start" });
     });
-    await expect(logo()).toHaveAttribute("src", /buzz-logo\.svg/);
+    await expect(logo()).toHaveAttribute("src", /buzz-logo-on-paper\.svg/);
 
     await page.locator('[data-nav-surface="ink"]').nth(1).evaluate((surface) => {
       surface.scrollIntoView({ block: "start" });
@@ -94,24 +94,159 @@ test("marketing Current drops come from the public catalog and link to details",
   await expect(page).toHaveURL(path!);
 });
 
-test("marketing hero headlines stay within desktop and narrow viewports", async ({
-  page,
-}) => {
+test("Current drops keyboard focus stays on the selected slide at desktop and mobile widths", async ({ page }) => {
+  const items = Array.from({ length: 3 }, (_, index) => ({
+    id: `00000000-0000-0000-0000-${String(index + 1).padStart(12, "0")}`,
+    brandName: "Test Brand", title: `Test drop ${index + 1}`,
+    description: "Test campaign", image: null, location: "Test City",
+    capacityTotal: 10, applyOpenAt: 1, applyCloseAt: 2, stage: "applying",
+  }));
+  await page.route("**/api/drops/public?*", (route) => route.fulfill({
+    json: { data: items, meta: { page: 1, per_page: 12, total: items.length }, error: null },
+  }));
   await page.emulateMedia({ reducedMotion: "reduce" });
-  for (const width of [320, 390, 1440]) {
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    const current = page.getByRole("heading", { name: "Current drops" }).locator("..").locator("..");
+    const previous = current.getByRole("button", { name: "Previous drop" });
+    const next = current.getByRole("button", { name: "Next drop" });
+    await expect(next).toBeEnabled();
+    for (const selected of [0, 1]) {
+      if (selected) await next.click();
+      await (selected ? previous : next).focus();
+      if (selected) {
+        await page.keyboard.press("Tab");
+        await expect(next).toBeFocused();
+      }
+      const slide = current.locator('a[aria-hidden="false"]');
+      const viewDrop = current.getByRole("link", { name: "View drop", exact: true });
+      for (const link of [slide, viewDrop]) {
+        await page.keyboard.press("Tab");
+        await expect(link).toBeFocused();
+        await expect(link).toHaveAttribute("href", `/d/${items[selected].id}`);
+      }
+      const box = await slide.boundingBox();
+      const clip = await slide.locator("..").locator("..").boundingBox();
+      expect(box!.x).toBeGreaterThanOrEqual(clip!.x - 1);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(clip!.x + clip!.width + 1);
+      await page.keyboard.press("Tab");
+      expect(await current.evaluate((node) => node.contains(document.activeElement))).toBe(false);
+    }
+  }
+});
+
+for (const { width, reducedMotion } of [320, 390, 1440].flatMap((width) =>
+  (["no-preference", "reduce"] as const).map((reducedMotion) => ({ width, reducedMotion })),
+)) {
+  test(`marketing heroes and phone content fit at ${width}px with ${reducedMotion} motion`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion });
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
     for (const route of ["/", "/for-orgs", "/for-brands"]) {
       await page.goto(route);
-      const hero = page.locator(".marketing-hero");
-      const heading = hero.getByRole("heading", { level: 1 });
+      const heading = page.locator(".marketing-hero").getByRole("heading", { level: 1 });
       await expect(heading).toBeVisible();
-      const headingBox = await heading.boundingBox();
-      expect(headingBox).not.toBeNull();
-      expect(headingBox!.x).toBeGreaterThanOrEqual(0);
-      expect(headingBox!.x + headingBox!.width).toBeLessThanOrEqual(width);
-      await expect(hero.locator("[data-reveal-line]").first()).toBeVisible();
+      await heading.evaluate(async (element) => {
+        await document.fonts.ready;
+        await Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished));
+      });
+      const headingBox = (await heading.boundingBox())!;
+      expect(headingBox.x).toBeGreaterThanOrEqual(0);
+      expect(headingBox.x + headingBox.width).toBeLessThanOrEqual(width);
+      const lines = heading.locator("[data-reveal-line]");
+      expect(await lines.count()).toBeGreaterThan(0);
+      for (const line of await lines.all()) {
+        const bounds = await line.evaluate((element) => {
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          const textBox = range.getBoundingClientRect();
+          const clip = element.parentElement!.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          const context = document.createElement("canvas").getContext("2d")!;
+          context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+          const metrics = context.measureText(element.textContent!);
+          // Range includes empty font ascent/descent space. Keep only the ink,
+          // using the first and last baselines when a logical line wraps.
+          const top = textBox.top + metrics.fontBoundingBoxAscent - metrics.actualBoundingBoxAscent;
+          const bottom = textBox.bottom - metrics.fontBoundingBoxDescent + metrics.actualBoundingBoxDescent;
+          return { top, bottom, clipTop: clip.top, clipBottom: clip.bottom };
+        });
+        expect(bounds.bottom, `${route}: empty hero ink bounds ${JSON.stringify(bounds)}`).toBeGreaterThan(bounds.top);
+        expect(bounds.top, `${route}: hero ink clipped at top ${JSON.stringify(bounds)}`).toBeGreaterThanOrEqual(bounds.clipTop - 1);
+        expect(bounds.bottom, `${route}: hero ink clipped at bottom ${JSON.stringify(bounds)}`).toBeLessThanOrEqual(bounds.clipBottom + 1);
+      }
+
+      const phones = page.locator("[data-marketing-phone]");
+      expect(await phones.count()).toBeGreaterThan(0);
+      if (route === "/for-brands") {
+        await expect(phones.getByText("Send decisions", { exact: true })).toHaveCount(1);
+      }
+      for (const phone of await phones.all()) {
+        await phone.scrollIntoViewIfNeeded();
+        await expect(phone).toBeInViewport();
+        await expect(phone).toHaveCSS("width", width < 768 ? "250px" : "317px");
+        await phone.evaluate(async (element) => {
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+          await Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished));
+        });
+        const decisions = phone.getByText("Send decisions", { exact: true });
+        if (await decisions.count()) {
+          await expect(decisions).toBeVisible();
+          await expect(decisions).toHaveCSS("height", "40px");
+        }
+        const blocks = await phone.evaluate((element) => {
+          const phoneBox = element.getBoundingClientRect();
+          return Array.from(element.children, (screen) => {
+            // Measure the actual Selecting CTA; other screens end in a CTA or posts.
+            const block = Array.from(screen.querySelectorAll("div")).find(
+              (node) => node.childElementCount === 0 && node.textContent === "Send decisions",
+            ) ?? screen.firstElementChild!.lastElementChild!.lastElementChild!;
+            const box = block.getBoundingClientRect();
+            return {
+              phone: phoneBox.toJSON(),
+              block: box.toJSON(),
+              fits: box.width > 0 && box.height > 0 &&
+                box.top >= phoneBox.top - 1 && box.bottom <= phoneBox.bottom + 1 &&
+                box.left >= phoneBox.left - 1 && box.right <= phoneBox.right + 1,
+            };
+          });
+        });
+        expect(blocks.length).toBeGreaterThan(0);
+        expect(blocks.filter((block) => !block.fits), `${route}: final phone blocks are clipped`).toEqual([]);
+      }
     }
-  }
+  });
+}
+
+test("marketing CTA shows its focus ring after keyboard Tab", async ({ page }) => {
+  await page.goto("/");
+  const navigation = page.getByRole("navigation", { name: "Primary" });
+  await navigation.getByRole("button", { name: "Log in" }).focus();
+  await page.keyboard.press("Tab");
+  const cta = navigation.getByRole("button", { name: "Join Us!", exact: true });
+  await expect(cta).toBeFocused();
+  await expect(cta).toHaveClass(/focus-visible:ring-2/);
+  expect(await cta.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+  await expect(cta).not.toHaveCSS("box-shadow", "none");
+});
+
+test("brand footer CTA keeps ink text and a keyboard focus ring", async ({ page }) => {
+  await page.goto("/for-brands");
+  await page.evaluate(() => document.fonts.ready);
+  const footer = page.getByRole("contentinfo");
+  const cta = footer.getByRole("link", { name: "Apply as a brand", exact: true });
+  await cta.hover();
+  await expect(cta).toHaveCSS("color", "rgb(11, 11, 11)");
+  await expect(cta).toHaveCSS("background-color", "rgb(224, 190, 22)");
+  await page.mouse.move(0, 0);
+  await footer.locator('a[href^="mailto:"]').first().focus();
+  await page.keyboard.press("Shift+Tab");
+  await expect(cta).toBeFocused();
+  expect(await cta.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+  await expect(cta).toHaveCSS("color", "rgb(11, 11, 11)");
+  await expect(cta).toHaveCSS("background-color", "rgb(224, 190, 22)");
+  await expect(cta).toHaveClass(/focus-visible:ring-2/);
+  await expect(cta).not.toHaveCSS("box-shadow", "none");
 });
 
 test("home how-to cards open role tours", async ({ page }) => {

@@ -1,4 +1,6 @@
 /* eslint-disable testing-library/no-container -- The shared harness uses React DOM; Testing Library is not installed. */
+import fs from "fs";
+import path from "path";
 import { act } from "react";
 import { Route, Routes } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -126,8 +128,17 @@ describe("SiteHeader", () => {
       const logo = container.querySelector<HTMLImageElement>(
         '[data-testid="site-header-logo"] img',
       );
+      const wordmarkFills = () => {
+        const assetPath = new URL(logo!.src).pathname;
+        const svg = new DOMParser().parseFromString(
+          fs.readFileSync(path.join(__dirname, "../../../public", assetPath), "utf8"),
+          "image/svg+xml",
+        );
+        return Array.from(svg.querySelectorAll("g[fill]"), (group) => group.getAttribute("fill"));
+      };
       expect(pointSpy).toHaveBeenCalledWith(196, 86);
-      expect(logo?.src).toContain("buzz-logo.svg");
+      expect(logo?.src).toContain("buzz-logo-on-paper.svg");
+      expect(wordmarkFills()).toEqual(Array(5).fill("#0b0b0b"));
       expect(
         container.querySelector('nav[aria-label="Primary"]')?.className,
       ).toContain("border-on-accent/10");
@@ -135,6 +146,7 @@ describe("SiteHeader", () => {
       hasPaperSurface = false;
       act(() => window.dispatchEvent(new Event("resize")));
       expect(logo?.src).toContain("buzz-logo-on-ink.svg");
+      expect(wordmarkFills()).toEqual(Array(5).fill("#ffffff"));
     } finally {
       boundsSpy.mockRestore();
       Object.defineProperty(document, "elementFromPoint", {
@@ -142,6 +154,24 @@ describe("SiteHeader", () => {
         value: () => null,
       });
     }
+  });
+
+  it("keeps the bee byte-identical while letters and flight dots change tone", () => {
+    const readLogo = (name: string) => fs.readFileSync(
+      path.join(__dirname, "../../../public/logos", name), "utf8",
+    );
+    const ink = readLogo("buzz-logo-on-ink.svg");
+    const paper = readLogo("buzz-logo-on-paper.svg");
+    const paths = (svg: string) => svg.match(/<path\b[^>]*>/g)!;
+    const inkPaths = paths(ink);
+    expect(inkPaths).toHaveLength(23);
+    // Paths 1–2 are clip definitions; 3–18 form the bee; 19 is the dotted trail.
+    const originalBee = paths(readLogo("buzz-logo.svg")).slice(2, 18);
+    expect(inkPaths.slice(2, 18)).toEqual(originalBee);
+    expect(paths(paper).slice(2, 18)).toEqual(originalBee);
+    expect(paper).toBe(ink
+      .replace(/<g fill="#ffffff"/g, '<g fill="#0b0b0b"')
+      .replace(inkPaths[18], inkPaths[18].replace('fill="#f0f0f0"', 'fill="#0b0b0b"')));
   });
 
   it("keeps How it works out of the guest navbar and mobile menu", () => {

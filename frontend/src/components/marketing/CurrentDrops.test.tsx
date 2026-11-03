@@ -33,6 +33,26 @@ describe("CurrentDrops", () => {
     expect(container.textContent).toContain("View drop");
   });
 
+  it("only exposes the selected slide to keyboard and screen reader navigation", () => {
+    mockCatalog.mockReturnValue({
+      items: [row, { ...row, id: "drop-2" }, { ...row, id: "drop-3" }],
+      isLoading: false, error: null, hasNextPage: false,
+      fetchNextPage: jest.fn(), refetch: jest.fn(),
+    });
+    const { container } = renderWithProviders(<CurrentDrops />);
+    const slides = Array.from(container.querySelectorAll<HTMLAnchorElement>("a[aria-hidden]"));
+    expect(slides.map((slide) => slide.tabIndex)).toEqual([0, -1, -1]);
+    expect(slides.map((slide) => slide.getAttribute("aria-hidden"))).toEqual(["false", "true", "true"]);
+
+    act(() => container.querySelector('button[aria-label="Next drop"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(slides.map((slide) => slide.tabIndex)).toEqual([-1, 0, -1]);
+    expect(slides.map((slide) => slide.getAttribute("aria-hidden"))).toEqual(["true", "false", "true"]);
+    expect(container.querySelector('a:not([aria-hidden])[href="/d/drop-2"]')?.textContent).toBe("View drop");
+    expect(container.querySelector('button[aria-label="Previous drop"]')?.hasAttribute("disabled")).toBe(false);
+    expect(container.querySelector('button[aria-label="Next drop"]')?.hasAttribute("disabled")).toBe(false);
+  });
+
   it("clamps the selected drop when results shrink and resets after an empty refetch", () => {
     const items = [row, { ...row, id: "drop-2", title: "Second drop" },
       { ...row, id: "drop-3", title: "Third drop" }];

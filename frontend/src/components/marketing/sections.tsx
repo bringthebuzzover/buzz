@@ -67,7 +67,7 @@ export function MarketingHero({
       <div className="marketing-hero-shade absolute inset-0 bg-page/60 opacity-0" />
       <BeeMark className="marketing-hero-bee absolute right-12 top-[198px] hidden h-[42px] w-[42px] md:block" />
       <div className="absolute inset-x-0 bottom-24 px-4 md:bottom-28 md:px-12">
-        <h1 className="max-w-3xl whitespace-pre-line text-[36px] font-medium leading-[1] tracking-tight md:text-buzzTitle">
+        <h1 className="max-w-3xl whitespace-pre-line text-[36px] font-medium leading-[1] tracking-tight md:text-buzzTitle md:leading-[1]">
           {title.split("\n").map((line) => (
             <span
               key={line}
@@ -266,10 +266,12 @@ export function CurrentDrops() {
                 transform: `translateX(calc(${-displayedIndex} * (80cqw + 1rem)))`,
               }}
             >
-              {items.map((item) => (
+              {items.map((item, itemIndex) => (
                 <Link
                   key={item.id}
                   to={publicDropPath(item.id)}
+                  tabIndex={itemIndex === displayedIndex ? 0 : -1}
+                  aria-hidden={itemIndex !== displayedIndex}
                   className={cn("block w-[80cqw] shrink-0", focusRingClass)}
                 >
                   <div className="relative aspect-video overflow-hidden rounded-buzzBoard">
