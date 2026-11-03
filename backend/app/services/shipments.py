@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote
 from uuid import UUID
 
@@ -19,6 +19,7 @@ from app.models.enums import ApplicationDecision
 from app.models.shipment import CARRIERS, DropApplicationShipment
 from app.services.drop_notices import notify_shipped
 from app.services.lifecycle import drop_running, require_drop, seat_is_live
+from app.services.seats import lock_drop
 from app.timeutils import utcnow
 
 _UPS_TRACK = "https://www.ups.com/track?tracknum="
@@ -93,9 +94,18 @@ def unshipped_live_seat_clause() -> tuple[ColumnElement[bool], ...]:
 
 
 async def _live_seat(db: AsyncSession, application_id: UUID, action: str) -> DropApplication:
-    """The seat, if it is a sent acceptance on a drop that is not canceled."""
+    """Lock the drop and reload its seat before checking a sent acceptance."""
 
     application = await db.get(DropApplication, application_id)
+    if application is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
+    drop = await lock_drop(db, application.drop_id)
+    application = await db.scalar(
+        select(DropApplication)
+        .where(DropApplication.id == application_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
     if application is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
     if (
@@ -107,10 +117,8 @@ async def _live_seat(db: AsyncSession, application_id: UUID, action: str) -> Dro
             f"{action} only once the acceptance is sent.",
             status_code=400,
         )
-    drop = await db.get(Drop, application.drop_id)
-    if drop is not None:
-        require_drop(drop)
-    return application
+    require_drop(drop)
+    return cast(DropApplication, application)
 
 
 async def set_delivered(db: AsyncSession, application_id: UUID, delivered: bool) -> None:

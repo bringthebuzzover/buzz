@@ -11,6 +11,10 @@ export type OrgIgChangeRequest =
   components["schemas"]["OrgIgChangeRequestResponse"];
 export type OrgIgChangeRequestState =
   components["schemas"]["OrgIgChangeRequestState"];
+export type OrgShippingChangeRequest =
+  components["schemas"]["OrgShippingChangeRequestResponse"];
+export type OrgShippingChangeRequestState =
+  components["schemas"]["OrgShippingChangeRequestState"];
 /** Editable PATCH body for `PATCH /api/orgs/me` (omit unchanged fields). */
 export type OrgProfileUpdate = components["schemas"]["OrgProfileUpdate"];
 export type PostItem = components["schemas"]["PostResponse"];
@@ -67,6 +71,41 @@ export function useSubmitIgChangeRequest() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["org-ig-change"] });
       void queryClient.invalidateQueries({ queryKey: ["org-profile"] });
+    },
+  });
+}
+
+export function useOrgShippingChangeRequestState() {
+  const { status } = useAuth();
+  return useQuery({
+    queryKey: ["org-shipping-change"],
+    queryFn: async () => {
+      const { data } = await apiFetch<OrgShippingChangeRequestState>(
+        "/api/orgs/me/shipping-change-request",
+      );
+      return data;
+    },
+    enabled: status === "authenticated",
+  });
+}
+
+export function useSubmitOrgShippingChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: components["schemas"]["OrgShippingChangeRequestCreate"]) => {
+      const { data } = await apiFetch<OrgShippingChangeRequest>(
+        "/api/orgs/me/shipping-change-requests",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      return data;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["org-shipping-change"] });
+      await queryClient.invalidateQueries({ queryKey: ["org-profile"] });
     },
   });
 }
@@ -243,23 +282,32 @@ export function useDismissSuggestion(applicationId: string) {
 }
 
 /** A change to the caller's own seat: refresh My Campaigns and that campaign. */
-function useSeatMutation<T>(applicationId: string, send: (input: T) => Promise<unknown>) {
+function useSeatMutation<T>(
+  applicationId: string,
+  send: (input: T) => Promise<unknown>,
+  affectedDropId?: string,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: T) => {
       await send(input);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["campaigns"] });
-      queryClient.invalidateQueries({ queryKey: ["campaign-detail", applicationId] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["campaigns"] });
+      await queryClient.invalidateQueries({ queryKey: ["campaign-detail", applicationId] });
+      if (affectedDropId) {
+        await queryClient.invalidateQueries({ queryKey: ["org-drop-feed"] });
+        await queryClient.invalidateQueries({ queryKey: ["drop-detail", affectedDropId] });
+      }
     },
   });
 }
 
 /** Leave a drop: free before anything ships; after that only BUZZ can end the seat. */
-export const useWithdrawCampaign = (applicationId: string) =>
+export const useWithdrawCampaign = (applicationId: string, dropId?: string) =>
   useSeatMutation<void>(applicationId, () =>
     apiFetch(`/api/campaigns/${applicationId}/withdraw`, { method: "POST" }),
+    dropId,
   );
 
 /** "I got it" (or undo): the org confirms its package arrived. */

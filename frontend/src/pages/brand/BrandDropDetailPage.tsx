@@ -45,6 +45,8 @@ import { useMdUp } from "../../hooks/useMdUp";
 import CopyPublicDropUrl from "../../components/drop/CopyPublicDropUrl";
 import { shortDate } from "../../utils/dropStatus";
 import { ENDED_DECISIONS } from "../../utils/dropStage";
+import { RemoteImage } from "../../components/ui/RemoteImage";
+import { formatDateTime } from "../../components/admin/labels";
 
 const backLink = <BackLink to="/brand/dashboard">Back to dashboard</BackLink>;
 
@@ -416,6 +418,44 @@ function ApiDropDetail() {
 
       <BrandDropTrackerStepper currentStage={stage} applyCloseAt={detail.applyCloseAt} />
 
+      <Card kind="panel" pad="card" className="flex flex-col gap-5" data-testid="brand-drop-configuration">
+        <CardHeader title="Campaign configuration" description="Read-only campaign and shipping setup." />
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+          <RemoteImage
+            src={detail.image}
+            label={detail.title}
+            alt={`${detail.title} campaign`}
+            fallback="placeholder"
+            className="aspect-video w-full overflow-hidden rounded-buzzCard object-cover"
+          />
+          <dl className="grid min-w-0 grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+            <ConfigurationValue label="Location" value={detail.location} />
+            <ConfigurationValue label="Spots" value={String(detail.capacityTotal)} />
+            <ConfigurationValue
+              label="Product units"
+              value={detail.totalProductUnits == null ? "Spot-only" : String(detail.totalProductUnits)}
+            />
+            <ConfigurationValue
+              label="Applications open"
+              value={`${formatDateTime(detail.applyOpenAt)} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`}
+            />
+            <ConfigurationValue
+              label="Applications close"
+              value={`${formatDateTime(detail.applyCloseAt)} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`}
+            />
+            <ConfigurationValue label="Campaign hashtag" value={detail.campaignHashtag || "Not set"} />
+            <ConfigurationValue
+              label="Creative editing"
+              value={detail.brandCanEditCreative
+                ? stage === "wrapped" || stage === "canceled"
+                  ? "Allowed by setup; locked for this ended drop"
+                  : "Available"
+                : "Not allowed"}
+            />
+          </dl>
+        </div>
+      </Card>
+
       {detail.brandCanEditCreative && stage !== "wrapped" && stage !== "canceled" ? (
         <BrandCampaignEditor detail={detail} />
       ) : null}
@@ -442,6 +482,15 @@ function ApiDropDetail() {
         <StatePanel>Posts and KPIs will appear here once your drop goes live.</StatePanel>
       ) : null}
     </PageShell>
+  );
+}
+
+function ConfigurationValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-quiet">{label}</dt>
+      <dd className="mt-1 break-words text-sm text-primary">{value}</dd>
+    </div>
   );
 }
 

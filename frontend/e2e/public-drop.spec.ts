@@ -41,14 +41,8 @@ test("active org can apply from the public drop page", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /apply to drop/i })).toBeVisible();
   await page.getByPlaceholder(/optional pitch/i).fill("Public page pitch");
   await page.getByTestId("apply-submit").click();
-  // Same seeded drop as org.spec apply; parallel workers may have already
-  // applied. Either a flipped CTA or the API's already-applied error is the
-  // active-org apply path.
-  await expect(
-    page
-      .getByTestId("apply-button")
-      .or(page.getByText(/already applied to this drop/i)),
-  ).toBeVisible();
+  await expect(page.getByText(/application submitted/i)).toBeVisible();
+  await expect(page.getByRole("link", { name: "My Campaigns", exact: true })).toHaveAttribute("href", "/org/campaigns");
 });
 
 test("anonymous public drop signup stores intent, not an applicant", async ({

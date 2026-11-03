@@ -291,6 +291,20 @@ async def test_org_withdraws_until_shipped(app_client: AsyncClient, db_session) 
     assert res.status_code == 409
 
 
+async def test_org_cannot_withdraw_from_wrapped_drop(app_client: AsyncClient, db_session) -> None:
+    brand = await make_brand(db_session)
+    org_user, org = await _org(db_session, "Wrapped leaver")
+    drop = await make_drop(db_session, brand, wrapped_at=utcnow())
+    seat = await make_application(db_session, drop, org)
+
+    result = await app_client.post(f"/api/campaigns/{seat.id}/withdraw", headers=_bearer(org_user))
+
+    assert result.status_code == 409
+    assert result.json()["error"]["code"] == "DROP_WRAPPED"
+    await db_session.refresh(seat)
+    assert seat.decision == ApplicationDecision.APPLIED.value
+
+
 async def test_buzz_removes_with_reason_and_blocks_reapply(
     app_client: AsyncClient, db_session
 ) -> None:

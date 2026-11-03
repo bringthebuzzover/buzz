@@ -7917,6 +7917,48 @@
         "title": "DataResponse[list[PostResponse]]",
         "type": "object"
       },
+      "DataResponse_list_PublicDropCatalogItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PublicDropCatalogItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[PublicDropCatalogItem]]",
+        "type": "object"
+      },
       "DataResponse_list_ShipmentItem__": {
         "properties": {
           "data": {
@@ -9918,6 +9960,65 @@
           "brandSelfRegistrationEnabled"
         ],
         "title": "PublicConfigResponse",
+        "type": "object"
+      },
+      "PublicDropCatalogItem": {
+        "description": "Allowlisted public campaign card; deliberately has no org or admin state.",
+        "properties": {
+          "applyCloseAt": {
+            "title": "Applycloseat",
+            "type": "integer"
+          },
+          "applyOpenAt": {
+            "title": "Applyopenat",
+            "type": "integer"
+          },
+          "brandName": {
+            "title": "Brandname",
+            "type": "string"
+          },
+          "capacityTotal": {
+            "title": "Capacitytotal",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "image": {
+            "title": "Image",
+            "type": "string"
+          },
+          "location": {
+            "title": "Location",
+            "type": "string"
+          },
+          "stage": {
+            "$ref": "#/components/schemas/DropStage"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "brandName",
+          "title",
+          "description",
+          "image",
+          "location",
+          "capacityTotal",
+          "applyOpenAt",
+          "applyCloseAt",
+          "stage"
+        ],
+        "title": "PublicDropCatalogItem",
         "type": "object"
       },
       "PublicResendVerificationRequest": {
@@ -16789,6 +16890,21 @@
             }
           },
           {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "all",
+                "upcoming",
+                "open"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
             "in": "header",
             "name": "authorization",
             "required": false,
@@ -16828,6 +16944,63 @@
           }
         },
         "summary": "List Drops",
+        "tags": [
+          "drops"
+        ]
+      }
+    },
+    "/api/drops/public": {
+      "get": {
+        "description": "Anonymous allowlisted catalog of Upcoming and Applying drops.",
+        "operationId": "list_public_drops_api_drops_public_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "per_page",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Per Page",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_list_PublicDropCatalogItem__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Public Drops",
         "tags": [
           "drops"
         ]

@@ -7,6 +7,7 @@ paths: drop detail, apply, and notify-me set/delete.
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +27,7 @@ from app.schemas.drops import (
     DropFeedItem,
     DropIntentPitchRequest,
     NotifyRequest,
+    PublicDropCatalogItem,
 )
 from app.services.drop_apply_intents import (
     assert_intent_drop_public,
@@ -38,6 +40,7 @@ from app.services.drops import (
     build_drop_detail,
     clear_notify,
     list_org_drop_feed,
+    list_public_drop_catalog,
     set_notify,
 )
 from app.services.orgs import get_org_for_user
@@ -51,12 +54,30 @@ async def list_drops(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=100),
+    status: Literal["all", "upcoming", "open"] = Query("all"),
 ) -> APIResponse:
     """Org drop browse feed (JWT + ``org`` role + ``active``)."""
 
-    items, total = await list_org_drop_feed(db, user, page=page, per_page=per_page)
+    items, total = await list_org_drop_feed(
+        db, user, page=page, per_page=per_page, feed_filter=status
+    )
     return api_response(
         data=items,
+        meta={"page": page, "per_page": per_page, "total": total},
+    )
+
+
+@router.get("/public", response_model=DataResponse[list[PublicDropCatalogItem]])
+async def list_public_drops(
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(12, ge=1, le=100),
+) -> APIResponse:
+    """Anonymous allowlisted catalog of Upcoming and Applying drops."""
+
+    items, total = await list_public_drop_catalog(db, page=page, per_page=per_page)
+    return api_response(
+        data=[PublicDropCatalogItem.model_validate(item) for item in items],
         meta={"page": page, "per_page": per_page, "total": total},
     )
 

@@ -15,6 +15,7 @@ import type { components } from "../generated/schema";
 // Sourced from OpenAPI (`npm run gen:api`) once drops feed/detail use
 // DataResponse[T] — same BrandProfile pattern as useBrandHooks.
 export type DropFeedItem = components["schemas"]["DropFeedItem"];
+export type PublicDropCatalogItem = components["schemas"]["PublicDropCatalogItem"];
 export type DropDetail = components["schemas"]["DropDetailResponse"];
 export type DropApplication = components["schemas"]["ApplicationResponse"];
 
@@ -23,39 +24,68 @@ type DropFeedPage = ApiResult<DropFeedItem[]>;
 
 const DROP_FEED_KEY = ["org-drop-feed"];
 const DROP_FEED_PAGE_SIZE = 50;
+const PUBLIC_CATALOG_KEY = ["public-drop-catalog"];
+const PUBLIC_CATALOG_PAGE_SIZE = 12;
+export type OrgDropFeedFilter = "all" | "upcoming" | "open";
 
 /**
  * Paged drop feed. The catalog can outgrow one page, so pages accumulate
  * behind `fetchNextPage` and `meta.total` decides when there is nothing left
  * to load (rather than silently truncating at the API default).
  */
-export function useOrgDropFeed() {
-  const { status } = useAuth();
+export function useOrgDropFeed(feedFilter: OrgDropFeedFilter = "all") {
+  const { status: authStatus } = useAuth();
   const query = useInfiniteQuery({
-    queryKey: DROP_FEED_KEY,
+    queryKey: [...DROP_FEED_KEY, feedFilter],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       apiFetch<DropFeedItem[]>(
-        `/api/drops?page=${pageParam}&per_page=${DROP_FEED_PAGE_SIZE}`,
+        `/api/drops?page=${pageParam}&per_page=${DROP_FEED_PAGE_SIZE}&status=${feedFilter}`,
       ),
     getNextPageParam: (lastPage, allPages) => {
       const loaded = allPages.reduce((count, page) => count + page.data.length, 0);
       const total = lastPage.meta?.total ?? loaded;
       return loaded < total ? allPages.length + 1 : undefined;
     },
-    enabled: status === "authenticated",
+    enabled: authStatus === "authenticated",
   });
 
   const authError =
-    status === "error" ? new Error("Authentication failed.") : null;
+    authStatus === "error" ? new Error("Authentication failed.") : null;
 
   return {
     items: query.data?.pages.flatMap((page) => page.data) ?? [],
-    isLoading: status === "authenticating" || query.isLoading,
+    isLoading: authStatus === "authenticating" || query.isLoading,
     error: authError ?? query.error,
     hasNextPage: query.hasNextPage,
     isFetchingNextPage: query.isFetchingNextPage,
     fetchNextPage: query.fetchNextPage,
+    refetch: query.refetch,
+  };
+}
+
+/** Anonymous, allowlisted catalog used by marketing Current drops sections. */
+export function usePublicDropCatalog() {
+  const query = useInfiniteQuery({
+    queryKey: PUBLIC_CATALOG_KEY,
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      apiFetch<PublicDropCatalogItem[]>(
+        `/api/drops/public?page=${pageParam}&per_page=${PUBLIC_CATALOG_PAGE_SIZE}`,
+      ),
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((count, page) => count + page.data.length, 0);
+      const total = lastPage.meta?.total ?? loaded;
+      return loaded < total ? allPages.length + 1 : undefined;
+    },
+  });
+  return {
+    items: query.data?.pages.flatMap((page) => page.data) ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
+    hasNextPage: query.hasNextPage,
+    fetchNextPage: query.fetchNextPage,
+    refetch: query.refetch,
   };
 }
 

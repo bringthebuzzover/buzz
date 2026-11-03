@@ -59,8 +59,8 @@ function CampaignMetrics({
 }
 
 /** Leave the drop. The API refuses once a package has shipped (BUZZ handles that). */
-function WithdrawButton({ applicationId }: { applicationId: string }) {
-  const withdraw = useWithdrawCampaign(applicationId);
+function WithdrawButton({ applicationId, dropId }: { applicationId: string; dropId: string }) {
+  const withdraw = useWithdrawCampaign(applicationId, dropId);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -210,7 +210,7 @@ function ApiCampaignDetail() {
         description={detail.description ?? ""}
         actions={
           <div className="flex items-center gap-3">
-            {canWithdraw ? <WithdrawButton applicationId={detail.id} /> : null}
+            {canWithdraw ? <WithdrawButton applicationId={detail.id} dropId={detail.dropId} /> : null}
             <CampaignStatusBadge status={status} />
           </div>
         }

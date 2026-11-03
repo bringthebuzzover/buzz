@@ -12,6 +12,10 @@ import { FEATURED_COLLABS } from "../../data/featuredCollabs";
 import { cn } from "../../theme/cn";
 import { useReducedMotion } from "./useReducedMotion";
 import { publicAsset } from "../../utils/publicAsset";
+import { usePublicDropCatalog } from "../../api/hooks/useDropHooks";
+import { publicDropPath } from "../../utils/oauthNext";
+import { StatePanel } from "../ui/StatePanel";
+import { RemoteImage } from "../ui/RemoteImage";
 
 export function MarketingHero({
   title,
@@ -180,8 +184,29 @@ export function StackCards() {
 
 export function CurrentDrops() {
   const [index, setIndex] = useState(0);
-  const [loaded, setLoaded] = useState<Record<string, boolean>>({});
-  const collab = FEATURED_COLLABS[index] ?? FEATURED_COLLABS[0];
+  const { items, isLoading, error, hasNextPage, fetchNextPage, refetch } =
+    usePublicDropCatalog();
+  const collab = items[index];
+
+  const move = async (direction: -1 | 1) => {
+    if (direction < 0) {
+      setIndex((value) => Math.max(0, value - 1));
+      return;
+    }
+    if (index + 1 < items.length) {
+      setIndex((value) => Math.min(items.length - 1, value + 1));
+      return;
+    }
+    if (hasNextPage) {
+      const result = await fetchNextPage();
+      const count = result.data?.pages.reduce(
+        (total, page) => total + page.data.length,
+        0,
+      ) ?? items.length;
+      if (count > index + 1) setIndex(index + 1);
+    }
+  };
+
   return (
     <section
       data-nav-surface="paper"
@@ -192,32 +217,46 @@ export function CurrentDrops() {
           <h2 className="text-[36px] font-medium leading-none tracking-tight md:text-buzzTitle">
             Current drops
           </h2>
-          <div className="flex gap-2">
-            {([-1, 1] as const).map((direction) => {
-              const disabled = direction < 0 ? index === 0 : index >= FEATURED_COLLABS.length - 1;
-              return (
-                <button
-                  key={direction}
-                  type="button"
-                  aria-label={direction < 0 ? "Previous drop" : "Next drop"}
-                  disabled={disabled}
-                  onClick={() => setIndex((value) => direction < 0
-                    ? Math.max(0, value - 1)
-                    : Math.min(FEATURED_COLLABS.length - 1, value + 1))}
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full border border-on-accent text-on-accent",
-                    disabled && "opacity-30",
-                    focusRingClass,
-                  )}
-                >
-                  {direction < 0 ? "←" : "→"}
-                </button>
-              );
-            })}
-          </div>
+          {items.length > 0 ? (
+            <div className="flex gap-2">
+              {([-1, 1] as const).map((direction) => {
+                const disabled = direction < 0
+                  ? index === 0
+                  : index >= items.length - 1 && !hasNextPage;
+                return (
+                  <button
+                    key={direction}
+                    type="button"
+                    aria-label={direction < 0 ? "Previous drop" : "Next drop"}
+                    disabled={disabled}
+                    onClick={() => void move(direction)}
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-full border border-on-accent text-on-accent",
+                      disabled && "opacity-30",
+                      focusRingClass,
+                    )}
+                  >
+                    {direction < 0 ? "←" : "→"}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
-        {/* Lab scroller: cards fill 80% of the track with a 16px gap. */}
-        <div className="mt-7 [container-type:inline-size]">
+        {isLoading ? <StatePanel className="mt-7">Loading current drops…</StatePanel> : null}
+        {error ? (
+          <div className="mt-7">
+            <StatePanel tone="danger" title="Could not load current drops">Try again.</StatePanel>
+            <div className="mt-3 flex justify-center">
+              <Button type="button" variant="outline" onClick={() => void refetch()}>Try again</Button>
+            </div>
+          </div>
+        ) : null}
+        {!isLoading && !error && items.length === 0 ? (
+          <StatePanel className="mt-7">No current drops right now.</StatePanel>
+        ) : null}
+        {collab ? (
+          <div className="mt-7 [container-type:inline-size]">
           <div className="overflow-hidden">
             <div
               className="flex gap-4 transition-transform duration-500 motion-reduce:transition-none"
@@ -225,41 +264,48 @@ export function CurrentDrops() {
                 transform: `translateX(calc(${-index} * (80cqw + 1rem)))`,
               }}
             >
-              {FEATURED_COLLABS.map((item) => (
-                <div key={item.id} className="w-[80cqw] shrink-0">
+              {items.map((item) => (
+                <Link
+                  key={item.id}
+                  to={publicDropPath(item.id)}
+                  className={cn("block w-[80cqw] shrink-0", focusRingClass)}
+                >
                   <div className="relative aspect-video overflow-hidden rounded-buzzBoard">
-                    <img
+                    <RemoteImage
                       src={item.image}
-                      alt={item.title}
-                      onLoad={() =>
-                        setLoaded((value) => ({ ...value, [item.id]: true }))
-                      }
-                      className="h-full w-full object-cover"
+                      label={item.brandName}
+                      alt={`${item.brandName}: ${item.title}`}
+                      fallback="placeholder"
+                      className="absolute inset-0 h-full w-full object-cover"
                     />
                     <div
                       aria-hidden
                       className="pointer-events-none absolute left-0 top-0 h-[30%] w-full bg-gradient-to-b from-black/45 to-transparent"
                     />
                     <p
-                      className={cn(
-                        "absolute left-5 top-5 text-[28px] font-medium text-white transition-opacity duration-200 motion-reduce:transition-none md:text-[32px]",
-                        loaded[item.id] ? "opacity-100" : "opacity-0",
-                      )}
+                      className="absolute left-5 top-5 text-[28px] font-medium text-white md:text-[32px]"
                     >
-                      {item.brand ?? item.title}
+                      {item.brandName}
                     </p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
           <div className="mt-4 flex w-[80cqw] items-center justify-between gap-4">
-            <p className="text-base">{collab.subtitle}</p>
-            <span className="inline-flex h-9 shrink-0 items-center rounded-full bg-page px-3.5 text-xs text-primary">
+            <p className="min-w-0 text-base">{collab.title} · {collab.location}</p>
+            <Link
+              to={publicDropPath(collab.id)}
+              className={cn(
+                "inline-flex h-9 shrink-0 items-center rounded-full bg-page px-3.5 text-xs text-primary",
+                focusRingClass,
+              )}
+            >
               View drop
-            </span>
+            </Link>
           </div>
-        </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -460,3 +506,4 @@ export function GoalChips() {
     </section>
   );
 }
+

@@ -87,6 +87,25 @@ class DropDetailResponse(CamelModel):
         return to_epoch_ms_required(value)
 
 
+class PublicDropCatalogItem(CamelModel):
+    """Allowlisted public campaign card; deliberately has no org or admin state."""
+
+    id: uuid.UUID
+    brand_name: str
+    title: str
+    description: str
+    image: str
+    location: str
+    capacity_total: int
+    apply_open_at: datetime
+    apply_close_at: datetime
+    stage: DropStage
+
+    @field_serializer("apply_open_at", "apply_close_at")
+    def _epoch_required(self, value: datetime) -> int:
+        return to_epoch_ms_required(value)
+
+
 class ApplicationResponse(CamelModel):
     """A ``drop_applications`` row (architecture §3.1) returned on apply."""
 

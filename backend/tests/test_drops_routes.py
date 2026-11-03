@@ -137,8 +137,7 @@ async def test_feed_hides_finished_drops(app_client: AsyncClient, db_session) ->
     assert body["meta"]["total"] == 1
 
 
-async def test_feed_keeps_upcoming_and_closed(app_client: AsyncClient, db_session) -> None:
-    """Upcoming and Closed are card states, not reasons to hide a drop (§6.3)."""
+async def test_feed_keeps_upcoming_and_excludes_closed(app_client: AsyncClient, db_session) -> None:
 
     user = await persist(db_session, make_user())
     await make_org(db_session, user)
@@ -162,7 +161,7 @@ async def test_feed_keeps_upcoming_and_closed(app_client: AsyncClient, db_sessio
     resp = await app_client.get(
         "/api/drops", headers={"Authorization": f"Bearer {mint_access_token(user)}"}
     )
-    assert {d["title"] for d in resp.json()["data"]} == {"Upcoming", "Closed"}
+    assert {d["title"] for d in resp.json()["data"]} == {"Upcoming"}
 
 
 async def test_feed_pagination_is_stable(app_client: AsyncClient, db_session) -> None:
@@ -212,6 +211,79 @@ async def test_feed_requires_auth(app_client: AsyncClient) -> None:
     resp = await app_client.get("/api/drops")
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"
+
+
+async def test_feed_status_filters_apply_before_count_and_pagination(
+    app_client: AsyncClient, db_session
+) -> None:
+    user = await persist(db_session, make_user())
+    org = await make_org(db_session, user)
+    brand = await make_brand(db_session)
+    now = utcnow()
+    upcoming = await make_drop(
+        db_session,
+        brand,
+        title="Upcoming",
+        apply_open_at=now + timedelta(days=1),
+        apply_close_at=now + timedelta(days=8),
+    )
+    open_drop = await make_drop(db_session, brand, title="Open")
+    full = await make_drop(db_session, brand, title="Full", capacity_total=1)
+    await make_application(db_session, full, org, decision=ApplicationDecision.ACCEPTED)
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+
+    all_page = await app_client.get("/api/drops?status=all&per_page=1", headers=headers)
+    upcoming_page = await app_client.get("/api/drops?status=upcoming", headers=headers)
+    open_page = await app_client.get("/api/drops?status=open", headers=headers)
+
+    assert all_page.json()["meta"]["total"] == 2
+    assert upcoming_page.json()["meta"]["total"] == 1
+    assert [item["id"] for item in upcoming_page.json()["data"]] == [str(upcoming.id)]
+    assert open_page.json()["meta"]["total"] == 1
+    assert [item["id"] for item in open_page.json()["data"]] == [str(open_drop.id)]
+
+
+async def test_public_catalog_is_anonymous_and_field_allowlisted(
+    app_client: AsyncClient, db_session
+) -> None:
+    brand = await make_brand(db_session)
+    now = utcnow()
+    upcoming = await make_drop(
+        db_session,
+        brand,
+        title="Public upcoming",
+        apply_open_at=now + timedelta(days=1),
+        apply_close_at=now + timedelta(days=8),
+    )
+    open_drop = await make_drop(db_session, brand, title="Public open")
+    await make_drop(
+        db_session,
+        brand,
+        title="Expired",
+        apply_open_at=now - timedelta(days=8),
+        apply_close_at=now - timedelta(days=1),
+    )
+    await make_drop(db_session, brand, title="Draft", published_at=None)
+
+    response = await app_client.get("/api/drops/public?per_page=1")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["meta"]["total"] == 2
+    assert len(body["data"]) == 1
+    assert body["data"][0]["id"] in {str(upcoming.id), str(open_drop.id)}
+    assert set(body["data"][0]) == {
+        "id",
+        "brandName",
+        "title",
+        "description",
+        "image",
+        "location",
+        "capacityTotal",
+        "applyOpenAt",
+        "applyCloseAt",
+        "stage",
+    }
 
 
 async def test_feed_expired_token(app_client: AsyncClient, db_session) -> None:

@@ -31,7 +31,6 @@ function renderOpen(acceptedCount: number): string {
         acceptedCount={acceptedCount}
         feedStatus="open"
         alreadyApplied={false}
-        onApply={() => {}}
       />
     </MemoryRouter>,
   );
@@ -54,7 +53,6 @@ describe("DropFeedCard accepted campaign", () => {
           feedStatus="closed"
           alreadyApplied
           campaignTo="/org/campaigns/app-1"
-          onApply={() => {}}
         />
       </MemoryRouter>,
     );
@@ -66,6 +64,9 @@ describe("DropFeedCard accepted campaign", () => {
 });
 
 describe("DropFeedCard Open spots copy", () => {
+  it("links Apply to the canonical public drop page", () => {
+    expect(renderOpen(0)).toContain('href="/d/d1"');
+  });
   it("shows Up to N when acceptedCount is 0", () => {
     const html = renderOpen(0);
     expect(html).toContain("Up to 10 spots");

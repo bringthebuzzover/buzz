@@ -27,6 +27,7 @@ import { QueryStatePanel, StatePanel } from "../../components/ui/StatePanel";
 import {
   Button,
   ErrorBanner,
+  LinkButton,
   SuccessBanner,
   TextArea,
 } from "../../components/forms/controls";
@@ -268,8 +269,20 @@ function ActiveOrgActions({
   alreadyApplied: boolean;
 }) {
   const [applying, setApplying] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   if (feedStatus !== "open") return null;
+
+  if (submitted) {
+    return (
+      <div className={cn(STACK.default, "w-full")}>
+        <SuccessBanner>Application submitted. You can follow it in My Campaigns.</SuccessBanner>
+        <LinkButton to="/org/campaigns" fullWidth>
+          My Campaigns
+        </LinkButton>
+      </div>
+    );
+  }
 
   if (alreadyApplied) {
     return (
@@ -284,7 +297,10 @@ function ActiveOrgActions({
       <DropApplyForm
         dropId={dropId}
         onCancel={() => setApplying(false)}
-        onSuccess={() => setApplying(false)}
+        onSuccess={() => {
+          setApplying(false);
+          setSubmitted(true);
+        }}
       />
     );
   }
