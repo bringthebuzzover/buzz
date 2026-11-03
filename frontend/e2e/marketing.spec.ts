@@ -94,15 +94,24 @@ for (const { width, reducedMotion } of [320, 390, 1440].flatMap((width) =>
       const lines = heading.locator("[data-reveal-line]");
       expect(await lines.count()).toBeGreaterThan(0);
       for (const line of await lines.all()) {
-        const fits = await line.evaluate((element) => {
+        const bounds = await line.evaluate((element) => {
           const range = document.createRange();
           range.selectNodeContents(element);
-          const glyphs = range.getBoundingClientRect();
+          const textBox = range.getBoundingClientRect();
           const clip = element.parentElement!.getBoundingClientRect();
-          return glyphs.height > 0 && glyphs.top >= clip.top - 1 &&
-            glyphs.bottom <= clip.bottom + 1;
+          const style = getComputedStyle(element);
+          const context = document.createElement("canvas").getContext("2d")!;
+          context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+          const metrics = context.measureText(element.textContent!);
+          // Range includes empty font ascent/descent space. Keep only the ink,
+          // using the first and last baselines when a logical line wraps.
+          const top = textBox.top + metrics.fontBoundingBoxAscent - metrics.actualBoundingBoxAscent;
+          const bottom = textBox.bottom - metrics.fontBoundingBoxDescent + metrics.actualBoundingBoxDescent;
+          return { top, bottom, clipTop: clip.top, clipBottom: clip.bottom };
         });
-        expect(fits, `${route}: hero line is vertically clipped`).toBe(true);
+        expect(bounds.bottom, `${route}: empty hero ink bounds ${JSON.stringify(bounds)}`).toBeGreaterThan(bounds.top);
+        expect(bounds.top, `${route}: hero ink clipped at top ${JSON.stringify(bounds)}`).toBeGreaterThanOrEqual(bounds.clipTop - 1);
+        expect(bounds.bottom, `${route}: hero ink clipped at bottom ${JSON.stringify(bounds)}`).toBeLessThanOrEqual(bounds.clipBottom + 1);
       }
 
       const phones = page.locator("[data-marketing-phone]");
