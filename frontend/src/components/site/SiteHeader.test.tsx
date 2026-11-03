@@ -167,9 +167,29 @@ describe("SiteHeader", () => {
     expect(inkPaths).toHaveLength(23);
     // Paths 1–2 are clip definitions; 3–18 form the bee; 19 is the dotted trail.
     const originalBee = paths(readLogo("buzz-logo.svg")).slice(2, 18);
-    expect(inkPaths.slice(2, 18)).toEqual(originalBee);
+    const inkBee = inkPaths.slice(2, 18);
+
+    // On dark (ink), head (path 3 / bee[0]) and antennae (paths 7, 9 / bee[4], bee[6]) have a light outline
+    const outlineAttrs = 'stroke="#f0f0f0" stroke-width="2" stroke-linejoin="round" paint-order="stroke"';
+    expect(inkBee[0]).toContain(outlineAttrs);
+    expect(inkBee[4]).toContain(outlineAttrs);
+    expect(inkBee[6]).toContain(outlineAttrs);
+
+    // Remaining bee parts on ink have no added stroke
+    [1, 2, 3, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15].forEach((idx) => {
+      expect(inkBee[idx]).not.toContain("stroke=");
+    });
+
+    // Stripping outline attributes restores byte identity with buzz-logo.svg's bee
+    const strippedInkBee = inkBee.map((path) => path.replace(` ${outlineAttrs}`, ""));
+    expect(strippedInkBee).toEqual(originalBee);
+
+    // On paper, the bee remains 100% byte-identical to buzz-logo.svg
     expect(paths(paper).slice(2, 18)).toEqual(originalBee);
-    expect(paper).toBe(ink
+
+    // Paper matches ink once wordmark tones, flight dots, and ink's outline attributes are accounted for
+    const strippedInk = ink.split(` ${outlineAttrs}`).join("");
+    expect(paper).toBe(strippedInk
       .replace(/<g fill="#ffffff"/g, '<g fill="#0b0b0b"')
       .replace(inkPaths[18], inkPaths[18].replace('fill="#f0f0f0"', 'fill="#0b0b0b"')));
   });
