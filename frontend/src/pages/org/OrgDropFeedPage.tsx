@@ -2,6 +2,7 @@
 import { useState } from "react";
 import DropFeedCard from "../../components/org/DropFeedCard";
 import { useOrgDropFeed } from "../../api/hooks/useOrgDropFeed";
+import type { OrgDropFeedFilter } from "../../api/hooks/useDropHooks";
 import { useCampaigns, type CampaignItem } from "../../api/hooks/useOrgHooks";
 import PageShell from "../../components/site/PageShell";
 import { QueryStatePanel } from "../../components/ui/StatePanel";
@@ -10,8 +11,7 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { filterChipClass } from "../../components/ui/navItem";
 import { Button } from "../../components/forms/controls";
 
-type FeedFilter = "all" | "upcoming" | "open";
-const FILTERS: { id: FeedFilter; label: string }[] = [
+const FILTERS: { id: OrgDropFeedFilter; label: string }[] = [
   { id: "all", label: "All drops" },
   { id: "upcoming", label: "Upcoming" },
   { id: "open", label: "Open" },
@@ -40,7 +40,7 @@ export function acceptedCampaignPath(
 }
 
 export default function OrgDropFeedPage() {
-  const [filter, setFilter] = useState<FeedFilter>("all");
+  const [filter, setFilter] = useState<OrgDropFeedFilter>("all");
   const {
     items,
     isLoading,

@@ -266,10 +266,12 @@ export function CurrentDrops() {
                 transform: `translateX(calc(${-displayedIndex} * (80cqw + 1rem)))`,
               }}
             >
-              {items.map((item) => (
+              {items.map((item, itemIndex) => (
                 <Link
                   key={item.id}
                   to={publicDropPath(item.id)}
+                  tabIndex={itemIndex === displayedIndex ? 0 : -1}
+                  aria-hidden={itemIndex !== displayedIndex}
                   className={cn("block w-[80cqw] shrink-0", focusRingClass)}
                 >
                   <div className="relative aspect-video overflow-hidden rounded-buzzBoard">
