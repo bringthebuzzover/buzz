@@ -48,9 +48,8 @@ export default function OrgApplyPage() {
         </div>
       )}
       <SuccessBanner>
-        Your Instagram must be the organization&apos;s Business or Creator
-        account — not a personal member profile. Personal accounts cannot be
-        used on BUZZ.
+        Use your organization’s Instagram Business or Creator account, not a
+        personal account.
       </SuccessBanner>
 
       <OrgApplyForm

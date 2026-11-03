@@ -5,7 +5,7 @@
  */
 import type { ReactNode } from "react";
 import PostInsights from "./PostInsights";
-import type { InsightSource } from "./postInsights";
+import type { InsightSource } from "./insightMetrics";
 import { RemoteImage } from "../ui/RemoteImage";
 import { PAD, SURFACE, TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";

@@ -367,7 +367,7 @@ export default function AdminOrgDetailPage() {
             <ErrorNote>
               Pending Instagram identity request.{" "}
               <Link
-                to={`/admin/ig-changes/${data.pendingIgChangeRequestId}`}
+                to={`/admin/changes/ig/${data.pendingIgChangeRequestId}`}
                 className="text-accent hover:underline"
               >
                 Review
@@ -491,7 +491,7 @@ export default function AdminOrgDetailPage() {
                 ) : (
                   data.deliveryAddress ?? (
                     <span className="text-buzz-warn">
-                      Address pending — nowhere to ship product
+                      Address pending
                     </span>
                   )
                 )}

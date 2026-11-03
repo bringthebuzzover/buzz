@@ -3,7 +3,7 @@
  */
 import { renderToString } from "react-dom/server";
 import type { PostItem } from "../../api/hooks/useOrgHooks";
-import { INSIGHT_MISSING } from "../posts/postInsights";
+import { INSIGHT_MISSING } from "../posts/insightMetrics";
 
 const APPLICATION_ID = "app-1";
 

@@ -141,6 +141,20 @@ test("brand settings shows name, locked email, and the handle request", async ({
   );
   const name = page.getByTestId("brand-name");
   await expect(name).toHaveValue("Acme Coffee");
+  const saveButton = page.getByTestId("brand-name-save");
+  const desktopNameBox = await name.boundingBox();
+  const desktopSaveBox = await saveButton.boundingBox();
+  expect(desktopNameBox).not.toBeNull();
+  expect(desktopSaveBox).not.toBeNull();
+  expect(
+    Math.abs(
+      desktopNameBox!.y +
+        desktopNameBox!.height -
+        desktopSaveBox!.y -
+        desktopSaveBox!.height,
+    ),
+  ).toBeLessThanOrEqual(2);
+
   await name.fill("Acme Coffee");
   const saveResp = page.waitForResponse(
     (r) =>
@@ -148,10 +162,23 @@ test("brand settings shows name, locked email, and the handle request", async ({
       r.request().method() === "PATCH" &&
       !r.url().includes("ig-change"),
   );
-  await page.getByTestId("brand-name-save").click();
+  await name.press("Enter");
   const saved = await saveResp;
   expect(saved.ok(), await saved.text()).toBeTruthy();
   await expect(page.getByTestId("brand-name-saved")).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileNameBox = await name.boundingBox();
+  const mobileSaveBox = await saveButton.boundingBox();
+  expect(mobileNameBox).not.toBeNull();
+  expect(mobileSaveBox).not.toBeNull();
+  expect(mobileSaveBox!.y).toBeGreaterThanOrEqual(
+    mobileNameBox!.y + mobileNameBox!.height,
+  );
+  expect(Math.abs(mobileSaveBox!.x - mobileNameBox!.x)).toBeLessThanOrEqual(1);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+  ).toBe(true);
 
   await expect(page.getByTestId("brand-current-password")).toHaveCount(0);
   const changePassword = page.getByRole("button", { name: "Change password", exact: true });

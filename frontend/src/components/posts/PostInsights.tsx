@@ -3,7 +3,7 @@
  * Shared by the org campaign Linked posts card and the brand drop post list.
  * Pen `Post / Card` insights: quiet label, then a KV grid that fills its width.
  */
-import { insightMetricsFor, type InsightSource } from "./postInsights";
+import { insightMetricsFor, type InsightSource } from "./insightMetrics";
 
 type Props = {
   post: InsightSource;

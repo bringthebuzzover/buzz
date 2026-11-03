@@ -55,7 +55,11 @@ test("org apply page renders the public form", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: /student organization/i }),
   ).toBeVisible();
-  await expect(page.getByText(/business or creator/i).first()).toBeVisible();
+  await expect(
+    page.getByText(
+      "Use your organization’s Instagram Business or Creator account, not a personal account.",
+    ),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: /submit application/i }),
   ).toBeDisabled();

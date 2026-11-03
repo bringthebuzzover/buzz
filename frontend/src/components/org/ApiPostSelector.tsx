@@ -23,7 +23,7 @@ import {
 } from "../../api/hooks/useOrgHooks";
 import { Button, ErrorBanner } from "../forms/controls";
 import PostCard from "../posts/PostCard";
-import { formatInsightCount } from "../posts/postInsights";
+import { formatInsightCount } from "../posts/insightMetrics";
 import { Card, CardHeader } from "../ui/Card";
 import { Chip } from "../ui/Chip";
 import { Loader, EmptyState } from "../ui/EmptyState";
