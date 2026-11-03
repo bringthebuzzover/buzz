@@ -62,7 +62,7 @@ const linkedPost: BrandDropPost = {
 describe("ApiDropOrgTable", () => {
   it("shows each live seat's progress and keeps ended seats that took part", () => {
     const live = { ...erased, accountErased: false };
-    const html = renderToString(
+    const view = renderToString(
       <ApiDropOrgTable
         applicants={[
           { ...live, id: "a", orgName: "Shipped Club", progress: "shipped" },
@@ -80,64 +80,64 @@ describe("ApiDropOrgTable", () => {
         ]}
       />,
     );
-    expect(html).toContain("Shipped</span>");
-    expect(html).toContain("Posted</span>");
-    expect(html).toContain("Left Club");
-    expect(html).toContain("Withdrew");
-    expect(html).toContain("Removed by BUZZ");
-    expect(html).not.toContain("Gone Early"); // withdrew before taking part
-    expect(html).not.toContain("Drafted Club"); // acceptance not sent yet
+    expect(view).toContain("Shipped</span>");
+    expect(view).toContain("Posted</span>");
+    expect(view).toContain("Left Club");
+    expect(view).toContain("Withdrew");
+    expect(view).toContain("Removed by BUZZ");
+    expect(view).not.toContain("Gone Early"); // withdrew before taking part
+    expect(view).not.toContain("Drafted Club"); // acceptance not sent yet
   });
 
   it("shows an erased org as a frozen anonymized participant", () => {
-    const html = renderToString(
+    const view = renderToString(
       <ApiDropOrgTable applicants={[erased]} />,
     );
-    expect(html).toContain("Deleted organization");
-    expect(html).toContain("Metrics frozen");
-    expect(html).not.toContain("Cornell University");
-    expect(html).not.toContain("Ship to");
-    expect(html).not.toContain("Account deleted");
+    expect(view).toContain("Deleted organization");
+    expect(view).toContain("Metrics frozen");
+    expect(view).not.toContain("Cornell University");
+    expect(view).not.toContain("Ship to");
+    expect(view).not.toContain("Account deleted");
   });
 
   it("keeps a missing address as Address pending in the warn tone", () => {
-    const html = renderToString(
+    const view = renderToString(
       <ApiDropOrgTable
         applicants={[{ ...erased, accountErased: false, orgName: "Campus Club" }]}
       />,
     );
-    expect(html).toContain("Ship to");
-    expect(html).toMatch(
+    expect(view).toContain("Ship to");
+    expect(view).toMatch(
       /<span data-testid="address-pending" class="[^"]*text-accent[^"]*">Address pending<\/span>/,
     );
   });
 
   it("shows Instagram insights on a linked post, including an em dash for missing values", () => {
-    const html = renderToString(
+    const view = renderToString(
       <ApiDropOrgTable
         applicants={[{ ...erased, accountErased: false, orgName: "Campus Club", posts: [linkedPost] }]}
       />,
     );
-    expect(html).toContain("Morning workout fuel");
-    expect(html).toContain("410 likes");
-    expect(html).toContain("22 comments");
-    expect(html).toContain("Instagram insights");
-    expect(html).toContain("Reach");
-    expect(html).toContain("900");
-    expect(html).toContain("Views");
-    expect(html).toContain(INSIGHT_MISSING);
-    expect(html).toContain("Saves");
-    expect(html).toContain("Shares");
-    expect(html).toContain("Profile visits");
-    expect(html).toContain("Follows");
-    expect(html).not.toContain("Avg watch time");
-    expect(html).not.toContain("undefined");
-    expect(html).not.toContain("NaN");
-    expect(html).not.toContain("<img");
+    expect(view).toContain("Morning workout fuel");
+    expect(view).toContain("410 likes");
+    expect(view).toContain("22 comments");
+    expect(view).toContain("Instagram insights");
+    expect(view).toContain("Reach");
+    expect(view).toContain("900");
+    expect(view).toContain("Views");
+    expect(view).toContain(INSIGHT_MISSING);
+    expect(view).toContain("Saves");
+    expect(view).toContain("Shares");
+    expect(view).toContain("Profile visits");
+    expect(view).toContain("Follows");
+    expect(view).not.toContain("Avg watch time");
+    expect(view).not.toContain("undefined");
+    expect(view).not.toContain("NaN");
+    expect(view).not.toContain("<img");
   });
 
   it("renders an Instagram thumbnail without sending the page referrer", () => {
-    const html = renderToString(
+    const view = renderToString(
       <ApiDropOrgTable
         applicants={[
           {
@@ -154,13 +154,13 @@ describe("ApiDropOrgTable", () => {
         ]}
       />,
     );
-    expect(html).toContain('src="https://scontent.cdninstagram.com/v/thumb.jpg"');
-    expect(html.toLowerCase()).toContain('referrerpolicy="no-referrer"');
-    expect(html).not.toContain("image-fallback");
+    expect(view).toContain('src="https://scontent.cdninstagram.com/v/thumb.jpg"');
+    expect(view.toLowerCase()).toContain('referrerpolicy="no-referrer"');
+    expect(view).not.toContain("image-fallback");
   });
 
   it("renders a reel skip rate as a percentage and never above 100%", () => {
-    const html = renderToString(
+    const view = renderToString(
       <ApiDropOrgTable
         applicants={[
           {
@@ -190,9 +190,9 @@ describe("ApiDropOrgTable", () => {
         ]}
       />,
     );
-    expect(html).toContain("Skip rate");
-    expect(html).toContain("62.8%");
-    expect(html).toContain("100%");
-    expect(html).not.toContain("6280%");
+    expect(view).toContain("Skip rate");
+    expect(view).toContain("62.8%");
+    expect(view).toContain("100%");
+    expect(view).not.toContain("6280%");
   });
 });

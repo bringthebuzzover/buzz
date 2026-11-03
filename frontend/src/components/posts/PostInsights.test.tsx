@@ -4,7 +4,7 @@ import { INSIGHT_MISSING } from "./insightMetrics";
 
 describe("PostInsights", () => {
   it("renders feed metrics with an em dash for values Graph did not store", () => {
-    const html = renderToString(
+    const view = renderToString(
       <PostInsights
         post={{
           platform: "instagram",
@@ -20,22 +20,22 @@ describe("PostInsights", () => {
         }}
       />,
     );
-    expect(html).toContain("Instagram insights");
-    expect(html).toContain("Reach");
-    expect(html).toContain("1,240");
-    expect(html).toContain("Views");
-    expect(html).toContain(INSIGHT_MISSING);
-    expect(html).toContain("Saves");
-    expect(html).toContain(">0<");
-    expect(html).not.toContain("Avg watch time");
-    expect(html).not.toContain("undefined");
-    expect(html).not.toContain("NaN");
+    expect(view).toContain("Instagram insights");
+    expect(view).toContain("Reach");
+    expect(view).toContain("1,240");
+    expect(view).toContain("Views");
+    expect(view).toContain(INSIGHT_MISSING);
+    expect(view).toContain("Saves");
+    expect(view).toContain(">0<");
+    expect(view).not.toContain("Avg watch time");
+    expect(view).not.toContain("undefined");
+    expect(view).not.toContain("NaN");
   });
 
   it("renders nothing for a non-Instagram post", () => {
-    const html = renderToString(
+    const view = renderToString(
       <PostInsights post={{ platform: "tiktok", mediaProductType: "FEED", reach: 1 }} />,
     );
-    expect(html).toBe("");
+    expect(view).toBe("");
   });
 });
