@@ -35,7 +35,7 @@ test("marketing navigation follows the surface below its logo", async ({ page })
     await page.locator('[data-nav-surface="paper"]').first().evaluate((surface) => {
       surface.scrollIntoView({ block: "start" });
     });
-    await expect(logo()).toHaveAttribute("src", /buzz-logo\.svg/);
+    await expect(logo()).toHaveAttribute("src", /buzz-logo-on-paper\.svg/);
 
     await page.locator('[data-nav-surface="ink"]').nth(1).evaluate((surface) => {
       surface.scrollIntoView({ block: "start" });

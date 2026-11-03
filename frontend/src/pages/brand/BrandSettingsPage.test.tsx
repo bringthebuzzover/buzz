@@ -1,4 +1,5 @@
 import { act } from "react";
+import { ApiError } from "../../api/errors";
 import { renderWithProviders } from "../../testUtils";
 
 import BrandSettingsPage from "./BrandSettingsPage";
@@ -7,7 +8,7 @@ const mockUpdate = {
   mutateAsync: jest.fn(),
   isPending: false,
   isError: false,
-  error: null,
+  error: null as ApiError | null,
 };
 const mockSubmitIg = {
   mutateAsync: jest.fn(),
@@ -57,6 +58,7 @@ describe("BrandSettingsPage name save placement", () => {
     mockUpdate.mutateAsync.mockReset().mockResolvedValue({ brandName: "New Name" });
     mockUpdate.isPending = false;
     mockUpdate.isError = false;
+    mockUpdate.error = null;
     mockSubmitIg.mutateAsync.mockReset();
     mockChangePassword.mutateAsync.mockReset();
   });
@@ -92,6 +94,28 @@ describe("BrandSettingsPage name save placement", () => {
     expect(mockUpdate.mutateAsync).toHaveBeenCalledWith({ brandName: "New Name" });
     expect(container.querySelector('[data-testid="brand-name-saved"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="brand-ig-change-open"]')).toBeTruthy();
+  });
+
+  it("keeps validation feedback associated with the name input beside Save", () => {
+    mockUpdate.isError = true;
+    mockUpdate.error = new ApiError(
+      "VALIDATION_ERROR",
+      "Request validation failed.",
+      422,
+      { errors: [{ loc: ["body", "brand_name"], msg: "Use at most 120 characters." }] },
+    );
+    renderPage();
+
+    const name = container.querySelector('[data-testid="brand-name"]');
+    const save = container.querySelector(
+      '[data-testid="brand-name-save"]',
+    ) as HTMLButtonElement;
+    expect(name?.getAttribute("aria-invalid")).toBe("true");
+    expect(name?.getAttribute("aria-describedby")).toBe("brand-name-error");
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+      "Use at most 120 characters.",
+    );
+    expect(save.disabled).toBe(false);
   });
 
   it("disables save for a blank name", () => {

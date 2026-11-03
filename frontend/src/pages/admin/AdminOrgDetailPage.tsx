@@ -367,7 +367,7 @@ export default function AdminOrgDetailPage() {
             <ErrorNote>
               Pending Instagram identity request.{" "}
               <Link
-                to={`/admin/changes/ig/${data.pendingIgChangeRequestId}`}
+                to={`/admin/ig-changes/${data.pendingIgChangeRequestId}`}
                 className="text-accent hover:underline"
               >
                 Review
