@@ -74,9 +74,11 @@ test("Berkeley seal loads fully on marketing college networks", async ({ page })
   }
 });
 
-for (const width of [320, 390, 1440]) {
-  test(`marketing heroes and phone content fit at ${width}px with normal motion`, async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: "no-preference" });
+for (const { width, reducedMotion } of [320, 390, 1440].flatMap((width) =>
+  (["no-preference", "reduce"] as const).map((reducedMotion) => ({ width, reducedMotion })),
+)) {
+  test(`marketing heroes and phone content fit at ${width}px with ${reducedMotion} motion`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion });
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
     for (const route of ["/", "/for-orgs", "/for-brands"]) {
       await page.goto(route);
@@ -93,16 +95,21 @@ for (const width of [320, 390, 1440]) {
       expect(await lines.count()).toBeGreaterThan(0);
       for (const line of await lines.all()) {
         const fits = await line.evaluate((element) => {
-          const box = element.getBoundingClientRect();
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          const glyphs = range.getBoundingClientRect();
           const clip = element.parentElement!.getBoundingClientRect();
-          return box.top >= clip.top - 1 &&
-            box.top + Math.max(box.height, element.scrollHeight) <= clip.bottom + 1;
+          return glyphs.height > 0 && glyphs.top >= clip.top - 1 &&
+            glyphs.bottom <= clip.bottom + 1;
         });
         expect(fits, `${route}: hero line is vertically clipped`).toBe(true);
       }
 
       const phones = page.locator("[data-marketing-phone]");
       expect(await phones.count()).toBeGreaterThan(0);
+      if (route === "/for-brands") {
+        await expect(phones.getByText("Send decisions", { exact: true })).toHaveCount(1);
+      }
       for (const phone of await phones.all()) {
         await phone.scrollIntoViewIfNeeded();
         await expect(phone).toBeInViewport();
@@ -111,11 +118,18 @@ for (const width of [320, 390, 1440]) {
           await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
           await Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished));
         });
+        const decisions = phone.getByText("Send decisions", { exact: true });
+        if (await decisions.count()) {
+          await expect(decisions).toBeVisible();
+          await expect(decisions).toHaveCSS("height", "40px");
+        }
         const blocks = await phone.evaluate((element) => {
           const phoneBox = element.getBoundingClientRect();
           return Array.from(element.children, (screen) => {
-            // Each screen ends in a body whose final block holds the CTA or posts.
-            const block = screen.firstElementChild!.lastElementChild!.lastElementChild!;
+            // Measure the actual Selecting CTA; other screens end in a CTA or posts.
+            const block = Array.from(screen.querySelectorAll("div")).find(
+              (node) => node.childElementCount === 0 && node.textContent === "Send decisions",
+            ) ?? screen.firstElementChild!.lastElementChild!.lastElementChild!;
             const box = block.getBoundingClientRect();
             return {
               phone: phoneBox.toJSON(),
@@ -142,6 +156,25 @@ test("marketing CTA shows its focus ring after keyboard Tab", async ({ page }) =
   await expect(cta).toBeFocused();
   await expect(cta).toHaveClass(/focus-visible:ring-2/);
   expect(await cta.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+  await expect(cta).not.toHaveCSS("box-shadow", "none");
+});
+
+test("brand footer CTA keeps ink text and a keyboard focus ring", async ({ page }) => {
+  await page.goto("/for-brands");
+  await page.evaluate(() => document.fonts.ready);
+  const footer = page.getByRole("contentinfo");
+  const cta = footer.getByRole("link", { name: "Apply as a brand", exact: true });
+  await cta.hover();
+  await expect(cta).toHaveCSS("color", "rgb(11, 11, 11)");
+  await expect(cta).toHaveCSS("background-color", "rgb(224, 190, 22)");
+  await page.mouse.move(0, 0);
+  await footer.locator('a[href^="mailto:"]').first().focus();
+  await page.keyboard.press("Shift+Tab");
+  await expect(cta).toBeFocused();
+  expect(await cta.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+  await expect(cta).toHaveCSS("color", "rgb(11, 11, 11)");
+  await expect(cta).toHaveCSS("background-color", "rgb(224, 190, 22)");
+  await expect(cta).toHaveClass(/focus-visible:ring-2/);
   await expect(cta).not.toHaveCSS("box-shadow", "none");
 });
 

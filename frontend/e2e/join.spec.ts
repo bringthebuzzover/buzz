@@ -26,6 +26,7 @@ test("home join buttons route to /org/apply and /brand/apply", async ({
   page,
 }) => {
   await page.goto("/");
+  await page.evaluate(() => document.fonts.ready);
 
   const section = page.locator("#home-join");
   await expect(
@@ -43,10 +44,12 @@ test("home join buttons route to /org/apply and /brand/apply", async ({
   await expect(page).toHaveURL(/\/brand\/apply$/);
 
   await page.goto("/");
-  await page
-    .locator("#home-join")
-    .getByRole("link", { name: /join as a student organization/i })
-    .click();
+  await page.evaluate(() => document.fonts.ready);
+  const orgJoin = page.locator("#home-join")
+    .getByRole("link", { name: /join as a student organization/i });
+  // Activate the scoped link without a coordinate click during return-page layout.
+  await orgJoin.focus();
+  await orgJoin.press("Enter");
   await expect(page).toHaveURL(/\/org\/apply$/);
 });
 
