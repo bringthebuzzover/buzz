@@ -16,6 +16,7 @@ import httpx
 from app import errors
 from app.config import settings
 from app.exceptions import BuzzAPIException
+from app.models.organization import Organization
 
 US_STATE_CODES = frozenset(
     {
@@ -477,3 +478,19 @@ def apply_to_org(org: object, addr: StructuredAddress) -> None:
     if changed:
         version = getattr(org, "shipping_address_version", None) or 0
         org.shipping_address_version = version + 1  # type: ignore[attr-defined]
+
+
+def address_snapshot(org: Organization) -> dict[str, str | None] | None:
+    if org.shipping_line1 and org.shipping_city and org.shipping_state and org.shipping_postal_code:
+        return {
+            "shippingLine1": org.shipping_line1,
+            "shippingLine2": org.shipping_line2,
+            "shippingCity": org.shipping_city,
+            "shippingState": org.shipping_state,
+            "shippingPostalCode": org.shipping_postal_code,
+            "formatted": org.delivery_address,
+        }
+    if org.delivery_address and org.delivery_address.strip():
+        # Keep legacy formatted-only destinations as a review baseline.
+        return {"formatted": org.delivery_address}
+    return None

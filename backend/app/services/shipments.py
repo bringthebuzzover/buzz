@@ -15,9 +15,11 @@ from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
-from app.models.enums import ApplicationDecision
+from app.models.enums import ApplicationDecision, OrgUserStatus
 from app.models.organization import Organization
 from app.models.shipment import CARRIERS, DropApplicationShipment
+from app.models.user import User
+from app.services.address import address_snapshot
 from app.services.drop_notices import notify_shipped
 from app.services.lifecycle import drop_running, require_drop, seat_is_live
 from app.services.seats import lock_drop
@@ -67,11 +69,25 @@ async def shipments_by_application_ids(
     db: AsyncSession,
     application_ids: list[UUID],
     *,
-    address_allowed_ids: set[UUID] | None = None,
+    brand_view: bool = False,
 ) -> dict[UUID, list[dict[str, Any]]]:
     out: dict[UUID, list[dict[str, Any]]] = {i: [] for i in application_ids}
     if not application_ids:
         return out
+    address_allowed_ids = None
+    if brand_view:
+        address_allowed_ids = set(
+            await db.scalars(
+                select(DropApplication.id)
+                .join(Organization, Organization.id == DropApplication.org_id)
+                .join(User, User.id == Organization.user_id)
+                .where(
+                    DropApplication.id.in_(application_ids),
+                    DropApplication.decision == ApplicationDecision.ACCEPTED.value,
+                    User.status != OrgUserStatus.ERASED.value,
+                )
+            )
+        )
     rows = (
         await db.scalars(
             select(DropApplicationShipment)
@@ -150,21 +166,6 @@ async def _lock_org_for_seat(db: AsyncSession, application: DropApplication) -> 
     return org
 
 
-def _address_snapshot(org: Organization) -> dict[str, str | None] | None:
-    if org.shipping_line1 and org.shipping_city and org.shipping_state and org.shipping_postal_code:
-        return {
-            "shippingLine1": org.shipping_line1,
-            "shippingLine2": org.shipping_line2,
-            "shippingCity": org.shipping_city,
-            "shippingState": org.shipping_state,
-            "shippingPostalCode": org.shipping_postal_code,
-            "formatted": org.delivery_address,
-        }
-    if org.delivery_address and org.delivery_address.strip():
-        return {"formatted": org.delivery_address}
-    return None
-
-
 async def set_delivered(db: AsyncSession, application_id: UUID, delivered: bool) -> None:
     """The org has the product (org "I got it", or BUZZ). Never a gate."""
 
@@ -239,14 +240,14 @@ async def add_shipment(
     org = await _lock_org_for_seat(db, application)
 
     cleaned, resolved = await _shipment_fields(db, application_id, tracking_number, carrier)
-    address_snapshot = _address_snapshot(org)
+    snapshot = address_snapshot(org)
 
     row = DropApplicationShipment(
         application_id=application_id,
         tracking_number=cleaned,
         carrier=resolved,
-        shipping_address_snapshot=address_snapshot,
-        shipping_address_captured_at=utcnow() if address_snapshot is not None else None,
+        shipping_address_snapshot=snapshot,
+        shipping_address_captured_at=utcnow() if snapshot is not None else None,
     )
     db.add(row)
     await db.flush()

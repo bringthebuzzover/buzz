@@ -101,7 +101,7 @@ export default function OrgShippingAddressPanel({
       ) : null}
       {!pending ? (
         <div className="mt-5">
-          <Button onClick={() => setOpen(true)} disabled={state.isPending}>Request address change</Button>
+          <Button type="button" onClick={() => setOpen(true)} disabled={state.isPending}>Request address change</Button>
         </div>
       ) : null}
       {open ? (

@@ -17,27 +17,17 @@ from app.models.enums import OrgUserStatus, PortalRole
 from app.models.org_shipping_change_request import OrgShippingChangeRequest
 from app.models.organization import Organization
 from app.models.user import User
-from app.services.address import AddressClient, StructuredAddress, addresses_match, apply_to_org
+from app.services.address import (
+    AddressClient,
+    StructuredAddress,
+    address_snapshot,
+    addresses_match,
+    apply_to_org,
+)
 from app.services.lifecycle import drop_running, seat_is_live
 from app.timeutils import utcnow
 
 _STATUSES = frozenset({"pending", "approved", "denied"})
-
-
-def _address_snapshot(org: Organization) -> dict[str, Any] | None:
-    if org.shipping_line1 and org.shipping_city and org.shipping_state and org.shipping_postal_code:
-        return {
-            "shippingLine1": org.shipping_line1,
-            "shippingLine2": org.shipping_line2,
-            "shippingCity": org.shipping_city,
-            "shippingState": org.shipping_state,
-            "shippingPostalCode": org.shipping_postal_code,
-            "formatted": org.delivery_address,
-        }
-    if org.delivery_address and org.delivery_address.strip():
-        # Keep legacy formatted-only destinations as a review baseline.
-        return {"formatted": org.delivery_address}
-    return None
 
 
 def _serialize(row: OrgShippingChangeRequest) -> dict[str, Any]:
@@ -133,7 +123,7 @@ async def submit_request(
     if org is None:
         raise BuzzAPIException(errors.NOT_FOUND, "Organization profile not found.", status_code=404)
     org = await _lock_org(db, org.id)
-    baseline = _address_snapshot(org)
+    baseline = address_snapshot(org)
     if baseline is None:
         raise BuzzAPIException(
             errors.ADDRESS_CHANGE_REVIEW_REQUIRED,

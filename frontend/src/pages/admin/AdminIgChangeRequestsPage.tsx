@@ -1,5 +1,5 @@
 /** Shared review queue for organization and brand Instagram requests and org address changes. */
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import {
   useAdminBrandIgChangeRequests,
   useAdminIgChangeRequests,
@@ -74,6 +74,13 @@ export default function AdminIgChangeRequestsPage() {
   const orgRequests = useAdminIgChangeRequests(status ?? undefined);
   const brandRequests = useAdminBrandIgChangeRequests(status ?? undefined);
   const addressRequests = useAdminShippingChangeRequests(status ?? undefined);
+
+  if (searchParams.has("type")) {
+    const next = new URLSearchParams(searchParams);
+    if (!next.has("account")) next.set("account", next.get("type") ?? "");
+    next.delete("type");
+    return <Navigate to={`/admin/changes?${next.toString()}`} replace />;
+  }
 
   const rows: ListedRequest[] = [];
   if (showOrgInstagram) {
