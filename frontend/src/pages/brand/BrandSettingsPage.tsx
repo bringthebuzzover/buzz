@@ -20,6 +20,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import {
   Button,
   ErrorBanner,
+  fieldLabelClass,
   Notice,
   SuccessBanner,
   TextArea,
@@ -189,31 +190,35 @@ export default function BrandSettingsPage() {
             className="mb-0"
           />
           <form className={STACK.default} onSubmit={saveName}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="min-w-0 flex-1">
-                <TextField
-                  id="brand-name"
-                  label="Brand name"
-                  name="brandName"
-                  value={shownName}
-                  onChange={(event) => {
-                    setBrandName(event.target.value);
-                    setNameSaved(false);
-                  }}
-                  data-testid="brand-name"
-                  error={nameMapped?.fields.brandName}
-                />
+            <div>
+              <label htmlFor="brand-name" className={fieldLabelClass}>
+                Brand name
+              </label>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                <div className="min-w-0 flex-1">
+                  <TextField
+                    id="brand-name"
+                    name="brandName"
+                    value={shownName}
+                    onChange={(event) => {
+                      setBrandName(event.target.value);
+                      setNameSaved(false);
+                    }}
+                    data-testid="brand-name"
+                    error={nameMapped?.fields.brandName}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  size="field"
+                  fullWidth
+                  className="sm:w-auto"
+                  disabled={updateProfile.isPending || !shownName.trim()}
+                  data-testid="brand-name-save"
+                >
+                  {updateProfile.isPending ? "Saving…" : "Save brand name"}
+                </Button>
               </div>
-              <Button
-                type="submit"
-                size="field"
-                fullWidth
-                className="self-end sm:w-auto"
-                disabled={updateProfile.isPending || !shownName.trim()}
-                data-testid="brand-name-save"
-              >
-                {updateProfile.isPending ? "Saving…" : "Save brand name"}
-              </Button>
             </div>
             {nameMapped?.banner ? <ErrorBanner>{nameMapped.banner}</ErrorBanner> : null}
             {nameSaved ? (
