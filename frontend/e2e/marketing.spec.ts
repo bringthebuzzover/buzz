@@ -105,19 +105,29 @@ for (const width of [320, 390, 1440]) {
       expect(await phones.count()).toBeGreaterThan(0);
       for (const phone of await phones.all()) {
         await phone.scrollIntoViewIfNeeded();
+        await expect(phone).toBeInViewport();
+        await expect(phone).toHaveCSS("width", width < 768 ? "250px" : "317px");
+        await phone.evaluate(async (element) => {
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+          await Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished));
+        });
         const blocks = await phone.evaluate((element) => {
           const phoneBox = element.getBoundingClientRect();
           return Array.from(element.children, (screen) => {
             // Each screen ends in a body whose final block holds the CTA or posts.
             const block = screen.firstElementChild!.lastElementChild!.lastElementChild!;
             const box = block.getBoundingClientRect();
-            return box.width > 0 && box.height > 0 &&
-              box.top >= phoneBox.top - 1 && box.bottom <= phoneBox.bottom + 1 &&
-              box.left >= phoneBox.left - 1 && box.right <= phoneBox.right + 1;
+            return {
+              phone: phoneBox.toJSON(),
+              block: box.toJSON(),
+              fits: box.width > 0 && box.height > 0 &&
+                box.top >= phoneBox.top - 1 && box.bottom <= phoneBox.bottom + 1 &&
+                box.left >= phoneBox.left - 1 && box.right <= phoneBox.right + 1,
+            };
           });
         });
         expect(blocks.length).toBeGreaterThan(0);
-        expect(blocks, `${route}: final phone blocks are clipped`).not.toContain(false);
+        expect(blocks.filter((block) => !block.fits), `${route}: final phone blocks are clipped`).toEqual([]);
       }
     }
   });

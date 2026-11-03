@@ -69,7 +69,7 @@ export function PinnedHow() {
               aria-hidden={index !== step}
               className={cn(
                 "text-xl font-medium leading-snug text-on-accent transition-opacity duration-300 md:max-w-sm md:text-left",
-                "row-start-2 text-center md:col-start-1 md:row-start-1",
+                "col-start-1 row-start-2 text-center md:row-start-1",
                 item.side === "right" && "md:col-start-3",
                 index === step
                   ? "opacity-100"
