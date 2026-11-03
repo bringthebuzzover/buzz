@@ -4,7 +4,7 @@ import {
   formatWatchMs,
   INSIGHT_MISSING,
   insightMetricsFor,
-} from "./postInsights";
+} from "./insightMetrics";
 
 describe("formatInsightCount", () => {
   it("renders an em dash for missing values and zero as zero", () => {

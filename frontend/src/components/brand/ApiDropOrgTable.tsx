@@ -16,7 +16,7 @@ import { orgCategoryLabel } from "../../types/orgCategory";
 import { safeHttpUrl } from "../../utils/safeHttpUrl";
 import { Button, Select } from "../forms/controls";
 import PostCard from "../posts/PostCard";
-import { formatInsightCount } from "../posts/postInsights";
+import { formatInsightCount } from "../posts/insightMetrics";
 import { Card, CardHeader } from "../ui/Card";
 import { Chip } from "../ui/Chip";
 import { entityLinkClass } from "../ui/navItem";

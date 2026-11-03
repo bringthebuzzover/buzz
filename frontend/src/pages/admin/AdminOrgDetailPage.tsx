@@ -491,7 +491,7 @@ export default function AdminOrgDetailPage() {
                 ) : (
                   data.deliveryAddress ?? (
                     <span className="text-buzz-warn">
-                      Address pending — nowhere to ship product
+                      Address pending
                     </span>
                   )
                 )}

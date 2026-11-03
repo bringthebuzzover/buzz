@@ -139,8 +139,38 @@ test("brand settings shows name, locked email, and the handle request", async ({
   await expect(page.getByTestId("brand-email")).toHaveText(
     "partnerships@acme.coffee",
   );
-  const name = page.getByTestId("brand-name");
+  const name = page.locator('input[data-testid="brand-name"]');
   await expect(name).toHaveValue("Acme Coffee");
+  const saveButton = page.getByTestId("brand-name-save");
+  for (const invalid of [false, true]) {
+    if (invalid) {
+      await name.fill("x".repeat(121));
+      await name.press("Enter");
+      await expect(name).toHaveAttribute("aria-invalid", "true");
+      await expect(page.locator("#brand-name-error")).toBeVisible();
+    }
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      const nameBox = await name.boundingBox();
+      const saveBox = await saveButton.boundingBox();
+      expect(nameBox).not.toBeNull();
+      expect(saveBox).not.toBeNull();
+      if (width >= 640) {
+        expect(saveBox!.x).toBeGreaterThanOrEqual(nameBox!.x + nameBox!.width);
+        expect(Math.abs(nameBox!.y - saveBox!.y)).toBeLessThanOrEqual(2);
+        expect(
+          Math.abs(nameBox!.y + nameBox!.height - saveBox!.y - saveBox!.height),
+        ).toBeLessThanOrEqual(2);
+      } else {
+        expect(saveBox!.y).toBeGreaterThanOrEqual(nameBox!.y + nameBox!.height);
+        expect(Math.abs(saveBox!.x - nameBox!.x)).toBeLessThanOrEqual(1);
+      }
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+    }
+  }
+
   await name.fill("Acme Coffee");
   const saveResp = page.waitForResponse(
     (r) =>
@@ -148,7 +178,7 @@ test("brand settings shows name, locked email, and the handle request", async ({
       r.request().method() === "PATCH" &&
       !r.url().includes("ig-change"),
   );
-  await page.getByTestId("brand-name-save").click();
+  await name.press("Enter");
   const saved = await saveResp;
   expect(saved.ok(), await saved.text()).toBeTruthy();
   await expect(page.getByTestId("brand-name-saved")).toBeVisible();

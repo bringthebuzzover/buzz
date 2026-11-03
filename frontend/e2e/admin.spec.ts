@@ -173,6 +173,7 @@ test("org detail opens from the list", async ({ page }) => {
 
   await expect(page).toHaveURL(/\/admin\/orgs\/[0-9a-f-]+$/);
   await expect(page.getByRole("heading", { name: TEST_ORG })).toBeVisible();
+  await expect(page.getByText("Address pending")).toBeVisible();
 });
 
 test("admin views as an org from a row and can exit", async ({ page }) => {

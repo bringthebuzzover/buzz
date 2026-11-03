@@ -20,6 +20,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import {
   Button,
   ErrorBanner,
+  fieldLabelClass,
   Notice,
   SuccessBanner,
   TextArea,
@@ -189,18 +190,42 @@ export default function BrandSettingsPage() {
             className="mb-0"
           />
           <form className={STACK.default} onSubmit={saveName}>
-            <TextField
-              id="brand-name"
-              label="Brand name"
-              name="brandName"
-              value={shownName}
-              onChange={(event) => {
-                setBrandName(event.target.value);
-                setNameSaved(false);
-              }}
-              data-testid="brand-name"
-              error={nameMapped?.fields.brandName}
-            />
+            <div>
+              <label htmlFor="brand-name" className={fieldLabelClass}>
+                Brand name
+              </label>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                <div className="min-w-0 flex-1">
+                  <TextField
+                    id="brand-name"
+                    name="brandName"
+                    value={shownName}
+                    onChange={(event) => {
+                      setBrandName(event.target.value);
+                      setNameSaved(false);
+                    }}
+                    data-testid="brand-name"
+                    error={nameMapped?.fields.brandName}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  size="field"
+                  fullWidth
+                  className="sm:self-start sm:w-auto"
+                  disabled={updateProfile.isPending || !shownName.trim()}
+                  data-testid="brand-name-save"
+                >
+                  {updateProfile.isPending ? "Saving…" : "Save brand name"}
+                </Button>
+              </div>
+            </div>
+            {nameMapped?.banner ? <ErrorBanner>{nameMapped.banner}</ErrorBanner> : null}
+            {nameSaved ? (
+              <SuccessBanner>
+                <span data-testid="brand-name-saved">Brand name saved.</span>
+              </SuccessBanner>
+            ) : null}
             <ReadOnlyRow
               label="Instagram handle"
               value={
@@ -238,21 +263,6 @@ export default function BrandSettingsPage() {
                 {atHandle(pending.currentHandle)} until an admin approves it.
               </Notice>
             ) : null}
-            {nameMapped?.banner ? <ErrorBanner>{nameMapped.banner}</ErrorBanner> : null}
-            {nameSaved ? (
-              <SuccessBanner>
-                <span data-testid="brand-name-saved">Brand name saved.</span>
-              </SuccessBanner>
-            ) : null}
-            <div className="flex justify-end">
-              <Button
-                type="submit"
-                disabled={updateProfile.isPending || !shownName.trim()}
-                data-testid="brand-name-save"
-              >
-                {updateProfile.isPending ? "Saving…" : "Save brand name"}
-              </Button>
-            </div>
           </form>
         </Card>
 
@@ -266,6 +276,8 @@ export default function BrandSettingsPage() {
             action={
               <a
                 href={`mailto:${siteIdentity.contact.email}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className={quietLinkClass}
                 data-testid="brand-email-locked"
               >

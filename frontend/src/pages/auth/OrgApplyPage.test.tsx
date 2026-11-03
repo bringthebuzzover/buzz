@@ -139,6 +139,10 @@ describe("OrgApplyPage typed Instagram handle", () => {
     renderPage();
     fillRequiredFieldsExceptHandle();
 
+    expect(container.textContent).toContain(
+      "Use your organization’s Instagram Business or Creator account, not a personal account.",
+    );
+
     const submit = container.querySelector(
       'button[type="submit"]',
     ) as HTMLButtonElement;

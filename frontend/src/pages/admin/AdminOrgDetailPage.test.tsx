@@ -148,6 +148,44 @@ describe("AdminOrgDetailPage erase confirm", () => {
     expect(link?.getAttribute("rel")).toContain("noopener");
   });
 
+  it("links the pending Instagram request to its review route", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: { ...orgDetail(), pendingIgChangeRequestId: "request-1" },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    const review = Array.from(container.querySelectorAll("a")).find(
+      (link) => link.textContent === "Review",
+    );
+    expect(review?.getAttribute("href")).toBe("/admin/ig-changes/request-1");
+  });
+
+  it("shows Address pending when an unerased organization has no address", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: orgDetail(),
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    expect(container.textContent).toContain("Address pending");
+    expect(container.textContent).not.toContain("Shipping details removed");
+  });
+
+  it("keeps erased shipping details distinct from a missing address", () => {
+    mockUseAdminOrg.mockReturnValue({
+      data: { ...orgDetail(), status: "erased" },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+
+    expect(container.textContent).toContain("Shipping details removed");
+    expect(container.textContent).not.toContain("Address pending");
+  });
+
   it("acks an open bind mismatch without changing the connected handle", async () => {
     mockUseAdminOrg.mockReturnValue({
       data: {
