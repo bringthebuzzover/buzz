@@ -423,12 +423,12 @@ function BrandSelect({ animate }: { animate?: boolean }) {
           </p>
         </div>
       </div>
-      <div className="flex flex-1 flex-col gap-2 px-3 py-3">
+      <div className="flex flex-1 flex-col gap-1 px-3 py-2 md:gap-2 md:py-3">
         <div className="flex items-center gap-1">
           <Avatar initials="SO" />
           <Avatar initials="OB" tone="muted" className="-ml-2" />
         </div>
-        <p className="text-sm font-medium text-primary">Applicants</p>
+        <p className="text-xs font-medium text-primary md:text-sm">Applicants</p>
         <div>
           <div className="mb-1 flex justify-between text-[12px] text-muted">
             <span>Capacity</span>
@@ -577,6 +577,7 @@ export function MarketingPhone({
   return (
     <div
       aria-hidden
+      data-marketing-phone
       className="relative h-[444px] w-[250px] overflow-hidden rounded-buzzPhone border border-on-accent/10 bg-page shadow-buzz md:h-[563px] md:w-[317px]"
     >
       {screens.map((Screen, index) =>

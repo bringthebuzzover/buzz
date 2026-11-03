@@ -74,24 +74,65 @@ test("Berkeley seal loads fully on marketing college networks", async ({ page })
   }
 });
 
-test("marketing hero headlines stay within desktop and narrow viewports", async ({
-  page,
-}) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  for (const width of [320, 390, 1440]) {
+for (const width of [320, 390, 1440]) {
+  test(`marketing heroes and phone content fit at ${width}px with normal motion`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
     for (const route of ["/", "/for-orgs", "/for-brands"]) {
       await page.goto(route);
-      const hero = page.locator(".marketing-hero");
-      const heading = hero.getByRole("heading", { level: 1 });
+      const heading = page.locator(".marketing-hero").getByRole("heading", { level: 1 });
       await expect(heading).toBeVisible();
-      const headingBox = await heading.boundingBox();
-      expect(headingBox).not.toBeNull();
-      expect(headingBox!.x).toBeGreaterThanOrEqual(0);
-      expect(headingBox!.x + headingBox!.width).toBeLessThanOrEqual(width);
-      await expect(hero.locator("[data-reveal-line]").first()).toBeVisible();
+      await heading.evaluate(async (element) => {
+        await document.fonts.ready;
+        await Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished));
+      });
+      const headingBox = (await heading.boundingBox())!;
+      expect(headingBox.x).toBeGreaterThanOrEqual(0);
+      expect(headingBox.x + headingBox.width).toBeLessThanOrEqual(width);
+      const lines = heading.locator("[data-reveal-line]");
+      expect(await lines.count()).toBeGreaterThan(0);
+      for (const line of await lines.all()) {
+        const fits = await line.evaluate((element) => {
+          const box = element.getBoundingClientRect();
+          const clip = element.parentElement!.getBoundingClientRect();
+          return box.top >= clip.top - 1 &&
+            box.top + Math.max(box.height, element.scrollHeight) <= clip.bottom + 1;
+        });
+        expect(fits, `${route}: hero line is vertically clipped`).toBe(true);
+      }
+
+      const phones = page.locator("[data-marketing-phone]");
+      expect(await phones.count()).toBeGreaterThan(0);
+      for (const phone of await phones.all()) {
+        await phone.scrollIntoViewIfNeeded();
+        const blocks = await phone.evaluate((element) => {
+          const phoneBox = element.getBoundingClientRect();
+          return Array.from(element.children, (screen) => {
+            // Each screen ends in a body whose final block holds the CTA or posts.
+            const block = screen.firstElementChild!.lastElementChild!.lastElementChild!;
+            const box = block.getBoundingClientRect();
+            return box.width > 0 && box.height > 0 &&
+              box.top >= phoneBox.top - 1 && box.bottom <= phoneBox.bottom + 1 &&
+              box.left >= phoneBox.left - 1 && box.right <= phoneBox.right + 1;
+          });
+        });
+        expect(blocks.length).toBeGreaterThan(0);
+        expect(blocks, `${route}: final phone blocks are clipped`).not.toContain(false);
+      }
     }
-  }
+  });
+}
+
+test("marketing CTA shows its focus ring after keyboard Tab", async ({ page }) => {
+  await page.goto("/");
+  const navigation = page.getByRole("navigation", { name: "Primary" });
+  await navigation.getByRole("button", { name: "Log in" }).focus();
+  await page.keyboard.press("Tab");
+  const cta = navigation.getByRole("button", { name: "Join Us!", exact: true });
+  await expect(cta).toBeFocused();
+  await expect(cta).toHaveClass(/focus-visible:ring-2/);
+  expect(await cta.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+  await expect(cta).not.toHaveCSS("box-shadow", "none");
 });
 
 test("home how-to cards open role tours", async ({ page }) => {

@@ -4,6 +4,7 @@ import { siteIdentity } from "../../data/siteIdentity";
 import { BeeMark } from "../ui/BrandMark";
 import { LinkButton } from "../forms/controls";
 import { cn } from "../../theme/cn";
+import { focusRingClass } from "../../theme/controls";
 import { footerLinkClass, SOCIAL_LINKS } from "./footerLinks";
 
 export type SiteFooterAudience = "both" | "org" | "brand";
@@ -52,7 +53,10 @@ export default function SiteFooter({
         href={`mailto:${contact.email}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-8 break-all text-[20px] font-medium leading-tight md:text-buzzStatement"
+        className={cn(
+          "mt-8 break-all text-[20px] font-medium leading-tight md:text-buzzStatement",
+          focusRingClass,
+        )}
       >
         {contact.email}
       </a>
