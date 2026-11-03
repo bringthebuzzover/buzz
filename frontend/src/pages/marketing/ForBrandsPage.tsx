@@ -8,11 +8,11 @@ import { SideBySideHow } from "../../components/marketing/SideBySideHow";
 import {
   FaqList,
   GoalChips,
-  MarketingFooter,
   MarketingHero,
   NumberedCards,
   Statement,
 } from "../../components/marketing/sections";
+import SiteFooter from "../../components/site/SiteFooter";
 
 const BRAND_FAQ = [
   {
@@ -87,7 +87,7 @@ export default function ForBrandsPage() {
       <CollegeNetwork />
       <GoalChips />
       <FaqList items={BRAND_FAQ} />
-      <MarketingFooter brandOnly />
+      <SiteFooter audience="brand" />
     </MarketingPage>
   );
 }

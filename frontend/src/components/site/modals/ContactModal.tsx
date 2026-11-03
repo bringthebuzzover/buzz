@@ -37,7 +37,7 @@ export default function ContactModal({ onClose }: ContactModalProps) {
       <dl className="flex flex-col gap-4">
         <ContactRow label="Name">{contact.primaryPersonName}</ContactRow>
         <ContactRow label="Email">
-          <a href={`mailto:${contact.email}`} className={linkClass}>
+          <a href={`mailto:${contact.email}`} target="_blank" rel="noopener noreferrer" className={linkClass}>
             {contact.email}
           </a>
         </ContactRow>
@@ -45,7 +45,7 @@ export default function ContactModal({ onClose }: ContactModalProps) {
           <a
             href={social.instagram.webUrl}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className={linkClass}
           >
             {social.instagram.handleWithAt}

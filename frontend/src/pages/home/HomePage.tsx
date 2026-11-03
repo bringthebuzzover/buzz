@@ -9,11 +9,11 @@ import { PinnedHow } from "../../components/marketing/PinnedHow";
 import {
   CurrentDrops,
   JoinSplit,
-  MarketingFooter,
   MarketingHero,
   StackCards,
   Statement,
 } from "../../components/marketing/sections";
+import SiteFooter from "../../components/site/SiteFooter";
 import { siteIdentity } from "../../data/siteIdentity";
 import {
   scrollToHomeJoin,
@@ -67,7 +67,7 @@ export default function HomePage() {
           quiet: { label: "See how brands run a campaign", to: "/for-brands" },
         }}
       />
-      <MarketingFooter />
+      <SiteFooter audience="both" />
     </MarketingPage>
   );
 }

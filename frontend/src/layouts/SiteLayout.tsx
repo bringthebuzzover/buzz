@@ -6,7 +6,7 @@
  * the rest show no header or footer. Signed-in orgs and brands off the
  * marketing pages get their portal top bar, and so does `/onboarding/denied`.
  */
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { SiteChromeProvider } from "../contexts/SiteChromeContext";
 import SiteHeader from "../components/site/SiteHeader";
 import SiteFooter from "../components/site/SiteFooter";
@@ -15,8 +15,7 @@ import AuthAdminHeader from "../components/auth/AuthAdminHeader";
 import PortalHeader, { type Portal } from "../components/site/PortalHeader";
 import { useAuth } from "../contexts/AuthContext";
 import { isAdminAuthPath, isBareAuthPath } from "../components/auth/authPaths";
-import { focusRingClass } from "../theme/controls";
-import { cn } from "../theme/cn";
+import { LinkButton } from "../components/forms/controls";
 
 function isMarketingPath(pathname: string): boolean {
   return pathname === "/" || pathname === "/for-orgs" || pathname === "/for-brands";
@@ -72,15 +71,12 @@ function MobileJoinDock() {
   const forBrands = pathname === "/for-brands";
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-3 md:hidden">
-      <Link
+      <LinkButton
         to={forBrands ? "/brand/apply" : "/org/apply"}
-        className={cn(
-          "pointer-events-auto mx-auto flex h-11 max-w-md items-center justify-center rounded-full bg-accent px-5 text-sm text-on-accent shadow-buzz",
-          focusRingClass,
-        )}
+        className="pointer-events-auto mx-auto h-11 max-w-md px-5 shadow-buzz"
       >
         {forBrands ? "Apply as a brand" : "Join as a student organization"}
-      </Link>
+      </LinkButton>
     </div>
   );
 }

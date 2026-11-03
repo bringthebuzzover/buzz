@@ -19,6 +19,93 @@ test("home page renders the marketing shell + join section", async ({ page }) =>
   await expect(page.getByRole("navigation").first()).toBeVisible();
 });
 
+test("marketing navigation follows the surface below its logo", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const logo = () =>
+    page.getByTestId("site-header-logo").locator("img");
+
+  for (const route of ["/", "/for-orgs", "/for-brands"]) {
+    await page.goto(route);
+    const navigation = page.getByRole("navigation", { name: "Primary" });
+    await expect(
+      navigation.getByRole("link", { name: "How it works" }),
+    ).toHaveCount(0);
+    await expect(logo()).toHaveAttribute("src", /buzz-logo-on-ink\.svg/);
+
+    await page.locator('[data-nav-surface="paper"]').first().evaluate((surface) => {
+      surface.scrollIntoView({ block: "start" });
+    });
+    await expect(logo()).toHaveAttribute("src", /buzz-logo\.svg/);
+
+    await page.locator('[data-nav-surface="ink"]').nth(1).evaluate((surface) => {
+      surface.scrollIntoView({ block: "start" });
+    });
+    await expect(logo()).toHaveAttribute("src", /buzz-logo-on-ink\.svg/);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await expect(page.locator("#mobile-nav-menu")).not.toContainText("How it works");
+  await expect(logo()).toHaveAttribute("src", /buzz-logo-on-ink\.svg/);
+  await page.getByRole("button", { name: "Close menu" }).first().click();
+  await page.locator(".marketing-how-link").click();
+  await expect(page).toHaveURL(/#how-it-works$/);
+  await expect(page.locator("#how-it-works")).toBeVisible();
+});
+
+test("Berkeley seal loads fully on marketing college networks", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const route of ["/", "/for-brands"]) {
+    await page.goto(route);
+    const seal = page.getByRole("img", { name: "UC Berkeley" }).first();
+    await seal.scrollIntoViewIfNeeded();
+    await expect(seal).toBeVisible();
+    const image = await seal.evaluate((node: HTMLImageElement) => ({
+      width: node.naturalWidth,
+      height: node.naturalHeight,
+      complete: node.complete,
+      box: node.getBoundingClientRect().toJSON(),
+    }));
+    expect(image).toMatchObject({ width: 144, height: 144, complete: true });
+    expect(image.box.width).toBeGreaterThan(0);
+    expect(image.box.left).toBeGreaterThanOrEqual(0);
+    expect(image.box.right).toBeLessThanOrEqual(1440);
+  }
+});
+
+test("marketing Current drops come from the public catalog and link to details", async ({ page }) => {
+  await page.goto("/");
+  const current = page.getByRole("heading", { name: "Current drops" }).locator("..").locator("..");
+  await expect(current).toBeVisible();
+  const detailLink = current.locator('a[href^="/d/"]').first();
+  await expect(detailLink).toBeVisible();
+  const path = await detailLink.getAttribute("href");
+  expect(path).toMatch(/^\/d\/[0-9a-f-]{36}$/i);
+  await detailLink.click();
+  await expect(page).toHaveURL(path!);
+});
+
+test("marketing hero headlines stay within desktop and narrow viewports", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
+    for (const route of ["/", "/for-orgs", "/for-brands"]) {
+      await page.goto(route);
+      const hero = page.locator(".marketing-hero");
+      const heading = hero.getByRole("heading", { level: 1 });
+      await expect(heading).toBeVisible();
+      const headingBox = await heading.boundingBox();
+      expect(headingBox).not.toBeNull();
+      expect(headingBox!.x).toBeGreaterThanOrEqual(0);
+      expect(headingBox!.x + headingBox!.width).toBeLessThanOrEqual(width);
+      await expect(hero.locator("[data-reveal-line]").first()).toBeVisible();
+    }
+  }
+});
+
 test("home how-to cards open role tours", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("link", { name: /see how organizations join/i }).click();

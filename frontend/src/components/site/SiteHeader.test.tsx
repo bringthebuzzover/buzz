@@ -77,6 +77,87 @@ describe("SiteHeader", () => {
     expect(trigger?.getAttribute("aria-label")).toBe("Open menu");
     expect(trigger?.getAttribute("aria-expanded")).toBe("false");
   });
+
+  it("samples below the logo and updates the wordmark when the surface changes", () => {
+    const navBounds = {
+      x: 100,
+      y: 8,
+      left: 100,
+      top: 8,
+      right: 900,
+      bottom: 74,
+      width: 800,
+      height: 66,
+      toJSON: () => ({}),
+    } as DOMRect;
+    const logoBounds = {
+      x: 124,
+      y: 18,
+      left: 124,
+      top: 18,
+      right: 268,
+      bottom: 58,
+      width: 144,
+      height: 40,
+      toJSON: () => ({}),
+    } as DOMRect;
+    const boundsSpy = jest
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        if (this.getAttribute("aria-label") === "Primary") return navBounds;
+        if (this.getAttribute("data-testid") === "site-header-logo") {
+          return logoBounds;
+        }
+        return navBounds;
+      });
+    const paperSurface = document.createElement("section");
+    paperSurface.setAttribute("data-nav-surface", "paper");
+    const sampled = document.createElement("div");
+    sampled.closest = jest.fn(() => paperSurface);
+    let hasPaperSurface = true;
+    const pointSpy = jest.fn(() => (hasPaperSurface ? sampled : null));
+    Object.defineProperty(document, "elementFromPoint", {
+      configurable: true,
+      value: pointSpy,
+    });
+
+    try {
+      const { container } = renderWithProviders(<SiteHeader />, { route: "/" });
+      const logo = container.querySelector<HTMLImageElement>(
+        '[data-testid="site-header-logo"] img',
+      );
+      expect(pointSpy).toHaveBeenCalledWith(196, 86);
+      expect(logo?.src).toContain("buzz-logo.svg");
+      expect(
+        container.querySelector('nav[aria-label="Primary"]')?.className,
+      ).toContain("border-on-accent/10");
+
+      hasPaperSurface = false;
+      act(() => window.dispatchEvent(new Event("resize")));
+      expect(logo?.src).toContain("buzz-logo-on-ink.svg");
+    } finally {
+      boundsSpy.mockRestore();
+      Object.defineProperty(document, "elementFromPoint", {
+        configurable: true,
+        value: () => null,
+      });
+    }
+  });
+
+  it("keeps How it works out of the guest navbar and mobile menu", () => {
+    const { container } = renderWithProviders(<SiteHeader />, { route: "/" });
+    const primary = container.querySelector('nav[aria-label="Primary"]');
+    expect(primary?.textContent).not.toContain("How it works");
+
+    act(() => {
+      container
+        .querySelector<HTMLButtonElement>('button[aria-controls="mobile-nav-menu"]')
+        ?.click();
+    });
+    expect(container.querySelector("#mobile-nav-menu")?.textContent).not.toContain(
+      "How it works",
+    );
+  });
 });
 
 it.each([

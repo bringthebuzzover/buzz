@@ -408,8 +408,8 @@ function BrandSelect({ animate }: { animate?: boolean }) {
   return (
     <div className="flex h-full flex-col bg-page">
       <div className="flex h-10 items-center px-3 text-xs text-muted">‹ Back to dashboard</div>
-      <div className="relative mx-3 overflow-hidden rounded-buzzBoard">
-        <div className="h-16">
+      <div className="relative mx-3 shrink-0 overflow-hidden rounded-buzzBoard">
+        <div className="h-28 shrink-0">
           <Photo src={MOCKUP.cans} alt={MOCKUP_ALT.cans} className="absolute inset-0" />
         </div>
         <Scrim />
@@ -510,8 +510,8 @@ function BrandTrack({ animate }: { animate?: boolean }) {
   return (
     <div className="flex h-full flex-col bg-page">
       <div className="flex h-10 items-center px-3 text-xs text-muted">‹ Back to dashboard</div>
-      <div className="relative mx-3 overflow-hidden rounded-buzzBoard">
-        <div className="h-16">
+      <div className="relative mx-3 shrink-0 overflow-hidden rounded-buzzBoard">
+        <div className="h-28 shrink-0">
           <Photo src={MOCKUP.cans} alt={MOCKUP_ALT.cans} className="absolute inset-0" />
         </div>
         <Scrim />

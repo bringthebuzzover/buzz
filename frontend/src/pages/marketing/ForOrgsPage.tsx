@@ -8,11 +8,11 @@ import {
   CurrentDrops,
   FaqList,
   JoinSplit,
-  MarketingFooter,
   MarketingHero,
   NumberedCards,
   Statement,
 } from "../../components/marketing/sections";
+import SiteFooter from "../../components/site/SiteFooter";
 
 const ORG_FAQ = [
   {
@@ -102,14 +102,8 @@ export default function ForOrgsPage() {
           action: { label: "Apply as an organization", to: "/org/apply" },
           quiet: { label: "Already connected? Log in", to: "/login" },
         }}
-        right={{
-          kicker: "For brands",
-          title: "Request a campaign.",
-          support: "You request a call. BUZZ builds and publishes the drop.",
-          action: { label: "See BUZZ for brands", to: "/for-brands" },
-        }}
       />
-      <MarketingFooter />
+      <SiteFooter audience="org" />
     </MarketingPage>
   );
 }
