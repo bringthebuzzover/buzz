@@ -212,7 +212,7 @@ export default function BrandSettingsPage() {
                   type="submit"
                   size="field"
                   fullWidth
-                  className="sm:w-auto"
+                  className="sm:self-start sm:w-auto"
                   disabled={updateProfile.isPending || !shownName.trim()}
                   data-testid="brand-name-save"
                 >

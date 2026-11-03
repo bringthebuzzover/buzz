@@ -139,7 +139,7 @@ test("brand settings shows name, locked email, and the handle request", async ({
   await expect(page.getByTestId("brand-email")).toHaveText(
     "partnerships@acme.coffee",
   );
-  const name = page.getByTestId("brand-name");
+  const name = page.locator('input[data-testid="brand-name"]');
   await expect(name).toHaveValue("Acme Coffee");
   const saveButton = page.getByTestId("brand-name-save");
   for (const invalid of [false, true]) {
@@ -157,6 +157,7 @@ test("brand settings shows name, locked email, and the handle request", async ({
       expect(saveBox).not.toBeNull();
       if (width >= 640) {
         expect(saveBox!.x).toBeGreaterThanOrEqual(nameBox!.x + nameBox!.width);
+        expect(Math.abs(nameBox!.y - saveBox!.y)).toBeLessThanOrEqual(2);
         expect(
           Math.abs(nameBox!.y + nameBox!.height - saveBox!.y - saveBox!.height),
         ).toBeLessThanOrEqual(2);
