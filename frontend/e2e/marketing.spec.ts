@@ -19,6 +19,174 @@ test("home page renders the marketing shell + join section", async ({ page }) =>
   await expect(page.getByRole("navigation").first()).toBeVisible();
 });
 
+test("marketing navigation follows the surface below its logo", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const logo = () =>
+    page.getByTestId("site-header-logo").locator("img");
+
+  for (const route of ["/", "/for-orgs", "/for-brands"]) {
+    await page.goto(route);
+    const navigation = page.getByRole("navigation", { name: "Primary" });
+    await expect(
+      navigation.getByRole("link", { name: "How it works" }),
+    ).toHaveCount(0);
+    await expect(logo()).toHaveAttribute("src", /buzz-logo-on-ink\.svg/);
+
+    await page.locator('[data-nav-surface="paper"]').first().evaluate((surface) => {
+      surface.scrollIntoView({ block: "start" });
+    });
+    await expect(logo()).toHaveAttribute("src", /buzz-logo-on-paper\.svg/);
+
+    await page.locator('[data-nav-surface="ink"]').nth(1).evaluate((surface) => {
+      surface.scrollIntoView({ block: "start" });
+    });
+    await expect(logo()).toHaveAttribute("src", /buzz-logo-on-ink\.svg/);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await expect(page.locator("#mobile-nav-menu")).not.toContainText("How it works");
+  await expect(logo()).toHaveAttribute("src", /buzz-logo-on-ink\.svg/);
+  await page.getByRole("button", { name: "Close menu" }).first().click();
+  await page.locator(".marketing-how-link").click();
+  await expect(page).toHaveURL(/#how-it-works$/);
+  await expect(page.locator("#how-it-works")).toBeVisible();
+});
+
+test("Berkeley seal loads fully on marketing college networks", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const route of ["/", "/for-brands"]) {
+    await page.goto(route);
+    const seal = page.getByRole("img", { name: "UC Berkeley" }).first();
+    await seal.scrollIntoViewIfNeeded();
+    await expect(seal).toBeVisible();
+    const image = await seal.evaluate((node: HTMLImageElement) => ({
+      width: node.naturalWidth,
+      height: node.naturalHeight,
+      complete: node.complete,
+      box: node.getBoundingClientRect().toJSON(),
+    }));
+    expect(image).toMatchObject({ width: 144, height: 144, complete: true });
+    expect(image.box.width).toBeGreaterThan(0);
+    expect(image.box.left).toBeGreaterThanOrEqual(0);
+    expect(image.box.right).toBeLessThanOrEqual(1440);
+  }
+});
+
+for (const { width, reducedMotion } of [320, 390, 1440].flatMap((width) =>
+  (["no-preference", "reduce"] as const).map((reducedMotion) => ({ width, reducedMotion })),
+)) {
+  test(`marketing heroes and phone content fit at ${width}px with ${reducedMotion} motion`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion });
+    await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
+    for (const route of ["/", "/for-orgs", "/for-brands"]) {
+      await page.goto(route);
+      const heading = page.locator(".marketing-hero").getByRole("heading", { level: 1 });
+      await expect(heading).toBeVisible();
+      await heading.evaluate(async (element) => {
+        await document.fonts.ready;
+        await Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished));
+      });
+      const headingBox = (await heading.boundingBox())!;
+      expect(headingBox.x).toBeGreaterThanOrEqual(0);
+      expect(headingBox.x + headingBox.width).toBeLessThanOrEqual(width);
+      const lines = heading.locator("[data-reveal-line]");
+      expect(await lines.count()).toBeGreaterThan(0);
+      for (const line of await lines.all()) {
+        const bounds = await line.evaluate((element) => {
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          const textBox = range.getBoundingClientRect();
+          const clip = element.parentElement!.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          const context = document.createElement("canvas").getContext("2d")!;
+          context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+          const metrics = context.measureText(element.textContent!);
+          // Range includes empty font ascent/descent space. Keep only the ink,
+          // using the first and last baselines when a logical line wraps.
+          const top = textBox.top + metrics.fontBoundingBoxAscent - metrics.actualBoundingBoxAscent;
+          const bottom = textBox.bottom - metrics.fontBoundingBoxDescent + metrics.actualBoundingBoxDescent;
+          return { top, bottom, clipTop: clip.top, clipBottom: clip.bottom };
+        });
+        expect(bounds.bottom, `${route}: empty hero ink bounds ${JSON.stringify(bounds)}`).toBeGreaterThan(bounds.top);
+        expect(bounds.top, `${route}: hero ink clipped at top ${JSON.stringify(bounds)}`).toBeGreaterThanOrEqual(bounds.clipTop - 1);
+        expect(bounds.bottom, `${route}: hero ink clipped at bottom ${JSON.stringify(bounds)}`).toBeLessThanOrEqual(bounds.clipBottom + 1);
+      }
+
+      const phones = page.locator("[data-marketing-phone]");
+      expect(await phones.count()).toBeGreaterThan(0);
+      if (route === "/for-brands") {
+        await expect(phones.getByText("Send decisions", { exact: true })).toHaveCount(1);
+      }
+      for (const phone of await phones.all()) {
+        await phone.scrollIntoViewIfNeeded();
+        await expect(phone).toBeInViewport();
+        await expect(phone).toHaveCSS("width", width < 768 ? "250px" : "317px");
+        await phone.evaluate(async (element) => {
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+          await Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished));
+        });
+        const decisions = phone.getByText("Send decisions", { exact: true });
+        if (await decisions.count()) {
+          await expect(decisions).toBeVisible();
+          await expect(decisions).toHaveCSS("height", "40px");
+        }
+        const blocks = await phone.evaluate((element) => {
+          const phoneBox = element.getBoundingClientRect();
+          return Array.from(element.children, (screen) => {
+            // Measure the actual Selecting CTA; other screens end in a CTA or posts.
+            const block = Array.from(screen.querySelectorAll("div")).find(
+              (node) => node.childElementCount === 0 && node.textContent === "Send decisions",
+            ) ?? screen.firstElementChild!.lastElementChild!.lastElementChild!;
+            const box = block.getBoundingClientRect();
+            return {
+              phone: phoneBox.toJSON(),
+              block: box.toJSON(),
+              fits: box.width > 0 && box.height > 0 &&
+                box.top >= phoneBox.top - 1 && box.bottom <= phoneBox.bottom + 1 &&
+                box.left >= phoneBox.left - 1 && box.right <= phoneBox.right + 1,
+            };
+          });
+        });
+        expect(blocks.length).toBeGreaterThan(0);
+        expect(blocks.filter((block) => !block.fits), `${route}: final phone blocks are clipped`).toEqual([]);
+      }
+    }
+  });
+}
+
+test("marketing CTA shows its focus ring after keyboard Tab", async ({ page }) => {
+  await page.goto("/");
+  const navigation = page.getByRole("navigation", { name: "Primary" });
+  await navigation.getByRole("button", { name: "Log in" }).focus();
+  await page.keyboard.press("Tab");
+  const cta = navigation.getByRole("button", { name: "Join Us!", exact: true });
+  await expect(cta).toBeFocused();
+  await expect(cta).toHaveClass(/focus-visible:ring-2/);
+  expect(await cta.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+  await expect(cta).not.toHaveCSS("box-shadow", "none");
+});
+
+test("brand footer CTA keeps ink text and a keyboard focus ring", async ({ page }) => {
+  await page.goto("/for-brands");
+  await page.evaluate(() => document.fonts.ready);
+  const footer = page.getByRole("contentinfo");
+  const cta = footer.getByRole("link", { name: "Apply as a brand", exact: true });
+  await cta.hover();
+  await expect(cta).toHaveCSS("color", "rgb(11, 11, 11)");
+  await expect(cta).toHaveCSS("background-color", "rgb(224, 190, 22)");
+  await page.mouse.move(0, 0);
+  await footer.locator('a[href^="mailto:"]').first().focus();
+  await page.keyboard.press("Shift+Tab");
+  await expect(cta).toBeFocused();
+  expect(await cta.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+  await expect(cta).toHaveCSS("color", "rgb(11, 11, 11)");
+  await expect(cta).toHaveCSS("background-color", "rgb(224, 190, 22)");
+  await expect(cta).toHaveClass(/focus-visible:ring-2/);
+  await expect(cta).not.toHaveCSS("box-shadow", "none");
+});
+
 test("home how-to cards open role tours", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("link", { name: /see how organizations join/i }).click();

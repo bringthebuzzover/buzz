@@ -134,7 +134,7 @@ export default function ConnectInstagramPage() {
           <a
             href="https://www.instagram.com/accounts/manage_access/"
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className={cn("font-medium text-accent underline", focusRingClass)}
           >
             Instagram manage access

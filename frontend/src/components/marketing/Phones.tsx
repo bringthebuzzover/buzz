@@ -408,29 +408,29 @@ function BrandSelect({ animate }: { animate?: boolean }) {
   return (
     <div className="flex h-full flex-col bg-page">
       <div className="flex h-10 items-center px-3 text-xs text-muted">‹ Back to dashboard</div>
-      <div className="relative mx-3 overflow-hidden rounded-buzzBoard">
-        <div className="h-16">
+      <div className="relative mx-3 shrink-0 overflow-hidden rounded-buzzBoard">
+        <div className="h-28 shrink-0">
           <Photo src={MOCKUP.cans} alt={MOCKUP_ALT.cans} className="absolute inset-0" />
         </div>
         <Scrim />
         <div className="absolute inset-0 flex flex-col justify-end p-2">
-          <span className="w-fit rounded-full bg-accent px-2 py-0.5 text-[12px] text-on-accent">
+          <span className="w-fit rounded-full bg-accent px-2 py-0.5 text-[12px] leading-4 text-on-accent md:leading-6">
             Selecting
           </span>
           <p className="text-sm font-medium text-primary">{SAMPLE.drop.title}</p>
-          <p className="text-[12px] text-muted">
+          <p className="text-[12px] leading-4 text-muted md:leading-6">
             SAMPLE BRAND · {SAMPLE.university}
           </p>
         </div>
       </div>
-      <div className="flex flex-1 flex-col gap-2 px-3 py-3">
-        <div className="flex items-center gap-1">
+      <div className="flex flex-1 flex-col gap-1 px-3 py-2 md:gap-2 md:py-3">
+        <div className="hidden items-center gap-1 md:flex">
           <Avatar initials="SO" />
           <Avatar initials="OB" tone="muted" className="-ml-2" />
         </div>
-        <p className="text-sm font-medium text-primary">Applicants</p>
+        <p className="text-xs font-medium text-primary md:text-sm">Applicants</p>
         <div>
-          <div className="mb-1 flex justify-between text-[12px] text-muted">
+          <div className="mb-1 flex justify-between text-[12px] leading-4 text-muted md:leading-6">
             <span>Capacity</span>
             <span>1 of 8 spots</span>
           </div>
@@ -482,7 +482,7 @@ function Applicant({
       <Avatar initials={initials} tone={on ? "yellow" : "muted"} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs text-primary">{name}</p>
-        <p className="truncate text-[12px] text-muted">
+        <p className="truncate text-[12px] leading-4 text-muted md:leading-6">
           {handle}
           <span className="hidden md:inline"> · {followers}</span>
         </p>
@@ -510,8 +510,8 @@ function BrandTrack({ animate }: { animate?: boolean }) {
   return (
     <div className="flex h-full flex-col bg-page">
       <div className="flex h-10 items-center px-3 text-xs text-muted">‹ Back to dashboard</div>
-      <div className="relative mx-3 overflow-hidden rounded-buzzBoard">
-        <div className="h-16">
+      <div className="relative mx-3 shrink-0 overflow-hidden rounded-buzzBoard">
+        <div className="h-28 shrink-0">
           <Photo src={MOCKUP.cans} alt={MOCKUP_ALT.cans} className="absolute inset-0" />
         </div>
         <Scrim />
@@ -577,6 +577,7 @@ export function MarketingPhone({
   return (
     <div
       aria-hidden
+      data-marketing-phone
       className="relative h-[444px] w-[250px] overflow-hidden rounded-buzzPhone border border-on-accent/10 bg-page shadow-buzz md:h-[563px] md:w-[317px]"
     >
       {screens.map((Screen, index) =>

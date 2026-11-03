@@ -304,7 +304,7 @@ export const buttonVariants = cva(
       variant: {
         // Pen Pill / Yellow: 40px, 14px, weight 400.
         primary:
-          "h-10 bg-accent px-4 text-sm text-on-accent hover:bg-buzz-yellowHover disabled:bg-buzz-neutral disabled:text-quiet",
+          "h-10 bg-accent px-4 text-sm text-on-accent hover:bg-buzz-yellowHover focus-visible:bg-buzz-yellowHover disabled:bg-buzz-neutral disabled:text-quiet",
         // Pen Pill / Dark: 36px, paper-09 line so the fill reads on the page.
         secondary:
           "h-9 border border-line bg-buzz-inkBtn px-3.5 text-xs text-primary hover:bg-surface-pop disabled:border-transparent disabled:bg-buzz-neutral disabled:text-quiet",

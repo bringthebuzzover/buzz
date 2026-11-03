@@ -6,12 +6,10 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { BeeMark } from "../ui/BrandMark";
-import { LinkButton } from "../forms/controls";
+import { Button, LinkButton } from "../forms/controls";
 import { focusRingClass } from "../../theme/controls";
-import { siteIdentity } from "../../data/siteIdentity";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
 import { cn } from "../../theme/cn";
-import { footerLinkClass, SOCIAL_LINKS } from "../site/footerLinks";
 import { useReducedMotion } from "./useReducedMotion";
 import { publicAsset } from "../../utils/publicAsset";
 
@@ -65,9 +63,12 @@ export function MarketingHero({
       <div className="marketing-hero-shade absolute inset-0 bg-page/60 opacity-0" />
       <BeeMark className="marketing-hero-bee absolute right-12 top-[198px] hidden h-[42px] w-[42px] md:block" />
       <div className="absolute inset-x-0 bottom-24 px-4 md:bottom-28 md:px-12">
-        <h1 className="max-w-3xl whitespace-pre-line text-[36px] font-medium leading-none tracking-tight md:text-buzzTitle">
+        <h1 className="max-w-3xl whitespace-pre-line text-[36px] font-medium leading-[1] tracking-tight md:text-buzzTitle md:leading-[1]">
           {title.split("\n").map((line) => (
-            <span key={line} className="block overflow-hidden">
+            <span
+              key={line}
+              className="-mb-[0.14em] block overflow-hidden pb-[0.14em]"
+            >
               <span data-reveal-line className="block">
                 {line}
               </span>
@@ -87,16 +88,13 @@ export function MarketingHero({
               {primary.label}
             </LinkButton>
           ) : (
-            <button
+            <Button
               type="button"
               onClick={primary.onClick}
-              className={cn(
-                "inline-flex h-11 items-center rounded-full bg-accent px-5 text-sm text-on-accent",
-                focusRingClass,
-              )}
+              className="h-11 px-5"
             >
               {primary.label}
-            </button>
+            </Button>
           )}
           <a
             href="#how-it-works"
@@ -275,11 +273,17 @@ type Half = {
   quiet?: { label: string; to: string };
 };
 
-export function JoinSplit({ left, right }: { left: Half; right: Half }) {
+export function JoinSplit({ left, right }: { left: Half; right?: Half }) {
   return (
-    <section data-nav-surface="paper" className="grid bg-[#f0f0f0] text-on-accent md:grid-cols-2">
+    <section
+      data-nav-surface="paper"
+      className={cn(
+        "grid bg-[#f0f0f0] text-on-accent",
+        right && "md:grid-cols-2",
+      )}
+    >
       <HalfBlock {...left} />
-      <HalfBlock {...right} divided />
+      {right ? <HalfBlock {...right} divided /> : null}
     </section>
   );
 }
@@ -454,121 +458,5 @@ export function GoalChips() {
         ))}
       </div>
     </section>
-  );
-}
-
-export function MarketingFooter({ brandOnly = false }: { brandOnly?: boolean }) {
-  const { contact } = siteIdentity;
-  return (
-    <footer
-      id="home-join"
-      data-reveal-group
-      role="contentinfo"
-      data-nav-surface="ink"
-      className="flex min-h-[844px] flex-col bg-page px-4 pb-28 pt-24 text-primary md:min-h-[900px] md:px-12 md:pb-16 md:pt-[135px]"
-    >
-      <h2
-        data-reveal-line
-        className="text-[48px] font-medium leading-none tracking-tight md:text-buzzDisplay"
-      >
-        {brandOnly ? "Request a campaign" : "Want to join?"}
-      </h2>
-      {brandOnly ? (
-        <p className="mt-5 text-base text-muted">
-          You request a call. BUZZ builds and publishes the drop.
-        </p>
-      ) : null}
-      <div className="mt-8 flex flex-wrap items-center gap-3">
-        {brandOnly ? null : (
-          <Link
-            to="/org/apply"
-            className={cn(
-              "inline-flex h-11 items-center rounded-full border border-primary px-5 text-sm text-primary",
-              focusRingClass,
-            )}
-          >
-            Join as a student organization
-          </Link>
-        )}
-        <Link
-          to="/brand/apply"
-          className={cn(
-            brandOnly
-              ? "inline-flex h-11 items-center rounded-full bg-accent px-5 text-sm text-on-accent"
-              : "text-base text-primary",
-            focusRingClass,
-          )}
-        >
-          Apply as a brand
-        </Link>
-      </div>
-      <a
-        href={`mailto:${contact.email}`}
-        className={cn(
-          "mt-8 text-[20px] font-medium leading-none md:text-buzzStatement",
-          focusRingClass,
-        )}
-      >
-        {contact.email}
-      </a>
-      <div className="mt-auto grid grid-cols-2 gap-8 pt-16 md:grid-cols-4">
-        {[
-          { title: "Organizations", tour: "/for-orgs", apply: "/org/apply", login: "/login" },
-          { title: "Brands", tour: "/for-brands", apply: "/brand/apply", login: "/brand/login" },
-        ].map(({ title, tour, apply, login }) => (
-          <FooterCol key={title} title={title} links={[[tour, "How it works"], [apply, "Apply"], [login, "Login"]]} />
-        ))}
-        <div>
-          <h3 className="mb-3 text-sm font-medium">Social</h3>
-          <ul className="space-y-2">
-            {SOCIAL_LINKS.map(({ label, href }) => (
-              <li key={label}>
-                <a href={href} className={footerLinkClass}>
-                  {label}
-                </a>
-              </li>
-            ))}
-            <li>
-              <a href={`mailto:${contact.email}`} className={footerLinkClass}>
-                Email
-              </a>
-            </li>
-          </ul>
-        </div>
-        <FooterCol
-          title="Legal"
-          links={[
-            ["/privacy", "Privacy"],
-            ["/terms", "Terms"],
-            ["/data-deletion", "Data deletion"],
-          ]}
-        />
-      </div>
-      <div className="mt-10 flex flex-col items-center gap-4 text-center text-xs text-muted md:flex-row md:justify-between md:text-left">
-        <BeeMark className="h-7 w-7" />
-        <p>
-          Connecting brands with campus communities for authentic college
-          marketing, at scale.
-        </p>
-        <p>2026</p>
-      </div>
-    </footer>
-  );
-}
-
-function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
-  return (
-    <div>
-      <h3 className="mb-3 text-sm font-medium">{title}</h3>
-      <ul className="space-y-2">
-        {links.map(([to, label]) => (
-          <li key={to}>
-            <Link to={to} className={footerLinkClass}>
-              {label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }

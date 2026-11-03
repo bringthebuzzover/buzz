@@ -35,7 +35,7 @@ export default function DataDeletionPage() {
       <h2 id="how-to-request">How to request deletion</h2>
       <ol>
         <li>
-          Email <a href={mailtoHref}>{contact.email}</a> with the subject
+          Email <a href={mailtoHref} target="_blank" rel="noopener noreferrer">{contact.email}</a> with the subject
           “{DELETION_SUBJECT}”.
         </li>
         <li>
@@ -96,7 +96,7 @@ export default function DataDeletionPage() {
         <a
           href="https://www.instagram.com/accounts/manage_access/"
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
         >
           instagram.com/accounts/manage_access
         </a>
@@ -106,7 +106,7 @@ export default function DataDeletionPage() {
       <h2 id="contact">Contact</h2>
       <p>
         Questions about this process:{" "}
-        <a href={`mailto:${contact.email}`}>{contact.email}</a>.
+        <a href={`mailto:${contact.email}`} target="_blank" rel="noopener noreferrer">{contact.email}</a>.
       </p>
     </LegalLayout>
   );

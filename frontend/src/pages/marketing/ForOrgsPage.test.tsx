@@ -25,6 +25,11 @@ describe("ForOrgsPage", () => {
     expect(apply?.textContent).toMatch(/apply as an organization|join us|join as a student organization/i);
     const login = container.querySelector('a[href="/login"]');
     expect(login).not.toBeNull();
+    const joinHeading = Array.from(container.querySelectorAll("h2")).find((heading) =>
+      heading.textContent?.includes("Apply with your"),
+    );
+    expect(joinHeading?.closest("section")?.textContent).not.toContain("Request a campaign");
+    expect(container.querySelectorAll("footer")).toHaveLength(1);
   });
 
   it("presents three numbered portal steps with their captions", () => {

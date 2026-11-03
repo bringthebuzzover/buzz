@@ -34,6 +34,7 @@ export default function SiteHeader() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [paperTone, setPaperTone] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
+  const navRef = useRef<HTMLElement>(null);
   const glowRef = useRef<HTMLSpanElement>(null);
   const [mobilePanelTopPx, setMobilePanelTopPx] = useState(0);
 
@@ -66,10 +67,22 @@ export default function SiteHeader() {
       return;
     }
     const read = () => {
-      const header = headerRef.current;
-      if (!header) return;
-      const bottom = header.getBoundingClientRect().bottom;
-      const under = document.elementFromPoint(window.innerWidth / 2, bottom + 12);
+      const nav = navRef.current;
+      const logo = nav?.querySelector<HTMLElement>(
+        '[data-testid="site-header-logo"]',
+      );
+      if (!nav || !logo) {
+        setPaperTone(false);
+        return;
+      }
+      const navBounds = nav.getBoundingClientRect();
+      const logoBounds = logo.getBoundingClientRect();
+      const sampleX = logoBounds.left + logoBounds.width / 2;
+      const sampleY = Math.min(
+        window.innerHeight - 1,
+        navBounds.bottom + 12,
+      );
+      const under = document.elementFromPoint(sampleX, sampleY);
       const surface = under?.closest("[data-nav-surface]")?.getAttribute("data-nav-surface");
       setPaperTone(surface === "paper");
       const progress = Math.min(1, Math.max(0, window.scrollY / 480));
@@ -118,12 +131,10 @@ export default function SiteHeader() {
     : [
         { to: "/for-orgs", label: "Organizations" },
         { to: "/for-brands", label: "Brands" },
-        { to: "/#how-it-works", label: "How it works" },
       ];
 
   const isNavActive = (to: string): boolean => {
     if (to === "/") return pathname === "/";
-    if (to.startsWith("/#")) return false;
     return pathname === to || pathname.startsWith(`${to}/`);
   };
 
@@ -154,6 +165,7 @@ export default function SiteHeader() {
     >
       <div className={cn("pointer-events-auto px-3 pt-2 md:px-6", !marketing && "px-3 py-3 md:px-6")}>
         <nav
+          ref={navRef}
           className={cn(
             "relative mx-auto flex h-[66px] max-w-[1152px] items-center justify-between rounded-buzzCard border px-5 backdrop-blur-md motion-safe:transition-colors motion-safe:duration-[240ms]",
             paperTone
@@ -196,21 +208,11 @@ export default function SiteHeader() {
                 Home
               </Link>
             ) : null}
-            {navLinks.map((link) =>
-              link.to.startsWith("/#") ? (
-                <a
-                  key={link.label}
-                  href={marketing ? "#how-it-works" : "/#how-it-works"}
-                  className={linkClass(false)}
-                >
-                  {link.label}
-                </a>
-              ) : (
-                <Link key={link.label} to={link.to} className={linkClass(isNavActive(link.to))}>
-                  {link.label}
-                </Link>
-              ),
-            )}
+            {navLinks.map((link) => (
+              <Link key={link.label} to={link.to} className={linkClass(isNavActive(link.to))}>
+                {link.label}
+              </Link>
+            ))}
             <button
               type="button"
               onClick={openContactModal}
@@ -299,7 +301,7 @@ export default function SiteHeader() {
             {navLinks.map((link) => (
               <Link
                 key={link.label}
-                to={link.to.startsWith("/#") ? (marketing ? "/#how-it-works" : "/#how-it-works") : link.to}
+                to={link.to}
                 className={cn("flex items-center justify-between border-b border-line py-4 text-sm", focusRingClass)}
                 onClick={() => setMobileNavOpen(false)}
               >

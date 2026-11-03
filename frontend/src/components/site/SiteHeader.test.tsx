@@ -1,4 +1,6 @@
 /* eslint-disable testing-library/no-container -- The shared harness uses React DOM; Testing Library is not installed. */
+import fs from "fs";
+import path from "path";
 import { act } from "react";
 import { Route, Routes } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -76,6 +78,135 @@ describe("SiteHeader", () => {
     expect(trigger?.textContent).toBe("Menu");
     expect(trigger?.getAttribute("aria-label")).toBe("Open menu");
     expect(trigger?.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("samples below the logo and updates the wordmark when the surface changes", () => {
+    const navBounds = {
+      x: 100,
+      y: 8,
+      left: 100,
+      top: 8,
+      right: 900,
+      bottom: 74,
+      width: 800,
+      height: 66,
+      toJSON: () => ({}),
+    } as DOMRect;
+    const logoBounds = {
+      x: 124,
+      y: 18,
+      left: 124,
+      top: 18,
+      right: 268,
+      bottom: 58,
+      width: 144,
+      height: 40,
+      toJSON: () => ({}),
+    } as DOMRect;
+    const boundsSpy = jest
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        if (this.getAttribute("aria-label") === "Primary") return navBounds;
+        if (this.getAttribute("data-testid") === "site-header-logo") {
+          return logoBounds;
+        }
+        return navBounds;
+      });
+    const paperSurface = document.createElement("section");
+    paperSurface.setAttribute("data-nav-surface", "paper");
+    const sampled = document.createElement("div");
+    sampled.closest = jest.fn(() => paperSurface);
+    let hasPaperSurface = true;
+    const pointSpy = jest.fn(() => (hasPaperSurface ? sampled : null));
+    Object.defineProperty(document, "elementFromPoint", {
+      configurable: true,
+      value: pointSpy,
+    });
+
+    try {
+      const { container } = renderWithProviders(<SiteHeader />, { route: "/" });
+      const logo = container.querySelector<HTMLImageElement>(
+        '[data-testid="site-header-logo"] img',
+      );
+      const wordmarkFills = () => {
+        const assetPath = new URL(logo!.src).pathname;
+        const svg = new DOMParser().parseFromString(
+          fs.readFileSync(path.join(__dirname, "../../../public", assetPath), "utf8"),
+          "image/svg+xml",
+        );
+        return Array.from(svg.querySelectorAll("g[fill]"), (group) => group.getAttribute("fill"));
+      };
+      expect(pointSpy).toHaveBeenCalledWith(196, 86);
+      expect(logo?.src).toContain("buzz-logo-on-paper.svg");
+      expect(wordmarkFills()).toEqual(Array(5).fill("#0b0b0b"));
+      expect(
+        container.querySelector('nav[aria-label="Primary"]')?.className,
+      ).toContain("border-on-accent/10");
+
+      hasPaperSurface = false;
+      act(() => window.dispatchEvent(new Event("resize")));
+      expect(logo?.src).toContain("buzz-logo-on-ink.svg");
+      expect(wordmarkFills()).toEqual(Array(5).fill("#ffffff"));
+    } finally {
+      boundsSpy.mockRestore();
+      Object.defineProperty(document, "elementFromPoint", {
+        configurable: true,
+        value: () => null,
+      });
+    }
+  });
+
+  it("keeps the bee byte-identical while letters and flight dots change tone", () => {
+    const readLogo = (name: string) => fs.readFileSync(
+      path.join(__dirname, "../../../public/logos", name), "utf8",
+    );
+    const ink = readLogo("buzz-logo-on-ink.svg");
+    const paper = readLogo("buzz-logo-on-paper.svg");
+    const paths = (svg: string) => svg.match(/<path\b[^>]*>/g)!;
+    const inkPaths = paths(ink);
+    expect(inkPaths).toHaveLength(23);
+    // Paths 1–2 are clip definitions; 3–18 form the bee; 19 is the dotted trail.
+    const originalBee = paths(readLogo("buzz-logo.svg")).slice(2, 18);
+    const inkBee = inkPaths.slice(2, 18);
+
+    // On dark (ink), head (path 3 / bee[0]) and antennae (paths 7, 9 / bee[4], bee[6]) have a light outline
+    const outlineAttrs = 'stroke="#f0f0f0" stroke-width="2" stroke-linejoin="round" paint-order="stroke"';
+    expect(inkBee[0]).toContain(outlineAttrs);
+    expect(inkBee[4]).toContain(outlineAttrs);
+    expect(inkBee[6]).toContain(outlineAttrs);
+
+    // Remaining bee parts on ink have no added stroke
+    [1, 2, 3, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15].forEach((idx) => {
+      expect(inkBee[idx]).not.toContain("stroke=");
+    });
+
+    // Stripping outline attributes restores byte identity with buzz-logo.svg's bee
+    const strippedInkBee = inkBee.map((path) => path.replace(` ${outlineAttrs}`, ""));
+    expect(strippedInkBee).toEqual(originalBee);
+
+    // On paper, the bee remains 100% byte-identical to buzz-logo.svg
+    expect(paths(paper).slice(2, 18)).toEqual(originalBee);
+
+    // Paper matches ink once wordmark tones, flight dots, and ink's outline attributes are accounted for
+    const strippedInk = ink.split(` ${outlineAttrs}`).join("");
+    expect(paper).toBe(strippedInk
+      .replace(/<g fill="#ffffff"/g, '<g fill="#0b0b0b"')
+      .replace(inkPaths[18], inkPaths[18].replace('fill="#f0f0f0"', 'fill="#0b0b0b"')));
+  });
+
+  it("keeps How it works out of the guest navbar and mobile menu", () => {
+    const { container } = renderWithProviders(<SiteHeader />, { route: "/" });
+    const primary = container.querySelector('nav[aria-label="Primary"]');
+    expect(primary?.textContent).not.toContain("How it works");
+
+    act(() => {
+      container
+        .querySelector<HTMLButtonElement>('button[aria-controls="mobile-nav-menu"]')
+        ?.click();
+    });
+    expect(container.querySelector("#mobile-nav-menu")?.textContent).not.toContain(
+      "How it works",
+    );
   });
 });
 

@@ -16,6 +16,8 @@ export default function DeniedPage() {
       action={
         <AnchorButton
           href={`mailto:${contact.email}`}
+          target="_blank"
+          rel="noopener noreferrer"
           variant="outline"
         >
           Contact

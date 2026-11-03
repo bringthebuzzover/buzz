@@ -78,7 +78,7 @@ export default function TermsPage() {
 
       <h2 id="contact">Contact</h2>
       <p>
-        Questions: <a href={`mailto:${contact.email}`}>{contact.email}</a>.
+        Questions: <a href={`mailto:${contact.email}`} target="_blank" rel="noopener noreferrer">{contact.email}</a>.
       </p>
     </LegalLayout>
   );

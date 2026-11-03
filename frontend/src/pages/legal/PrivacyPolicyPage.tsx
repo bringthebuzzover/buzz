@@ -105,7 +105,7 @@ export default function PrivacyPolicyPage() {
 
       <h2 id="contact">Contact</h2>
       <p>
-        Questions or requests: <a href={`mailto:${contact.email}`}>{contact.email}</a>.
+        Questions or requests: <a href={`mailto:${contact.email}`} target="_blank" rel="noopener noreferrer">{contact.email}</a>.
       </p>
     </LegalLayout>
   );
