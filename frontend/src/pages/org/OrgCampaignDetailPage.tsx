@@ -191,9 +191,11 @@ function ApiCampaignDetail() {
   const shipments = detail.shipments ?? [];
   const onTheWay = shipments.length > 0;
   const seated = SEATED_STATUSES.includes(status);
-  // Before anything ships the org may leave on its own; after, BUZZ ends the seat.
+  // Self-withdrawal ends when the drop ends or anything ships.
   const canWithdraw =
-    status === "applied" || status === "under_review" || (seated && !onTheWay);
+    detail.stage !== "wrapped" &&
+    detail.stage !== "canceled" &&
+    (status === "applied" || status === "under_review" || (seated && !onTheWay));
   const seatCopy = seated ? SEAT_COPY[status as SeatProgress] : null;
 
   return (
