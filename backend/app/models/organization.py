@@ -59,6 +59,9 @@ class Organization(Base):
     shipping_city: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     shipping_state: Mapped[str | None] = mapped_column(sa.String(2), nullable=True)
     shipping_postal_code: Mapped[str | None] = mapped_column(sa.String(10), nullable=True)
+    shipping_address_version: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, server_default=sa.text("0")
+    )
 
     # Claimed handle is unconfirmed until Connect Instagram binds Graph
     # identity (PRODUCT §6.1.1). Legacy rows may already be true.

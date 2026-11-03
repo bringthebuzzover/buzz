@@ -148,7 +148,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
     expect(link?.getAttribute("rel")).toContain("noopener");
   });
 
-  it("links the pending Instagram request to its review route", () => {
+  it("links a pending Instagram request to the shared changes route", () => {
     mockUseAdminOrg.mockReturnValue({
       data: { ...orgDetail(), pendingIgChangeRequestId: "request-1" },
       isPending: false,
@@ -159,7 +159,7 @@ describe("AdminOrgDetailPage erase confirm", () => {
     const review = Array.from(container.querySelectorAll("a")).find(
       (link) => link.textContent === "Review",
     );
-    expect(review?.getAttribute("href")).toBe("/admin/ig-changes/request-1");
+    expect(review?.getAttribute("href")).toBe("/admin/changes/ig/request-1");
   });
 
   it("shows Address pending when an unerased organization has no address", () => {

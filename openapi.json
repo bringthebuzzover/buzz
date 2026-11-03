@@ -3068,6 +3068,183 @@
         "title": "AdminSeatDecisionRequest",
         "type": "object"
       },
+      "AdminShippingChangeDecision": {
+        "properties": {
+          "decisionReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionreason"
+          }
+        },
+        "title": "AdminShippingChangeDecision",
+        "type": "object"
+      },
+      "AdminShippingChangeRequestItem": {
+        "properties": {
+          "activeDropTitles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Activedroptitles",
+            "type": "array"
+          },
+          "baseAddressVersion": {
+            "title": "Baseaddressversion",
+            "type": "integer"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "currentAddress": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentaddress"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedat"
+          },
+          "decisionReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionreason"
+          },
+          "eduEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eduemail"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "orgName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Orgname"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "requestedAddress": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestedaddress"
+          },
+          "requesterUserId": {
+            "format": "uuid",
+            "title": "Requesteruserid",
+            "type": "string"
+          },
+          "reviewerUserId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revieweruserid"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "university": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "University"
+          }
+        },
+        "required": [
+          "id",
+          "orgId",
+          "requesterUserId",
+          "currentAddress",
+          "requestedAddress",
+          "baseAddressVersion",
+          "reason",
+          "status",
+          "createdAt"
+        ],
+        "title": "AdminShippingChangeRequestItem",
+        "type": "object"
+      },
       "AdminSignal": {
         "description": "One health signal. ``ok`` means \"nothing to act on\", which for most\nsignals is a zero count but not for the informational token buckets.",
         "properties": {
@@ -5965,6 +6142,44 @@
         "title": "DataResponse[AdminResendConnectAllResponse]",
         "type": "object"
       },
+      "DataResponse_AdminShippingChangeRequestItem_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdminShippingChangeRequestItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[AdminShippingChangeRequestItem]",
+        "type": "object"
+      },
       "DataResponse_AdminSyncAutolinkResponse_": {
         "properties": {
           "data": {
@@ -6991,6 +7206,82 @@
         "title": "DataResponse[OrgProfileResponse]",
         "type": "object"
       },
+      "DataResponse_OrgShippingChangeRequestResponse_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgShippingChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[OrgShippingChangeRequestResponse]",
+        "type": "object"
+      },
+      "DataResponse_OrgShippingChangeRequestState_": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgShippingChangeRequestState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[OrgShippingChangeRequestState]",
+        "type": "object"
+      },
       "DataResponse_PostResponse_": {
         "properties": {
           "data": {
@@ -7621,6 +7912,48 @@
           }
         },
         "title": "DataResponse[list[AdminOrgItem]]",
+        "type": "object"
+      },
+      "DataResponse_list_AdminShippingChangeRequestItem__": {
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AdminShippingChangeRequestItem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta"
+          }
+        },
+        "title": "DataResponse[list[AdminShippingChangeRequestItem]]",
         "type": "object"
       },
       "DataResponse_list_AdminTableInfo__": {
@@ -9396,6 +9729,11 @@
             ],
             "title": "Previousinstagramhandle"
           },
+          "shippingAddressVersion": {
+            "default": 0,
+            "title": "Shippingaddressversion",
+            "type": "integer"
+          },
           "shippingCity": {
             "anyOf": [
               {
@@ -9657,6 +9995,191 @@
           }
         },
         "title": "OrgProfileUpdate",
+        "type": "object"
+      },
+      "OrgShippingChangeRequestCreate": {
+        "properties": {
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 10,
+            "title": "Reason",
+            "type": "string"
+          },
+          "shippingCity": {
+            "title": "Shippingcity",
+            "type": "string"
+          },
+          "shippingLine1": {
+            "title": "Shippingline1",
+            "type": "string"
+          },
+          "shippingLine2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingline2"
+          },
+          "shippingPlaceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingplaceid"
+          },
+          "shippingPostalCode": {
+            "title": "Shippingpostalcode",
+            "type": "string"
+          },
+          "shippingState": {
+            "title": "Shippingstate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "shippingLine1",
+          "shippingCity",
+          "shippingState",
+          "shippingPostalCode",
+          "reason"
+        ],
+        "title": "OrgShippingChangeRequestCreate",
+        "type": "object"
+      },
+      "OrgShippingChangeRequestResponse": {
+        "properties": {
+          "baseAddressVersion": {
+            "title": "Baseaddressversion",
+            "type": "integer"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "currentAddress": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentaddress"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedat"
+          },
+          "decisionReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decisionreason"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "requestedAddress": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestedaddress"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "orgId",
+          "status",
+          "currentAddress",
+          "requestedAddress",
+          "baseAddressVersion",
+          "reason",
+          "createdAt"
+        ],
+        "title": "OrgShippingChangeRequestResponse",
+        "type": "object"
+      },
+      "OrgShippingChangeRequestState": {
+        "properties": {
+          "latest": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgShippingChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pending": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgShippingChangeRequestResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "OrgShippingChangeRequestState",
         "type": "object"
       },
       "PostResponse": {
@@ -10205,6 +10728,29 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "shippingAddressCapturedAt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingaddresscapturedat"
+          },
+          "shippingAddressSnapshot": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shippingaddresssnapshot"
           },
           "trackUrl": {
             "anyOf": [
@@ -13808,6 +14354,258 @@
           }
         },
         "summary": "Get Overview Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/shipping-change-requests": {
+      "get": {
+        "operationId": "list_shipping_change_requests_endpoint_api_admin_shipping_change_requests_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_list_AdminShippingChangeRequestItem__"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "List Shipping Change Requests Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/shipping-change-requests/{request_id}": {
+      "get": {
+        "operationId": "get_shipping_change_request_endpoint_api_admin_shipping_change_requests__request_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminShippingChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get Shipping Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/shipping-change-requests/{request_id}/approve": {
+      "post": {
+        "operationId": "approve_shipping_change_request_endpoint_api_admin_shipping_change_requests__request_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminShippingChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Approve Shipping Change Request Endpoint",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/shipping-change-requests/{request_id}/deny": {
+      "post": {
+        "operationId": "deny_shipping_change_request_endpoint_api_admin_shipping_change_requests__request_id__deny_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Request Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminShippingChangeDecision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_AdminShippingChangeRequestItem_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Deny Shipping Change Request Endpoint",
         "tags": [
           "admin"
         ]
@@ -17856,6 +18654,114 @@
           }
         },
         "summary": "Refresh My Posts",
+        "tags": [
+          "orgs"
+        ]
+      }
+    },
+    "/api/orgs/me/shipping-change-request": {
+      "get": {
+        "operationId": "get_my_shipping_change_request_api_orgs_me_shipping_change_request_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OrgShippingChangeRequestState_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Get My Shipping Change Request",
+        "tags": [
+          "orgs"
+        ]
+      }
+    },
+    "/api/orgs/me/shipping-change-requests": {
+      "post": {
+        "operationId": "create_my_shipping_change_request_api_orgs_me_shipping_change_requests_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgShippingChangeRequestCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataResponse_OrgShippingChangeRequestResponse_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Create My Shipping Change Request",
         "tags": [
           "orgs"
         ]

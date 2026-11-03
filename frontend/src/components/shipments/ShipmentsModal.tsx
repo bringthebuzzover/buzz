@@ -5,7 +5,7 @@ import { Button, Checkbox, Select, TextField } from "../forms/controls";
 import { Modal, ModalActions } from "../ui/Modal";
 import { ErrorNote } from "../admin/AdminPrimitives";
 import { formatDate } from "../admin/labels";
-import { carrierLabel, type Shipment } from "../../utils/shipments";
+import { carrierLabel, shipmentDestination, type Shipment } from "../../utils/shipments";
 import { focusRingClass } from "../../theme/controls";
 import { TEXT } from "../../theme/tokens";
 import { cn } from "../../theme/cn";
@@ -102,7 +102,7 @@ export function ShipmentsModal({
     >
       {error && <ErrorNote>{error}</ErrorNote>}
       <section className="flex flex-col gap-1">
-        <h3 className={headingClass}>Ship to</h3>
+        <h3 className={headingClass}>Current address for future shipments</h3>
         <p className={cn(TEXT.body, "text-primary")}>
           {applicant.deliveryAddress || ADDRESS_PENDING}
         </p>
@@ -116,13 +116,16 @@ export function ShipmentsModal({
             {applicant.shipments.map((s) => (
               <li
                 key={s.id}
-                className="flex items-center gap-3 px-3 py-2 text-sm"
+                className="flex flex-col gap-2 px-3 py-2 text-sm sm:flex-row sm:items-center"
               >
                 <span className="w-12 shrink-0 text-xs text-quiet">
                   {carrierLabel(s.carrier)}
                 </span>
                 <span className="min-w-0 flex-1 break-all text-primary">
                   #{s.trackingNumber}
+                </span>
+                <span className="min-w-0 flex-1 break-words text-xs text-quiet">
+                  Sent to: {shipmentDestination(s)}
                 </span>
                 {s.trackUrl ? (
                   <a

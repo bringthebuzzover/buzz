@@ -10,9 +10,9 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Activity,
-  AtSign,
   Building2,
   Component,
+  FileCheck2,
   Inbox,
   LayoutDashboard,
   Package,
@@ -58,16 +58,20 @@ const NAV: readonly NavItem[] = [
   },
   { to: "/admin/requests", label: "Requests", icon: Inbox },
   {
-    to: "/admin/ig-changes",
-    label: "IG changes",
-    icon: AtSign,
-    badgeKeys: ["orgs_ig_change_pending", "brands_ig_change_pending"],
-  },
-  {
     to: "/admin/drops",
     label: "Drops",
     icon: Package,
     badgeKeys: ["drops_ready_to_advance"],
+  },
+  {
+    to: "/admin/changes",
+    label: "Changes",
+    icon: FileCheck2,
+    badgeKeys: [
+      "orgs_ig_change_pending",
+      "brands_ig_change_pending",
+      "orgs_shipping_change_pending",
+    ],
   },
   { to: "/admin/health", label: "Health", icon: Activity },
 ];

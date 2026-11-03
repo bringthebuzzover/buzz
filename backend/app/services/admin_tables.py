@@ -42,7 +42,7 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.schemas.admin import AdminDropConfigPatch
 from app.schemas.common import camelize
-from app.services.address import AddressClient, apply_to_org, format_us_address, get_address_client
+from app.services.address import format_us_address
 from app.services.admin import update_drop_config
 from app.services.instagram import canonical_instagram_handle
 
@@ -108,7 +108,6 @@ TABLES: dict[str, TableSpec] = {
                 "contact_name",
                 "city",
                 "state",
-                *_SHIPPING_KEYS,
             }
         ),
         filterable=frozenset({"id", "user_id", "org_name", "university", "category"}),
@@ -381,7 +380,6 @@ async def patch_table_row(
     table: str,
     row_id: uuid.UUID,
     fields: dict[str, Any],
-    addresses: AddressClient | None = None,
 ) -> dict[str, Any]:
     spec = _spec(table)
     updates = _normalize_fields(fields)
@@ -406,7 +404,7 @@ async def patch_table_row(
     if table == "users":
         await _patch_user(db, row, updates)
     elif table == "organizations":
-        await _patch_org(row, updates, addresses or get_address_client())
+        _patch_org(row, updates)
     elif table == "brands":
         await _patch_brand(db, row, updates)
     elif table == "drop_applications":
@@ -455,8 +453,7 @@ async def _patch_user(db: AsyncSession, user: User, updates: dict[str, Any]) -> 
         user.instagram_username = handle
 
 
-async def _patch_org(org: Organization, updates: dict[str, Any], addresses: AddressClient) -> None:
-    shipping = {key: updates.pop(key) for key in list(updates) if key in _SHIPPING_KEYS}
+def _patch_org(org: Organization, updates: dict[str, Any]) -> None:
     if "category" in updates:
         _set_category(org, updates.pop("category"))
     if "member_count" in updates:
@@ -468,32 +465,7 @@ async def _patch_org(org: Organization, updates: dict[str, Any], addresses: Addr
         if isinstance(value, str):
             value = value.strip() or None
         setattr(org, key, value)
-    if shipping:
-        await _apply_shipping(org, shipping, addresses)
-
-
-async def _apply_shipping(
-    org: Organization, shipping: dict[str, Any], addresses: AddressClient
-) -> None:
-    line1 = shipping.get("shipping_line1", org.shipping_line1)
-    line2 = shipping.get("shipping_line2", org.shipping_line2)
-    city = shipping.get("shipping_city", org.shipping_city)
-    state = shipping.get("shipping_state", org.shipping_state)
-    postal = shipping.get("shipping_postal_code", org.shipping_postal_code)
-    if not line1 or not city or not state or not postal:
-        raise BuzzAPIException(
-            errors.INVALID_SHIPPING_ADDRESS,
-            "Shipping patch needs line1, city, state, and postal code.",
-            status_code=400,
-        )
-    addr = await addresses.validate(
-        line1=str(line1),
-        line2=None if line2 is None else str(line2),
-        city=str(city),
-        state=str(state),
-        postal_code=str(postal),
-    )
-    apply_to_org(org, addr)
+    # The organizations table allowlist intentionally excludes shipping fields.
 
 
 async def _patch_brand(db: AsyncSession, brand: Brand, updates: dict[str, Any]) -> None:

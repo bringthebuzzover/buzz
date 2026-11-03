@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Any
 
-from pydantic import ConfigDict, field_serializer, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_serializer, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
+from app.constants import ADDRESS_CHANGE_REASON_MAX_LENGTH, ADDRESS_CHANGE_REASON_MIN_LENGTH
 from app.models.enums import OrgCategory
 from app.schemas.common import CamelModel, to_epoch_ms
 
@@ -40,6 +42,7 @@ class OrgProfileResponse(CamelModel):
     shipping_city: str | None = None
     shipping_state: str | None = None
     shipping_postal_code: str | None = None
+    shipping_address_version: int = 0
     approved_at: datetime | None
     created_at: datetime
     ig_switched_at: datetime | None = None
@@ -85,6 +88,59 @@ class OrgIgChangeRequestState(CamelModel):
     @field_serializer("ig_switched_at")
     def _epoch(self, value: datetime | None) -> int | None:
         return to_epoch_ms(value)
+
+
+class OrgShippingChangeRequestCreate(CamelModel):
+    shipping_line1: str
+    shipping_line2: str | None = None
+    shipping_city: str
+    shipping_state: str
+    shipping_postal_code: str
+    shipping_place_id: str | None = None
+    reason: str = Field(
+        min_length=ADDRESS_CHANGE_REASON_MIN_LENGTH,
+        max_length=ADDRESS_CHANGE_REASON_MAX_LENGTH,
+    )
+
+    @field_validator("shipping_line1", "shipping_city", "shipping_state", "shipping_postal_code")
+    @classmethod
+    def _required(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("must not be blank")
+        return value
+
+    @field_validator("reason")
+    @classmethod
+    def _reason(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) < ADDRESS_CHANGE_REASON_MIN_LENGTH:
+            raise ValueError("explain the change in more detail")
+        if len(value) > ADDRESS_CHANGE_REASON_MAX_LENGTH:
+            raise ValueError("reason is too long")
+        return value
+
+
+class OrgShippingChangeRequestResponse(CamelModel):
+    id: uuid.UUID
+    org_id: uuid.UUID
+    status: str
+    current_address: dict[str, Any] | None
+    requested_address: dict[str, Any] | None
+    base_address_version: int
+    reason: str | None
+    decision_reason: str | None = None
+    created_at: datetime
+    decided_at: datetime | None = None
+
+    @field_serializer("created_at", "decided_at")
+    def _epoch(self, value: datetime | None) -> int | None:
+        return to_epoch_ms(value)
+
+
+class OrgShippingChangeRequestState(CamelModel):
+    pending: OrgShippingChangeRequestResponse | None = None
+    latest: OrgShippingChangeRequestResponse | None = None
 
 
 class OrgProfileUpdate(CamelModel):

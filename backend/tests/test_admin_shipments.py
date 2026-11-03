@@ -7,9 +7,11 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
 from app.models.brand import Brand
-from app.models.enums import ApplicationDecision, PortalRole
+from app.models.enums import ApplicationDecision, OrgUserStatus, PortalRole
+from app.models.organization import Organization
 from app.models.shipment import DropApplicationShipment
 from app.models.user import User
 from app.services import drop_notices
@@ -48,6 +50,36 @@ class TestInferCarrier:
 
 
 class TestAdminShipments:
+    async def test_shipment_keeps_the_destination_as_it_was_when_recorded(
+        self, app_client: AsyncClient, db_session
+    ):
+        _, org_user, app = await _accepted_seat(db_session)
+        org = await db_session.scalar(
+            select(Organization).where(Organization.user_id == org_user.id)
+        )
+        org.shipping_line1 = "1 Main St"
+        org.shipping_city = "Berkeley"
+        org.shipping_state = "CA"
+        org.shipping_postal_code = "94704"
+        org.delivery_address = "1 Main St, Berkeley, CA 94704"
+        headers = await admin_headers(db_session)
+
+        response = await app_client.post(
+            f"/api/admin/applications/{app.id}/shipments",
+            json={"trackingNumber": "1Z3V817W0392590700"},
+            headers=headers,
+        )
+        assert response.status_code == 200, response.text
+        shipment = response.json()["data"]
+        assert shipment["shippingAddressSnapshot"]["shippingLine1"] == "1 Main St"
+        assert shipment["shippingAddressCapturedAt"] is not None
+
+        org.shipping_line1 = "9 New St"
+        await db_session.flush()
+        detail = await app_client.get(f"/api/admin/drops/{app.drop_id}", headers=headers)
+        historical = detail.json()["data"]["applicants"][0]["shipments"][0]
+        assert historical["shippingAddressSnapshot"]["shippingLine1"] == "1 Main St"
+
     async def test_zero_one_n_and_mixed(self, app_client: AsyncClient, db_session):
         drop, org_user, app = await _accepted_seat(db_session)
         headers = await admin_headers(db_session)
@@ -249,6 +281,43 @@ class TestBrandShipmentEditing:
         removed = await app_client.delete(f"{url}/{shipment_id}", headers=headers)
         assert removed.status_code == 200
         assert await db_session.get(DropApplicationShipment, UUID(shipment_id)) is None
+
+    @pytest.mark.parametrize("decision", list(ApplicationDecision))
+    @pytest.mark.parametrize("erased", [False, True])
+    async def test_brand_shipment_addresses_require_accepted_non_erased_org(
+        self, app_client: AsyncClient, db_session, decision, erased
+    ):
+        drop, org_user, seat = await _accepted_seat(db_session)
+        brand_user = await _brand_user(db_session, drop)
+        seat.decision = decision.value
+        if erased:
+            org_user.status = OrgUserStatus.ERASED.value
+        await persist(
+            db_session,
+            DropApplicationShipment(
+                application_id=seat.id,
+                tracking_number="1ZTEST",
+                carrier="ups",
+                shipping_address_snapshot={"formatted": "1 Test St"},
+                shipping_address_captured_at=utcnow(),
+            ),
+        )
+        headers = {"Authorization": f"Bearer {mint_access_token(brand_user)}"}
+        listed = await app_client.get(
+            f"/api/brands/me/drops/{drop.id}/applications/{seat.id}/shipments", headers=headers
+        )
+        detail = await app_client.get(f"/api/brands/me/drops/{drop.id}", headers=headers)
+        assert listed.status_code == detail.status_code == 200
+        allowed = decision == ApplicationDecision.ACCEPTED and not erased
+        for shipment in (
+            listed.json()["data"][0],
+            detail.json()["data"]["applications"][0]["shipments"][0],
+        ):
+            assert shipment["trackingNumber"] == "1ZTEST"
+            assert shipment["shippingAddressSnapshot"] == (
+                {"formatted": "1 Test St"} if allowed else None
+            )
+            assert (shipment["shippingAddressCapturedAt"] is not None) == allowed
 
     async def test_canceled_drop_cannot_delete_shipment(self, app_client: AsyncClient, db_session):
         drop, _, seat = await _accepted_seat(db_session)

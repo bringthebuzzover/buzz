@@ -22,8 +22,10 @@ from app.models.brand import Brand
 from app.models.brand_ig_change_request import BrandIgChangeRequest
 from app.models.brand_invite_token import BrandInviteToken
 from app.models.enums import ApplicationDecision, BrandStatus, OrgUserStatus, PortalRole
+from app.models.org_shipping_change_request import OrgShippingChangeRequest
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
+from app.models.shipment import DropApplicationShipment
 from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security.session import bump_token_version, commit_revocation
@@ -71,7 +73,12 @@ async def erase_org_user(
 
     if user.status == OrgUserStatus.ERASED.value:
         # Re-erase heals posts and any identity rows a previous pass left behind.
-        org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+        org = await db.scalar(
+            select(Organization)
+            .where(Organization.user_id == user.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
         now = datetime.now(timezone.utc)
         await purge_erased_identity_rows(db, user=user, org=org)
         if org is not None:
@@ -102,7 +109,12 @@ async def erase_org_user(
     notify_email = (user.edu_email or "").strip() or None
     email_to_domain = _email_domain(notify_email)
 
-    org = await db.scalar(select(Organization).where(Organization.user_id == user.id))
+    org = await db.scalar(
+        select(Organization)
+        .where(Organization.user_id == user.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
     display_name = org.org_name if org is not None else stored_handle
 
     now = datetime.now(timezone.utc)
@@ -142,6 +154,31 @@ async def _scrub_campaign_and_profile(db: AsyncSession, org: Organization, now: 
     await _auto_deny_applied(db, org.id, now)
     await expire_and_clear_intents_for_org(db, org.id)
     await freeze_org_campaign_metrics(db, org_id=org.id, now=now)
+    requests = list(
+        await db.scalars(
+            select(OrgShippingChangeRequest)
+            .where(OrgShippingChangeRequest.org_id == org.id)
+            .with_for_update()
+        )
+    )
+    for request in requests:
+        if request.status == "pending":
+            request.status = "denied"
+            request.decided_at = now
+        request.current_address = None
+        request.requested_address = None
+        request.reason = None
+        request.decision_reason = None
+        request.redacted_at = now
+    await db.execute(
+        update(DropApplicationShipment)
+        .where(
+            DropApplicationShipment.application_id.in_(
+                select(DropApplication.id).where(DropApplication.org_id == org.id)
+            )
+        )
+        .values(shipping_address_snapshot=None, shipping_address_captured_at=None)
+    )
     _scrub_org_profile(org)
 
 
@@ -176,6 +213,7 @@ def _scrub_org_profile(org: Organization) -> None:
     org.shipping_city = None
     org.shipping_state = None
     org.shipping_postal_code = None
+    org.shipping_address_version += 1
     org.approved_at = None
     org.claimed_instagram_username = None
     org.instagram_handle_confirmed = False

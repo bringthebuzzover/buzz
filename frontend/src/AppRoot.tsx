@@ -4,7 +4,7 @@
  * RequireStatus → RequireRole, architecture §5.4).
  */
 import type { ReactElement } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import type { PortalRole } from "./types/auth";
 import SiteLayout from "./layouts/SiteLayout";
 import AdminLayout from "./layouts/AdminLayout";
@@ -53,6 +53,7 @@ import AdminDropRequestsPage from "./pages/admin/AdminDropRequestsPage";
 import AdminDropRequestDetailPage from "./pages/admin/AdminDropRequestDetailPage";
 import AdminIgChangeRequestsPage from "./pages/admin/AdminIgChangeRequestsPage";
 import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDetailPage";
+import AdminShippingChangeRequestDetailPage from "./pages/admin/AdminShippingChangeRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import AdminNotFoundPage from "./pages/admin/AdminNotFoundPage";
@@ -78,7 +79,19 @@ function PortalGuard({
   );
 }
 
+function AdminIgChangeRedirect() {
+  const { requestId } = useParams<{ requestId: string }>();
+  const location = useLocation();
+  return (
+    <Navigate
+      to={`/admin/changes/ig/${requestId ?? ""}${location.search}`}
+      replace
+    />
+  );
+}
+
 export default function AppRoot(): ReactElement {
+  const location = useLocation();
   return (
     <Routes>
       <Route element={<SiteLayout />}>
@@ -246,8 +259,11 @@ export default function AppRoot(): ReactElement {
         <Route path="brands/:brandId" element={<AdminBrandDetailPage />} />
         <Route path="requests" element={<AdminDropRequestsPage />} />
         <Route path="requests/:requestId" element={<AdminDropRequestDetailPage />} />
-        <Route path="ig-changes" element={<AdminIgChangeRequestsPage />} />
-        <Route path="ig-changes/:requestId" element={<AdminIgChangeRequestDetailPage />} />
+        <Route path="changes" element={<AdminIgChangeRequestsPage />} />
+        <Route path="changes/ig/:requestId" element={<AdminIgChangeRequestDetailPage />} />
+        <Route path="changes/address/:requestId" element={<AdminShippingChangeRequestDetailPage />} />
+        <Route path="ig-changes" element={<Navigate to={`/admin/changes${location.search}`} replace />} />
+        <Route path="ig-changes/:requestId" element={<AdminIgChangeRedirect />} />
         <Route path="drops" element={<AdminDropsPage />} />
         <Route path="drops/:dropId" element={<AdminDropDetailPage />} />
         <Route path="health" element={<AdminHealthPage />} />

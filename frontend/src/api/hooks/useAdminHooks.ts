@@ -226,6 +226,67 @@ export function useDenyIgChangeRequest() {
 export type AdminBrandIgChangeRequest =
   components["schemas"]["AdminBrandIgChangeRequestItem"];
 
+export type AdminShippingChangeRequest =
+  components["schemas"]["AdminShippingChangeRequestItem"];
+
+export function useAdminShippingChangeRequests(status?: string): AdminQuery<AdminShippingChangeRequest[]> {
+  return useQuery({
+    queryKey: ["admin", "shipping-changes", status ?? "all"],
+    queryFn: async () => {
+      const query = status ? `?status=${encodeURIComponent(status)}` : "";
+      const { data } = await apiFetch<AdminShippingChangeRequest[]>(
+        `/api/admin/shipping-change-requests${query}`,
+      );
+      return data;
+    },
+  });
+}
+
+export function useAdminShippingChangeRequest(requestId: string | undefined): AdminQuery<AdminShippingChangeRequest> {
+  return useQuery({
+    queryKey: ["admin", "shipping-change", requestId],
+    enabled: Boolean(requestId),
+    queryFn: async () => {
+      const { data } = await apiFetch<AdminShippingChangeRequest>(
+        `/api/admin/shipping-change-requests/${requestId}`,
+      );
+      return data;
+    },
+  });
+}
+
+export function useApproveShippingChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (requestId: string) => {
+      const { data } = await apiFetch<AdminShippingChangeRequest>(
+        `/api/admin/shipping-change-requests/${requestId}/approve`,
+        { method: "POST" },
+      );
+      return data;
+    },
+    onSuccess: () => invalidateAdmin(queryClient),
+  });
+}
+
+export function useDenyShippingChangeRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { requestId: string; decisionReason?: string }) => {
+      const { data } = await apiFetch<AdminShippingChangeRequest>(
+        `/api/admin/shipping-change-requests/${input.requestId}/deny`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ decisionReason: input.decisionReason ?? null }),
+        },
+      );
+      return data;
+    },
+    onSuccess: () => invalidateAdmin(queryClient),
+  });
+}
+
 export function useAdminBrandIgChangeRequests(
   status?: string,
 ): AdminQuery<AdminBrandIgChangeRequest[]> {

@@ -332,7 +332,7 @@ async def list_brand_shipments(
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     await _require_shipment_seat(db, user, drop_id, application_id)
-    shipments = await shipments_by_application_ids(db, [application_id])
+    shipments = await shipments_by_application_ids(db, [application_id], brand_view=True)
     return api_response(data=shipments[application_id])
 
 

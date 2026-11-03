@@ -36,6 +36,9 @@ from app.schemas.orgs import (
     OrgIgChangeRequestState,
     OrgProfileResponse,
     OrgProfileUpdate,
+    OrgShippingChangeRequestCreate,
+    OrgShippingChangeRequestResponse,
+    OrgShippingChangeRequestState,
 )
 from app.schemas.posts import PostResponse
 from app.security.rate_limit import rate_limited
@@ -53,6 +56,8 @@ from app.services.orgs import (
     update_org_profile,
 )
 from app.services.posts import list_org_posts
+from app.services.shipping_change_requests import get_my_state as get_shipping_request_state
+from app.services.shipping_change_requests import submit_request as submit_shipping_request
 
 router = APIRouter(prefix="/orgs", tags=["orgs"])
 
@@ -194,6 +199,48 @@ async def update_my_org(
     org = await _require_org_profile(db, user)
     org = await update_org_profile(db, org, payload, addresses)
     return api_response(data=await enrich_org_profile(db, org, build_org_profile(org, user)))
+
+
+@router.get(
+    "/me/shipping-change-request",
+    response_model=DataResponse[OrgShippingChangeRequestState],
+)
+async def get_my_shipping_change_request(
+    user: CurrentOrg,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(
+        data=OrgShippingChangeRequestState.model_validate(
+            await get_shipping_request_state(db, user)
+        )
+    )
+
+
+@router.post(
+    "/me/shipping-change-requests",
+    status_code=201,
+    response_model=DataResponse[OrgShippingChangeRequestResponse],
+    dependencies=[Depends(rate_limited("org_shipping_change", limit=5, window=60))],
+)
+async def create_my_shipping_change_request(
+    payload: OrgShippingChangeRequestCreate,
+    user: CurrentOrg,
+    db: AsyncSession = Depends(get_db),
+    addresses: AddressClient = Depends(get_address_client),
+) -> APIResponse:
+    result = await submit_shipping_request(
+        db,
+        user,
+        shipping_line1=payload.shipping_line1,
+        shipping_line2=payload.shipping_line2,
+        shipping_city=payload.shipping_city,
+        shipping_state=payload.shipping_state,
+        shipping_postal_code=payload.shipping_postal_code,
+        shipping_place_id=payload.shipping_place_id,
+        reason=payload.reason,
+        addresses=addresses,
+    )
+    return api_response(data=OrgShippingChangeRequestResponse.model_validate(result))
 
 
 @router.get("/me/ig-change-request", response_model=DataResponse[OrgIgChangeRequestState])

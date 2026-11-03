@@ -41,6 +41,7 @@ from app.models.enums import (
 from app.models.job_run import JobRun
 from app.models.notify_me import NotifyMe
 from app.models.org_ig_change_request import OrgIgChangeRequest
+from app.models.org_shipping_change_request import OrgShippingChangeRequest
 from app.models.organization import Organization
 from app.models.post_link import PostCampaignLink
 from app.models.post_suggestion import PostCampaignSuggestion
@@ -392,6 +393,13 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
             func.count(BrandIgChangeRequest.id), func.min(BrandIgChangeRequest.created_at)
         ).where(BrandIgChangeRequest.status == "pending"),
     )
+    shipping_changes_pending = await _count_and_oldest(
+        db,
+        select(
+            func.count(OrgShippingChangeRequest.id),
+            func.min(OrgShippingChangeRequest.created_at),
+        ).where(OrgShippingChangeRequest.status == "pending"),
+    )
     ig_bind_mismatch = await _count_and_oldest(
         db,
         select(func.count(Organization.id), func.min(Organization.ig_bind_mismatched_at))
@@ -428,6 +436,30 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
                     f"({'rename' if req.kind == 'rename' else 'account switch'})"
                 ),
                 "href": f"/admin/ig-changes/{req.id}",
+                "created_at": req.created_at,
+            }
+        )
+    shipping_rows = list(
+        await db.execute(
+            select(OrgShippingChangeRequest, Organization, User)
+            .join(Organization, Organization.id == OrgShippingChangeRequest.org_id)
+            .join(User, User.id == OrgShippingChangeRequest.requester_user_id)
+            .where(
+                OrgShippingChangeRequest.status == "pending",
+                OrgShippingChangeRequest.redacted_at.is_(None),
+                User.status != OrgUserStatus.ERASED.value,
+            )
+        )
+    )
+    for req, org, user in shipping_rows:
+        items.append(
+            {
+                "kind": "shipping_change_pending",
+                "id": req.id,
+                "user_id": user.id,
+                "org_name": org.org_name,
+                "subtitle": "Shipping address change requested",
+                "href": f"/admin/changes/address/{req.id}",
                 "created_at": req.created_at,
             }
         )
@@ -493,6 +525,7 @@ async def get_overview(db: AsyncSession) -> dict[str, Any]:
             {"key": "orgs_pending_approval", **orgs_pending},
             {"key": "orgs_ig_change_pending", **ig_changes_pending},
             {"key": "brands_ig_change_pending", **brand_ig_changes_pending},
+            {"key": "orgs_shipping_change_pending", **shipping_changes_pending},
             {"key": "orgs_ig_bind_mismatch", **ig_bind_mismatch},
             {"key": "brands_pending_review", **brands_pending},
             {"key": "drops_awaiting_decisions", **awaiting_decisions},

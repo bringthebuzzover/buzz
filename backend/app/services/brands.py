@@ -160,7 +160,11 @@ async def build_brand_drop_detail(
         )
     )
 
-    shipment_map = await shipments_by_application_ids(db, [app.id for app, _, _ in rows])
+    shipment_map = await shipments_by_application_ids(
+        db,
+        [app.id for app, _, _ in rows],
+        brand_view=True,
+    )
     progress = await seat_progress(db, [app for app, _, _ in rows])
     applicants: list[BrandDropDetailApplicant] = []
     for app, org, org_user in rows:

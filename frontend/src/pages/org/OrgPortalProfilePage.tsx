@@ -31,7 +31,8 @@ import {
 import EduEmailRotatePanel from "../../components/org/EduEmailRotatePanel";
 import IgChangeRequestPanel from "../../components/org/IgChangeRequestPanel";
 import IgPreviousAccountBanner from "../../components/org/IgPreviousAccountBanner";
-import ShippingAddressFields, {
+import OrgShippingAddressPanel from "../../components/org/OrgShippingAddressPanel";
+import {
   EMPTY_SHIPPING,
   shippingToApi,
   type ShippingAddressValue,
@@ -48,6 +49,9 @@ export default function OrgPortalProfilePage() {
   const { data, isLoading, error: loadError } = useOrgProfile();
   const update = useUpdateOrgProfile();
   const queryClient = useQueryClient();
+  const hasExistingAddress = Boolean(
+    data?.shippingLine1 || data?.deliveryAddress?.trim(),
+  );
 
   const [orgName, setOrgName] = useState("");
   const [university, setUniversity] = useState("");
@@ -99,16 +103,13 @@ export default function OrgPortalProfilePage() {
     const contact = requireNonBlank(contactName);
     if (isFieldError(contact)) next.contactName = contact.error;
     const ship = shippingToApi(shipping);
-    const hasStructured = Boolean(data.shippingLine1);
     const shippingMissing =
       !ship.shippingLine1 ||
       !ship.shippingCity ||
       !ship.shippingState ||
       !ship.shippingPostalCode;
-    if (!hasStructured && shippingMissing) {
+    if (!hasExistingAddress && shippingMissing) {
       next.shipping = "Enter a US mailing address (street, city, state, and ZIP).";
-    } else if (hasStructured && shippingMissing) {
-      next.shipping = "Shipping street, city, state, and ZIP are required.";
     }
     if (Object.keys(next).length > 0) {
       setFieldErrors(next);
@@ -140,14 +141,7 @@ export default function OrgPortalProfilePage() {
     if (parsedContact !== (data.contactName ?? null)) {
       payload.contactName = parsedContact;
     }
-    const shippingDirty =
-      !hasStructured ||
-      ship.shippingLine1 !== (data.shippingLine1 ?? "") ||
-      (ship.shippingLine2 ?? "") !== (data.shippingLine2 ?? "") ||
-      ship.shippingCity !== (data.shippingCity ?? "") ||
-      ship.shippingState !== (data.shippingState ?? "") ||
-      ship.shippingPostalCode !== (data.shippingPostalCode ?? "");
-    if (shippingDirty) {
+    if (!hasExistingAddress) {
       payload.shippingLine1 = ship.shippingLine1;
       payload.shippingLine2 = ship.shippingLine2 ?? null;
       payload.shippingCity = ship.shippingCity;
@@ -314,15 +308,20 @@ export default function OrgPortalProfilePage() {
             </div>
           </Card>
 
-          <Card kind="panel" pad="card">
-            <ShippingAddressFields
-              value={shipping}
-              onChange={setShipping}
-              testIdPrefix="org-profile"
-              error={fieldErrors.shipping}
-              legacyHint={data.shippingLine1 ? null : (data.deliveryAddress ?? null)}
-            />
-          </Card>
+          <OrgShippingAddressPanel
+            currentAddress={{
+              line1: data.shippingLine1,
+              line2: data.shippingLine2,
+              city: data.shippingCity,
+              state: data.shippingState,
+              postalCode: data.shippingPostalCode,
+              formatted: data.deliveryAddress,
+            }}
+            initialAddress={!hasExistingAddress}
+            initialValue={shipping}
+            onInitialAddressChange={setShipping}
+            initialError={fieldErrors.shipping}
+          />
 
           <div className="flex justify-end">
             <Button type="submit" disabled={update.isPending}>
