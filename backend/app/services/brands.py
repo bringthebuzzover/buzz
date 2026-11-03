@@ -160,7 +160,17 @@ async def build_brand_drop_detail(
         )
     )
 
-    shipment_map = await shipments_by_application_ids(db, [app.id for app, _, _ in rows])
+    address_allowed_ids = {
+        app.id
+        for app, _org, org_user in rows
+        if app.decision == ApplicationDecision.ACCEPTED.value
+        and org_user.status != OrgUserStatus.ERASED.value
+    }
+    shipment_map = await shipments_by_application_ids(
+        db,
+        [app.id for app, _, _ in rows],
+        address_allowed_ids=address_allowed_ids,
+    )
     progress = await seat_progress(db, [app for app, _, _ in rows])
     applicants: list[BrandDropDetailApplicant] = []
     for app, org, org_user in rows:

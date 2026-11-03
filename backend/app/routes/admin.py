@@ -65,6 +65,8 @@ from app.schemas.admin import (
     AdminOrgDetail,
     AdminOrgItem,
     AdminOverviewResponse,
+    AdminShippingChangeDecision,
+    AdminShippingChangeRequestItem,
     ImpersonateRequest,
     ImpersonateResponse,
     ViewAsResumeRequest,
@@ -152,6 +154,18 @@ from app.services.ig_change_requests import (
 from app.services.instagram import InstagramClient, get_instagram_client
 from app.services.seats import lock_drop, send_decisions, set_seat_decision
 from app.services.shipments import add_shipment, delete_shipment, set_delivered
+from app.services.shipping_change_requests import (
+    approve_request as approve_shipping_change_request,
+)
+from app.services.shipping_change_requests import (
+    deny_request as deny_shipping_change_request,
+)
+from app.services.shipping_change_requests import (
+    get_request as get_shipping_change_request,
+)
+from app.services.shipping_change_requests import (
+    list_requests as list_shipping_change_requests,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -399,6 +413,65 @@ async def deny_ig_change_request_endpoint(
             await deny_ig_change_request(db, request_id, background_tasks=background_tasks)
         )
     )
+
+
+@router.get(
+    "/shipping-change-requests",
+    response_model=DataResponse[list[AdminShippingChangeRequestItem]],
+)
+async def list_shipping_change_requests_endpoint(
+    _user: CurrentAdmin,
+    status: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    rows = await list_shipping_change_requests(db, status=status)
+    return api_response(data=[AdminShippingChangeRequestItem.model_validate(row) for row in rows])
+
+
+@router.get(
+    "/shipping-change-requests/{request_id}",
+    response_model=DataResponse[AdminShippingChangeRequestItem],
+)
+async def get_shipping_change_request_endpoint(
+    request_id: uuid.UUID,
+    _user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    return api_response(
+        data=AdminShippingChangeRequestItem.model_validate(
+            await get_shipping_change_request(db, request_id)
+        )
+    )
+
+
+@router.post(
+    "/shipping-change-requests/{request_id}/approve",
+    response_model=DataResponse[AdminShippingChangeRequestItem],
+)
+async def approve_shipping_change_request_endpoint(
+    request_id: uuid.UUID,
+    user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+    addresses: AddressClient = Depends(get_address_client),
+) -> APIResponse:
+    result = await approve_shipping_change_request(db, request_id, user, addresses=addresses)
+    return api_response(data=AdminShippingChangeRequestItem.model_validate(result))
+
+
+@router.post(
+    "/shipping-change-requests/{request_id}/deny",
+    response_model=DataResponse[AdminShippingChangeRequestItem],
+)
+async def deny_shipping_change_request_endpoint(
+    request_id: uuid.UUID,
+    body: AdminShippingChangeDecision,
+    user: CurrentAdmin,
+    db: AsyncSession = Depends(get_db),
+) -> APIResponse:
+    result = await deny_shipping_change_request(
+        db, request_id, user, decision_reason=body.decision_reason
+    )
+    return api_response(data=AdminShippingChangeRequestItem.model_validate(result))
 
 
 @router.get(
@@ -943,9 +1016,8 @@ async def patch_admin_table_row(
     payload: AdminTablePatchRequest,
     _user: CurrentAdmin,
     db: AsyncSession = Depends(get_db),
-    addresses: AddressClient = Depends(get_address_client),
 ) -> APIResponse:
-    result = await patch_table_row(db, table, row_id, payload.fields, addresses)
+    result = await patch_table_row(db, table, row_id, payload.fields)
     return api_response(data=AdminTableRowResponse(**result))
 
 

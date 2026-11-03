@@ -920,6 +920,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/shipping-change-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Shipping Change Requests Endpoint */
+        get: operations["list_shipping_change_requests_endpoint_api_admin_shipping_change_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/shipping-change-requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Shipping Change Request Endpoint */
+        get: operations["get_shipping_change_request_endpoint_api_admin_shipping_change_requests__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/shipping-change-requests/{request_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Shipping Change Request Endpoint */
+        post: operations["approve_shipping_change_request_endpoint_api_admin_shipping_change_requests__request_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/shipping-change-requests/{request_id}/deny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deny Shipping Change Request Endpoint */
+        post: operations["deny_shipping_change_request_endpoint_api_admin_shipping_change_requests__request_id__deny_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/tables": {
         parameters: {
             query?: never;
@@ -2270,6 +2338,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orgs/me/shipping-change-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get My Shipping Change Request */
+        get: operations["get_my_shipping_change_request_api_orgs_me_shipping_change_request_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orgs/me/shipping-change-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create My Shipping Change Request */
+        post: operations["create_my_shipping_change_request_api_orgs_me_shipping_change_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orgs/onboarding": {
         parameters: {
             query?: never;
@@ -3353,6 +3455,59 @@ export interface components {
             /** Reason */
             reason?: string | null;
         };
+        /** AdminShippingChangeDecision */
+        AdminShippingChangeDecision: {
+            /** Decisionreason */
+            decisionReason?: string | null;
+        };
+        /** AdminShippingChangeRequestItem */
+        AdminShippingChangeRequestItem: {
+            /** Activedroptitles */
+            activeDropTitles?: string[];
+            /** Baseaddressversion */
+            baseAddressVersion: number;
+            /** Createdat */
+            createdAt: number | null;
+            /** Currentaddress */
+            currentAddress: {
+                [key: string]: unknown;
+            } | null;
+            /** Decidedat */
+            decidedAt?: number | null;
+            /** Decisionreason */
+            decisionReason?: string | null;
+            /** Eduemail */
+            eduEmail?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Orgname */
+            orgName?: string | null;
+            /** Reason */
+            reason: string | null;
+            /** Requestedaddress */
+            requestedAddress: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Requesteruserid
+             * Format: uuid
+             */
+            requesterUserId: string;
+            /** Revieweruserid */
+            reviewerUserId?: string | null;
+            /** Status */
+            status: string;
+            /** University */
+            university?: string | null;
+        };
         /**
          * AdminSignal
          * @description One health signal. ``ok`` means "nothing to act on", which for most
@@ -4313,6 +4468,15 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[AdminShippingChangeRequestItem] */
+        DataResponse_AdminShippingChangeRequestItem_: {
+            data?: components["schemas"]["AdminShippingChangeRequestItem"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[AdminSyncAutolinkResponse] */
         DataResponse_AdminSyncAutolinkResponse_: {
             data?: components["schemas"]["AdminSyncAutolinkResponse"] | null;
@@ -4556,6 +4720,24 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
+        /** DataResponse[OrgShippingChangeRequestResponse] */
+        DataResponse_OrgShippingChangeRequestResponse_: {
+            data?: components["schemas"]["OrgShippingChangeRequestResponse"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[OrgShippingChangeRequestState] */
+        DataResponse_OrgShippingChangeRequestState_: {
+            data?: components["schemas"]["OrgShippingChangeRequestState"] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** DataResponse[PostResponse] */
         DataResponse_PostResponse_: {
             data?: components["schemas"]["PostResponse"] | null;
@@ -4700,6 +4882,16 @@ export interface components {
         DataResponse_list_AdminOrgItem__: {
             /** Data */
             data?: components["schemas"]["AdminOrgItem"][] | null;
+            error?: components["schemas"]["ErrorDetail"] | null;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DataResponse[list[AdminShippingChangeRequestItem]] */
+        DataResponse_list_AdminShippingChangeRequestItem__: {
+            /** Data */
+            data?: components["schemas"]["AdminShippingChangeRequestItem"][] | null;
             error?: components["schemas"]["ErrorDetail"] | null;
             /** Meta */
             meta?: {
@@ -5331,6 +5523,11 @@ export interface components {
             pendingEduEmail?: string | null;
             /** Previousinstagramhandle */
             previousInstagramHandle?: string | null;
+            /**
+             * Shippingaddressversion
+             * @default 0
+             */
+            shippingAddressVersion: number;
             /** Shippingcity */
             shippingCity?: string | null;
             /** Shippingline1 */
@@ -5391,6 +5588,61 @@ export interface components {
             tiktokHandle?: string | null;
             /** University */
             university?: string | null;
+        };
+        /** OrgShippingChangeRequestCreate */
+        OrgShippingChangeRequestCreate: {
+            /** Reason */
+            reason: string;
+            /** Shippingcity */
+            shippingCity: string;
+            /** Shippingline1 */
+            shippingLine1: string;
+            /** Shippingline2 */
+            shippingLine2?: string | null;
+            /** Shippingplaceid */
+            shippingPlaceId?: string | null;
+            /** Shippingpostalcode */
+            shippingPostalCode: string;
+            /** Shippingstate */
+            shippingState: string;
+        };
+        /** OrgShippingChangeRequestResponse */
+        OrgShippingChangeRequestResponse: {
+            /** Baseaddressversion */
+            baseAddressVersion: number;
+            /** Createdat */
+            createdAt: number | null;
+            /** Currentaddress */
+            currentAddress: {
+                [key: string]: unknown;
+            } | null;
+            /** Decidedat */
+            decidedAt?: number | null;
+            /** Decisionreason */
+            decisionReason?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Reason */
+            reason: string | null;
+            /** Requestedaddress */
+            requestedAddress: {
+                [key: string]: unknown;
+            } | null;
+            /** Status */
+            status: string;
+        };
+        /** OrgShippingChangeRequestState */
+        OrgShippingChangeRequestState: {
+            latest?: components["schemas"]["OrgShippingChangeRequestResponse"] | null;
+            pending?: components["schemas"]["OrgShippingChangeRequestResponse"] | null;
         };
         /**
          * PostResponse
@@ -5609,6 +5861,12 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Shippingaddresscapturedat */
+            shippingAddressCapturedAt?: number | null;
+            /** Shippingaddresssnapshot */
+            shippingAddressSnapshot?: {
+                [key: string]: unknown;
+            } | null;
             /** Trackurl */
             trackUrl: string | null;
             /** Trackingnumber */
@@ -7473,6 +7731,142 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_AdminOverviewResponse_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    list_shipping_change_requests_endpoint_api_admin_shipping_change_requests_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_list_AdminShippingChangeRequestItem__"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    get_shipping_change_request_endpoint_api_admin_shipping_change_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminShippingChangeRequestItem_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    approve_shipping_change_request_endpoint_api_admin_shipping_change_requests__request_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminShippingChangeRequestItem_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    deny_shipping_change_request_endpoint_api_admin_shipping_change_requests__request_id__deny_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminShippingChangeDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_AdminShippingChangeRequestItem_"];
                 };
             };
             /** @description Unprocessable Entity */
@@ -9909,6 +10303,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DataResponse_list_PostResponse__"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    get_my_shipping_change_request_api_orgs_me_shipping_change_request_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OrgShippingChangeRequestState_"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIResponse"];
+                };
+            };
+        };
+    };
+    create_my_shipping_change_request_api_orgs_me_shipping_change_requests_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgShippingChangeRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DataResponse_OrgShippingChangeRequestResponse_"];
                 };
             };
             /** @description Unprocessable Entity */

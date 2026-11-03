@@ -29,13 +29,19 @@ export const QUEUE_META: Record<string, QueueMeta> = {
   orgs_ig_change_pending: {
     label: "Instagram identity requests",
     note: "Organization asked to rename or switch the bound Instagram account",
-    to: "/admin/ig-changes?status=pending",
+    to: "/admin/changes?status=pending&account=organization&change=instagram",
     owner: "us",
   },
   brands_ig_change_pending: {
     label: "Brand handle requests",
     note: "Brand asked to change the caption @ used for autolink",
-    to: "/admin/ig-changes?status=pending&type=brand",
+    to: "/admin/changes?status=pending&account=brand&change=instagram",
+    owner: "us",
+  },
+  orgs_shipping_change_pending: {
+    label: "Shipping address changes",
+    note: "Organization requested approval to replace its current shipping address",
+    to: "/admin/changes?status=pending&account=organization&change=address",
     owner: "us",
   },
   orgs_ig_bind_mismatch: {

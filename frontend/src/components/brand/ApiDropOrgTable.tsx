@@ -154,7 +154,7 @@ export default function ApiDropOrgTable({
           <dl className="flex flex-wrap gap-x-10 gap-y-4">
             {a.accountErased ? null : (
               <div className="min-w-0">
-                <dt className="text-xs text-quiet">Ship to</dt>
+                <dt className="text-xs text-quiet">Current address for future shipments</dt>
                 <dd className={cn(TEXT.body, "mt-1 text-primary")}>
                   {a.deliveryAddress || <AddressPending />}
                 </dd>

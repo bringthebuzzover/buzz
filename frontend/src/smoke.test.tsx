@@ -54,7 +54,6 @@ describe("API provider-tree smoke", () => {
             acceptedCount={0}
             feedStatus="open"
             alreadyApplied={false}
-            onApply={() => {}}
           />
         </MemoryRouter>,
       );

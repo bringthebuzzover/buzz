@@ -140,13 +140,13 @@ export default function AdminOverviewPage() {
 
           <Panel
             title="Needs a look"
-            description="Instagram identity tickets, brand handle requests, and Connect handle mismatches. Approve or deny a ticket; Ack a mismatch on the organization."
+            description="Instagram identity tickets, brand handle requests, organization shipping address requests, and Connect handle mismatches. Approve or deny a ticket; Ack a mismatch on the organization."
           >
             <div data-testid="needs-a-look">
               <AdminTable
                 headers={["Organization", "Why", "Waiting", ""]}
                 isEmpty={(overview.data.items ?? []).length === 0}
-                empty="No Instagram identity items."
+                empty="No items need attention."
               >
                 {(overview.data.items ?? []).map((item) => (
                   <Row key={`${item.kind}-${item.id}`} attention>
@@ -159,7 +159,9 @@ export default function AdminOverviewPage() {
                           ? "Identity request"
                           : item.kind === "brand_ig_change_pending"
                             ? "Brand handle"
-                            : "Bind mismatch"}
+                            : item.kind === "shipping_change_pending"
+                              ? "Address change"
+                              : "Bind mismatch"}
                       </span>
                     </Cell>
                     <Cell muted>{item.subtitle}</Cell>

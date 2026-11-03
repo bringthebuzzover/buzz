@@ -55,6 +55,7 @@ import AdminDropRequestsPage from "./pages/admin/AdminDropRequestsPage";
 import AdminDropRequestDetailPage from "./pages/admin/AdminDropRequestDetailPage";
 import AdminIgChangeRequestsPage from "./pages/admin/AdminIgChangeRequestsPage";
 import AdminIgChangeRequestDetailPage from "./pages/admin/AdminIgChangeRequestDetailPage";
+import AdminShippingChangeRequestDetailPage from "./pages/admin/AdminShippingChangeRequestDetailPage";
 import AdminHealthPage from "./pages/admin/AdminHealthPage";
 
 const PAGES: ReadonlyArray<[string, ComponentType]> = [
@@ -93,6 +94,7 @@ const PAGES: ReadonlyArray<[string, ComponentType]> = [
   ["AdminDropRequestDetailPage", AdminDropRequestDetailPage],
   ["AdminIgChangeRequestsPage", AdminIgChangeRequestsPage],
   ["AdminIgChangeRequestDetailPage", AdminIgChangeRequestDetailPage],
+  ["AdminShippingChangeRequestDetailPage", AdminShippingChangeRequestDetailPage],
   ["AdminHealthPage", AdminHealthPage],
 ];
 

@@ -7,9 +7,11 @@ from uuid import UUID
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
 from app.models.brand import Brand
 from app.models.enums import ApplicationDecision, PortalRole
+from app.models.organization import Organization
 from app.models.shipment import DropApplicationShipment
 from app.models.user import User
 from app.services import drop_notices
@@ -48,6 +50,36 @@ class TestInferCarrier:
 
 
 class TestAdminShipments:
+    async def test_shipment_keeps_the_destination_as_it_was_when_recorded(
+        self, app_client: AsyncClient, db_session
+    ):
+        _, org_user, app = await _accepted_seat(db_session)
+        org = await db_session.scalar(
+            select(Organization).where(Organization.user_id == org_user.id)
+        )
+        org.shipping_line1 = "1 Main St"
+        org.shipping_city = "Berkeley"
+        org.shipping_state = "CA"
+        org.shipping_postal_code = "94704"
+        org.delivery_address = "1 Main St, Berkeley, CA 94704"
+        headers = await admin_headers(db_session)
+
+        response = await app_client.post(
+            f"/api/admin/applications/{app.id}/shipments",
+            json={"trackingNumber": "1Z3V817W0392590700"},
+            headers=headers,
+        )
+        assert response.status_code == 200, response.text
+        shipment = response.json()["data"]
+        assert shipment["shippingAddressSnapshot"]["shippingLine1"] == "1 Main St"
+        assert shipment["shippingAddressCapturedAt"] is not None
+
+        org.shipping_line1 = "9 New St"
+        await db_session.flush()
+        detail = await app_client.get(f"/api/admin/drops/{app.drop_id}", headers=headers)
+        historical = detail.json()["data"]["applicants"][0]["shipments"][0]
+        assert historical["shippingAddressSnapshot"]["shippingLine1"] == "1 Main St"
+
     async def test_zero_one_n_and_mixed(self, app_client: AsyncClient, db_session):
         drop, org_user, app = await _accepted_seat(db_session)
         headers = await admin_headers(db_session)

@@ -115,7 +115,7 @@ class TestAdminTablesPatch:
         )
         assert res.status_code == 400
 
-    async def test_patches_org_shipping(self, app_client: AsyncClient, db_session) -> None:
+    async def test_org_shipping_requires_review(self, app_client: AsyncClient, db_session) -> None:
         user = await persist(db_session, make_user(role=PortalRole.ORG))
         org = await make_org(db_session, user, org_name="Ship Club")
         res = await app_client.patch(
@@ -130,10 +130,9 @@ class TestAdminTablesPatch:
             },
             headers=await admin_headers(db_session),
         )
-        assert res.status_code == 200
-        row = res.json()["data"]["row"]
-        assert row["shippingLine1"] == "123 College Ave"
-        assert row["deliveryAddress"] == "123 College Ave, Ithaca, NY 14850"
+        assert res.status_code == 400
+        await db_session.refresh(org)
+        assert org.shipping_line1 is None
 
     async def test_patches_drop_title(self, app_client: AsyncClient, db_session) -> None:
         brand = await make_brand(db_session)

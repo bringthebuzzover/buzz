@@ -21,6 +21,7 @@ from app.models.notify_me import NotifyMe
 from app.models.org_apply_prefill import OrgApplyPrefill
 from app.models.org_connect_token import OrgConnectToken
 from app.models.org_ig_change_request import OrgIgChangeRequest
+from app.models.org_shipping_change_request import OrgShippingChangeRequest
 from app.models.organization import Organization
 from app.models.password_reset_token import PasswordResetToken
 from app.models.post_link import PostCampaignLink
@@ -49,6 +50,7 @@ __all__ = [
     "OrgApplyPrefill",
     "OrgConnectToken",
     "OrgIgChangeRequest",
+    "OrgShippingChangeRequest",
     "Organization",
     "PasswordResetToken",
     "PostCampaignLink",

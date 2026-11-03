@@ -55,7 +55,7 @@ export default function AdminIgChangeRequestDetailPage() {
 
   return (
     <div>
-      <AdminBackLink to="/admin/ig-changes?status=pending">All Instagram requests</AdminBackLink>
+      <AdminBackLink to="/admin/changes?status=pending&account=organization&change=instagram">All changes</AdminBackLink>
       <QueryState
         isPending={ticket.isPending}
         isError={ticket.isError}

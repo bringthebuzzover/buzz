@@ -16,6 +16,7 @@ from app.exceptions import BuzzAPIException
 from app.models.application import DropApplication
 from app.models.drop import Drop
 from app.models.enums import ApplicationDecision
+from app.models.organization import Organization
 from app.models.shipment import CARRIERS, DropApplicationShipment
 from app.services.drop_notices import notify_shipped
 from app.services.lifecycle import drop_running, require_drop, seat_is_live
@@ -45,17 +46,28 @@ def track_url(carrier: str, tracking_number: str) -> str | None:
     return None
 
 
-def serialize_shipment(row: DropApplicationShipment) -> dict[str, Any]:
+def serialize_shipment(
+    row: DropApplicationShipment, *, include_destination: bool = True
+) -> dict[str, Any]:
     return {
         "id": row.id,
         "tracking_number": row.tracking_number,
         "carrier": row.carrier,
         "track_url": track_url(row.carrier, row.tracking_number),
+        "shipping_address_snapshot": (
+            row.shipping_address_snapshot if include_destination else None
+        ),
+        "shipping_address_captured_at": (
+            row.shipping_address_captured_at if include_destination else None
+        ),
     }
 
 
 async def shipments_by_application_ids(
-    db: AsyncSession, application_ids: list[UUID]
+    db: AsyncSession,
+    application_ids: list[UUID],
+    *,
+    address_allowed_ids: set[UUID] | None = None,
 ) -> dict[UUID, list[dict[str, Any]]]:
     out: dict[UUID, list[dict[str, Any]]] = {i: [] for i in application_ids}
     if not application_ids:
@@ -71,7 +83,12 @@ async def shipments_by_application_ids(
         )
     ).all()
     for row in rows:
-        out[row.application_id].append(serialize_shipment(row))
+        include_destination = (
+            address_allowed_ids is None or row.application_id in address_allowed_ids
+        )
+        out[row.application_id].append(
+            serialize_shipment(row, include_destination=include_destination)
+        )
     return out
 
 
@@ -119,6 +136,33 @@ async def _live_seat(db: AsyncSession, application_id: UUID, action: str) -> Dro
         )
     require_drop(drop)
     return cast(DropApplication, application)
+
+
+async def _lock_org_for_seat(db: AsyncSession, application: DropApplication) -> Organization:
+    org = await db.scalar(
+        select(Organization)
+        .where(Organization.id == application.org_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if org is None:
+        raise BuzzAPIException(errors.NOT_FOUND, "Organization not found.", status_code=404)
+    return org
+
+
+def _address_snapshot(org: Organization) -> dict[str, str | None] | None:
+    if org.shipping_line1 and org.shipping_city and org.shipping_state and org.shipping_postal_code:
+        return {
+            "shippingLine1": org.shipping_line1,
+            "shippingLine2": org.shipping_line2,
+            "shippingCity": org.shipping_city,
+            "shippingState": org.shipping_state,
+            "shippingPostalCode": org.shipping_postal_code,
+            "formatted": org.delivery_address,
+        }
+    if org.delivery_address and org.delivery_address.strip():
+        return {"formatted": org.delivery_address}
+    return None
 
 
 async def set_delivered(db: AsyncSession, application_id: UUID, delivered: bool) -> None:
@@ -192,13 +236,17 @@ async def add_shipment(
     background_tasks: BackgroundTasks | None = None,
 ) -> dict[str, Any]:
     application = await _live_seat(db, application_id, "Tracking can be added")
+    org = await _lock_org_for_seat(db, application)
 
     cleaned, resolved = await _shipment_fields(db, application_id, tracking_number, carrier)
+    address_snapshot = _address_snapshot(org)
 
     row = DropApplicationShipment(
         application_id=application_id,
         tracking_number=cleaned,
         carrier=resolved,
+        shipping_address_snapshot=address_snapshot,
+        shipping_address_captured_at=utcnow() if address_snapshot is not None else None,
     )
     db.add(row)
     await db.flush()
@@ -214,7 +262,8 @@ async def update_shipment(
     tracking_number: str,
     carrier: str | None,
 ) -> dict[str, Any]:
-    await _live_seat(db, application_id, "Tracking can be edited")
+    application = await _live_seat(db, application_id, "Tracking can be edited")
+    await _lock_org_for_seat(db, application)
     row = await db.get(DropApplicationShipment, shipment_id)
     if row is None or row.application_id != application_id:
         raise BuzzAPIException(errors.NOT_FOUND, "Shipment not found.", status_code=404)
@@ -228,9 +277,8 @@ async def update_shipment(
 async def delete_shipment(
     db: AsyncSession, application_id: UUID, shipment_id: UUID
 ) -> dict[str, Any]:
-    application = await db.get(DropApplication, application_id)
-    if application is None:
-        raise BuzzAPIException(errors.NOT_FOUND, "Application not found.", status_code=404)
+    application = await _live_seat(db, application_id, "Tracking can be deleted")
+    await _lock_org_for_seat(db, application)
     row = await db.get(DropApplicationShipment, shipment_id)
     if row is None or row.application_id != application_id:
         raise BuzzAPIException(errors.NOT_FOUND, "Shipment not found.", status_code=404)

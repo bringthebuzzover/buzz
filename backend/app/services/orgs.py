@@ -11,10 +11,12 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import errors
+from app.exceptions import BuzzAPIException
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.orgs import OrgProfileResponse, OrgProfileUpdate
-from app.services.address import AddressClient, apply_to_org
+from app.services.address import AddressClient, addresses_match, apply_to_org
 from app.services.ig_change_requests import latest_approved_switch
 from app.services.instagram import canonical_instagram_handle
 
@@ -62,6 +64,7 @@ def build_org_profile(org: Organization, user: User) -> OrgProfileResponse:
         shipping_city=org.shipping_city,
         shipping_state=org.shipping_state,
         shipping_postal_code=org.shipping_postal_code,
+        shipping_address_version=org.shipping_address_version,
         approved_at=org.approved_at,
         created_at=org.created_at,
     )
@@ -93,6 +96,15 @@ async def update_org_profile(
     data = payload.model_dump(exclude_unset=True)
     shipping = {k: data.pop(k) for k in list(data) if k in _SHIPPING_KEYS}
     if shipping:
+        locked_org = await db.scalar(
+            select(Organization)
+            .where(Organization.id == org.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if locked_org is None:
+            raise ValueError("Organization disappeared while updating profile")
+        org = locked_org
         addr = await addresses.validate(
             line1=shipping["shipping_line1"],
             line2=shipping.get("shipping_line2"),
@@ -101,7 +113,34 @@ async def update_org_profile(
             postal_code=shipping["shipping_postal_code"],
             place_id=shipping.get("shipping_place_id"),
         )
-        apply_to_org(org, addr)
+        has_existing = bool(org.delivery_address and org.delivery_address.strip()) or bool(
+            org.shipping_line1 and org.shipping_line1.strip()
+        )
+        if has_existing:
+            current = {
+                "shippingLine1": org.shipping_line1,
+                "shippingLine2": org.shipping_line2,
+                "shippingCity": org.shipping_city,
+                "shippingState": org.shipping_state,
+                "shippingPostalCode": org.shipping_postal_code,
+                "formatted": org.delivery_address,
+            }
+            requested = {
+                "shippingLine1": addr.line1,
+                "shippingLine2": addr.line2,
+                "shippingCity": addr.city,
+                "shippingState": addr.state,
+                "shippingPostalCode": addr.postal_code,
+                "formatted": addr.formatted,
+            }
+            if not addresses_match(current, requested):
+                raise BuzzAPIException(
+                    errors.ADDRESS_CHANGE_REVIEW_REQUIRED,
+                    "Request admin approval to replace your shipping address.",
+                    status_code=409,
+                )
+        else:
+            apply_to_org(org, addr)
     for field, value in data.items():
         setattr(org, field, value)
     await db.flush()

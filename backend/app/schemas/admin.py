@@ -408,6 +408,33 @@ class AdminIgChangeRequestItem(CamelModel):
         return to_epoch_ms(value)
 
 
+class AdminShippingChangeRequestItem(CamelModel):
+    id: uuid.UUID
+    org_id: uuid.UUID
+    requester_user_id: uuid.UUID
+    reviewer_user_id: uuid.UUID | None = None
+    org_name: str | None = None
+    university: str | None = None
+    edu_email: str | None = None
+    current_address: dict[str, Any] | None
+    requested_address: dict[str, Any] | None
+    base_address_version: int
+    reason: str | None
+    status: str
+    decision_reason: str | None = None
+    active_drop_titles: list[str] = Field(default_factory=list)
+    created_at: datetime
+    decided_at: datetime | None = None
+
+    @field_serializer("created_at", "decided_at")
+    def _epoch(self, value: datetime | None) -> int | None:
+        return to_epoch_ms(value)
+
+
+class AdminShippingChangeDecision(CamelModel):
+    decision_reason: str | None = None
+
+
 class AdminOrgDetail(CamelModel):
     user_id: uuid.UUID
     org_id: uuid.UUID | None

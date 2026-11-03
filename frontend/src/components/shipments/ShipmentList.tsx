@@ -2,7 +2,7 @@
  * Tracking numbers as the pen's KV row: carrier label over the number.
  * Wraps to a column in narrow cells (the brand drop table).
  */
-import { carrierLabel, type Shipment } from "../../utils/shipments";
+import { carrierLabel, shipmentDestination, type Shipment } from "../../utils/shipments";
 import { TEXT } from "../../theme/tokens";
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
@@ -46,6 +46,9 @@ export default function ShipmentList({
           ) : (
             <span>#{s.trackingNumber}</span>
           )}
+          <span className="max-w-sm text-xs text-quiet">
+            Destination: {shipmentDestination(s)}
+          </span>
         </li>
       ))}
     </ul>

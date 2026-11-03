@@ -59,7 +59,7 @@ test("admin lands on the overview with a card per queue", async ({ page }) => {
   await expect(page.getByTestId("queue-orgs_ig_bind_mismatch")).toBeVisible();
   await expect(page.getByTestId("needs-a-look")).toBeVisible();
   await expect(
-    page.getByText("No Instagram identity items."),
+    page.getByText("No items need attention."),
   ).toBeVisible();
   await expect(page.getByTestId("queue-brands_pending_review")).toBeVisible();
   await expect(page.getByTestId("queue-drops_awaiting_decisions")).toBeVisible();

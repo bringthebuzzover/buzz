@@ -106,7 +106,7 @@ describe("ApiDropOrgTable", () => {
         applicants={[{ ...erased, accountErased: false, orgName: "Campus Club" }]}
       />,
     );
-    expect(html).toContain("Ship to");
+    expect(html).toContain("Current address for future shipments");
     expect(html).toMatch(
       /<span data-testid="address-pending" class="[^"]*text-accent[^"]*">Address pending<\/span>/,
     );
