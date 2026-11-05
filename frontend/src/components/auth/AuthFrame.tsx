@@ -76,12 +76,19 @@ function AuthAside() {
       </picture>
       <div className="absolute inset-0 bg-[linear-gradient(180deg,#0b0b0b33,#0b0b0bf2)]" />
       <div className="relative flex flex-1 flex-col gap-5 p-8 lg:p-12">
-        <Logo className="h-10 w-32" />
+        <div>
+          <Link
+            to="/"
+            className={cn("inline-flex items-center rounded-buzzControl", focusRingClass)}
+            aria-label="BUZZ Home"
+          >
+            <Logo className="h-10 w-32" />
+          </Link>
+        </div>
         <div className="flex-1" />
         <p className={cn(TEXT.statement, "max-w-[34rem] text-primary")}>
           {ASIDE_STATEMENT}
         </p>
-        <p className="text-sm text-quiet">bringthebuzzover.com</p>
         <AuthLegalLinks />
         <BeeFlight />
       </div>
@@ -99,16 +106,30 @@ export function AuthSplit({
   return (
     <div className="flex min-h-screen w-full flex-col bg-page lg:flex-row">
       <AuthAside />
-      <div className="flex flex-1 items-center justify-center px-6 py-12 lg:px-12 lg:py-16">
-        <div
-          data-testid="auth-form"
-          className={cn(
-            "w-full space-y-6",
-            wide ? "max-w-[640px]" : "max-w-[440px]",
-            MOTION.publicEnter,
-          )}
-        >
-          {children}
+      <div className="flex flex-1 flex-col px-6 py-6 lg:px-12 lg:py-8">
+        <div className="flex w-full justify-end">
+          <Link
+            to="/"
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full text-sm text-muted hover:text-primary transition-colors",
+              focusRingClass,
+            )}
+          >
+            <span>Back to bringthebuzzover.com</span>
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+        </div>
+        <div className="flex flex-1 items-center justify-center py-6 lg:py-8">
+          <div
+            data-testid="auth-form"
+            className={cn(
+              "w-full space-y-6",
+              wide ? "max-w-[640px]" : "max-w-[440px]",
+              MOTION.publicEnter,
+            )}
+          >
+            {children}
+          </div>
         </div>
       </div>
     </div>

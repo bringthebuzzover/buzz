@@ -61,11 +61,14 @@ export default function PortalHeader({ portal }: { portal: Portal }) {
 
   const navLinks = signedIn ? config.links : [];
 
+  const isOnboarding = pathname.startsWith("/onboarding");
+  const logoHref = isOnboarding ? "/" : signedIn ? pathForUser(user) : "/";
+
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-page/80 backdrop-blur-lg">
       <div className="flex h-16 items-center gap-5 px-6 xl:px-12">
         <Link
-          to={signedIn ? pathForUser(user) : "/"}
+          to={logoHref}
           data-testid="site-header-logo"
           className={cn("flex shrink-0 items-center", focusRingClass)}
         >

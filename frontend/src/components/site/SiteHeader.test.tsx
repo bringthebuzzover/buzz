@@ -237,3 +237,22 @@ it.each([
   act(() => logo?.click());
   expect(container.textContent).toContain("Portal landing");
 });
+
+it("navigates back to home when logo is clicked on onboarding routes", () => {
+  (useAuth as jest.Mock).mockReturnValue({
+    status: "authenticated",
+    user: { portalRole: "org", status: "pending_email_verification" },
+  });
+  const { container } = renderWithProviders(<>
+    <SiteHeader />
+    <Routes>
+      <Route path="/" element={<p>Home landing</p>} />
+      <Route path="/onboarding/verify-email" element={<p>Verify email page</p>} />
+      <Route path="*" element={null} />
+    </Routes>
+  </>, { route: "/onboarding/verify-email" });
+
+  const logo = container.querySelector<HTMLButtonElement>('[data-testid="site-header-logo"]');
+  act(() => logo?.click());
+  expect(container.textContent).toContain("Home landing");
+});
