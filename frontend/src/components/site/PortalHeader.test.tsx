@@ -74,4 +74,19 @@ describe("PortalHeader navigation", () => {
     act(() => logo?.click());
     expect(container.textContent).toContain("Portal landing");
   });
+
+  it("links logo back to home on onboarding routes even when authenticated", () => {
+    (useAuth as jest.Mock).mockReturnValue({
+      status: "authenticated",
+      user: { portalRole: "org", status: "denied" },
+    });
+    (useBrandProfile as jest.Mock).mockReturnValue({ data: undefined });
+    const { container } = renderWithProviders(
+      <PortalHeader portal="org" />,
+      { route: "/onboarding/denied" },
+    );
+
+    const logo = container.querySelector<HTMLAnchorElement>('[data-testid="site-header-logo"]');
+    expect(logo?.getAttribute("href")).toBe("/");
+  });
 });

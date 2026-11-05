@@ -13,7 +13,14 @@ export default function AuthAdminHeader() {
   return (
     <header className="flex min-h-16 w-full flex-wrap items-center gap-5 border-b border-transparent px-6 py-3 lg:px-12">
       <div className="flex items-center gap-3">
-        <Logo className="h-6 w-[79px]" />
+        <Link
+          to="/"
+          data-testid="admin-header-logo"
+          className={cn("inline-flex items-center rounded-buzzControl", focusRingClass)}
+          aria-label="BUZZ Home"
+        >
+          <Logo className="h-6 w-[79px]" />
+        </Link>
         <Chip accent className="px-2 py-0.5 text-xs font-medium normal-case">
           admin
         </Chip>
@@ -22,7 +29,7 @@ export default function AuthAdminHeader() {
       <Link
         to="/"
         className={cn(
-          "inline-flex items-center gap-2 rounded-full text-sm text-muted",
+          "inline-flex items-center gap-2 rounded-full text-sm text-muted hover:text-primary transition-colors",
           focusRingClass,
         )}
       >

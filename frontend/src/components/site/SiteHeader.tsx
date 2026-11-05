@@ -185,7 +185,7 @@ export default function SiteHeader() {
             <button
               type="button"
               data-testid="site-header-logo"
-              onClick={() => navigate(isApiAuth && !showHome ? pathForUser(user) : "/")}
+              onClick={() => navigate(pathname.startsWith("/onboarding") ? "/" : isApiAuth && !showHome ? pathForUser(user) : "/")}
               className={cn("flex h-10 max-w-[9rem] shrink-0 items-center", focusRingClass)}
             >
               <Logo surface={paperTone ? "paper" : "ink"} className="h-[54px]" />
