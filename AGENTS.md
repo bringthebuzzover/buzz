@@ -47,7 +47,7 @@ Rules and skills **point** here; they must not copy PRODUCT §§.
 
 ## Branching
 
-Never push, force-push, or delete `main`. Open a pull request from a short-lived feature branch. There is no `dev` or `staging` branch and no staging environment. Protection rules, required CI check names, and `bugbot run` on high-risk PRs: [Branching & main protection](README.md#branching--main-protection).
+Normal app work uses short-lived feature branches based on `staging`, with PRs into `staging`. App promotion to `main` requires separate production approval; never push, force-push, or delete `main`. Skill-source-only work follows the branch policy in [Repo skills](#repo-skills). Commit, push, PR, and merge actions require explicit authorization. Older no-staging/main-only claims in README and DEPLOYMENT are stale; verify current operational targets with the caller. Protection/check-name background: [Branching & main protection](README.md#branching--main-protection).
 
 ---
 
@@ -56,7 +56,7 @@ Never push, force-push, or delete `main`. Open a pull request from a short-lived
 For any **behavior-touching** change:
 
 1. Run the **simplify-pass** skill ([`.agents/skills/simplify-pass/SKILL.md`](.agents/skills/simplify-pass/SKILL.md)).
-2. Run **`./scripts/ci-local.sh`** from repo root; must be green before claiming ready to commit (includes Playwright E2E).
+2. The calling bot runs **`./scripts/ci-local.sh`** serially on a fresh local test database; it must be green before claiming ready to commit (includes Playwright E2E). Native CLI subagents run only authorized focused checks and report the full gate as pending; they do not run this script, including when a repo skill prescribes it.
 3. **Stop** — do not commit or push unless the user explicitly asks.
 4. Stress Playwright ×N **only if the user asks** (`workflow_dispatch` / `[e2e-stress-N]`).
 
@@ -73,19 +73,19 @@ Docs/rules/skills-only changes: no PRODUCT edits unless asked; commit when the u
 
 ## Repo skills
 
-Read the skill file when the trigger matches. Skills live under [`.agents/skills/`](.agents/skills/).
+Read the skill file when the trigger matches. Canonical BUZZ skill sources live on `main` under [`.agents/skills/`](.agents/skills/); prepare skill-source-only work on feature branches based on `main`, targeting `main` for review. Regular app feature work targets `staging`. Commit, push, PR, and merge actions still require explicit authorization. OpenBot installations are separate consumers; editing these sources does not publish, install, or update them. Provider/host CLI procedures and general measured browser audits remain outside this repo.
 
 | Skill | When |
 | ----- | ---- |
+| [`buzz-coding-agent`](.agents/skills/buzz-coding-agent/SKILL.md) | BUZZ implementation/review brief, CLI handoff, branch/check/approval boundaries |
+| [`buzz-design-and-brand`](.agents/skills/buzz-design-and-brand/SKILL.md) | BUZZ visual work, pen-first design, staging match, logos, visual trims, verification guides |
+| [`buzz-staging-operations`](.agents/skills/buzz-staging-operations/SKILL.md) | Staging/lab verification, gates/allowlists, test access, service read/write boundaries |
 | [`fix-gap-cluster`](.agents/skills/fix-gap-cluster/SKILL.md) | `run next cluster`, `run cluster <id>`, `swarm gaps` |
-| [`parallel-branch-swarm`](.agents/skills/parallel-branch-swarm/SKILL.md) | `swarm parallel`, parallel branches/slices, multi-branch handoff |
 | [`ship-change`](.agents/skills/ship-change/SKILL.md) | Feature / fix / chore that is not a gap cluster |
-| [`simplify-pass`](.agents/skills/simplify-pass/SKILL.md) | After implementation, before claiming done / before CI archive |
+| [`simplify-pass`](.agents/skills/simplify-pass/SKILL.md) | Post-change scope/reuse/docs/gaps checks, before verification and caller handoff |
 | [`file-gap`](.agents/skills/file-gap/SKILL.md) | New finding → create `gaps/<id>.md` correctly |
-| [`react-patterns`](.agents/skills/react-patterns/SKILL.md) | Writing/reviewing React components |
-| [`react-performance`](.agents/skills/react-performance/SKILL.md) | React/Next performance work |
-| [`react-testing`](.agents/skills/react-testing/SKILL.md) | Component tests vs E2E boundary |
-| [`ui-fit-finish`](.agents/skills/ui-fit-finish/SKILL.md) | `run ui fit-finish` / `run UI token pass` — shells + form primitives |
+| [`react-patterns`](.agents/skills/react-patterns/SKILL.md) | React 18 SPA components, state/forms/accessibility, shared primitives, measured rendering performance |
+| [`react-testing`](.agents/skills/react-testing/SKILL.md) | Installed Jest/React DOM harness, smoke tests, component vs Playwright boundary |
 
 Cursor **user** skills under `~/.cursor/skills-cursor/` are IDE-local and **not** repo SOT.
 
