@@ -7,11 +7,11 @@ description: >-
 
 # BUZZ design and brand
 
-Use with [coding agent](../buzz-coding-agent/SKILL.md) for visual work.
+Use with `buzz-coding-agent` for visual work.
 Run its active-checkout discovery first. If only screenshots/artifacts exist,
 review those within scope; app implementation is not applicable without code.
 Deployment and external asset boundaries are in
-[staging operations](../buzz-staging-operations/SKILL.md).
+`buzz-staging-operations`.
 
 ## Pen first, then match
 

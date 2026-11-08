@@ -7,7 +7,7 @@ description: >-
 
 # React testing
 
-Run [active-checkout discovery](../buzz-coding-agent/SKILL.md#discover-the-active-checkout-first).
+Run `buzz-coding-agent` (active-checkout discovery).
 No frontend app means these test steps are not applicable. Resolve the active
 testing guidance; inspect package manifests/lockfiles, test scripts, runner
 configuration, setup files, helpers, and nearby tests before selecting APIs.

@@ -13,12 +13,12 @@ un-parking deferred work without named IDs.
 
 ## Resolve sources and permissions
 
-Run [active-checkout discovery](../buzz-coding-agent/SKILL.md#discover-the-active-checkout-first).
+Run `buzz-coding-agent` (active-checkout discovery).
 Resolve canonical gap records, schema/close policy, queue, and locked approaches
 from active instructions. Examples such as `gaps/README.md`,
 `gaps/CLUSTERS.md`, and `.cursor/rules/gaps-tracker.mdc` apply only when
 present and canonical. They may instead live in authorized private operations
-sources. Use [file-gap](../file-gap/SKILL.md) for new findings.
+sources. Use `file-gap` for new findings.
 
 Do not create a local competing tracker. Missing queue/schema/access means
 request the needed context before selection or writes. Private-repo status,
@@ -43,7 +43,7 @@ the authorized app task/context if a code fix is required.
    schema and write scope; otherwise request caller-owned updates.
 4. **Implement:** execute only the locked approach. Preserve auth/security
    invariants and unrelated changes; no drive-by refactors or neighboring work.
-5. **Simplify:** run [simplify-pass](../simplify-pass/SKILL.md).
+5. **Simplify:** run `simplify-pass`.
 6. **Verify:** run only authorized focused checks discovered for this app.
    Native CLI subagents never run `./scripts/ci-local.sh`; the caller owns the
    serialized full gate on a fresh local test database. Behavior fixes need

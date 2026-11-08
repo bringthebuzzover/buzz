@@ -9,8 +9,8 @@ description: >-
 # Ship change
 
 For work outside a gap cluster. Run active-checkout/source discovery in
-[coding agent](../buzz-coding-agent/SKILL.md) first. Cluster work uses
-[fix-gap-cluster](../fix-gap-cluster/SKILL.md).
+`buzz-coding-agent` first. Cluster work uses
+`fix-gap-cluster`.
 
 ## Explore and decide
 
@@ -24,7 +24,7 @@ For work outside a gap cluster. Run active-checkout/source discovery in
    Verify material findings against cited files before acting on them.
 4. Compare options using evidence; state uncertainty. Stop for approval on
    unapproved PRODUCT/UX/behavior forks. Visual work follows
-   [design and brand](../buzz-design-and-brand/SKILL.md).
+   `buzz-design-and-brand`.
 5. Keep a task-specific plan for multi-step work; mark steps complete only
    after verification.
 
@@ -33,7 +33,7 @@ For work outside a gap cluster. Run active-checkout/source discovery in
 Prefer the smallest complete fix and existing helpers/primitives. Cover API,
 SPA, jobs, and generated contracts only as the task requires. Do not expand into
 unrelated refactors, dependencies, infrastructure writes, or deferred gaps.
-Run [simplify-pass](../simplify-pass/SKILL.md) before claiming done.
+Run `simplify-pass` before claiming done.
 
 ## Verify and hand off
 

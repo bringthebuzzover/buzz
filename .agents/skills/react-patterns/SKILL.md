@@ -7,7 +7,7 @@ description: >-
 
 # React patterns
 
-Run [active-checkout discovery](../buzz-coding-agent/SKILL.md#discover-the-active-checkout-first)
+Run `buzz-coding-agent` (active-checkout discovery)
 first. If there is no React app, report these steps as not applicable.
 Inspect the actual package manifest, versions, entry/provider tree, router,
 API hooks, forms, and adjacent components. The observed app branches use React
@@ -42,7 +42,7 @@ and errors to fields, preserve native controls, semantic buttons/links,
 appropriate button types, keyboard access, and visible focus. Reuse an existing
 accessible dialog's focus/escape behavior when available. If an essential
 primitive is missing, resolve that implementation decision within task scope.
-New visual decisions follow [design and brand](../buzz-design-and-brand/SKILL.md).
+New visual decisions follow `buzz-design-and-brand`.
 
 ## Performance within the SPA
 
