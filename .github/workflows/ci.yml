@@ -159,7 +159,8 @@ jobs:
   frontend-e2e:
     name: Frontend E2E (Playwright) #${{ matrix.attempt }}
     needs: [e2e-matrix]
-    runs-on: ubuntu-latest
+    # ubuntu-latest is 26.04; Playwright <1.61 has no Chromium for that host.
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
