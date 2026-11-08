@@ -73,7 +73,7 @@ Docs/rules/skills-only changes: no PRODUCT edits unless asked; commit when the u
 
 ## Repo skills
 
-Read the skill file when the trigger matches. Canonical BUZZ skill sources live on `main` under [`.agents/skills/`](.agents/skills/); prepare skill-source-only work on feature branches based on `main`, targeting `main` for review. Regular app feature work targets `staging`. Commit, push, PR, and merge actions still require explicit authorization. OpenBot installations are separate consumers; editing these sources does not publish, install, or update them. Provider/host CLI procedures and general measured browser audits remain outside this repo.
+Read the skill file when the trigger matches. Canonical BUZZ skill sources live on `main` under [`.agents/skills/`](.agents/skills/); prepare skill-source-only work on feature branches based on `main`, targeting `main` for review. The same nine skill files are intended for every branch: discover the active checkout's instructions, source locations, stack, and applicable steps before use. Availability on other branches requires separately authorized Git propagation; editing these sources does not distribute them or promise automatic sync. Regular app feature work targets `staging`. Commit, push, PR, and merge actions still require explicit authorization. OpenBot installations are separate consumers; editing these sources does not publish, install, or update them. Provider/host CLI procedures and general measured browser audits remain outside this repo.
 
 | Skill | When |
 | ----- | ---- |

@@ -1,69 +1,95 @@
 ---
 name: buzz-coding-agent
 description: >-
-  BUZZ coding-agent brief and handoff: repository sources, implementation and
-  review loop, feature branches into staging, caller-owned gate, and approvals.
+  BUZZ active-checkout discovery and coding handoff across app, design, and
+  artifact branches: canonical sources, installed stack, checks, and approvals.
 ---
 
 # BUZZ coding agent
 
-Project layer for work on `bringthebuzzover/buzz`. Read
-[AGENTS.md](../../../AGENTS.md) first. Provider invocation, model selection,
-sandbox setup, and usage tracking belong to the caller's native CLI guidance;
-do not embed host wrappers, private briefs, or provider flags here. This skill
-does not authorize delegation to persistent OpenBot bots.
+Project layer for `bringthebuzzover/buzz`. Provider invocation, model selection,
+sandbox setup, and usage tracking belong to the caller's native CLI guidance.
+This skill does not authorize delegation to persistent OpenBot bots.
 
-## Establish scope
+## Discover the active checkout first
 
-1. Confirm the assigned checkout, branch, working-tree state, goal, acceptance
-   criteria, approved decisions, exclusions, and checks. Preserve unrelated work.
-2. Read relevant [PRODUCT.md](../../../PRODUCT.md),
-   [ARCHITECTURE.md](../../../ARCHITECTURE.md), tests, and related
-   [gaps](../../../gaps/). Investigate before patching; ask on unapproved product forks.
-3. Use [ship-change](../ship-change/SKILL.md) for ordinary features/fixes/chores
-   or [fix-gap-cluster](../fix-gap-cluster/SKILL.md) for cluster work.
-   Visual work also uses [design and brand](../buzz-design-and-brand/SKILL.md).
-4. Handoffs include relevant repo-relative paths, evidence, decisions, line
-   budget if supplied, and verification requirements. Keep private operational
-   context outside the public repository.
+Use this procedure before any dependent skill. Do not assume another branch's
+layout, documentation, installed packages, deployment, or permissions.
+
+1. Confirm the authorized repository root, current branch and working-tree state
+   using read-only Git commands. Inspect the file inventory (for example,
+   `rg --files --hidden`) before opening paths. Preserve unrelated changes.
+2. Read applicable `AGENTS.md` instructions if present and the caller's current
+   task/context pack. Source, PR target, rollout, and approval policy come from
+   those instructions; do not infer them from a branch name. If instructions
+   are absent or conflict, request the missing decision before dependent work.
+3. Resolve product, architecture, testing, deployment, Meta, gaps, and ideas
+   sources from those instructions. Some branches have root `PRODUCT.md`,
+   `ARCHITECTURE.md`, `TESTING.md`, `DEPLOYMENT.md`, `META.md`, and `gaps/`;
+   others direct them to the separate private operations repository. Verify each
+   source exists and is authorized before reading it. Use a caller-supplied
+   context pack if private access is unavailable; request missing sections.
+   Do not create competing local docs/trackers or copy private material public.
+4. Establish whether this is an app checkout. Inspect existing package manifests,
+   lockfiles, scripts, source trees, tests, and tool configuration before choosing
+   commands. Examples such as `frontend/package.json` and `backend/pyproject.toml`
+   are candidates, not required paths. Determine actual versions and helpers.
+5. Artifact/screenshot-only branches may have no app, instructions, or docs.
+   Report app implementation/tests/contract/gap steps as not applicable there.
+   Review authorized artifacts if relevant; request context if code work is
+   required. Never invent app paths, install a stack, use production, or switch
+   to another worktree/repository as an automatic fallback.
+6. Record separately in discovery and the task plan/handoff: the active checkout
+   root and app root (app root may be absent on artifact branches), canonical
+   documentation source(s), canonical gaps/queue root, and verified project
+   working directories for commands. Also record applicable steps, missing
+   context, goal, approved decisions, acceptance criteria, exclusions, and allowed
+   checks. Verify material claims against current files before patching.
+
+Code, package, helper, generator, and test path examples are candidates relative
+to the active app root, never the private documentation root. Product/documentation
+paths and gap schema/queue paths are relative to their separately resolved
+canonical documentation or tracker root. Run commands only from their verified
+project working directory. Resolve skill-relative links from each SKILL.md's
+directory. On artifact branches, a private docs/tracker root is not a substitute
+app checkout. Skill-to-skill links are the only fixed file links.
+Missing required sources block dependent work; optional absent primitives call
+for an existing equivalent, not a new dependency.
 
 ## Implement and review
 
-- Backend uses FastAPI, async SQLAlchemy, Pydantic, and Poetry under
-  [backend](../../../backend/README.md). Reuse services and keep routes thin.
-- Frontend is a React 18 / TypeScript SPA. Follow
-  [React patterns](../react-patterns/SKILL.md) and
-  [React testing](../react-testing/SKILL.md).
-- Regenerate contracts after route/schema changes: from `backend/`,
-  `poetry run python scripts/dump_openapi.py`; from `frontend/`, `npm run gen:api`.
-  Never hand-edit generated contract files.
-- Keep backend and frontend drop lifecycle computations consistent. Check
-  callers, tests, and PRODUCT before changing stage behavior.
-- Prefer the smallest complete fix and existing helpers. No drive-by changes,
-  new dependencies, or unrequested persistent writes.
-- Run [simplify-pass](../simplify-pass/SKILL.md). Run authorized focused checks
-  from [TESTING.md](../../../TESTING.md), recording exact commands and outcomes.
-  Native CLI subagents do not run `./scripts/ci-local.sh`; the calling bot owns
-  the serialized full gate on a fresh local test database. Full CI including
-  Playwright remains required for behavior changes before declaring readiness.
-  Docs/skills-only work needs focused validation. Stress runs require a request.
-- The caller reviews the diff and public-data hygiene, obtains a fresh review
-  when appropriate, fixes findings, and repeats until ready.
+Use [ship-change](../ship-change/SKILL.md) for ordinary work or
+[fix-gap-cluster](../fix-gap-cluster/SKILL.md) for clusters.
+Visual work uses [design and brand](../buzz-design-and-brand/SKILL.md);
+React work uses [patterns](../react-patterns/SKILL.md) and
+[testing](../react-testing/SKILL.md).
 
-## Branch and approval boundaries
+In app checkouts, reuse existing services, API clients, generated types, and
+shared primitives. Read relevant behavior sources and callers first; ask on
+unapproved product forks. Keep lifecycle computations consistent across layers.
 
-Follow [AGENTS.md](../../../AGENTS.md#branching) for app and skill-source branch
-policies. App production promotion requires separate approval.
-Never push, force-push, or delete `main`; never infer merge or production
-approval from green checks. Do not release an item on hold without explicit approval.
+For route/schema changes, discover the actual contract generator and frontend
+generation script before running them. Common candidates are
+`backend/scripts/dump_openapi.py` and `frontend/`'s `gen:api` script.
+Never hand-edit generated contracts or require generators in artifact branches.
 
-CLI subagents leave changes uncommitted. The calling bot owns authorized Git
-operations and PRs; a coding request alone does not authorize commit, push, PR,
-merge, deploy, email, or service writes. After an approved staging merge, use
-[staging operations](../buzz-staging-operations/SKILL.md) to verify the intended
-deployment without promoting it.
+Run [simplify-pass](../simplify-pass/SKILL.md) and authorized focused checks.
+Native CLI subagents do not run `./scripts/ci-local.sh`; the caller owns the
+serialized full gate on a fresh local test database where required by active
+instructions. Report pending/full-gate failures honestly. Docs/skills-only work
+uses focused validation; stress runs require a request.
 
-Report changed files, diff size and reasons for growth, exact checks/results,
-pending caller gate, residual gaps, and blockers. Never put credentials, real
-contact data, private host paths, infrastructure identifiers, or internal URLs
-in tracked code, fixtures, docs, or handoffs.
+## Boundaries and handoff
+
+CLI subagents leave changes uncommitted. Commit, push, PR, merge, production
+promotion, deploy, email, service writes, and private-repo writes require explicit
+authorization for that action. Never push, force-push, or delete `main`, infer
+approval from green checks, or release an item on hold without approval.
+Deployment target must be established independently through authorized context
+and verified metadata, never merely from the checked-out branch.
+
+Report changed files, diff size/reasons for growth, exact checks/results,
+non-applicable steps, pending caller gate, gaps, and blockers. Keep credentials,
+personal data, private paths, infrastructure IDs, and internal URLs out of public
+files. After an approved deployment, use
+[operations](../buzz-staging-operations/SKILL.md) within its read/write boundaries.

@@ -1,45 +1,41 @@
 ---
 name: file-gap
 description: >-
-  Turn a finding into a proper gaps/<id>.md with YAML frontmatter per
-  gaps/README.md. Use when the user says file a gap, or when explore/simplify
-  discovers a hole that must not stay chat-only.
+  Record a verified BUZZ broken path in the active checkout's canonical gaps
+  source and schema, respecting private-source access and write authorization.
 ---
 
 # File a gap
 
-Living shortcomings SOT is [`gaps/`](../../../gaps/) only. Schema: [`gaps/README.md`](../../../gaps/README.md).
+Run [source discovery](../buzz-coding-agent/SKILL.md#discover-the-active-checkout-first)
+before filing. Resolve the canonical gap root, schema, status vocabulary, and
+close policy from active instructions or an authorized context pack.
+Local `gaps/README.md` is only one possible source; some branches keep the
+tracker in the private operations repository. Do not create a competing local
+tracker when sources moved private.
 
 ## Steps
 
-1. Confirm it is a **broken path today** (not a PRODUCT “Later” idea).
-2. Choose `id` = `surface.slug` (filename stem must match), e.g. `auth.example-hole`.
-3. Create `gaps/<id>.md` with frontmatter:
+1. Confirm a broken path today, not a future product idea. Verify evidence
+   against the active app or authorized artifacts; if required code/context is
+   missing, report that limitation rather than inventing a gap.
+2. Verify read access and explicit authorization for writes to the canonical
+   destination. An app coding request does not authorize private-repo edits.
+   If blocked, provide a concise proposed finding/schema fields to the caller
+   for filing; do not write a substitute tracker or expose private context.
+3. Read the actual schema before writing. Where it uses `gaps/<id>.md`, choose
+   an ID such as `auth.example-hole` with matching filename/frontmatter ID.
+   Typical fields include title, kind, severity, status, surface, evidence,
+   repro, and fix_when; use the canonical required fields/enums, not a copied
+   universal template.
+4. Include current evidence, a read-only-safe repro, acceptance criteria, and
+   relevant links. Use obviously fake data, never secrets or personal data.
+5. If batching and authorized, add the ID to the resolved canonical cluster
+   queue with its locked approach. Do not invent a parallel queue or mega-list.
 
-```yaml
----
-id: surface.slug-here
-title: One-line title
-kind: unrecoverable | silent_loss | invariant_break | authz | ux_hole | ops | dead_code | test_gap | doc_drift
-severity: P0 | P1 | P2 | P3
-status: open
-surface: auth | org | brand | admin | drops | jobs | models | spa | deploy | product | openapi
-evidence:
-  - path: path/to/file
-    note: one-sentence why
-repro: |
-  Short test / curl / SQL outline.
-fix_when: |
-  Acceptance criteria for archiving.
----
-```
+## Close and hold boundaries
 
-4. Body: notes, read-only-safe probes, links. No secrets.
-5. Optionally note the id under a cluster in [`gaps/CLUSTERS.md`](../../../gaps/CLUSTERS.md) **only** if batching — do not invent a parallel bug list.
-6. Do **not** recreate `KNOWN_GAPS.md` or append to mega triage tables as SOT.
-
-## Do not
-
-- Delete gap files (archive when fixed).
-- Un-park deferred/parked items unless the user names them.
-- Change PRODUCT to “fix” a gap without explicit ask.
+Follow the canonical archive/status policy; do not delete gap records or mark
+an unverified fix complete. Do not un-park deferred work unless the user names
+it, or change product behavior without approval. Report the record ID/location,
+verification, and any caller-owned filing/approval still needed.

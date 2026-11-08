@@ -8,6 +8,8 @@ description: >-
 # BUZZ design and brand
 
 Use with [coding agent](../buzz-coding-agent/SKILL.md) for visual work.
+Run its active-checkout discovery first. If only screenshots/artifacts exist,
+review those within scope; app implementation is not applicable without code.
 Deployment and external asset boundaries are in
 [staging operations](../buzz-staging-operations/SKILL.md).
 
@@ -19,9 +21,9 @@ Deployment and external asset boundaries are in
 2. Update the design for the item before implementation. New UI or behavior
    needs user approval; a coding request does not settle a product fork.
    An external design edit also requires authorization for that write.
-3. Implement the approved screen in app code for staging. Real interactions
+3. Where app code exists, implement for the caller-authorized target. Real interactions
    and animations may extend a static frame while preserving the approved design.
-4. Compare each relevant frame with staging screenshots at matching viewport
+4. Compare each relevant frame with screenshots of the explicitly selected UI at matching viewport
    sizes and states. Fix missing frames and visual drift before claiming a match.
    Request permission before each laptop UI-control action.
 5. Visual trims preserve appearance and behavior; use before/after screenshots
@@ -29,11 +31,11 @@ Deployment and external asset boundaries are in
 
 ## Reuse the current branch's brand assets
 
-Consult [site identity](../../../frontend/src/data/siteIdentity.ts),
-[logos](../../../frontend/public/logos/), and
-[theme tokens](../../../frontend/src/theme/tokens.ts).
-Current assets include `buzz-logo.svg`, `buzz-logo-coral.svg`, and `bee.svg`;
-verify asset names on the selected branch before using them.
+Discover existing identity configuration, assets, styles, tokens, and callers.
+Candidates include `frontend/src/data/siteIdentity.ts`, `frontend/public/logos/`,
+and `frontend/src/theme/`; inspect only paths present in this checkout.
+Logo filenames and component names differ by branch. Reuse the approved current
+assets rather than requiring a particular wordmark variant to exist.
 
 Preserve the original bee's body, stripes, and wings; never invert or recolor
 the bee. Approved light/dark wordmark variants change letters and flight-path
@@ -41,9 +43,10 @@ dots; the approved dark variant may use a thin light head/antenna outline.
 Reuse existing SVG art and the approved frame rather than generating a new mark.
 Show the full logo without cropping.
 
-Use shared [form controls](../../../frontend/src/components/forms/controls.tsx),
-[shells](../../../frontend/src/components/site/), and theme tokens. Avoid a
-parallel set of controls or arbitrary per-page colors.
+Discover and reuse existing shared form controls, shells, and theme tokens.
+Do not assume exact filenames or create a parallel control system. Missing
+required design/assets means request context; do not import from another tree
+or invent a new design as a fallback.
 
 ## External assets and guides
 

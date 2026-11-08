@@ -9,27 +9,29 @@ description: >-
 
 Run after implementation and before claiming ready or handing off the gate.
 This checklist authorizes neither broad refactors nor product/external writes.
-Follow [AGENTS.md](../../../AGENTS.md).
+Run [active-checkout/source discovery](../buzz-coding-agent/SKILL.md#discover-the-active-checkout-first).
+Apply only relevant steps; absent app code makes code/contract checks not
+applicable. Missing required canonical context blocks dependent claims.
 
 ## Checklist
 
 1. **Scope:** only files needed for the task; preserve unrelated user changes.
 2. **Reuse:** no duplicate helper or competing source for a touched concern.
    Prefer deletion/reuse over abstractions or dependencies without evidence.
-3. **Sources:** point to [PRODUCT.md](../../../PRODUCT.md),
-   [ARCHITECTURE.md](../../../ARCHITECTURE.md), and
-   [gaps](../../../gaps/) rather than copying behavior into rules or comments.
+3. **Sources:** refer to resolved product, architecture, and gap sources rather
+   than copying behavior into rules/comments. Respect private context boundaries;
+   do not create local competing sources when documentation lives elsewhere.
 4. **Names/dead code:** consistent names across touched layers; no unused
    exports, imports, flags, branches, or obsolete links from this diff.
-5. **Contract:** after route/schema changes, from `backend/` run
-   `poetry run python scripts/dump_openapi.py`, then from `frontend/` run
-   `npm run gen:api`. Include both generated artifacts; never hand-edit them.
+5. **Contract:** for route/schema changes, discover existing generator scripts
+   and commands first; regenerate and include the actual contract artifacts.
+   Never hand-edit them or require app generators in artifact-only trees.
 6. **Docs:** fix drift caused within the authorized scope. PRODUCT/behavior
    changes need approval. For skills-only work, verify frontmatter, relative
    links, index, inventory, and public-data hygiene.
 7. **Gaps:** record discovered broken paths with
-   [file-gap](../file-gap/SKILL.md) under the
-   [gap schema](../../../gaps/README.md) when within authorized write scope.
+   [file-gap](../file-gap/SKILL.md) under the resolved canonical gap schema
+   when within authorized write scope, including separate private-repo approval.
    If gap writes are excluded, report the finding for the caller to file.
    Never create a second debt list, un-park deferred work, or archive an
    unverified fix.

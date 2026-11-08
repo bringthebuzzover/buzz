@@ -3,21 +3,22 @@ name: ship-change
 description: >-
   Implement a non-cluster BUZZ feature, fix, or chore: investigate, resolve
   product forks, implement, simplify, verify, and hand off for caller-owned
-  full CI and authorized feature-branch PRs into staging.
+  full CI and authorized feature-branch workflow from current instructions.
 ---
 
 # Ship change
 
-For work outside a gap cluster. Follow [AGENTS.md](../../../AGENTS.md) and
-[coding agent](../buzz-coding-agent/SKILL.md). Cluster work uses
+For work outside a gap cluster. Run active-checkout/source discovery in
+[coding agent](../buzz-coding-agent/SKILL.md) first. Cluster work uses
 [fix-gap-cluster](../fix-gap-cluster/SKILL.md).
 
 ## Explore and decide
 
 1. Confirm the assigned branch/checkout and scope; preserve unrelated work.
-2. Read relevant [PRODUCT.md](../../../PRODUCT.md) sections,
-   [ARCHITECTURE.md](../../../ARCHITECTURE.md), related
-   [gaps](../../../gaps/), callers, and tests.
+2. Read resolved product/architecture guidance, related canonical gaps, callers,
+   and tests. Sources may be local or caller-authorized private context. If
+   this is an artifact-only branch, report code steps as not applicable; request
+   missing app context before dependent work, without changing trees automatically.
 3. Where authorized, use CLI subagents for independent non-trivial questions;
    do not delegate OpenBot bots. A caller's no-delegation instruction wins.
    Verify material findings against cited files before acting on them.
@@ -36,7 +37,8 @@ Run [simplify-pass](../simplify-pass/SKILL.md) before claiming done.
 
 ## Verify and hand off
 
-Run authorized focused checks from [TESTING.md](../../../TESTING.md).
+Run authorized focused checks from the discovered test scripts/configuration
+and resolved testing guidance; verify paths and prerequisites before running.
 Behavior changes require the full local gate including Playwright before being
 declared ready. Native CLI subagents never run `./scripts/ci-local.sh`: the
 calling bot runs it serially on a fresh local test database. If the caller has
@@ -49,6 +51,6 @@ results, gaps/residual risk, and blockers. Leave changes uncommitted for caller
 review. Coding authorization does not authorize commit, push, PR, merge, deploy,
 or external messages. The caller owns those actions when explicitly approved.
 
-Follow [AGENTS.md](../../../AGENTS.md#branching) for app and skill-source branch
-policies. Never push, force-push, or delete `main`, release an item on hold,
+Follow the discovered checkout instructions and current caller context for
+app/skill-source branch policies. Never push, force-push, or delete `main`, release an item on hold,
 or promote production without approval.

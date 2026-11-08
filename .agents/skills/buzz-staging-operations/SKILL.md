@@ -13,8 +13,10 @@ Use [coding agent](../buzz-coding-agent/SKILL.md) for code and PR work and
 
 ## Establish the target
 
-- Follow [AGENTS.md](../../../AGENTS.md#branching) for app and skill-source
-  branch policies. Production promotion requires separate approval.
+- Run [active-checkout discovery](../buzz-coding-agent/SKILL.md#discover-the-active-checkout-first).
+  Use current instructions/context for branch and rollout policy. Missing app
+  code makes code/build steps not applicable; it does not select a live target.
+  Production promotion requires separate approval.
 - Staging and production are distinct operational targets. Lab is a separate
   design build, not an automatic copy of the app feature branch.
 - Gate/allowlist runbooks and deployment assets belong to the separate private
@@ -22,10 +24,10 @@ Use [coding agent](../buzz-coding-agent/SKILL.md) for code and PR work and
 - Resolve current hosts, project/service selection, preview rules, and access
   details from the caller's authorized operational context. Never guess from
   a label, copy private identifiers here, or probe production as a fallback.
-- [DEPLOYMENT.md](../../../DEPLOYMENT.md) and [META.md](../../../META.md)
-  provide app configuration context. Their older main-only/no-staging claims
-  are stale; use the workflow above and verify current target metadata read-only
-  before acting. Report other conflicts instead of silently choosing a target.
+- Resolve deployment and Meta guidance through discovery: it may be local or
+  in authorized private operations sources/context packs. Verify target metadata
+  read-only and report conflicting/missing context before acting. A checkout's
+  branch name is never sufficient evidence of a deployment target.
 
 Environment-specific gate behavior is settings-driven, never a staging-only
 application-code fork. Do not enable staging access settings in production.
@@ -34,12 +36,13 @@ alone does not prove which infrastructure or database a service targets.
 
 ## Verify an approved staging deployment
 
-1. Confirm the intended commit landed on `staging`, and match the selected
+1. Confirm the caller-authorized source revision and rollout branch, and match the selected
    deployment, environment, service, and source SHA before reading logs.
 2. Frontend-only changes may leave backend/cron deployments unchanged.
    Check the replacement deployment before treating shutdown SIGTERM or a
    superseded deployment status as an incident.
-3. Check the intended staging API's `/api/health` for HTTP 200 and verify the
+3. Verify the documented health endpoint exists (commonly `/api/health`),
+   check the intended staging API for its expected response, and verify the
    changed screens. Health alone does not prove the changed behavior works.
    UI control requires separate permission for each action.
 4. Report SHA, target role, health and screen evidence, and remaining failures.
