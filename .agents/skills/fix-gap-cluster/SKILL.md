@@ -1,122 +1,64 @@
 ---
 name: fix-gap-cluster
 description: >-
-  Run a gap cluster from gaps/CLUSTERS.md: explore first, plan and create todos,
-  implement, simplify-pass, full CI gate including mandatory Playwright E2E,
-  archive fixed gaps, then STOP and wait for the user to ask for commit/push.
-  Use when the user says run next cluster, run cluster <id>, swarm gaps, or
-  fix gap cluster.
+  Run a BUZZ gap cluster from its resolved canonical queue: investigate,
+  plan, implement, simplify, obtain caller CI, then archive only with approval.
 ---
 
 # Fix gap cluster
 
-## When to use
+Use for `run next cluster`, `run cluster <id>`, `swarm gaps`, or
+`execute gap cluster`. Not for inventing clusters, whole-repo audits, or
+un-parking deferred work without named IDs.
 
-User intent matches:
+## Resolve sources and permissions
 
-- `run next cluster`
-- `run cluster <id>` (e.g. `run cluster jobs-metrics`)
-- `swarm gaps`
-- `execute gap cluster`
+Run [active-checkout discovery](../buzz-coding-agent/SKILL.md#discover-the-active-checkout-first).
+Resolve canonical gap records, schema/close policy, queue, and locked approaches
+from active instructions. Examples such as `gaps/README.md`,
+`gaps/CLUSTERS.md`, and `.cursor/rules/gaps-tracker.mdc` apply only when
+present and canonical. They may instead live in authorized private operations
+sources. Use [file-gap](../file-gap/SKILL.md) for new findings.
 
-Do **not** use for inventing new gaps, full-repo audits, or un-parking deferred
-items unless the user names those gap ids explicitly.
+Do not create a local competing tracker. Missing queue/schema/access means
+request the needed context before selection or writes. Private-repo status,
+queue, and archive edits need explicit write authorization; if unavailable,
+hand proposed changes to the caller and report the cluster as pending.
+On artifact-only branches, code implementation/CI is not applicable; request
+the authorized app task/context if a code fix is required.
 
-## Sources of truth
+## Execution spine
 
-| What | Where |
-|------|--------|
-| Bug details | `gaps/<id>.md` |
-| Execution order + locked approach | `gaps/CLUSTERS.md` |
-| Close policy | `gaps/README.md` + `.cursor/rules/gaps-tracker.mdc` |
+1. **Select:** read the canonical queue. For “next,” choose the first actionable
+   pending cluster, resuming an actionable in-progress cluster when appropriate.
+   Skip parked/deferred/ops/done items; ops work requires a named request.
+   A named cluster selects only that cluster. Honor every `stop_if`.
+2. **Explore:** read each record, evidence, callers, and tests. Verify the locked
+   approach still matches current code. Use CLI subagents only where authorized;
+   never delegate bots from this skill or trust unverified summaries. Ask on
+   new product forks, conflicting sources, or a changed locked approach.
+3. **Plan:** keep concrete tasks for implementation, simplify, checks, and
+   authorized tracker updates. Tell the caller the cluster, IDs, and plan.
+   Set queue/record status to in-progress only where authorized by the resolved
+   schema and write scope; otherwise request caller-owned updates.
+4. **Implement:** execute only the locked approach. Preserve auth/security
+   invariants and unrelated changes; no drive-by refactors or neighboring work.
+5. **Simplify:** run [simplify-pass](../simplify-pass/SKILL.md).
+6. **Verify:** run only authorized focused checks discovered for this app.
+   Native CLI subagents never run `./scripts/ci-local.sh`; the caller owns the
+   serialized full gate on a fresh local test database. Behavior fixes need
+   full green CI including Playwright before closure, even backend-only fixes.
+   Missing/broken gate setup is a blocker, not a pass. Stress only on request.
+7. **Archive:** only after verified acceptance and required green CI, move fixed
+   records and set statuses under the canonical close policy, within explicit
+   write scope. Where the schema uses an archive and `status: fixed`, preserve
+   that convention and add `closed_in` only when known. Mark the queue done
+   only after all required work is verified; otherwise leave it pending.
+8. **Stop:** report IDs, changed files, checks, pending caller gate/tracker
+   writes, residual risks, blockers, and remaining actionable queue items.
+   Leave changes uncommitted; Git/PR/merge/deploy actions need separate approval.
 
-Never recreate `KNOWN_GAPS.md`. Never delete gap files — archive them.
-
-## Execution spine (every run)
-
-Follow these phases **in order**. Do not skip Explore/Plan and jump to code.
-
-### Phase 1 — Select
-
-1. **Read** [`gaps/CLUSTERS.md`](../../../gaps/CLUSTERS.md).
-2. **Select cluster**
-   - `run next cluster` → first cluster with `status: pending` (skip `parked` /
-     `ops` / `done`). If the first actionable cluster is already `in_progress`
-     from a prior interrupted run, resume that one.
-   - `run cluster <id>` → that id only.
-   - `ops-deploy` requires the user to name it; never auto-pick as “next”.
-3. **Honor `stop_if`** — if a listed condition is true, stop and ask before coding.
-
-### Phase 2 — Explore (read-only)
-
-4. Re-read each gap file in the cluster (`gaps/<id>.md`).
-5. Read the evidence paths and related tests/callers. Confirm the locked
-   `approach` in `CLUSTERS.md` still matches the code. Note any drift.
-   Use **parallel subagents** when POVs fork (BE vs FE, tests vs call sites).
-   **Verify** each material claim (open cited paths; do not trust summaries alone)
-   before planning or coding.
-6. If exploration finds a product fork not covered by `approach` / `stop_if`,
-   **stop and ask** — do not invent a new approach silently.
-
-### Phase 3 — Plan / tasks
-
-7. Create a todo list (TodoWrite) with concrete implementation steps derived
-   from the cluster `approach` (one todo per major step + CI + archive).
-8. Briefly tell the user the cluster id, gap ids, and the planned task list
-   **before** editing production code (a short message is enough; do not wait
-   for a second “go” unless `stop_if` fired).
-9. Set cluster `status: in_progress` in `CLUSTERS.md`.
-10. Set each listed gap file `status: in_progress`.
-
-### Phase 4 — Execute
-
-11. **Implement** the cluster `approach` (locked). Do not expand to neighboring
-    clusters. Mark todos completed as you go. Prefer parallel subagents during
-    explore when POVs fork (see [`AGENTS.md`](../../../AGENTS.md)).
-
-### Phase 5 — Simplify + full CI / E2E gate
-
-12. Run [`.agents/skills/simplify-pass/SKILL.md`](../simplify-pass/SKILL.md).
-13. Run the **full** gate from repo root (must be green before archive):
-
-    ```bash
-    ./scripts/ci-local.sh
-    ```
-
-    That script mirrors `.github/workflows/ci.yml`: backend black/ruff/mypy/
-    openapi dump+diff / alembic / pytest → frontend tsc / gen:api diff / build →
-    **Playwright E2E with `CI=true`**. Do not skip E2E for “backend-only”
-    clusters. Do not substitute a partial checklist unless the script itself
-    fails for an environment reason you then fix and re-run.
-    Stress Playwright ×N **only if the user asks**.
-
-14. On green: **archive** each fixed gap → `gaps/archive/<id>.md`, `status: fixed`
-    (leave `closed_in` empty until commit).
-15. Set cluster `status: done` in `CLUSTERS.md`.
-
-### Phase 6 — Stop for commit/push
-
-16. **Do not commit or push** unless the user explicitly asks. When they do,
-    push a feature branch and open a PR. Never push `main`
-    ([Branching & main protection](../../../README.md#branching--main-protection)).
-17. Reply with: cluster id, gaps archived, CI summary, residual risk / related
-    open gaps, remaining `pending` clusters, and that the tree is ready for
-    commit/push when they say so.
-
-## Non-negotiables
-
-- **simplify-pass** then **`./scripts/ci-local.sh`** (includes Playwright E2E)
-  before archiving. Skipping E2E or the script’s other stages is not allowed.
-- Never act on unverified subagent findings (spot-check cited paths).
-- Do not edit plan files under `.cursor/plans/` unless the user asks.
-- Do not implement `parked` gaps unless the user names them.
-- Do not strip Batch 1 token_version / access JWT checks or Batch 2–4 fixes
-  while touching nearby code.
-- Prefer existing patterns; no drive-by refactors.
-- Ops/Railway mutations need explicit user OK even inside `ops-deploy`.
-
-## If CI fails
-
-Fix in the same cluster run; do not archive on red CI (including flaky E2E —
-rerun once; if still red, diagnose, do not archive). If blocked >2 attempts on
-the same error class, stop and report (still no commit).
+Never archive on red CI, including setup failures before tests. Diagnose within
+scope and report repeated blockers; do not bypass checks, mutate services, or
+rerun shared gates without authorization. Do not edit unrelated plan files,
+release held items, or change product decisions to make a cluster pass.

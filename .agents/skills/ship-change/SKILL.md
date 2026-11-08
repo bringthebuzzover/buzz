@@ -1,61 +1,56 @@
 ---
 name: ship-change
 description: >-
-  Ship a non-cluster feature, fix, or chore: deep explore (parallel subagents
-  when forked; always verify their findings), evidence-driven options, ask on
-  PRODUCT forks, implement, simplify-pass, full ci-local, report residual gaps,
-  stop for commit. Use when the user asks to implement a change that is not
-  run next cluster / swarm gaps.
+  Implement a non-cluster BUZZ feature, fix, or chore: investigate, resolve
+  product forks, implement, simplify, verify, and hand off for caller-owned
+  full CI and authorized feature-branch workflow from current instructions.
 ---
 
 # Ship change
 
-For work that is **not** a gap cluster (`fix-gap-cluster`). Agent map: [`AGENTS.md`](../../../AGENTS.md).
+For work outside a gap cluster. Run active-checkout/source discovery in
+[coding agent](../buzz-coding-agent/SKILL.md) first. Cluster work uses
+[fix-gap-cluster](../fix-gap-cluster/SKILL.md).
 
-## Spine (in order)
+## Explore and decide
 
-### 1. Explore
+1. Confirm the assigned branch/checkout and scope; preserve unrelated work.
+2. Read resolved product/architecture guidance, related canonical gaps, callers,
+   and tests. Sources may be local or caller-authorized private context. If
+   this is an artifact-only branch, report code steps as not applicable; request
+   missing app context before dependent work, without changing trees automatically.
+3. Where authorized, use CLI subagents for independent non-trivial questions;
+   do not delegate OpenBot bots. A caller's no-delegation instruction wins.
+   Verify material findings against cited files before acting on them.
+4. Compare options using evidence; state uncertainty. Stop for approval on
+   unapproved PRODUCT/UX/behavior forks. Visual work follows
+   [design and brand](../buzz-design-and-brand/SKILL.md).
+5. Keep a task-specific plan for multi-step work; mark steps complete only
+   after verification.
 
-1. Read relevant [`PRODUCT.md`](../../../PRODUCT.md) §§ and [`ARCHITECTURE.md`](../../../ARCHITECTURE.md).
-2. Check related `gaps/*.md` for the surface.
-3. For non-trivial or forked questions, launch **parallel subagents** (backend vs frontend, PRODUCT vs as-built, option A vs B, correctness vs UX). Parent synthesizes.
-4. **Verify subagent findings** before coding: open cited files, confirm claims, resolve disagreements between agents. Treat unverified summaries as incomplete explore.
-5. Brainstorm options; prefer evidence (code, tests, PRODUCT citations). Say when guessing.
+## Implement and simplify
 
-### 2. Gate product forks
+Prefer the smallest complete fix and existing helpers/primitives. Cover API,
+SPA, jobs, and generated contracts only as the task requires. Do not expand into
+unrelated refactors, dependencies, infrastructure writes, or deferred gaps.
+Run [simplify-pass](../simplify-pass/SKILL.md) before claiming done.
 
-6. If the change would alter PRODUCT/UX/behavior, **stop and ask** before coding.
+## Verify and hand off
 
-### 3. Implement
+Run authorized focused checks from the discovered test scripts/configuration
+and resolved testing guidance; verify paths and prerequisites before running.
+Behavior changes require the full local gate including Playwright before being
+declared ready. Native CLI subagents never run `./scripts/ci-local.sh`: the
+calling bot runs it serially on a fresh local test database. If the caller has
+not run it yet, report the gate as pending rather than claiming green.
+Docs/rules/skills-only work uses focused validation, not app tests.
+Stress runs require an explicit request.
 
-7. Prefer existing patterns; minimal scope.
-8. Mark progress with todos when the work has multiple steps.
+Report changed files, diff size and justification for growth, exact commands and
+results, gaps/residual risk, and blockers. Leave changes uncommitted for caller
+review. Coding authorization does not authorize commit, push, PR, merge, deploy,
+or external messages. The caller owns those actions when explicitly approved.
 
-### 4. Simplify
-
-9. Run [`.agents/skills/simplify-pass/SKILL.md`](../simplify-pass/SKILL.md).
-
-### 5. Full CI
-
-10. From repo root:
-
-   ```bash
-   ./scripts/ci-local.sh
-   ```
-
-   Must be green (includes Playwright E2E). Stress ×N only if the user asks.
-
-### 6. Stop
-
-11. Report what changed, residual gaps / risk, CI result.
-12. **Do not commit or push** unless the user explicitly asks. When they do,
-    push a feature branch and open a PR. Never push `main`
-    ([Branching & main protection](../../../README.md#branching--main-protection)).
-
-## Non-negotiables
-
-- No PRODUCT drift without ask.
-- No Railway/Meta/Resend mutate without ask.
-- No secrets in git.
-- Do not skip simplify-pass or `ci-local` for behavior-touching work.
-- Never act on unverified subagent findings.
+Follow the discovered checkout instructions and current caller context for
+app/skill-source branch policies. Never push, force-push, or delete `main`, release an item on hold,
+or promote production without approval.
