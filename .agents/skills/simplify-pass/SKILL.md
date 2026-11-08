@@ -1,32 +1,50 @@
 ---
 name: simplify-pass
 description: >-
-  Post-change hygiene checklist before claiming done: scope, no new duplication,
-  single SOT, naming consistency, dead code from this diff, openapi regen if
-  routes changed, out-of-scope debt → gap file. Use after implementation and
-  before ci-local / archive, or when the user says simplify-pass or simplify.
+  Post-change BUZZ hygiene: scope, reuse, single sources of truth, naming,
+  dead code, generated contracts, doc links, gaps, and explicit-write boundaries.
 ---
 
 # Simplify pass
 
-Run **after** implementation and **before** claiming ready / running archive CI.
-Does not authorize large refactors or PRODUCT changes.
+Run after implementation and before claiming ready or handing off the gate.
+This checklist authorizes neither broad refactors nor product/external writes.
+Run [active-checkout/source discovery](../buzz-coding-agent/SKILL.md#discover-the-active-checkout-first).
+Apply only relevant steps; absent app code makes code/contract checks not
+applicable. Missing required canonical context blocks dependent claims.
 
-## Checklist (all must pass or be dispositioned)
+## Checklist
 
-1. **Scope** — Only files needed for the task; no unrelated drive-by edits.
-2. **No new duplication** — No second copy of a helper/concern you touched. Prefer one function/module.
-3. **Single SOT** — Do not copy product §§ into architecture notes, rules, README, or comments. Point to buzz-ops `product/PRODUCT.md`, `engineering/architecture.md`, and `engineering/gaps/` instead.
-4. **Naming consistency** — One name per concept across BE/FE/docs for symbols introduced or renamed in this diff.
-5. **Dead code** — No unused exports, imports, flags, or branches introduced by this change.
-6. **OpenAPI** — If routes or response schemas changed: `cd backend && poetry run python scripts/dump_openapi.py` then `cd ../frontend && npm run gen:api`; include both artifacts.
-7. **Docs** — Update buzz-ops `product/PRODUCT.md`, `engineering/architecture.md`, and `engineering/gaps/` **only** when allowed (product/behavior needs user ask). Fix doc drift you caused in agent OS docs if this change was docs-only.
-8. **Out-of-scope debt** — If you see duplication you must not fix now → file it with buzz-ops `skills/dev/file-gap` (`engineering/gaps/<id>.md`). Do not bury in chat.
+1. **Scope:** only files needed for the task; preserve unrelated user changes.
+2. **Reuse:** no duplicate helper or competing source for a touched concern.
+   Prefer deletion/reuse over abstractions or dependencies without evidence.
+3. **Sources:** refer to resolved product, architecture, and gap sources rather
+   than copying behavior into rules/comments. Respect private context boundaries;
+   do not create local competing sources when documentation lives elsewhere.
+4. **Names/dead code:** consistent names across touched layers; no unused
+   exports, imports, flags, branches, or obsolete links from this diff.
+5. **Contract:** for route/schema changes, discover existing generator scripts
+   and commands first; regenerate and include the actual contract artifacts.
+   Never hand-edit them or require app generators in artifact-only trees.
+6. **Docs:** fix drift caused within the authorized scope. PRODUCT/behavior
+   changes need approval. For skills-only work, verify frontmatter, relative
+   links, index, inventory, and public-data hygiene.
+7. **Gaps:** record discovered broken paths with
+   [file-gap](../file-gap/SKILL.md) under the resolved canonical gap schema
+   when within authorized write scope, including separate private-repo approval.
+   If gap writes are excluded, report the finding for the caller to file.
+   Never create a second debt list, un-park deferred work, or archive an
+   unverified fix.
+8. **Write boundaries:** no credentials, personal data, private paths,
+   infrastructure IDs, or internal URLs in tracked additions. No unauthorized
+   edits to a private operations repo, bot skill stores, infrastructure, or
+   deployed assets. Report external follow-up to its owner.
 
-## Out of scope unless user asks
+## Finish
 
-Large refactors, un-parking openapi/auth DRY gaps, UI restyles, drive-by migrations.
-
-## Done
-
-Briefly confirm checklist in your reply (or list gap ids filed). Then proceed to `./scripts/ci-local.sh` when the parent skill/DoD requires it.
+Report checklist exceptions and residual gap IDs. Native CLI subagents hand off
+authorized focused check results; the calling bot owns the serialized
+`./scripts/ci-local.sh` gate for behavior changes, including Playwright.
+Do not claim readiness before that gate passes. Docs/skills-only changes need
+focused validation and no app CI. Leave commit, push, PR, merge, publication,
+and installation to the explicitly authorized owner.
