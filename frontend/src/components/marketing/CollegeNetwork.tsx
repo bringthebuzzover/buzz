@@ -201,7 +201,7 @@ export function CollegeNetwork() {
               >
                 {/* Active pulse aura */}
                 <span
-                  className="marketing-pin-pulse pointer-events-none absolute -inset-1.5 rounded-full bg-[#f6d32a24] ring-1 ring-[#f6d32a] md:-inset-2 md:ring-[1.5px]"
+                  className="marketing-pin-pulse pointer-events-none absolute -inset-1.5 rounded-full bg-accent-wash ring-1 ring-accent md:-inset-2 md:ring-[1.5px]"
                   aria-hidden
                 />
                 {/* Pin core */}
@@ -217,7 +217,7 @@ export function CollegeNetwork() {
                   }}
                 >
                   {college?.logoSrc ? (
-                    <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white md:h-4.5 md:w-4.5">
+                    <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white md:h-[18px] md:w-[18px]">
                       <img
                         src={college.logoSrc}
                         alt=""
@@ -226,7 +226,7 @@ export function CollegeNetwork() {
                       />
                     </span>
                   ) : null}
-                  <span className="text-buzzMicro font-medium leading-none text-on-accent md:text-xs">
+                  <span className="text-buzzMicro font-medium leading-none text-on-accent">
                     {pin.name}
                   </span>
                 </span>
