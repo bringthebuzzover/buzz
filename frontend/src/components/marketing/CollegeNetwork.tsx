@@ -53,8 +53,9 @@ const position = ({ x, y }: { x: number; y: number }) => ({
 
 // Sample Lab's lifted quadratic arcs once; cumulative lengths keep the flight paced.
 const HOPS = ROUTE.slice(0, -1).map((name, index) => {
+  const nextName = ROUTE[index + 1];
   const from = pinByName(name);
-  const to = pinByName(ROUTE[index + 1]);
+  const to = pinByName(nextName);
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const length = Math.hypot(dx, dy);
@@ -77,7 +78,7 @@ const HOPS = ROUTE.slice(0, -1).map((name, index) => {
     previous = point;
     return point;
   });
-  return { name, points, length: distance };
+  return { name, nextName, points, length: distance };
 });
 const FLIGHT_LENGTH = HOPS.reduce((sum, hop) => sum + hop.length, 0);
 
@@ -109,6 +110,9 @@ export function CollegeNetwork() {
         const duration = (hop.length / FLIGHT_LENGTH) * 7.6;
         if (local < duration) {
           distance += (local / duration) * hop.length;
+          if (duration - local <= 0.8) {
+            visiting = hop.nextName;
+          }
           break;
         }
         local -= duration;
@@ -196,7 +200,7 @@ export function CollegeNetwork() {
                 data-visiting={reduce && pin.name === "Cornell" ? "true" : undefined}
                 key={pin.name}
                 title={pin.name}
-                className="marketing-pin group absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2"
+                className="marketing-pin group absolute z-20 h-3 w-3 -translate-x-1/2 -translate-y-1/2"
                 style={position(pin)}
               >
                 {/* Active pulse aura */}
@@ -210,7 +214,7 @@ export function CollegeNetwork() {
 
                 {/* Campus pin badge: school logo + name in pill container */}
                 <span
-                  className="marketing-pin-badge pointer-events-none absolute bottom-4 z-10 flex items-center gap-1 rounded-full border border-black/10 bg-white py-0.5 pl-1 pr-1.5 shadow-buzz md:bottom-5 md:gap-1.5 md:py-1 md:pl-1.5 md:pr-2.5"
+                  className="marketing-pin-badge pointer-events-none absolute bottom-4 z-20 flex items-center gap-1 rounded-full border border-black/10 bg-white py-0.5 pl-1 pr-1.5 shadow-buzz md:bottom-5 md:gap-1.5 md:py-1 md:pl-1.5 md:pr-2.5"
                   style={{
                     [isRightSide ? "right" : "left"]: 0,
                     whiteSpace: "nowrap",
@@ -233,7 +237,7 @@ export function CollegeNetwork() {
               </span>
             );
           })}
-          <div className="pointer-events-none absolute inset-0" aria-hidden>
+          <div className="pointer-events-none absolute inset-0 z-10" aria-hidden>
             <span
               data-flyer
               className="absolute"

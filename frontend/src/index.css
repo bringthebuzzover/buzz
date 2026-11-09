@@ -142,6 +142,8 @@
 .marketing-how-link:hover span { transform: translateX(4px); }
 .marketing-pin-badge,
 .marketing-pin-pulse { opacity: 0; transition: opacity 160ms ease; }
+.marketing-pin:hover,
+.marketing-pin[data-visiting="true"] { z-index: 30; }
 .marketing-pin:hover .marketing-pin-badge,
 .marketing-pin[data-visiting="true"] .marketing-pin-badge,
 .marketing-pin:hover .marketing-pin-pulse,

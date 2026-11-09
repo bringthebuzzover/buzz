@@ -139,4 +139,63 @@ describe("CurrentDrops", () => {
     expect(view.container.textContent).toContain("Could not load current drops");
     expect(view.container.querySelector("button")?.textContent).toBe("Try again");
   });
+
+  it("automatically advances after the randomized interval and independently pauses on hover and focus", () => {
+    jest.useFakeTimers();
+    const randomSpy = jest.spyOn(Math, "random").mockReturnValue(0.5); // delay = 3000 + 0.5 * 3000 = 4500ms
+    try {
+      mockCatalog.mockReturnValue({
+        items: [row, { ...row, id: "drop-2", title: "Second drop" }],
+        isLoading: false, error: null, hasNextPage: false,
+        fetchNextPage: jest.fn(), refetch: jest.fn(),
+      });
+      const view = renderWithProviders(<CurrentDrops />);
+      const slides = Array.from(view.container.querySelectorAll<HTMLAnchorElement>("a[aria-hidden]"));
+      expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "false", "true", "true", "true"]);
+
+      // Advance by 4500ms
+      act(() => {
+        jest.advanceTimersByTime(4500);
+      });
+      expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "true", "false", "true", "true"]);
+
+      // Trigger focus inside carousel
+      const wrapper = view.container.querySelector(".mx-auto.w-full");
+      act(() => {
+        slides[2].focus();
+        wrapper?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+      });
+
+      // Also trigger hover
+      act(() => {
+        wrapper?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+        wrapper?.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
+      });
+
+      // Pointer leaves, but keyboard focus remains inside
+      act(() => {
+        wrapper?.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+        wrapper?.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+      });
+      act(() => {
+        jest.advanceTimersByTime(10000);
+      });
+      // Must stay paused because focus is still retained
+      expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "true", "false", "true", "true"]);
+
+      // Blur focus away
+      act(() => {
+        slides[2].blur();
+        wrapper?.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+      });
+      act(() => {
+        jest.advanceTimersByTime(4500);
+      });
+      // Now advances
+      expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "true", "true", "false", "true"]);
+    } finally {
+      randomSpy.mockRestore();
+      jest.useRealTimers();
+    }
+  });
 });
