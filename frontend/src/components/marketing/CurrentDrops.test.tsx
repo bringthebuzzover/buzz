@@ -139,4 +139,49 @@ describe("CurrentDrops", () => {
     expect(view.container.textContent).toContain("Could not load current drops");
     expect(view.container.querySelector("button")?.textContent).toBe("Try again");
   });
+
+  it("automatically advances after the randomized interval and pauses on hover/focus", () => {
+    jest.useFakeTimers();
+    try {
+      mockCatalog.mockReturnValue({
+        items: [row, { ...row, id: "drop-2", title: "Second drop" }],
+        isLoading: false, error: null, hasNextPage: false,
+        fetchNextPage: jest.fn(), refetch: jest.fn(),
+      });
+      const view = renderWithProviders(<CurrentDrops />);
+      const slides = Array.from(view.container.querySelectorAll<HTMLAnchorElement>("a[aria-hidden]"));
+      expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "false", "true", "true", "true"]);
+
+      // Advance by 6 seconds (max delay is 6000ms)
+      act(() => {
+        jest.advanceTimersByTime(6500);
+      });
+      expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "true", "false", "true", "true"]);
+
+      // Trigger hover (React listens to mouseover for onMouseEnter)
+      const wrapper = view.container.querySelector(".mx-auto.w-full");
+      act(() => {
+        wrapper?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+        wrapper?.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
+      });
+      act(() => {
+        jest.advanceTimersByTime(10000);
+      });
+      // Should remain paused on the current slide
+      expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "true", "false", "true", "true"]);
+
+      // Trigger mouse leave (React listens to mouseout for onMouseLeave)
+      act(() => {
+        wrapper?.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+        wrapper?.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+      });
+      act(() => {
+        jest.advanceTimersByTime(6500);
+      });
+      // Should advance again
+      expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "true", "true", "false", "true"]);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

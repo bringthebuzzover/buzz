@@ -186,6 +186,10 @@ export function StackCards() {
 export function CurrentDrops() {
   const [index, setIndex] = useState(1);
   const [transitionEnabled, setTransitionEnabled] = useState(true);
+  const [isHoveredOrFocused, setIsHoveredOrFocused] = useState(false);
+  const [isDocHidden, setIsDocHidden] = useState(
+    typeof document !== "undefined" ? document.hidden : false,
+  );
   const reduceMotion = useReducedMotion();
   const previousItemCount = useRef(0);
   const { items, isLoading, error, hasNextPage, fetchNextPage, refetch } =
@@ -240,12 +244,41 @@ export function CurrentDrops() {
     });
   };
 
+  useEffect(() => {
+    const handleVisibility = () => setIsDocHidden(document.hidden);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
+  const shouldAutoRotate =
+    !reduceMotion && !isHoveredOrFocused && !isDocHidden && items.length > 1;
+
+  useEffect(() => {
+    if (!shouldAutoRotate) return;
+    const delay = Math.floor(3000 + Math.random() * 3000);
+    const timer = window.setTimeout(() => {
+      void move(1);
+    }, delay);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- move is updated per index tick
+  }, [index, shouldAutoRotate, items.length]);
+
   return (
     <section
       data-nav-surface="paper"
       className={cn("bg-surface-paper text-on-accent", SECTION_X, SECTION_Y)}
     >
-      <div className="mx-auto w-full">
+      <div
+        className="mx-auto w-full"
+        onMouseEnter={() => setIsHoveredOrFocused(true)}
+        onMouseLeave={() => setIsHoveredOrFocused(false)}
+        onFocusCapture={() => setIsHoveredOrFocused(true)}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            setIsHoveredOrFocused(false);
+          }
+        }}
+      >
         <div className="flex items-end justify-between">
           <h2 className="text-[36px] font-medium leading-none tracking-tight md:text-buzzTitle">
             Current drops

@@ -17,6 +17,11 @@ if (!g.TextDecoder) g.TextDecoder = TextDecoder;
 // React 18+: tell React this is a test env so act() works without warnings.
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
+// jsdom does not implement window.scrollTo
+if (typeof window !== "undefined") {
+  window.scrollTo = jest.fn();
+}
+
 // renderToString tests render components that use useLayoutEffect (Radix,
 // react-router links); React warns that it is a no-op on the server. Expected
 // in SSR tests, so drop just that warning.

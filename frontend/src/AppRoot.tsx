@@ -1,3 +1,4 @@
+import { ScrollToTop } from "./components/routing/ScrollToTop";
 /**
  * Top-level routes: `SiteLayout` for the marketing shell, `AdminLayout` for the
  * admin panel; portal routes use the real auth guards (RequireAuth →
@@ -93,6 +94,8 @@ function AdminIgChangeRedirect() {
 export default function AppRoot(): ReactElement {
   const location = useLocation();
   return (
+    <>
+      <ScrollToTop />
     <Routes>
       <Route element={<SiteLayout />}>
         <Route index element={<HomePage />} />
@@ -273,5 +276,6 @@ export default function AppRoot(): ReactElement {
         <Route path="*" element={<AdminNotFoundPage />} />
       </Route>
     </Routes>
+    </>
   );
 }
