@@ -46,10 +46,31 @@ export const PAD = {
   roomy: "p-8",
 } as const;
 
+/** Standard marketing section gutters: 16px mobile, 48px desktop. */
+export const SECTION_X = "px-4 md:px-12";
+
 /**
  * Marketing section band. Pen `section-y`: 68px mobile, 108px desktop.
  */
 export const SECTION_Y = "py-[68px] md:py-[108px]";
+
+/** Reusable responsive sizing for the Current Drops looping card track. */
+export const DROP_CAROUSEL = {
+  container:
+    "mt-6 [container-type:inline-size]",
+  topGap: "mt-6",
+  track: "flex gap-[var(--drop-slide-gap)]",
+  slide: "w-[var(--drop-slide-width)] shrink-0",
+  meta: "mt-4 flex w-[var(--drop-slide-width)] items-center justify-between gap-4",
+  brandInset: "left-4 top-4 md:left-6 md:top-6",
+  icon: "h-[18px] w-[18px]",
+  width: "var(--drop-slide-width)",
+  gap: "var(--drop-slide-gap)",
+  style: {
+    "--drop-slide-width": "min(86cqw, 56rem)",
+    "--drop-slide-gap": "1rem",
+  },
+} as const;
 
 /**
  * Type scale. A surface should use at most three ranks. Large ranks carry the

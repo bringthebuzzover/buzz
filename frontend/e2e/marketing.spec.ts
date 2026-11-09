@@ -86,7 +86,7 @@ test("marketing Current drops come from the public catalog and link to details",
   ]));
   const current = page.getByRole("heading", { name: "Current drops" }).locator("..").locator("..");
   await expect(current).toBeVisible();
-  const detailLink = current.locator('a[href^="/d/"]').first();
+  const detailLink = current.locator('a[aria-hidden="false"][href^="/d/"]');
   await expect(detailLink).toBeVisible();
   const path = await detailLink.getAttribute("href");
   expect(path).toBe(`/d/${catalog.data[0].id}`);

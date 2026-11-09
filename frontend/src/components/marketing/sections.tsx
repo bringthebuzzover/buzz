@@ -4,7 +4,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BeeMark } from "../ui/BrandMark";
 import { Button, LinkButton } from "../forms/controls";
 import { focusRingClass } from "../../theme/controls";
@@ -16,6 +16,7 @@ import { usePublicDropCatalog } from "../../api/hooks/useDropHooks";
 import { publicDropPath } from "../../utils/oauthNext";
 import { StatePanel } from "../ui/StatePanel";
 import { RemoteImage } from "../ui/RemoteImage";
+import { DROP_CAROUSEL, GAP, SECTION_X, SECTION_Y } from "../../theme/tokens";
 
 export function MarketingHero({
   title,
@@ -151,7 +152,7 @@ export function StackCards() {
   const reduce = useReducedMotion();
   return (
     <div data-nav-surface="ink">
-      {FEATURED_COLLABS.map((collab, index) => (
+      {FEATURED_COLLABS.map((collab) => (
         <article
           key={collab.id}
           className={cn(
@@ -165,15 +166,15 @@ export function StackCards() {
             className="marketing-stack-media absolute inset-0 h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-page/80 via-page/20 to-page/30" />
-          <div className="marketing-stack-copy relative flex w-full items-center justify-between gap-6 px-4 pb-12 md:grid md:grid-cols-[1fr_2fr_1fr] md:px-12 md:pb-0">
-            <p className="hidden max-w-xs text-sm text-primary md:block">
+          <div className="marketing-stack-copy relative flex w-full flex-col items-start gap-3 px-4 pb-12 md:grid md:grid-cols-[1fr_2fr_1fr] md:items-center md:gap-6 md:px-12 md:pb-0">
+            <p className="max-w-xs text-sm text-primary">
               {collab.subtitle}
             </p>
-            <h2 className="whitespace-pre-line text-center text-[32px] font-medium leading-none text-primary md:text-buzzStatement">
+            <h2 className="whitespace-pre-line text-left text-[32px] font-medium leading-none text-primary md:text-center md:text-buzzStatement">
               {collab.title.replace(" x ", "\nx ")}
             </h2>
-            <p className="hidden max-w-xs text-right text-sm text-primary md:block">
-              {index === 1 ? "Cornell University" : collab.subtitle}
+            <p className="max-w-xs text-sm text-primary md:text-right">
+              {`Partnership with ${collab.brand}`}
             </p>
           </div>
         </article>
@@ -183,20 +184,36 @@ export function StackCards() {
 }
 
 export function CurrentDrops() {
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(1);
+  const [transitionEnabled, setTransitionEnabled] = useState(true);
+  const reduceMotion = useReducedMotion();
+  const previousItemCount = useRef(0);
   const { items, isLoading, error, hasNextPage, fetchNextPage, refetch } =
     usePublicDropCatalog();
-  const displayedIndex = Math.min(index, Math.max(0, items.length - 1));
-  if (index !== displayedIndex) setIndex(displayedIndex);
+  const slides = items.length === 1
+    ? [items[0], items[0], items[0], items[0]]
+    : items.length > 1
+      ? [items[items.length - 1], ...items, items[0], items[1]]
+      : [];
+  useEffect(() => {
+    if (items.length === previousItemCount.current) return;
+    if (!items.length) setIndex(0);
+    else if (!previousItemCount.current) setIndex(1);
+    else setIndex(Math.min(index, items.length));
+    previousItemCount.current = items.length;
+  }, [items.length, index]);
+  const displayedIndex = items.length ? (index - 1 + items.length) % items.length : 0;
   const collab = items[displayedIndex];
 
   const move = async (direction: -1 | 1) => {
     if (direction < 0) {
-      setIndex((value) => Math.max(0, value - 1));
+      if (index > 1) setIndex(index - 1);
+      else if (reduceMotion) setIndex(items.length);
+      else setIndex(0);
       return;
     }
-    if (index + 1 < items.length) {
-      setIndex((value) => Math.min(items.length - 1, value + 1));
+    if (index < items.length) {
+      setIndex(index + 1);
       return;
     }
     if (hasNextPage) {
@@ -205,14 +222,28 @@ export function CurrentDrops() {
         (total, page) => total + page.data.length,
         0,
       ) ?? items.length;
-      if (count > index + 1) setIndex(index + 1);
+      if (count > items.length) {
+        setIndex(index + 1);
+        return;
+      }
     }
+    if (reduceMotion) setIndex(1);
+    else setIndex(items.length + 1);
+  };
+
+  const resetLoopClone = () => {
+    if (index !== 0 && index !== items.length + 1) return;
+    setTransitionEnabled(false);
+    setIndex(index === 0 ? items.length : 1);
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => setTransitionEnabled(true));
+    });
   };
 
   return (
     <section
       data-nav-surface="paper"
-      className="bg-[#f0f0f0] px-4 py-[68px] text-on-accent md:px-12 md:py-[108px]"
+      className={cn("bg-surface-paper text-on-accent", SECTION_X, SECTION_Y)}
     >
       <div className="mx-auto w-full">
         <div className="flex items-end justify-between">
@@ -220,34 +251,31 @@ export function CurrentDrops() {
             Current drops
           </h2>
           {items.length > 0 ? (
-            <div className="flex gap-2">
+            <div className={cn("flex", GAP.tight)}>
               {([-1, 1] as const).map((direction) => {
-                const disabled = direction < 0
-                  ? index === 0
-                  : index >= items.length - 1 && !hasNextPage;
                 return (
                   <button
                     key={direction}
                     type="button"
                     aria-label={direction < 0 ? "Previous drop" : "Next drop"}
-                    disabled={disabled}
                     onClick={() => void move(direction)}
                     className={cn(
                       "flex h-10 w-10 items-center justify-center rounded-full border border-on-accent text-on-accent",
-                      disabled && "opacity-30",
                       focusRingClass,
                     )}
                   >
-                    {direction < 0 ? "←" : "→"}
+                    {direction < 0
+                      ? <ChevronLeft aria-hidden className={DROP_CAROUSEL.icon} />
+                      : <ChevronRight aria-hidden className={DROP_CAROUSEL.icon} />}
                   </button>
                 );
               })}
             </div>
           ) : null}
         </div>
-        {isLoading ? <StatePanel className="mt-7">Loading current drops…</StatePanel> : null}
+        {isLoading ? <StatePanel className={DROP_CAROUSEL.topGap}>Loading current drops…</StatePanel> : null}
         {error ? (
-          <div className="mt-7">
+          <div className={DROP_CAROUSEL.topGap}>
             <StatePanel tone="danger" title="Could not load current drops">Try again.</StatePanel>
             <div className="mt-3 flex justify-center">
               <Button type="button" variant="outline" onClick={() => void refetch()}>Try again</Button>
@@ -255,24 +283,36 @@ export function CurrentDrops() {
           </div>
         ) : null}
         {!isLoading && !error && items.length === 0 ? (
-          <StatePanel className="mt-7">No current drops right now.</StatePanel>
+          <StatePanel className={DROP_CAROUSEL.topGap}>No current drops right now.</StatePanel>
         ) : null}
         {collab ? (
-          <div className="mt-7 [container-type:inline-size]">
+          <div
+            className={DROP_CAROUSEL.container}
+            style={DROP_CAROUSEL.style as React.CSSProperties}
+          >
           <div className="overflow-hidden">
             <div
-              className="flex gap-4 transition-transform duration-500 motion-reduce:transition-none"
+              className={cn(
+                DROP_CAROUSEL.track,
+                transitionEnabled
+                  ? "transition-transform duration-500 motion-reduce:transition-none"
+                  : "transition-none",
+              )}
+              data-drop-track
               style={{
-                transform: `translateX(calc(${-displayedIndex} * (80cqw + 1rem)))`,
+                transform: `translateX(calc(${-index} * (${DROP_CAROUSEL.width} + ${DROP_CAROUSEL.gap})))`,
+              }}
+              onTransitionEnd={(event) => {
+                if (event.target === event.currentTarget) resetLoopClone();
               }}
             >
-              {items.map((item, itemIndex) => (
+              {slides.map((item, itemIndex) => (
                 <Link
-                  key={item.id}
+                  key={`${item.id}-${itemIndex}`}
                   to={publicDropPath(item.id)}
-                  tabIndex={itemIndex === displayedIndex ? 0 : -1}
-                  aria-hidden={itemIndex !== displayedIndex}
-                  className={cn("block w-[80cqw] shrink-0", focusRingClass)}
+                  tabIndex={itemIndex === index ? 0 : -1}
+                  aria-hidden={itemIndex !== index}
+                  className={cn("block", DROP_CAROUSEL.slide, focusRingClass)}
                 >
                   <div className="relative aspect-video overflow-hidden rounded-buzzBoard">
                     <RemoteImage
@@ -287,7 +327,7 @@ export function CurrentDrops() {
                       className="pointer-events-none absolute left-0 top-0 h-[30%] w-full bg-gradient-to-b from-black/45 to-transparent"
                     />
                     <p
-                      className="absolute left-5 top-5 text-[28px] font-medium text-white md:text-[32px]"
+                      className={cn("absolute text-[28px] font-medium text-white md:text-[32px]", DROP_CAROUSEL.brandInset)}
                     >
                       {item.brandName}
                     </p>
@@ -296,17 +336,15 @@ export function CurrentDrops() {
               ))}
             </div>
           </div>
-          <div className="mt-4 flex w-[80cqw] items-center justify-between gap-4">
+          <div className={DROP_CAROUSEL.meta}>
             <p className="min-w-0 text-base">{collab.title} · {collab.location}</p>
-            <Link
+            <LinkButton
               to={publicDropPath(collab.id)}
-              className={cn(
-                "inline-flex h-9 shrink-0 items-center rounded-full bg-page px-3.5 text-xs text-primary",
-                focusRingClass,
-              )}
+              variant="secondary"
+              className="shrink-0"
             >
               View drop
-            </Link>
+            </LinkButton>
           </div>
           </div>
         ) : null}
