@@ -142,6 +142,12 @@ describe("OrgApplyPage typed Instagram handle", () => {
     expect(container.textContent).toContain(
       "Use your organization’s Instagram Business or Creator account, not a personal account.",
     );
+    const noticeIcon = container.querySelector(".lucide-info");
+    expect(noticeIcon).not.toBeNull();
+    expect(noticeIcon?.parentElement?.className).toContain("mt-[2px]");
+    expect(container.textContent).toContain(
+      "Join as a student organization and work with brands on real campus campaigns.",
+    );
 
     const submit = container.querySelector(
       'button[type="submit"]',
@@ -151,10 +157,29 @@ describe("OrgApplyPage typed Instagram handle", () => {
     expect(container.textContent).toMatch(/Contact name/);
     expect(container.textContent).toMatch(/Shipping address/);
 
+    const form = container.querySelector("form")!;
+    const fieldOrder = [
+      '[data-testid="org-apply-contact-name"]',
+      '[data-testid="org-apply-edu-email"]',
+      '[data-testid="org-apply-org-name"]',
+      '[data-testid="org-apply-university"]',
+      '[data-testid="org-apply-category"]',
+      '[data-testid="org-apply-member-count"]',
+      '[data-testid="org-apply-instagram"]',
+      '[data-testid="org-apply-shipping-line1"]',
+    ].map((selector) => form.querySelector(selector));
+    expect(fieldOrder.every(Boolean)).toBe(true);
+    expect(fieldOrder).toEqual(
+      [...fieldOrder].sort((a, b) => {
+        if (!a || !b) return 0;
+        return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
+          ? -1
+          : 1;
+      }),
+    );
+
     setHandle("@campusgreeks");
     expect(submit.disabled).toBe(false);
-
-    const form = container.querySelector("form") as HTMLFormElement;
     await act(async () => {
       form.dispatchEvent(
         new Event("submit", { bubbles: true, cancelable: true }),

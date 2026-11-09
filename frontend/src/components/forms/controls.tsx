@@ -463,7 +463,9 @@ export function Notice({
       )}
       role="status"
     >
-      {icon ?? (
+      {icon ? (
+        <span className="mt-[2px] shrink-0">{icon}</span>
+      ) : (
         <span
           className={cn(
             "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
@@ -478,8 +480,18 @@ export function Notice({
 }
 
 /** Pen Notice, accent tone. Not the paper success chip. */
-export function SuccessBanner({ children }: { children: ReactNode }) {
-  return <Notice tone="accent">{children}</Notice>;
+export function SuccessBanner({
+  children,
+  icon,
+}: {
+  children: ReactNode;
+  icon?: ReactNode;
+}) {
+  return (
+    <Notice tone="accent" icon={icon}>
+      {children}
+    </Notice>
+  );
 }
 
 export function WarningBanner({ children }: { children: ReactNode }) {

@@ -199,6 +199,30 @@ export default function OrgApplyForm({
   return (
     <form onSubmit={(e) => void onSubmit(e)} className={cn("space-y-6", className)}>
       {error && <ErrorBanner>{error}</ErrorBanner>}
+      <TextField
+        id="org-apply-contact-name"
+        data-testid="org-apply-contact-name"
+        label="Contact name"
+        placeholder="e.g. Sam Sample"
+        value={contactName}
+        onChange={(e) => setContactName(e.target.value)}
+        required
+        error={fieldErrors.contactName}
+      />
+
+      <TextField
+        id="org-apply-edu-email"
+        data-testid="org-apply-edu-email"
+        type="email"
+        label="School (.edu) email"
+        value={eduEmail}
+        onChange={(e) => setEduEmail(e.target.value)}
+        placeholder="e.g. you@university.edu"
+        hint="We'll send a verification link here."
+        required
+        error={fieldErrors.eduEmail}
+      />
+
       <div className={pairClass}>
         <TextField
           id="org-apply-org-name"
@@ -223,18 +247,35 @@ export default function OrgApplyForm({
         />
       </div>
 
-      <TextField
-        id="org-apply-edu-email"
-        data-testid="org-apply-edu-email"
-        type="email"
-        label="School (.edu) email"
-        value={eduEmail}
-        onChange={(e) => setEduEmail(e.target.value)}
-        placeholder="e.g. you@university.edu"
-        hint="We'll send a verification link here."
-        required
-        error={fieldErrors.eduEmail}
-      />
+      <div className={pairClass}>
+        <Select
+          data-testid="org-apply-category"
+          label="Organization type"
+          value={category}
+          onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
+          required
+        >
+          <option value="">Select a type</option>
+          {ORG_CATEGORY_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </Select>
+
+        <TextField
+          id="org-apply-member-count"
+          data-testid="org-apply-member-count"
+          type="number"
+          min="0"
+          label="Number of members"
+          placeholder="e.g. 85"
+          value={memberCount}
+          onChange={(e) => setMemberCount(e.target.value)}
+          required
+          error={fieldErrors.memberCount}
+        />
+      </div>
 
       <div className={pairClass}>
         <TextField
@@ -266,47 +307,6 @@ export default function OrgApplyForm({
         without @). BUZZ checks the username shape here; the account is
         confirmed when you Connect Instagram after approval.
       </p>
-
-      <div className={pairClass}>
-        <TextField
-          id="org-apply-member-count"
-          data-testid="org-apply-member-count"
-          type="number"
-          min="0"
-          label="Number of members"
-          placeholder="e.g. 85"
-          value={memberCount}
-          onChange={(e) => setMemberCount(e.target.value)}
-          required
-          error={fieldErrors.memberCount}
-        />
-
-        <Select
-          data-testid="org-apply-category"
-          label="Organization type"
-          value={category}
-          onChange={(e) => setCategory(e.target.value as OrgCategory | "")}
-          required
-        >
-          <option value="">Select a type</option>
-          {ORG_CATEGORY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </Select>
-      </div>
-
-      <TextField
-        id="org-apply-contact-name"
-        data-testid="org-apply-contact-name"
-        label="Contact name"
-        placeholder="e.g. Sam Sample"
-        value={contactName}
-        onChange={(e) => setContactName(e.target.value)}
-        required
-        error={fieldErrors.contactName}
-      />
 
       <ShippingAddressFields
         value={shipping}

@@ -6,6 +6,7 @@
  * org waits for .edu verification with no session yet.
  */
 import { useEffect, useRef, useState } from "react";
+import { Info } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useOrgApplyPrefill } from "../../api/hooks/useOnboardingHooks";
 import { SuccessBanner, WarningBanner } from "../../components/forms/controls";
@@ -37,7 +38,10 @@ export default function OrgApplyPage() {
   }, [prefill.isError, prefillToken]);
 
   return (
-    <AuthSplit wide>
+    <AuthSplit
+      wide
+      asideStatement="Join as a student organization and work with brands on real campus campaigns."
+    >
       <AuthHeading kicker="Apply as a" title="Student Organization">
         Tell us about your organization. We&apos;ll verify your school email,
         review your application, then invite you to connect Instagram.
@@ -47,7 +51,7 @@ export default function OrgApplyPage() {
           <WarningBanner>{prefillError}</WarningBanner>
         </div>
       )}
-      <SuccessBanner>
+      <SuccessBanner icon={<Info className="h-4 w-4" aria-hidden />}>
         Use your organization’s Instagram Business or Creator account, not a
         personal account.
       </SuccessBanner>
