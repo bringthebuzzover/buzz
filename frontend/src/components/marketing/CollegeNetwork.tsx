@@ -171,7 +171,7 @@ export function CollegeNetwork() {
           College network
         </h2>
         <p className="mt-4 max-w-xl text-base leading-normal text-on-accent/65">
-          Vetted student organizations powering authentic campus marketing nationwide.
+          Vetted student organizations powering authentic campus marketing.
         </p>
         <div
           key={reduce ? "parked" : "flying"}
