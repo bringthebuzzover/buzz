@@ -140,9 +140,15 @@
 .marketing-hero-bee { animation: marketing-bee-drift 14s ease-in-out infinite; }
 .marketing-how-link span { transition: transform 300ms ease; }
 .marketing-how-link:hover span { transform: translateX(4px); }
-.marketing-pin-label { opacity: 0; transition: opacity 160ms ease; }
+.marketing-pin-label,
+.marketing-pin-badge,
+.marketing-pin-pulse { opacity: 0; transition: opacity 160ms ease; }
 .marketing-pin:hover .marketing-pin-label,
-.marketing-pin[data-visiting="true"] .marketing-pin-label { opacity: 1; }
+.marketing-pin[data-visiting="true"] .marketing-pin-label,
+.marketing-pin:hover .marketing-pin-badge,
+.marketing-pin[data-visiting="true"] .marketing-pin-badge,
+.marketing-pin:hover .marketing-pin-pulse,
+.marketing-pin[data-visiting="true"] .marketing-pin-pulse { opacity: 1; }
 .marketing-pin[data-visiting="true"]::after {
   content: "";
   position: absolute;
