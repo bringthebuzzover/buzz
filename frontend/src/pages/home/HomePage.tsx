@@ -39,7 +39,7 @@ export default function HomePage() {
       <MarketingHero
         media="video"
         title={"Campus marketing,\npowered by\nstudent communities."}
-        sub="BUZZ connects brands with student organizations to execute large-scale campus activations nationwide."
+        sub="BUZZ connects brands with student organizations to execute large-scale campus activations."
         primary={{ label: "Join", onClick: scrollToHomeJoin }}
         aside={{ kicker: "Collaboration", line: siteIdentity.content.heroSpotlightLine }}
       />

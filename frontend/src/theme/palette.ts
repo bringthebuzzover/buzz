@@ -47,6 +47,8 @@ export const tailwindThemeExtend = {
   colors: {
     /** Pen ink. `bg-page`, `ring-offset-page`. */
     page: pulse.ink,
+    /** Pen paper. Marketing sections on the light surface. */
+    "surface-paper": pulse.fg,
     /** Pen ink-raised. Raised cards and panels. */
     "surface-card": pulse.inkRaised,
     /** Pen paper-04. Stat, count, post, campaign, and empty tiles. */

@@ -31,6 +31,41 @@ describe("CurrentDrops", () => {
     expect(container.textContent).toContain("Campus sampler");
     expect(container.querySelector('a[href="/d/00000000-0000-0000-0000-000000000123"]')).not.toBeNull();
     expect(container.textContent).toContain("View drop");
+    expect(container.querySelector('a[href="/d/00000000-0000-0000-0000-000000000123"]')?.className)
+      .toContain("w-[var(--drop-slide-width)]");
+    expect(container.querySelector(".mt-4.flex")?.className)
+      .toContain("w-[var(--drop-slide-width)]");
+  });
+
+  it("repeats a lone drop and loops in both directions", () => {
+    mockCatalog.mockReturnValue({
+      items: [row], isLoading: false, error: null, hasNextPage: false,
+      fetchNextPage: jest.fn(), refetch: jest.fn(),
+    });
+    const { container } = renderWithProviders(<CurrentDrops />);
+    const slides = Array.from(container.querySelectorAll<HTMLAnchorElement>("a[aria-hidden]"));
+    expect(slides).toHaveLength(4);
+    expect(slides.every((slide) => slide.getAttribute("href") === "/d/00000000-0000-0000-0000-000000000123")).toBe(true);
+    expect(slides.map((slide) => slide.getAttribute("aria-hidden"))).toEqual(["true", "false", "true", "true"]);
+
+    const next = container.querySelector('button[aria-label="Next drop"]');
+    const previous = container.querySelector('button[aria-label="Previous drop"]');
+    expect(next?.hasAttribute("disabled")).toBe(false);
+    expect(previous?.hasAttribute("disabled")).toBe(false);
+
+    act(() => next?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(slides.map((slide) => slide.getAttribute("aria-hidden"))).toEqual(["true", "true", "false", "true"]);
+    act(() => container.querySelector("[data-drop-track]")
+      ?.dispatchEvent(new Event("transitionend", { bubbles: true })));
+    expect(slides.map((slide) => slide.getAttribute("aria-hidden"))).toEqual(["true", "false", "true", "true"]);
+    act(() => next?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    act(() => container.querySelector("[data-drop-track]")
+      ?.dispatchEvent(new Event("transitionend", { bubbles: true })));
+    act(() => previous?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(slides.map((slide) => slide.getAttribute("aria-hidden"))).toEqual(["false", "true", "true", "true"]);
+    act(() => container.querySelector("[data-drop-track]")
+      ?.dispatchEvent(new Event("transitionend", { bubbles: true })));
+    expect(slides.map((slide) => slide.getAttribute("aria-hidden"))).toEqual(["true", "false", "true", "true"]);
   });
 
   it("only exposes the selected slide to keyboard and screen reader navigation", () => {
@@ -41,13 +76,13 @@ describe("CurrentDrops", () => {
     });
     const { container } = renderWithProviders(<CurrentDrops />);
     const slides = Array.from(container.querySelectorAll<HTMLAnchorElement>("a[aria-hidden]"));
-    expect(slides.map((slide) => slide.tabIndex)).toEqual([0, -1, -1]);
-    expect(slides.map((slide) => slide.getAttribute("aria-hidden"))).toEqual(["false", "true", "true"]);
+    expect(slides.map((slide) => slide.tabIndex)).toEqual([-1, 0, -1, -1, -1, -1]);
+    expect(slides.map((slide) => slide.getAttribute("aria-hidden"))).toEqual(["true", "false", "true", "true", "true", "true"]);
 
     act(() => container.querySelector('button[aria-label="Next drop"]')
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(slides.map((slide) => slide.tabIndex)).toEqual([-1, 0, -1]);
-    expect(slides.map((slide) => slide.getAttribute("aria-hidden"))).toEqual(["true", "false", "true"]);
+    expect(slides.map((slide) => slide.tabIndex)).toEqual([-1, -1, 0, -1, -1, -1]);
+    expect(slides.map((slide) => slide.getAttribute("aria-hidden"))).toEqual(["true", "true", "false", "true", "true", "true"]);
     expect(container.querySelector('a:not([aria-hidden])[href="/d/drop-2"]')?.textContent).toBe("View drop");
     expect(container.querySelector('button[aria-label="Previous drop"]')?.hasAttribute("disabled")).toBe(false);
     expect(container.querySelector('button[aria-label="Next drop"]')?.hasAttribute("disabled")).toBe(false);
@@ -70,7 +105,7 @@ describe("CurrentDrops", () => {
     mockCatalog.mockReturnValue({ ...catalog, items: items.slice(0, 2) });
     view.rerender(<CurrentDrops />);
     expect(view.container.textContent).toContain("Second drop ·");
-    expect(view.container.querySelector('button[aria-label="Next drop"]')?.hasAttribute("disabled")).toBe(true);
+    expect(view.container.querySelector('button[aria-label="Next drop"]')?.hasAttribute("disabled")).toBe(false);
 
     mockCatalog.mockReturnValue({ ...catalog, items: [] });
     view.rerender(<CurrentDrops />);
@@ -78,7 +113,7 @@ describe("CurrentDrops", () => {
     mockCatalog.mockReturnValue(catalog);
     view.rerender(<CurrentDrops />);
     expect(view.container.textContent).toContain("Campus sampler ·");
-    expect(view.container.querySelector('button[aria-label="Previous drop"]')?.hasAttribute("disabled")).toBe(true);
+    expect(view.container.querySelector('button[aria-label="Previous drop"]')?.hasAttribute("disabled")).toBe(false);
   });
 
   it("shows loading, empty, and retryable error states", () => {
