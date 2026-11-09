@@ -140,8 +140,9 @@ describe("CurrentDrops", () => {
     expect(view.container.querySelector("button")?.textContent).toBe("Try again");
   });
 
-  it("automatically advances after the randomized interval and pauses on hover/focus", () => {
+  it("automatically advances after the randomized interval and independently pauses on hover and focus", () => {
     jest.useFakeTimers();
+    const randomSpy = jest.spyOn(Math, "random").mockReturnValue(0.5); // delay = 3000 + 0.5 * 3000 = 4500ms
     try {
       mockCatalog.mockReturnValue({
         items: [row, { ...row, id: "drop-2", title: "Second drop" }],
@@ -152,35 +153,48 @@ describe("CurrentDrops", () => {
       const slides = Array.from(view.container.querySelectorAll<HTMLAnchorElement>("a[aria-hidden]"));
       expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "false", "true", "true", "true"]);
 
-      // Advance by 6 seconds (max delay is 6000ms)
+      // Advance by 4500ms
       act(() => {
-        jest.advanceTimersByTime(6500);
+        jest.advanceTimersByTime(4500);
       });
       expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "true", "false", "true", "true"]);
 
-      // Trigger hover (React listens to mouseover for onMouseEnter)
+      // Trigger focus inside carousel
       const wrapper = view.container.querySelector(".mx-auto.w-full");
+      act(() => {
+        slides[2].focus();
+        wrapper?.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+      });
+
+      // Also trigger hover
       act(() => {
         wrapper?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
         wrapper?.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
       });
-      act(() => {
-        jest.advanceTimersByTime(10000);
-      });
-      // Should remain paused on the current slide
-      expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "true", "false", "true", "true"]);
 
-      // Trigger mouse leave (React listens to mouseout for onMouseLeave)
+      // Pointer leaves, but keyboard focus remains inside
       act(() => {
         wrapper?.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
         wrapper?.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
       });
       act(() => {
-        jest.advanceTimersByTime(6500);
+        jest.advanceTimersByTime(10000);
       });
-      // Should advance again
+      // Must stay paused because focus is still retained
+      expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "true", "false", "true", "true"]);
+
+      // Blur focus away
+      act(() => {
+        slides[2].blur();
+        wrapper?.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+      });
+      act(() => {
+        jest.advanceTimersByTime(4500);
+      });
+      // Now advances
       expect(slides.map((s) => s.getAttribute("aria-hidden"))).toEqual(["true", "true", "true", "false", "true"]);
     } finally {
+      randomSpy.mockRestore();
       jest.useRealTimers();
     }
   });

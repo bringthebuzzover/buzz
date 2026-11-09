@@ -186,7 +186,8 @@ export function StackCards() {
 export function CurrentDrops() {
   const [index, setIndex] = useState(1);
   const [transitionEnabled, setTransitionEnabled] = useState(true);
-  const [isHoveredOrFocused, setIsHoveredOrFocused] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [isDocHidden, setIsDocHidden] = useState(
     typeof document !== "undefined" ? document.hidden : false,
   );
@@ -251,7 +252,7 @@ export function CurrentDrops() {
   }, []);
 
   const shouldAutoRotate =
-    !reduceMotion && !isHoveredOrFocused && !isDocHidden && items.length > 1;
+    !reduceMotion && !isHovered && !isFocused && !isDocHidden && items.length > 1;
 
   useEffect(() => {
     if (!shouldAutoRotate) return;
@@ -270,12 +271,12 @@ export function CurrentDrops() {
     >
       <div
         className="mx-auto w-full"
-        onMouseEnter={() => setIsHoveredOrFocused(true)}
-        onMouseLeave={() => setIsHoveredOrFocused(false)}
-        onFocusCapture={() => setIsHoveredOrFocused(true)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onFocusCapture={() => setIsFocused(true)}
         onBlurCapture={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-            setIsHoveredOrFocused(false);
+            setIsFocused(false);
           }
         }}
       >
