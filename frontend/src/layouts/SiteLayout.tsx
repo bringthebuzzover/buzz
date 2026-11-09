@@ -59,7 +59,7 @@ export default function SiteLayout() {
             <Outlet />
           </div>
         </main>
-        {bare ? null : marketing ? <MobileJoinDock /> : <SiteFooter />}
+        {bare ? null : marketing ? <MobileJoinDock /> : <SiteFooter mode={portal ? "signed-in" : "public"} />}
       </div>
     </SiteChromeProvider>
   );

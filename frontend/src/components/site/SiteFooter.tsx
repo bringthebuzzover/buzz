@@ -1,20 +1,24 @@
 /** Shared full marketing footer used on public, legal, and portal routes. */
 import { Link } from "react-router-dom";
 import { siteIdentity } from "../../data/siteIdentity";
-import { BeeMark } from "../ui/BrandMark";
+import { BeeMark, Logo } from "../ui/BrandMark";
 import { LinkButton } from "../forms/controls";
 import { cn } from "../../theme/cn";
 import { focusRingClass } from "../../theme/controls";
 import { footerLinkClass, SOCIAL_LINKS } from "./footerLinks";
 
 export type SiteFooterAudience = "both" | "org" | "brand";
+export type SiteFooterMode = "public" | "signed-in";
 
 export default function SiteFooter({
   audience = "both",
+  mode = "public",
 }: {
   audience?: SiteFooterAudience;
+  mode?: SiteFooterMode;
 }) {
   const { contact } = siteIdentity;
+  const isSignedIn = mode === "signed-in";
   const isBrand = audience === "brand";
   const primary = isBrand
     ? { label: "Apply as a brand", to: "/brand/apply" }
@@ -22,46 +26,63 @@ export default function SiteFooter({
 
   return (
     <footer
-      id={audience === "both" ? "home-join" : undefined}
+      id={!isSignedIn && audience === "both" ? "home-join" : undefined}
       data-reveal-group
       role="contentinfo"
       data-nav-surface="ink"
-      className="flex min-h-[844px] flex-col bg-page px-4 pb-28 pt-24 text-primary md:min-h-[900px] md:px-12 md:pb-16 md:pt-[135px]"
+      className={cn(
+        "flex flex-col bg-page text-primary",
+        isSignedIn
+          ? "px-6 py-10 md:px-12 md:py-10"
+          : "min-h-[844px] px-4 pb-28 pt-24 md:min-h-[900px] md:px-12 md:pb-16 md:pt-[135px]",
+      )}
     >
-      <h2
-        data-reveal-line
-        className="max-w-full text-[40px] font-medium leading-none tracking-tight md:text-buzzDisplay"
-      >
-        {isBrand ? "Request a campaign" : "Want to join?"}
-      </h2>
-      {isBrand ? (
-        <p className="mt-5 text-base text-muted">
-          You request a call. BUZZ builds and publishes the drop.
-        </p>
+      {!isSignedIn ? (
+        <>
+          <h2
+            data-reveal-line
+            className="max-w-full text-[40px] font-medium leading-none tracking-tight md:text-buzzDisplay"
+          >
+            {isBrand ? "Request a campaign" : "Want to join?"}
+          </h2>
+          {isBrand ? (
+            <p className="mt-5 text-base text-muted">
+              You request a call. BUZZ builds and publishes the drop.
+            </p>
+          ) : null}
+          <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+            <LinkButton to={primary.to} className="h-11 px-5">
+              {primary.label}
+            </LinkButton>
+            {audience === "both" ? (
+              <Link to="/brand/apply" className={cn("text-sm text-primary", footerLinkClass)}>
+                Apply as a brand
+              </Link>
+            ) : null}
+          </div>
+          <a
+            href={`mailto:${contact.email}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "mt-8 break-all text-[20px] font-medium leading-tight md:text-buzzStatement",
+              focusRingClass,
+            )}
+          >
+            {contact.email}
+          </a>
+        </>
       ) : null}
-      <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-        <LinkButton to={primary.to} className="h-11 px-5">
-          {primary.label}
-        </LinkButton>
-        {audience === "both" ? (
-          <Link to="/brand/apply" className={cn("text-sm text-primary", footerLinkClass)}>
-            Apply as a brand
-          </Link>
-        ) : null}
-      </div>
-      <a
-        href={`mailto:${contact.email}`}
-        target="_blank"
-        rel="noopener noreferrer"
+
+      <div
         className={cn(
-          "mt-8 break-all text-[20px] font-medium leading-tight md:text-buzzStatement",
-          focusRingClass,
+          "mt-auto grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-5 md:gap-8",
+          !isSignedIn && "pt-16",
         )}
       >
-        {contact.email}
-      </a>
-
-      <div className="mt-auto grid grid-cols-2 gap-x-6 gap-y-10 pt-16 md:grid-cols-4 md:gap-8">
+        <div>
+          <Logo surface="ink" />
+        </div>
         <FooterColumn
           title="Organizations"
           links={[
@@ -114,13 +135,16 @@ export default function SiteFooter({
           ]}
         />
       </div>
-      <div className="mt-10 flex flex-col items-center gap-4 text-center text-xs text-muted md:flex-row md:justify-between md:text-left">
-        <BeeMark className="h-7 w-7" />
+      <div
+        data-footer-meta
+        className="mt-10 flex flex-col items-center gap-4 text-center text-xs text-muted md:flex-row md:justify-between md:text-left"
+      >
+        <p>{new Date().getFullYear()}</p>
         <p>
           Connecting brands with campus communities for authentic college
           marketing, at scale.
         </p>
-        <p>{new Date().getFullYear()}</p>
+        <BeeMark className="h-7 w-7" />
       </div>
     </footer>
   );
