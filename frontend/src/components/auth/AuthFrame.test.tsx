@@ -12,6 +12,9 @@ describe("AuthAside and AuthSplit", () => {
 
     const aside = container.querySelector('[data-testid="auth-aside"]');
     expect(aside).not.toBeNull();
+    expect(aside?.textContent).toContain(
+      "Connecting brands with campus communities for authentic college marketing, at scale.",
+    );
 
     // Top row logo link to / in aside
     const logoLink = aside?.querySelector<HTMLAnchorElement>('a[aria-label="BUZZ Home"]');
@@ -39,5 +42,18 @@ describe("AuthAside and AuthSplit", () => {
       (p) => p.textContent === "bringthebuzzover.com",
     );
     expect(staticFooter).toBeUndefined();
+  });
+
+  it("allows an auth page to override only its aside statement", () => {
+    const { container } = renderWithProviders(
+      <AuthSplit asideStatement="Join as a student organization and work with brands on real campus campaigns.">
+        <p>Form content</p>
+      </AuthSplit>,
+    );
+    const aside = container.querySelector('[data-testid="auth-aside"]');
+    expect(aside?.textContent).toContain(
+      "Join as a student organization and work with brands on real campus campaigns.",
+    );
+    expect(aside?.textContent).not.toContain("Connecting brands with campus communities");
   });
 });

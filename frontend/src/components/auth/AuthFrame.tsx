@@ -57,7 +57,11 @@ function BeeFlight() {
   );
 }
 
-function AuthAside() {
+function AuthAside({
+  asideStatement = ASIDE_STATEMENT,
+}: {
+  asideStatement?: string;
+}) {
   return (
     <aside
       data-testid="auth-aside"
@@ -87,7 +91,7 @@ function AuthAside() {
         </div>
         <div className="flex-1" />
         <p className={cn(TEXT.statement, "max-w-[34rem] text-primary")}>
-          {ASIDE_STATEMENT}
+          {asideStatement}
         </p>
         <AuthLegalLinks />
         <BeeFlight />
@@ -98,14 +102,16 @@ function AuthAside() {
 
 export function AuthSplit({
   wide = false,
+  asideStatement,
   children,
 }: {
   wide?: boolean;
+  asideStatement?: string;
   children: ReactNode;
 }) {
   return (
     <div className="flex min-h-screen w-full flex-col bg-page lg:flex-row">
-      <AuthAside />
+      <AuthAside asideStatement={asideStatement} />
       <div className="flex flex-1 flex-col px-6 py-6 lg:px-12 lg:py-8">
         <div className="flex w-full justify-end">
           <Link

@@ -2,7 +2,7 @@
  * Busy submit labels, generated field ids, and hint + aria-describedby merge.
  */
 import { renderWithProviders as mount } from "../../testUtils";
-import { Button, Select, TextArea, TextField } from "./controls";
+import { Button, Notice, Select, TextArea, TextField } from "./controls";
 
 describe("Button loading", () => {
   it("swaps in the busy label and stays disabled", () => {
@@ -72,5 +72,16 @@ describe("field ids and hints", () => {
     expect(labels[1].htmlFor).toBe(textarea.id);
     expect(select.getAttribute("aria-describedby")).toBe(`${select.id}-hint`);
     expect(textarea.getAttribute("aria-describedby")).toBe(`${textarea.id}-hint`);
+  });
+});
+
+describe("Notice icons", () => {
+  it("aligns a custom icon with the first text line", () => {
+    const view = mount(
+      <Notice icon={<svg data-testid="notice-icon" />}>Short notice.</Notice>,
+    );
+    const icon = view.container.querySelector('[data-testid="notice-icon"]');
+    expect(icon?.parentElement?.className).toContain("mt-[2px]");
+    expect(icon?.parentElement?.parentElement?.className).toContain("items-start");
   });
 });
