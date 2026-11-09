@@ -40,6 +40,9 @@ const PINS: { name: string; x: number; y: number }[] = [
 const MAP_W = 880;
 const MAP_H = 550;
 
+/** Lookup map for university logoSrc from canonical COLLEGES list. */
+const COLLEGE_BY_NAME = new Map(COLLEGES.map((c) => [c.name, c]));
+
 /** Stanford → Rice → Duke → UPenn → Cornell → UChicago → Stanford. */
 const ROUTE = ["Stanford", "Rice", "Duke", "UPenn", "Cornell", "UChicago", "Stanford"];
 const pinByName = (name: string) => PINS.find((pin) => pin.name === name)!;
@@ -168,7 +171,7 @@ export function CollegeNetwork() {
           College network
         </h2>
         <p className="mt-4 max-w-xl text-base leading-normal text-on-accent/65">
-          Vetted student organizations powering authentic campus marketing nationwide.
+          Vetted student organizations powering authentic campus marketing.
         </p>
         <div
           key={reduce ? "parked" : "flying"}
@@ -184,25 +187,52 @@ export function CollegeNetwork() {
               <circle key={`${x}-${y}`} cx={x} cy={y} r="2.2" fill="#0b0b0b" opacity="0.28" />
             ))}
           </svg>
-          {PINS.map((pin) => (
-            <span
-              data-campus={pin.name}
-              data-visiting={reduce && pin.name === "Cornell" ? "true" : undefined}
-              key={pin.name}
-              title={pin.name}
-              className="marketing-pin absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2"
-              style={position(pin)}
-            >
-              <span className="absolute inset-0 rounded-full bg-on-accent" />
-              <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent" />
+          {PINS.map((pin) => {
+            const college = COLLEGE_BY_NAME.get(pin.name);
+            const isRightSide = pin.x > MAP_W / 2;
+            return (
               <span
-                className="marketing-pin-label pointer-events-none absolute bottom-5 rounded-full bg-page px-3 py-1 text-xs text-primary"
-                style={{ [pin.x > MAP_W / 2 ? "right" : "left"]: 0 }}
+                data-campus={pin.name}
+                data-visiting={reduce && pin.name === "Cornell" ? "true" : undefined}
+                key={pin.name}
+                title={pin.name}
+                className="marketing-pin group absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2"
+                style={position(pin)}
               >
-                {pin.name}
+                {/* Active pulse aura */}
+                <span
+                  className="marketing-pin-pulse pointer-events-none absolute -inset-1.5 rounded-full bg-accent-wash ring-1 ring-accent md:-inset-2 md:ring-[1.5px]"
+                  aria-hidden
+                />
+                {/* Pin core */}
+                <span className="absolute inset-0 rounded-full bg-on-accent" />
+                <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent" />
+
+                {/* Campus pin badge: school logo + name in pill container */}
+                <span
+                  className="marketing-pin-badge pointer-events-none absolute bottom-4 z-10 flex items-center gap-1 rounded-full border border-black/10 bg-white py-0.5 pl-1 pr-1.5 shadow-buzz md:bottom-5 md:gap-1.5 md:py-1 md:pl-1.5 md:pr-2.5"
+                  style={{
+                    [isRightSide ? "right" : "left"]: 0,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {college?.logoSrc ? (
+                    <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white md:h-[18px] md:w-[18px]">
+                      <img
+                        src={college.logoSrc}
+                        alt=""
+                        aria-hidden
+                        className="h-full w-full object-contain"
+                      />
+                    </span>
+                  ) : null}
+                  <span className="text-buzzMicro font-medium leading-none text-on-accent">
+                    {pin.name}
+                  </span>
+                </span>
               </span>
-            </span>
-          ))}
+            );
+          })}
           <div className="pointer-events-none absolute inset-0" aria-hidden>
             <span
               data-flyer
