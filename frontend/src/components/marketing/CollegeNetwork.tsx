@@ -210,7 +210,7 @@ export function CollegeNetwork() {
 
                 {/* Campus pin badge: school logo + name in pill container */}
                 <span
-                  className="marketing-pin-badge pointer-events-none absolute bottom-4 z-10 flex items-center gap-1 rounded-full border border-black/10 bg-white py-0.5 pl-1 pr-1.5 shadow-sm md:bottom-5 md:gap-1.5 md:py-1 md:pl-1.5 md:pr-2.5"
+                  className="marketing-pin-badge pointer-events-none absolute bottom-4 z-10 flex items-center gap-1 rounded-full border border-black/10 bg-white py-0.5 pl-1 pr-1.5 shadow-buzz md:bottom-5 md:gap-1.5 md:py-1 md:pl-1.5 md:pr-2.5"
                   style={{
                     [isRightSide ? "right" : "left"]: 0,
                     whiteSpace: "nowrap",
@@ -226,7 +226,7 @@ export function CollegeNetwork() {
                       />
                     </span>
                   ) : null}
-                  <span className="text-[10px] font-medium leading-none text-[#0b0b0b] md:text-xs">
+                  <span className="text-buzzMicro font-medium leading-none text-on-accent md:text-xs">
                     {pin.name}
                   </span>
                 </span>
