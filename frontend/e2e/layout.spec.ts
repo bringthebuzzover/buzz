@@ -94,6 +94,22 @@ test("org login is a photo split without the marketing header or footer", async 
   ).toBeVisible();
 });
 
+test("org apply keeps the photo pane pinned while the form scrolls", async ({
+  page,
+}) => {
+  await page.setViewportSize(DESKTOP);
+  await gotoAnonymous(page, "/org/apply");
+
+  const aside = page.getByTestId("auth-aside");
+  await expect(aside).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+
+  const box = await aside.boundingBox();
+  expect(box).not.toBeNull();
+  expect(Math.abs(box!.y)).toBeLessThanOrEqual(2);
+  await expect(aside.locator('a[aria-label="BUZZ Home"]')).toBeVisible();
+});
+
 test("admin login uses the minimal auth header", async ({ page }) => {
   await page.setViewportSize(DESKTOP);
   await gotoAnonymous(page, "/admin/login");

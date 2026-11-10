@@ -65,7 +65,7 @@ function AuthAside({
   return (
     <aside
       data-testid="auth-aside"
-      className="relative flex min-h-[420px] w-full shrink-0 flex-col overflow-hidden lg:min-h-screen lg:w-[620px]"
+      className="relative flex min-h-[420px] w-full shrink-0 flex-col overflow-hidden lg:sticky lg:top-0 lg:h-screen lg:self-start lg:w-[620px]"
     >
       <picture>
         <source
@@ -79,7 +79,7 @@ function AuthAside({
         />
       </picture>
       <div className="absolute inset-0 bg-[linear-gradient(180deg,#0b0b0b33,#0b0b0bf2)]" />
-      <div className="relative flex flex-1 flex-col gap-5 p-8 lg:p-12">
+      <div className="relative flex flex-1 flex-col gap-5 p-8 lg:min-h-0 lg:overflow-y-auto lg:p-12">
         <div>
           <Link
             to="/"
