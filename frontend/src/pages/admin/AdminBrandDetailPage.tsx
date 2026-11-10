@@ -47,6 +47,7 @@ import {
 } from "../../components/admin/labels";
 import { ApiError } from "../../api/errors";
 import { instagramProfileUrl } from "../../utils/instagramProfileUrl";
+import { marketingBudgetLabel } from "../../utils/marketingBudget";
 import ComposeEmailModal from "../../components/admin/ComposeEmailModal";
 import { SuccessBanner } from "../../components/forms/controls";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
@@ -300,11 +301,22 @@ export default function AdminBrandDetailPage() {
             </ErrorNote>
           )}
 
-          {data.intentMessage && (
-            <Panel title="Application message">
-              <p className="whitespace-pre-wrap px-4 py-4 text-sm font-medium text-primary">
-                {data.intentMessage}
-              </p>
+          {(data.contactName || data.marketingBudget || data.intentMessage) && (
+            <Panel title="Application">
+              <FieldGrid columns={2}>
+                <Field label="Contact">{data.contactName ?? "—"}</Field>
+                <Field label="Marketing budget">
+                  {marketingBudgetLabel(data.marketingBudget)}
+                </Field>
+              </FieldGrid>
+              {data.intentMessage && (
+                <div className="px-6 pb-5">
+                  <p className="text-xs text-quiet">Message</p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm font-medium text-primary">
+                    {data.intentMessage}
+                  </p>
+                </div>
+              )}
             </Panel>
           )}
 

@@ -35,6 +35,7 @@ import {
 } from "../../components/admin/AdminPrimitives";
 import { formatElapsed } from "../../components/admin/labels";
 import { Select, TextField } from "../../components/forms/controls";
+import { marketingBudgetLabel } from "../../utils/marketingBudget";
 
 const FILTERS = [
   { value: null, label: "All" },
@@ -44,7 +45,15 @@ const FILTERS = [
   { value: "erased", label: "Erased" },
 ] as const;
 
-const HEADERS = ["Brand", "Status", "Access", "Contact", "Waiting", ""] as const;
+const HEADERS = [
+  "Brand",
+  "Status",
+  "Access",
+  "Contact",
+  "Budget",
+  "Waiting",
+  "",
+] as const;
 
 /** Can this brand actually sign in, and if not, why not? */
 function AccessPill({ row }: { row: AdminBrandRow }) {
@@ -239,7 +248,21 @@ export default function AdminBrandsPage() {
                 <Cell>
                   <AccessPill row={row} />
                 </Cell>
-                <Cell muted>{row.companyEmail}</Cell>
+                <Cell>
+                  {row.contactName ? (
+                    <>
+                      <span className="block font-medium text-primary">
+                        {row.contactName}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-quiet">
+                        {row.companyEmail}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-quiet">{row.companyEmail}</span>
+                  )}
+                </Cell>
+                <Cell muted>{marketingBudgetLabel(row.marketingBudget)}</Cell>
                 <Cell muted>{formatElapsed(row.createdAt)}</Cell>
                 <Cell align="right">
                   <div className="flex flex-wrap justify-end gap-2">

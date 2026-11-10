@@ -6,6 +6,10 @@
  * disabled, the page shows an "admin-provisioned only" message instead of the
  * form. After a successful apply, the brand waits for admin approval + an
  * invite email to set their password.
+ *
+ * Batch 6: five required fields in the order BUZZ asked for — full name,
+ * company name, company email, university marketing budget, short message —
+ * plus the optional Instagram handle.
  */
 import { useState } from "react";
 import { useBrandApply, usePublicConfig } from "../../api/hooks/useOnboardingHooks";
@@ -21,17 +25,26 @@ import {
   Button,
   ErrorBanner,
   LinkButton,
+  Select,
+  TextArea,
   TextField,
 } from "../../components/forms/controls";
+import {
+  MARKETING_BUDGET_CODES,
+  MARKETING_BUDGET_LABELS,
+  type MarketingBudget,
+} from "../../utils/marketingBudget";
 
 export default function BrandApplyPage() {
   const config = usePublicConfig();
   const apply = useBrandApply();
 
+  const [contactName, setContactName] = useState("");
   const [brandName, setBrandName] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
-  const [instagramHandle, setInstagramHandle] = useState("");
+  const [marketingBudget, setMarketingBudget] = useState("");
   const [intentMessage, setIntentMessage] = useState("");
+  const [instagramHandle, setInstagramHandle] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
@@ -45,10 +58,12 @@ export default function BrandApplyPage() {
     setError(null);
     try {
       await apply.mutateAsync({
+        contactName: contactName.trim(),
         brandName: brandName.trim(),
         companyEmail: companyEmail.trim(),
+        marketingBudget: marketingBudget as MarketingBudget,
+        intentMessage: intentMessage.trim(),
         instagramHandle: instagramHandle.trim().replace(/^@/, "") || undefined,
-        intentMessage: intentMessage.trim() || undefined,
       });
       setSubmitted(true);
     } catch (err) {
@@ -104,6 +119,16 @@ export default function BrandApplyPage() {
 
       <form onSubmit={onSubmit} className="space-y-6">
         <TextField
+          label="Your name"
+          placeholder="e.g. Ada Lovelace"
+          value={contactName}
+          onChange={(e) => setContactName(e.target.value)}
+          autoComplete="name"
+          maxLength={255}
+          required
+        />
+
+        <TextField
           label="Brand name"
           placeholder="e.g. Sample Brand"
           value={brandName}
@@ -121,6 +146,32 @@ export default function BrandApplyPage() {
           autoComplete="email"
         />
 
+        <Select
+          label="University marketing budget"
+          value={marketingBudget}
+          onChange={(e) => setMarketingBudget(e.target.value)}
+          required
+        >
+          <option value="" disabled>
+            Select a range
+          </option>
+          {MARKETING_BUDGET_CODES.map((code) => (
+            <option key={code} value={code}>
+              {MARKETING_BUDGET_LABELS[code]}
+            </option>
+          ))}
+        </Select>
+
+        <TextArea
+          label="What are you hoping to do on BUZZ?"
+          value={intentMessage}
+          onChange={(e) => setIntentMessage(e.target.value)}
+          placeholder="e.g. Sample our new cold brew at fall campus events"
+          rows={4}
+          maxLength={2000}
+          required
+        />
+
         <TextField
           label={
             <>
@@ -131,18 +182,6 @@ export default function BrandApplyPage() {
           value={instagramHandle}
           onChange={(e) => setInstagramHandle(e.target.value)}
           placeholder="yourbrand"
-        />
-
-        <TextField
-          label={
-            <>
-              What are you hoping to do on BUZZ?{" "}
-              <span className="font-normal text-quiet">(optional)</span>
-            </>
-          }
-          value={intentMessage}
-          onChange={(e) => setIntentMessage(e.target.value)}
-          placeholder="e.g. Sample our new cold brew at fall campus events"
         />
 
         {error && <ErrorBanner>{error}</ErrorBanner>}
