@@ -3,7 +3,7 @@
  *
  * Locks the payload the backend expects: contact name, brand name, company
  * email, a marketing-budget code from the shared list, and the message. The
- * budget `<select>` must offer exactly the contract codes.
+ * budget dropdown must offer exactly the contract codes.
  */
 import { act } from "react";
 import { renderWithProviders } from "../../testUtils";
