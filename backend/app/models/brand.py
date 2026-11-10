@@ -13,6 +13,7 @@ from datetime import datetime
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.marketing_budget import marketing_budget_check_sql
 from app.models.base import Base
 from app.models.enums import BrandStatusEnum
 
@@ -24,8 +25,7 @@ class Brand(Base):
     # that makes two concurrent self-registrations safe.
     __table_args__ = (
         sa.CheckConstraint(
-            "marketing_budget IS NULL OR "
-            "marketing_budget IN ('5_20k','20k_50k','50k_100k','100k_plus')",
+            marketing_budget_check_sql(),
             name="ck_brands_marketing_budget",
         ),
         sa.Index(

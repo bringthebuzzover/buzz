@@ -33,7 +33,7 @@ import httpx
 
 from app.brand_emails import CONTACT_EMAIL, EMAIL_FROM, OPS_CC_EMAIL
 from app.config import settings
-from app.schemas.brands import MARKETING_BUDGET_LABELS
+from app.marketing_budget import MARKETING_BUDGET_LABELS, MarketingBudget
 
 logger = logging.getLogger(__name__)
 
@@ -1099,7 +1099,7 @@ async def send_brand_apply_notice(
     contact_name: str,
     brand_name: str,
     company_email: str,
-    marketing_budget: str,
+    marketing_budget: MarketingBudget,
     intent_message: str,
     submitted_at: datetime,
 ) -> bool:

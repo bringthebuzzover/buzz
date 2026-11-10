@@ -13,17 +13,11 @@ from typing import Literal
 from pydantic import ConfigDict, Field, ValidationInfo, field_serializer, field_validator
 from pydantic.alias_generators import to_camel
 
+from app.marketing_budget import MarketingBudget
 from app.models.enums import DropStage, SeatProgress
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 from app.schemas.posts import ReelsSkipRate
 from app.schemas.shipments import ShipmentItem
-
-MARKETING_BUDGET_LABELS = {
-    "5_20k": "$5–20k",
-    "20k_50k": "$20k–$50k",
-    "50k_100k": "$50k–$100k",
-    "100k_plus": "$100k+",
-}
 
 
 class BrandApplyRequest(CamelModel):
@@ -32,7 +26,7 @@ class BrandApplyRequest(CamelModel):
     contact_name: str
     brand_name: str
     company_email: str
-    marketing_budget: Literal["5_20k", "20k_50k", "50k_100k", "100k_plus"]
+    marketing_budget: MarketingBudget
     intent_message: str
     instagram_handle: str | None = None
 
