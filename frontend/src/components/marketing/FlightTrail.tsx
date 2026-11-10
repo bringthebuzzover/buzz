@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { publicAsset } from "../../utils/publicAsset";
-import { FLIGHT_BANDS, SEAM_GAP } from "./flightPathData";
+import { FLIGHT_BANDS } from "./flightPathData";
 import { useReducedMotion } from "./useReducedMotion";
 
 type Path = {
@@ -37,7 +37,7 @@ function sampleAt(path: Path, s: number) {
   return { ...point, angle };
 }
 
-const PAN = 0.2;
+const GHOST = 0.55;
 
 const BANDS = FLIGHT_BANDS.map((points) => {
   const lengths = [0];
@@ -83,8 +83,8 @@ export function FlightTrail({ progress }: { progress: number }) {
   const path = BANDS[band];
   const sBee = t * path.total;
   const bee = sampleAt(path, sBee);
-  const outgoing = band > 0 && t < PAN ? BANDS[band - 1] : null;
-  const u = t / PAN;
+  const ghost = band > 0 && t < GHOST ? BANDS[band - 1] : null;
+  const ghostOpacity = ghost ? Math.pow(1 - t / GHOST, 1.4) : 0;
 
   return (
     <svg
@@ -92,23 +92,21 @@ export function FlightTrail({ progress }: { progress: number }) {
       className="pointer-events-none absolute inset-0 hidden h-full w-full overflow-hidden md:block"
       aria-hidden
     >
-      {outgoing && (
-        <g transform={`translate(0 ${-SEAM_GAP[band - 1] * u})`}>
-          <g opacity={1 - u}>
-            {outgoing.dots.map((dot) => {
-              const fade = reduce ? 0 : Math.exp(-(outgoing.total - dot.s) / 700);
-              return (
-                <circle
-                  key={dot.s}
-                  cx={dot.x}
-                  cy={dot.y}
-                  r={2.45 + 0.95 * fade}
-                  opacity={0.22 + 0.73 * fade}
-                  fill="#0b0b0b"
-                />
-              );
-            })}
-          </g>
+      {ghost && (
+        <g opacity={ghostOpacity}>
+          {ghost.dots.map((dot) => {
+            const fade = reduce ? 0 : Math.exp(-(ghost.total - dot.s) / 700);
+            return (
+              <circle
+                key={dot.s}
+                cx={dot.x}
+                cy={dot.y}
+                r={2.45 + 0.95 * fade}
+                opacity={0.22 + 0.73 * fade}
+                fill="#0b0b0b"
+              />
+            );
+          })}
         </g>
       )}
       <g>
