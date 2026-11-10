@@ -1,7 +1,7 @@
 ---
 name: buzz-design-and-brand
 description: >-
-  BUZZ visual work: pen-first design, approved UI, staging screenshot match,
+  BUZZ visual work: OpenPencil design, approved UI, staging screenshot match,
   logo and theme reuse, visual trims, and verification guides.
 ---
 
@@ -13,18 +13,21 @@ review those within scope; app implementation is not applicable without code.
 Deployment and external asset boundaries are in
 [staging operations](../buzz-staging-operations/SKILL.md).
 
-## Pen first, then match
+## OpenPencil first, then match
 
-1. Obtain the approved pen.dev design and frame through the task's authorized
-   design source. Do not assume a private filesystem path. If the design is
+1. Obtain the approved OpenPencil `.fig` file and frame through the task's
+   authorized design source. Do not assume a private filesystem path. If the design is
    unavailable, ask for access before inventing new UI.
 2. Update the design for the item before implementation. New UI or behavior
    needs user approval; a coding request does not settle a product fork.
    An external design edit also requires authorization for that write.
+   Preserve semantic design data, including variables, component overrides,
+   text styles, and bindings, during edits or conversions.
 3. Where app code exists, implement for the caller-authorized target. Real interactions
    and animations may extend a static frame while preserving the approved design.
-4. Compare each relevant frame with screenshots of the explicitly selected UI at matching viewport
-   sizes and states. Fix missing frames and visual drift before claiming a match.
+4. Compare relevant exported frames with screenshots of the explicitly selected
+   UI at matching viewport sizes and states. Fix missing frames and visual drift;
+   keep visual approval before declaring fidelity or cutover complete.
    Request permission before each laptop UI-control action.
 5. Visual trims preserve appearance and behavior; use before/after screenshots
    and pixel diffs as evidence. Disclose any missing visual verification.
@@ -56,9 +59,9 @@ this repo task does not authorize edits to the separate operations repository,
 lab branch, Worker, Pages configuration, or deployed assets. Any approved sync
 must preserve unrelated bindings and be visually verified by its owner.
 
-Verification/tester guides match the approved current pen/site theme: the current
+Verification/tester guides match the approved current OpenPencil/site theme: the current
 default is light pink/cream, with approved dark variants only where appropriate.
-Identify the screen, expected behavior, and pen frame. Private guides may include authorized
+Identify the screen, expected behavior, and `.fig` frame. Private guides may include authorized
 staging links and clearly marked staging-only account identifiers, never passwords.
 Keep live addresses, accounts, and private design locations out of public files.
 Do not publish a guide or send messages without explicit approval.
