@@ -4,6 +4,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../../theme/cn";
+import { FlightTrail } from "./FlightTrail";
 import { MarketingPhone } from "./Phones";
 import { ORG_STEPS as steps } from "./mockups";
 import { useReducedMotion } from "./useReducedMotion";
@@ -12,6 +13,7 @@ export function PinnedHow() {
   const reduce = useReducedMotion();
   const trackRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(0);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     if (reduce) return;
@@ -29,6 +31,7 @@ export function PinnedHow() {
         Math.floor((scrolled / total) * steps.length),
       );
       setStep(next);
+      setProgress(Math.min(Math.max(scrolled / total, 0), 1));
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -62,7 +65,8 @@ export function PinnedHow() {
       className="relative h-[3376px] bg-[#f0f0f0] md:h-[3600px]"
     >
       <div className="sticky top-0 flex h-[844px] items-center md:h-[900px]">
-        <div className="mx-auto grid w-full max-w-[1440px] grid-cols-1 items-center gap-8 px-4 md:grid-cols-[1fr_317px_1fr] md:px-12">
+        <FlightTrail progress={progress} />
+        <div className="relative z-10 mx-auto grid w-full max-w-[1440px] grid-cols-1 items-center gap-8 px-4 md:grid-cols-[1fr_317px_1fr] md:px-12">
           {steps.map((item, index) => (
             <p
               key={item.caption}
