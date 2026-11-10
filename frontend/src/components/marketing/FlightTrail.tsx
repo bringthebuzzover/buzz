@@ -89,7 +89,7 @@ export function FlightTrail({ progress }: { progress: number }) {
   return (
     <svg
       viewBox="0 0 1440 900"
-      className="pointer-events-none absolute inset-0 hidden h-full w-full overflow-hidden md:block"
+      className="pointer-events-none absolute inset-0 hidden h-full w-full overflow-visible md:block"
       aria-hidden
     >
       {ghost && (
