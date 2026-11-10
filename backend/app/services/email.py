@@ -33,6 +33,7 @@ import httpx
 
 from app.brand_emails import CONTACT_EMAIL, EMAIL_FROM, OPS_CC_EMAIL
 from app.config import settings
+from app.schemas.brands import MARKETING_BUDGET_LABELS
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,7 @@ _IDEMPOTENCY_KEY_MAX = 256
 # starts a new key (a duplicate is possible for 24h). Reusing one for a
 # different send suppresses mail. Kinds with no constant are sent with no key.
 KIND_VERIFICATION = "verification"
+KIND_BRAND_APPLIED = "brand-applied"
 KIND_BRAND_INVITE = "brand-invite"
 KIND_ORG_APPROVED = "org-approved"
 KIND_ORG_APPROVED_BOUND = "org-approved-bound"
@@ -1091,6 +1093,40 @@ async def send_late_add_brand_email(
     )
 
 
+async def send_brand_apply_notice(
+    *,
+    brand_id: str,
+    contact_name: str,
+    brand_name: str,
+    company_email: str,
+    marketing_budget: str,
+    intent_message: str,
+    submitted_at: datetime,
+) -> bool:
+    """Notify ops of an application; Reply reaches the applicant.
+
+    EMAIL_FAIL_CLOSED + EMAIL_ALLOWLIST can suppress this send when the
+    recipient is not allowlisted. That is intended staging behaviour.
+    """
+    return await send_lifecycle_email(
+        CONTACT_EMAIL,
+        subject=f"New brand application: {brand_name} ({contact_name})",
+        paragraphs=[
+            f"Full name: {contact_name}",
+            f"Company name: {brand_name}",
+            f"Email: {company_email}",
+            f"University marketing budget: {MARKETING_BUDGET_LABELS[marketing_budget]}",
+            f"Short message: {intent_message}",
+            f"Submitted: {submitted_at.isoformat()}",
+        ],
+        url=f"{settings.FRONTEND_URL}/admin/brands/{brand_id}",
+        button="Open application",
+        cc=_ops_cc(exclude=CONTACT_EMAIL),
+        idempotency_key=build_idempotency_key(KIND_BRAND_APPLIED, brand_id),
+        reply_to=company_email,
+    )
+
+
 async def send_lifecycle_email(
     to_email: str,
     *,
@@ -1100,6 +1136,7 @@ async def send_lifecycle_email(
     button: str,
     cc: list[str] | None = None,
     idempotency_key: str | None = None,
+    reply_to: str | None = None,
 ) -> bool:
     """One drop-lifecycle notice: plain paragraphs and one button (plan §3.6)."""
     text = "\n\n".join([*paragraphs, url]) + "\n"
@@ -1108,7 +1145,13 @@ async def send_lifecycle_email(
         logger.info("DEV EMAIL — %s: to=%s url=%s", subject, to_email, url)
         return True
     return await _dispatch(
-        to_email, subject, text, html=html, cc=cc or None, idempotency_key=idempotency_key
+        to_email,
+        subject,
+        text,
+        html=html,
+        cc=cc or None,
+        idempotency_key=idempotency_key,
+        reply_to=reply_to,
     )
 
 
@@ -1120,6 +1163,7 @@ async def _dispatch(
     html: str | None = None,
     cc: list[str] | None = None,
     idempotency_key: str | None = None,
+    reply_to: str | None = None,
 ) -> bool:
     """Send one email through Resend. Best-effort: never raises.
 
@@ -1168,7 +1212,7 @@ async def _dispatch(
         "to": [to_email],
         "subject": subject,
         "text": body,
-        "reply_to": CONTACT_EMAIL,
+        "reply_to": reply_to or CONTACT_EMAIL,
     }
     if html:
         payload["html"] = html

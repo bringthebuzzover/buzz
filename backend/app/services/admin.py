@@ -433,6 +433,8 @@ async def list_brands(db: AsyncSession, *, status: str | None = None) -> list[di
             "user_id": brand.user_id,
             "brand_name": brand.brand_name,
             "company_email": brand.company_email,
+            "contact_name": brand.contact_name,
+            "marketing_budget": brand.marketing_budget,
             "intent_message": brand.intent_message,
             "instagram_handle": brand.instagram_handle,
             "status": brand.status,

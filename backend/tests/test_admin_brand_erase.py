@@ -26,7 +26,12 @@ from tests.conftest import (
 
 
 async def _live_brand(db_session):
-    brand = await make_brand(db_session, company_email="acme@brand.test")
+    brand = await make_brand(
+        db_session,
+        company_email="acme@brand.test",
+        contact_name="Test Applicant",
+        marketing_budget="50k_100k",
+    )
     brand.instagram_handle = "acme"
     drop = await make_drop(db_session, brand)
     org_user = await persist(db_session, make_user(role=PortalRole.ORG))
@@ -70,6 +75,8 @@ class TestAdminBrandErase:
         user = await db_session.get(User, brand.user_id)
         assert brand.status == BrandStatus.ERASED.value
         assert brand.brand_name == "Deleted brand"
+        assert brand.contact_name is None
+        assert brand.marketing_budget is None
         assert brand.instagram_handle is None
         assert brand.company_email.startswith("erased+")
         assert user is not None and user.status == "erased"

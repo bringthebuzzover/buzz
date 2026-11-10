@@ -354,6 +354,8 @@ async def make_brand(
     *,
     brand_name: str = "Test Brand",
     company_email: str | None = None,
+    contact_name: str | None = None,
+    marketing_budget: str | None = None,
 ) -> Brand:
     """Persist a brand (and its owning brand user) for drops to reference.
 
@@ -373,6 +375,8 @@ async def make_brand(
         id=uuid.uuid4(),
         user_id=brand_user.id,
         brand_name=brand_name,
+        contact_name=contact_name,
+        marketing_budget=marketing_budget,
         company_email=company_email or f"brand-{uuid.uuid4().hex[:12]}@test.com",
         status=BrandStatus.APPROVED.value,
     )

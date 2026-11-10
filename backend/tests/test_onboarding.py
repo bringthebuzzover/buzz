@@ -545,6 +545,8 @@ async def test_brand_apply_creates_pending_brand(app_client: AsyncClient, db_ses
     resp = await app_client.post(
         "/api/brands/apply",
         json={
+            "contactName": "  Test Applicant  ",
+            "marketingBudget": "5_20k",
             "brandName": "Acme Co",
             "companyEmail": "Hello@Acme.com",
             "instagramHandle": "@acme",
@@ -557,6 +559,8 @@ async def test_brand_apply_creates_pending_brand(app_client: AsyncClient, db_ses
 
     brand = await db_session.scalar(select(Brand).where(Brand.company_email == "hello@acme.com"))
     assert brand is not None
+    assert brand.contact_name == "Test Applicant"
+    assert brand.marketing_budget == "5_20k"
     assert brand.instagram_handle == "acme" or brand.instagram_handle == "@acme"
     user = await db_session.get(User, brand.user_id)
     assert user.portal_role == PortalRole.BRAND.value
@@ -564,11 +568,46 @@ async def test_brand_apply_creates_pending_brand(app_client: AsyncClient, db_ses
     assert user.password_hash is None
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("contactName", None),
+        ("contactName", "   "),
+        ("contactName", "x" * 256),
+        ("intentMessage", None),
+        ("intentMessage", "   "),
+        ("intentMessage", "x" * 2001),
+        ("marketingBudget", None),
+        ("marketingBudget", "invalid"),
+    ],
+)
+async def test_brand_apply_required_fields(app_client: AsyncClient, field, value) -> None:
+    payload = {
+        "contactName": "Test Applicant",
+        "brandName": "Test Company",
+        "companyEmail": "user1@example.com",
+        "marketingBudget": "5_20k",
+        "intentMessage": "Campus campaign.",
+    }
+    if value is None:
+        payload.pop(field)
+    else:
+        payload[field] = value
+    resp = await app_client.post("/api/brands/apply", json=payload)
+    assert resp.status_code == 422
+
+
 async def test_brand_apply_duplicate_email_conflict(app_client: AsyncClient, db_session) -> None:
     await make_brand(db_session, brand_name="Existing", company_email="brand@test.com")
     resp = await app_client.post(
         "/api/brands/apply",
-        json={"brandName": "Dup", "companyEmail": "BRAND@test.com"},
+        json={
+            "contactName": "Test Applicant",
+            "marketingBudget": "5_20k",
+            "intentMessage": "Campus campaign.",
+            "brandName": "Dup",
+            "companyEmail": "BRAND@test.com",
+        },
     )
     assert resp.status_code == 409
     assert resp.json()["error"]["code"] == "BRAND_EMAIL_TAKEN"
@@ -582,7 +621,13 @@ async def test_brand_apply_disabled_returns_403(
     monkeypatch.setattr(app_settings, "BRAND_SELF_REGISTRATION_ENABLED", False)
     resp = await app_client.post(
         "/api/brands/apply",
-        json={"brandName": "Nope", "companyEmail": "nope@brand.com"},
+        json={
+            "contactName": "Test Applicant",
+            "marketingBudget": "5_20k",
+            "intentMessage": "Campus campaign.",
+            "brandName": "Nope",
+            "companyEmail": "nope@brand.com",
+        },
     )
     assert resp.status_code == 403
     assert resp.json()["error"]["code"] == "BRAND_REGISTRATION_DISABLED"

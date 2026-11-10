@@ -549,7 +549,13 @@ class TestAdminCreateBrand:
         monkeypatch.setattr(settings, "BRAND_SELF_REGISTRATION_ENABLED", False)
         public = await app_client.post(
             "/api/brands/apply",
-            json={"brandName": "Nope", "companyEmail": "nope@brand.test"},
+            json={
+                "contactName": "Test Applicant",
+                "marketingBudget": "5_20k",
+                "intentMessage": "Campus campaign.",
+                "brandName": "Nope",
+                "companyEmail": "nope@brand.test",
+            },
         )
         assert public.status_code == 403
 

@@ -60,6 +60,8 @@ from app.services.drop_requests import (
     create_brand_drop_request,
     list_brand_drop_requests,
 )
+from app.services.email import send_brand_apply_notice
+from app.services.email_tasks import schedule_email
 from app.services.lifecycle import drop_stages, require_drop
 from app.services.seats import lock_drop, send_decisions, set_seat_decision
 from app.services.shipments import (
@@ -68,6 +70,7 @@ from app.services.shipments import (
     shipments_by_application_ids,
     update_shipment,
 )
+from app.timeutils import utcnow
 
 router = APIRouter(prefix="/brands", tags=["brands"])
 
@@ -79,6 +82,7 @@ router = APIRouter(prefix="/brands", tags=["brands"])
 )
 async def brand_apply(
     payload: BrandApplyRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
     """Public brand self-registration (→ pending_review).
@@ -98,6 +102,19 @@ async def brand_apply(
         company_email=payload.company_email,
         instagram_handle=payload.instagram_handle,
         intent_message=payload.intent_message,
+        contact_name=payload.contact_name,
+        marketing_budget=payload.marketing_budget,
+    )
+    await schedule_email(
+        background_tasks,
+        send_brand_apply_notice,
+        brand_id=result["brand_id"],
+        contact_name=payload.contact_name,
+        brand_name=payload.brand_name,
+        company_email=payload.company_email,
+        marketing_budget=payload.marketing_budget,
+        intent_message=payload.intent_message,
+        submitted_at=utcnow(),
     )
     return api_response(data=BrandApplyResponse.model_validate(result))
 

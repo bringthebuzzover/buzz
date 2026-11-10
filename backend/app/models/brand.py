@@ -23,6 +23,11 @@ class Brand(Base):
     # pre-checks + catches IntegrityError, but this index is the hard invariant
     # that makes two concurrent self-registrations safe.
     __table_args__ = (
+        sa.CheckConstraint(
+            "marketing_budget IS NULL OR "
+            "marketing_budget IN ('5_20k','20k_50k','50k_100k','100k_plus')",
+            name="ck_brands_marketing_budget",
+        ),
         sa.Index(
             "uq_brands_company_email_lower",
             sa.func.lower(sa.text("company_email")),
@@ -40,6 +45,8 @@ class Brand(Base):
 
     brand_name: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     company_email: Mapped[str] = mapped_column(sa.String(320), nullable=False)
+    contact_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    marketing_budget: Mapped[str | None] = mapped_column(sa.String(16), nullable=True)
     intent_message: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     instagram_handle: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
 
