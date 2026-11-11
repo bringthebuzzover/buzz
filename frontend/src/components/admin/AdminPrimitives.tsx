@@ -538,13 +538,14 @@ export function FieldGrid({
   columns = 3,
 }: {
   children: ReactNode;
-  columns?: 2 | 3 | 5;
+  columns?: 2 | 3 | 4 | 5;
 }) {
   return (
     <dl
       className={cn(
         "grid grid-cols-1 gap-5 px-6 py-5 sm:grid-cols-2",
         columns === 3 && "lg:grid-cols-3",
+        columns === 4 && "lg:grid-cols-4",
         columns === 5 && "lg:grid-cols-5",
       )}
     >

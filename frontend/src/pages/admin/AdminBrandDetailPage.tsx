@@ -322,7 +322,7 @@ export default function AdminBrandDetailPage() {
 
           {pendingIg && (
             <Panel title="Instagram handle change">
-              <FieldGrid>
+              <FieldGrid columns={4}>
                 <Field label="Current">
                   {pendingIg.currentHandle
                     ? `@${pendingIg.currentHandle.replace(/^@/, "")}`
