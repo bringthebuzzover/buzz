@@ -336,8 +336,12 @@ export default function AdminBrandDetailPage() {
                 </Field>
                 <Field label="Submitted">{formatDateTime(pendingIg.createdAt)}</Field>
               </FieldGrid>
-              {igDecisionError && <ErrorNote>{igDecisionError}</ErrorNote>}
-              <div className="mt-4 flex flex-wrap gap-2">
+              {igDecisionError && (
+                <div className="px-6">
+                  <ErrorNote>{igDecisionError}</ErrorNote>
+                </div>
+              )}
+              <div className="mt-4 flex flex-wrap gap-2 px-6 pb-6">
                 <ActionButton
                   variant="primary"
                   testId="approve-brand-ig"
