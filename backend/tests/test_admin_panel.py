@@ -160,7 +160,12 @@ class TestBrandList:
     async def test_separates_brand_and_user_status(self, app_client: AsyncClient, db_session):
         """``deny_brand`` never touches ``users.status``, so the row must carry
         both to distinguish live / invite-pending / orphaned."""
-        brand = await make_brand(db_session, brand_name="Split Brand")
+        brand = await make_brand(
+            db_session,
+            brand_name="Split Brand",
+            contact_name="Test Applicant",
+            marketing_budget="20k_50k",
+        )
 
         res = await app_client.get("/api/admin/brands", headers=await admin_headers(db_session))
         assert res.status_code == 200
@@ -169,6 +174,8 @@ class TestBrandList:
         assert row["userStatus"] == OrgUserStatus.ACTIVE.value
         assert row["passwordSet"] is False
         assert row["brandName"] == brand.brand_name
+        assert row["contactName"] == "Test Applicant"
+        assert row["marketingBudget"] == "20k_50k"
 
     async def test_status_filter(self, app_client: AsyncClient, db_session):
         pending = await make_brand(db_session, brand_name="Pending Brand")
@@ -190,7 +197,12 @@ class TestBrandList:
 
 class TestBrandDetail:
     async def test_includes_invite_state_and_drops(self, app_client: AsyncClient, db_session):
-        brand = await make_brand(db_session, brand_name="Invited Brand")
+        brand = await make_brand(
+            db_session,
+            brand_name="Invited Brand",
+            contact_name="Test Applicant",
+            marketing_budget="100k_plus",
+        )
         await make_drop(db_session, brand, title="Brand Drop")
         expires = utcnow() + timedelta(days=7)
         db_session.add(
@@ -210,6 +222,8 @@ class TestBrandDetail:
         )
         assert res.status_code == 200
         data = res.json()["data"]
+        assert data["contactName"] == "Test Applicant"
+        assert data["marketingBudget"] == "100k_plus"
         assert data["invite"]["expiresAt"] is not None
         assert data["invite"]["usedAt"] is None
         assert [d["title"] for d in data["drops"]] == ["Brand Drop"]

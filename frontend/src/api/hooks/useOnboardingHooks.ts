@@ -301,10 +301,12 @@ export function useBrandSetPassword() {
 }
 
 export type BrandApplyInput = {
+  contactName: string;
   brandName: string;
   companyEmail: string;
+  marketingBudget: components["schemas"]["BrandApplyRequest"]["marketingBudget"];
+  intentMessage: string;
   instagramHandle?: string;
-  intentMessage?: string;
 };
 
 /** Public brand self-registration (→ pending_review). No auth required. */

@@ -10,9 +10,10 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import ConfigDict, Field, field_serializer, field_validator
+from pydantic import ConfigDict, Field, ValidationInfo, field_serializer, field_validator
 from pydantic.alias_generators import to_camel
 
+from app.marketing_budget import MarketingBudget
 from app.models.enums import DropStage, SeatProgress
 from app.schemas.common import CamelModel, to_epoch_ms, to_epoch_ms_required
 from app.schemas.posts import ReelsSkipRate
@@ -22,10 +23,21 @@ from app.schemas.shipments import ShipmentItem
 class BrandApplyRequest(CamelModel):
     """Public brand self-registration body for ``POST /api/brands/apply``."""
 
+    contact_name: str
     brand_name: str
     company_email: str
+    marketing_budget: MarketingBudget
+    intent_message: str
     instagram_handle: str | None = None
-    intent_message: str | None = None
+
+    @field_validator("contact_name", "intent_message")
+    @classmethod
+    def _required_text(cls, v: str, info: ValidationInfo) -> str:
+        v = v.strip()
+        limit = 255 if info.field_name == "contact_name" else 2000
+        if not v or len(v) > limit:
+            raise ValueError(f"Must be non-empty and at most {limit} characters")
+        return v
 
     @field_validator("company_email")
     @classmethod

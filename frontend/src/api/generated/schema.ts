@@ -2599,6 +2599,8 @@ export interface components {
             brandName: string;
             /** Companyemail */
             companyEmail: string;
+            /** Contactname */
+            contactName: string | null;
             /** Createdat */
             createdAt: number;
             /** Drops */
@@ -2617,6 +2619,8 @@ export interface components {
             invite: components["schemas"]["AdminInviteState"];
             /** Lastloginat */
             lastLoginAt: number | null;
+            /** Marketingbudget */
+            marketingBudget: string | null;
             /** Passwordset */
             passwordSet: boolean;
             pendingIgChange?: components["schemas"]["AdminBrandPendingIgChange"] | null;
@@ -2715,6 +2719,8 @@ export interface components {
             brandName: string;
             /** Companyemail */
             companyEmail: string;
+            /** Contactname */
+            contactName: string | null;
             /** Createdat */
             createdAt: number | null;
             /**
@@ -2735,6 +2741,8 @@ export interface components {
             intentMessage: string | null;
             /** Lastloginat */
             lastLoginAt: number | null;
+            /** Marketingbudget */
+            marketingBudget: string | null;
             /** Passwordset */
             passwordSet: boolean;
             /** Status */
@@ -3723,10 +3731,17 @@ export interface components {
             brandName: string;
             /** Companyemail */
             companyEmail: string;
+            /** Contactname */
+            contactName: string;
             /** Instagramhandle */
             instagramHandle?: string | null;
             /** Intentmessage */
-            intentMessage?: string | null;
+            intentMessage: string;
+            /**
+             * Marketingbudget
+             * @enum {string}
+             */
+            marketingBudget: "5_20k" | "20k_50k" | "50k_100k" | "100k_plus";
         };
         /** BrandApplyResponse */
         BrandApplyResponse: {

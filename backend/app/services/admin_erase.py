@@ -283,6 +283,8 @@ async def erase_brand(
 
     brand.brand_name = _TOMBSTONE_BRAND_NAME
     brand.company_email = f"erased+{brand.id.hex}@invalid.local"
+    brand.contact_name = None
+    brand.marketing_budget = None
     brand.intent_message = None
     brand.instagram_handle = None
     brand.status = BrandStatus.ERASED.value

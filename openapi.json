@@ -550,6 +550,17 @@
             "title": "Companyemail",
             "type": "string"
           },
+          "contactName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactname"
+          },
           "createdAt": {
             "title": "Createdat",
             "type": "integer"
@@ -606,6 +617,17 @@
             ],
             "title": "Lastloginat"
           },
+          "marketingBudget": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketingbudget"
+          },
           "passwordSet": {
             "title": "Passwordset",
             "type": "boolean"
@@ -639,6 +661,8 @@
           "userId",
           "brandName",
           "companyEmail",
+          "contactName",
+          "marketingBudget",
           "intentMessage",
           "instagramHandle",
           "status",
@@ -828,6 +852,17 @@
             "title": "Companyemail",
             "type": "string"
           },
+          "contactName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactname"
+          },
           "createdAt": {
             "anyOf": [
               {
@@ -886,6 +921,17 @@
             ],
             "title": "Lastloginat"
           },
+          "marketingBudget": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketingbudget"
+          },
           "passwordSet": {
             "title": "Passwordset",
             "type": "boolean"
@@ -909,6 +955,8 @@
           "userId",
           "brandName",
           "companyEmail",
+          "contactName",
+          "marketingBudget",
           "intentMessage",
           "instagramHandle",
           "status",
@@ -3752,6 +3800,10 @@
             "title": "Companyemail",
             "type": "string"
           },
+          "contactName": {
+            "title": "Contactname",
+            "type": "string"
+          },
           "instagramHandle": {
             "anyOf": [
               {
@@ -3764,20 +3816,26 @@
             "title": "Instagramhandle"
           },
           "intentMessage": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
+            "title": "Intentmessage",
+            "type": "string"
+          },
+          "marketingBudget": {
+            "enum": [
+              "5_20k",
+              "20k_50k",
+              "50k_100k",
+              "100k_plus"
             ],
-            "title": "Intentmessage"
+            "title": "Marketingbudget",
+            "type": "string"
           }
         },
         "required": [
+          "contactName",
           "brandName",
-          "companyEmail"
+          "companyEmail",
+          "marketingBudget",
+          "intentMessage"
         ],
         "title": "BrandApplyRequest",
         "type": "object"

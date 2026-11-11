@@ -48,8 +48,10 @@ export default function PrivacyPolicyPage() {
           verify.
         </li>
         <li>
-          <strong>Brand accounts:</strong> company information, the contact
-          details of authorized users, and campaign requests.
+          <strong>Brand accounts:</strong> company information, the name, work
+          email and university marketing budget range of the person applying or
+          using the account, any message sent with an application, and campaign
+          requests.
         </li>
         <li>
           <strong>Usage &amp; technical data:</strong> standard log and device

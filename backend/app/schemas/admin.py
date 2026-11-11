@@ -336,6 +336,8 @@ class AdminBrandItem(CamelModel):
     user_id: uuid.UUID
     brand_name: str
     company_email: str
+    contact_name: str | None
+    marketing_budget: str | None
     intent_message: str | None
     instagram_handle: str | None
     status: str
@@ -568,6 +570,8 @@ class AdminBrandDetail(CamelModel):
     user_id: uuid.UUID
     brand_name: str
     company_email: str
+    contact_name: str | None
+    marketing_budget: str | None
     intent_message: str | None
     instagram_handle: str | None
     status: str
