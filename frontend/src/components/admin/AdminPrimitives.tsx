@@ -518,13 +518,15 @@ export function FilterMultiSelect({
 
 export function Field({
   label,
+  span = 1,
   children,
 }: {
   label: string;
+  span?: 1 | 2;
   children: ReactNode;
 }) {
   return (
-    <div>
+    <div className={cn(span === 2 && "lg:col-span-2")}>
       <dt className="text-xs text-quiet">{label}</dt>
       <dd className="mt-1 break-words text-sm text-primary">
         {children}

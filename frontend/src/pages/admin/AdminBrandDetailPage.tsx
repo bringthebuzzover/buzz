@@ -321,7 +321,10 @@ export default function AdminBrandDetailPage() {
           )}
 
           {pendingIg && (
-            <Panel title="Instagram handle change">
+            <Panel
+              title="Instagram handle change"
+              description={`Submitted ${formatDateTime(pendingIg.createdAt)}`}
+            >
               <FieldGrid columns={4}>
                 <Field label="Current">
                   {pendingIg.currentHandle
@@ -331,17 +334,16 @@ export default function AdminBrandDetailPage() {
                 <Field label="Requested">
                   @{pendingIg.requestedHandle.replace(/^@/, "")}
                 </Field>
-                <Field label="Reason">
+                <Field label="Reason" span={2}>
                   <span className="whitespace-pre-wrap">{pendingIg.reason}</span>
                 </Field>
-                <Field label="Submitted">{formatDateTime(pendingIg.createdAt)}</Field>
               </FieldGrid>
               {igDecisionError && (
                 <div className="px-6">
                   <ErrorNote>{igDecisionError}</ErrorNote>
                 </div>
               )}
-              <div className="mt-4 flex flex-wrap gap-2 px-6 pb-6">
+              <div className="flex flex-wrap items-center gap-2 px-6 pb-6">
                 <ActionButton
                   variant="primary"
                   testId="approve-brand-ig"
