@@ -8,12 +8,13 @@ description: >-
 
 # BUZZ staging operations
 
-Use [coding agent](../buzz-coding-agent/SKILL.md) for code and PR work and
-[design and brand](../buzz-design-and-brand/SKILL.md) for logos and pen match.
+Use `buzz-coding-agent` for code and PR work and
+`buzz-design-and-brand` for logos and pen match.
 
 ## Establish the target
 
-- Run [active-checkout discovery](../buzz-coding-agent/SKILL.md#discover-the-active-checkout-first).
+- Run active-checkout discovery with
+  `buzz-coding-agent`.
   Use current instructions/context for branch and rollout policy. Missing app
   code makes code/build steps not applicable; it does not select a live target.
   Production promotion requires separate approval.
@@ -61,7 +62,7 @@ syncing a lab logo requires approval for that specific target and write. Preserv
 all unrelated bindings and secrets; re-read the resulting state to verify it.
 Check the selected branch for lab build scripts and staging-only assets.
 The operations owner verifies branch-specific build/preview rules.
-Logo match guidance lives in [design and brand](../buzz-design-and-brand/SKILL.md).
+Logo match guidance lives in `buzz-design-and-brand`.
 
 ## Service and credential boundaries
 

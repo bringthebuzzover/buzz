@@ -9,7 +9,8 @@ description: >-
 
 Run after implementation and before claiming ready or handing off the gate.
 This checklist authorizes neither broad refactors nor product/external writes.
-Run [active-checkout/source discovery](../buzz-coding-agent/SKILL.md#discover-the-active-checkout-first).
+Run active-checkout/source discovery with
+`buzz-coding-agent`.
 Apply only relevant steps; absent app code makes code/contract checks not
 applicable. Missing required canonical context blocks dependent claims.
 
@@ -30,7 +31,7 @@ applicable. Missing required canonical context blocks dependent claims.
    changes need approval. For skills-only work, verify frontmatter, relative
    links, index, inventory, and public-data hygiene.
 7. **Gaps:** record discovered broken paths with
-   [file-gap](../file-gap/SKILL.md) under the resolved canonical gap schema
+   `file-gap` under the resolved canonical gap schema
    when within authorized write scope, including separate private-repo approval.
    If gap writes are excluded, report the finding for the caller to file.
    Never create a second debt list, un-park deferred work, or archive an
