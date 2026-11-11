@@ -7,11 +7,11 @@ description: >-
 
 # BUZZ design and brand
 
-Use with [coding agent](../buzz-coding-agent/SKILL.md) for visual work.
+Use with `buzz-coding-agent` for visual work.
 Run its active-checkout discovery first. If only screenshots/artifacts exist,
 review those within scope; app implementation is not applicable without code.
 Deployment and external asset boundaries are in
-[staging operations](../buzz-staging-operations/SKILL.md).
+`buzz-staging-operations`.
 
 ## OpenPencil first, then match
 
@@ -26,11 +26,13 @@ Deployment and external asset boundaries are in
 3. Where app code exists, implement for the caller-authorized target. Real interactions
    and animations may extend a static frame while preserving the approved design.
 4. Compare relevant exported frames with screenshots of the explicitly selected
-   UI at matching viewport sizes and states. Fix missing frames and visual drift;
-   keep visual approval before declaring fidelity or cutover complete.
+   UI at matching viewport sizes and states; fix missing frames and visual drift.
+   Follow `visual-evidence` for capture and delivery. Lawrence’s visual approval remains
+   required before fidelity or cutover is declared complete.
    Request permission before each laptop UI-control action.
-5. Visual trims preserve appearance and behavior; use before/after screenshots
-   and pixel diffs as evidence. Disclose any missing visual verification.
+5. Visual trims preserve appearance and behavior. Follow `visual-evidence` for
+   before/after evidence, pixel-diff use, and disclosure of missing visual
+   verification.
 
 ## Reuse the current branch's brand assets
 

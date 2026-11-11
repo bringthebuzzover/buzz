@@ -58,11 +58,11 @@ for an existing equivalent, not a new dependency.
 
 ## Implement and review
 
-Use [ship-change](../ship-change/SKILL.md) for ordinary work or
-[fix-gap-cluster](../fix-gap-cluster/SKILL.md) for clusters.
-Visual work uses [design and brand](../buzz-design-and-brand/SKILL.md);
-React work uses [patterns](../react-patterns/SKILL.md) and
-[testing](../react-testing/SKILL.md).
+Use `ship-change` for ordinary work or
+`fix-gap-cluster` for clusters.
+Visual work uses `buzz-design-and-brand`;
+React work uses `react-patterns` and
+`react-testing`.
 
 In app checkouts, reuse existing services, API clients, generated types, and
 shared primitives. Read relevant behavior sources and callers first; ask on
@@ -73,7 +73,7 @@ generation script before running them. Common candidates are
 `backend/scripts/dump_openapi.py` and `frontend/`'s `gen:api` script.
 Never hand-edit generated contracts or require generators in artifact branches.
 
-Run [simplify-pass](../simplify-pass/SKILL.md) and authorized focused checks.
+Run `simplify-pass` and authorized focused checks.
 Native CLI subagents do not run `./scripts/ci-local.sh`; the caller owns the
 serialized full gate on a fresh local test database where required by active
 instructions. Report pending/full-gate failures honestly. Docs/skills-only work
@@ -92,4 +92,4 @@ Report changed files, diff size/reasons for growth, exact checks/results,
 non-applicable steps, pending caller gate, gaps, and blockers. Keep credentials,
 personal data, private paths, infrastructure IDs, and internal URLs out of public
 files. After an approved deployment, use
-[operations](../buzz-staging-operations/SKILL.md) within its read/write boundaries.
+`buzz-staging-operations` within its read/write boundaries.
