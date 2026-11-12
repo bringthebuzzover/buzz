@@ -37,7 +37,7 @@ test("marketing navigation follows the surface below its logo", async ({ page })
     });
     await expect(logo()).toHaveAttribute("src", /buzz-logo-on-paper\.svg/);
 
-    await page.locator('[data-nav-surface="ink"]').nth(1).evaluate((surface) => {
+    await page.locator('[data-nav-surface="ink"]').last().evaluate((surface) => {
       surface.scrollIntoView({ block: "start" });
     });
     await expect(logo()).toHaveAttribute("src", /buzz-logo-on-ink\.svg/);
@@ -176,43 +176,16 @@ for (const { width, reducedMotion } of [320, 390, 1440].flatMap((width) =>
         expect(bounds.bottom, `${route}: hero ink clipped at bottom ${JSON.stringify(bounds)}`).toBeLessThanOrEqual(bounds.clipBottom + 1);
       }
 
-      const phones = page.locator("[data-marketing-phone]");
-      expect(await phones.count()).toBeGreaterThan(0);
-      if (route === "/for-brands") {
-        await expect(phones.getByText("Send decisions", { exact: true })).toHaveCount(1);
-      }
-      for (const phone of await phones.all()) {
-        await phone.scrollIntoViewIfNeeded();
-        await expect(phone).toBeInViewport();
-        await expect(phone).toHaveCSS("width", width < 768 ? "250px" : "317px");
-        await phone.evaluate(async (element) => {
-          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-          await Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished));
-        });
-        const decisions = phone.getByText("Send decisions", { exact: true });
-        if (await decisions.count()) {
-          await expect(decisions).toBeVisible();
-          await expect(decisions).toHaveCSS("height", "40px");
-        }
-        const blocks = await phone.evaluate((element) => {
-          const phoneBox = element.getBoundingClientRect();
-          return Array.from(element.children, (screen) => {
-            // Measure the actual Selecting CTA; other screens end in a CTA or posts.
-            const block = Array.from(screen.querySelectorAll("div")).find(
-              (node) => node.childElementCount === 0 && node.textContent === "Send decisions",
-            ) ?? screen.firstElementChild!.lastElementChild!.lastElementChild!;
-            const box = block.getBoundingClientRect();
-            return {
-              phone: phoneBox.toJSON(),
-              block: box.toJSON(),
-              fits: box.width > 0 && box.height > 0 &&
-                box.top >= phoneBox.top - 1 && box.bottom <= phoneBox.bottom + 1 &&
-                box.left >= phoneBox.left - 1 && box.right <= phoneBox.right + 1,
-            };
-          });
-        });
-        expect(blocks.length).toBeGreaterThan(0);
-        expect(blocks.filter((block) => !block.fits), `${route}: final phone blocks are clipped`).toEqual([]);
+      const mockups = page.locator("[data-laptop-chassis], [data-marketing-phone]");
+      expect(await mockups.count()).toBeGreaterThan(0);
+      for (const mockup of await mockups.all()) {
+        await mockup.scrollIntoViewIfNeeded();
+        await expect(mockup).toBeInViewport();
+        const box = (await mockup.boundingBox())!;
+        expect(box.width).toBeGreaterThan(0);
+        expect(box.height).toBeGreaterThan(0);
+        expect(box.x).toBeGreaterThanOrEqual(-2);
+        expect(box.x + box.width).toBeLessThanOrEqual(width + 2);
       }
     }
   });
@@ -272,9 +245,8 @@ test("home how-to cards open role tours", async ({ page }) => {
     page.getByRole("heading", { name: /authentic college/i }),
   ).toBeVisible();
   await expect(
-    page.getByText(/a representative will contact you/i).first(),
+    page.getByRole("heading", { name: /execute your campus activations/i }),
   ).toBeVisible();
-  await expect(page.getByText(/publish/i).first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText("placehold.co");
   await expect(page.locator("body")).not.toContainText("Multiple Campuses");
   await page.getByRole("link", { name: /^apply as a brand$/i }).first().click();

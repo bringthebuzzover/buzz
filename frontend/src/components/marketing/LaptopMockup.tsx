@@ -45,6 +45,7 @@ export function LaptopMockup({
 
   return (
     <div
+      data-laptop-chassis
       className={cn(
         "relative mx-auto flex w-full flex-col items-center select-none drop-shadow-2xl",
         isHero
