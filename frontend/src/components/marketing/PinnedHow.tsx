@@ -1,7 +1,8 @@
 /**
  * Sticky “how it works” hero laptop demo on the public Home page.
- * Three student organization steps over ~3 viewports, cross-fading
- * seamlessly as the user scrolls. Reduced motion stacks every step.
+ * Three student organization steps over ~3600px track, cross-fading
+ * with 700ms cinematic ease as the visitor scrolls or clicks step tabs.
+ * Reduced motion stacks every step.
  */
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../../theme/cn";
@@ -29,12 +30,11 @@ export function PinnedHow() {
         Math.max(-el.getBoundingClientRect().top, 0),
         total,
       );
-      const next = Math.min(
-        ORG_LAPTOP_STEPS.length - 1,
-        Math.floor((scrolled / total) * ORG_LAPTOP_STEPS.length),
-      );
+      const ratio = scrolled / total;
+      // Generous deadbands so each stage has deliberate dwell time
+      const next = ratio < 0.38 ? 0 : ratio < 0.72 ? 1 : 2;
       setStep(next);
-      setProgress(Math.min(Math.max(scrolled / total, 0), 1));
+      setProgress(Math.min(Math.max(ratio, 0), 1));
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -44,6 +44,21 @@ export function PinnedHow() {
       window.removeEventListener("resize", onScroll);
     };
   }, [reduce]);
+
+  const scrollToStep = (targetStep: number) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const total = el.offsetHeight - window.innerHeight;
+    if (total <= 0) return;
+    // Map step 0 -> 10% (safe dwell), step 1 -> 50%, step 2 -> 90%
+    const targetRatios = [0.1, 0.52, 0.92];
+    const targetRatio = targetRatios[targetStep] ?? targetStep / (ORG_LAPTOP_STEPS.length - 1);
+    const rect = el.getBoundingClientRect();
+    const currentScrollY = window.scrollY;
+    const trackTopY = currentScrollY + rect.top;
+    const targetY = trackTopY + total * targetRatio;
+    window.scrollTo({ top: targetY, behavior: "smooth" });
+  };
 
   if (reduce) {
     return (
@@ -81,42 +96,44 @@ export function PinnedHow() {
       ref={trackRef}
       id="how-it-works"
       data-nav-surface="paper"
-      className="relative h-[2700px] bg-[#f0f0f0] text-on-accent"
+      className="relative h-[3600px] bg-[#f0f0f0] text-on-accent"
     >
       <div className="sticky top-0 flex h-screen min-h-[750px] flex-col items-center justify-center px-4 overflow-hidden">
-        {/* Top Centered Section Header & Interactive Step Tabs */}
+        {/* Top Centered Section Header & Clickable Step Buttons */}
         <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center text-center mb-6 sm:mb-8">
-          {/* Step Pill Tabs */}
+          {/* Step Buttons */}
           <div
             className="inline-flex items-center gap-1.5 rounded-full border border-on-accent/15 bg-white/60 p-1 shadow-sm backdrop-blur-md"
             role="tablist"
             aria-label="How it works steps"
           >
             {STEP_LABELS.map((label, idx) => (
-              <span
+              <button
                 key={label}
+                type="button"
                 role="tab"
                 aria-selected={idx === step}
+                onClick={() => scrollToStep(idx)}
                 className={cn(
-                  "rounded-full px-3.5 py-1 text-xs font-medium transition-all duration-300",
+                  "cursor-pointer rounded-full px-3.5 py-1 text-xs font-medium transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
                   idx === step
                     ? "bg-accent text-on-accent font-semibold shadow-sm"
-                    : "text-on-accent/50 hover:text-on-accent/80",
+                    : "text-on-accent/60 hover:text-on-accent/90",
                 )}
               >
                 {label}
-              </span>
+              </button>
             ))}
           </div>
 
-          {/* Step Titles with smooth cross-fade */}
-          <div className="relative mt-4 h-20 w-full flex items-center justify-center">
+          {/* Top-Anchored Step Titles (Frozen Y-Position, Zero Vertical Jitter) */}
+          <div className="relative mt-4 h-[92px] w-full">
             {ORG_LAPTOP_STEPS.map((item, index) => (
               <div
                 key={item.title}
                 aria-hidden={index !== step}
                 className={cn(
-                  "absolute inset-x-0 transition-all duration-300 ease-out",
+                  "absolute inset-x-0 top-0 transition-all duration-700 ease-in-out",
                   index === step
                     ? "opacity-100 translate-y-0 visible"
                     : "pointer-events-none opacity-0 translate-y-2 invisible",
@@ -125,7 +142,7 @@ export function PinnedHow() {
                 <h3 className="text-2xl font-bold tracking-tight text-on-accent sm:text-3xl">
                   {item.title}
                 </h3>
-                <p className="mt-1.5 text-sm sm:text-base text-on-accent/65 max-w-xl mx-auto">
+                <p className="mt-1.5 text-sm sm:text-base text-on-accent/65 max-w-xl mx-auto min-h-[44px]">
                   {item.body}
                 </p>
               </div>
@@ -133,16 +150,16 @@ export function PinnedHow() {
           </div>
         </div>
 
-        {/* Centered Hero Laptop Mockup */}
+        {/* Centered Hero Laptop Mockup (Fixed Position Below Text) */}
         <div
           data-laptop-chassis
-          className="relative z-10 w-full max-w-[620px] transition-transform duration-500 ease-out"
+          className="relative z-10 w-full max-w-[620px]"
         >
           {ORG_LAPTOP_STEPS.map((item, index) => (
             <div
               key={item.title}
               className={cn(
-                "transition-opacity duration-400 ease-in-out",
+                "transition-opacity duration-700 ease-in-out",
                 index === step ? "block opacity-100" : "hidden opacity-0",
               )}
             >
@@ -157,17 +174,14 @@ export function PinnedHow() {
           ))}
         </div>
 
-        {/* Scroll Progress Rail / Cue */}
-        <div className="relative z-10 mt-6 flex flex-col items-center gap-1.5 text-on-accent/50">
-          <div className="h-1 w-32 overflow-hidden rounded-full bg-on-accent/10">
+        {/* Minimal Scroll Progress Rail (Text Label Removed) */}
+        <div className="relative z-10 mt-6 flex flex-col items-center">
+          <div className="h-1 w-32 overflow-hidden rounded-full bg-on-accent/15">
             <div
               className="h-full bg-accent transition-all duration-150 ease-out"
               style={{ width: `${Math.round(progress * 100)}%` }}
             />
           </div>
-          <span className="text-[11px] font-medium tracking-wide uppercase">
-            Scroll to explore ({step + 1}/3)
-          </span>
         </div>
       </div>
     </div>
