@@ -42,10 +42,14 @@ export function PinnedHow() {
         total,
       );
       const ratio = scrolled / total;
-      setProgress(Math.min(Math.max(ratio, 0), 1));
 
-      // Calculate target step with generous deadbands
-      const next = ratio < 0.36 ? 0 : ratio < 0.72 ? 1 : 2;
+      // Calculate target step with generous deadbands and an exit dwell cushion
+      const next = ratio < 0.28 ? 0 : ratio < 0.58 ? 1 : 2;
+
+      // Progress bar fills over the 3 active steps (0 to 0.82)
+      // and locks at 100% through the exit cushion (0.82 to 1.0)
+      const visualProgress = Math.min(Math.max(ratio / 0.82, 0), 1);
+      setProgress(visualProgress);
 
       // Minimum dwell protection: prevent skipping stages on fast trackpad flicks
       const now = performance.now();
@@ -71,7 +75,7 @@ export function PinnedHow() {
     if (!el) return;
     const total = el.offsetHeight - window.innerHeight;
     if (total <= 0) return;
-    const targetRatios = [0.1, 0.52, 0.92];
+    const targetRatios = [0.12, 0.43, 0.70];
     const targetRatio = targetRatios[targetStep] ?? targetStep / (ORG_LAPTOP_STEPS.length - 1);
     const rect = el.getBoundingClientRect();
     const currentScrollY = window.scrollY;
@@ -121,7 +125,7 @@ export function PinnedHow() {
       ref={trackRef}
       id="how-it-works"
       data-nav-surface="paper"
-      className="relative h-[4200px] bg-[#f0f0f0] text-on-accent"
+      className="relative h-[5100px] bg-[#f0f0f0] text-on-accent"
     >
       <div className="sticky top-0 flex h-screen min-h-[750px] flex-col items-center justify-center pt-10 pb-4 sm:pt-14 sm:pb-6 px-4 overflow-hidden">
         {/* Top Centered Section Header & Clickable Step Buttons */}
