@@ -15,10 +15,15 @@ export function MarketingPage({ children }: { children: ReactNode }) {
     const reveal = (group: Element) => {
       group.querySelectorAll<HTMLElement>("[data-reveal-line]").forEach((line, index) => {
         if (typeof line.animate !== "function") return;
-        animations.push(line.animate(
+        const anim = line.animate(
           [{ transform: "translateY(50%)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }],
-          { duration: 1400, delay: index * 100, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "backwards" },
-        ));
+          { duration: 1000, delay: index * 100, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "forwards" },
+        );
+        anim.onfinish = () => {
+          line.style.opacity = "1";
+          line.style.transform = "none";
+        };
+        animations.push(anim);
       });
     };
     const observer =
@@ -31,8 +36,17 @@ export function MarketingPage({ children }: { children: ReactNode }) {
                 reveal(entry.target);
                 observer?.unobserve(entry.target);
               }),
-            { rootMargin: "0px 0px -15% 0px" },
+            { rootMargin: "0px 0px -5% 0px" },
           );
+
+    // Initial state: hide offscreen lines so they never flash loaded before the reveal
+    root.querySelectorAll<HTMLElement>("[data-reveal-group] [data-reveal-line]").forEach((line) => {
+      const rect = line.getBoundingClientRect();
+      if (rect.top > window.innerHeight) {
+        line.style.opacity = "0";
+      }
+    });
+
     root.querySelectorAll("[data-reveal-group]").forEach((group) => observer?.observe(group));
     const hero = root.querySelector<HTMLElement>(".marketing-hero");
     if (hero) reveal(hero);
