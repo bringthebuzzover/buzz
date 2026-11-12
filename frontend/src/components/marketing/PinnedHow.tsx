@@ -1,11 +1,12 @@
 /**
  * Sticky “how it works” hero laptop demo on the public Home page.
  * Three student organization steps over ~4200px track with:
- * - Minimum stage dwell lock (prevents fast scroll skipping)
- * - Sequential cross-dissolve (outgoing fades out before incoming glides in, zero overlap)
+ * - Single persistent laptop chassis (never blinks, unmounts, or disappears)
+ * - Screen-only GPU cross-dissolve (smooth 500ms blend between video loops)
+ * - Concurrent text cross-fade (no blank gap or delayed pop)
  * - Fixed Y-anchored headlines (0px vertical jitter)
  * - Interactive clickable step buttons with smooth scroll
- * - Adjusted vertical spacing: comfortable top headroom, tighter bottom
+ * - Balanced vertical spacing and minimal progress rail
  */
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../../theme/cn";
@@ -50,7 +51,7 @@ export function PinnedHow() {
       const now = performance.now();
       if (next !== stepRef.current) {
         if (now - lastChangeRef.current < COOLDOWN_MS) {
-          return; // Still in dwell cooldown
+          return;
         }
         lastChangeRef.current = now;
         setStep(next);
@@ -70,7 +71,6 @@ export function PinnedHow() {
     if (!el) return;
     const total = el.offsetHeight - window.innerHeight;
     if (total <= 0) return;
-    // Map step 0 -> 10% (safe dwell), step 1 -> 52%, step 2 -> 92%
     const targetRatios = [0.1, 0.52, 0.92];
     const targetRatio = targetRatios[targetStep] ?? targetStep / (ORG_LAPTOP_STEPS.length - 1);
     const rect = el.getBoundingClientRect();
@@ -114,6 +114,8 @@ export function PinnedHow() {
     );
   }
 
+  const currentStepData = ORG_LAPTOP_STEPS[step];
+
   return (
     <div
       ref={trackRef}
@@ -149,7 +151,7 @@ export function PinnedHow() {
             ))}
           </div>
 
-          {/* Top-Anchored Step Titles with sequential cross-dissolve (No overlapping/instant snap) */}
+          {/* Top-Anchored Step Titles with Concurrent Cross-Dissolve (No blank gap, no instant pop) */}
           <div className="relative mt-4 h-[88px] w-full">
             {ORG_LAPTOP_STEPS.map((item, index) => {
               const isActive = index === step;
@@ -158,10 +160,10 @@ export function PinnedHow() {
                   key={item.title}
                   aria-hidden={!isActive}
                   className={cn(
-                    "absolute inset-x-0 top-0",
+                    "absolute inset-x-0 top-0 transition-opacity duration-500 ease-in-out",
                     isActive
-                      ? "opacity-100 translate-y-0 visible transition-all duration-500 ease-out delay-150"
-                      : "opacity-0 translate-y-2 invisible pointer-events-none transition-all duration-200 ease-in",
+                      ? "opacity-100 z-10"
+                      : "opacity-0 pointer-events-none z-0",
                   )}
                 >
                   <h3 className="text-2xl font-bold tracking-tight text-on-accent sm:text-3xl">
@@ -176,34 +178,46 @@ export function PinnedHow() {
           </div>
         </div>
 
-        {/* Centered Hero Laptop Mockup */}
+        {/* Single Persistent Hero Laptop Mockup (Screen-Only Smooth Dissolve) */}
         <div
           data-laptop-chassis
           className="relative z-10 w-full max-w-[620px]"
         >
-          {ORG_LAPTOP_STEPS.map((item, index) => {
-            const isActive = index === step;
-            return (
-              <div
-                key={item.title}
-                className={cn(
-                  "transition-opacity duration-500 ease-in-out",
-                  isActive ? "block opacity-100" : "hidden opacity-0",
-                )}
-              >
-                <LaptopMockup
-                  size="hero"
-                  videoMp4={item.videoMp4}
-                  videoWebm={item.videoWebm}
-                  poster={item.poster}
-                  alt={item.alt}
-                />
-              </div>
-            );
-          })}
+          <LaptopMockup
+            size="hero"
+            poster={currentStepData.poster}
+            alt={currentStepData.alt}
+          >
+            {/* Stacked Screen Layers for Seamless Cross-Dissolve without Chassis Unmounting */}
+            {ORG_LAPTOP_STEPS.map((item, index) => {
+              const isActive = index === step;
+              return (
+                <div
+                  key={item.title}
+                  className={cn(
+                    "absolute inset-0 transition-opacity duration-500 ease-in-out",
+                    isActive ? "opacity-100 z-10" : "opacity-0 pointer-events-none z-0",
+                  )}
+                >
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    poster={item.poster}
+                    aria-hidden="true"
+                    className="h-full w-full object-cover"
+                  >
+                    <source src={item.videoWebm} type="video/webm" />
+                    <source src={item.videoMp4} type="video/mp4" />
+                  </video>
+                </div>
+              );
+            })}
+          </LaptopMockup>
         </div>
 
-        {/* Minimal Scroll Progress Rail (Tighter Bottom Margin) */}
+        {/* Minimal Scroll Progress Rail */}
         <div className="relative z-10 mt-4 flex flex-col items-center">
           <div className="h-1 w-32 overflow-hidden rounded-full bg-on-accent/15">
             <div
