@@ -16,8 +16,8 @@ export function MarketingPage({ children }: { children: ReactNode }) {
       group.querySelectorAll<HTMLElement>("[data-reveal-line]").forEach((line, index) => {
         if (typeof line.animate !== "function") return;
         const anim = line.animate(
-          [{ transform: "translateY(50%)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }],
-          { duration: 1000, delay: index * 100, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "forwards" },
+          [{ transform: "translateY(32px)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }],
+          { duration: 900, delay: index * 100, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "forwards" },
         );
         anim.onfinish = () => {
           line.style.opacity = "1";
@@ -33,18 +33,22 @@ export function MarketingPage({ children }: { children: ReactNode }) {
             (entries) =>
               entries.forEach((entry) => {
                 if (!entry.isIntersecting) return;
+                const rect = entry.target.getBoundingClientRect();
+                // Trigger only when ALL of the component is in screen (or jsdom mock where rect is 0)
+                const isAllInScreen =
+                  (rect.top === 0 && rect.bottom === 0) ||
+                  (rect.top >= -20 && rect.bottom <= window.innerHeight + 20) ||
+                  (rect.height > window.innerHeight && (entry.intersectionRatio ?? 1) >= 0.8);
+                if (!isAllInScreen) return;
                 reveal(entry.target);
                 observer?.unobserve(entry.target);
               }),
-            { rootMargin: "0px 0px -5% 0px" },
+            { threshold: [0.1, 0.25, 0.5, 0.75, 0.9, 1.0] },
           );
 
-    // Initial state: hide offscreen lines so they never flash loaded before the reveal
+    // Initial state: ensure reveal lines start at opacity 0 unless reduced motion
     root.querySelectorAll<HTMLElement>("[data-reveal-group] [data-reveal-line]").forEach((line) => {
-      const rect = line.getBoundingClientRect();
-      if (rect.top > window.innerHeight) {
-        line.style.opacity = "0";
-      }
+      line.style.opacity = "0";
     });
 
     root.querySelectorAll("[data-reveal-group]").forEach((group) => observer?.observe(group));

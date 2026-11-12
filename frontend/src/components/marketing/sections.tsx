@@ -147,7 +147,7 @@ export function Statement({
       <p
         data-reveal-line
         className={cn(
-          "mx-auto max-w-4xl text-[32px] font-medium leading-none tracking-tight md:text-buzzStatement",
+          "mx-auto max-w-4xl text-[32px] font-medium leading-none tracking-tight opacity-0 motion-reduce:opacity-100 md:text-buzzStatement",
           isDark ? "text-accent" : "text-on-accent",
         )}
       >
@@ -156,7 +156,7 @@ export function Statement({
       <p
         data-reveal-line
         className={cn(
-          "mx-auto mt-1 max-w-4xl text-[32px] font-medium leading-none tracking-tight md:text-buzzStatement",
+          "mx-auto mt-1 max-w-4xl text-[32px] font-medium leading-none tracking-tight opacity-0 motion-reduce:opacity-100 md:text-buzzStatement",
           isDark ? "text-primary" : "text-on-accent/55",
         )}
       >
