@@ -125,22 +125,40 @@ export function MarketingHero({
   );
 }
 
-export function Statement({ line1, line2 }: { line1: string; line2: string }) {
+export function Statement({
+  line1,
+  line2,
+  tone = "paper",
+}: {
+  line1: string;
+  line2: string;
+  tone?: "paper" | "dark";
+}) {
+  const isDark = tone === "dark";
   return (
     <section
       data-reveal-group
-      data-nav-surface="paper"
-      className="bg-[#f0f0f0] px-4 py-[68px] text-center md:py-[108px]"
+      data-nav-surface={isDark ? "ink" : "paper"}
+      className={cn(
+        "px-4 py-[68px] text-center md:py-[108px]",
+        isDark ? "bg-[#0b0b0b]" : "bg-[#f0f0f0]",
+      )}
     >
       <p
         data-reveal-line
-        className="mx-auto max-w-4xl text-[32px] font-medium leading-none tracking-tight text-on-accent md:text-buzzStatement"
+        className={cn(
+          "mx-auto max-w-4xl text-[32px] font-medium leading-none tracking-tight md:text-buzzStatement",
+          isDark ? "text-accent" : "text-on-accent",
+        )}
       >
         {line1}
       </p>
       <p
         data-reveal-line
-        className="mx-auto mt-1 max-w-4xl text-[32px] font-medium leading-none tracking-tight text-on-accent/55 md:text-buzzStatement"
+        className={cn(
+          "mx-auto mt-1 max-w-4xl text-[32px] font-medium leading-none tracking-tight md:text-buzzStatement",
+          isDark ? "text-primary" : "text-on-accent/55",
+        )}
       >
         {line2}
       </p>

@@ -46,6 +46,7 @@ export default function HomePage() {
       <Statement
         line1="Our platform makes it easy"
         line2="for brands to connect with student organizations."
+        tone="dark"
       />
       <CollegeNetwork />
       <PinnedHow />

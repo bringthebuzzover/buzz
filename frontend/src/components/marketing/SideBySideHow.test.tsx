@@ -10,7 +10,7 @@ beforeAll(() => {
 describe("SideBySideHow", () => {
   it("renders 3 laptop mockups with video sources for student organizations", () => {
     const { container } = renderWithProviders(<SideBySideHow kind="org" />);
-    expect(container.querySelector("h2")?.textContent).toBe("How it works");
+    expect(container.querySelector("h2")?.textContent).toBe("Partner with brands");
 
     const steps = container.querySelectorAll("ol > li");
     expect(steps).toHaveLength(3);
@@ -28,7 +28,7 @@ describe("SideBySideHow", () => {
 
   it("renders 3 laptop mockups with video sources for brand portal", () => {
     const { container } = renderWithProviders(<SideBySideHow kind="brand" />);
-    expect(container.querySelector("h2")?.textContent).toBe("Brand portal");
+    expect(container.querySelector("h2")?.textContent).toBe("Execute your campus activations");
 
     const steps = container.querySelectorAll("ol > li");
     expect(steps).toHaveLength(3);
