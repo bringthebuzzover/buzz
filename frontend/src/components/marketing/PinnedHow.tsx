@@ -25,6 +25,7 @@ export function PinnedHow() {
   const [progress, setProgress] = useState(0);
   const stepRef = useRef(0);
   const lastChangeRef = useRef(0);
+  const trailingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     stepRef.current = step;
@@ -54,7 +55,18 @@ export function PinnedHow() {
       // Minimum dwell protection: prevent skipping stages on fast trackpad flicks
       const now = performance.now();
       if (next !== stepRef.current) {
-        if (now - lastChangeRef.current < COOLDOWN_MS) {
+        if (trailingTimerRef.current) {
+          clearTimeout(trailingTimerRef.current);
+          trailingTimerRef.current = null;
+        }
+
+        const elapsed = now - lastChangeRef.current;
+        if (elapsed < COOLDOWN_MS) {
+          // Schedule trailing update so the final resting position always reconciles
+          trailingTimerRef.current = setTimeout(() => {
+            lastChangeRef.current = performance.now();
+            setStep(next);
+          }, COOLDOWN_MS - elapsed);
           return;
         }
         lastChangeRef.current = now;
@@ -65,6 +77,7 @@ export function PinnedHow() {
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     return () => {
+      if (trailingTimerRef.current) clearTimeout(trailingTimerRef.current);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
@@ -89,7 +102,7 @@ export function PinnedHow() {
 
   if (reduce) {
     return (
-      <section id="how-it-works" data-nav-surface="paper" className="bg-[#f0f0f0] text-on-accent py-16 px-4">
+      <section id="how-it-works" data-nav-surface="paper" className="bg-surface-paper text-on-accent py-16 px-4">
         <div className="mx-auto flex max-w-4xl flex-col gap-16">
           <div className="text-center">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted">How it works</p>
@@ -125,7 +138,7 @@ export function PinnedHow() {
       ref={trackRef}
       id="how-it-works"
       data-nav-surface="paper"
-      className="relative h-[4700px] bg-[#f0f0f0] text-on-accent"
+      className="relative h-[4700px] bg-surface-paper text-on-accent"
     >
       <div className="sticky top-0 flex h-screen min-h-[750px] flex-col items-center justify-center pt-10 pb-4 sm:pt-14 sm:pb-6 px-4 overflow-hidden">
         {/* Top Centered Section Header & Clickable Step Buttons */}
@@ -184,7 +197,6 @@ export function PinnedHow() {
 
         {/* Single Persistent Hero Laptop Mockup (Screen-Only Smooth Dissolve) */}
         <div
-          data-laptop-chassis
           className="relative z-10 w-full max-w-[620px]"
         >
           <LaptopMockup

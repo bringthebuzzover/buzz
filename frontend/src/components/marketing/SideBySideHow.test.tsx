@@ -2,11 +2,6 @@
 import { renderWithProviders } from "../../testUtils";
 import { SideBySideHow } from "./SideBySideHow";
 
-beforeAll(() => {
-  window.HTMLMediaElement.prototype.play = jest.fn().mockImplementation(() => Promise.resolve());
-  window.HTMLMediaElement.prototype.pause = jest.fn();
-});
-
 describe("SideBySideHow", () => {
   it("renders 3 laptop mockups with video sources for student organizations", () => {
     const { container } = renderWithProviders(<SideBySideHow kind="org" />);

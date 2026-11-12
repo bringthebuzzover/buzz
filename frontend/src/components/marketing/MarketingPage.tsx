@@ -85,6 +85,10 @@ export function MarketingPage({ children }: { children: ReactNode }) {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       shade?.style.removeProperty("opacity");
+      root.querySelectorAll<HTMLElement>("[data-reveal-line]").forEach((line) => {
+        line.style.removeProperty("opacity");
+        line.style.removeProperty("transform");
+      });
       cards.forEach((card) => {
         card.style.removeProperty("--stack-scale");
         card.style.removeProperty("--stack-rotate");

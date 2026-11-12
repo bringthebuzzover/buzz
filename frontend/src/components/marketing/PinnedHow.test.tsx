@@ -2,11 +2,6 @@
 import { renderWithProviders } from "../../testUtils";
 import { PinnedHow } from "./PinnedHow";
 
-beforeAll(() => {
-  window.HTMLMediaElement.prototype.play = jest.fn().mockImplementation(() => Promise.resolve());
-  window.HTMLMediaElement.prototype.pause = jest.fn();
-});
-
 describe("PinnedHow", () => {
   it("renders 3 step tabs, step titles, and hero laptop mockup", () => {
     const { container } = renderWithProviders(<PinnedHow />);

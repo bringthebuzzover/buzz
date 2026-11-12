@@ -141,7 +141,7 @@ export function Statement({
       data-nav-surface={isDark ? "ink" : "paper"}
       className={cn(
         "px-4 py-[68px] text-center md:py-[108px]",
-        isDark ? "bg-[#0b0b0b]" : "bg-[#f0f0f0]",
+        isDark ? "bg-page" : "bg-surface-paper",
       )}
     >
       <p

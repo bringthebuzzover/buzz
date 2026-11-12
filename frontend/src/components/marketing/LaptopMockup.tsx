@@ -46,6 +46,7 @@ export function LaptopMockup({
   return (
     <div
       data-laptop-chassis
+      role="img"
       className={cn(
         "relative mx-auto flex w-full flex-col items-center select-none [filter:drop-shadow(0_20px_20px_rgba(0,0,0,0.6))]",
         isHero
@@ -87,7 +88,9 @@ export function LaptopMockup({
             aspectRatio,
           )}
         >
-          {reduceMotion || !videoMp4 ? (
+          {children ? (
+            children
+          ) : reduceMotion || !videoMp4 ? (
             <img
               src={poster}
               alt={alt}
@@ -112,12 +115,6 @@ export function LaptopMockup({
           )}
 
           {/* Subtle Glass Reflection Gradient */}
-          <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.02] to-white/[0.06]"
-            aria-hidden="true"
-          />
-
-          {children}
         </div>
       </div>
 

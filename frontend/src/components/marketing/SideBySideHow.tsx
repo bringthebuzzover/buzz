@@ -1,5 +1,5 @@
 import { cn } from "../../theme/cn";
-import { SECTION_Y } from "../../theme/tokens";
+import { SECTION_X, SECTION_Y } from "../../theme/tokens";
 import { ORG_LAPTOP_STEPS, BRAND_LAPTOP_STEPS } from "./mockups";
 import { LaptopMockup } from "./LaptopMockup";
 
@@ -18,7 +18,7 @@ export function SideBySideHow({ kind }: { kind: "org" | "brand" }) {
       id="how-it-works"
       aria-labelledby="how-it-works-title"
       data-nav-surface="ink"
-      className={cn("bg-[#0b0b0b] px-4 text-primary md:px-12", SECTION_Y)}
+      className={cn("bg-page text-primary", SECTION_X, SECTION_Y)}
     >
       <div className="mx-auto max-w-4xl text-center mb-12 md:mb-16">
         <h2 id="how-it-works-title" className="text-[32px] font-bold tracking-tight text-accent md:text-buzzH2">
