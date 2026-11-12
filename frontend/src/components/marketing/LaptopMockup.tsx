@@ -47,7 +47,7 @@ export function LaptopMockup({
     <div
       data-laptop-chassis
       className={cn(
-        "relative mx-auto flex w-full flex-col items-center select-none drop-shadow-2xl",
+        "relative mx-auto flex w-full flex-col items-center select-none [filter:drop-shadow(0_20px_20px_rgba(0,0,0,0.6))]",
         isHero
           ? "max-w-[580px] md:max-w-[620px] lg:max-w-[660px]"
           : "max-w-[340px] md:max-w-[360px] xl:max-w-[330px]",
@@ -126,7 +126,7 @@ export function LaptopMockup({
         {/* Base Top Plate with Chamfer & Notch */}
         <div
           className={cn(
-            "relative w-full border-t border-white/25 bg-gradient-to-b from-[#2e2f34] via-[#212226] to-[#161719] shadow-md",
+            "relative w-full border-t border-white/25 bg-gradient-to-b from-[#2e2f34] via-[#212226] to-[#161719] [box-shadow:0_4px_6px_rgba(0,0,0,0.4)]",
             isHero ? "h-[10px] rounded-b-[10px] sm:h-[13px]" : "h-[8px] rounded-b-[7px] sm:h-[10px]",
           )}
         >

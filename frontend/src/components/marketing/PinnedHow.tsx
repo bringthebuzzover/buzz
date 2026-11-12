@@ -132,7 +132,7 @@ export function PinnedHow() {
         <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center text-center mb-5 sm:mb-6">
           {/* Step Buttons */}
           <div
-            className="inline-flex items-center gap-1.5 rounded-full border border-on-accent/15 bg-white/60 p-1 shadow-sm backdrop-blur-md"
+            className="inline-flex items-center gap-1.5 rounded-full border border-on-accent/15 bg-white/60 p-1 shadow-buzz backdrop-blur-md"
             role="tablist"
             aria-label="How it works steps"
           >
@@ -146,7 +146,7 @@ export function PinnedHow() {
                 className={cn(
                   "cursor-pointer rounded-full px-3.5 py-1 text-xs font-medium transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
                   idx === step
-                    ? "bg-accent text-on-accent font-semibold shadow-sm"
+                    ? "bg-accent text-on-accent font-semibold shadow-buzz"
                     : "text-on-accent/60 hover:text-on-accent/90",
                 )}
               >
