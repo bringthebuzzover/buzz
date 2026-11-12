@@ -340,34 +340,46 @@ export function CurrentDrops() {
                 if (event.target === event.currentTarget) resetLoopClone();
               }}
             >
-              {slides.map((item, itemIndex) => (
-                <Link
-                  key={`${item.id}-${itemIndex}`}
-                  to={publicDropPath(item.id)}
-                  tabIndex={itemIndex === index ? 0 : -1}
-                  aria-hidden={itemIndex !== index}
-                  className={cn("block", DROP_CAROUSEL.slide, focusRingClass)}
-                >
-                  <div className="relative aspect-video overflow-hidden rounded-buzzBoard">
-                    <RemoteImage
-                      src={item.image}
-                      label={item.brandName}
-                      alt={`${item.brandName}: ${item.title}`}
-                      fallback="placeholder"
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                    <div
-                      aria-hidden
-                      className="pointer-events-none absolute left-0 top-0 h-[30%] w-full bg-gradient-to-b from-black/45 to-transparent"
-                    />
-                    <p
-                      className={cn("absolute text-[28px] font-medium text-white md:text-[32px]", DROP_CAROUSEL.brandInset)}
-                    >
-                      {item.brandName}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+              {slides.map((item, itemIndex) => {
+                const isLightBrand = item.brandName?.trim().toLowerCase() === "saie";
+                return (
+                  <Link
+                    key={`${item.id}-${itemIndex}`}
+                    to={publicDropPath(item.id)}
+                    tabIndex={itemIndex === index ? 0 : -1}
+                    aria-hidden={itemIndex !== index}
+                    className={cn("block", DROP_CAROUSEL.slide, focusRingClass)}
+                  >
+                    <div className="relative aspect-video overflow-hidden rounded-buzzBoard">
+                      <RemoteImage
+                        src={item.image}
+                        label={item.brandName}
+                        alt={`${item.brandName}: ${item.title}`}
+                        fallback="placeholder"
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                      <div
+                        aria-hidden
+                        className={cn(
+                          "pointer-events-none absolute left-0 top-0 h-[30%] w-full",
+                          isLightBrand
+                            ? "bg-gradient-to-b from-white/40 via-white/10 to-transparent"
+                            : "bg-gradient-to-b from-black/45 to-transparent",
+                        )}
+                      />
+                      <p
+                        className={cn(
+                          "absolute text-[28px] font-medium md:text-[32px]",
+                          isLightBrand ? "text-[#0a0a0c]" : "text-white",
+                          DROP_CAROUSEL.brandInset,
+                        )}
+                      >
+                        {item.brandName}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
           <div className={DROP_CAROUSEL.meta}>

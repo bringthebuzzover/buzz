@@ -1,8 +1,11 @@
 /**
  * Sticky “how it works” hero laptop demo on the public Home page.
- * Three student organization steps over ~3600px track, cross-fading
- * with 700ms cinematic ease as the visitor scrolls or clicks step tabs.
- * Reduced motion stacks every step.
+ * Three student organization steps over ~4200px track with:
+ * - Minimum stage dwell lock (prevents fast scroll skipping)
+ * - Sequential cross-dissolve (outgoing fades out before incoming glides in, zero overlap)
+ * - Fixed Y-anchored headlines (0px vertical jitter)
+ * - Interactive clickable step buttons with smooth scroll
+ * - Adjusted vertical spacing: comfortable top headroom, tighter bottom
  */
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../../theme/cn";
@@ -12,12 +15,19 @@ import { useReducedMotion } from "./useReducedMotion";
 import { TEXT } from "../../theme/tokens";
 
 const STEP_LABELS = ["1. Profile", "2. Drops", "3. Collaborate"];
+const COOLDOWN_MS = 500;
 
 export function PinnedHow() {
   const reduce = useReducedMotion();
   const trackRef = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const stepRef = useRef(0);
+  const lastChangeRef = useRef(0);
+
+  useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
 
   useEffect(() => {
     if (reduce) return;
@@ -31,10 +41,20 @@ export function PinnedHow() {
         total,
       );
       const ratio = scrolled / total;
-      // Generous deadbands so each stage has deliberate dwell time
-      const next = ratio < 0.38 ? 0 : ratio < 0.72 ? 1 : 2;
-      setStep(next);
       setProgress(Math.min(Math.max(ratio, 0), 1));
+
+      // Calculate target step with generous deadbands
+      const next = ratio < 0.36 ? 0 : ratio < 0.72 ? 1 : 2;
+
+      // Minimum dwell protection: prevent skipping stages on fast trackpad flicks
+      const now = performance.now();
+      if (next !== stepRef.current) {
+        if (now - lastChangeRef.current < COOLDOWN_MS) {
+          return; // Still in dwell cooldown
+        }
+        lastChangeRef.current = now;
+        setStep(next);
+      }
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -50,13 +70,16 @@ export function PinnedHow() {
     if (!el) return;
     const total = el.offsetHeight - window.innerHeight;
     if (total <= 0) return;
-    // Map step 0 -> 10% (safe dwell), step 1 -> 50%, step 2 -> 90%
+    // Map step 0 -> 10% (safe dwell), step 1 -> 52%, step 2 -> 92%
     const targetRatios = [0.1, 0.52, 0.92];
     const targetRatio = targetRatios[targetStep] ?? targetStep / (ORG_LAPTOP_STEPS.length - 1);
     const rect = el.getBoundingClientRect();
     const currentScrollY = window.scrollY;
     const trackTopY = currentScrollY + rect.top;
     const targetY = trackTopY + total * targetRatio;
+
+    lastChangeRef.current = performance.now();
+    setStep(targetStep);
     window.scrollTo({ top: targetY, behavior: "smooth" });
   };
 
@@ -96,11 +119,11 @@ export function PinnedHow() {
       ref={trackRef}
       id="how-it-works"
       data-nav-surface="paper"
-      className="relative h-[3600px] bg-[#f0f0f0] text-on-accent"
+      className="relative h-[4200px] bg-[#f0f0f0] text-on-accent"
     >
-      <div className="sticky top-0 flex h-screen min-h-[750px] flex-col items-center justify-center px-4 overflow-hidden">
+      <div className="sticky top-0 flex h-screen min-h-[750px] flex-col items-center justify-center pt-10 pb-4 sm:pt-14 sm:pb-6 px-4 overflow-hidden">
         {/* Top Centered Section Header & Clickable Step Buttons */}
-        <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center text-center mb-6 sm:mb-8">
+        <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center text-center mb-5 sm:mb-6">
           {/* Step Buttons */}
           <div
             className="inline-flex items-center gap-1.5 rounded-full border border-on-accent/15 bg-white/60 p-1 shadow-sm backdrop-blur-md"
@@ -126,56 +149,62 @@ export function PinnedHow() {
             ))}
           </div>
 
-          {/* Top-Anchored Step Titles (Frozen Y-Position, Zero Vertical Jitter) */}
-          <div className="relative mt-4 h-[92px] w-full">
-            {ORG_LAPTOP_STEPS.map((item, index) => (
-              <div
-                key={item.title}
-                aria-hidden={index !== step}
-                className={cn(
-                  "absolute inset-x-0 top-0 transition-all duration-700 ease-in-out",
-                  index === step
-                    ? "opacity-100 translate-y-0 visible"
-                    : "pointer-events-none opacity-0 translate-y-2 invisible",
-                )}
-              >
-                <h3 className="text-2xl font-bold tracking-tight text-on-accent sm:text-3xl">
-                  {item.title}
-                </h3>
-                <p className="mt-1.5 text-sm sm:text-base text-on-accent/65 max-w-xl mx-auto min-h-[44px]">
-                  {item.body}
-                </p>
-              </div>
-            ))}
+          {/* Top-Anchored Step Titles with sequential cross-dissolve (No overlapping/instant snap) */}
+          <div className="relative mt-4 h-[88px] w-full">
+            {ORG_LAPTOP_STEPS.map((item, index) => {
+              const isActive = index === step;
+              return (
+                <div
+                  key={item.title}
+                  aria-hidden={!isActive}
+                  className={cn(
+                    "absolute inset-x-0 top-0",
+                    isActive
+                      ? "opacity-100 translate-y-0 visible transition-all duration-500 ease-out delay-150"
+                      : "opacity-0 translate-y-2 invisible pointer-events-none transition-all duration-200 ease-in",
+                  )}
+                >
+                  <h3 className="text-2xl font-bold tracking-tight text-on-accent sm:text-3xl">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1.5 text-sm sm:text-base text-on-accent/65 max-w-xl mx-auto min-h-[44px]">
+                    {item.body}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Centered Hero Laptop Mockup (Fixed Position Below Text) */}
+        {/* Centered Hero Laptop Mockup */}
         <div
           data-laptop-chassis
           className="relative z-10 w-full max-w-[620px]"
         >
-          {ORG_LAPTOP_STEPS.map((item, index) => (
-            <div
-              key={item.title}
-              className={cn(
-                "transition-opacity duration-700 ease-in-out",
-                index === step ? "block opacity-100" : "hidden opacity-0",
-              )}
-            >
-              <LaptopMockup
-                size="hero"
-                videoMp4={item.videoMp4}
-                videoWebm={item.videoWebm}
-                poster={item.poster}
-                alt={item.alt}
-              />
-            </div>
-          ))}
+          {ORG_LAPTOP_STEPS.map((item, index) => {
+            const isActive = index === step;
+            return (
+              <div
+                key={item.title}
+                className={cn(
+                  "transition-opacity duration-500 ease-in-out",
+                  isActive ? "block opacity-100" : "hidden opacity-0",
+                )}
+              >
+                <LaptopMockup
+                  size="hero"
+                  videoMp4={item.videoMp4}
+                  videoWebm={item.videoWebm}
+                  poster={item.poster}
+                  alt={item.alt}
+                />
+              </div>
+            );
+          })}
         </div>
 
-        {/* Minimal Scroll Progress Rail (Text Label Removed) */}
-        <div className="relative z-10 mt-6 flex flex-col items-center">
+        {/* Minimal Scroll Progress Rail (Tighter Bottom Margin) */}
+        <div className="relative z-10 mt-4 flex flex-col items-center">
           <div className="h-1 w-32 overflow-hidden rounded-full bg-on-accent/15">
             <div
               className="h-full bg-accent transition-all duration-150 ease-out"
