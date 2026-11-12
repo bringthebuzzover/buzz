@@ -388,7 +388,7 @@ export function CurrentDrops() {
                       <p
                         className={cn(
                           "absolute text-[28px] font-medium md:text-[32px]",
-                          isLightBrand ? "text-[#0a0a0c]" : "text-white",
+                          isLightBrand ? "text-on-accent" : "text-white",
                           DROP_CAROUSEL.brandInset,
                         )}
                       >
@@ -604,7 +604,7 @@ export function GoalChips() {
             key={goal}
             to="/brand/apply"
             className={cn(
-              "inline-flex h-11 items-center rounded-full border border-primary px-6 text-sm text-primary transition-all duration-200 active:scale-95 hover:bg-primary hover:text-on-accent focus-visible:bg-primary focus-visible:text-on-accent motion-reduce:transition-none",
+              "inline-flex h-11 items-center rounded-full border border-primary px-6 text-sm text-primary transition-all duration-200 active:scale-95 hover:border-accent hover:bg-accent hover:text-on-accent focus-visible:bg-accent focus-visible:text-on-accent focus-visible:border-accent motion-reduce:transition-none",
               focusRingClass,
             )}
           >
