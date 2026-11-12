@@ -157,9 +157,9 @@ export function PinnedHow() {
                 aria-selected={idx === step}
                 onClick={() => scrollToStep(idx)}
                 className={cn(
-                  "cursor-pointer rounded-full px-3.5 py-1 text-xs font-medium transition-all duration-200 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                  "cursor-pointer rounded-full px-3.5 py-1 text-xs font-medium transition-all duration-200 active:scale-95 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
                   idx === step
-                    ? "bg-accent text-on-accent font-semibold shadow-buzz"
+                    ? "bg-accent text-on-accent font-semibold"
                     : "text-on-accent/60 hover:text-on-accent/90 hover:bg-white/50",
                 )}
               >

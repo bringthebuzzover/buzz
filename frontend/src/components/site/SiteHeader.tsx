@@ -145,7 +145,7 @@ export default function SiteHeader() {
 
   const linkClass = (active: boolean) =>
     cn(
-      "relative whitespace-nowrap text-sm cursor-pointer transition-all duration-150 active:scale-[0.98] after:absolute after:inset-x-0 after:-bottom-2 after:h-px after:origin-left after:bg-current after:content-[''] hover:after:scale-x-100 focus-visible:after:scale-x-100 motion-safe:after:transition-transform motion-safe:after:duration-[180ms]",
+      "relative whitespace-nowrap text-sm cursor-pointer transition-all duration-150 active:scale-95 after:absolute after:inset-x-0 after:-bottom-2 after:h-px after:origin-left after:bg-current after:content-[''] hover:after:scale-x-100 focus-visible:after:scale-x-100 motion-safe:after:transition-transform motion-safe:after:duration-[180ms]",
       paperTone ? "text-on-accent" : "text-primary",
       active ? "after:scale-x-100" : "after:scale-x-0",
       focusRingClass,

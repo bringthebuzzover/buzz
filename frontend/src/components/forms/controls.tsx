@@ -295,10 +295,10 @@ export { Radio } from "../ui/Radio";
  * Disabled is a designed state, not `opacity` alone.
  */
 const GHOST_PILL =
-  "h-11 border border-primary bg-transparent px-6 text-sm text-primary hover:border-accent hover:bg-accent hover:text-on-accent active:scale-[0.98] transition-all duration-100 motion-reduce:active:scale-100 disabled:border-transparent disabled:bg-transparent disabled:text-quiet";
+  "h-11 border border-primary bg-transparent px-6 text-sm text-primary hover:border-accent hover:bg-accent hover:text-on-accent active:scale-95 transition-all duration-100 motion-reduce:active:scale-100 disabled:border-transparent disabled:bg-transparent disabled:text-quiet";
 
 export const buttonVariants = cva(
-  `inline-flex select-none items-center justify-center gap-2 self-center whitespace-nowrap rounded-full font-normal cursor-pointer transition-all duration-100 active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:active:scale-100 ${focusRingClass}`,
+  `inline-flex select-none items-center justify-center gap-2 self-center whitespace-nowrap rounded-full font-normal cursor-pointer transition-all duration-100 active:scale-95 motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:active:scale-100 ${focusRingClass}`,
   {
     variants: {
       variant: {

@@ -472,7 +472,7 @@ function HalfBlock({ kicker, title, support, action, quiet, divided }: Half & { 
           <Link
             to={quiet.to}
             className={cn(
-              "text-sm text-inherit opacity-70 hover:opacity-100 transition-opacity duration-150 inline-block active:scale-[0.98]",
+              "text-sm text-inherit opacity-70 hover:opacity-100 transition-opacity duration-150 inline-block active:scale-95",
               focusRingClass,
             )}
           >
@@ -604,7 +604,7 @@ export function GoalChips() {
             key={goal}
             to="/brand/apply"
             className={cn(
-              "inline-flex h-11 items-center rounded-full border border-primary px-6 text-sm text-primary transition-all duration-200 active:scale-[0.98] hover:bg-primary hover:text-on-accent focus-visible:bg-primary focus-visible:text-on-accent motion-reduce:transition-none",
+              "inline-flex h-11 items-center rounded-full border border-primary px-6 text-sm text-primary transition-all duration-200 active:scale-95 hover:bg-primary hover:text-on-accent focus-visible:bg-primary focus-visible:text-on-accent motion-reduce:transition-none",
               focusRingClass,
             )}
           >
