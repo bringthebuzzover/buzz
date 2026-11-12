@@ -9,7 +9,6 @@ import {
   FaqList,
   JoinSplit,
   MarketingHero,
-  NumberedCards,
   Statement,
 } from "../../components/marketing/sections";
 import SiteFooter from "../../components/site/SiteFooter";
@@ -51,7 +50,6 @@ const ORG_FAQ = [
 
 export default function ForOrgsPage() {
   const yerba = FEATURED_COLLABS[0];
-  const update = FEATURED_COLLABS[1];
   return (
     <MarketingPage>
       <MarketingHero
@@ -64,32 +62,6 @@ export default function ForOrgsPage() {
       <Statement
         line1="Give your community something extra to show up for"
         line2="while cutting hosting costs."
-      />
-      <NumberedCards
-        kicker="Partner with brands"
-        support="Merch and product samples for your organization."
-        cards={[
-          {
-            n: "1",
-            title: "Brand products, shipped to you",
-            body: "If you’re accepted on a drop, products ship to the address you gave when you applied.",
-            image: yerba.image,
-            alt: yerba.title,
-          },
-          {
-            n: "2",
-            title: "Post from your own account",
-            body: "Post from the organization’s Instagram and see your posts, likes, comments, and reach in My Campaigns.",
-            image: update.image,
-            alt: update.title,
-          },
-          {
-            n: "3",
-            title: "More than one drop",
-            body: "Your organization can hold spots on more than one drop at the same time.",
-            mark: true,
-          },
-        ]}
       />
       <SideBySideHow kind="org" />
       <CurrentDrops />

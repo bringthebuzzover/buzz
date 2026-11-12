@@ -125,22 +125,40 @@ export function MarketingHero({
   );
 }
 
-export function Statement({ line1, line2 }: { line1: string; line2: string }) {
+export function Statement({
+  line1,
+  line2,
+  tone = "paper",
+}: {
+  line1: string;
+  line2: string;
+  tone?: "paper" | "dark";
+}) {
+  const isDark = tone === "dark";
   return (
     <section
       data-reveal-group
-      data-nav-surface="paper"
-      className="bg-[#f0f0f0] px-4 py-[68px] text-center md:py-[108px]"
+      data-nav-surface={isDark ? "ink" : "paper"}
+      className={cn(
+        "px-4 py-[68px] text-center md:py-[108px]",
+        isDark ? "bg-page" : "bg-surface-paper",
+      )}
     >
       <p
         data-reveal-line
-        className="mx-auto max-w-4xl text-[32px] font-medium leading-none tracking-tight text-on-accent md:text-buzzStatement"
+        className={cn(
+          "mx-auto max-w-4xl text-[32px] font-medium leading-none tracking-tight opacity-0 motion-reduce:opacity-100 md:text-buzzStatement",
+          isDark ? "text-accent" : "text-on-accent",
+        )}
       >
         {line1}
       </p>
       <p
         data-reveal-line
-        className="mx-auto mt-1 max-w-4xl text-[32px] font-medium leading-none tracking-tight text-on-accent/55 md:text-buzzStatement"
+        className={cn(
+          "mx-auto mt-1 max-w-4xl text-[32px] font-medium leading-none tracking-tight opacity-0 motion-reduce:opacity-100 md:text-buzzStatement",
+          isDark ? "text-primary" : "text-on-accent/55",
+        )}
       >
         {line2}
       </p>
@@ -340,34 +358,46 @@ export function CurrentDrops() {
                 if (event.target === event.currentTarget) resetLoopClone();
               }}
             >
-              {slides.map((item, itemIndex) => (
-                <Link
-                  key={`${item.id}-${itemIndex}`}
-                  to={publicDropPath(item.id)}
-                  tabIndex={itemIndex === index ? 0 : -1}
-                  aria-hidden={itemIndex !== index}
-                  className={cn("block", DROP_CAROUSEL.slide, focusRingClass)}
-                >
-                  <div className="relative aspect-video overflow-hidden rounded-buzzBoard">
-                    <RemoteImage
-                      src={item.image}
-                      label={item.brandName}
-                      alt={`${item.brandName}: ${item.title}`}
-                      fallback="placeholder"
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                    <div
-                      aria-hidden
-                      className="pointer-events-none absolute left-0 top-0 h-[30%] w-full bg-gradient-to-b from-black/45 to-transparent"
-                    />
-                    <p
-                      className={cn("absolute text-[28px] font-medium text-white md:text-[32px]", DROP_CAROUSEL.brandInset)}
-                    >
-                      {item.brandName}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+              {slides.map((item, itemIndex) => {
+                const isLightBrand = item.brandName?.trim().toLowerCase() === "saie";
+                return (
+                  <Link
+                    key={`${item.id}-${itemIndex}`}
+                    to={publicDropPath(item.id)}
+                    tabIndex={itemIndex === index ? 0 : -1}
+                    aria-hidden={itemIndex !== index}
+                    className={cn("block", DROP_CAROUSEL.slide, focusRingClass)}
+                  >
+                    <div className="relative aspect-video overflow-hidden rounded-buzzBoard">
+                      <RemoteImage
+                        src={item.image}
+                        label={item.brandName}
+                        alt={`${item.brandName}: ${item.title}`}
+                        fallback="placeholder"
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                      <div
+                        aria-hidden
+                        className={cn(
+                          "pointer-events-none absolute left-0 top-0 h-[30%] w-full",
+                          isLightBrand
+                            ? "bg-gradient-to-b from-white/40 via-white/10 to-transparent"
+                            : "bg-gradient-to-b from-black/45 to-transparent",
+                        )}
+                      />
+                      <p
+                        className={cn(
+                          "absolute text-[28px] font-medium md:text-[32px]",
+                          isLightBrand ? "text-[#0a0a0c]" : "text-white",
+                          DROP_CAROUSEL.brandInset,
+                        )}
+                      >
+                        {item.brandName}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
           <div className={DROP_CAROUSEL.meta}>

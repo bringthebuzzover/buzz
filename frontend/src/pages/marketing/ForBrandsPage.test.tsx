@@ -41,14 +41,13 @@ describe("ForBrandsPage", () => {
     expect(Array.from(steps, (step) => step.querySelector("h3")?.textContent)).toEqual([
       "1 Tell us about your campaign",
       "2 Choose the organizations",
-      "3 Follow every post",
+      "3 Follow every post & metric",
     ]);
     expect(Array.from(steps, (step) => step.querySelector("h3 + p")?.textContent)).toEqual([
-      "Share your goals and the products you want to send.",
-      "BUZZ builds and publishes your drop. Review applicants and send your decisions.",
-      "Track organization posts and see the finished drop.",
+      "Share your goals, target campuses, and the products you want to send.",
+      "BUZZ publishes your drop. Review applicant pitches and confirm your decisions.",
+      "Track live campus activations, engagement, reach, and student organization posts.",
     ]);
-    expect(steps[1].textContent).toMatch(/Applicants/);
-    expect(steps[1].textContent).toMatch(/Send decisions/);
+    expect(steps[1].querySelector("[data-laptop-chassis]")).not.toBeNull();
   });
 });

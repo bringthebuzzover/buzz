@@ -15,7 +15,7 @@ describe("ForOrgsPage", () => {
     expect(text).toMatch(/Business or Creator/);
     expect(text).not.toMatch(/Confirm this is our organization's account/);
     expect(text).not.toMatch(/confirm card/i);
-    expect(text).toMatch(/Continue with Instagram/);
+    expect(text).toMatch(/Connect Instagram/);
     expect(text).not.toMatch(/placehold\.co/i);
     const hero = container.querySelector('img[alt="Kappa Alpha Theta x Yerba Madre"]');
     expect(hero).not.toBeNull();
@@ -37,20 +37,20 @@ describe("ForOrgsPage", () => {
     const steps = container.querySelectorAll("#how-it-works ol > li");
     expect(steps).toHaveLength(3);
     expect(Array.from(steps, (step) => step.querySelector("h3")?.textContent)).toEqual([
-      "1 Apply with your .edu email",
-      "2 Connect Instagram",
-      "3 Apply to open drops",
+      "1 Create your student organization’s profile",
+      "2 Discover new brand campaigns as they drop",
+      "3 Apply to collaborate with your favorite brands",
     ]);
     expect(Array.from(steps, (step) => step.querySelector("h3 + p")?.textContent)).toEqual([
-      "Tell BUZZ about your organization and campus.",
-      "After approval, connect your Business or Creator account.",
-      "Browse current drops and apply for your organization.",
+      "Apply with your campus .edu email and verify your student organization profile.",
+      "Browse active drops tailored for your campus and see what products are available.",
+      "Submit your pitch in one click and follow campaign status in My Campaigns.",
     ]);
   });
   it("keeps the partner section before the approved tour and current drops", () => {
     const { container } = renderWithProviders(<ForOrgsPage />);
     expect(Array.from(container.querySelectorAll("h2"), (heading) => heading.textContent).slice(0, 3)).toEqual([
-      "Partner with brands", "How it works", "Current drops",
+      "Partner with brands", "Current drops", "Questions",
     ]);
   });
 

@@ -15,10 +15,15 @@ export function MarketingPage({ children }: { children: ReactNode }) {
     const reveal = (group: Element) => {
       group.querySelectorAll<HTMLElement>("[data-reveal-line]").forEach((line, index) => {
         if (typeof line.animate !== "function") return;
-        animations.push(line.animate(
-          [{ transform: "translateY(50%)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }],
-          { duration: 1400, delay: index * 100, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "backwards" },
-        ));
+        const anim = line.animate(
+          [{ transform: "translateY(32px)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }],
+          { duration: 900, delay: index * 100, easing: "cubic-bezier(0.16, 1, 0.3, 1)", fill: "forwards" },
+        );
+        anim.onfinish = () => {
+          line.style.opacity = "1";
+          line.style.transform = "none";
+        };
+        animations.push(anim);
       });
     };
     const observer =
@@ -28,11 +33,24 @@ export function MarketingPage({ children }: { children: ReactNode }) {
             (entries) =>
               entries.forEach((entry) => {
                 if (!entry.isIntersecting) return;
+                const rect = entry.target.getBoundingClientRect();
+                // Trigger only when ALL of the component is in screen (or jsdom mock where rect is 0)
+                const isAllInScreen =
+                  (rect.top === 0 && rect.bottom === 0) ||
+                  (rect.top >= -20 && rect.bottom <= window.innerHeight + 20) ||
+                  (rect.height > window.innerHeight && (entry.intersectionRatio ?? 1) >= 0.8);
+                if (!isAllInScreen) return;
                 reveal(entry.target);
                 observer?.unobserve(entry.target);
               }),
-            { rootMargin: "0px 0px -15% 0px" },
+            { threshold: [0.1, 0.25, 0.5, 0.75, 0.9, 1.0] },
           );
+
+    // Initial state: ensure reveal lines start at opacity 0 unless reduced motion
+    root.querySelectorAll<HTMLElement>("[data-reveal-group] [data-reveal-line]").forEach((line) => {
+      line.style.opacity = "0";
+    });
+
     root.querySelectorAll("[data-reveal-group]").forEach((group) => observer?.observe(group));
     const hero = root.querySelector<HTMLElement>(".marketing-hero");
     if (hero) reveal(hero);
@@ -67,6 +85,10 @@ export function MarketingPage({ children }: { children: ReactNode }) {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       shade?.style.removeProperty("opacity");
+      root.querySelectorAll<HTMLElement>("[data-reveal-line]").forEach((line) => {
+        line.style.removeProperty("opacity");
+        line.style.removeProperty("transform");
+      });
       cards.forEach((card) => {
         card.style.removeProperty("--stack-scale");
         card.style.removeProperty("--stack-rotate");

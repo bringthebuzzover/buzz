@@ -9,7 +9,6 @@ import {
   FaqList,
   GoalChips,
   MarketingHero,
-  NumberedCards,
   Statement,
 } from "../../components/marketing/sections";
 import SiteFooter from "../../components/site/SiteFooter";
@@ -42,7 +41,6 @@ const BRAND_FAQ = [
 ];
 
 export default function ForBrandsPage() {
-  const yerba = FEATURED_COLLABS[0];
   const update = FEATURED_COLLABS[1];
   return (
     <MarketingPage>
@@ -56,32 +54,6 @@ export default function ForBrandsPage() {
       <Statement
         line1="You request a call."
         line2="BUZZ builds and publishes the drop."
-      />
-      <NumberedCards
-        kicker="How it works"
-        support="Request a campaign. BUZZ runs the drop. Organizations post."
-        cards={[
-          {
-            n: "1",
-            title: "Request a call",
-            body: "Apply as a brand and request a campaign. A representative will contact you.",
-            mark: true,
-          },
-          {
-            n: "2",
-            title: "BUZZ builds and publishes the drop",
-            body: "BUZZ writes the drop. Once it’s published, vetted student organizations see it on the Drop Feed.",
-            image: update.image,
-            alt: update.title,
-          },
-          {
-            n: "3",
-            title: "Organizations post",
-            body: "Organizations apply while the drop is Open, then post from their Instagram Business or Creator account.",
-            image: yerba.image,
-            alt: yerba.title,
-          },
-        ]}
       />
       <SideBySideHow kind="brand" />
       <CollegeNetwork />
