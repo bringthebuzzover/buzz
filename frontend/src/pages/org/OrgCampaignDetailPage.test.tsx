@@ -142,7 +142,7 @@ describe("Org withdrawal cache refresh", () => {
     expect(element).not.toBeNull();
     await act(async () => {
       (element as HTMLElement).click();
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 15));
     });
   }
 

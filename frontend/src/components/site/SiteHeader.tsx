@@ -145,7 +145,7 @@ export default function SiteHeader() {
 
   const linkClass = (active: boolean) =>
     cn(
-      "relative whitespace-nowrap text-sm after:absolute after:inset-x-0 after:-bottom-2 after:h-px after:origin-left after:bg-current after:content-[''] hover:after:scale-x-100 focus-visible:after:scale-x-100 motion-safe:after:transition-transform motion-safe:after:duration-[180ms]",
+      "relative whitespace-nowrap text-sm cursor-pointer transition-all duration-150 active:scale-[0.98] after:absolute after:inset-x-0 after:-bottom-2 after:h-px after:origin-left after:bg-current after:content-[''] hover:after:scale-x-100 focus-visible:after:scale-x-100 motion-safe:after:transition-transform motion-safe:after:duration-[180ms]",
       paperTone ? "text-on-accent" : "text-primary",
       active ? "after:scale-x-100" : "after:scale-x-0",
       focusRingClass,
@@ -186,7 +186,7 @@ export default function SiteHeader() {
               type="button"
               data-testid="site-header-logo"
               onClick={() => navigate(pathname.startsWith("/onboarding") ? "/" : isApiAuth && !showHome ? pathForUser(user) : "/")}
-              className={cn("flex h-10 max-w-[9rem] shrink-0 items-center", focusRingClass)}
+              className={cn("flex h-10 max-w-[9rem] shrink-0 items-center cursor-pointer transition-transform duration-100 active:scale-95", focusRingClass)}
             >
               <Logo surface={paperTone ? "paper" : "ink"} className="h-[54px]" />
             </button>
@@ -255,7 +255,7 @@ export default function SiteHeader() {
             type="button"
             onClick={() => setMobileNavOpen((open) => !open)}
             className={cn(
-              "flex h-11 items-center justify-center px-2 text-sm min-[650px]:w-11 min-[650px]:rounded-full min-[650px]:border min-[650px]:border-line min-[650px]:px-0",
+              "flex h-11 items-center justify-center px-2 text-sm min-[650px]:w-11 min-[650px]:rounded-full min-[650px]:border min-[650px]:border-line min-[650px]:px-0 cursor-pointer hover:bg-buzz-paper08 active:scale-95 transition-all",
               mobileOnly,
               focusRingClass,
             )}

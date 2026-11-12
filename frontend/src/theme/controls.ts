@@ -21,6 +21,10 @@ export const CONTROL_HEIGHT = {
 export const focusRingClass =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-page";
 
+/** Solid yellow ring with paper-colored offset for light paper surfaces. */
+export const focusRingOnPaperClass =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-buzz-yellow focus-visible:ring-offset-2 focus-visible:ring-offset-surface-paper";
+
 const FIELD_FOCUS =
   "focus:border-buzz-yellow focus:ring-2 focus:ring-buzz-yellow focus:ring-offset-2 focus:ring-offset-page";
 
