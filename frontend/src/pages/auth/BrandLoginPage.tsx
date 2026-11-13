@@ -37,6 +37,7 @@ export default function BrandLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+
   // Any already-authenticated user is forwarded to their own landing — an org
   // must never see the brand form and clobber its session by submitting it.
   if (status === "authenticated" && user) {

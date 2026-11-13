@@ -40,7 +40,7 @@ export default function AdminLayout() {
             <Link
               to="/"
               className={cn(
-                "inline-flex items-center gap-2 text-sm text-muted hover:text-primary",
+                "inline-flex items-center gap-2 text-sm text-muted hover:text-primary transition-all duration-150 active:scale-95 motion-reduce:active:scale-100 cursor-pointer",
                 focusRingClass,
               )}
             >

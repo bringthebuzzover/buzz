@@ -3,7 +3,10 @@ import { siteIdentity } from "../../data/siteIdentity";
 import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
-export const footerLinkClass = cn("text-sm text-muted hover:text-primary", focusRingClass);
+export const footerLinkClass = cn(
+  "text-sm text-muted hover:text-primary transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100",
+  focusRingClass,
+);
 
 const { social, images } = siteIdentity;
 

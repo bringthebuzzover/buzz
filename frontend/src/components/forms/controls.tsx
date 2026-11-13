@@ -298,22 +298,22 @@ const GHOST_PILL =
   "h-11 border border-primary bg-transparent px-6 text-sm text-primary hover:border-accent hover:bg-accent hover:text-on-accent disabled:border-transparent disabled:bg-transparent disabled:text-quiet";
 
 export const buttonVariants = cva(
-  `inline-flex select-none items-center justify-center gap-2 self-center whitespace-nowrap rounded-full font-normal transition disabled:cursor-not-allowed ${focusRingClass}`,
+  `inline-flex select-none items-center justify-center gap-2 self-center whitespace-nowrap rounded-full font-normal cursor-pointer transition-all duration-100 active:scale-95 motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:active:scale-100 ${focusRingClass}`,
   {
     variants: {
       variant: {
         // Pen Pill / Yellow: 40px, 14px, weight 400.
         primary:
-          "h-10 bg-accent px-4 text-sm text-on-accent hover:bg-buzz-yellowHover focus-visible:bg-buzz-yellowHover disabled:bg-buzz-neutral disabled:text-quiet",
-        // Pen Pill / Dark: 36px, paper-09 line so the fill reads on the page.
+          "h-10 bg-accent px-4 text-sm text-on-accent hover:bg-buzz-yellowHover active:bg-buzz-yellowHover focus-visible:bg-buzz-yellowHover disabled:bg-buzz-neutral disabled:text-quiet",
+        // Pen Pill / Dark: 36px, paper-09 line; inverts to solid yellow pill on hover and scales on click.
         secondary:
-          "h-9 border border-line bg-buzz-inkBtn px-3.5 text-xs text-primary hover:bg-surface-pop disabled:border-transparent disabled:bg-buzz-neutral disabled:text-quiet",
+          "h-9 border border-line bg-buzz-inkBtn px-3.5 text-xs text-primary hover:border-accent hover:bg-accent hover:text-on-accent active:border-buzz-yellowHover active:bg-buzz-yellowHover active:text-on-accent disabled:border-transparent disabled:bg-buzz-neutral disabled:text-quiet",
         // Pen Pill / Ghost: 44px, paper stroke, padding 24. `outline` keeps the old name.
         outline: GHOST_PILL,
         ghost: GHOST_PILL,
         // Pen Pill / Danger: 40px, solid red, paper label, weight 400.
         danger:
-          "h-10 bg-buzz-dangerFill px-4 text-sm text-primary hover:bg-buzz-dangerInk hover:text-on-accent disabled:bg-buzz-neutral disabled:text-quiet",
+          "h-10 bg-buzz-dangerFill px-4 text-sm text-primary hover:bg-buzz-dangerInk hover:text-on-accent active:bg-buzz-dangerInk disabled:bg-buzz-neutral disabled:text-quiet",
       },
       size: {
         default: "",

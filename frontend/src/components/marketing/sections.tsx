@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BeeMark } from "../ui/BrandMark";
 import { Button, LinkButton } from "../forms/controls";
-import { focusRingClass } from "../../theme/controls";
+import { focusRingClass, focusRingOnPaperClass } from "../../theme/controls";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
 import { cn } from "../../theme/cn";
 import { useReducedMotion } from "./useReducedMotion";
@@ -312,8 +312,8 @@ export function CurrentDrops() {
                     aria-label={direction < 0 ? "Previous drop" : "Next drop"}
                     onClick={() => void move(direction)}
                     className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-full border border-on-accent text-on-accent",
-                      focusRingClass,
+                      "flex h-10 w-10 items-center justify-center rounded-full border border-on-accent text-on-accent cursor-pointer transition-all duration-150 hover:bg-on-accent hover:text-white active:scale-95",
+                      focusRingOnPaperClass,
                     )}
                   >
                     {direction < 0
@@ -388,7 +388,7 @@ export function CurrentDrops() {
                       <p
                         className={cn(
                           "absolute text-[28px] font-medium md:text-[32px]",
-                          isLightBrand ? "text-[#0a0a0c]" : "text-white",
+                          isLightBrand ? "text-on-accent" : "text-white",
                           DROP_CAROUSEL.brandInset,
                         )}
                       >
@@ -471,7 +471,10 @@ function HalfBlock({ kicker, title, support, action, quiet, divided }: Half & { 
         {quiet ? (
           <Link
             to={quiet.to}
-            className={cn("text-sm text-inherit opacity-70", focusRingClass)}
+            className={cn(
+              "text-sm text-muted hover:text-primary transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100",
+              focusRingClass,
+            )}
           >
             {quiet.label}
           </Link>
@@ -500,7 +503,7 @@ export function FaqList({ items }: { items: { q: string; a: string }[] }) {
             >
               <summary
                 className={cn(
-                  "flex cursor-pointer list-none items-center justify-between gap-4 text-base",
+                  "flex cursor-pointer list-none items-center justify-between gap-4 text-base transition-colors duration-150 hover:text-accent",
                   focusRingClass,
                 )}
               >
@@ -601,7 +604,7 @@ export function GoalChips() {
             key={goal}
             to="/brand/apply"
             className={cn(
-              "inline-flex h-11 items-center rounded-full border border-primary px-6 text-sm text-primary transition-colors duration-300 hover:bg-primary hover:text-on-accent focus-visible:bg-primary focus-visible:text-on-accent motion-reduce:transition-none",
+              "inline-flex h-11 items-center rounded-full border border-primary px-6 text-sm text-primary transition-all duration-200 active:scale-95 hover:border-accent hover:bg-accent hover:text-on-accent focus-visible:bg-accent focus-visible:text-on-accent focus-visible:border-accent motion-reduce:transition-none",
               focusRingClass,
             )}
           >
