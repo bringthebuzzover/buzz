@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BeeMark } from "../ui/BrandMark";
 import { Button, LinkButton } from "../forms/controls";
-import { focusRingClass, focusRingOnPaperClass } from "../../theme/controls";
+import { focusRingClass } from "../../theme/controls";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
 import { cn } from "../../theme/cn";
 import { useReducedMotion } from "./useReducedMotion";
@@ -135,6 +135,9 @@ export function Statement({
   tone?: "paper" | "dark";
 }) {
   const isDark = tone === "dark";
+  const hasTrailingDot = isDark && line2.endsWith(".");
+  const line2Text = hasTrailingDot ? line2.slice(0, -1) : line2;
+
   return (
     <section
       data-reveal-group
@@ -148,7 +151,7 @@ export function Statement({
         data-reveal-line
         className={cn(
           "mx-auto max-w-4xl text-[32px] font-medium leading-none tracking-tight opacity-0 motion-reduce:opacity-100 md:text-buzzStatement",
-          isDark ? "text-accent" : "text-on-accent",
+          isDark ? "text-primary" : "text-on-accent",
         )}
       >
         {line1}
@@ -157,10 +160,17 @@ export function Statement({
         data-reveal-line
         className={cn(
           "mx-auto mt-1 max-w-4xl text-[32px] font-medium leading-none tracking-tight opacity-0 motion-reduce:opacity-100 md:text-buzzStatement",
-          isDark ? "text-primary" : "text-on-accent/55",
+          isDark ? "text-accent" : "text-on-accent/55",
         )}
       >
-        {line2}
+        {isDark && hasTrailingDot ? (
+          <>
+            {line2Text}
+            <span className="text-primary">.</span>
+          </>
+        ) : (
+          line2
+        )}
       </p>
     </section>
   );
