@@ -137,15 +137,15 @@ export function PinnedHow() {
     <div
       ref={trackRef}
       id="how-it-works"
-      data-nav-surface="paper"
-      className="relative h-[4700px] bg-surface-paper text-on-accent"
+      data-nav-surface="ink"
+      className="relative h-[4700px] bg-page text-primary"
     >
       <div className="sticky top-0 flex h-screen min-h-[750px] flex-col items-center justify-center pt-10 pb-4 sm:pt-14 sm:pb-6 px-4 overflow-hidden">
         {/* Top Centered Section Header & Clickable Step Buttons */}
         <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center text-center mb-5 sm:mb-6">
           {/* Step Buttons */}
           <div
-            className="inline-flex items-center gap-1.5 rounded-full border border-on-accent/15 bg-white/60 p-1 shadow-buzz backdrop-blur-md"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] p-1 shadow-buzz backdrop-blur-md"
             role="tablist"
             aria-label="How it works steps"
           >
@@ -160,7 +160,7 @@ export function PinnedHow() {
                   "cursor-pointer rounded-full px-3.5 py-1 text-xs font-medium transition-all duration-200 active:scale-95 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
                   idx === step
                     ? "bg-accent text-on-accent font-semibold"
-                    : "text-on-accent/60 hover:text-on-accent/90 hover:bg-white/50",
+                    : "text-muted hover:text-primary hover:bg-white/10",
                 )}
               >
                 {label}
@@ -183,10 +183,10 @@ export function PinnedHow() {
                       : "opacity-0 pointer-events-none z-0",
                   )}
                 >
-                  <h3 className="text-2xl font-bold tracking-tight text-on-accent sm:text-3xl">
+                  <h3 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">
                     {item.title}
                   </h3>
-                  <p className="mt-1.5 text-sm sm:text-base text-on-accent/65 max-w-xl mx-auto min-h-[44px]">
+                  <p className="mt-1.5 text-sm sm:text-base text-muted max-w-xl mx-auto min-h-[44px]">
                     {item.body}
                   </p>
                 </div>
@@ -235,7 +235,7 @@ export function PinnedHow() {
 
         {/* Minimal Scroll Progress Rail */}
         <div className="relative z-10 mt-4 flex flex-col items-center">
-          <div className="h-1 w-32 overflow-hidden rounded-full bg-on-accent/15">
+          <div className="h-1 w-32 overflow-hidden rounded-full bg-white/15">
             <div
               className="h-full bg-accent transition-all duration-150 ease-out"
               style={{ width: `${Math.round(progress * 100)}%` }}

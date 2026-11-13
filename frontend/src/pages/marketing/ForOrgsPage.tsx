@@ -62,6 +62,7 @@ export default function ForOrgsPage() {
       <Statement
         line1="Give your community something extra to show up for"
         line2="while cutting hosting costs."
+        tone="dark"
       />
       <SideBySideHow kind="org" />
       <CurrentDrops />
