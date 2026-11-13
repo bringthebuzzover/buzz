@@ -32,10 +32,8 @@ test("marketing navigation follows the surface below its logo", async ({ page })
     ).toHaveCount(0);
     await expect(logo()).toHaveAttribute("src", /buzz-logo-on-ink\.svg/);
 
-    await page.locator('[data-nav-surface="paper"]').first().evaluate((surface) => {
-      surface.scrollIntoView({ block: "start" });
-    });
-    await expect(logo()).toHaveAttribute("src", /buzz-logo-on-paper\.svg/);
+    // All marketing routes are unified to solid black ("ink").
+    await expect(page.locator('[data-nav-surface="paper"]')).toHaveCount(0);
 
     await page.locator('[data-nav-surface="ink"]').last().evaluate((surface) => {
       surface.scrollIntoView({ block: "start" });

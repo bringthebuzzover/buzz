@@ -107,6 +107,18 @@ it("leaves reduced-motion text visible without scroll observers", () => {
   expect(container.querySelector("[data-reveal-line]")?.getAttribute("style")).toBeNull();
 });
 
+it("renders dark statement with primary line 1 and accent line 2 with primary trailing dot", () => {
+  const { container } = renderWithProviders(
+    <Statement line1="Campus drop." line2="Delivered to you." tone="dark" />,
+  );
+  const lines = container.querySelectorAll("[data-reveal-line]");
+  expect(lines[0].className).toContain("text-primary");
+  expect(lines[1].className).toContain("text-accent");
+  const dot = lines[1].querySelector("span");
+  expect(dot?.textContent).toBe(".");
+  expect(dot?.className).toContain("text-primary");
+});
+
 it("pauses the hero video when reduced motion is enabled", () => {
   jest.spyOn(HTMLMediaElement.prototype, "paused", "get").mockReturnValue(false);
   const pause = jest.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});

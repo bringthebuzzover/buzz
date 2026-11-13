@@ -102,20 +102,20 @@ export function PinnedHow() {
 
   if (reduce) {
     return (
-      <section id="how-it-works" data-nav-surface="paper" className="bg-surface-paper text-on-accent py-16 px-4">
+      <section id="how-it-works" data-nav-surface="ink" className="bg-page text-primary py-16 px-4">
         <div className="mx-auto flex max-w-4xl flex-col gap-16">
           <div className="text-center">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted">How it works</p>
             <h2 className={cn(TEXT.h2, "mt-2")}>Student organizations join in 3 steps</h2>
           </div>
           {ORG_LAPTOP_STEPS.map((item, index) => (
-            <div key={item.title} className="flex flex-col items-center gap-6 rounded-buzzBoard bg-white/60 p-8 text-center border border-on-accent/10">
+            <div key={item.title} className="flex flex-col items-center gap-6 rounded-buzzBoard bg-white/5 p-8 text-center border border-white/10">
               <div>
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent text-xs font-bold text-on-accent">
                   {index + 1}
                 </span>
                 <h3 className={cn(TEXT.h3, "mt-3")}>{item.title}</h3>
-                <p className="mt-1 text-base text-on-accent/60 max-w-lg mx-auto">{item.body}</p>
+                <p className="mt-1 text-base text-muted max-w-lg mx-auto">{item.body}</p>
               </div>
               <LaptopMockup
                 size="hero"
