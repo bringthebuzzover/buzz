@@ -305,9 +305,9 @@ export const buttonVariants = cva(
         // Pen Pill / Yellow: 40px, 14px, weight 400.
         primary:
           "h-10 bg-accent px-4 text-sm text-on-accent hover:bg-buzz-yellowHover active:bg-buzz-yellowHover focus-visible:bg-buzz-yellowHover disabled:bg-buzz-neutral disabled:text-quiet",
-        // Pen Pill / Dark: 36px, high-contrast translucent fill that clearly brightens on hover and scales on click.
+        // Pen Pill / Dark: 36px, paper-09 line; inverts to solid yellow pill on hover and scales on click.
         secondary:
-          "h-9 border border-line bg-white/[0.08] px-3.5 text-xs text-primary hover:bg-white/[0.18] hover:border-white/35 hover:text-white active:bg-white/[0.24] active:scale-95 disabled:border-transparent disabled:bg-buzz-neutral disabled:text-quiet",
+          "h-9 border border-line bg-buzz-inkBtn px-3.5 text-xs text-primary hover:border-accent hover:bg-accent hover:text-on-accent active:border-buzz-yellowHover active:bg-buzz-yellowHover active:text-on-accent active:scale-95 disabled:border-transparent disabled:bg-buzz-neutral disabled:text-quiet",
         // Pen Pill / Ghost: 44px, paper stroke, padding 24. `outline` keeps the old name.
         outline: GHOST_PILL,
         ghost: GHOST_PILL,
