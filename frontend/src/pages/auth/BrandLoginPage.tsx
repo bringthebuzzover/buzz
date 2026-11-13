@@ -4,7 +4,7 @@
  * On success the login payload is handed to `acceptSession` (token + user) so
  * route guards forward to the dashboard without racing AuthProvider bootstrap.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useBrandLogin, usePublicConfig } from "../../api/hooks/useOnboardingHooks";
@@ -36,6 +36,34 @@ export default function BrandLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Automatic one-click dev login when query param ?autologin=brand is provided
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("autologin") === "brand" || params.get("autologin") === "true") {
+      void (async () => {
+        try {
+          const data = (await brandLogin.mutateAsync({
+            email: "partnerships@acme.coffee",
+            password: "buzzdev123",
+          })) as TokenResponse;
+          acceptSession(
+            {
+              id: data.user.id,
+              portalRole: data.user.portal_role as PortalRole,
+              status: data.user.status,
+              instagramUsername: data.user.instagram_username ?? undefined,
+            },
+            data.access_token,
+          );
+          navigate("/brand/dashboard", { replace: true });
+        } catch (err) {
+          setError(err instanceof ApiError ? err.message : "Auto-login failed.");
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, []);
 
   // Any already-authenticated user is forwarded to their own landing — an org
   // must never see the brand form and clobber its session by submitting it.
