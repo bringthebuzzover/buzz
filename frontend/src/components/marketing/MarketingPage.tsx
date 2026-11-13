@@ -34,12 +34,12 @@ export function MarketingPage({ children }: { children: ReactNode }) {
               entries.forEach((entry) => {
                 if (!entry.isIntersecting) return;
                 const rect = entry.target.getBoundingClientRect();
-                // Trigger only when ALL of the component is in screen (or jsdom mock where rect is 0)
-                const isAllInScreen =
+                const isStatement = entry.target.tagName.toLowerCase() === "section" && entry.target.querySelector("p[data-reveal-line]");
+                // For Statement section, trigger when fully in screen; for others (like footer), trigger when top is visible
+                const shouldReveal =
                   (rect.top === 0 && rect.bottom === 0) ||
-                  (rect.top >= -20 && rect.bottom <= window.innerHeight + 20) ||
-                  (rect.height > window.innerHeight && (entry.intersectionRatio ?? 1) >= 0.8);
-                if (!isAllInScreen) return;
+                  (isStatement ? rect.top >= -20 && rect.bottom <= window.innerHeight + 20 : rect.top <= window.innerHeight * 0.85);
+                if (!shouldReveal) return;
                 reveal(entry.target);
                 observer?.unobserve(entry.target);
               }),
