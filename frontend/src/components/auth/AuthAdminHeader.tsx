@@ -29,7 +29,7 @@ export default function AuthAdminHeader() {
       <Link
         to="/"
         className={cn(
-          "inline-flex items-center gap-2 rounded-full text-sm text-muted hover:text-primary transition-colors active:scale-95 cursor-pointer",
+          "inline-flex items-center gap-2 rounded-full text-sm text-muted hover:text-primary transition-all duration-150 active:scale-95 motion-reduce:active:scale-100 cursor-pointer",
           focusRingClass,
         )}
       >

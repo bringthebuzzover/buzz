@@ -200,7 +200,7 @@ export function CollegeNetwork() {
                 data-visiting={reduce && pin.name === "Cornell" ? "true" : undefined}
                 key={pin.name}
                 title={pin.name}
-                className="marketing-pin group absolute z-20 h-3 w-3 -translate-x-1/2 -translate-y-1/2 cursor-pointer"
+                className="marketing-pin group absolute z-20 h-3 w-3 -translate-x-1/2 -translate-y-1/2"
                 style={position(pin)}
               >
                 {/* Active pulse aura */}

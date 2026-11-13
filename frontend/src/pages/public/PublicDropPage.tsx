@@ -164,7 +164,7 @@ export default function PublicDropPage() {
       {anonymous && feedStatus !== "open" ? (
         <p className="text-sm text-muted">
           Already on Buzz?{" "}
-          <Link to={loginHref} className={cn("text-accent hover:underline hover:text-accent-hover transition-colors duration-150 inline-block active:scale-95", focusRingClass)}>
+          <Link to={loginHref} className={cn("text-accent hover:underline hover:text-buzz-yellowHover transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100", focusRingClass)}>
             Organization login
           </Link>
         </p>

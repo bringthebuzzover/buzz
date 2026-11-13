@@ -65,7 +65,7 @@ export default function SiteFooter({
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              "mt-8 break-all text-[20px] font-medium leading-tight md:text-buzzStatement hover:text-accent transition-colors duration-150 inline-block active:scale-95",
+              "mt-8 break-all text-[20px] font-medium leading-tight md:text-buzzStatement hover:text-accent transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100",
               focusRingClass,
             )}
           >

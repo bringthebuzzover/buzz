@@ -4,7 +4,7 @@ import { focusRingClass } from "../../theme/controls";
 import { cn } from "../../theme/cn";
 
 export const footerLinkClass = cn(
-  "text-sm text-muted hover:text-primary transition-colors duration-150 inline-block active:scale-95",
+  "text-sm text-muted hover:text-primary transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100",
   focusRingClass,
 );
 

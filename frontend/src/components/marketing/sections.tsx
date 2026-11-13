@@ -472,7 +472,7 @@ function HalfBlock({ kicker, title, support, action, quiet, divided }: Half & { 
           <Link
             to={quiet.to}
             className={cn(
-              "text-sm text-muted hover:text-primary transition-colors duration-150 inline-block active:scale-95",
+              "text-sm text-muted hover:text-primary transition-all duration-150 inline-block active:scale-95 motion-reduce:active:scale-100",
               focusRingClass,
             )}
           >
