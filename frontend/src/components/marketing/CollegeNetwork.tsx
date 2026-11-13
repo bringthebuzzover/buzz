@@ -167,14 +167,14 @@ export function CollegeNetwork() {
   }, [reduce]);
   return (
     <section
-      data-nav-surface="paper"
-      className="bg-[#f0f0f0] px-4 py-[68px] text-on-accent md:px-0 md:py-[108px]"
+      data-nav-surface="ink"
+      className="bg-page px-4 py-[68px] text-primary md:px-0 md:py-[108px]"
     >
       <div className="mx-auto flex max-w-[880px] flex-col items-center text-center">
         <h2 className="text-[28px] font-medium leading-none tracking-tight md:text-buzzH2">
           College network
         </h2>
-        <p className="mt-4 max-w-xl text-base leading-normal text-on-accent/65">
+        <p className="mt-4 max-w-xl text-base leading-normal text-muted">
           Vetted student organizations powering authentic campus marketing.
         </p>
         <div
@@ -188,7 +188,7 @@ export function CollegeNetwork() {
             aria-hidden
           >
             {US_DOTS.map(([x, y]) => (
-              <circle key={`${x}-${y}`} cx={x} cy={y} r="2.2" fill="#0b0b0b" opacity="0.28" />
+              <circle key={`${x}-${y}`} cx={x} cy={y} r="2.2" fill="#f0f0f0" opacity="0.22" />
             ))}
           </svg>
           {PINS.map((pin) => {
@@ -209,12 +209,12 @@ export function CollegeNetwork() {
                   aria-hidden
                 />
                 {/* Pin core */}
-                <span className="absolute inset-0 rounded-full bg-on-accent" />
+                <span className="absolute inset-0 rounded-full border border-white/30 bg-page" />
                 <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent" />
 
                 {/* Campus pin badge: school logo + name in pill container */}
                 <span
-                  className="marketing-pin-badge pointer-events-none absolute bottom-4 z-20 flex items-center gap-1 rounded-full border border-black/10 bg-white py-0.5 pl-1 pr-1.5 shadow-buzz md:bottom-5 md:gap-1.5 md:py-1 md:pl-1.5 md:pr-2.5"
+                  className="marketing-pin-badge pointer-events-none absolute bottom-4 z-20 flex items-center gap-1 rounded-full border border-line bg-buzz-inkBtn py-0.5 pl-1 pr-1.5 shadow-buzz backdrop-blur-md md:bottom-5 md:gap-1.5 md:py-1 md:pl-1.5 md:pr-2.5"
                   style={{
                     [isRightSide ? "right" : "left"]: 0,
                     whiteSpace: "nowrap",
@@ -230,7 +230,7 @@ export function CollegeNetwork() {
                       />
                     </span>
                   ) : null}
-                  <span className="text-buzzMicro font-medium leading-none text-on-accent">
+                  <span className="text-buzzMicro font-medium leading-none text-primary">
                     {pin.name}
                   </span>
                 </span>
@@ -256,7 +256,7 @@ export function CollegeNetwork() {
                   <span
                     key={index}
                     data-flyer
-                    className="absolute rounded-full bg-on-accent"
+                    className="absolute rounded-full bg-accent"
                     style={{
                       width: `${9.2 * (1 - ((index + 1) / 10) * 0.68)}px`,
                       height: `${9.2 * (1 - ((index + 1) / 10) * 0.68)}px`,

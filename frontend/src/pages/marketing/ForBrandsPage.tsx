@@ -54,6 +54,7 @@ export default function ForBrandsPage() {
       <Statement
         line1="You request a call."
         line2="BUZZ builds and publishes the drop."
+        tone="dark"
       />
       <SideBySideHow kind="brand" />
       <CollegeNetwork />

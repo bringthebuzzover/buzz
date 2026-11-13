@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BeeMark } from "../ui/BrandMark";
 import { Button, LinkButton } from "../forms/controls";
-import { focusRingClass, focusRingOnPaperClass } from "../../theme/controls";
+import { focusRingClass } from "../../theme/controls";
 import { FEATURED_COLLABS } from "../../data/featuredCollabs";
 import { cn } from "../../theme/cn";
 import { useReducedMotion } from "./useReducedMotion";
@@ -135,6 +135,9 @@ export function Statement({
   tone?: "paper" | "dark";
 }) {
   const isDark = tone === "dark";
+  const hasTrailingDot = isDark && line2.endsWith(".");
+  const line2Text = hasTrailingDot ? line2.slice(0, -1) : line2;
+
   return (
     <section
       data-reveal-group
@@ -148,7 +151,7 @@ export function Statement({
         data-reveal-line
         className={cn(
           "mx-auto max-w-4xl text-[32px] font-medium leading-none tracking-tight opacity-0 motion-reduce:opacity-100 md:text-buzzStatement",
-          isDark ? "text-accent" : "text-on-accent",
+          isDark ? "text-primary" : "text-on-accent",
         )}
       >
         {line1}
@@ -157,10 +160,17 @@ export function Statement({
         data-reveal-line
         className={cn(
           "mx-auto mt-1 max-w-4xl text-[32px] font-medium leading-none tracking-tight opacity-0 motion-reduce:opacity-100 md:text-buzzStatement",
-          isDark ? "text-primary" : "text-on-accent/55",
+          isDark ? "text-accent" : "text-on-accent/55",
         )}
       >
-        {line2}
+        {isDark && hasTrailingDot ? (
+          <>
+            {line2Text}
+            <span className="text-primary">.</span>
+          </>
+        ) : (
+          line2
+        )}
       </p>
     </section>
   );
@@ -284,8 +294,8 @@ export function CurrentDrops() {
 
   return (
     <section
-      data-nav-surface="paper"
-      className={cn("bg-surface-paper text-on-accent", SECTION_X, SECTION_Y)}
+      data-nav-surface="ink"
+      className={cn("bg-page text-primary", SECTION_X, SECTION_Y)}
     >
       <div
         className="mx-auto w-full"
@@ -312,8 +322,8 @@ export function CurrentDrops() {
                     aria-label={direction < 0 ? "Previous drop" : "Next drop"}
                     onClick={() => void move(direction)}
                     className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-full border border-on-accent text-on-accent cursor-pointer transition-all duration-150 hover:bg-on-accent hover:text-white active:scale-95",
-                      focusRingOnPaperClass,
+                      "flex h-10 w-10 items-center justify-center rounded-full border border-line text-primary cursor-pointer transition-all duration-150 hover:border-accent hover:bg-accent hover:text-on-accent active:scale-95",
+                      focusRingClass,
                     )}
                   >
                     {direction < 0
@@ -428,9 +438,9 @@ type Half = {
 export function JoinSplit({ left, right }: { left: Half; right?: Half }) {
   return (
     <section
-      data-nav-surface="paper"
+      data-nav-surface="ink"
       className={cn(
-        "grid bg-[#f0f0f0] text-on-accent",
+        "grid bg-page text-primary",
         right && "md:grid-cols-2",
       )}
     >
@@ -444,22 +454,22 @@ function HalfBlock({ kicker, title, support, action, quiet, divided }: Half & { 
   return (
     <div
       className={cn(
-        "marketing-join group flex min-h-[420px] flex-col transition-colors duration-300 hover:bg-page hover:text-primary focus-within:bg-page focus-within:text-primary motion-reduce:transition-none px-8 py-16 md:min-h-[560px] md:px-16 md:pb-[72px] md:pt-24",
-        divided && "border-t border-on-accent/15 md:border-l md:border-t-0",
+        "marketing-join group flex min-h-[420px] flex-col transition-colors duration-300 hover:bg-white/[0.03] focus-within:bg-white/[0.03] motion-reduce:transition-none px-8 py-16 md:min-h-[560px] md:px-16 md:pb-[72px] md:pt-24",
+        divided && "border-t border-line md:border-l md:border-t-0",
       )}
     >
-      <p className="text-xs">{kicker}</p>
-      <h2 className="mt-7 whitespace-pre-line text-[32px] font-medium leading-none md:text-buzzStatement">
+      <p className="text-xs text-accent font-medium tracking-wide">{kicker}</p>
+      <h2 className="mt-7 whitespace-pre-line text-[32px] font-medium leading-none text-primary md:text-buzzStatement">
         {title}
       </h2>
-      <p className="mt-5 max-w-sm text-base leading-relaxed opacity-[0.65]">
+      <p className="mt-5 max-w-sm text-base leading-relaxed text-muted">
         {support}
       </p>
       <div className="mt-auto flex flex-col items-start gap-4 pt-10 md:flex-row md:items-center md:justify-between">
         <LinkButton
           to={action.to}
           variant="secondary"
-          className="h-11 gap-2 border-on-accent/20 bg-page px-4 text-primary group-hover:bg-accent group-hover:text-on-accent group-focus-within:bg-accent group-focus-within:text-on-accent motion-reduce:transition-none"
+          className="h-11 gap-2 border-line bg-buzz-inkBtn px-4 text-primary group-hover:border-accent group-hover:bg-accent group-hover:text-on-accent group-focus-within:border-accent group-focus-within:bg-accent group-focus-within:text-on-accent active:scale-95 motion-reduce:transition-none"
         >
           {action.label}
           <ChevronRight
