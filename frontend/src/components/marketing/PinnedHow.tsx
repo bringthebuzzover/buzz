@@ -109,7 +109,7 @@ export function PinnedHow() {
             <h2 className={cn(TEXT.h2, "mt-2")}>Student organizations join in 3 steps</h2>
           </div>
           {ORG_LAPTOP_STEPS.map((item, index) => (
-            <div key={item.title} className="flex flex-col items-center gap-6 rounded-buzzBoard bg-white/5 p-8 text-center border border-white/10">
+            <div key={item.title} className="flex flex-col items-center gap-6 rounded-buzzBoard bg-white/5 p-8 text-center border border-line">
               <div>
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-accent text-xs font-bold text-on-accent">
                   {index + 1}
@@ -145,7 +145,7 @@ export function PinnedHow() {
         <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col items-center text-center mb-5 sm:mb-6">
           {/* Step Buttons */}
           <div
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] p-1 shadow-buzz backdrop-blur-md"
+            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white/[0.06] p-1 shadow-buzz backdrop-blur-md"
             role="tablist"
             aria-label="How it works steps"
           >

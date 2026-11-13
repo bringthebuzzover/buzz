@@ -3,6 +3,15 @@ import { renderWithProviders } from "../../testUtils";
 import { PinnedHow } from "./PinnedHow";
 
 describe("PinnedHow", () => {
+  const originalMatchMedia = window.matchMedia;
+
+  afterEach(() => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: originalMatchMedia,
+    });
+  });
+
   it("renders 3 step tabs, step titles, and hero laptop mockup", () => {
     const { container } = renderWithProviders(<PinnedHow />);
     expect(container.querySelector("#how-it-works")).not.toBeNull();
