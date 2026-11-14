@@ -29,6 +29,16 @@ Deployment and external asset boundaries are in
 5. Visual trims preserve appearance and behavior; use before/after screenshots
    and pixel diffs as evidence. Disclose any missing visual verification.
 
+### Five-step layout and verification loop
+
+For every screen or UI change, follow these five steps in order:
+
+1. **Map the hierarchy first.** Confirm the element order and content structure make sense before tuning spacing.
+2. **Use auto-layout groups.** Use hug-content sizing and consistent gaps so elements do not drift apart when text wraps. Use a centered, width-bounded content group for vertical alignment instead of placing each element independently.
+3. **Check geometry and text.** Compare margins, widths, baselines, line wraps, and gaps against the reference frames. Check that no text or controls overlap or clip.
+4. **Export at matching dimensions.** Place the reference (before / Fig) and updated frame side by side at identical dimensions, and use overlays or pixel differences for shared regions where useful. Always show before/after comparisons for all UI changes.
+5. **Iterate on specific mismatches.** Fix the layout settings, re-export, and inspect again until shared elements line up and each new screen has clear spacing and hierarchy. Compare both visually and programmatically.
+
 ## Reuse the current branch's brand assets
 
 Discover existing identity configuration, assets, styles, tokens, and callers.
