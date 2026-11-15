@@ -23,6 +23,7 @@ from app import errors
 from app.exceptions import BuzzAPIException
 from app.response import APIResponse, DataResponse, api_response
 from app.schemas.contact import ContactAccepted, ContactRequest
+from app.schemas.email_rules import mailbox_identity
 from app.security.rate_limit import enforce_account_limit, rate_limited
 from app.services import email
 
@@ -65,12 +66,6 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
         logger.warning("contact_form_honeypot_rejected")
         return api_response(data=ContactAccepted())
 
-    # Per-IP limits alone let one address receive up to 20 acknowledgements an
-    # hour, since the idempotency key covers message content and changing a
-    # single character makes a new send. Cap per recipient too, so the ack
-    # cannot be used to flood a stranger's mailbox from the shared sender.
-    enforce_account_limit("contact_recipient", payload.email.lower(), limit=3, window=3600)
-
     contact_name = " ".join(part for part in (payload.first_name, payload.last_name) if part)
     # The key must hash EXACTLY the content that goes into the email body, and
     # the body must therefore carry no per-attempt value. Resend treats "same
@@ -103,6 +98,20 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
             "We couldn't send that. Please try again.",
             status_code=502,
         )
+
+    # Per-IP limits alone let one address receive up to 20 acknowledgements an
+    # hour, since the idempotency key covers message content and changing a
+    # single character makes a new send. Cap per recipient too, so the ack
+    # cannot be used to flood a stranger's mailbox from the shared sender. Key
+    # on the mailbox identity, not the literal address: ``victim+1@gmail.com``
+    # and ``victim+2@gmail.com`` are separate strings that land in one inbox.
+    #
+    # Charged here rather than at the top of the handler: an attempt whose notice
+    # never sent delivers nothing, so counting it would let three transient
+    # provider failures lock a real sender out of their own allowance.
+    enforce_account_limit(
+        "contact_recipient", mailbox_identity(payload.email), limit=3, window=3600
+    )
 
     ack_sent = await email.send_contact_ack(
         to_email=payload.email,

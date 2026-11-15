@@ -335,6 +335,55 @@ async def test_contact_caps_acknowledgements_per_recipient(
     assert statuses[3] == 429
 
 
+async def test_contact_plus_aliases_share_one_recipient_bucket(
+    app_client: AsyncClient, sent, monkeypatch
+) -> None:
+    """A plus-tag must not reset the per-recipient budget.
+
+    ``victim+1@gmail.com`` and ``victim+2@gmail.com`` are different strings but
+    one inbox, so limiting the literal address would let a sender rotate the tag
+    and keep delivering acknowledgements into the same mailbox.
+    """
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    rate_limit.reset()
+
+    statuses = [
+        (
+            await app_client.post(
+                "/api/contact", json={**_VALID, "email": f"victim+{n}@gmail.com"}
+            )
+        ).status_code
+        for n in range(4)
+    ]
+
+    assert statuses[:3] == [200] * 3
+    assert statuses[3] == 429
+
+
+async def test_failed_notice_does_not_consume_the_recipient_budget(
+    app_client: AsyncClient, monkeypatch, sent
+) -> None:
+    """Only a delivered acknowledgement counts against the recipient cap."""
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    rate_limit.reset()
+
+    async def _fail(to_email, subject, body, **kwargs):
+        return False
+
+    monkeypatch.setattr(email, "_dispatch", _fail)
+
+    # Vary the message: an identical retry replays the idempotency key and is
+    # answered from cache without reaching the provider at all.
+    for n in range(4):
+        resp = await app_client.post(
+            "/api/contact", json={**_VALID, "message": f"Notice failure {n}"}
+        )
+        assert resp.status_code == 502
+
+    keys = [k for k in rate_limit._buckets if k.startswith("contact_recipient:")]
+    assert keys == [], keys
+
+
 async def test_contact_counts_against_distinct_buckets(
     app_client: AsyncClient, sent, monkeypatch
 ) -> None:

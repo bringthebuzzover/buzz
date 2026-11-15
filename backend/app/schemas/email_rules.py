@@ -88,3 +88,39 @@ def clean_email_address(value: str) -> str:
     if not is_valid_email(candidate):
         raise ValueError(INVALID_EMAIL_MESSAGE)
     return candidate
+
+
+# Domains where a plus-tag is a genuine alias of the same inbox, so abuse limits
+# keyed on the exact address would be trivially bypassed by appending ``+n``.
+# Restricted to the large providers that behave this way; on any other domain the
+# local part is left alone, because there ``+`` may be a real, distinct mailbox.
+_PLUS_ALIAS_DOMAINS = frozenset(
+    {
+        "gmail.com",
+        "googlemail.com",
+        "outlook.com",
+        "hotmail.com",
+        "live.com",
+        "yahoo.com",
+        "icloud.com",
+        "me.com",
+        "proton.me",
+        "protonmail.com",
+    }
+)
+
+
+def mailbox_identity(value: str) -> str:
+    """The key under which two addresses reach the same inbox.
+
+    Used for per-recipient abuse limits only, never for validation or storage:
+    ``victim+1@gmail.com`` and ``victim+2@gmail.com`` are one mailbox, so
+    limiting the literal address would let a sender rotate the tag and keep
+    delivering into the same inbox.
+    """
+
+    address = value.strip().lower()
+    local, _, domain = address.partition("@")
+    if domain in _PLUS_ALIAS_DOMAINS:
+        local = local.split("+", 1)[0]
+    return f"{local}@{domain}"
