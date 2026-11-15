@@ -19,10 +19,28 @@ from app.config import settings
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
 from app.models.org_connect_token import OrgConnectToken
+from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.models.organization import Organization
 from app.models.user import User
 from app.security.one_shot_tokens import hash_token
 from app.timeutils import utcnow
+
+
+async def org_owes_instagram_reconnect(db: AsyncSession, user: User) -> bool:
+    """Whether an active org has an approved switch still awaiting its bind."""
+    if user.portal_role != PortalRole.ORG.value or user.status != OrgUserStatus.ACTIVE.value:
+        return False
+    return bool(
+        await db.scalar(
+            select(OrgIgChangeRequest.id)
+            .where(
+                OrgIgChangeRequest.user_id == user.id,
+                OrgIgChangeRequest.status == "awaiting_connect",
+                OrgIgChangeRequest.decided_kind == "account_switch",
+            )
+            .limit(1)
+        )
+    )
 
 
 async def create_org_connect_token(
@@ -58,7 +76,7 @@ async def create_org_connect_token(
 
 
 async def redeem_org_connect_token(db: AsyncSession, token: str) -> User:
-    """Consume a connect token; return the org user (must be pending_instagram)."""
+    """Consume a connect token; return an org still owing a reconnect."""
     now = utcnow()
     row = await db.scalar(
         select(OrgConnectToken)
@@ -87,7 +105,7 @@ async def redeem_org_connect_token(db: AsyncSession, token: str) -> User:
     user = await db.get(User, row.user_id)
     if user is None or user.portal_role != PortalRole.ORG.value:
         raise BuzzAPIException(errors.NOT_FOUND, "User not found.", status_code=404)
-    if user.status != OrgUserStatus.PENDING_INSTAGRAM.value:
+    if not await org_owes_instagram_reconnect(db, user):
         raise BuzzAPIException(
             errors.INVALID_ONBOARDING_STATE,
             "This account is not waiting to connect Instagram.",

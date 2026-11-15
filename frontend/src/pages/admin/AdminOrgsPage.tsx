@@ -10,7 +10,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import {
   useAdminOrgs,
   useDenyOrg,
-  useResendAllPendingInstagramConnect,
+  useResendAllAwaitingInstagramConnect,
   useViewAs,
   type AdminOrgRow,
   type ResendConnectAllResult,
@@ -36,7 +36,7 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 const FILTERS = [
   { value: null, label: "All" },
   { value: "pending_approval", label: "Awaiting approval" },
-  { value: "pending_instagram", label: "Awaiting Instagram" },
+  { value: "awaiting_connect", label: "Awaiting Instagram" },
   { value: "pending_email_verification", label: "Unverified" },
   { value: "pending_org_profile", label: "No profile" },
   { value: "active", label: "Active" },
@@ -65,7 +65,7 @@ export default function AdminOrgsPage() {
   const attention = searchParams.get("attention");
   const orgs = useAdminOrgs(status ?? undefined, attention ?? undefined);
   const deny = useDenyOrg();
-  const resendAll = useResendAllPendingInstagramConnect();
+  const resendAll = useResendAllAwaitingInstagramConnect();
   const { viewAs, error: viewAsError, isPending: viewAsPending } = useViewAs();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [bulkNotice, setBulkNotice] = useState<string | null>(null);
@@ -198,7 +198,9 @@ export default function AdminOrgsPage() {
                 <Cell muted>{row.university ?? "—"}</Cell>
                 <Cell>
                   <div className="flex flex-col items-start gap-1">
-                    <StatusPill status={row.status} />
+                    <StatusPill
+                      status={row.instagramReconnectRequired ? "awaiting_connect" : row.status}
+                    />
                     {row.instagramHandle &&
                       !row.instagramHandleConfirmed &&
                       row.status !== "active" && <UnconfirmedIgChip />}

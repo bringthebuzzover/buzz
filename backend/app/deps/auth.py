@@ -243,6 +243,12 @@ def require_active_role(role: PortalRole) -> Callable[[User], Awaitable[User]]:
                 message="Your account is not active.",
                 status_code=403,
             )
+        if role == PortalRole.ORG and not (user.instagram_user_id and user.instagram_access_token):
+            raise BuzzAPIException(
+                code=errors.FORBIDDEN,
+                message="Reconnect Instagram to access the organization portal.",
+                status_code=403,
+            )
         return user
 
     return _dep

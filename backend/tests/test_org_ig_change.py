@@ -5,9 +5,11 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 from urllib.parse import parse_qs, urlparse
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
+from app.exceptions import BuzzAPIException
 from app.jobs.metric_sync import sync_metrics_for_orgs
 from app.models.enums import ApplicationDecision, OrgUserStatus, PortalRole
 from app.models.org_ig_change_request import OrgIgChangeRequest
@@ -15,6 +17,7 @@ from app.models.post_link import PostCampaignLink
 from app.models.social_post import SocialPost
 from app.models.user import User
 from app.security.token_crypto import encrypt_token
+from app.services.org_connect import create_org_connect_token, redeem_org_connect_token
 from tests.conftest import (
     FakeInstagramClient,
     admin_headers,
@@ -199,10 +202,11 @@ class TestOrgIgChangeRequest:
         )
         assert approved.status_code == 200, approved.text
         assert approved.json()["data"]["emailQueued"] is True
+        assert approved.json()["data"]["status"] == "awaiting_connect"
         switch_mail.assert_awaited_once()
         assert switch_mail.await_args.args[0] == "officer@school.edu"
         await db_session.refresh(user)
-        assert user.status == OrgUserStatus.PENDING_INSTAGRAM.value
+        assert user.status == OrgUserStatus.ACTIVE.value
         assert user.instagram_user_id is None
         assert user.instagram_token_user_id is None
         assert user.instagram_access_token is None
@@ -254,7 +258,22 @@ class TestOrgIgChangeRequest:
             headers=admin,
         )
         await db_session.refresh(user)
+        # The emailed one-shot link mints only a reconnect session.
+        raw, _ = await create_org_connect_token(db_session, org, user)
+        assert (await redeem_org_connect_token(db_session, raw)).id == user.id
+        with pytest.raises(BuzzAPIException):
+            await redeem_org_connect_token(db_session, raw)
+        bind_headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+        me = await app_client.get("/api/auth/me", headers=bind_headers)
+        assert me.json()["data"]["status"] == "active"
+        assert me.json()["data"]["instagram_reconnect_required"] is True
+        portal = await app_client.get("/api/orgs/me", headers=bind_headers)
+        assert portal.status_code == 403
+        listing = await app_client.get("/api/admin/orgs?status=awaiting_connect", headers=admin)
+        assert [row["userId"] for row in listing.json()["data"]] == [str(user.id)]
+        assert listing.json()["data"][0]["instagramReconnectRequired"] is True
 
+        unused_raw, _ = await create_org_connect_token(db_session, org, user)
         fake_instagram.account_type = "BUSINESS"
         fake_instagram.user_id = "ig_a"
         login = await app_client.get("/api/auth/instagram/login", follow_redirects=False)
@@ -283,6 +302,16 @@ class TestOrgIgChangeRequest:
         await db_session.refresh(user)
         assert user.status == OrgUserStatus.ACTIVE.value
         assert user.instagram_user_id == "ig_b"
+        assert bound.json()["data"]["user"]["instagram_reconnect_required"] is False
+        request = await db_session.get(OrgIgChangeRequest, created.json()["data"]["id"])
+        assert request.status == "approved"
+        with pytest.raises(BuzzAPIException):
+            await redeem_org_connect_token(db_session, unused_raw)
+        replay = await app_client.post(
+            "/api/auth/instagram/bind-start",
+            headers={"Authorization": f"Bearer {mint_access_token(user)}"},
+        )
+        assert replay.status_code == 400
         kept = await db_session.get(SocialPost, post.id)
         assert kept is not None and kept.likes == 44
 

@@ -48,16 +48,10 @@ from app.timeutils import as_utc, utcnow
 logger = logging.getLogger(__name__)
 
 
-# Who may *start* or *cancel* a school-email rotate. Approved orgs (and the
-# still-real pending_instagram status) only. pending_approval is locked: an org
-# waiting on review cannot change its school email. Finishing a swap that is
-# already latched is separate — see _latched_rotate_may_finish.
-_ROTATE_ELIGIBLE_STATUSES = frozenset(
-    {
-        OrgUserStatus.ACTIVE.value,
-        OrgUserStatus.PENDING_INSTAGRAM.value,
-    }
-)
+# Who may *start* or *cancel* a school-email rotate. Active orgs only.
+# pending_approval is locked: an org waiting on review cannot change its
+# school email. Finishing a latched swap is separate — see _latched_rotate_may_finish.
+_ROTATE_ELIGIBLE_STATUSES = frozenset({OrgUserStatus.ACTIVE.value})
 
 
 def _latched_rotate_may_finish(user: User) -> bool:
@@ -509,8 +503,8 @@ async def resend_verification_email(
         target = user.edu_email
         kind = "signup"
     elif _latched_rotate_may_finish(user):
-        # Requires a latched pending_edu_email. pending_instagram resends stay
-        # allowed. pending_approval with no swap does not start resending.
+        # Requires a latched pending_edu_email. pending_approval with no swap
+        # does not start resending.
         target = user.pending_edu_email
         kind = "rotate"
     else:

@@ -245,7 +245,9 @@ export default function AdminOrgDetailPage() {
             subtitle={data.university ?? undefined}
             actions={
               <div className="flex flex-wrap items-center gap-2">
-                <StatusPill status={data.status} />
+                <StatusPill
+                  status={data.instagramReconnectRequired ? "awaiting_connect" : data.status}
+                />
                 {!erased && data.status === "pending_approval" && data.orgId && (
                   <>
                     <ActionButton
@@ -266,7 +268,7 @@ export default function AdminOrgDetailPage() {
                     </ActionButton>
                   </>
                 )}
-                {!erased && data.status === "pending_instagram" && data.orgId && (
+                {!erased && data.instagramReconnectRequired && data.orgId && (
                   <ActionButton
                     testId="resend-connect"
                     disabled={busy}

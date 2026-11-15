@@ -15,6 +15,7 @@ from app.security.token_crypto import encrypt_token
 from tests.conftest import (
     FakeInstagramClient,
     admin_headers,
+    make_awaiting_connect,
     make_org,
     make_user,
     mint_access_token,
@@ -27,12 +28,13 @@ async def _pending_connect(db_session, *, claimed: str, username: str | None = N
         db_session,
         make_user(
             role=PortalRole.ORG,
-            status=OrgUserStatus.PENDING_INSTAGRAM,
+            status=OrgUserStatus.ACTIVE,
             instagram_user_id=None,
             instagram_username=username or claimed,
         ),
     )
     org = await make_org(db_session, user)
+    await make_awaiting_connect(db_session, user, org)
     org.claimed_instagram_username = claimed
     await db_session.flush()
     return user, org
@@ -284,7 +286,7 @@ async def test_bind_taken_handle_409_does_not_flag(
     await db_session.refresh(org)
     await db_session.refresh(user)
     assert org.ig_bind_mismatched_at is None
-    assert user.status == OrgUserStatus.PENDING_INSTAGRAM.value
+    assert user.status == OrgUserStatus.ACTIVE.value
     assert user.instagram_username == "campusgreeks"
 
 

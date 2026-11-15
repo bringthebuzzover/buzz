@@ -128,6 +128,7 @@ async def test_alembic_matches_models() -> None:
         )
         await _assert_drop_request_columns_nullable(parity_url)
         await _assert_legacy_lifecycle_round_trip(parity_url)
+        await _assert_reconnect_status_round_trip(parity_url)
     finally:
         await _drop_db(admin_url, parity_db)
 
@@ -289,3 +290,73 @@ async def test_concurrent_alembic_upgrade_head() -> None:
             )
     finally:
         await _drop_db(admin_url, parity_db)
+
+
+async def _assert_reconnect_status_round_trip(parity_url: str) -> None:
+    """Retire all legacy rows without losing users or completed switch history."""
+    old_revision = "c4d5e6f7a8b9"
+    result = _run_alembic(["downgrade", old_revision], parity_url)
+    assert result.returncode == 0, result.stderr
+    conn = await asyncpg.connect(parity_url.replace("postgresql+asyncpg://", "postgresql://", 1))
+    ids = [uuid.uuid4() for _ in range(4)]
+    org_ids = [uuid.uuid4() for _ in ids]
+    switch_id = uuid.uuid4()
+    try:
+        for index, (user_id, org_id) in enumerate(zip(ids, org_ids)):
+            await conn.execute(
+                "INSERT INTO users (id, portal_role, status, instagram_user_id, "
+                "instagram_access_token) VALUES ($1, 'org', 'pending_instagram', $2, $3)",
+                user_id,
+                "fake-bound-ig" if index == 1 else None,
+                "fake-legacy-token" if index in (1, 3) else None,
+            )
+            await conn.execute(
+                "INSERT INTO organizations (id, user_id, org_name, university) "
+                "VALUES ($1, $2, 'Test Org', 'Test University')",
+                org_id,
+                user_id,
+            )
+        await conn.execute(
+            "INSERT INTO org_ig_change_requests "
+            "(id, org_id, user_id, kind, current_handle, requested_handle, reason, "
+            "status, decided_kind, decided_at) "
+            "VALUES ($1, $2, $3, 'account_switch', 'oldclub', 'newclub', "
+            "'Switch the organization account.', 'approved', 'account_switch', now())",
+            switch_id,
+            org_ids[0],
+            ids[0],
+        )
+        result = _run_alembic(["upgrade", "head"], parity_url)
+        assert result.returncode == 0, result.stderr
+        statuses = dict(
+            await conn.fetch("SELECT id, status::text FROM users WHERE id = ANY($1)", ids)
+        )
+        assert statuses == dict(
+            zip(ids, ("active", "active", "pending_approval", "pending_approval"))
+        )
+        assert (
+            await conn.fetchval(
+                "SELECT status FROM org_ig_change_requests WHERE id = $1", switch_id
+            )
+            == "awaiting_connect"
+        )
+        for direction, revision, expected_user, expected_request in (
+            ("downgrade", old_revision, "pending_instagram", "approved"),
+            ("upgrade", "head", "active", "awaiting_connect"),
+        ):
+            result = _run_alembic([direction, revision], parity_url)
+            assert result.returncode == 0, result.stderr
+            assert (
+                await conn.fetchval("SELECT status::text FROM users WHERE id = $1", ids[0])
+                == expected_user
+            )
+            assert (
+                await conn.fetchval(
+                    "SELECT status FROM org_ig_change_requests WHERE id = $1", switch_id
+                )
+                == expected_request
+            )
+        result = _run_alembic(["check"], parity_url)
+        assert result.returncode == 0, result.stderr
+    finally:
+        await conn.close()

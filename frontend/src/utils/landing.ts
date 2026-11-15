@@ -10,6 +10,9 @@ import { allowlistedOAuthNext, onboardingQuery } from "./oauthNext";
 
 export function pathForUser(user: AuthUser | null, next?: string | null, prefill?: string | null): string {
   const query = onboardingQuery(next);
+  if (user?.portalRole === "org" && user.instagramReconnectRequired) {
+    return "/onboarding/connect-instagram" + query;
+  }
   const activeNext = user?.status === "active" ? allowlistedOAuthNext(next) : null;
   if (activeNext) return activeNext;
   if (!user) return "/login" + onboardingQuery(next, prefill);
@@ -22,8 +25,6 @@ export function pathForUser(user: AuthUser | null, next?: string | null, prefill
         return "/onboarding/verify-email" + query;
       case "pending_approval":
         return "/onboarding/pending-approval" + query;
-      case "pending_instagram":
-        return "/onboarding/connect-instagram" + query;
       case "denied":
         return "/onboarding/denied";
       case "erased":

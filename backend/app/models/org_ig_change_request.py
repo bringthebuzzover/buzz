@@ -1,7 +1,7 @@
 """``org_ig_change_requests`` — org Instagram identity change tickets (PRODUCT §3.1.4).
 
 A ticket is not an identity write. Admin approve either tells the org to log in
-again (rename) or releases Graph ids and demotes to ``pending_instagram``
+again (rename) or releases Graph ids and marks the request ``awaiting_connect``
 (account switch). Typed ``@`` is never treated as a Graph id.
 """
 
@@ -40,7 +40,7 @@ class OrgIgChangeRequest(Base):
     requested_handle: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     reason: Mapped[str] = mapped_column(sa.Text, nullable=False)
 
-    # pending | approved | denied
+    # pending | awaiting_connect | approved | denied
     status: Mapped[str] = mapped_column(sa.String(32), nullable=False, server_default="pending")
     decided_kind: Mapped[str | None] = mapped_column(sa.String(32), nullable=True)
     decided_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True), nullable=True)

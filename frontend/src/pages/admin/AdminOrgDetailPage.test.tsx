@@ -389,6 +389,17 @@ describe("AdminOrgDetailPage erase confirm", () => {
     expect(reopened.value).toBe("");
   });
 
+  it.each([true, false])("uses request state for active-org reconnect actions: %s", (required) => {
+    mockUseAdminOrg.mockReturnValue({
+      data: { ...orgDetail(), instagramReconnectRequired: required },
+      isPending: false,
+      isError: false,
+    });
+    renderPage();
+    expect(container.querySelector('[data-testid="resend-connect"]') !== null).toBe(required);
+    expect(container.textContent?.includes("Awaiting Instagram connect")).toBe(required);
+  });
+
   it("opens compose with locked To/CC and requires a subject", async () => {
     mockUseAdminOrg.mockReturnValue({
       data: orgDetail(),

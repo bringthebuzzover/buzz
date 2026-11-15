@@ -11,13 +11,14 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import errors
 from app.exceptions import BuzzAPIException
 from app.models.enums import OrgUserStatus, PortalRole
+from app.models.org_ig_change_request import OrgIgChangeRequest
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.auth import UserResponse
@@ -35,6 +36,7 @@ from app.services.instagram import (
 )
 from app.services.instagram_token import clear_unusable_instagram_token
 from app.services.org_apply import assert_handle_available, flag_ig_bind_mismatch
+from app.services.org_connect import org_owes_instagram_reconnect
 from app.timeutils import utcnow
 
 logger = logging.getLogger(__name__)
@@ -49,7 +51,7 @@ async def handle_instagram_callback(
 ) -> User:
     """OAuth handshake: bind, refresh, or create a pending org identity.
 
-    * ``bind_user_id`` set (Connect flow) → update that pending_instagram user.
+    * ``bind_user_id`` set (Connect flow) → reconnect the approved switch.
     * Graph id already on a user → refresh tokens (returning login).
     * Unknown Graph id, no bind → org user awaiting their initial profile.
 
@@ -107,7 +109,7 @@ async def handle_instagram_callback(
                 "Organization account not found.",
                 status_code=404,
             )
-        if target.status != OrgUserStatus.PENDING_INSTAGRAM.value:
+        if not await org_owes_instagram_reconnect(db, target):
             raise BuzzAPIException(
                 errors.INVALID_ONBOARDING_STATE,
                 "This account is not waiting to connect Instagram.",
@@ -171,10 +173,16 @@ async def handle_instagram_callback(
         short.permissions,
     )
     user.last_login_at = now
-    became_active = False
-    if bind_user_id is not None or user.status == OrgUserStatus.PENDING_INSTAGRAM.value:
-        user.status = OrgUserStatus.ACTIVE.value
-        became_active = True
+    if bind_user_id is not None:
+        await db.execute(
+            update(OrgIgChangeRequest)
+            .where(
+                OrgIgChangeRequest.user_id == user.id,
+                OrgIgChangeRequest.status == "awaiting_connect",
+                OrgIgChangeRequest.decided_kind == "account_switch",
+            )
+            .values(status="approved")
+        )
     if org is not None:
         org.instagram_handle_confirmed = True
         # Graph-owned. Missing/failed counts must not fail the login.
@@ -199,7 +207,7 @@ async def handle_instagram_callback(
             ) from exc
         raise
     await db.refresh(user)
-    if became_active:
+    if bind_user_id is not None:
         await promote_drop_apply_intents(db, user)
     return user
 
@@ -280,7 +288,7 @@ async def revoke_instagram_authorization(db: AsyncSession, instagram_user_id: st
     return True
 
 
-def build_user_response(user: User) -> UserResponse:
+async def build_user_response(db: AsyncSession, user: User) -> UserResponse:
     """Serialize a ``User`` into the API user payload."""
 
     # Imported lazily: app.deps.auth imports this module, so a module-level
@@ -295,6 +303,7 @@ def build_user_response(user: User) -> UserResponse:
         instagram_username=user.instagram_username,
         email=user.edu_email,
         pending_edu_email=user.pending_edu_email,
+        instagram_reconnect_required=await org_owes_instagram_reconnect(db, user),
         impersonated_by=uuid.UUID(admin_id) if admin_id else None,
         impersonation_readonly=impersonation_readonly(user) if admin_id else None,
     )

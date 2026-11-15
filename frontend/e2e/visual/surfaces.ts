@@ -13,7 +13,7 @@
  * Not covered because they need credentials the seed does not mint, tracked in
  * the ui-defect map (buzz-ops design/archive) as coverage holes: `/brand/setup` (redirects
  * to `/` without a valid `?token`) and `/onboarding/connect-instagram`'s connect
- * CTA (needs a `pending_instagram` session; only the bad-token state is shot).
+ * CTA (needs a `awaiting_connect` session; only the bad-token state is shot).
  */
 import type { Page } from "@playwright/test";
 import type { Persona } from "./personas";

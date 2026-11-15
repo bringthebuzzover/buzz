@@ -1,4 +1,4 @@
-"""Bulk Connect email: pending_instagram only (not unverified / awaiting approval)."""
+"""Bulk Connect email: awaiting_connect only (not unverified / awaiting approval)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,14 @@ from unittest.mock import AsyncMock
 from httpx import AsyncClient
 
 from app.models.enums import OrgUserStatus, PortalRole
-from tests.conftest import admin_headers, make_org, make_user, mint_access_token, persist
+from tests.conftest import (
+    admin_headers,
+    make_awaiting_connect,
+    make_org,
+    make_user,
+    mint_access_token,
+    persist,
+)
 
 
 async def _org(
@@ -16,6 +23,7 @@ async def _org(
     status: OrgUserStatus,
     email: str | None,
     name: str,
+    reconnect: bool = False,
 ):
     user = await persist(
         db_session,
@@ -23,10 +31,12 @@ async def _org(
     )
     user.edu_email = email
     org = await make_org(db_session, user, org_name=name)
+    if reconnect:
+        await make_awaiting_connect(db_session, user, org)
     return user, org
 
 
-async def test_resend_connect_all_only_pending_instagram(
+async def test_resend_connect_all_only_awaiting_connect(
     app_client: AsyncClient, db_session, monkeypatch
 ) -> None:
     approved_mail = AsyncMock(return_value=True)
@@ -36,9 +46,10 @@ async def test_resend_connect_all_only_pending_instagram(
 
     await _org(
         db_session,
-        status=OrgUserStatus.PENDING_INSTAGRAM,
+        status=OrgUserStatus.ACTIVE,
         email="connect-me@test.edu",
         name="Waiting Connect",
+        reconnect=True,
     )
     await _org(
         db_session,
@@ -66,9 +77,10 @@ async def test_resend_connect_all_only_pending_instagram(
     )
     await _org(
         db_session,
-        status=OrgUserStatus.PENDING_INSTAGRAM,
+        status=OrgUserStatus.ACTIVE,
         email=None,
         name="No School Email",
+        reconnect=True,
     )
 
     headers = await admin_headers(db_session)
@@ -80,24 +92,25 @@ async def test_resend_connect_all_only_pending_instagram(
     assert data["failed"] == 0
     assert data["skipped"] == 1
 
-    assert approved_mail.await_count == 1
-    assert approved_mail.await_args.args[0] == "connect-me@test.edu"
-    assert approved_mail.await_args.kwargs["connect_token"]
-    switch_mail.assert_not_awaited()
+    assert switch_mail.await_count == 1
+    assert switch_mail.await_args.args[0] == "connect-me@test.edu"
+    assert switch_mail.await_args.kwargs["connect_token"]
+    approved_mail.assert_not_awaited()
 
 
 async def test_resend_connect_all_acknowledges_queued_send(
     app_client: AsyncClient, db_session, monkeypatch
 ) -> None:
     monkeypatch.setattr(
-        "app.services.admin.send_org_approved_email",
+        "app.services.admin.send_org_ig_switch_connect_email",
         AsyncMock(return_value=False),
     )
     await _org(
         db_session,
-        status=OrgUserStatus.PENDING_INSTAGRAM,
+        status=OrgUserStatus.ACTIVE,
         email="fail@test.edu",
         name="Fail Send",
+        reconnect=True,
     )
     headers = await admin_headers(db_session)
     resp = await app_client.post("/api/admin/orgs/resend-connect-all", headers=headers)

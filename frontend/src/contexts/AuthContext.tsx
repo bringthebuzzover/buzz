@@ -65,6 +65,7 @@ export type AuthUser = {
   portalRole: PortalRole;
   status: string;
   instagramUsername?: string;
+  instagramReconnectRequired?: boolean;
   /** Live .edu (org) or company email (brand/admin) from `/me`. */
   email?: string;
   /** Pending-swap .edu while rotate verification is outstanding. */

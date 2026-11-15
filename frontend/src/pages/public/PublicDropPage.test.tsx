@@ -98,6 +98,24 @@ describe("PublicDropPage", () => {
     expect(container.querySelector(".bg-buzz-greyMedia")).not.toBeNull();
   });
 
+  it("sends an approved account switch to Connect before applying", () => {
+    mockUseAuth.mockReturnValue({
+      status: "authenticated",
+      user: { portalRole: "org", status: "active", instagramReconnectRequired: true },
+      login: jest.fn(),
+    });
+    mockUseDropDetail.mockReturnValue({
+      isLoading: false, isError: false, error: null, data: openDrop(),
+    });
+    container = renderWithProviders(<PublicDropPage />, {
+      route: `/d/${DROP_ID}`, path: "/d/:dropId",
+    }).container;
+    expect(container.querySelector('[data-testid="apply-button"]')).toBeNull();
+    expect(container.querySelector('a[href^="/onboarding/connect-instagram"]')?.getAttribute("href")).toBe(
+      `/onboarding/connect-instagram?next=%2Fd%2F${DROP_ID}`,
+    );
+  });
+
   it("links already-applied organizations to My Campaigns", () => {
     mockUseAuth.mockReturnValue({
       status: "authenticated",

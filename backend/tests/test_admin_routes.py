@@ -18,6 +18,7 @@ from app.models.enums import (
 from app.models.tracker_event import DropTrackerEvent
 from app.models.user import User
 from app.security.password import hash_password
+from app.security.token_crypto import encrypt_token
 from tests.conftest import (
     admin_headers,
     make_application,
@@ -79,6 +80,8 @@ class TestApproveOrg:
             db_session,
             make_user(role=PortalRole.ORG, status=OrgUserStatus.PENDING_APPROVAL),
         )
+        user.instagram_user_id = "ig_approval"
+        user.instagram_access_token = encrypt_token("fake-approval-token")
         org = await make_org(db_session, user, org_name="To Approve")
 
         res = await app_client.post(
@@ -88,14 +91,16 @@ class TestApproveOrg:
         )
         assert res.status_code == 200
         data = res.json()["data"]
-        assert data["status"] == "pending_instagram"
+        assert data["status"] == "active"
 
         await db_session.refresh(user)
         await db_session.refresh(org)
-        assert user.status == OrgUserStatus.PENDING_INSTAGRAM.value
+        assert user.status == OrgUserStatus.ACTIVE.value
         assert org.approved_at is not None
 
-    async def test_approve_requires_tester_confirm(self, app_client: AsyncClient, db_session):
+    async def test_approve_unbound_refused_even_with_tester_confirmation(
+        self, app_client: AsyncClient, db_session
+    ):
         user = await persist(
             db_session,
             make_user(role=PortalRole.ORG, status=OrgUserStatus.PENDING_APPROVAL),
@@ -105,9 +110,12 @@ class TestApproveOrg:
         res = await app_client.post(
             f"/api/admin/orgs/{org.id}/approve",
             headers=await admin_headers(db_session),
-            json={"testerInviteConfirmed": False},
+            json={"testerInviteConfirmed": True},
         )
         assert res.status_code == 400
+        assert "reconnect Instagram" in res.json()["error"]["message"]
+        await db_session.refresh(org)
+        assert org.approved_at is None
 
     async def test_approve_wrong_state(self, app_client: AsyncClient, db_session):
         user = await persist(

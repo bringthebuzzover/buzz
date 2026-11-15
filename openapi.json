@@ -2473,6 +2473,11 @@
             "title": "Instagramhandleconfirmed",
             "type": "boolean"
           },
+          "instagramReconnectRequired": {
+            "default": false,
+            "title": "Instagramreconnectrequired",
+            "type": "boolean"
+          },
           "instagramTokenExpiresAt": {
             "anyOf": [
               {
@@ -2841,6 +2846,11 @@
           "instagramHandleConfirmed": {
             "default": false,
             "title": "Instagramhandleconfirmed",
+            "type": "boolean"
+          },
+          "instagramReconnectRequired": {
+            "default": false,
+            "title": "Instagramreconnectrequired",
             "type": "boolean"
           },
           "instagramTokenExpiresAt": {
@@ -11027,6 +11037,11 @@
             ],
             "title": "Impersonation Readonly"
           },
+          "instagram_reconnect_required": {
+            "default": false,
+            "title": "Instagram Reconnect Required",
+            "type": "boolean"
+          },
           "instagram_username": {
             "anyOf": [
               {
@@ -13800,8 +13815,8 @@
     },
     "/api/admin/orgs/resend-connect-all": {
       "post": {
-        "description": "Email Connect Instagram to every ``pending_instagram`` org.\n\nDoes not email orgs still verifying school email or awaiting approval.",
-        "operationId": "resend_all_pending_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post",
+        "description": "Email Connect Instagram to every org awaiting an approved switch reconnect.\n\nDoes not email orgs still verifying school email or awaiting approval.",
+        "operationId": "resend_all_awaiting_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post",
         "parameters": [
           {
             "in": "header",
@@ -13842,7 +13857,7 @@
             "description": "Unprocessable Entity"
           }
         },
-        "summary": "Resend All Pending Instagram Connect Endpoint",
+        "summary": "Resend All Awaiting Instagram Connect Endpoint",
         "tags": [
           "admin"
         ]
@@ -15291,7 +15306,7 @@
     },
     "/api/auth/instagram/bind-start": {
       "post": {
-        "description": "Mint OAuth state with bind claim for ``pending_instagram`` orgs.",
+        "description": "Mint OAuth state with bind claim for orgs awaiting a switch reconnect.",
         "operationId": "instagram_bind_start_api_auth_instagram_bind_start_post",
         "parameters": [
           {

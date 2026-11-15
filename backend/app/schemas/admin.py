@@ -304,6 +304,7 @@ class AdminOrgItem(CamelModel):
     member_count: int | None
     category: str | None
     status: str
+    instagram_reconnect_required: bool = False
     edu_email: str | None
     email_verified_at: datetime | None
     approved_at: datetime | None
@@ -441,6 +442,7 @@ class AdminOrgDetail(CamelModel):
     user_id: uuid.UUID
     org_id: uuid.UUID | None
     status: str
+    instagram_reconnect_required: bool = False
     org_name: str | None
     university: str | None
     category: str | None

@@ -2,7 +2,7 @@
 
 Submit is a ticket. Approve is the identity write. Typed ``@`` is never a
 Graph id. Account switch must clear Graph ids in the same commit as the
-``pending_instagram`` demote, or returning login auto-promotes.
+``awaiting_connect`` request transition, or returning login auto-promotes.
 """
 
 from __future__ import annotations
@@ -49,7 +49,7 @@ from app.timeutils import utcnow
 logger = logging.getLogger(__name__)
 
 _KINDS = frozenset({"rename", "account_switch"})
-_STATUSES = frozenset({"pending", "approved", "denied"})
+_STATUSES = frozenset({"pending", "awaiting_connect", "approved", "denied"})
 _REASON_MIN = 10
 
 
@@ -90,7 +90,7 @@ async def latest_approved_switch(db: AsyncSession, org_id: UUID) -> OrgIgChangeR
             select(OrgIgChangeRequest)
             .where(
                 OrgIgChangeRequest.org_id == org_id,
-                OrgIgChangeRequest.status == "approved",
+                OrgIgChangeRequest.status.in_(("approved", "awaiting_connect")),
                 OrgIgChangeRequest.decided_kind == "account_switch",
             )
             .order_by(OrgIgChangeRequest.decided_at.desc())
@@ -349,7 +349,7 @@ async def approve_request(
         user.instagram_user_id = None
         user.instagram_token_user_id = None
         user.instagram_username = req.requested_handle
-        user.status = OrgUserStatus.PENDING_INSTAGRAM.value
+        req.status = "awaiting_connect"
         org.claimed_instagram_username = req.requested_handle
         clear_ig_bind_mismatch(org)
         bump_token_version(user)

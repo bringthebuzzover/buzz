@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qs, urlparse
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
@@ -267,3 +268,22 @@ async def test_login_state_carries_allowlisted_next(
     state = parse_qs(urlparse(resp.headers["location"]).query)["state"][0]
     payload = jwt.decode_token(state, expected_type=jwt.OAUTH_STATE_TOKEN_TYPE)
     assert payload.next == f"/d/{drop_id}"
+
+
+@pytest.mark.parametrize("connected", [True, False])
+async def test_active_public_drop_uses_credentials_for_portal_fields(
+    app_client: AsyncClient, db_session, connected: bool
+) -> None:
+    user = make_user()
+    if not connected:
+        user.instagram_access_token = None
+    await persist(db_session, user)
+    await make_org(db_session, user)
+    brand = await make_brand(db_session)
+    drop = await make_drop(db_session, brand, total_product_units=100)
+    headers = {"Authorization": f"Bearer {mint_access_token(user)}"}
+    res = await app_client.get(f"/api/drops/{drop.id}", headers=headers)
+    assert res.status_code == 200
+    assert res.json()["data"]["totalProductUnits"] == (100 if connected else None)
+    apply = await app_client.post(f"/api/drops/{drop.id}/apply", headers=headers, json={})
+    assert apply.status_code == (200 if connected else 403)

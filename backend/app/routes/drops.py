@@ -95,6 +95,8 @@ async def get_drop(
         user is not None
         and user.portal_role == PortalRole.ORG.value
         and user.status == OrgUserStatus.ACTIVE.value
+        and user.instagram_user_id
+        and user.instagram_access_token
     ):
         return api_response(data=await build_drop_detail(db, user, drop))
 

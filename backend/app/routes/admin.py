@@ -101,7 +101,7 @@ from app.services.admin import (
     list_brands,
     list_orgs,
     publish_drop,
-    resend_all_pending_instagram_connect,
+    resend_all_awaiting_instagram_connect,
     resend_brand_invite,
     resend_org_connect,
     sync_and_autolink_drop,
@@ -301,16 +301,16 @@ async def approve_org_endpoint(
     "/orgs/resend-connect-all",
     response_model=DataResponse[AdminResendConnectAllResponse],
 )
-async def resend_all_pending_instagram_connect_endpoint(
+async def resend_all_awaiting_instagram_connect_endpoint(
     _user: CurrentAdmin,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse:
-    """Email Connect Instagram to every ``pending_instagram`` org.
+    """Email Connect Instagram to every org awaiting an approved switch reconnect.
 
     Does not email orgs still verifying school email or awaiting approval.
     """
-    result = await resend_all_pending_instagram_connect(db, background_tasks=background_tasks)
+    result = await resend_all_awaiting_instagram_connect(db, background_tasks=background_tasks)
     return api_response(data=AdminResendConnectAllResponse.model_validate(result))
 
 

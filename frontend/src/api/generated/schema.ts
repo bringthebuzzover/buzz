@@ -723,12 +723,12 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Resend All Pending Instagram Connect Endpoint
-         * @description Email Connect Instagram to every ``pending_instagram`` org.
+         * Resend All Awaiting Instagram Connect Endpoint
+         * @description Email Connect Instagram to every org awaiting an approved switch reconnect.
          *
          *     Does not email orgs still verifying school email or awaiting approval.
          */
-        post: operations["resend_all_pending_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post"];
+        post: operations["resend_all_awaiting_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1216,7 +1216,7 @@ export interface paths {
         put?: never;
         /**
          * Instagram Bind Start
-         * @description Mint OAuth state with bind claim for ``pending_instagram`` orgs.
+         * @description Mint OAuth state with bind claim for orgs awaiting a switch reconnect.
          */
         post: operations["instagram_bind_start_api_auth_instagram_bind_start_post"];
         delete?: never;
@@ -3275,6 +3275,11 @@ export interface components {
              * @default false
              */
             instagramHandleConfirmed: boolean;
+            /**
+             * Instagramreconnectrequired
+             * @default false
+             */
+            instagramReconnectRequired: boolean;
             /** Instagramtokenexpiresat */
             instagramTokenExpiresAt: number | null;
             /** Instagramtokenrefreshedat */
@@ -3371,6 +3376,11 @@ export interface components {
              * @default false
              */
             instagramHandleConfirmed: boolean;
+            /**
+             * Instagramreconnectrequired
+             * @default false
+             */
+            instagramReconnectRequired: boolean;
             /** Instagramtokenexpiresat */
             instagramTokenExpiresAt: number | null;
             /** Lastloginat */
@@ -5958,6 +5968,11 @@ export interface components {
             impersonated_by?: string | null;
             /** Impersonation Readonly */
             impersonation_readonly?: boolean | null;
+            /**
+             * Instagram Reconnect Required
+             * @default false
+             */
+            instagram_reconnect_required: boolean;
             /** Instagram Username */
             instagram_username?: string | null;
             /** Pending Edu Email */
@@ -7396,7 +7411,7 @@ export interface operations {
             };
         };
     };
-    resend_all_pending_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post: {
+    resend_all_awaiting_instagram_connect_endpoint_api_admin_orgs_resend_connect_all_post: {
         parameters: {
             query?: never;
             header?: {

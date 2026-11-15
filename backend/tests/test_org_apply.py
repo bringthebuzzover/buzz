@@ -16,7 +16,7 @@ from app.models.user import User
 from app.models.verification_token import EmailVerificationToken
 from app.security import rate_limit
 from app.security.one_shot_tokens import hash_token
-from tests.conftest import FakeInstagramClient, make_user, persist
+from tests.conftest import FakeInstagramClient, make_awaiting_connect, make_user, persist
 
 _APPLY = {
     "orgName": "Test Org",
@@ -83,7 +83,7 @@ async def test_verify_email_mints_session(app_client: AsyncClient, db_session) -
     assert "buzz_refresh" in resp.headers.get("set-cookie", "").lower() or True  # cookie name
 
 
-async def test_bind_pending_instagram(
+async def test_bind_awaiting_connect(
     app_client: AsyncClient, fake_instagram: FakeInstagramClient, db_session
 ) -> None:
     from tests.conftest import make_org, mint_access_token
@@ -94,12 +94,13 @@ async def test_bind_pending_instagram(
         db_session,
         make_user(
             role=PortalRole.ORG,
-            status=OrgUserStatus.PENDING_INSTAGRAM,
+            status=OrgUserStatus.ACTIVE,
             instagram_user_id=None,
         ),
     )
     user.instagram_username = "campusgreeks"
     org = await make_org(db_session, user)
+    await make_awaiting_connect(db_session, user, org)
     org.instagram_handle_confirmed = False
     await db_session.flush()
 

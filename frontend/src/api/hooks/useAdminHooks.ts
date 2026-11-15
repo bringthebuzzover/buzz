@@ -513,8 +513,8 @@ export function useAckIgBindMismatch() {
 export type ResendConnectAllResult =
   components["schemas"]["AdminResendConnectAllResponse"];
 
-/** Emails every pending_instagram org; never unverified or awaiting-approval. */
-export function useResendAllPendingInstagramConnect() {
+/** Emails every awaiting_connect org; never unverified or awaiting-approval. */
+export function useResendAllAwaitingInstagramConnect() {
   return useAdminMutation(async (_: void) => {
     const { data } = await apiFetch<ResendConnectAllResult>(
       "/api/admin/orgs/resend-connect-all",

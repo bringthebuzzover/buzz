@@ -86,7 +86,8 @@ export default function PublicDropPage() {
 
   const anonymous = status === "error";
   const orgUser = status === "authenticated" && user?.portalRole === "org";
-  const activeOrg = orgUser && user.status === "active";
+  const reconnectRequired = orgUser && user.instagramReconnectRequired;
+  const activeOrg = orgUser && user.status === "active" && !reconnectRequired;
   const pendingOrg =
     orgUser &&
     user.status !== "pending_org_profile" &&
@@ -116,6 +117,15 @@ export default function PublicDropPage() {
             ? "Applications aren't open yet."
             : "Applications are closed."}
         </p>
+      ) : null}
+
+      {reconnectRequired ? (
+        <>
+          <StatePanel>Reconnect Instagram to apply from your organization account.</StatePanel>
+          <div className="mb-6 flex justify-center">
+            <LinkButton to={pathForUser(user, nextPath)}>Connect Instagram</LinkButton>
+          </div>
+        </>
       ) : null}
 
       {activeOrg ? (

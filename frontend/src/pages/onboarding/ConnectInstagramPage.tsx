@@ -1,6 +1,5 @@
 /**
- * /onboarding/connect-instagram — bind Instagram after admin Approve
- * (buzz-ops engineering/plans/archive/2026-seeded-launch.md Phase A / PRODUCT §6.1). Status: pending_instagram.
+ * /onboarding/connect-instagram — reconnect an approved Instagram account switch.
  *
  * Approval email carries ?token= for one-shot session mint when the org has no
  * live cookie; then they start bind OAuth via bind-start.
@@ -93,7 +92,7 @@ export default function ConnectInstagramPage() {
     );
   }
 
-  if (!user || user.status !== "pending_instagram") {
+  if (!user || !user.instagramReconnectRequired) {
     if (user?.status === "active" && next) {
       return <Navigate to={next} replace />;
     }

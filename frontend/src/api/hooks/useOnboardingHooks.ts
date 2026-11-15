@@ -178,7 +178,7 @@ export type InstagramBindStartResponse = {
   authorize_url?: string;
 };
 
-/** Authenticated bind OAuth start for pending_instagram orgs. */
+/** Authenticated bind OAuth start for awaiting_connect orgs. */
 export function useInstagramBindStart() {
   return useMutation({
     mutationFn: async (nextPath?: string | null) => {
