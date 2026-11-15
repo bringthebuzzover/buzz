@@ -343,7 +343,8 @@ export default function ContactModal({ onClose }: ContactModalProps) {
           <Button
             type="submit"
             disabled={submit.isPending}
-            className="mt-6 h-11 w-full rounded-full px-7"
+            fullWidth
+            className="mt-6"
           >
             {submit.isPending ? "Sending…" : "Send"}
           </Button>

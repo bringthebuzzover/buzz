@@ -20,8 +20,10 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Coroutine
+from typing import Any
 
 from fastapi import Request
 
@@ -45,6 +47,7 @@ def reset() -> None:
     """Clear all counters (used between tests)."""
     _buckets.clear()
     _accepted.clear()
+    _in_flight.clear()
 
 
 def _evict_stale(now: float) -> None:
@@ -152,6 +155,36 @@ def release_account_send(bucket: str, identity: str) -> None:
 # provider already dedupes the send by idempotency key; charging the retry would
 # spend the sender's allowance for work that was never repeated.
 _accepted: dict[str, float] = {}
+
+# Like the counters, coalescing is process-local and assumes one web replica.
+# Keep strong references until delivery finishes, even if a request disconnects.
+_in_flight: dict[str, asyncio.Task[None]] = {}
+
+
+def submission_in_flight(key: str) -> asyncio.Task[None] | None:
+    """Find delivery already running for this exact submission."""
+    return _in_flight.get(key)
+
+
+def start_submission(key: str, delivery: Coroutine[Any, Any, None]) -> asyncio.Task[None]:
+    """Register delivery synchronously, after checking and reserving its budget.
+
+    Callers must not await between checking, reserving, and registering. Await
+    the returned task with ``asyncio.shield`` so one disconnected request cannot
+    cancel delivery for every overlapping retry.
+    """
+    task = asyncio.create_task(delivery)
+    _in_flight[key] = task
+
+    def done(completed: asyncio.Task[None]) -> None:
+        if _in_flight.get(key) is completed:
+            _in_flight.pop(key)
+        # Observe failures even when all request waiters have disconnected.
+        if not completed.cancelled():
+            completed.exception()
+
+    task.add_done_callback(done)
+    return task
 
 
 def submission_already_accepted(key: str) -> bool:

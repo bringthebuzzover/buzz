@@ -8,12 +8,14 @@ sender must get a copy).
 from __future__ import annotations
 
 import asyncio
+from unittest.mock import Mock
 
 import pytest
 from httpx import AsyncClient
 from pydantic import ValidationError
 
 from app.config import settings
+from app.routes import contact
 from app.schemas.contact import ContactRequest
 from app.security import rate_limit
 from app.services import email
@@ -452,6 +454,77 @@ async def test_identical_retry_does_not_consume_the_allowance(
         "/api/contact", json={**_VALID, "message": "A genuinely new message"}
     )
     assert fresh.status_code == 200
+
+
+@pytest.mark.parametrize("prior_submissions", [0, 2])
+@pytest.mark.parametrize("notice_delivered", [True, False])
+async def test_overlapping_identical_submissions_share_delivery_and_reservation(
+    app_client: AsyncClient, sent, monkeypatch, prior_submissions: int, notice_delivered: bool
+) -> None:
+    """A genuine in-flight retry shares success/failure, even on the last slot."""
+    monkeypatch.setattr(settings, "RATE_LIMIT_ENABLED", True)
+    for n in range(prior_submissions):
+        response = await app_client.post("/api/contact", json={**_VALID, "message": f"Earlier {n}"})
+        assert response.status_code == 200
+    sent.clear()
+
+    notice_started = asyncio.Event()
+    retry_joined = asyncio.Event()
+    allow_delivery = asyncio.Event()
+    original_dispatch = email._dispatch
+    original_lookup = contact.submission_in_flight
+    reserve = Mock(wraps=contact.reserve_account_send)
+    monkeypatch.setattr(contact, "reserve_account_send", reserve)
+
+    def _lookup(key):
+        pending = original_lookup(key)
+        if pending is not None:
+            retry_joined.set()
+        return pending
+
+    async def _yielding_dispatch(to_email, subject, body, **kwargs):
+        sent.append({"to": to_email, "subject": subject, "body": body, **kwargs})
+        notice_started.set()
+        await allow_delivery.wait()
+        return notice_delivered
+
+    monkeypatch.setattr(contact, "submission_in_flight", _lookup)
+    monkeypatch.setattr(email, "_dispatch", _yielding_dispatch)
+    first = asyncio.create_task(app_client.post("/api/contact", json=_VALID))
+    requests = [first]
+    try:
+        await asyncio.wait_for(notice_started.wait(), timeout=2)
+        retry = asyncio.create_task(app_client.post("/api/contact", json=_VALID))
+        requests.append(retry)
+        await asyncio.wait_for(retry_joined.wait(), timeout=2)
+        assert not first.done()
+        assert not retry.done()
+        reserve.assert_called_once_with("contact_recipient", _VALID["email"], limit=3, window=3600)
+    finally:
+        allow_delivery.set()
+        responses = await asyncio.wait_for(asyncio.gather(*requests), timeout=2)
+
+    expected_status = 200 if notice_delivered else 502
+    assert [response.status_code for response in responses] == [expected_status] * 2
+    assert responses[0].json() == responses[1].json()
+    assert [message["to"] for message in sent] == (
+        [email.CONTACT_EMAIL, _VALID["email"]] if notice_delivered else [email.CONTACT_EMAIL]
+    )
+    assert rate_limit._in_flight == {}
+    recipient_key = f"contact_recipient:acct:{_VALID['email']}"
+    assert rate_limit._buckets.get(recipient_key, (0, 0))[1] == (
+        prior_submissions + int(notice_delivered)
+    )
+
+    # Accepted replays send nothing; a failed notice releases its reservation
+    # and removes the in-flight entry so the very same message can be retried.
+    monkeypatch.setattr(email, "_dispatch", original_dispatch)
+    delivered_before_retry = len(sent)
+    replay = await app_client.post("/api/contact", json=_VALID)
+    assert replay.status_code == 200
+    assert len(sent) == delivered_before_retry + (0 if notice_delivered else 2)
+    assert reserve.call_count == (1 if notice_delivered else 2)
+    assert rate_limit._buckets[recipient_key][1] == prior_submissions + 1
 
 
 async def test_refused_recipient_never_gets_the_notice(

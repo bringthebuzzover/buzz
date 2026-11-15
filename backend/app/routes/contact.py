@@ -14,6 +14,7 @@ sender) plus a copy back to the sender. See ``services.email``.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 
@@ -29,7 +30,9 @@ from app.security.rate_limit import (
     rate_limited,
     release_account_send,
     reserve_account_send,
+    start_submission,
     submission_already_accepted,
+    submission_in_flight,
 )
 from app.services import email
 
@@ -103,14 +106,18 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
     # message the team already received.
     recipient_key = mailbox_identity(payload.email)
     # A byte-identical retry (lost response, double click) is answered from the
-    # marker without reserving or dispatching again. A retry overlapping the
-    # first attempt has no marker yet, so it does reserve; two in-flight copies
-    # must not both deliver for one slot.
+    # marker without reserving or dispatching again. An overlapping retry joins
+    # the in-flight delivery and shares its reservation and outcome.
     if submission_already_accepted(submission_hash):
         # Already accepted and already delivered. Answering from the marker rather
         # than dispatching again is what keeps the cap meaningful: the provider's
         # idempotency keys expire, so a re-dispatch would eventually send a second
         # real email with no reservation behind it.
+        return api_response(data=ContactAccepted())
+
+    pending = submission_in_flight(submission_hash)
+    if pending is not None:
+        await asyncio.shield(pending)
         return api_response(data=ContactAccepted())
 
     if not reserve_account_send("contact_recipient", recipient_key, limit=3, window=3600):
@@ -120,37 +127,46 @@ async def submit_contact(payload: ContactRequest) -> APIResponse:
             status_code=429,
         )
 
-    try:
-        notice_sent = await email.send_contact_notice(
-            contact_name=contact_name,
-            sender_email=payload.email,
-            message=payload.message,
-            idempotency_key=notice_key,
-        )
-    except Exception:
-        # Give the reservation back: nothing was delivered.
-        release_account_send("contact_recipient", recipient_key)
-        raise
-    if not notice_sent:
-        release_account_send("contact_recipient", recipient_key)
-        # No ack: the team never saw this, so claiming we did would be a lie the
-        # visitor acts on. They still have their text on screen and can retry.
-        logger.error("contact_notice_failed")
-        raise BuzzAPIException(
-            errors.EMAIL_SEND_FAILED,
-            "We couldn't send that. Please try again.",
-            status_code=502,
-        )
+    async def deliver() -> None:
+        notice_sent = False
+        try:
+            notice_sent = await email.send_contact_notice(
+                contact_name=contact_name,
+                sender_email=payload.email,
+                message=payload.message,
+                idempotency_key=notice_key,
+            )
+        finally:
+            if not notice_sent:
+                # Give the reservation back: nothing was delivered.
+                release_account_send("contact_recipient", recipient_key)
+        if not notice_sent:
+            # No ack: the team never saw this, so claiming we did would be a lie the
+            # visitor acts on. They still have their text on screen and can retry.
+            logger.error("contact_notice_failed")
+            raise BuzzAPIException(
+                errors.EMAIL_SEND_FAILED,
+                "We couldn't send that. Please try again.",
+                status_code=502,
+            )
 
-    ack_sent = await email.send_contact_ack(
-        to_email=payload.email,
-        contact_name=payload.first_name,
-        idempotency_key=email.build_idempotency_key(email.KIND_CONTACT_ACK, submission_hash),
-    )
-    mark_submission_accepted(submission_hash)
-    if not ack_sent:
-        # The notice landed, so the submission stands and keeps its reservation;
-        # only the courtesy copy failed.
-        logger.warning("contact_ack_failed")
+        try:
+            ack_sent = await email.send_contact_ack(
+                to_email=payload.email,
+                contact_name=payload.first_name,
+                idempotency_key=email.build_idempotency_key(
+                    email.KIND_CONTACT_ACK, submission_hash
+                ),
+            )
+        finally:
+            # Once the notice landed, even an interrupted ack must not let a
+            # later retry reserve and send the notice again.
+            mark_submission_accepted(submission_hash)
+        if not ack_sent:
+            # The notice landed, so the submission stands and keeps its reservation;
+            # only the courtesy copy failed.
+            logger.warning("contact_ack_failed")
 
+    pending = start_submission(submission_hash, deliver())
+    await asyncio.shield(pending)
     return api_response(data=ContactAccepted())
